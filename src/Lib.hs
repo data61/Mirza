@@ -35,11 +35,7 @@ data User = User {
   , userFirstName :: String
   , userLastName  :: String
 } deriving (Generic, Eq, Show)
-instance FromJSON User
-instance ToJSON User
-
-
--- $(deriveJSON defaultOptions ''User)
+$(deriveJSON defaultOptions ''User)
 
 
 data RFIDState = New | InProgress | AwaitingDeploymentToBC | Customer | Finalised
@@ -70,7 +66,8 @@ data NewObject = NewObject {
   object_timezone:: TimeZone,
   object_objectID :: ObjectID,
   object_location :: GeoLocation
-                           } deriving (Show)
+                           } deriving (Show, Generic)
+$(deriveJSON defaultOptions ''NewObject)
 
 data AggregatedObject = AggregatedObject {
   aggObject_userID :: UserID,
@@ -78,7 +75,8 @@ data AggregatedObject = AggregatedObject {
   aggObject_timestamp :: EPCISTime,
   aggOject_timezone:: TimeZone,
   aggObject_location :: GeoLocation
-                           } deriving (Show)
+} deriving (Show, Generic)
+$(deriveJSON defaultOptions ''AggregatedObject)
 
 data TransformationInfo = TransformationInfo {
   transObject_userID :: UserID,
@@ -90,7 +88,10 @@ data TransformationInfo = TransformationInfo {
   transObject_inputQuantity :: [Quantity],
   transObject_outputEPC :: [EPC],
   transObject_outputQuantity :: [Quantity]
-}
+} deriving (Show, Generic)
+$(deriveJSON defaultOptions ''TransformationInfo)
+
+
 
 data TransactionInfo = TransactionInfo {
   transaction_userID :: UserID,
@@ -99,7 +100,8 @@ data TransactionInfo = TransactionInfo {
   transaction_bizTransaction :: [BizTransaction],
   transaction_epcs :: [EPC],
   transaction_quantities :: [QuantityElement]
-}
+} deriving (Show, Generic)
+$(deriveJSON defaultOptions ''TransactionInfo)
 
 data EventInfo = EventInfo {
   event_eventID :: Integer,
@@ -124,25 +126,26 @@ data SignedEvent = SignedEvent {
   signed_Hashes :: [ByteString],
   signed_users :: [UserID]
 }
+-- $(deriveJSON defaultOptions ''SignedEvent)
+-- $(deriveJSON defaultOptions ''ByteString)
 
 
 type API =       "newUser" :> ReqBody '[JSON] NewUser :> Get '[JSON]  UserID
             :<|> "rfid" :>  Capture "RFID" String :> "info" :> Get '[JSON] (Maybe RFIDInfo)
             :<|> "event" :> Capture "eventID" EventID:> "info" :> Get '[JSON] EventInfo
-
-              {-
-type API =       "newUser" :>  Get '[JSON] (Maybe UserID)
-            :<|> "event" :> Capture "eventID" EventID:> "hash" :> Get '[JSON] SignedEvent
-            :<|> "event" :> "sign" :> ReqBody '[JSON] SignedEvent :> Post '[JSON] SignedEvent
             :<|> "contacts" :> Capture "userID" Integer :> Get '[JSON] [User]
             :<|> "contacts" :> "add" :> Capture "userID" Integer :> Get '[JSON] Bool
             :<|> "contacts" :> "remove" :> Capture "userID" Integer :> Get '[JSON] Bool
             :<|> "contacts" :> "search" :> Capture "term" String :> Get '[JSON] [User]
-            :<|> "event" :> "list" :> Capture "userID" Integer :> Get '[JSON] EventInfo
+            :<|> "event" :> "list" :> Capture "userID" Integer :> Get '[JSON] [EventInfo]
             :<|> "event" :> "createObject" :> ReqBody '[JSON] NewObject :> Get '[JSON] ObjectID
             :<|> "event" :> "aggregateObjects" :> ReqBody '[JSON] AggregatedObject :> Get '[JSON] EventInfo
             :<|> "event" :> "start-transaction" :> ReqBody '[JSON] TransactionInfo :> Get '[JSON] EventInfo
             :<|> "event" :> "transformObject" :> ReqBody '[JSON] TransformationInfo :> Get '[JSON] EventInfo
+
+              {-
+type API = :<|> "event" :> "sign" :> ReqBody '[JSON] SignedEvent :> Post '[JSON] SignedEvent
+            :<|> "event" :> Capture "eventID" EventID:> "hash" :> Get '[JSON] SignedEvent
             -- :<|> "login" :>  Put '[JSON] [User]
 -}
 
@@ -161,16 +164,17 @@ server :: Server API
 server =  newUser
         :<|> return . rfid
         :<|> return . eventInfo
+        :<|> return . contactsInfo
+        :<|> return . contactsAdd
+        :<|> return . contactsRemove
+        :<|> return . contactsSearch
+        :<|> return . eventList
+        :<|> return . eventCreateObject
+        :<|> return . eventAggregateObjects
+        :<|> return . eventStartTransaction
+        :<|> return . eventTransformObject
           {-
-        :<|> return eventHash
-        :<|> return contactsInfo
-        :<|> return contactsAdd
-        :<|> return contactsRemove
-        :<|> return eventList
-        :<|> return eventCreateObject
-        :<|> return eventAggregateObjects
-        :<|> return eventStartTransaction
-        :<|> return eventTransformObject
+        :<|> return . eventHash
         -}
 
 
@@ -200,32 +204,35 @@ sampleWhen = DWhen pt (Just pt) tz
 eventInfo :: EventID -> EventInfo
 eventInfo eID = EventInfo 1 AggregationEventT New sampleWhat sampleWhy sampleWhen []
 
-
-
 eventHash :: EventID -> SignedEvent
-eventHash = error "implement me"
+eventHash eID = SignedEvent eID empty [empty] [1,2]
+
+
 
 contactsInfo :: UserID -> [User]
-contactsInfo = error "implement me"
+contactsInfo uID = []
 
 contactsAdd :: UserID -> Bool
-contactsAdd = error "implement me"
+contactsAdd uID = False
 
 contactsRemove :: UserID -> Bool
-contactsRemove = error "implement me"
+contactsRemove uID = False
+
+contactsSearch :: String -> [User]
+contactsSearch term = []
 
 eventList :: UserID -> [EventInfo]
-eventList = error "implement me"
+eventList uID = [(eventInfo 1)]
 
 eventCreateObject :: NewObject -> ObjectID
-eventCreateObject = error "implement me"
+eventCreateObject newObject = "newObjectID"
 
 eventAggregateObjects :: AggregatedObject -> EventInfo
-eventAggregateObjects = error "implement me"
+eventAggregateObjects _ = eventInfo 1
 
 eventStartTransaction :: TransactionInfo -> EventInfo
-eventStartTransaction = error "implement me"
+eventStartTransaction _ = eventInfo 1
 
 eventTransformObject :: TransformationInfo -> EventInfo
-eventTransformObject = error "implement me"
+eventTransformObject _ = eventInfo 1
 
