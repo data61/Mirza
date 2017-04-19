@@ -73,10 +73,6 @@ data RFIDInfo = RFIDInfo {
 } deriving (Generic, Eq, Show)
 $(deriveJSON defaultOptions ''RFIDInfo)
 
--- | A user we'll grab from the database when we authenticate someone
-newtype SimpleUser = SimpleUser { userName :: Text }
-  deriving (Eq, Show)
-
 
 data NewUser = NewUser {
   phoneNumber :: String,
@@ -182,14 +178,14 @@ type API = :<|> "event" :> "sign" :> ReqBody '[JSON] SignedEvent :> Post '[JSON]
 type PublicAPI = "login" :> Get '[JSON] User
 -- type PublicAPI =       "newUser" :> ReqBody '[JSON] NewUser :> Get '[JSON]  UserID
 
-type API = PrivateAPI :<|> PublicAPI
+type API = BasicAuth "foo-realm" User :> PrivateAPI :<|> PublicAPI
 
 -- | 'BasicAuthCheck' holds the handler we'll use to verify a username and password.
-authCheck :: BasicAuthCheck SimpleUser
+authCheck :: BasicAuthCheck User
 authCheck =
   let check (BasicAuthData username password) =
         if username == "servant" && password == "server"
-        then return (Authorized (SimpleUser "servant"))
+        then return (Authorized (sampleUser))
         else return Unauthorized
   in BasicAuthCheck check
 
@@ -198,7 +194,7 @@ startApp :: IO ()
 startApp = run 8080 app
 
 app :: Application
-app = serve api server
+app = serveWithContext api basicAuthServerContext server
 
 api :: Proxy API
 api = Proxy
@@ -207,8 +203,8 @@ api = Proxy
 publicServer :: Server PublicAPI
 publicServer =  login
 
-privateServer :: Server PrivateAPI
-privateServer =  newUser
+privateServer :: User -> Server PrivateAPI
+privateServer _ =  newUser
         :<|> return . rfid
         :<|> return . eventInfo
         :<|> return . contactsInfo
@@ -229,9 +225,15 @@ privateServer =  newUser
 
 
 server :: Server API
-server =  privateServer :<|> publicServer
+server = privateServer :<|> publicServer
 
 
+-- | We need to supply our handlers with the right Context. In this case,
+-- Basic Authentication requires a Context Entry with the 'BasicAuthCheck' value
+-- tagged with "foo-tag" This context is then supplied to 'server' and threaded
+-- to the BasicAuth HasServer handlers.
+basicAuthServerContext :: Context (BasicAuthCheck User ': '[])
+basicAuthServerContext = authCheck :. EmptyContext
 
 
 addPublicKey :: ByteString -> (Bool, String)
