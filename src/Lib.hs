@@ -3,6 +3,17 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeOperators   #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DataKinds             #-}
+{-# LANGUAGE DeriveGeneric         #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE TypeOperators         #-}
+{-# LANGUAGE UndecidableInstances  #-}
+
 
 module Lib
     ( startApp
@@ -13,7 +24,20 @@ import Data.Aeson
 import Data.Aeson.TH
 import Network.Wai
 import Network.Wai.Handler.Warp
+
 import Servant
+import Servant.Server                   (BasicAuthCheck (BasicAuthCheck),
+                                         BasicAuthResult( Authorized
+                                                        , Unauthorized
+                                                        ),
+                                         Context ((:.), EmptyContext),
+                                         err401, err403, errBody, Server,
+                                         serveWithContext, Handler)
+import Servant.Server.Experimental.Auth (AuthHandler, AuthServerData,
+                                         mkAuthHandler)
+import Servant.Server.Experimental.Auth()
+
+
 import Data.Maybe
 import Data.GS1.Event
 import Data.GS1.Object
@@ -24,6 +48,7 @@ import Data.GS1.DWhat
 import Data.GS1.DWhy
 import Data.Either.Combinators
 import Data.Time
+import Data.Text                        (Text)
 import Data.ByteString
 import GHC.Generics
 
@@ -48,6 +73,9 @@ data RFIDInfo = RFIDInfo {
 } deriving (Generic, Eq, Show)
 $(deriveJSON defaultOptions ''RFIDInfo)
 
+-- | A user we'll grab from the database when we authenticate someone
+newtype SimpleUser = SimpleUser { userName :: Text }
+  deriving (Eq, Show)
 
 
 data NewUser = NewUser {
@@ -130,7 +158,7 @@ data SignedEvent = SignedEvent {
 -- $(deriveJSON defaultOptions ''ByteString)
 
 
-type API =       "newUser" :> ReqBody '[JSON] NewUser :> Get '[JSON]  UserID
+type PrivateAPI =       "newUser" :> ReqBody '[JSON] NewUser :> Get '[JSON]  UserID
             :<|> "rfid" :>  Capture "RFID" String :> "info" :> Get '[JSON] (Maybe RFIDInfo)
             :<|> "event" :> Capture "eventID" EventID:> "info" :> Get '[JSON] EventInfo
             :<|> "contacts" :> Capture "userID" Integer :> Get '[JSON] [User]
@@ -151,6 +179,19 @@ type API = :<|> "event" :> "sign" :> ReqBody '[JSON] SignedEvent :> Post '[JSON]
             -- :<|> "login" :>  Put '[JSON] [User]
 -}
 
+type PublicAPI = "login" :> Get '[JSON] User
+-- type PublicAPI =       "newUser" :> ReqBody '[JSON] NewUser :> Get '[JSON]  UserID
+
+type API = PrivateAPI :<|> PublicAPI
+
+-- | 'BasicAuthCheck' holds the handler we'll use to verify a username and password.
+authCheck :: BasicAuthCheck SimpleUser
+authCheck =
+  let check (BasicAuthData username password) =
+        if username == "servant" && password == "server"
+        then return (Authorized (SimpleUser "servant"))
+        else return Unauthorized
+  in BasicAuthCheck check
 
 
 startApp :: IO ()
@@ -162,8 +203,12 @@ app = serve api server
 api :: Proxy API
 api = Proxy
 
-server :: Server API
-server =  newUser
+
+publicServer :: Server PublicAPI
+publicServer =  login
+
+privateServer :: Server PrivateAPI
+privateServer =  newUser
         :<|> return . rfid
         :<|> return . eventInfo
         :<|> return . contactsInfo
@@ -177,9 +222,17 @@ server =  newUser
         :<|> return . eventTransformObject
         :<|> return . addPublicKey
         :<|> return . getPublicKey
+
           {-
         :<|> return . eventHash
         -}
+
+
+server :: Server API
+server =  privateServer :<|> publicServer
+
+
+
 
 addPublicKey :: ByteString -> (Bool, String)
 addPublicKey   sig = (True, "Success")
@@ -190,11 +243,15 @@ getPublicKey userID = empty
 newUser ::  NewUser -> Handler UserID
 newUser _ = return 1
 
-login :: UserID -> String -> Bool
-login = error "implement me"
+login :: Handler User
+login = return sampleUser
 
 rfid :: String -> Maybe RFIDInfo
 rfid str = Just (RFIDInfo New Nothing)
+
+sampleUser :: User
+sampleUser =  User 1 "Sara" "Falamaki"
+
 
 sampleWhat :: DWhat
 sampleWhat = ObjectDWhat Observe [GLN "urn:epc:id:sgtin:0614141" "107346" "2017", GLN "urn:epc:id:sgtin:0614141" "107346" "2018"] []
