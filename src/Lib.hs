@@ -142,10 +142,12 @@ type API =       "newUser" :> ReqBody '[JSON] NewUser :> Get '[JSON]  UserID
             :<|> "event" :> "aggregateObjects" :> ReqBody '[JSON] AggregatedObject :> Get '[JSON] EventInfo
             :<|> "event" :> "start-transaction" :> ReqBody '[JSON] TransactionInfo :> Get '[JSON] EventInfo
             :<|> "event" :> "transformObject" :> ReqBody '[JSON] TransformationInfo :> Get '[JSON] EventInfo
+            :<|> "key" :> "add" :>  ReqBody '[OctetStream] ByteString :> Get '[JSON] (Bool, String)
 
               {-
 type API = :<|> "event" :> "sign" :> ReqBody '[JSON] SignedEvent :> Post '[JSON] SignedEvent
             :<|> "event" :> Capture "eventID" EventID:> "hash" :> Get '[JSON] SignedEvent
+            :<|> "key" :> "get" :> Capture "userID" UserID :> Get '[OctetStream] ByteString
             -- :<|> "login" :>  Put '[JSON] [User]
 -}
 
@@ -173,10 +175,17 @@ server =  newUser
         :<|> return . eventAggregateObjects
         :<|> return . eventStartTransaction
         :<|> return . eventTransformObject
+        :<|> return . addPublicKey
           {-
+        :<|> return . getPublicKey
         :<|> return . eventHash
         -}
 
+addPublicKey :: ByteString -> (Bool, String)
+addPublicKey   sig = (True, "Success")
+
+getPublicKey :: UserID -> ByteString
+getPublicKey userID = empty
 
 newUser ::  NewUser -> Handler UserID
 newUser _ = return 1
