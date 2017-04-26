@@ -252,13 +252,13 @@ startApp = run 8080 app
 app :: Application
 app = serveWithContext api basicAuthServerContext server
 
-api :: Proxy ServerAPI
+api :: Proxy API
 api = Proxy
 
 
 type ServerAPI =  BasicAuth "foo-realm" User :> PrivateAPI :<|> PublicAPI -- :<|> SwaggerAPI
 
-type API = SwaggerAPI :<|> ServerAPI
+type API =  ServerAPI :<|> SwaggerAPI
 
 -- type API = ServerAPI :<|> SwaggerAPI
 {-
@@ -308,17 +308,18 @@ privateServer _ =  newUser
 
 -- | Swagger spec for server API.
 serveSwaggerAPI :: Swagger
-serveSwaggerAPI = toSwagger api
+serveSwaggerAPI = toSwagger serverAPI
   & info.title   .~ "Supplychain Server API"
   & info.version .~ "1.0"
   & info.description ?~ "This is an API that tests swagger integration"
   & info.license ?~ ("MIT" & url ?~ URL "http://mit.com")
 
 
-server :: Server ServerAPI
-server = privateServer :<|> publicServer -- :<|> return serveSwaggerAPI
+server :: Server API
+server = (privateServer :<|> publicServer) :<|> return serveSwaggerAPI
 
-
+serverAPI :: Proxy ServerAPI
+serverAPI = Proxy
 
 -- | We need to supply our handlers with the right Context. In this case,
 -- Basic Authentication requires a Context Entry with the 'BasicAuthCheck' value
