@@ -13,6 +13,7 @@
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
 {-# LANGUAGE UndecidableInstances  #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 
 module Lib
@@ -22,6 +23,7 @@ module Lib
 
 import Data.Aeson
 import Data.Aeson.TH
+import Data.Swagger
 import Network.Wai
 import Network.Wai.Handler.Warp
 
@@ -36,7 +38,8 @@ import Servant.Server                   (BasicAuthCheck (BasicAuthCheck),
 import Servant.Server.Experimental.Auth (AuthHandler, AuthServerData,
                                          mkAuthHandler)
 import Servant.Server.Experimental.Auth()
-
+import Servant.Swagger
+import GHC.TypeLits (KnownSymbol)
 
 import Data.Maybe
 import Data.GS1.Event
@@ -52,8 +55,45 @@ import Data.Text                        (Text)
 import Data.ByteString
 import GHC.Generics
 
+
+import           Control.Lens
+import           Data.Aeson
+import           Data.Aeson.Encode.Pretty   (encodePretty)
+import qualified Data.ByteString.Lazy.Char8 as BL8
+import           Data.Proxy
+import           Data.Swagger
+import           Data.Text                  (Text)
+import           Data.Time                  (UTCTime (..), fromGregorian)
+import           Data.Typeable              (Typeable)
+import           GHC.Generics
+import           Servant
+import           Servant.Swagger
+import qualified Data.HashMap.Strict.InsOrd as IOrd
+
+
 type UserID = Integer
+
 type EventID = Integer
+
+newtype BinaryBlob = BinaryBlob ByteString
+  deriving (MimeUnrender OctetStream, MimeRender OctetStream)
+
+{-
+instance ToSchema BinaryBlob where
+  declareNamedSchema _ = pure (Just "BinaryBlob", binarySchema)
+  -}
+
+instance ToSchema BinaryBlob where
+  declareNamedSchema _ = pure $ NamedSchema (Just "BinaryBlob") $ binarySchema
+
+{-
+instance ToSchema BinaryBlob where
+  declareNamedSchema _ = pure (Just "BinaryBlob", s)
+    where
+      s = mempty
+        & schemaType .~ SwaggerString
+        & schemaFormat ?~ "binary"
+        -}
 
 data User = User {
     userId        :: UserID
@@ -61,17 +101,22 @@ data User = User {
   , userLastName  :: String
 } deriving (Generic, Eq, Show)
 $(deriveJSON defaultOptions ''User)
+--instance ToParamSchema User
+instance ToSchema User
 
+instance ToSchema Swagger
 
 data RFIDState = New | InProgress | AwaitingDeploymentToBC | Customer | Finalised
   deriving (Generic, Eq, Show)
 $(deriveJSON defaultOptions ''RFIDState)
+instance ToSchema RFIDState
 
 data RFIDInfo = RFIDInfo {
   state :: RFIDState,
   owner :: Maybe UserID
 } deriving (Generic, Eq, Show)
 $(deriveJSON defaultOptions ''RFIDInfo)
+instance ToSchema RFIDInfo
 
 
 data NewUser = NewUser {
@@ -82,6 +127,7 @@ data NewUser = NewUser {
   publicKey :: String
 } deriving (Generic, Eq, Show)
 $(deriveJSON defaultOptions ''NewUser)
+instance ToSchema NewUser
 
 data NewObject = NewObject {
   object_userID :: UserID,
@@ -92,6 +138,7 @@ data NewObject = NewObject {
   object_location :: GeoLocation
                            } deriving (Show, Generic)
 $(deriveJSON defaultOptions ''NewObject)
+instance ToSchema NewObject
 
 data AggregatedObject = AggregatedObject {
   aggObject_userID :: UserID,
@@ -101,6 +148,7 @@ data AggregatedObject = AggregatedObject {
   aggObject_location :: GeoLocation
 } deriving (Show, Generic)
 $(deriveJSON defaultOptions ''AggregatedObject)
+instance ToSchema AggregatedObject
 
 data TransformationInfo = TransformationInfo {
   transObject_userID :: UserID,
@@ -114,6 +162,7 @@ data TransformationInfo = TransformationInfo {
   transObject_outputQuantity :: [Quantity]
 } deriving (Show, Generic)
 $(deriveJSON defaultOptions ''TransformationInfo)
+instance ToSchema TransformationInfo
 
 
 
@@ -126,6 +175,7 @@ data TransactionInfo = TransactionInfo {
   transaction_quantities :: [QuantityElement]
 } deriving (Show, Generic)
 $(deriveJSON defaultOptions ''TransactionInfo)
+instance ToSchema TransactionInfo
 
 data EventInfo = EventInfo {
   event_eventID :: Integer,
@@ -136,8 +186,9 @@ data EventInfo = EventInfo {
   location :: DWhen,
   event_users :: [User]
 } deriving (Generic, Eq, Show)
-
 $(deriveJSON defaultOptions ''EventInfo)
+instance ToSchema EventInfo
+
 
 {-
 instance ToJSON EventInfo
@@ -146,12 +197,13 @@ instance FromJSON EventInfo
 
 data SignedEvent = SignedEvent {
   signed_eventID :: Integer,
-  signed_eventHash :: ByteString,
-  signed_Hashes :: [ByteString],
+  signed_eventHash :: BinaryBlob,
+  signed_Hashes :: [BinaryBlob],
   signed_users :: [UserID]
 }
+-- instance ToSchema SignedEvent
 -- $(deriveJSON defaultOptions ''SignedEvent)
--- $(deriveJSON defaultOptions ''ByteString)
+-- $(deriveJSON defaultOptions ''BinaryBlob)
 
 
 type PrivateAPI =       "newUser" :> ReqBody '[JSON] NewUser :> Get '[JSON]  UserID
@@ -166,8 +218,8 @@ type PrivateAPI =       "newUser" :> ReqBody '[JSON] NewUser :> Get '[JSON]  Use
             :<|> "event" :> "aggregateObjects" :> ReqBody '[JSON] AggregatedObject :> Get '[JSON] EventInfo
             :<|> "event" :> "start-transaction" :> ReqBody '[JSON] TransactionInfo :> Get '[JSON] EventInfo
             :<|> "event" :> "transformObject" :> ReqBody '[JSON] TransformationInfo :> Get '[JSON] EventInfo
-            :<|> "key" :> "add" :>  ReqBody '[OctetStream] ByteString :> Get '[JSON] (Bool, String)
-            :<|> "key" :> "get" :> Capture "userID" UserID :> Get '[OctetStream] ByteString
+            :<|> "key" :> "add" :>  ReqBody '[OctetStream] BinaryBlob :> Get '[JSON] (Bool, String)
+            :<|> "key" :> "get" :> Capture "userID" UserID :> Get '[OctetStream] BinaryBlob
 
               {-
 type API = :<|> "event" :> "sign" :> ReqBody '[JSON] SignedEvent :> Post '[JSON] SignedEvent
@@ -177,8 +229,12 @@ type API = :<|> "event" :> "sign" :> ReqBody '[JSON] SignedEvent :> Post '[JSON]
 
 type PublicAPI = "login" :> Get '[JSON] User
 -- type PublicAPI =       "newUser" :> ReqBody '[JSON] NewUser :> Get '[JSON]  UserID
+--
 
-type API = BasicAuth "foo-realm" User :> PrivateAPI :<|> PublicAPI
+type SwaggerAPI = "swagger.json" :> Get '[JSON] Swagger
+
+
+
 
 -- | 'BasicAuthCheck' holds the handler we'll use to verify a username and password.
 authCheck :: BasicAuthCheck User
@@ -198,6 +254,25 @@ app = serveWithContext api basicAuthServerContext server
 
 api :: Proxy API
 api = Proxy
+
+
+type API =  BasicAuth "foo-realm" User :> PrivateAPI :<|> PublicAPI :<|> SwaggerAPI
+-- type API = ServerAPI :<|> SwaggerAPI
+{-
+instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub) where
+  toSwagger _ = toSwagger (Proxy :: Proxy sub)
+-}
+
+instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub) where
+  toSwagger _ =
+    let
+      authSchemes = IOrd.singleton "basic" $ SecurityScheme SecuritySchemeBasic Nothing
+      securityRequirements = [SecurityRequirement $ IOrd.singleton "basic" []]
+    in
+      toSwagger (Proxy :: Proxy sub)
+      & securityDefinitions .~ authSchemes
+      & allOperations . security .~ securityRequirements
+
 
 
 publicServer :: Server PublicAPI
@@ -223,24 +298,38 @@ privateServer _ =  newUser
         :<|> return . eventHash
         -}
 
+--instance ToSchema API
+
+-- instance ToParamSchema TodoId
+-- instance ToSchema TodoId
+
+-- | Swagger spec for server API.
+serveSwaggerAPI :: Swagger
+serveSwaggerAPI = toSwagger api
+  & info.title   .~ "Supplychain Server API"
+  & info.version .~ "1.0"
+  & info.description ?~ "This is an API that tests swagger integration"
+  & info.license ?~ ("MIT" & url ?~ URL "http://mit.com")
+
 
 server :: Server API
-server = privateServer :<|> publicServer
+server = privateServer :<|> publicServer :<|> return serveSwaggerAPI
+
 
 
 -- | We need to supply our handlers with the right Context. In this case,
 -- Basic Authentication requires a Context Entry with the 'BasicAuthCheck' value
 -- tagged with "foo-tag" This context is then supplied to 'server' and threaded
 -- to the BasicAuth HasServer handlers.
-basicAuthServerContext :: Context (BasicAuthCheck User ': '[])
+basicAuthServerContext :: Servant.Context (BasicAuthCheck User ': '[])
 basicAuthServerContext = authCheck :. EmptyContext
 
 
-addPublicKey :: ByteString -> (Bool, String)
+addPublicKey :: BinaryBlob -> (Bool, String)
 addPublicKey   sig = (True, "Success")
 
-getPublicKey :: UserID -> ByteString
-getPublicKey userID = empty
+getPublicKey :: UserID -> BinaryBlob
+getPublicKey userID = BinaryBlob empty
 
 newUser ::  NewUser -> Handler UserID
 newUser _ = return 1
@@ -273,7 +362,7 @@ eventInfo :: EventID -> EventInfo
 eventInfo eID = EventInfo 1 AggregationEventT New sampleWhat sampleWhy sampleWhen []
 
 eventHash :: EventID -> SignedEvent
-eventHash eID = SignedEvent eID empty [empty] [1,2]
+eventHash eID = SignedEvent eID (BinaryBlob empty) [(BinaryBlob empty)] [1,2]
 
 
 
