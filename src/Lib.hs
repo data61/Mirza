@@ -104,7 +104,7 @@ $(deriveJSON defaultOptions ''User)
 --instance ToParamSchema User
 instance ToSchema User
 
-instance ToSchema Swagger
+--instance ToSchema Swagger
 
 data RFIDState = New | InProgress | AwaitingDeploymentToBC | Customer | Finalised
   deriving (Generic, Eq, Show)
@@ -221,7 +221,7 @@ type PrivateAPI =       "newUser" :> ReqBody '[JSON] NewUser :> Get '[JSON]  Use
             :<|> "key" :> "add" :>  ReqBody '[OctetStream] BinaryBlob :> Get '[JSON] (Bool, String)
             :<|> "key" :> "get" :> Capture "userID" UserID :> Get '[OctetStream] BinaryBlob
 
-              {-
+{-
 type API = :<|> "event" :> "sign" :> ReqBody '[JSON] SignedEvent :> Post '[JSON] SignedEvent
             :<|> "event" :> Capture "eventID" EventID:> "hash" :> Get '[JSON] SignedEvent
             -- :<|> "login" :>  Put '[JSON] [User]
@@ -252,11 +252,14 @@ startApp = run 8080 app
 app :: Application
 app = serveWithContext api basicAuthServerContext server
 
-api :: Proxy API
+api :: Proxy ServerAPI
 api = Proxy
 
 
-type API =  BasicAuth "foo-realm" User :> PrivateAPI :<|> PublicAPI :<|> SwaggerAPI
+type ServerAPI =  BasicAuth "foo-realm" User :> PrivateAPI :<|> PublicAPI -- :<|> SwaggerAPI
+
+type API = SwaggerAPI :<|> ServerAPI
+
 -- type API = ServerAPI :<|> SwaggerAPI
 {-
 instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub) where
@@ -312,8 +315,8 @@ serveSwaggerAPI = toSwagger api
   & info.license ?~ ("MIT" & url ?~ URL "http://mit.com")
 
 
-server :: Server API
-server = privateServer :<|> publicServer :<|> return serveSwaggerAPI
+server :: Server ServerAPI
+server = privateServer :<|> publicServer -- :<|> return serveSwaggerAPI
 
 
 
