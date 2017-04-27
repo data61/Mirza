@@ -2,8 +2,6 @@
 {-# LANGUAGE DataKinds       #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeOperators   #-}
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE DeriveGeneric         #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
@@ -12,8 +10,10 @@
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
-{-# LANGUAGE UndecidableInstances  #-}
+{-# LANGUAGE CPP                        #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE UndecidableInstances       #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 
 module Lib
@@ -23,6 +23,7 @@ module Lib
 
 import Data.Aeson
 import Data.Aeson.TH
+import Data.Aeson.Encode.Pretty   (encodePretty)
 import Data.Swagger
 import Network.Wai
 import Network.Wai.Handler.Warp
@@ -57,17 +58,10 @@ import GHC.Generics
 
 
 import           Control.Lens
-import           Data.Aeson
-import           Data.Aeson.Encode.Pretty   (encodePretty)
 import qualified Data.ByteString.Lazy.Char8 as BL8
 import           Data.Proxy
-import           Data.Swagger
-import           Data.Text                  (Text)
 import           Data.Time                  (UTCTime (..), fromGregorian)
 import           Data.Typeable              (Typeable)
-import           GHC.Generics
-import           Servant
-import           Servant.Swagger
 import qualified Data.HashMap.Strict.InsOrd as IOrd
 
 
