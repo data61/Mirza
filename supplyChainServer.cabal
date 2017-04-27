@@ -21,6 +21,7 @@ library
                      , aeson
                      , servant-server
                      , servant-swagger
+                     , servant-swagger-ui
                      , time
                      , text
                      , either
@@ -31,6 +32,7 @@ library
                      , lens
                      , aeson-pretty
                      , insert-ordered-containers
+                     , base-compat
   default-language:    Haskell2010
 
 executable supplyChainServer-exe
@@ -43,6 +45,7 @@ executable supplyChainServer-exe
                      , aeson
                      , servant-server
                      , servant-swagger
+                     , servant-swagger-ui
                      , text
                      , either
                      , bytestring
@@ -51,6 +54,7 @@ executable supplyChainServer-exe
                      , lens
                      , aeson-pretty
                      , insert-ordered-containers
+                     , base-compat
   default-language:    Haskell2010
 
 test-suite supplyChainServer-test
@@ -70,10 +74,12 @@ test-suite supplyChainServer-test
                      , aeson
                      , servant-server
                      , servant-swagger
+                     , servant-swagger-ui
                      , swagger2
                      , lens
                      , aeson-pretty
                      , insert-ordered-containers
+                     , base-compat
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
   default-language:    Haskell2010
 

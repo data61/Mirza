@@ -19,8 +19,10 @@
 module Lib
     ( startApp
     , app
-    ) where
-
+    )
+    where
+import Prelude        ()
+import Prelude.Compat
 import Data.Aeson
 import Data.Aeson.TH
 import Data.Aeson.Encode.Pretty   (encodePretty)
@@ -40,6 +42,8 @@ import Servant.Server.Experimental.Auth (AuthHandler, AuthServerData,
                                          mkAuthHandler)
 import Servant.Server.Experimental.Auth()
 import Servant.Swagger
+import Servant.Swagger.UI
+
 import GHC.TypeLits (KnownSymbol)
 
 import Data.Maybe
@@ -53,23 +57,29 @@ import Data.GS1.DWhy
 import Data.Either.Combinators
 import Data.Time
 import Data.Text                        (Text)
-import Data.ByteString
-import GHC.Generics
+import qualified Data.ByteString as ByteString
 
 
-import           Control.Lens
 import qualified Data.ByteString.Lazy.Char8 as BL8
 import           Data.Proxy
 import           Data.Time                  (UTCTime (..), fromGregorian)
 import           Data.Typeable              (Typeable)
 import qualified Data.HashMap.Strict.InsOrd as IOrd
 
+import Control.Lens       hiding ((.=))
+import Data.String        (IsString (..))
+import GHC.Generics       (Generic)
+import System.Environment (getArgs, lookupEnv)
+import Text.Read          (readMaybe)
+
+import qualified Network.Wai.Handler.Warp as Warp
+
 
 type UserID = Integer
 
 type EventID = Integer
 
-newtype BinaryBlob = BinaryBlob ByteString
+newtype BinaryBlob = BinaryBlob ByteString.ByteString
   deriving (MimeUnrender OctetStream, MimeRender OctetStream)
 
 {-
@@ -215,20 +225,13 @@ type PrivateAPI =       "newUser" :> ReqBody '[JSON] NewUser :> Get '[JSON]  Use
             :<|> "key" :> "add" :>  ReqBody '[OctetStream] BinaryBlob :> Get '[JSON] (Bool, String)
             :<|> "key" :> "get" :> Capture "userID" UserID :> Get '[OctetStream] BinaryBlob
 
-{-
-type API = :<|> "event" :> "sign" :> ReqBody '[JSON] SignedEvent :> Post '[JSON] SignedEvent
-            :<|> "event" :> Capture "eventID" EventID:> "hash" :> Get '[JSON] SignedEvent
-            -- :<|> "login" :>  Put '[JSON] [User]
--}
 
 type PublicAPI = "login" :> Get '[JSON] User
 -- type PublicAPI =       "newUser" :> ReqBody '[JSON] NewUser :> Get '[JSON]  UserID
 --
 
-type SwaggerAPI = "swagger.json" :> Get '[JSON] Swagger
-
-
-
+-- type SwaggerAPI = "swagger.json" :> Get '[JSON] Swagger
+type SwaggerAPI = SwaggerSchemaUI "swagger-ui" "swagger.json"
 
 -- | 'BasicAuthCheck' holds the handler we'll use to verify a username and password.
 authCheck :: BasicAuthCheck User
@@ -239,26 +242,95 @@ authCheck =
         else return Unauthorized
   in BasicAuthCheck check
 
-
+{-
 startApp :: IO ()
 startApp = run 8080 app
+-}
 
+startApp :: IO ()
+startApp = do
+    args <- getArgs
+    let uiFlavour = if "jensoleg" `elem` args then JensOleG else Original
+    case args of
+        ("run":_) -> do
+            p <- fromMaybe 8000 . (>>= readMaybe) <$> lookupEnv "PORT"
+            putStrLn $ "http://localhost:" ++ show p ++ "/"
+            Warp.run p (app uiFlavour)
+        _ -> do
+            putStrLn "Example application, used as a compilation check"
+            putStrLn "To run, pass run argument: --test-arguments run"
+
+
+{-
 app :: Application
 app = serveWithContext api basicAuthServerContext server
+-}
 
+
+
+app :: UIFlavour -> Application
+--app = error "FIXME"
+app = (serveWithContext api basicAuthServerContext) . server'
+
+
+{-
 api :: Proxy API
 api = Proxy
+-}
 
+api :: Proxy API'
+api = Proxy
 
 type ServerAPI =  BasicAuth "foo-realm" User :> PrivateAPI :<|> PublicAPI -- :<|> SwaggerAPI
 
-type API =  ServerAPI :<|> SwaggerAPI
+--type API =  ServerAPI :<|> SwaggerAPI
 
--- type API = ServerAPI :<|> SwaggerAPI
-{-
-instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub) where
-  toSwagger _ = toSwagger (Proxy :: Proxy sub)
--}
+type API =
+    -- this serves both: swagger.json and swagger-ui
+    SwaggerSchemaUI "swagger-ui" "swagger.json"
+    :<|> ServerAPI
+
+-- To test nested case
+type API' = API
+    :<|> "nested" :> API
+    :<|> SwaggerSchemaUI' "foo-ui" ("foo" :> "swagger.json" :> Get '[JSON] Swagger)
+
+-- Implementation
+
+-- | We test different ways to nest API, so we have an enumeration
+data Variant
+    = Normal
+    | Nested
+    | SpecDown
+    deriving (Eq)
+
+data UIFlavour
+    = Original
+    | JensOleG
+    deriving (Eq)
+
+server' :: UIFlavour -> Server API'
+server' uiFlavour = server Normal
+    :<|> server Nested
+    :<|> schemaUiServer (serveSwaggerAPI' SpecDown)
+  where
+    server :: Variant -> Server API
+    server variant =
+        schemaUiServer (serveSwaggerAPI' variant) :<|> (privateServer :<|> publicServer)
+
+    schemaUiServer
+        :: (Server api ~ Handler Swagger)
+        => Swagger -> Server (SwaggerSchemaUI' dir api)
+    schemaUiServer = case uiFlavour of
+        Original -> swaggerSchemaUIServer
+        JensOleG -> jensolegSwaggerSchemaUIServer
+
+    serveSwaggerAPI' Normal    = serveSwaggerAPI
+    serveSwaggerAPI' Nested    = serveSwaggerAPI
+        & basePath ?~ "/nested"
+        & info.description ?~ "Nested API"
+    serveSwaggerAPI' SpecDown  = serveSwaggerAPI
+        & info.description ?~ "Spec nested"
 
 instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub) where
   toSwagger _ =
@@ -309,8 +381,8 @@ serveSwaggerAPI = toSwagger serverAPI
   & info.license ?~ ("MIT" & url ?~ URL "http://mit.com")
 
 
-server :: Server API
-server = (privateServer :<|> publicServer) :<|> return serveSwaggerAPI
+-- server :: Server API
+-- server = (privateServer :<|> publicServer) :<|> return serveSwaggerAPI
 
 serverAPI :: Proxy ServerAPI
 serverAPI = Proxy
@@ -327,7 +399,7 @@ addPublicKey :: BinaryBlob -> (Bool, String)
 addPublicKey   sig = (True, "Success")
 
 getPublicKey :: UserID -> BinaryBlob
-getPublicKey userID = BinaryBlob empty
+getPublicKey userID = BinaryBlob ByteString.empty
 
 newUser ::  NewUser -> Handler UserID
 newUser _ = return 1
@@ -360,7 +432,7 @@ eventInfo :: EventID -> EventInfo
 eventInfo eID = EventInfo 1 AggregationEventT New sampleWhat sampleWhy sampleWhen []
 
 eventHash :: EventID -> SignedEvent
-eventHash eID = SignedEvent eID (BinaryBlob empty) [(BinaryBlob empty)] [1,2]
+eventHash eID = SignedEvent eID (BinaryBlob ByteString.empty) [(BinaryBlob ByteString.empty)] [1,2]
 
 
 
