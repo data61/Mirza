@@ -21,25 +21,27 @@ module Lib
     , app
     )
     where
+
+
 import Prelude        ()
 import Prelude.Compat
 import Data.Aeson
 import Data.Aeson.TH
-import Data.Aeson.Encode.Pretty   (encodePretty)
+-- import Data.Aeson.Encode.Pretty   (encodePretty)
 import Data.Swagger
 import Network.Wai
-import Network.Wai.Handler.Warp
+-- import Network.Wai.Handler.Warp
 
 import Servant
-import Servant.Server                   (BasicAuthCheck (BasicAuthCheck),
-                                         BasicAuthResult( Authorized
-                                                        , Unauthorized
-                                                        ),
-                                         Context ((:.), EmptyContext),
-                                         err401, err403, errBody, Server,
-                                         serveWithContext, Handler)
-import Servant.Server.Experimental.Auth (AuthHandler, AuthServerData,
-                                         mkAuthHandler)
+-- import Servant.Server                   (BasicAuthCheck (BasicAuthCheck),
+--                                         BasicAuthResult( Authorized
+--                                                        , Unauthorized
+--                                                        ),
+--                                         Context ((:.), EmptyContext),
+--                                         err401, err403, errBody, Server,
+--                                         serveWithContext, Handler)
+--import Servant.Server.Experimental.Auth (AuthHandler, AuthServerData,
+--                                         mkAuthHandler)
 import Servant.Server.Experimental.Auth()
 import Servant.Swagger
 import Servant.Swagger.UI
@@ -56,18 +58,18 @@ import Data.GS1.DWhat
 import Data.GS1.DWhy
 import Data.Either.Combinators
 import Data.Time
-import Data.Text                        (Text)
+--import Data.Text                        (Text)
 import qualified Data.ByteString as ByteString
 
 
-import qualified Data.ByteString.Lazy.Char8 as BL8
-import           Data.Proxy
-import           Data.Time                  (UTCTime (..), fromGregorian)
-import           Data.Typeable              (Typeable)
+-- import qualified Data.ByteString.Lazy.Char8 as BL8
+-- import           Data.Proxy
+-- import           Data.Time                  (UTCTime (..), fromGregorian)
+-- import           Data.Typeable              (Typeable)
 import qualified Data.HashMap.Strict.InsOrd as IOrd
 
 import Control.Lens       hiding ((.=))
-import Data.String        (IsString (..))
+-- import Data.String        (IsString (..))
 import GHC.Generics       (Generic)
 import System.Environment (getArgs, lookupEnv)
 import Text.Read          (readMaybe)
@@ -76,28 +78,13 @@ import qualified Network.Wai.Handler.Warp as Warp
 
 
 type UserID = Integer
-
 type EventID = Integer
 
 newtype BinaryBlob = BinaryBlob ByteString.ByteString
   deriving (MimeUnrender OctetStream, MimeRender OctetStream)
 
-{-
-instance ToSchema BinaryBlob where
-  declareNamedSchema _ = pure (Just "BinaryBlob", binarySchema)
-  -}
-
 instance ToSchema BinaryBlob where
   declareNamedSchema _ = pure $ NamedSchema (Just "BinaryBlob") $ binarySchema
-
-{-
-instance ToSchema BinaryBlob where
-  declareNamedSchema _ = pure (Just "BinaryBlob", s)
-    where
-      s = mempty
-        & schemaType .~ SwaggerString
-        & schemaFormat ?~ "binary"
-        -}
 
 data User = User {
     userId        :: UserID
@@ -105,10 +92,8 @@ data User = User {
   , userLastName  :: String
 } deriving (Generic, Eq, Show)
 $(deriveJSON defaultOptions ''User)
---instance ToParamSchema User
 instance ToSchema User
 
---instance ToSchema Swagger
 
 data RFIDState = New | InProgress | AwaitingDeploymentToBC | Customer | Finalised
   deriving (Generic, Eq, Show)
@@ -194,21 +179,12 @@ $(deriveJSON defaultOptions ''EventInfo)
 instance ToSchema EventInfo
 
 
-{-
-instance ToJSON EventInfo
-instance FromJSON EventInfo
--}
-
 data SignedEvent = SignedEvent {
   signed_eventID :: Integer,
   signed_eventHash :: BinaryBlob,
   signed_Hashes :: [BinaryBlob],
   signed_users :: [UserID]
 }
--- instance ToSchema SignedEvent
--- $(deriveJSON defaultOptions ''SignedEvent)
--- $(deriveJSON defaultOptions ''BinaryBlob)
-
 
 type PrivateAPI =       "newUser" :> ReqBody '[JSON] NewUser :> Get '[JSON]  UserID
             :<|> "rfid" :>  Capture "RFID" String :> "info" :> Get '[JSON] (Maybe RFIDInfo)
@@ -227,10 +203,6 @@ type PrivateAPI =       "newUser" :> ReqBody '[JSON] NewUser :> Get '[JSON]  Use
 
 
 type PublicAPI = "login" :> Get '[JSON] User
--- type PublicAPI =       "newUser" :> ReqBody '[JSON] NewUser :> Get '[JSON]  UserID
---
-
--- type SwaggerAPI = "swagger.json" :> Get '[JSON] Swagger
 type SwaggerAPI = SwaggerSchemaUI "swagger-ui" "swagger.json"
 
 -- | 'BasicAuthCheck' holds the handler we'll use to verify a username and password.
@@ -242,10 +214,6 @@ authCheck =
         else return Unauthorized
   in BasicAuthCheck check
 
-{-
-startApp :: IO ()
-startApp = run 8080 app
--}
 
 startApp :: IO ()
 startApp = do
@@ -261,29 +229,14 @@ startApp = do
             putStrLn "To run, pass run argument: --test-arguments run"
 
 
-{-
-app :: Application
-app = serveWithContext api basicAuthServerContext server
--}
-
-
-
 app :: UIFlavour -> Application
---app = error "FIXME"
 app = (serveWithContext api basicAuthServerContext) . server'
-
-
-{-
-api :: Proxy API
-api = Proxy
--}
 
 api :: Proxy API'
 api = Proxy
 
 type ServerAPI =  BasicAuth "foo-realm" User :> PrivateAPI :<|> PublicAPI -- :<|> SwaggerAPI
 
---type API =  ServerAPI :<|> SwaggerAPI
 
 type API =
     -- this serves both: swagger.json and swagger-ui
@@ -367,10 +320,6 @@ privateServer _ =  newUser
         :<|> return . eventHash
         -}
 
---instance ToSchema API
-
--- instance ToParamSchema TodoId
--- instance ToSchema TodoId
 
 -- | Swagger spec for server API.
 serveSwaggerAPI :: Swagger
@@ -380,9 +329,6 @@ serveSwaggerAPI = toSwagger serverAPI
   & info.description ?~ "This is an API that tests swagger integration"
   & info.license ?~ ("MIT" & url ?~ URL "http://mit.com")
 
-
--- server :: Server API
--- server = (privateServer :<|> publicServer) :<|> return serveSwaggerAPI
 
 serverAPI :: Proxy ServerAPI
 serverAPI = Proxy
@@ -433,7 +379,6 @@ eventInfo eID = EventInfo 1 AggregationEventT New sampleWhat sampleWhy sampleWhe
 
 eventHash :: EventID -> SignedEvent
 eventHash eID = SignedEvent eID (BinaryBlob ByteString.empty) [(BinaryBlob ByteString.empty)] [1,2]
-
 
 
 contactsInfo :: UserID -> [User]
