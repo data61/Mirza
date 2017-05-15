@@ -1,4 +1,3 @@
-{-# START_FILE src/Lib.hs #-}
 {-# LANGUAGE DataKinds       #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeOperators   #-}
@@ -18,36 +17,29 @@
 
 module Lib
     ( startApp
-    , app
     )
     where
 
 
 import Prelude        ()
 import Prelude.Compat
-import Data.Aeson
-import Data.Aeson.TH
--- import Data.Aeson.Encode.Pretty   (encodePretty)
-import Data.Swagger
-import Network.Wai
--- import Network.Wai.Handler.Warp
+
+
+import           Control.Monad.IO.Class
+import           Control.Monad.Logger (runStderrLoggingT)
+
+
 
 import Servant
--- import Servant.Server                   (BasicAuthCheck (BasicAuthCheck),
---                                         BasicAuthResult( Authorized
---                                                        , Unauthorized
---                                                        ),
---                                         Context ((:.), EmptyContext),
---                                         err401, err403, errBody, Server,
---                                         serveWithContext, Handler)
---import Servant.Server.Experimental.Auth (AuthHandler, AuthServerData,
---                                         mkAuthHandler)
 import Servant.Server.Experimental.Auth()
 import Servant.Swagger
 import Servant.Swagger.UI
 
 import GHC.TypeLits (KnownSymbol)
 
+import Data.Aeson
+import Data.Aeson.TH
+import Data.Swagger
 import Data.Maybe
 import Data.GS1.Event
 import Data.GS1.Object
@@ -58,195 +50,73 @@ import Data.GS1.DWhat
 import Data.GS1.DWhy
 import Data.Either.Combinators
 import Data.Time
---import Data.Text                        (Text)
+import Data.String.Conversions
+
 import qualified Data.ByteString as ByteString
-
-
--- import qualified Data.ByteString.Lazy.Char8 as BL8
--- import           Data.Proxy
--- import           Data.Time                  (UTCTime (..), fromGregorian)
--- import           Data.Typeable              (Typeable)
 import qualified Data.HashMap.Strict.InsOrd as IOrd
+import qualified Network.Wai.Handler.Warp as Warp
+import Network.Wai
 
 import Control.Lens       hiding ((.=))
--- import Data.String        (IsString (..))
+
 import GHC.Generics       (Generic)
+
 import System.Environment (getArgs, lookupEnv)
+
 import Text.Read          (readMaybe)
 
-import qualified Network.Wai.Handler.Warp as Warp
 
+import Database.SQLite.Simple as Sql
+import Database.SQLite.Simple.Types as SqlTypes
 
-type UserID = Integer
-type EventID = Integer
-
-newtype BinaryBlob = BinaryBlob ByteString.ByteString
-  deriving (MimeUnrender OctetStream, MimeRender OctetStream)
-
-instance ToSchema BinaryBlob where
-  declareNamedSchema _ = pure $ NamedSchema (Just "BinaryBlob") $ binarySchema
-
-data User = User {
-    userId        :: UserID
-  , userFirstName :: String
-  , userLastName  :: String
-} deriving (Generic, Eq, Show)
-$(deriveJSON defaultOptions ''User)
-instance ToSchema User
-
-
-data RFIDState = New | InProgress | AwaitingDeploymentToBC | Customer | Finalised
-  deriving (Generic, Eq, Show)
-$(deriveJSON defaultOptions ''RFIDState)
-instance ToSchema RFIDState
-
-data RFIDInfo = RFIDInfo {
-  state :: RFIDState,
-  owner :: Maybe UserID
-} deriving (Generic, Eq, Show)
-$(deriveJSON defaultOptions ''RFIDInfo)
-instance ToSchema RFIDInfo
-
-
-data NewUser = NewUser {
-  phoneNumber :: String,
-  firstName :: String,
-  lastName :: String,
-  company :: String,
-  publicKey :: String
-} deriving (Generic, Eq, Show)
-$(deriveJSON defaultOptions ''NewUser)
-instance ToSchema NewUser
-
-data NewObject = NewObject {
-  object_userID :: UserID,
-  object_epcs :: EPC,
-  object_timestamp :: EPCISTime,
-  object_timezone:: TimeZone,
-  object_objectID :: ObjectID,
-  object_location :: GeoLocation
-                           } deriving (Show, Generic)
-$(deriveJSON defaultOptions ''NewObject)
-instance ToSchema NewObject
-
-data AggregatedObject = AggregatedObject {
-  aggObject_userID :: UserID,
-  aggObject_objectIDs :: [ObjectID],
-  aggObject_timestamp :: EPCISTime,
-  aggOject_timezone:: TimeZone,
-  aggObject_location :: GeoLocation
-} deriving (Show, Generic)
-$(deriveJSON defaultOptions ''AggregatedObject)
-instance ToSchema AggregatedObject
-
-data TransformationInfo = TransformationInfo {
-  transObject_userID :: UserID,
-  transObject_objectIDs :: [ObjectID],
-  transObject_timestamp :: EPCISTime,
-  transObject_timezone:: TimeZone,
-  transObject_location :: GeoLocation,
-  transObject_inputEPC :: [EPC],
-  transObject_inputQuantity :: [Quantity],
-  transObject_outputEPC :: [EPC],
-  transObject_outputQuantity :: [Quantity]
-} deriving (Show, Generic)
-$(deriveJSON defaultOptions ''TransformationInfo)
-instance ToSchema TransformationInfo
+import API
+import Model
+import Storage as S
+import Service
 
 
 
-data TransactionInfo = TransactionInfo {
-  transaction_userID :: UserID,
-  transaction_objectIDs :: [ObjectID],
-  transaction_parentID :: Maybe ParentID,
-  transaction_bizTransaction :: [BizTransaction],
-  transaction_epcs :: [EPC],
-  transaction_quantities :: [QuantityElement]
-} deriving (Show, Generic)
-$(deriveJSON defaultOptions ''TransactionInfo)
-instance ToSchema TransactionInfo
 
-data EventInfo = EventInfo {
-  event_eventID :: Integer,
-  eventType :: EventType,
-  rfidState :: RFIDState,
-  what :: DWhat,
-  why :: DWhy,
-  location :: DWhen,
-  event_users :: [User]
-} deriving (Generic, Eq, Show)
-$(deriveJSON defaultOptions ''EventInfo)
-instance ToSchema EventInfo
-
-
-data SignedEvent = SignedEvent {
-  signed_eventID :: Integer,
-  signed_eventHash :: BinaryBlob,
-  signed_Hashes :: [BinaryBlob],
-  signed_users :: [UserID]
-}
-
-type PrivateAPI =       "newUser" :> ReqBody '[JSON] NewUser :> Get '[JSON]  UserID
-            :<|> "rfid" :>  Capture "RFID" String :> "info" :> Get '[JSON] (Maybe RFIDInfo)
-            :<|> "event" :> Capture "eventID" EventID:> "info" :> Get '[JSON] EventInfo
-            :<|> "contacts" :> Capture "userID" Integer :> Get '[JSON] [User]
-            :<|> "contacts" :> "add" :> Capture "userID" Integer :> Get '[JSON] Bool
-            :<|> "contacts" :> "remove" :> Capture "userID" Integer :> Get '[JSON] Bool
-            :<|> "contacts" :> "search" :> Capture "term" String :> Get '[JSON] [User]
-            :<|> "event" :> "list" :> Capture "userID" Integer :> Get '[JSON] [EventInfo]
-            :<|> "event" :> "createObject" :> ReqBody '[JSON] NewObject :> Get '[JSON] ObjectID
-            :<|> "event" :> "aggregateObjects" :> ReqBody '[JSON] AggregatedObject :> Get '[JSON] EventInfo
-            :<|> "event" :> "start-transaction" :> ReqBody '[JSON] TransactionInfo :> Get '[JSON] EventInfo
-            :<|> "event" :> "transformObject" :> ReqBody '[JSON] TransformationInfo :> Get '[JSON] EventInfo
-            :<|> "key" :> "add" :>  ReqBody '[OctetStream] BinaryBlob :> Get '[JSON] (Bool, String)
-            :<|> "key" :> "get" :> Capture "userID" UserID :> Get '[OctetStream] BinaryBlob
-
-
-type PublicAPI = "login" :> Get '[JSON] User
-type SwaggerAPI = SwaggerSchemaUI "swagger-ui" "swagger.json"
-
--- | 'BasicAuthCheck' holds the handler we'll use to verify a username and password.
-authCheck :: BasicAuthCheck User
-authCheck =
-  let check (BasicAuthData username password) =
-        if username == "servant" && password == "server"
-        then return (Authorized (sampleUser))
-        else return Unauthorized
-  in BasicAuthCheck check
-
-
-startApp :: IO ()
-startApp = do
+startApp :: FilePath -> IO ()
+startApp sqliteFile = do
     args <- getArgs
     let uiFlavour = if "jensoleg" `elem` args then JensOleG else Original
     case args of
         ("run":_) -> do
             p <- fromMaybe 8000 . (>>= readMaybe) <$> lookupEnv "PORT"
             putStrLn $ "http://localhost:" ++ show p ++ "/"
-            Warp.run p (app uiFlavour)
+            Warp.run p =<< (mkApp sqliteFile uiFlavour)
         _ -> do
             putStrLn "Example application, used as a compilation check"
             putStrLn "To run, pass run argument: --test-arguments run"
 
-
+{-
 app :: UIFlavour -> Application
 app = (serveWithContext api basicAuthServerContext) . server'
-
-api :: Proxy API'
-api = Proxy
-
-type ServerAPI =  BasicAuth "foo-realm" User :> PrivateAPI :<|> PublicAPI -- :<|> SwaggerAPI
+-}
 
 
-type API =
-    -- this serves both: swagger.json and swagger-ui
-    SwaggerSchemaUI "swagger-ui" "swagger.json"
-    :<|> ServerAPI
+webApp :: Sql.Connection -> UIFlavour -> Application
+webApp conn = (serveWithContext api basicAuthServerContext) . (server' conn)
 
--- To test nested case
-type API' = API
-    :<|> "nested" :> API
-    :<|> SwaggerSchemaUI' "foo-ui" ("foo" :> "swagger.json" :> Get '[JSON] Swagger)
+
+{-
+mkApp :: FilePath -> UIFlavour ->  IO Application
+mkApp sqliteFile uiFlavour = do
+  pool <- runStderrLoggingT $ do
+    createSqlitePool (cs sqliteFile) 5
+  runSqlPool (runMigration migrate) pool
+  return $ app pool uiFlavour
+  -}
+
+
+mkApp :: FilePath -> UIFlavour ->  IO Application
+mkApp sqliteFile uiFlavour = do
+  conn <- Sql.open sqliteFile
+  return (webApp conn uiFlavour)
+
+
+
 
 -- Implementation
 
@@ -262,8 +132,8 @@ data UIFlavour
     | JensOleG
     deriving (Eq)
 
-server' :: UIFlavour -> Server API'
-server' uiFlavour = server Normal
+server' :: Sql.Connection -> UIFlavour -> Server API'
+server' conn uiFlavour = server Normal
     :<|> server Nested
     :<|> schemaUiServer (serveSwaggerAPI' SpecDown)
   where
@@ -285,126 +155,5 @@ server' uiFlavour = server Normal
     serveSwaggerAPI' SpecDown  = serveSwaggerAPI
         & info.description ?~ "Spec nested"
 
-instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub) where
-  toSwagger _ =
-    let
-      authSchemes = IOrd.singleton "basic" $ SecurityScheme SecuritySchemeBasic Nothing
-      securityRequirements = [SecurityRequirement $ IOrd.singleton "basic" []]
-    in
-      toSwagger (Proxy :: Proxy sub)
-      & securityDefinitions .~ authSchemes
-      & allOperations . security .~ securityRequirements
 
-
-
-publicServer :: Server PublicAPI
-publicServer =  login
-
-privateServer :: User -> Server PrivateAPI
-privateServer _ =  newUser
-        :<|> return . rfid
-        :<|> return . eventInfo
-        :<|> return . contactsInfo
-        :<|> return . contactsAdd
-        :<|> return . contactsRemove
-        :<|> return . contactsSearch
-        :<|> return . eventList
-        :<|> return . eventCreateObject
-        :<|> return . eventAggregateObjects
-        :<|> return . eventStartTransaction
-        :<|> return . eventTransformObject
-        :<|> return . addPublicKey
-        :<|> return . getPublicKey
-
-          {-
-        :<|> return . eventHash
-        -}
-
-
--- | Swagger spec for server API.
-serveSwaggerAPI :: Swagger
-serveSwaggerAPI = toSwagger serverAPI
-  & info.title   .~ "Supplychain Server API"
-  & info.version .~ "1.0"
-  & info.description ?~ "This is an API that tests swagger integration"
-  & info.license ?~ ("MIT" & url ?~ URL "http://mit.com")
-
-
-serverAPI :: Proxy ServerAPI
-serverAPI = Proxy
-
--- | We need to supply our handlers with the right Context. In this case,
--- Basic Authentication requires a Context Entry with the 'BasicAuthCheck' value
--- tagged with "foo-tag" This context is then supplied to 'server' and threaded
--- to the BasicAuth HasServer handlers.
-basicAuthServerContext :: Servant.Context (BasicAuthCheck User ': '[])
-basicAuthServerContext = authCheck :. EmptyContext
-
-
-addPublicKey :: BinaryBlob -> (Bool, String)
-addPublicKey   sig = (True, "Success")
-
-getPublicKey :: UserID -> BinaryBlob
-getPublicKey userID = BinaryBlob ByteString.empty
-
-newUser ::  NewUser -> Handler UserID
-newUser _ = return 1
-
-login :: Handler User
-login = return sampleUser
-
-rfid :: String -> Maybe RFIDInfo
-rfid str = Just (RFIDInfo New Nothing)
-
-sampleUser :: User
-sampleUser =  User 1 "Sara" "Falamaki"
-
-
-sampleWhat :: DWhat
-sampleWhat = ObjectDWhat Observe [GLN "urn:epc:id:sgtin:0614141" "107346" "2017", GLN "urn:epc:id:sgtin:0614141" "107346" "2018"] []
-
-sampleWhy :: DWhy
-sampleWhy = DWhy (Just Arriving) (Just Active)
-
-sampleWhen :: DWhen
-sampleWhen = DWhen pt (Just pt) tz
-  where
-      t = "2017-01-24T13:08:24.11+10:00"
-      pt = fromRight' (parseStr2Time t :: Either EPCISTimeError EPCISTime)
-      tz = fromRight' (parseStr2TimeZone t :: Either EPCISTimeError TimeZone)
-
-
-eventInfo :: EventID -> EventInfo
-eventInfo eID = EventInfo 1 AggregationEventT New sampleWhat sampleWhy sampleWhen []
-
-eventHash :: EventID -> SignedEvent
-eventHash eID = SignedEvent eID (BinaryBlob ByteString.empty) [(BinaryBlob ByteString.empty)] [1,2]
-
-
-contactsInfo :: UserID -> [User]
-contactsInfo uID = []
-
-contactsAdd :: UserID -> Bool
-contactsAdd uID = False
-
-contactsRemove :: UserID -> Bool
-contactsRemove uID = False
-
-contactsSearch :: String -> [User]
-contactsSearch term = []
-
-eventList :: UserID -> [EventInfo]
-eventList uID = [(eventInfo 1)]
-
-eventCreateObject :: NewObject -> ObjectID
-eventCreateObject newObject = "newObjectID"
-
-eventAggregateObjects :: AggregatedObject -> EventInfo
-eventAggregateObjects _ = eventInfo 1
-
-eventStartTransaction :: TransactionInfo -> EventInfo
-eventStartTransaction _ = eventInfo 1
-
-eventTransformObject :: TransformationInfo -> EventInfo
-eventTransformObject _ = eventInfo 1
 
