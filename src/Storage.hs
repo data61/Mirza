@@ -12,9 +12,32 @@ instance Sql.FromRow M.NewUser where
   fromRow = M.NewUser <$> Sql.field <*> Sql.field  <*> Sql.field  <*> Sql.field
 
 
+userTable   =  "CREATE TABLE IF NOT EXISTS Users (id INTEGER PRIMARY KEY AUTOINCREMENT, bizID INTEGER, firstName TEXT NOT NULL, lastName TEXT, phoneNumber TEXT);"
+keyTable    =  "CREATE TABLE IF NOT EXISTS Keys (id INTEGER PRIMARY KEY AUTOINCREMENT, userID INTEGER, publicKey BLOB, timeCreated INTEGER, revocationTime INTEGER DEFAULT NULL);"
+bizTable    =  "CREATE TABLE IF NOT EXISTS Business (id INTEGER PRIMARY KEY AUTOINCREMENT, businessName TEXT NOT NULL, location TEXT, businessFunction TEXT);"
+contactTable=  "CREATE TABLE IF NOT EXISTS Contacts (id INTEGER PRIMARY KEY AUTOINCREMENT, user1 INTEGER NOT NULL, user2 INTEGER NOT NULL);"
+sigTable    =  "CREATE TABLE IF NOT EXISTS Signatures (id INTEGER PRIMARY KEY AUTOINCREMENT, userID INTEGER NOT NULL, keyID INTEGER NOT NULL, timestamp INTEGER NOT NULL);"
+hashTable   =  "CREATE TABLE IF NOT EXISTS Hashes (id INTEGER PRIMARY KEY AUTOINCREMENT, signedEventID INTEGER NOT NULL, hashID INTEGER NOT NULL, hash BLOB NOT NULL);"
+eventTable  =  "CREATE TABLE IF NOT EXISTS Events (id INTEGER PRIMARY KEY AUTOINCREMENT, what TEXT, why TEXT, location TEXT, timestamp TEXT, eventType INTEGER NOT NULL);"
+objectTable = "CREATE TABLE IF NOT EXISTS Objects (id INTEGER PRIMARY KEY AUTOINCREMENT, ObjectID INTEGER NOT NULL, GS1Barcode TEXT NOT NULL);"
+
+
 createTables :: Sql.Connection -> IO ()
 createTables conn = do
-  execute_ conn "CREATE TABLE IF NOT EXISTS Users (id INTEGER PRIMARY KEY, ..."
+  execute_ conn userTable
+  execute_ conn keyTable
+  execute_ conn bizTable
+  execute_ conn contactTable
+  execute_ conn sigTable
+  execute_ conn hashTable
+  execute_ conn eventTable
+
+
+newUser :: Sql.Connection -> M.NewUser -> IO (M.UserID)
+newUser conn (M.NewUser phone first last biz) = do
+  execute conn "INSERT INTO Users (bizID, firstName, lastName, phoneNumber) VALUES (?, ?, ?, ?)" (biz, first, last, phone)
+  rowID <- lastInsertRowId conn
+  return ((fromIntegral rowID) :: M.UserID)
 
 
  {-

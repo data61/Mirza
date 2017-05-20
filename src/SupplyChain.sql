@@ -16,7 +16,3 @@ CREATE TABLE IF NOT EXISTS SupplyChain.Events (id INTEGER PRIMARY KEY AUTOINCREM
 
 CREATE TABLE IF NOT EXISTS SupplyChain.EventTypes (id INTEGER PRIMARY KEY AUTOINCREMENT, eventType TEXT NOT NULL);
 
-INSERT INTO TABLE SupplyChain.EventTypes (id, eventType) VALUES (1, "ObjectEvent");
-INSERT INTO TABLE SupplyChain.EventTypes (id, eventType) VALUES (2, "TransactionEvent");
-INSERT INTO TABLE SupplyChain.EventTypes (id, eventType) VALUES (3, "TransformationEvent");
-INSERT INTO TABLE SupplyChain.EventTypes (id, eventType) VALUES (4, "AggregationEvent");

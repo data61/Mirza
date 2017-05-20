@@ -113,6 +113,7 @@ mkApp sqliteFile uiFlavour = do
 mkApp :: FilePath -> UIFlavour ->  IO Application
 mkApp sqliteFile uiFlavour = do
   conn <- Sql.open sqliteFile
+  createTables conn
   return (webApp conn uiFlavour)
 
 
@@ -139,7 +140,7 @@ server' conn uiFlavour = server Normal
   where
     server :: Variant -> Server API
     server variant =
-        schemaUiServer (serveSwaggerAPI' variant) :<|> (privateServer :<|> publicServer)
+      schemaUiServer (serveSwaggerAPI' variant) :<|> (privateServer conn :<|> publicServer conn)
 
     schemaUiServer
         :: (Server api ~ Handler Swagger)

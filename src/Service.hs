@@ -17,10 +17,12 @@ module Service where
 
 import Model
 import API
+import Storage as Store
 
 import Prelude        ()
 import Prelude.Compat
 
+import Database.SQLite.Simple as Sql hiding ((:.))
 
 import           Control.Monad.IO.Class
 import           Control.Monad.Logger (runStderrLoggingT)
@@ -90,11 +92,11 @@ authCheck =
 --import Database.SQLite.Simple as Sql
 --import Database.SQLite.Simple.Types as SqlTypes
 
-publicServer :: Server PublicAPI
-publicServer =  login
+publicServer :: Sql.Connection -> Server PublicAPI
+publicServer conn =  login
 
-privateServer :: User -> Server PrivateAPI
-privateServer _ =  newUser
+privateServer :: Sql.Connection -> User -> Server PrivateAPI
+privateServer conn user =  (Service.newUser conn)
         :<|> return . rfid
         :<|> return . eventInfo
         :<|> return . contactsInfo
@@ -140,8 +142,8 @@ addPublicKey   sig = (True, "Success")
 getPublicKey :: UserID -> BinaryBlob
 getPublicKey userID = BinaryBlob ByteString.empty
 
-newUser ::  NewUser -> Handler UserID
-newUser _ = return 1
+--newUser ::  Sql.Connection -> NewUser -> UserID
+newUser conn nu = liftIO (Store.newUser conn nu)
 
 login :: Handler User
 login = return sampleUser

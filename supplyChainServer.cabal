@@ -42,7 +42,9 @@ library
                      ,direct-sqlite
                      ,sqlite-simple
   default-language:    Haskell2010
-
+  default-extensions: FlexibleContexts
+                      , FlexibleInstances
+                      
 executable supplyChainServer-exe
   hs-source-dirs:      app
   main-is:             Main.hs

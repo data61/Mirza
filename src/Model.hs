@@ -108,7 +108,7 @@ data NewUser = NewUser {
   phoneNumber :: String,
   firstName :: String,
   lastName :: String,
-  company :: String
+  company :: Integer
 } deriving (Generic, Eq, Show)
 $(deriveJSON defaultOptions ''NewUser)
 instance ToSchema NewUser
