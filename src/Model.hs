@@ -70,11 +70,15 @@ import GHC.Generics       (Generic)
 import System.Environment (getArgs, lookupEnv)
 
 import Text.Read          (readMaybe)
+import Data.Text
 
 
 
 type UserID = Integer
 type EventID = Integer
+type EmailAddress = [Word]
+type KeyID = Integer
+type Password = [Word]
 
 newtype BinaryBlob = BinaryBlob ByteString.ByteString
   deriving (MimeUnrender OctetStream, MimeRender OctetStream)
@@ -106,9 +110,11 @@ instance ToSchema RFIDInfo
 
 data NewUser = NewUser {
   phoneNumber :: String,
+  emailAddress :: String,
   firstName :: String,
   lastName :: String,
-  company :: Integer
+  company :: Integer,
+  password :: String
 } deriving (Generic, Eq, Show)
 $(deriveJSON defaultOptions ''NewUser)
 instance ToSchema NewUser

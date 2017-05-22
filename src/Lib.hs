@@ -97,7 +97,7 @@ app = (serveWithContext api basicAuthServerContext) . server'
 
 
 webApp :: Sql.Connection -> UIFlavour -> Application
-webApp conn = (serveWithContext api basicAuthServerContext) . (server' conn)
+webApp conn = (serveWithContext api (basicAuthServerContext conn)) . (server' conn)
 
 
 {-

@@ -17,7 +17,7 @@ module Service where
 
 import Model
 import API
-import Storage as Store
+import qualified Storage
 
 import Prelude        ()
 import Prelude.Compat
@@ -81,23 +81,22 @@ sampleUser :: User
 sampleUser =  User 1 "Sara" "Falamaki"
 
 -- 'BasicAuthCheck' holds the handler we'll use to verify a username and password.
-authCheck :: BasicAuthCheck User
-authCheck =
-  let check (BasicAuthData username password) =
-        if username == "servant" && password == "server"
-        then return (Authorized (sampleUser))
-        else return Unauthorized
+authCheck :: Sql.Connection -> BasicAuthCheck User
+authCheck conn =
+  let check (BasicAuthData username password) = do
+        maybeUser <- Storage.authCheck conn username password
+        case maybeUser of
+           Nothing -> return Unauthorized
+           (Just user) -> return (Authorized (user))
   in BasicAuthCheck check
 
---import Database.SQLite.Simple as Sql
---import Database.SQLite.Simple.Types as SqlTypes
 
 publicServer :: Sql.Connection -> Server PublicAPI
-publicServer conn =  login
+publicServer conn =  Service.newUser conn
+
 
 privateServer :: Sql.Connection -> User -> Server PrivateAPI
-privateServer conn user =  (Service.newUser conn)
-        :<|> return . rfid
+privateServer conn user =  return . rfid
         :<|> return . eventInfo
         :<|> return . contactsInfo
         :<|> return . contactsAdd
@@ -108,7 +107,7 @@ privateServer conn user =  (Service.newUser conn)
         :<|> return . eventAggregateObjects
         :<|> return . eventStartTransaction
         :<|> return . eventTransformObject
-        :<|> return . addPublicKey
+        :<|> (Service.addPublicKey conn user)
         :<|> return . getPublicKey
 
           {-
@@ -132,21 +131,20 @@ serverAPI = Proxy
 -- Basic Authentication requires a Context Entry with the 'BasicAuthCheck' value
 -- tagged with "foo-tag" This context is then supplied to 'server' and threaded
 -- to the BasicAuth HasServer handlers.
-basicAuthServerContext :: Servant.Context (BasicAuthCheck User ': '[])
-basicAuthServerContext = authCheck :. EmptyContext
+basicAuthServerContext :: Sql.Connection -> Servant.Context (BasicAuthCheck User ': '[])
+basicAuthServerContext conn = (authCheck conn):. EmptyContext
 
 
-addPublicKey :: BinaryBlob -> (Bool, String)
-addPublicKey   sig = (True, "Success")
+addPublicKey :: MonadIO m => Sql.Connection -> User -> BinaryBlob -> m KeyID
+addPublicKey conn user sig = liftIO (Storage.addPublicKey conn user sig)
+
 
 getPublicKey :: UserID -> BinaryBlob
 getPublicKey userID = BinaryBlob ByteString.empty
 
---newUser ::  Sql.Connection -> NewUser -> UserID
-newUser conn nu = liftIO (Store.newUser conn nu)
+newUser :: MonadIO m => Sql.Connection -> NewUser -> m UserID
+newUser conn nu = liftIO (Storage.newUser conn nu)
 
-login :: Handler User
-login = return sampleUser
 
 rfid :: String -> Maybe RFIDInfo
 rfid str = Just (RFIDInfo New Nothing)

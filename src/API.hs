@@ -62,8 +62,7 @@ import System.Environment (getArgs, lookupEnv)
 import Text.Read          (readMaybe)
 import Model
 
-type PrivateAPI =       "newUser" :> ReqBody '[JSON] NewUser :> Get '[JSON]  UserID
-            :<|> "rfid" :>  Capture "RFID" String :> "info" :> Get '[JSON] (Maybe RFIDInfo)
+type PrivateAPI =  "rfid" :>  Capture "RFID" String :> "info" :> Get '[JSON] (Maybe RFIDInfo)
             :<|> "event" :> Capture "eventID" EventID:> "info" :> Get '[JSON] EventInfo
             :<|> "contacts" :> Capture "userID" Integer :> Get '[JSON] [User]
             :<|> "contacts" :> "add" :> Capture "userID" Integer :> Get '[JSON] Bool
@@ -74,11 +73,12 @@ type PrivateAPI =       "newUser" :> ReqBody '[JSON] NewUser :> Get '[JSON]  Use
             :<|> "event" :> "aggregateObjects" :> ReqBody '[JSON] AggregatedObject :> Get '[JSON] EventInfo
             :<|> "event" :> "start-transaction" :> ReqBody '[JSON] TransactionInfo :> Get '[JSON] EventInfo
             :<|> "event" :> "transformObject" :> ReqBody '[JSON] TransformationInfo :> Get '[JSON] EventInfo
-            :<|> "key" :> "add" :>  ReqBody '[OctetStream] BinaryBlob :> Get '[JSON] (Bool, String)
+            :<|> "key" :> "add" :>  ReqBody '[OctetStream] BinaryBlob :> Get '[JSON] KeyID
             :<|> "key" :> "get" :> Capture "userID" UserID :> Get '[OctetStream] BinaryBlob
 
 
-type PublicAPI = "login" :> Get '[JSON] User
+type PublicAPI =   "newUser" :> ReqBody '[JSON] NewUser :> Get '[JSON]  UserID
+
 type SwaggerAPI = SwaggerSchemaUI "swagger-ui" "swagger.json"
 
 api :: Proxy API'
