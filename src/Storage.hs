@@ -9,6 +9,7 @@ import qualified Data.Text as Txt
 import Data.ByteString.Char8 (pack)
 
 import Data.Time.Clock.POSIX
+import Data.Maybe (listToMaybe)
 
 import Crypto.Scrypt
 
@@ -42,14 +43,14 @@ createTables conn = do
 newUser conn (M.NewUser phone email first last biz password) = do
   hash <- encryptPassIO' (Pass (pack password))
   execute conn "INSERT INTO Users (bizID, firstName, lastName, phoneNumber, passwordHash, emailAddress) \
-    \ VALUES (?, ?, ?, ?)" (biz, first, last, phone, (getEncryptedPass hash), email)
+    \ VALUES (?, ?, ?, ?);" (biz, first, last, phone, (getEncryptedPass hash), email)
   rowID <- lastInsertRowId conn
   return ((fromIntegral rowID) :: M.UserID)
 
 
 --authCheck :: Sql.Connection -> M.EmailAddress -> M.Password -> IO (Maybe M.User)
 authCheck conn email password = do
-  r <- Sql.query conn "SELECT rowID, firstName, lastName, passwordHash FROM Users WHERE emailAddress = ?" (Only (email))
+  r <- Sql.query conn "SELECT rowID, firstName, lastName, passwordHash FROM Users WHERE emailAddress = ?;" (Only (email))
   case (length r) of
     0 -> return Nothing
     _ -> let
@@ -63,11 +64,25 @@ authCheck conn email password = do
 addPublicKey :: Sql.Connection -> M.User -> M.BinaryBlob -> IO (M.KeyID)
 addPublicKey conn (M.User uid _ _)  (M.BinaryBlob sig) = do
   timestamp <- getSeconds :: IO (Integer)
-  execute conn "INSERT INTO Keys (userID, publicKey, creationTime) values (?, ?, ?)" (uid, sig, timestamp)
+  execute conn "INSERT INTO Keys (userID, publicKey, creationTime) values (?, ?, ?);" (uid, sig, timestamp)
   rowID <- lastInsertRowId conn
   return ((fromIntegral rowID) :: M.KeyID)
 
 
-getPublicKey :: Sql.Connection -> M.User -> M.KeyID -> IO (M.BinaryBlob)
-getPublicKey = error "not implemented yet"
+getPublicKey :: Sql.Connection -> M.KeyID -> IO (Maybe M.BinaryBlob)
+getPublicKey conn keyID = do
+  rs <- Sql.query conn "SELECT publicKey FROM Keys WHERE keyID = ?;" (Only (keyID))
+  return $ listToMaybe rs
+
+getPublicKeyInfo :: Sql.Connection -> M.KeyID -> IO (Maybe M.KeyInfo)
+getPublicKeyInfo conn keyID = do
+  r <- Sql.query conn "SELECT (UserID, creationTime, revocationTime) FROM Keys WHERE keyID = ?;" (Only (keyID))
+  case (length r) of
+    0 -> return Nothing
+    _ -> let
+      (uid, creationTime, revocationTime) = head r
+      in
+        return (Just (M.KeyInfo uid creationTime revocationTime))
+
+
 

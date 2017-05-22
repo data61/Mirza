@@ -74,10 +74,11 @@ type PrivateAPI =  "rfid" :>  Capture "RFID" String :> "info" :> Get '[JSON] (Ma
             :<|> "event" :> "start-transaction" :> ReqBody '[JSON] TransactionInfo :> Get '[JSON] EventInfo
             :<|> "event" :> "transformObject" :> ReqBody '[JSON] TransformationInfo :> Get '[JSON] EventInfo
             :<|> "key" :> "add" :>  ReqBody '[OctetStream] BinaryBlob :> Get '[JSON] KeyID
-            :<|> "key" :> "get" :> Capture "userID" UserID :> Get '[OctetStream] BinaryBlob
 
 
-type PublicAPI =   "newUser" :> ReqBody '[JSON] NewUser :> Get '[JSON]  UserID
+type PublicAPI =   "newUser" :> ReqBody '[JSON] NewUser :> Get '[JSON] UserID
+            :<|> "key" :> "get" :> Capture "keyID" KeyID :> Get '[OctetStream] BinaryBlob
+            :<|> "key" :> "getInfo" :> Capture "keyID" KeyID :> Get '[JSON] KeyInfo
 
 type SwaggerAPI = SwaggerSchemaUI "swagger-ui" "swagger.json"
 

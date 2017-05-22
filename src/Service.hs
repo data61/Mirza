@@ -93,6 +93,8 @@ authCheck conn =
 
 publicServer :: Sql.Connection -> Server PublicAPI
 publicServer conn =  Service.newUser conn
+    :<|>  Service.getPublicKey conn
+    :<|>  Service.getPublicKeyInfo conn
 
 
 privateServer :: Sql.Connection -> User -> Server PrivateAPI
@@ -107,8 +109,7 @@ privateServer conn user =  return . rfid
         :<|> return . eventAggregateObjects
         :<|> return . eventStartTransaction
         :<|> return . eventTransformObject
-        :<|> (Service.addPublicKey conn user)
-        :<|> return . getPublicKey
+        :<|> Service.addPublicKey conn user
 
           {-
         :<|> return . eventHash
@@ -135,16 +136,26 @@ basicAuthServerContext :: Sql.Connection -> Servant.Context (BasicAuthCheck User
 basicAuthServerContext conn = (authCheck conn):. EmptyContext
 
 
-addPublicKey :: MonadIO m => Sql.Connection -> User -> BinaryBlob -> m KeyID
+addPublicKey :: Sql.Connection -> User -> BinaryBlob -> Handler KeyID
 addPublicKey conn user sig = liftIO (Storage.addPublicKey conn user sig)
 
 
-getPublicKey :: UserID -> BinaryBlob
-getPublicKey userID = BinaryBlob ByteString.empty
-
-newUser :: MonadIO m => Sql.Connection -> NewUser -> m UserID
+newUser :: Sql.Connection -> NewUser -> Handler UserID
 newUser conn nu = liftIO (Storage.newUser conn nu)
 
+getPublicKey :: Sql.Connection -> KeyID -> Handler BinaryBlob
+getPublicKey conn keyID = do
+  key <- liftIO $ Storage.getPublicKey conn keyID
+  case key of
+    Nothing -> throwError err404 { errBody = "Unknown key ID" }
+    Just k -> return k
+
+getPublicKeyInfo :: Sql.Connection -> KeyID -> Handler KeyInfo
+getPublicKeyInfo conn keyID = do
+  info <- liftIO $ Storage.getPublicKeyInfo conn keyID
+  case info of
+    Nothing -> throwError err404 { errBody = "Unknown key ID" }
+    Just i -> return i
 
 rfid :: String -> Maybe RFIDInfo
 rfid str = Just (RFIDInfo New Nothing)

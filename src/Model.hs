@@ -63,6 +63,8 @@ import qualified Data.HashMap.Strict.InsOrd as IOrd
 import qualified Network.Wai.Handler.Warp as Warp
 import Network.Wai
 
+import Database.SQLite.Simple as Sql
+
 import Control.Lens       hiding ((.=))
 
 import GHC.Generics       (Generic)
@@ -85,6 +87,18 @@ newtype BinaryBlob = BinaryBlob ByteString.ByteString
 
 instance ToSchema BinaryBlob where
   declareNamedSchema _ = pure $ NamedSchema (Just "BinaryBlob") $ binarySchema
+
+instance Sql.FromRow BinaryBlob where
+  fromRow = BinaryBlob <$> field
+
+
+data KeyInfo = KeyInfo {
+  userID         :: UserID,
+  creationTime   :: Integer,
+  revocationTime :: Integer
+}deriving (Generic, Eq, Show)
+$(deriveJSON defaultOptions ''KeyInfo)
+instance ToSchema KeyInfo
 
 data User = User {
     userId        :: UserID
