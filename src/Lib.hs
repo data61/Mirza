@@ -16,7 +16,8 @@
 
 
 module Lib
-    ( startApp
+    ( startApp,
+      startApp_nomain
     )
     where
 
@@ -89,6 +90,11 @@ startApp sqliteFile = do
         _ -> do
             putStrLn "Example application, used as a compilation check"
             putStrLn "To run, pass run argument: --test-arguments run"
+
+
+-- easily start the app in ghci, no command line arguments required.
+startApp_nomain :: FilePath -> IO ()
+startApp_nomain filePath = Warp.run 8000 =<< (mkApp filePath Original)
 
 {-
 app :: UIFlavour -> Application

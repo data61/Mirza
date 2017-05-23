@@ -38,15 +38,24 @@ createTables conn = do
   execute_ conn eventTable
   execute_ conn objectTable
 
+{-
 
---newUser :: Sql.Connection -> M.NewUser -> IO (M.UserID)
+let nu = M.NewUser "0413045995" "sara@csiro.au" "sara" "falamaki" 3 "foobar"
+let bb = M.BinaryBlob (pack "sldkfdssl")
+ bracket (open "test.sqlite") (close) (\conn -> do Storage.newUser conn nu)
+ bracket (open "test.sqlite") (close) (\conn -> do Storage.authCheck conn "sara@csiro" "foobar")
+ bracket (open "test.sqlite") (close) (\conn -> do Storage.addPublicKey conn user bb)
+ bracket (open "test.sqlite") (close) (\conn -> Sql.query conn "SELECT rowID, firstName, lastName, passwordHash FROM Users WHERE emailAddress = ?;" (Only ("sara@csiro")))
+
+  -}
+
+newUser :: Sql.Connection -> M.NewUser -> IO (M.UserID)
 newUser conn (M.NewUser phone email first last biz password) = do
   hash <- encryptPassIO' (Pass (pack password))
   execute conn "INSERT INTO Users (bizID, firstName, lastName, phoneNumber, passwordHash, emailAddress) \
-    \ VALUES (?, ?, ?, ?);" (biz, first, last, phone, (getEncryptedPass hash), email)
+               \ VALUES (?, ?, ?, ?, ?, ?);" (biz, first, last, phone, (getEncryptedPass hash), email)
   rowID <- lastInsertRowId conn
   return ((fromIntegral rowID) :: M.UserID)
-
 
 --authCheck :: Sql.Connection -> M.EmailAddress -> M.Password -> IO (Maybe M.User)
 authCheck conn email password = do
@@ -76,7 +85,7 @@ getPublicKey conn keyID = do
 
 getPublicKeyInfo :: Sql.Connection -> M.KeyID -> IO (Maybe M.KeyInfo)
 getPublicKeyInfo conn keyID = do
-  r <- Sql.query conn "SELECT (UserID, creationTime, revocationTime) FROM Keys WHERE keyID = ?;" (Only (keyID))
+  r <- Sql.query conn "SELECT UserID, creationTime, revocationTime FROM Keys WHERE keyID = ?;" (Only (keyID))
   case (length r) of
     0 -> return Nothing
     _ -> let
@@ -84,5 +93,14 @@ getPublicKeyInfo conn keyID = do
       in
         return (Just (M.KeyInfo uid creationTime revocationTime))
 
-
+--getUser :: Sql.Connection -> M.EmailAddress -> IO (Maybe M.User)
+getUser conn email = do
+  r <- Sql.query conn "SELECT rowID, firstName, lastName FROM Users WHERE emailAddress = ?;" (Only (email))
+  case (length r) of
+    0 -> return Nothing
+    _ -> let
+      (uid, firstName, lastName) = head r
+      in
+        do
+          return $ Just (M.User uid firstName lastName)
 

@@ -76,7 +76,7 @@ type PrivateAPI =  "rfid" :>  Capture "RFID" String :> "info" :> Get '[JSON] (Ma
             :<|> "key" :> "add" :>  ReqBody '[OctetStream] BinaryBlob :> Get '[JSON] KeyID
 
 
-type PublicAPI =   "newUser" :> ReqBody '[JSON] NewUser :> Get '[JSON] UserID
+type PublicAPI =   "newUser" :> ReqBody '[JSON] NewUser :> Post '[JSON] UserID
             :<|> "key" :> "get" :> Capture "keyID" KeyID :> Get '[OctetStream] BinaryBlob
             :<|> "key" :> "getInfo" :> Capture "keyID" KeyID :> Get '[JSON] KeyInfo
 
