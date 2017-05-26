@@ -161,28 +161,6 @@ rfid :: String -> Maybe RFIDInfo
 rfid str = Just (RFIDInfo New Nothing)
 
 
-
-sampleWhat :: DWhat
-sampleWhat = ObjectDWhat Observe [GLN "urn:epc:id:sgtin:0614141" "107346" "2017", GLN "urn:epc:id:sgtin:0614141" "107346" "2018"] []
-
-sampleWhy :: DWhy
-sampleWhy = DWhy (Just Arriving) (Just Data.GS1.DWhy.Active)
-
-sampleWhen :: DWhen
-sampleWhen = DWhen pt (Just pt) tz
-  where
-      t = "2017-01-24T13:08:24.11+10:00"
-      pt = fromRight' (parseStr2Time t :: Either EPCISTimeError EPCISTime)
-      tz = fromRight' (parseStr2TimeZone t :: Either EPCISTimeError TimeZone)
-
-
-eventInfo :: EventID -> EventInfo
-eventInfo eID = EventInfo 1 AggregationEventT New sampleWhat sampleWhy sampleWhen []
-
-eventHash :: EventID -> SignedEvent
-eventHash eID = SignedEvent eID (BinaryBlob ByteString.empty) [(BinaryBlob ByteString.empty)] [1,2]
-
-
 contactsInfo :: UserID -> [User]
 contactsInfo uID = []
 
@@ -209,4 +187,25 @@ eventStartTransaction _ = eventInfo 1
 
 eventTransformObject :: TransformationInfo -> EventInfo
 eventTransformObject _ = eventInfo 1
+
+sampleWhat :: DWhat
+sampleWhat = ObjectDWhat Observe [GLN "urn:epc:id:sgtin:0614141" "107346" "2017", GLN "urn:epc:id:sgtin:0614141" "107346" "2018"] []
+
+sampleWhy :: DWhy
+sampleWhy = DWhy (Just Arriving) (Just Data.GS1.DWhy.Active)
+
+sampleWhen :: DWhen
+sampleWhen = DWhen pt (Just pt) tz
+  where
+      t = "2017-01-24T13:08:24.11+10:00"
+      pt = fromRight' (parseStr2Time t :: Either EPCISTimeError EPCISTime)
+      tz = fromRight' (parseStr2TimeZone t :: Either EPCISTimeError TimeZone)
+
+
+eventInfo :: EventID -> EventInfo
+eventInfo eID = EventInfo 1 AggregationEventT New sampleWhat sampleWhy sampleWhen []
+
+eventHash :: EventID -> SignedEvent
+eventHash eID = SignedEvent eID (BinaryBlob ByteString.empty) [(BinaryBlob ByteString.empty)] [1,2]
+
 
