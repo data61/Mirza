@@ -69,11 +69,11 @@ type PrivateAPI =  "rfid" :>  Capture "RFID" String :> "info" :> Get '[JSON] (Ma
             :<|> "contacts" :> "remove" :> Capture "userID" Integer :> Get '[JSON] Bool
             :<|> "contacts" :> "search" :> Capture "term" String :> Get '[JSON] [User]
             :<|> "event" :> "list" :> Capture "userID" Integer :> Get '[JSON] [EventInfo]
-            :<|> "event" :> "createObject" :> ReqBody '[JSON] NewObject :> Get '[JSON] ObjectID
-            :<|> "event" :> "aggregateObjects" :> ReqBody '[JSON] AggregatedObject :> Get '[JSON] EventInfo
-            :<|> "event" :> "start-transaction" :> ReqBody '[JSON] TransactionInfo :> Get '[JSON] EventInfo
-            :<|> "event" :> "transformObject" :> ReqBody '[JSON] TransformationInfo :> Get '[JSON] EventInfo
-            :<|> "key" :> "add" :>  ReqBody '[OctetStream] BinaryBlob :> Get '[JSON] KeyID
+            :<|> "event" :> "createObject" :> ReqBody '[JSON] NewObject :> Post '[JSON] ObjectID
+            :<|> "event" :> "aggregateObjects" :> ReqBody '[JSON] AggregatedObject :> Post '[JSON] EventInfo
+            :<|> "event" :> "start-transaction" :> ReqBody '[JSON] TransactionInfo :> Post '[JSON] EventInfo
+            :<|> "event" :> "transformObject" :> ReqBody '[JSON] TransformationInfo :> Post '[JSON] EventInfo
+            :<|> "key" :> "add" :>  ReqBody '[OctetStream] BinaryBlob :> Post '[JSON] KeyID
 
 
 type PublicAPI =   "newUser" :> ReqBody '[JSON] NewUser :> Post '[JSON] UserID

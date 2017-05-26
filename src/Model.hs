@@ -136,7 +136,6 @@ instance ToSchema NewUser
 
 
 data NewObject = NewObject {
-  object_userID :: UserID,
   object_epcs :: EPC,
   object_timestamp :: EPCISTime,
   object_timezone:: TimeZone,
@@ -147,7 +146,6 @@ $(deriveJSON defaultOptions ''NewObject)
 instance ToSchema NewObject
 
 data AggregatedObject = AggregatedObject {
-  aggObject_userID :: UserID,
   aggObject_objectIDs :: [ObjectID],
   aggObject_timestamp :: EPCISTime,
   aggOject_timezone:: TimeZone,
@@ -157,7 +155,6 @@ $(deriveJSON defaultOptions ''AggregatedObject)
 instance ToSchema AggregatedObject
 
 data TransformationInfo = TransformationInfo {
-  transObject_userID :: UserID,
   transObject_objectIDs :: [ObjectID],
   transObject_timestamp :: EPCISTime,
   transObject_timezone:: TimeZone,
@@ -165,15 +162,14 @@ data TransformationInfo = TransformationInfo {
   transObject_inputEPC :: [EPC],
   transObject_inputQuantity :: [Quantity],
   transObject_outputEPC :: [EPC],
+  transObject_outputObjectID :: [ObjectID],
   transObject_outputQuantity :: [Quantity]
 } deriving (Show, Generic)
 $(deriveJSON defaultOptions ''TransformationInfo)
 instance ToSchema TransformationInfo
 
-
-
 data TransactionInfo = TransactionInfo {
-  transaction_userID :: UserID,
+  transaction_userIDs :: [UserID],
   transaction_objectIDs :: [ObjectID],
   transaction_parentID :: Maybe ParentID,
   transaction_bizTransaction :: [BizTransaction],
