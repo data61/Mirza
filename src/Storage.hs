@@ -3,15 +3,38 @@ module Storage where
 
 import Database.SQLite.Simple as Sql
 import Database.SQLite.Simple.Types as SqlTypes
+import Database.SQLite.Simple.ToField
 
 import qualified Model as M
 import qualified Data.Text as Txt
-import Data.ByteString.Char8 (pack)
 
-import Data.Time.Clock.POSIX
-import Data.Maybe (listToMaybe)
+import Data.Time.Clock
+import Data.Maybe (listToMaybe, fromMaybe)
 
 import Crypto.Scrypt
+
+import Data.GS1.Event
+import Data.GS1.EventID
+import Data.GS1.Object
+import Data.GS1.EPC
+import Data.GS1.DWhen
+import Data.GS1.DWhere
+import Data.GS1.DWhat
+import Data.GS1.DWhy
+
+import Data.UUID.V4
+
+import Data.Aeson.Text
+import Data.ByteString.Char8 (pack)
+import qualified Data.Text.Lazy as TxtL
+
+
+
+-- to put in DB, we just convert it to json for now.
+
+
+
+
 
 -- Users in the system
 userTable   =  "CREATE TABLE IF NOT EXISTS Users (id INTEGER PRIMARY KEY AUTOINCREMENT, bizID INTEGER, firstName TEXT NOT NULL, lastName TEXT, phoneNumber TEXT, passwordHash BLOB, emailAddress TEXT);"
@@ -28,9 +51,9 @@ contactTable=  "CREATE TABLE IF NOT EXISTS Contacts (id INTEGER PRIMARY KEY AUTO
 
 -- Description of an Event
 -- Should we store a JSON copy of the event to ensure we always hash the same thing?
-eventTable  =  "CREATE TABLE IF NOT EXISTS Events (id INTEGER PRIMARY KEY AUTOINCREMENT, what TEXT, why TEXT, location TEXT, timestamp INTEGER NOT NULL, timezone TEXT, eventType INTEGER NOT NULL, jsonEvent TEXT);"
+eventTable  =  "CREATE TABLE IF NOT EXISTS Events (id INTEGER PRIMARY KEY AUTOINCREMENT, eventID TEXT, objectID INTEGER NOT NULL, what TEXT, why TEXT, location TEXT, timestamp INTEGER NOT NULL, timezone TEXT, eventType INTEGER NOT NULL, createdBy INTEGER NOT NULL,  jsonEvent TEXT);"
 
-objectTable = "CREATE TABLE IF NOT EXISTS Objects (id INTEGER PRIMARY KEY AUTOINCREMENT, ObjectID INTEGER NOT NULL, GS1Barcode TEXT NOT NULL);"
+objectTable = "CREATE TABLE IF NOT EXISTS Objects (id INTEGER PRIMARY KEY AUTOINCREMENT, ObjectID TEXT NOT NULL, GS1Barcode TEXT NOT NULL);"
 
 -- A table of hashed events, signed and unsigned.
 -- If isSigned is TRUE, then signedByUser must not be null.
@@ -42,10 +65,6 @@ hashTable   =  "CREATE TABLE IF NOT EXISTS Hashes (id INTEGER PRIMARY KEY AUTOIN
 -- find the item on the blockchain
 blockChainTable = "CREATE TABLE IF NOT EXISTS BlockchainTable (id INTEGER PRIMARY KEY AUTOINCREMENT, eventID INTEGER NOT NULL, hash BLOB NOT NULL, blockChain address text NOT NULL, blockChainID INTEGER NOT NULL);"
 
-
--- get the number of seconds since the POSIX epoch (1970)
-getSeconds :: Integral b => IO b
-getSeconds = round `fmap` getPOSIXTime
 
 -- Create all the tables above, if they don't exist
 createTables :: Sql.Connection -> IO ()
@@ -103,7 +122,7 @@ authCheck conn email password = do
 -- Add the users public key to the DB
 addPublicKey :: Sql.Connection -> M.User -> M.BinaryBlob -> IO (M.KeyID)
 addPublicKey conn (M.User uid _ _)  (M.BinaryBlob sig) = do
-  timestamp <- getSeconds :: IO (Integer)
+  timestamp <- getCurrentTime
   execute conn "INSERT INTO Keys (userID, publicKey, creationTime) values (?, ?, ?);" (uid, sig, timestamp)
   rowID <- lastInsertRowId conn
   return ((fromIntegral rowID) :: M.KeyID)
@@ -140,6 +159,37 @@ getUser conn email = do
         do
           return $ Just (M.User uid firstName lastName)
 
+-- Given a user and a new object event, inserts the new object & the new object
+-- event into the db and returns the json encoded copy of the event.
+-- It also inserts the json event into the db, later used for hashing
+eventCreateObject :: Sql.Connection -> M.User -> M.NewObject -> IO (Txt.Text)
+eventCreateObject conn (M.User uid _ _ ) (M.NewObject epc epcisTime timezone objectID location) = do
+  execute conn "INSERT INTO Objects (objectID, GS1Barcode) VALUES (?, ?);" (objectID, epc)
+  objectRowID <- lastInsertRowId conn
+  currentTime <- getCurrentTime
+  uuid <- nextRandom
+  let
+      quantity = QuantityElement (EPCClass "FIXME") 1.0 Nothing
+      what =  ObjectDWhat Add [epc] [quantity]
+      why  =  DWhy (Just CreatingClassInstance) (Just Active)
+      when = DWhen epcisTime (Just currentTime) timezone
+      eventID = EventID uuid
+      (M.EventLocation readPt bizLoc src dest) = location
+      dwhere = DWhere [readPt] [bizLoc] [src] [dest]
+      jsonEvent = encodeEvent $ (mkEvent ObjectEventT eventID what when why dwhere)
+  execute conn "INSERT INTO Events (eventID, objectID, what, why, location, timestamp, timezone, eventType, createdBy, jsonEvent) VALUES (?, ?, ?, ?, ?, ?, ?, ?);" (eventID, objectID, what, why, dwhere, epcisTime, timezone, ObjectEventT, uid, jsonEvent)
+  return jsonEvent
+
+
+deMaybe :: Maybe a -> a
+deMaybe Nothing = error "I should never get a Nothing!!"
+deMaybe (Just a) = a
+
+-- json encode the event
+-- currently do it automagically, but might what to be
+-- more systematic about it so it's easier to replicated. Maybe.
+encodeEvent :: Event -> Txt.Text
+encodeEvent event = TxtL.toStrict  (encodeToLazyText event)
 
 
 

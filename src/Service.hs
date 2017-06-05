@@ -40,6 +40,7 @@ import Data.Aeson.TH
 import Data.Swagger
 import Data.Maybe
 import Data.GS1.Event
+import Data.GS1.EventID
 import Data.GS1.Object
 import Data.GS1.EPC
 import Data.GS1.DWhen
@@ -64,6 +65,9 @@ import GHC.Generics       (Generic)
 import System.Environment (getArgs, lookupEnv)
 
 import Text.Read          (readMaybe)
+
+-- remove me eventually
+import Data.UUID.V4
 
 instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub) where
   toSwagger _ =
@@ -91,29 +95,30 @@ authCheck conn =
   in BasicAuthCheck check
 
 
-publicServer :: Sql.Connection -> Server PublicAPI
-publicServer conn =  Service.newUser conn
-    :<|>  Service.getPublicKey conn
-    :<|>  Service.getPublicKeyInfo conn
-
 
 privateServer :: Sql.Connection -> User -> Server PrivateAPI
-privateServer conn user =  return . rfid
-        :<|> return . eventInfo
-        :<|> return . contactsInfo
-        :<|> return . contactsAdd
-        :<|> return . contactsRemove
-        :<|> return . contactsSearch
-        :<|> return . eventList
-        :<|> return . eventCreateObject
-        :<|> return . eventAggregateObjects
-        :<|> return . eventStartTransaction
-        :<|> return . eventTransformObject
+privateServer conn user =  rfid conn user
+        :<|> eventInfo conn user
+        :<|> contactsInfo conn user
+        :<|> contactsAdd conn user
+        :<|> contactsRemove conn user
+        :<|> contactsSearch conn user
+        :<|> eventList conn user
+        :<|> eventCreateObject conn user
+        :<|> eventAggregateObjects conn user
+        :<|> eventStartTransaction conn user
+        :<|> eventTransformObject conn user
         :<|> Service.addPublicKey conn user
 
           {-
         :<|> return . eventHash
         -}
+
+publicServer :: Sql.Connection -> Server PublicAPI
+publicServer conn =  Service.newUser conn
+    :<|>  Service.getPublicKey conn
+    :<|>  Service.getPublicKeyInfo conn
+
 
 
 -- | Swagger spec for server API.
@@ -157,36 +162,42 @@ getPublicKeyInfo conn keyID = do
     Nothing -> throwError err404 { errBody = "Unknown key ID" }
     Just i -> return i
 
-rfid :: String -> Maybe RFIDInfo
-rfid str = Just (RFIDInfo New Nothing)
+rfid :: Sql.Connection -> User ->  String -> Handler RFIDInfo
+rfid conn user str = return (RFIDInfo New Nothing)
 
 
-contactsInfo :: UserID -> [User]
-contactsInfo uID = []
+contactsInfo :: Sql.Connection -> User -> Handler [User]
+contactsInfo conn user = return []
 
-contactsAdd :: UserID -> Bool
-contactsAdd uID = False
+contactsAdd :: Sql.Connection -> User -> UserID -> Handler Bool
+contactsAdd conn user uID = return False
 
-contactsRemove :: UserID -> Bool
-contactsRemove uID = False
+contactsRemove :: Sql.Connection -> User -> UserID -> Handler Bool
+contactsRemove conn user uID = return False
 
-contactsSearch :: String -> [User]
-contactsSearch term = []
+contactsSearch :: Sql.Connection -> User -> String -> Handler [User]
+contactsSearch conn user term = return []
 
-eventList :: UserID -> [EventInfo]
-eventList uID = [(eventInfo 1)]
+eventList :: Sql.Connection -> User -> UserID -> Handler [EventInfo]
+eventList conn user uID = return []
 
-eventCreateObject :: NewObject -> ObjectID
-eventCreateObject newObject = "newObjectID"
+eventCreateObject :: Sql.Connection -> User -> NewObject -> Handler ObjectID
+eventCreateObject conn user newObject = return "newObjectID"
 
-eventAggregateObjects :: AggregatedObject -> EventInfo
-eventAggregateObjects _ = eventInfo 1
+eventAggregateObjects :: Sql.Connection -> User -> AggregatedObject -> Handler EventInfo
+eventAggregateObjects conn user aggObject = liftIO sampleEventInfo
 
-eventStartTransaction :: TransactionInfo -> EventInfo
-eventStartTransaction _ = eventInfo 1
+eventStartTransaction :: Sql.Connection -> User -> TransactionInfo -> Handler EventInfo
+eventStartTransaction conn user aggObject = liftIO sampleEventInfo
 
-eventTransformObject :: TransformationInfo -> EventInfo
-eventTransformObject _ = eventInfo 1
+eventTransformObject :: Sql.Connection -> User -> TransformationInfo -> Handler EventInfo
+eventTransformObject conn user aggObject = liftIO sampleEventInfo
+
+sampleEventInfo :: IO EventInfo
+sampleEventInfo =  do
+  uuid <- nextRandom
+  return (EventInfo  (EventID uuid) AggregationEventT New sampleWhat sampleWhy sampleWhere [])
+
 
 sampleWhat :: DWhat
 sampleWhat = ObjectDWhat Observe [GLN "urn:epc:id:sgtin:0614141" "107346" "2017", GLN "urn:epc:id:sgtin:0614141" "107346" "2018"] []
@@ -201,11 +212,13 @@ sampleWhen = DWhen pt (Just pt) tz
       pt = fromRight' (parseStr2Time t :: Either EPCISTimeError EPCISTime)
       tz = fromRight' (parseStr2TimeZone t :: Either EPCISTimeError TimeZone)
 
+sampleWhere :: DWhere
+sampleWhere = DWhere [] [] [] []
 
-eventInfo :: EventID -> EventInfo
-eventInfo eID = EventInfo 1 AggregationEventT New sampleWhat sampleWhy sampleWhen []
+eventInfo :: Sql.Connection -> User -> EventID -> Handler EventInfo
+eventInfo conn user eID = liftIO sampleEventInfo
 
-eventHash :: EventID -> SignedEvent
-eventHash eID = SignedEvent eID (BinaryBlob ByteString.empty) [(BinaryBlob ByteString.empty)] [1,2]
+--eventHash :: EventID -> Handler SignedEvent
+--eventHash eID = return (SignedEvent eID (BinaryBlob ByteString.empty) [(BinaryBlob ByteString.empty)] [1,2])
 
 

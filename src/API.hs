@@ -38,6 +38,7 @@ import Data.Aeson.TH
 import Data.Swagger
 import Data.Maybe
 import Data.GS1.Event
+import Data.GS1.EventID
 import Data.GS1.Object
 import Data.GS1.EPC
 import Data.GS1.DWhen
@@ -62,9 +63,9 @@ import System.Environment (getArgs, lookupEnv)
 import Text.Read          (readMaybe)
 import Model
 
-type PrivateAPI =  "rfid" :>  Capture "RFID" String :> "info" :> Get '[JSON] (Maybe RFIDInfo)
+type PrivateAPI =  "rfid" :>  Capture "RFID" String :> "info" :> Get '[JSON] RFIDInfo
             :<|> "event" :> Capture "eventID" EventID:> "info" :> Get '[JSON] EventInfo
-            :<|> "contacts" :> Capture "userID" Integer :> Get '[JSON] [User]
+            :<|> "contacts" :>  Get '[JSON] [User]
             :<|> "contacts" :> "add" :> Capture "userID" Integer :> Get '[JSON] Bool
             :<|> "contacts" :> "remove" :> Capture "userID" Integer :> Get '[JSON] Bool
             :<|> "contacts" :> "search" :> Capture "term" String :> Get '[JSON] [User]

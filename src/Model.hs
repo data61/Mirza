@@ -48,6 +48,7 @@ import Data.Aeson.TH
 import Data.Swagger
 import Data.Maybe
 import Data.GS1.Event
+import Data.GS1.EventID
 import Data.GS1.Object
 import Data.GS1.EPC
 import Data.GS1.DWhen
@@ -77,7 +78,6 @@ import Data.Text
 
 
 type UserID = Integer
-type EventID = Integer
 type EmailAddress = [Word]
 type KeyID = Integer
 type Password = [Word]
@@ -133,6 +133,14 @@ data NewUser = NewUser {
 $(deriveJSON defaultOptions ''NewUser)
 instance ToSchema NewUser
 
+data EventLocation = EventLocation {
+  readPoint :: ReadPointLocation,
+  bizLocation :: BizLocation,
+  source :: SourceDestType,
+  destination :: SourceDestType
+} deriving (Show, Generic)
+$(deriveJSON defaultOptions ''EventLocation)
+instance ToSchema EventLocation
 
 
 data NewObject = NewObject {
@@ -140,8 +148,8 @@ data NewObject = NewObject {
   object_timestamp :: EPCISTime,
   object_timezone:: TimeZone,
   object_objectID :: ObjectID,
-  object_location :: GeoLocation
-                           } deriving (Show, Generic)
+  object_location :: EventLocation
+} deriving (Show, Generic)
 $(deriveJSON defaultOptions ''NewObject)
 instance ToSchema NewObject
 
@@ -149,7 +157,7 @@ data AggregatedObject = AggregatedObject {
   aggObject_objectIDs :: [ObjectID],
   aggObject_timestamp :: EPCISTime,
   aggOject_timezone:: TimeZone,
-  aggObject_location :: GeoLocation
+  aggObject_location :: EventLocation
 } deriving (Show, Generic)
 $(deriveJSON defaultOptions ''AggregatedObject)
 instance ToSchema AggregatedObject
@@ -158,7 +166,7 @@ data TransformationInfo = TransformationInfo {
   transObject_objectIDs :: [ObjectID],
   transObject_timestamp :: EPCISTime,
   transObject_timezone:: TimeZone,
-  transObject_location :: GeoLocation,
+  transObject_location :: EventLocation,
   transObject_inputEPC :: [EPC],
   transObject_inputQuantity :: [Quantity],
   transObject_outputEPC :: [EPC],
@@ -180,12 +188,12 @@ $(deriveJSON defaultOptions ''TransactionInfo)
 instance ToSchema TransactionInfo
 
 data EventInfo = EventInfo {
-  event_eventID :: Integer,
+  event_eventID :: EventID,
   eventType :: EventType,
   rfidState :: RFIDState,
   what :: DWhat,
   why :: DWhy,
-  location :: DWhen,
+  location :: DWhere,
   event_users :: [User]
 } deriving (Generic, Eq, Show)
 $(deriveJSON defaultOptions ''EventInfo)
