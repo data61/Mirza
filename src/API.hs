@@ -64,6 +64,7 @@ import Text.Read          (readMaybe)
 import Model
 
 type PrivateAPI =  "rfid" :>  Capture "RFID" String :> "info" :> Get '[JSON] RFIDInfo
+            :<|> "rfid" :> Capture "RFID" String :> "events" :> Get '[JSON] [Event]
             :<|> "event" :> Capture "eventID" EventID:> "info" :> Get '[JSON] Event
             :<|> "contacts" :>  Get '[JSON] [User]
             :<|> "contacts" :> "add" :> Capture "userID" Integer :> Get '[JSON] Bool

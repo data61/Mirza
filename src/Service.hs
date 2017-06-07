@@ -99,6 +99,7 @@ authCheck conn =
 
 privateServer :: Sql.Connection -> User -> Server PrivateAPI
 privateServer conn user =  rfid conn user
+        :<|> listEvents conn user
         :<|> eventInfo conn user
         :<|> contactsInfo conn user
         :<|> contactsAdd conn user
@@ -166,6 +167,8 @@ getPublicKeyInfo conn keyID = do
 rfid :: Sql.Connection -> User ->  String -> Handler RFIDInfo
 rfid conn user str = return (RFIDInfo New Nothing)
 
+listEvents :: Sql.Connection -> User ->  String -> Handler [Event]
+listEvents conn user str = return []
 
 contactsInfo :: Sql.Connection -> User -> Handler [User]
 contactsInfo conn user = return []
