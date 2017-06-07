@@ -106,6 +106,7 @@ privateServer conn user =  rfid conn user
         :<|> contactsRemove conn user
         :<|> contactsSearch conn user
         :<|> eventList conn user
+        :<|> eventUserList conn user
         :<|> eventCreateObject conn user
         :<|> eventAggregateObjects conn user
         :<|> eventStartTransaction conn user
@@ -157,6 +158,7 @@ getPublicKey conn keyID = do
     Nothing -> throwError err404 { errBody = "Unknown key ID" }
     Just k -> return k
 
+
 getPublicKeyInfo :: Sql.Connection -> KeyID -> Handler KeyInfo
 getPublicKeyInfo conn keyID = do
   info <- liftIO $ Storage.getPublicKeyInfo conn keyID
@@ -167,8 +169,15 @@ getPublicKeyInfo conn keyID = do
 rfid :: Sql.Connection -> User ->  String -> Handler RFIDInfo
 rfid conn user str = return (RFIDInfo New Nothing)
 
+
 listEvents :: Sql.Connection -> User ->  String -> Handler [Event]
 listEvents conn user str = return []
+
+
+-- given an event ID, list all the users associated with that event
+-- this can be used to make sure everything is signed
+eventUserList :: Sql.Connection -> User -> EventID -> Handler [(User, Bool)]
+eventUserList conn user eventID = return []
 
 contactsInfo :: Sql.Connection -> User -> Handler [User]
 contactsInfo conn user = return []

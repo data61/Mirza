@@ -63,7 +63,7 @@ import System.Environment (getArgs, lookupEnv)
 import Text.Read          (readMaybe)
 import Model
 
-type PrivateAPI =  "rfid" :>  Capture "RFID" String :> "info" :> Get '[JSON] RFIDInfo
+type PrivateAPI =  "rfid" :>  Capture "RFID" String:> "info" :> Get '[JSON] RFIDInfo
             :<|> "rfid" :> Capture "RFID" String :> "events" :> Get '[JSON] [Event]
             :<|> "event" :> Capture "eventID" EventID:> "info" :> Get '[JSON] Event
             :<|> "contacts" :>  Get '[JSON] [User]
@@ -71,6 +71,7 @@ type PrivateAPI =  "rfid" :>  Capture "RFID" String :> "info" :> Get '[JSON] RFI
             :<|> "contacts" :> "remove" :> Capture "userID" Integer :> Get '[JSON] Bool
             :<|> "contacts" :> "search" :> Capture "term" String :> Get '[JSON] [User]
             :<|> "event" :> "list" :> Capture "userID" Integer :> Get '[JSON] [Event]
+            :<|> "event" :> "listUsers" :> Capture "eventID" EventID :> Get '[JSON] [(User, Bool)]
             :<|> "event" :> "createObject" :> ReqBody '[JSON] NewObject :> Post '[JSON] Event
             :<|> "event" :> "aggregateObjects" :> ReqBody '[JSON] AggregatedObject :> Post '[JSON] Event
             :<|> "event" :> "start-transaction" :> ReqBody '[JSON] TransactionInfo :> Post '[JSON] Event
