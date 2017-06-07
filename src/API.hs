@@ -64,16 +64,16 @@ import Text.Read          (readMaybe)
 import Model
 
 type PrivateAPI =  "rfid" :>  Capture "RFID" String :> "info" :> Get '[JSON] RFIDInfo
-            :<|> "event" :> Capture "eventID" EventID:> "info" :> Get '[JSON] EventInfo
+            :<|> "event" :> Capture "eventID" EventID:> "info" :> Get '[JSON] Event
             :<|> "contacts" :>  Get '[JSON] [User]
             :<|> "contacts" :> "add" :> Capture "userID" Integer :> Get '[JSON] Bool
             :<|> "contacts" :> "remove" :> Capture "userID" Integer :> Get '[JSON] Bool
             :<|> "contacts" :> "search" :> Capture "term" String :> Get '[JSON] [User]
-            :<|> "event" :> "list" :> Capture "userID" Integer :> Get '[JSON] [EventInfo]
-            :<|> "event" :> "createObject" :> ReqBody '[JSON] NewObject :> Post '[JSON] ObjectID
-            :<|> "event" :> "aggregateObjects" :> ReqBody '[JSON] AggregatedObject :> Post '[JSON] EventInfo
-            :<|> "event" :> "start-transaction" :> ReqBody '[JSON] TransactionInfo :> Post '[JSON] EventInfo
-            :<|> "event" :> "transformObject" :> ReqBody '[JSON] TransformationInfo :> Post '[JSON] EventInfo
+            :<|> "event" :> "list" :> Capture "userID" Integer :> Get '[JSON] [Event]
+            :<|> "event" :> "createObject" :> ReqBody '[JSON] NewObject :> Post '[JSON] Event
+            :<|> "event" :> "aggregateObjects" :> ReqBody '[JSON] AggregatedObject :> Post '[JSON] Event
+            :<|> "event" :> "start-transaction" :> ReqBody '[JSON] TransactionInfo :> Post '[JSON] Event
+            :<|> "event" :> "transformObject" :> ReqBody '[JSON] TransformationInfo :> Post '[JSON] Event
             :<|> "key" :> "add" :>  ReqBody '[OctetStream] BinaryBlob :> Post '[JSON] KeyID
 
 

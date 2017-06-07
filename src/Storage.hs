@@ -162,7 +162,7 @@ getUser conn email = do
 -- Given a user and a new object event, inserts the new object & the new object
 -- event into the db and returns the json encoded copy of the event.
 -- It also inserts the json event into the db, later used for hashing
-eventCreateObject :: Sql.Connection -> M.User -> M.NewObject -> IO (Txt.Text)
+eventCreateObject :: Sql.Connection -> M.User -> M.NewObject -> IO Event
 eventCreateObject conn (M.User uid _ _ ) (M.NewObject epc epcisTime timezone objectID location) = do
   execute conn "INSERT INTO Objects (objectID, GS1Barcode) VALUES (?, ?);" (objectID, epc)
   objectRowID <- lastInsertRowId conn
@@ -176,20 +176,14 @@ eventCreateObject conn (M.User uid _ _ ) (M.NewObject epc epcisTime timezone obj
       eventID = EventID uuid
       (M.EventLocation readPt bizLoc src dest) = location
       dwhere = DWhere [readPt] [bizLoc] [src] [dest]
-      jsonEvent = encodeEvent $ (mkEvent ObjectEventT eventID what when why dwhere)
+      event = mkEvent ObjectEventT eventID what when why dwhere
+      jsonEvent = encodeEvent $ event
   execute conn "INSERT INTO Events (eventID, objectID, what, why, location, timestamp, timezone, eventType, createdBy, jsonEvent) VALUES (?, ?, ?, ?, ?, ?, ?, ?);" (eventID, objectID, what, why, dwhere, epcisTime, timezone, ObjectEventT, uid, jsonEvent)
-  return jsonEvent
+  return event
 
-
-deMaybe :: Maybe a -> a
-deMaybe Nothing = error "I should never get a Nothing!!"
-deMaybe (Just a) = a
 
 -- json encode the event
 -- currently do it automagically, but might what to be
 -- more systematic about it so it's easier to replicated. Maybe.
 encodeEvent :: Event -> Txt.Text
 encodeEvent event = TxtL.toStrict  (encodeToLazyText event)
-
-
-

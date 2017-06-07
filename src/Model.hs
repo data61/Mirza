@@ -187,18 +187,6 @@ data TransactionInfo = TransactionInfo {
 $(deriveJSON defaultOptions ''TransactionInfo)
 instance ToSchema TransactionInfo
 
-data EventInfo = EventInfo {
-  event_eventID :: EventID,
-  eventType :: EventType,
-  rfidState :: RFIDState,
-  what :: DWhat,
-  why :: DWhy,
-  location :: DWhere,
-  event_users :: [User]
-} deriving (Generic, Eq, Show)
-$(deriveJSON defaultOptions ''EventInfo)
-instance ToSchema EventInfo
-
 
 data SignedEvent = SignedEvent {
   signed_eventID :: Integer,

@@ -65,6 +65,7 @@ import GHC.Generics       (Generic)
 import System.Environment (getArgs, lookupEnv)
 
 import Text.Read          (readMaybe)
+import qualified Data.Text as Txt
 
 -- remove me eventually
 import Data.UUID.V4
@@ -178,25 +179,28 @@ contactsRemove conn user uID = return False
 contactsSearch :: Sql.Connection -> User -> String -> Handler [User]
 contactsSearch conn user term = return []
 
-eventList :: Sql.Connection -> User -> UserID -> Handler [EventInfo]
+eventList :: Sql.Connection -> User -> UserID -> Handler [Event]
 eventList conn user uID = return []
 
-eventCreateObject :: Sql.Connection -> User -> NewObject -> Handler ObjectID
-eventCreateObject conn user newObject = return "newObjectID"
 
-eventAggregateObjects :: Sql.Connection -> User -> AggregatedObject -> Handler EventInfo
-eventAggregateObjects conn user aggObject = liftIO sampleEventInfo
+-- Return the json encoded copy of the event
+eventCreateObject :: Sql.Connection -> User -> NewObject -> Handler Event
+eventCreateObject conn user newObject =
+  liftIO (Storage.eventCreateObject conn user newObject)
 
-eventStartTransaction :: Sql.Connection -> User -> TransactionInfo -> Handler EventInfo
-eventStartTransaction conn user aggObject = liftIO sampleEventInfo
+eventAggregateObjects :: Sql.Connection -> User -> AggregatedObject -> Handler Event
+eventAggregateObjects conn user aggObject = liftIO sampleEvent
 
-eventTransformObject :: Sql.Connection -> User -> TransformationInfo -> Handler EventInfo
-eventTransformObject conn user aggObject = liftIO sampleEventInfo
+eventStartTransaction :: Sql.Connection -> User -> TransactionInfo -> Handler Event
+eventStartTransaction conn user aggObject = liftIO sampleEvent
 
-sampleEventInfo :: IO EventInfo
-sampleEventInfo =  do
+eventTransformObject :: Sql.Connection -> User -> TransformationInfo -> Handler Event
+eventTransformObject conn user aggObject = liftIO sampleEvent
+
+sampleEvent:: IO Event
+sampleEvent=  do
   uuid <- nextRandom
-  return (EventInfo  (EventID uuid) AggregationEventT New sampleWhat sampleWhy sampleWhere [])
+  return (Event AggregationEventT (EventID uuid) sampleWhat sampleWhen sampleWhy sampleWhere)
 
 
 sampleWhat :: DWhat
@@ -215,8 +219,8 @@ sampleWhen = DWhen pt (Just pt) tz
 sampleWhere :: DWhere
 sampleWhere = DWhere [] [] [] []
 
-eventInfo :: Sql.Connection -> User -> EventID -> Handler EventInfo
-eventInfo conn user eID = liftIO sampleEventInfo
+eventInfo :: Sql.Connection -> User -> EventID -> Handler Event
+eventInfo conn user eID = liftIO sampleEvent
 
 --eventHash :: EventID -> Handler SignedEvent
 --eventHash eID = return (SignedEvent eID (BinaryBlob ByteString.empty) [(BinaryBlob ByteString.empty)] [1,2])
