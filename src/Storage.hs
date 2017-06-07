@@ -65,6 +65,8 @@ hashTable   =  "CREATE TABLE IF NOT EXISTS Hashes (id INTEGER PRIMARY KEY AUTOIN
 -- find the item on the blockchain
 blockChainTable = "CREATE TABLE IF NOT EXISTS BlockchainTable (id INTEGER PRIMARY KEY AUTOINCREMENT, eventID INTEGER NOT NULL, hash BLOB NOT NULL, blockChain address text NOT NULL, blockChainID INTEGER NOT NULL);"
 
+userEventsTable = "CREATE TABLE IF NOT EXISTS UserEvents (id INTEGER PRIMARY KEY AUTOINCREMENT, eventID INTEGER NOT NULL, userID INTEGER NOT NULL, hasSigned INTEGER DEFAULT 0, addedBy INTEGER NOT NULL, signedHash BLOB);"
+
 
 -- Create all the tables above, if they don't exist
 createTables :: Sql.Connection -> IO ()
@@ -77,6 +79,7 @@ createTables conn = do
   execute_ conn eventTable
   execute_ conn objectTable
   execute_ conn blockChainTable
+  execute_ conn userEventsTable
 
 {-
    Some testing code, move to test cases later:
@@ -178,7 +181,10 @@ eventCreateObject conn (M.User uid _ _ ) (M.NewObject epc epcisTime timezone obj
       dwhere = DWhere [readPt] [bizLoc] [src] [dest]
       event = mkEvent ObjectEventT eventID what when why dwhere
       jsonEvent = encodeEvent $ event
+  -- insert the event into the events db. Include a json encoded copy, later used for hashing and signing.
   execute conn "INSERT INTO Events (eventID, objectID, what, why, location, timestamp, timezone, eventType, createdBy, jsonEvent) VALUES (?, ?, ?, ?, ?, ?, ?, ?);" (eventID, objectID, what, why, dwhere, epcisTime, timezone, ObjectEventT, uid, jsonEvent)
+  -- associate the event with the user. It's not signed yet.
+  execute conn "INSERT INTO UserEvents (eventID, userID, hasSigned, addedBy) VALUES (?, ?, ?, ?);" (eventID, uid, False, uid)
   return event
 
 
@@ -187,3 +193,6 @@ eventCreateObject conn (M.User uid _ _ ) (M.NewObject epc epcisTime timezone obj
 -- more systematic about it so it's easier to replicated. Maybe.
 encodeEvent :: Event -> Txt.Text
 encodeEvent event = TxtL.toStrict  (encodeToLazyText event)
+
+
+
