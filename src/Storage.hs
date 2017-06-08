@@ -65,7 +65,7 @@ hashTable   =  "CREATE TABLE IF NOT EXISTS Hashes (id INTEGER PRIMARY KEY AUTOIN
 -- find the item on the blockchain
 blockChainTable = "CREATE TABLE IF NOT EXISTS BlockchainTable (id INTEGER PRIMARY KEY AUTOINCREMENT, eventID INTEGER NOT NULL, hash BLOB NOT NULL, blockChain address text NOT NULL, blockChainID INTEGER NOT NULL);"
 
-userEventsTable = "CREATE TABLE IF NOT EXISTS UserEvents (id INTEGER PRIMARY KEY AUTOINCREMENT, eventID INTEGER NOT NULL, userID INTEGER NOT NULL, hasSigned INTEGER DEFAULT 0, addedBy INTEGER NOT NULL, signedHash BLOB);"
+userEventsTable = "CREATE TABLE IF NOT EXISTS UserEvents (id INTEGER PRIMARY KEY AUTOINCREMENT, eventID TEXT NOT NULL, userID INTEGER NOT NULL, hasSigned INTEGER DEFAULT 0, addedBy INTEGER NOT NULL, signedHash BLOB);"
 
 
 -- Create all the tables above, if they don't exist
@@ -187,6 +187,14 @@ eventCreateObject conn (M.User uid _ _ ) (M.NewObject epc epcisTime timezone obj
   execute conn "INSERT INTO UserEvents (eventID, userID, hasSigned, addedBy) VALUES (?, ?, ?, ?);" (eventID, uid, False, uid)
   return event
 
+-- List the users associated with an event
+eventUserList :: Sql.Connection -> M.User -> EventID -> IO [(M.User, Bool)]
+eventUserList conn (M.User uid _ _ ) eventID = do
+  r <- Sql.query conn "SELECT userID, firstName, lastName, hasSigned FROM UserEvents, Users WHERE eventID=? AND Users.id == UserEvents.userID;" (Only (uid))
+  return (map toUserBool r)
+
+toUserBool :: (Integer, String, String, Integer) -> (M.User, Bool)
+toUserBool (userID, firstName, lastName, hasSigned) = ((M.User userID firstName lastName), (hasSigned /= 0))
 
 -- json encode the event
 -- currently do it automagically, but might what to be
