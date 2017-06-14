@@ -123,15 +123,15 @@ authCheck conn email password = do
             False -> return Nothing
 
 -- Add the users public key to the DB
-addPublicKey :: Sql.Connection -> M.User -> M.BinaryBlob -> IO (M.KeyID)
-addPublicKey conn (M.User uid _ _)  (M.BinaryBlob sig) = do
+addPublicKey :: Sql.Connection -> M.User -> M.PublicKey-> IO (M.KeyID)
+addPublicKey conn (M.User uid _ _)  (M.PublicKey sig) = do
   timestamp <- getCurrentTime
   execute conn "INSERT INTO Keys (userID, publicKey, creationTime) values (?, ?, ?);" (uid, sig, timestamp)
   rowID <- lastInsertRowId conn
   return ((fromIntegral rowID) :: M.KeyID)
 
 -- Get a particular public key from the DB
-getPublicKey :: Sql.Connection -> M.KeyID -> IO (Maybe M.BinaryBlob)
+getPublicKey :: Sql.Connection -> M.KeyID -> IO (Maybe M.PublicKey)
 getPublicKey conn keyID = do
   rs <- Sql.query conn "SELECT publicKey FROM Keys WHERE keyID = ?;" (Only (keyID))
   return $ listToMaybe rs
@@ -201,6 +201,7 @@ toUserBool (userID, firstName, lastName, hasSigned) = ((M.User userID firstName 
 -- more systematic about it so it's easier to replicated. Maybe.
 encodeEvent :: Event -> Txt.Text
 encodeEvent event = TxtL.toStrict  (encodeToLazyText event)
+
 
 
 

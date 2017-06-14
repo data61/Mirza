@@ -72,15 +72,16 @@ type PrivateAPI =  "rfid" :>  Capture "RFID" String:> "info" :> Get '[JSON] RFID
             :<|> "contacts" :> "search" :> Capture "term" String :> Get '[JSON] [User]
             :<|> "event" :> "list" :> Capture "userID" Integer :> Get '[JSON] [Event]
             :<|> "event" :> "listUsers" :> Capture "eventID" EventID :> Get '[JSON] [(User, Bool)]
+            :<|> "event" :> "sign" :> ReqBody '[JSON] SignedEvent :> Post '[JSON] Bool
             :<|> "event" :> "createObject" :> ReqBody '[JSON] NewObject :> Post '[JSON] Event
             :<|> "event" :> "aggregateObjects" :> ReqBody '[JSON] AggregatedObject :> Post '[JSON] Event
             :<|> "event" :> "start-transaction" :> ReqBody '[JSON] TransactionInfo :> Post '[JSON] Event
             :<|> "event" :> "transformObject" :> ReqBody '[JSON] TransformationInfo :> Post '[JSON] Event
-            :<|> "key" :> "add" :>  ReqBody '[OctetStream] BinaryBlob :> Post '[JSON] KeyID
+            :<|> "key" :> "add" :>  ReqBody '[OctetStream] PublicKey :> Post '[JSON] KeyID
 
 
 type PublicAPI =   "newUser" :> ReqBody '[JSON] NewUser :> Post '[JSON] UserID
-            :<|> "key" :> "get" :> Capture "keyID" KeyID :> Get '[OctetStream] BinaryBlob
+            :<|> "key" :> "get" :> Capture "keyID" KeyID :> Get '[OctetStream] PublicKey
             :<|> "key" :> "getInfo" :> Capture "keyID" KeyID :> Get '[JSON] KeyInfo
 
 type SwaggerAPI = SwaggerSchemaUI "swagger-ui" "swagger.json"

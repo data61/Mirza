@@ -107,6 +107,7 @@ privateServer conn user =  rfid conn user
         :<|> contactsSearch conn user
         :<|> eventList conn user
         :<|> eventUserList conn user
+        :<|> eventSign conn user
         :<|> eventCreateObject conn user
         :<|> eventAggregateObjects conn user
         :<|> eventStartTransaction conn user
@@ -144,14 +145,14 @@ basicAuthServerContext :: Sql.Connection -> Servant.Context (BasicAuthCheck User
 basicAuthServerContext conn = (authCheck conn):. EmptyContext
 
 
-addPublicKey :: Sql.Connection -> User -> BinaryBlob -> Handler KeyID
+addPublicKey :: Sql.Connection -> User -> PublicKey -> Handler KeyID
 addPublicKey conn user sig = liftIO (Storage.addPublicKey conn user sig)
 
 
 newUser :: Sql.Connection -> NewUser -> Handler UserID
 newUser conn nu = liftIO (Storage.newUser conn nu)
 
-getPublicKey :: Sql.Connection -> KeyID -> Handler BinaryBlob
+getPublicKey :: Sql.Connection -> KeyID -> Handler PublicKey
 getPublicKey conn keyID = do
   key <- liftIO $ Storage.getPublicKey conn keyID
   case key of
@@ -177,7 +178,8 @@ listEvents conn user str = return []
 -- given an event ID, list all the users associated with that event
 -- this can be used to make sure everything is signed
 eventUserList :: Sql.Connection -> User -> EventID -> Handler [(User, Bool)]
-eventUserList conn user eventID = return []
+eventUserList conn user eventID = liftIO $ Storage.eventUserList conn user eventID
+
 
 contactsInfo :: Sql.Connection -> User -> Handler [User]
 contactsInfo conn user = return []
@@ -194,6 +196,8 @@ contactsSearch conn user term = return []
 eventList :: Sql.Connection -> User -> UserID -> Handler [Event]
 eventList conn user uID = return []
 
+eventSign :: Sql.Connection -> User -> SignedEvent -> Handler Bool
+eventSign conn user signedEvent = return False
 
 -- Return the json encoded copy of the event
 eventCreateObject :: Sql.Connection -> User -> NewObject -> Handler Event

@@ -73,7 +73,7 @@ import GHC.Generics       (Generic)
 import System.Environment (getArgs, lookupEnv)
 
 import Text.Read          (readMaybe)
-import Data.Text
+import Data.Text as Txt
 
 
 
@@ -83,7 +83,11 @@ type KeyID = Integer
 type Password = [Word]
 
 newtype BinaryBlob = BinaryBlob ByteString.ByteString
-  deriving (MimeUnrender OctetStream, MimeRender OctetStream)
+  deriving (MimeUnrender OctetStream, MimeRender OctetStream, Generic)
+
+
+instance ToParamSchema BinaryBlob where
+  toParamSchema _ = binaryParamSchema
 
 instance ToSchema BinaryBlob where
   declareNamedSchema _ = pure $ NamedSchema (Just "BinaryBlob") $ binarySchema
@@ -91,6 +95,24 @@ instance ToSchema BinaryBlob where
 instance Sql.FromRow BinaryBlob where
   fromRow = BinaryBlob <$> field
 
+
+
+newtype SignedHash = SignedHash Txt.Text
+  deriving (Generic, Show, Read, Eq)
+$(deriveJSON defaultOptions ''SignedHash)
+instance ToSchema SignedHash
+
+newtype PublicKey = PublicKey ByteString.ByteString
+  deriving (MimeUnrender OctetStream, MimeRender OctetStream, Generic)
+
+instance Sql.FromRow PublicKey where
+  fromRow = PublicKey <$> field
+
+instance ToParamSchema PublicKey where
+  toParamSchema _ = binaryParamSchema
+
+instance ToSchema PublicKey where
+  declareNamedSchema _ = pure $ NamedSchema (Just "PublicKey") $ binarySchema
 
 data KeyInfo = KeyInfo {
   userID         :: UserID,
@@ -189,9 +211,12 @@ instance ToSchema TransactionInfo
 
 
 data SignedEvent = SignedEvent {
-  signed_eventID :: Integer,
-  signed_eventHash :: BinaryBlob,
-  signed_Hashes :: [BinaryBlob],
-  signed_users :: [UserID]
-}
+  signed_eventID :: EventID,
+  signed_keyID :: Integer,
+  signed_eventHash :: SignedHash
+} deriving (Generic)
+$(deriveJSON defaultOptions ''SignedEvent)
+instance ToSchema SignedEvent
+--instance ToParamSchema SignedEvent where
+--  toParamSchema _ = binaryParamSchema
 
