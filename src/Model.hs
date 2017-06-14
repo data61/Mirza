@@ -96,6 +96,10 @@ instance Sql.FromRow BinaryBlob where
   fromRow = BinaryBlob <$> field
 
 
+newtype EventHash = EventHash Txt.Text
+  deriving (Generic, Show, Read, Eq)
+$(deriveJSON defaultOptions ''EventHash)
+instance ToSchema EventHash
 
 newtype SignedHash = SignedHash Txt.Text
   deriving (Generic, Show, Read, Eq)
@@ -220,3 +224,10 @@ instance ToSchema SignedEvent
 --instance ToParamSchema SignedEvent where
 --  toParamSchema _ = binaryParamSchema
 
+data HashedEvent = HashedEvent {
+  hashed_eventID :: EventID,
+  hashed_event :: EventHash
+} deriving (Generic)
+
+$(deriveJSON defaultOptions ''HashedEvent)
+instance ToSchema HashedEvent

@@ -108,6 +108,7 @@ privateServer conn user =  rfid conn user
         :<|> eventList conn user
         :<|> eventUserList conn user
         :<|> eventSign conn user
+        :<|> eventHashed conn user
         :<|> eventCreateObject conn user
         :<|> eventAggregateObjects conn user
         :<|> eventStartTransaction conn user
@@ -198,6 +199,10 @@ eventList conn user uID = return []
 
 eventSign :: Sql.Connection -> User -> SignedEvent -> Handler Bool
 eventSign conn user signedEvent = return False
+
+
+eventHashed :: Sql.Connection -> User -> EventID -> Handler HashedEvent
+eventHashed conn user eventID = return (HashedEvent eventID (EventHash "Blob"))
 
 -- Return the json encoded copy of the event
 eventCreateObject :: Sql.Connection -> User -> NewObject -> Handler Event

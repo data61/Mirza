@@ -73,6 +73,7 @@ type PrivateAPI =  "rfid" :>  Capture "RFID" String:> "info" :> Get '[JSON] RFID
             :<|> "event" :> "list" :> Capture "userID" Integer :> Get '[JSON] [Event]
             :<|> "event" :> "listUsers" :> Capture "eventID" EventID :> Get '[JSON] [(User, Bool)]
             :<|> "event" :> "sign" :> ReqBody '[JSON] SignedEvent :> Post '[JSON] Bool
+            :<|> "event" :> "getHash" :> ReqBody '[JSON] EventID :> Post '[JSON] HashedEvent
             :<|> "event" :> "createObject" :> ReqBody '[JSON] NewObject :> Post '[JSON] Event
             :<|> "event" :> "aggregateObjects" :> ReqBody '[JSON] AggregatedObject :> Post '[JSON] Event
             :<|> "event" :> "start-transaction" :> ReqBody '[JSON] TransactionInfo :> Post '[JSON] Event
