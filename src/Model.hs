@@ -101,10 +101,16 @@ newtype EventHash = EventHash Txt.Text
 $(deriveJSON defaultOptions ''EventHash)
 instance ToSchema EventHash
 
+instance Sql.FromRow EventHash where
+  fromRow = EventHash <$> field
+
 newtype SignedHash = SignedHash Txt.Text
   deriving (Generic, Show, Read, Eq)
 $(deriveJSON defaultOptions ''SignedHash)
 instance ToSchema SignedHash
+
+instance Sql.FromRow SignedHash where
+  fromRow = SignedHash <$> field
 
 newtype PublicKey = PublicKey ByteString.ByteString
   deriving (MimeUnrender OctetStream, MimeRender OctetStream, Generic)

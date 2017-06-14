@@ -193,15 +193,23 @@ eventUserList conn (M.User uid _ _ ) eventID = do
   r <- Sql.query conn "SELECT userID, firstName, lastName, hasSigned FROM UserEvents, Users WHERE eventID=? AND Users.id == UserEvents.userID;" (Only (uid))
   return (map toUserBool r)
 
+
+eventHashed :: Sql.Connection -> M.User -> EventID -> IO (Maybe M.HashedEvent)
+eventHashed conn _ eventID = do
+  r <- Sql.query conn "SELECT hash FROM Hashes WHERE eventID=?" (Only (eventID))
+  case (length r) of
+    0 -> return Nothing
+    _ -> return $ Just (M.HashedEvent eventID (head r))
+
+-- Utilities --
+
 toUserBool :: (Integer, String, String, Integer) -> (M.User, Bool)
 toUserBool (userID, firstName, lastName, hasSigned) = ((M.User userID firstName lastName), (hasSigned /= 0))
-
 -- json encode the event
 -- currently do it automagically, but might what to be
 -- more systematic about it so it's easier to replicated. Maybe.
 encodeEvent :: Event -> Txt.Text
 encodeEvent event = TxtL.toStrict  (encodeToLazyText event)
-
 
 
 

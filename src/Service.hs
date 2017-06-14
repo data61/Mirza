@@ -203,6 +203,11 @@ eventSign conn user signedEvent = return False
 
 eventHashed :: Sql.Connection -> User -> EventID -> Handler HashedEvent
 eventHashed conn user eventID = return (HashedEvent eventID (EventHash "Blob"))
+eventHashed conn user eventID = do
+  mHash <- liftIO $ Storage.eventHashed conn user eventID
+  case mHash of
+    Nothing -> throwError err404 { errBody = "Unknown eventID" }
+    Just i -> return i
 
 -- Return the json encoded copy of the event
 eventCreateObject :: Sql.Connection -> User -> NewObject -> Handler Event
