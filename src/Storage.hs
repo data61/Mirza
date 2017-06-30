@@ -223,13 +223,11 @@ eventSign conn (M.User uid _ _ ) (M.SignedEvent eventID keyID (M.Signature signa
     then throwError M.SE_InvalidKeyID
     else
       return $ uncurry M.RSAPublicKey $ head r
-  return ()
-    {- FIXME
   -- get original json encoded event from db
   r <- liftIO $ Sql.query conn "SELECT jsonEvent FROM Events WHERE eventID=?;" $ Only eventID
-  blob <- if length r == 0
-     then throwError M.SE_InvalidEventID
-     else return $ pack $ head r
+  blob <- case r of
+            [Only (x::String)] -> return $ pack $ x
+            _      -> throwError M.SE_InvalidEventID
   checkSignature pubkey blob (M.Signature signature)
   liftIO $ execute conn "INSERT INTO Hashes (eventID, hash, isSigned, signedByUserID, keyID, timestamp) VALUES (?, ?, ?, ?, ?, ?);" (eventID, signature, True, uid, keyID, timestamp)
   liftIO $ execute conn "UPDATE UserEvents hasSigned=True WHERE eventID=? AND userID=?;" (eventID, uid)
@@ -237,7 +235,6 @@ eventSign conn (M.User uid _ _ ) (M.SignedEvent eventID keyID (M.Signature signa
   package <- createBlockchainPackage conn eventID
   liftIO $ sendToBlockchain package
 
--}
 checkSignature :: (MonadError M.SigError m, MonadIO m) => M.RSAPublicKey -> ByteString.ByteString -> M.Signature -> m ()
 checkSignature pubkey blob signature =
   if C.verifySignature pubkey blob signature
