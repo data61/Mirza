@@ -34,6 +34,7 @@ import Prelude.Compat
 import           Control.Monad.IO.Class
 import           Control.Monad.Logger (runStderrLoggingT)
 
+import Control.Monad.Except
 
 
 import Servant
@@ -74,6 +75,7 @@ import System.Environment (getArgs, lookupEnv)
 
 import Text.Read          (readMaybe)
 import Data.Text as Txt
+import Crypto.Hash.IO
 
 
 
@@ -96,7 +98,7 @@ instance Sql.FromRow BinaryBlob where
   fromRow = BinaryBlob <$> field
 
 
-newtype EventHash = EventHash Txt.Text
+newtype EventHash = EventHash String
   deriving (Generic, Show, Read, Eq)
 $(deriveJSON defaultOptions ''EventHash)
 instance ToSchema EventHash
@@ -104,25 +106,43 @@ instance ToSchema EventHash
 instance Sql.FromRow EventHash where
   fromRow = EventHash <$> field
 
-newtype SignedHash = SignedHash Txt.Text
+type JSONTxt = Txt.Text
+
+
+-- A signature is an EventHash that's been
+-- signed by one of the parties involved in the
+-- event.
+newtype Signature = Signature String
   deriving (Generic, Show, Read, Eq)
-$(deriveJSON defaultOptions ''SignedHash)
-instance ToSchema SignedHash
+$(deriveJSON defaultOptions ''Signature)
+instance ToSchema Signature
 
-instance Sql.FromRow SignedHash where
-  fromRow = SignedHash <$> field
+instance Sql.FromRow Signature where
+  fromRow = Signature <$> field
 
-newtype PublicKey = PublicKey ByteString.ByteString
-  deriving (MimeUnrender OctetStream, MimeRender OctetStream, Generic)
+instance Sql.ToRow Signature where
+  toRow (Signature s) = toRow $ Only s
 
-instance Sql.FromRow PublicKey where
-  fromRow = PublicKey <$> field
+data RSAPublicKey = RSAPublicKey
+  {
+    rsa_public_n :: Integer,
+    rsa_public_e :: Integer
+  }
+  deriving (Show, Read, Eq, Generic)
+-- These are orphaned instances
+--
+--instance Sql.FromRow RSAPublicKey where
+--  fromRow = RSAPublicKey <$> field <$> field
 
-instance ToParamSchema PublicKey where
-  toParamSchema _ = binaryParamSchema
+--instance ToParamSchema PublicKey where
+--  toParamSchema _ = binaryParamSchema
 
-instance ToSchema PublicKey where
-  declareNamedSchema _ = pure $ NamedSchema (Just "PublicKey") $ binarySchema
+--instance ToSchema PublicKey where
+--  declareNamedSchema _ = pure $ NamedSchema (Just "PublicKey") $ binarySchema
+
+--orphaned instances, I know
+$(deriveJSON defaultOptions ''RSAPublicKey)
+instance ToSchema RSAPublicKey
 
 data KeyInfo = KeyInfo {
   userID         :: UserID,
@@ -223,7 +243,7 @@ instance ToSchema TransactionInfo
 data SignedEvent = SignedEvent {
   signed_eventID :: EventID,
   signed_keyID :: Integer,
-  signed_eventHash :: SignedHash
+  signed_signature :: Signature
 } deriving (Generic)
 $(deriveJSON defaultOptions ''SignedEvent)
 instance ToSchema SignedEvent
@@ -234,6 +254,20 @@ data HashedEvent = HashedEvent {
   hashed_eventID :: EventID,
   hashed_event :: EventHash
 } deriving (Generic)
-
 $(deriveJSON defaultOptions ''HashedEvent)
 instance ToSchema HashedEvent
+
+data SigError = SE_NeedMoreSignatures
+               | SE_InvalidSignature
+               | SE_InvalidUser
+               | SE_BlockchainSendFailed
+               | SE_InvalidEventID
+               | SE_InvalidKeyID
+               | SE_SEND_TO_BLOCKCHAIN_FAILED
+               deriving (Show, Read, Generic)
+--instance Except SigError
+
+data GetPropertyError = KE_InvalidKeyID
+                      | KE_InvalidUserID
+                      deriving (Show, Read, Generic)
+--instance Except GetPropertyError

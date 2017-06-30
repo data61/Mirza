@@ -1,11 +1,15 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 module Storage where
 
 import Database.SQLite.Simple as Sql
 import Database.SQLite.Simple.Types as SqlTypes
 import Database.SQLite.Simple.ToField
 
+import Control.Monad.Except
+
 import qualified Model as M
+import qualified CryptHash as C
 import qualified Data.Text as Txt
 
 import Data.Time.Clock
@@ -26,8 +30,10 @@ import Data.UUID.V4
 
 import Data.Aeson.Text
 import Data.ByteString.Char8 (pack)
+import qualified Data.ByteString as ByteString
 import qualified Data.Text.Lazy as TxtL
 
+import qualified Data.List.NonEmpty as NonEmpty
 
 
 -- to put in DB, we just convert it to json for now.
@@ -40,7 +46,7 @@ import qualified Data.Text.Lazy as TxtL
 userTable   =  "CREATE TABLE IF NOT EXISTS Users (id INTEGER PRIMARY KEY AUTOINCREMENT, bizID INTEGER, firstName TEXT NOT NULL, lastName TEXT, phoneNumber TEXT, passwordHash BLOB, emailAddress TEXT);"
 
 -- Public Keys belonging to users
-keyTable    =  "CREATE TABLE IF NOT EXISTS Keys (id INTEGER PRIMARY KEY AUTOINCREMENT, userID INTEGER, publicKey BLOB, creationTime INTEGER, revocationTime INTEGER DEFAULT NULL);"
+keyTable    =  "CREATE TABLE IF NOT EXISTS Keys (id INTEGER PRIMARY KEY AUTOINCREMENT, userID INTEGER, rsa_n INTEGER, rsa_e INTEGER, creationTime INTEGER, revocationTime INTEGER DEFAULT NULL);"
 
 -- List of businesses
 bizTable    =  "CREATE TABLE IF NOT EXISTS Business (id INTEGER PRIMARY KEY AUTOINCREMENT, businessName TEXT NOT NULL, location TEXT, businessFunction TEXT);"
@@ -57,7 +63,7 @@ objectTable = "CREATE TABLE IF NOT EXISTS Objects (id INTEGER PRIMARY KEY AUTOIN
 
 -- A table of hashed events, signed and unsigned.
 -- If isSigned is TRUE, then signedByUser must not be null.
-hashTable   =  "CREATE TABLE IF NOT EXISTS Hashes (id INTEGER PRIMARY KEY AUTOINCREMENT, eventID INTEGER NOT NULL, hash BLOB NOT NULL, isSigned INTEGER DEFAULT 0, signedByUserID INTEGER, timestamp INTEGER NOT NULL);"
+hashTable   =  "CREATE TABLE IF NOT EXISTS Hashes (id INTEGER PRIMARY KEY AUTOINCREMENT, eventID INTEGER NOT NULL, hash BLOB NOT NULL, isSigned INTEGER DEFAULT 0, signedByUserID INTEGER, keyID INTEGER DEFAULT -1,timestamp INTEGER NOT NULL);"
 
 -- This table contains the hash of all the hashes that make up an event. It also has a cross
 -- reference ID to the blockchain implementation, so that it can be found later
@@ -65,7 +71,7 @@ hashTable   =  "CREATE TABLE IF NOT EXISTS Hashes (id INTEGER PRIMARY KEY AUTOIN
 -- find the item on the blockchain
 blockChainTable = "CREATE TABLE IF NOT EXISTS BlockchainTable (id INTEGER PRIMARY KEY AUTOINCREMENT, eventID INTEGER NOT NULL, hash BLOB NOT NULL, blockChain address text NOT NULL, blockChainID INTEGER NOT NULL);"
 
-userEventsTable = "CREATE TABLE IF NOT EXISTS UserEvents (id INTEGER PRIMARY KEY AUTOINCREMENT, eventID TEXT NOT NULL, userID INTEGER NOT NULL, hasSigned INTEGER DEFAULT 0, addedBy INTEGER NOT NULL, signedHash BLOB);"
+userEventsTable = "CREATE TABLE IF NOT EXISTS UserEvents (id INTEGER PRIMARY KEY AUTOINCREMENT, eventID TEXT NOT NULL, userID INTEGER NOT NULL, hasSigned INTEGER DEFAULT 0,  addedBy INTEGER NOT NULL, signedHash BLOB);"
 
 
 -- Create all the tables above, if they don't exist
@@ -94,7 +100,7 @@ let bb = M.BinaryBlob (pack "sldkfdssl")
  bracket (open "test.sqlite") (close) (\conn -> do Storage.addPublicKey conn user bb)
  bracket (open "test.sqlite") (close) (\conn -> Sql.query conn "SELECT rowID, firstName, lastName, passwordHash FROM Users WHERE emailAddress = ?;" (Only ("sara@csiro")))
 
-  -}
+-}
 
 -- Create a new user in the database
 -- TODO: * do some sort of email/mobile phone verification before enabling their account
@@ -118,37 +124,39 @@ authCheck conn email password = do
       (uid, firstName, lastName, hash) = head r
       in
         do
-          case verifyPass' (Pass  password) (EncryptedPass hash) of
+          case verifyPass' (Pass password) (EncryptedPass hash) of
             True -> return $ Just (M.User uid firstName lastName)
             False -> return Nothing
 
 -- Add the users public key to the DB
-addPublicKey :: Sql.Connection -> M.User -> M.PublicKey-> IO (M.KeyID)
-addPublicKey conn (M.User uid _ _)  (M.PublicKey sig) = do
+addPublicKey :: Sql.Connection -> M.User -> M.RSAPublicKey-> IO (M.KeyID)
+addPublicKey conn (M.User uid _ _)  (M.RSAPublicKey n e) = do
   timestamp <- getCurrentTime
-  execute conn "INSERT INTO Keys (userID, publicKey, creationTime) values (?, ?, ?);" (uid, sig, timestamp)
+  execute conn "INSERT INTO Keys (userID, rsa_n, rsa_e, creationTime) values (?, ?, ?, ?);" (uid, n, e, timestamp)
   rowID <- lastInsertRowId conn
   return ((fromIntegral rowID) :: M.KeyID)
 
 -- Get a particular public key from the DB
-getPublicKey :: Sql.Connection -> M.KeyID -> IO (Maybe M.PublicKey)
+getPublicKey :: (MonadError M.GetPropertyError m, MonadIO m) => Sql.Connection -> M.KeyID -> m M.RSAPublicKey
 getPublicKey conn keyID = do
-  rs <- Sql.query conn "SELECT publicKey FROM Keys WHERE keyID = ?;" (Only (keyID))
-  return $ listToMaybe rs
+  rs <- liftIO $ Sql.query conn "SELECT rsa_n, rsa_e FROM Keys WHERE keyID = ?;" $ Only keyID
+  if length rs == 0
+     then throwError M.KE_InvalidKeyID
+     else do
+       return $ uncurry M.RSAPublicKey $ head rs
 
 -- Get information about a particular public key from the DB
 -- This is separate to the getPublicKey function because the former
 -- returns binary data. Separate calls for binary data and JSON data are just easier
 -- to deal with on both sides of the network.
-getPublicKeyInfo :: Sql.Connection -> M.KeyID -> IO (Maybe M.KeyInfo)
+getPublicKeyInfo :: (MonadError M.GetPropertyError m, MonadIO m) => Sql.Connection -> M.KeyID -> m M.KeyInfo
 getPublicKeyInfo conn keyID = do
-  r <- Sql.query conn "SELECT UserID, creationTime, revocationTime FROM Keys WHERE keyID = ?;" (Only (keyID))
-  case (length r) of
-    0 -> return Nothing
-    _ -> let
-      (uid, creationTime, revocationTime) = head r
-      in
-        return (Just (M.KeyInfo uid creationTime revocationTime))
+  r <- liftIO $ Sql.query conn "SELECT UserID, creationTime, revocationTime FROM Keys WHERE keyID = ?;" $ Only keyID
+  if length r == 0
+     then throwError M.KE_InvalidKeyID
+     else do
+       let (uid, creationTime, revocationTime) = head r
+       return $ M.KeyInfo uid creationTime revocationTime
 
 --getUser :: Sql.Connection -> M.EmailAddress -> IO (Maybe M.User)
 --just for debugging atm.
@@ -171,6 +179,7 @@ eventCreateObject conn (M.User uid _ _ ) (M.NewObject epc epcisTime timezone obj
   objectRowID <- lastInsertRowId conn
   currentTime <- getCurrentTime
   uuid <- nextRandom
+  hashTimestamp <- getCurrentTime
   let
       quantity = QuantityElement (EPCClass "FIXME") 1.0 Nothing
       what =  ObjectDWhat Add [epc] [quantity]
@@ -182,9 +191,11 @@ eventCreateObject conn (M.User uid _ _ ) (M.NewObject epc epcisTime timezone obj
       event = mkEvent ObjectEventT eventID what when why dwhere
       jsonEvent = encodeEvent $ event
   -- insert the event into the events db. Include a json encoded copy, later used for hashing and signing.
-  execute conn "INSERT INTO Events (eventID, objectID, what, why, location, timestamp, timezone, eventType, createdBy, jsonEvent) VALUES (?, ?, ?, ?, ?, ?, ?, ?);" (eventID, objectID, what, why, dwhere, epcisTime, timezone, ObjectEventT, uid, jsonEvent)
+  execute conn "INSERT INTO Events (eventID, objectID, what, why, location, timestamp, timezone, eventType, createdBy, jsonEvent) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);" (eventID, objectID, what, why, dwhere, epcisTime, timezone, ObjectEventT, uid, jsonEvent)
   -- associate the event with the user. It's not signed yet.
   execute conn "INSERT INTO UserEvents (eventID, userID, hasSigned, addedBy) VALUES (?, ?, ?, ?);" (eventID, uid, False, uid)
+  --insert a json representation of it into our table of hashes, it's not signed so it's clear text (not actually a hash).
+  execute conn "INSERT INTO Hashes (eventID, hash, isSigned, timestamp) VALUES (?, ?, ?, ?);" (eventID, jsonEvent, False, hashTimestamp)
   return event
 
 -- List the users associated with an event
@@ -196,10 +207,68 @@ eventUserList conn (M.User uid _ _ ) eventID = do
 
 eventHashed :: Sql.Connection -> M.User -> EventID -> IO (Maybe M.HashedEvent)
 eventHashed conn _ eventID = do
-  r <- Sql.query conn "SELECT hash FROM Hashes WHERE eventID=?" (Only (eventID))
+  -- get an unsigned hash from the db
+  r <- Sql.query conn "SELECT hash FROM Hashes WHERE eventID=? AND isSigned=0;" (Only (eventID))
   case (length r) of
     0 -> return Nothing
     _ -> return $ Just (M.HashedEvent eventID (head r))
+
+-- insert it into the hashtable as a signed event & insert it into userevents
+eventSign :: (MonadError M.SigError m, MonadIO m) => Sql.Connection -> M.User -> M.SignedEvent -> m ()
+eventSign conn (M.User uid _ _ ) (M.SignedEvent eventID keyID (M.Signature signature)) = do
+  timestamp <- liftIO getCurrentTime
+  -- get publikey key using keyID
+  r <- liftIO $ Sql.query conn "SELECT rsa_n, rsa_e FROM Keys WHERE id=?;" $ Only keyID
+  pubkey <- if length r == 0
+    then throwError M.SE_InvalidKeyID
+    else
+      return $ uncurry M.RSAPublicKey $ head r
+  return ()
+    {- FIXME
+  -- get original json encoded event from db
+  r <- liftIO $ Sql.query conn "SELECT jsonEvent FROM Events WHERE eventID=?;" $ Only eventID
+  blob <- if length r == 0
+     then throwError M.SE_InvalidEventID
+     else return $ pack $ head r
+  checkSignature pubkey blob (M.Signature signature)
+  liftIO $ execute conn "INSERT INTO Hashes (eventID, hash, isSigned, signedByUserID, keyID, timestamp) VALUES (?, ?, ?, ?, ?, ?);" (eventID, signature, True, uid, keyID, timestamp)
+  liftIO $ execute conn "UPDATE UserEvents hasSigned=True WHERE eventID=? AND userID=?;" (eventID, uid)
+  checkReadyForBlockchain conn eventID
+  package <- createBlockchainPackage conn eventID
+  liftIO $ sendToBlockchain package
+
+-}
+checkSignature :: (MonadError M.SigError m, MonadIO m) => M.RSAPublicKey -> ByteString.ByteString -> M.Signature -> m ()
+checkSignature pubkey blob signature =
+  if C.verifySignature pubkey blob signature
+     then return ()
+     else throwError M.SE_InvalidSignature
+
+-- ready to send to blockchain when all the parties have signed
+checkReadyForBlockchain :: (MonadError M.SigError m, MonadIO m) => Sql.Connection -> EventID -> m ()
+--checkReadyForBlockchain conn eventID = undefined
+checkReadyForBlockchain conn eventID = do
+  r <- liftIO $ Sql.query conn "SELECT COUNT(id) FROM UserEvents WHERE eventID=? AND hasSigned=FALSE;" $ Only eventID
+  case r of
+    [Only (0::Integer)] -> pure ()
+    _ -> throwError M.SE_NeedMoreSignatures
+
+createBlockchainPackage ::  (MonadError M.SigError m, MonadIO m) => Sql.Connection -> EventID -> m C.BlockchainPackage
+createBlockchainPackage conn eventID = do
+  -- XXX do we want to explicitly check that the hash is signed before assuming the first one is not?
+  r <- liftIO $ Sql.query conn "SELECT hash, signedByUserID FROM Hashes WHERE eventID=? ORDER BY isSigned ASC;" $ Only eventID
+  if length r > 2
+    then
+      let (plainHash, userID) = head r
+          signatures = NonEmpty.fromList (map (\(s, u) -> ((M.Signature s), u)) (tail r))
+      in
+        return $ C.BlockchainPackage (M.EventHash plainHash) signatures
+    else throwError M.SE_BlockchainSendFailed
+
+--TODO - Implement me
+-- sendToBlockchain ::  (MonadError M.SigError m, MonadIO m) =>  C.BlockchainPackage -> m ()
+sendToBlockchain :: Monad m => C.BlockchainPackage -> m ()
+sendToBlockchain package = return () -- if it fails, raise SE_SEND_TO_BLOCKCHAIN_FAILED error.
 
 -- Utilities --
 

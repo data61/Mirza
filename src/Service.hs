@@ -53,12 +53,16 @@ import Data.String.Conversions
 
 
 import qualified Data.ByteString as ByteString
+import qualified Data.ByteString.Lazy.Char8 as LBSC8
 import qualified Data.HashMap.Strict.InsOrd as IOrd
 import qualified Network.Wai.Handler.Warp as Warp
 import Network.Wai
 
+import Crypto.PubKey.RSA
+
 
 import Control.Lens       hiding ((.=))
+import Control.Monad.Error
 
 import GHC.Generics       (Generic)
 
@@ -67,6 +71,7 @@ import System.Environment (getArgs, lookupEnv)
 import Text.Read          (readMaybe)
 import qualified Data.Text as Txt
 
+import Control.Monad.Except
 -- remove me eventually
 import Data.UUID.V4
 
@@ -146,27 +151,29 @@ basicAuthServerContext :: Sql.Connection -> Servant.Context (BasicAuthCheck User
 basicAuthServerContext conn = (authCheck conn):. EmptyContext
 
 
-addPublicKey :: Sql.Connection -> User -> PublicKey -> Handler KeyID
+addPublicKey :: Sql.Connection -> User -> RSAPublicKey -> Handler KeyID
 addPublicKey conn user sig = liftIO (Storage.addPublicKey conn user sig)
 
 
 newUser :: Sql.Connection -> NewUser -> Handler UserID
 newUser conn nu = liftIO (Storage.newUser conn nu)
 
-getPublicKey :: Sql.Connection -> KeyID -> Handler PublicKey
+
+
+getPublicKey :: Sql.Connection -> KeyID -> Handler RSAPublicKey
 getPublicKey conn keyID = do
-  key <- liftIO $ Storage.getPublicKey conn keyID
-  case key of
-    Nothing -> throwError err404 { errBody = "Unknown key ID" }
-    Just k -> return k
+  result <- liftIO $ runExceptT $ Storage.getPublicKey conn keyID
+  case result of
+    Left e -> throwError err400 { errBody = LBSC8.pack $ show e}
+    Right key -> return key
 
 
 getPublicKeyInfo :: Sql.Connection -> KeyID -> Handler KeyInfo
 getPublicKeyInfo conn keyID = do
-  info <- liftIO $ Storage.getPublicKeyInfo conn keyID
-  case info of
-    Nothing -> throwError err404 { errBody = "Unknown key ID" }
-    Just i -> return i
+  result <- liftIO $ runExceptT $ Storage.getPublicKeyInfo conn keyID
+  case result of
+    Left e -> throwError err404 { errBody = LBSC8.pack $ show e }
+    Right keyInfo -> return keyInfo
 
 rfid :: Sql.Connection -> User ->  String -> Handler RFIDInfo
 rfid conn user str = return (RFIDInfo New Nothing)
@@ -198,16 +205,24 @@ eventList :: Sql.Connection -> User -> UserID -> Handler [Event]
 eventList conn user uID = return []
 
 eventSign :: Sql.Connection -> User -> SignedEvent -> Handler Bool
-eventSign conn user signedEvent = return False
+eventSign conn user signedEvent = do
+  result <- liftIO $ runExceptT $ Storage.eventSign conn user signedEvent
+  case result of
+    Left SE_NeedMoreSignatures -> return False
+    Left e -> throwError err400 { errBody = LBSC8.pack $ show e }
+    Right () -> return True
 
-
+-- do we need this?
+--
 eventHashed :: Sql.Connection -> User -> EventID -> Handler HashedEvent
 eventHashed conn user eventID = return (HashedEvent eventID (EventHash "Blob"))
+  {-
 eventHashed conn user eventID = do
   mHash <- liftIO $ Storage.eventHashed conn user eventID
   case mHash of
     Nothing -> throwError err404 { errBody = "Unknown eventID" }
     Just i -> return i
+    -}
 
 -- Return the json encoded copy of the event
 eventCreateObject :: Sql.Connection -> User -> NewObject -> Handler Event

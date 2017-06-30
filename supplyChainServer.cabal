@@ -20,6 +20,7 @@ library
                     , Model
                     , Service
                     , Storage
+                    , CryptHash
   build-depends:       base >= 4.7 && < 5
                      , GS1Combinators
                      , aeson
@@ -43,6 +44,8 @@ library
                      ,sqlite-simple
                      ,scrypt
                      ,uuid
+                     ,cryptonite
+                     ,mtl
   default-language:    Haskell2010
   default-extensions: FlexibleContexts
                       , FlexibleInstances
@@ -73,6 +76,8 @@ executable supplyChainServer-exe
                      ,sqlite-simple
                      ,scrypt
                      ,uuid
+                     ,cryptonite
+                     ,mtl
   default-language:    Haskell2010
   default-language:    Haskell2010
 
@@ -105,6 +110,8 @@ test-suite supplyChainServer-test
                      ,sqlite-simple
                      ,scrypt
                      ,uuid
+                     ,cryptonite
+                     ,mtl
   default-language:    Haskell2010
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
   default-language:    Haskell2010
