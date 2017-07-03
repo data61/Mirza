@@ -187,9 +187,7 @@ instance ToSchema NewUser
 
 data EventLocation = EventLocation {
   readPoint :: ReadPointLocation,
-  bizLocation :: BizLocation,
-  source :: SourceDestType,
-  destination :: SourceDestType
+  bizLocation :: BizLocation
 } deriving (Show, Generic)
 $(deriveJSON defaultOptions ''EventLocation)
 instance ToSchema EventLocation
@@ -207,6 +205,7 @@ instance ToSchema NewObject
 
 data AggregatedObject = AggregatedObject {
   aggObject_objectIDs :: [ObjectID],
+  aggObject_containerID :: ObjectID,
   aggObject_timestamp :: EPCISTime,
   aggOject_timezone:: TimeZone,
   aggObject_location :: EventLocation
@@ -219,9 +218,7 @@ data TransformationInfo = TransformationInfo {
   transObject_timestamp :: EPCISTime,
   transObject_timezone:: TimeZone,
   transObject_location :: EventLocation,
-  transObject_inputEPC :: [EPC],
   transObject_inputQuantity :: [Quantity],
-  transObject_outputEPC :: [EPC],
   transObject_outputObjectID :: [ObjectID],
   transObject_outputQuantity :: [Quantity]
 } deriving (Show, Generic)
@@ -233,7 +230,6 @@ data TransactionInfo = TransactionInfo {
   transaction_objectIDs :: [ObjectID],
   transaction_parentID :: Maybe ParentID,
   transaction_bizTransaction :: [BizTransaction],
-  transaction_epcs :: [EPC],
   transaction_quantities :: [QuantityElement]
 } deriving (Show, Generic)
 $(deriveJSON defaultOptions ''TransactionInfo)

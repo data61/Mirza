@@ -186,8 +186,8 @@ eventCreateObject conn (M.User uid _ _ ) (M.NewObject epc epcisTime timezone obj
       why  =  DWhy (Just CreatingClassInstance) (Just Active)
       when = DWhen epcisTime (Just currentTime) timezone
       eventID = EventID uuid
-      (M.EventLocation readPt bizLoc src dest) = location
-      dwhere = DWhere [readPt] [bizLoc] [src] [dest]
+      (M.EventLocation readPt bizLoc) = location
+      dwhere = DWhere [readPt] [bizLoc] [] []
       event = mkEvent ObjectEventT eventID what when why dwhere
       jsonEvent = encodeEvent $ event
   -- insert the event into the events db. Include a json encoded copy, later used for hashing and signing.
