@@ -279,3 +279,38 @@ encodeEvent event = TxtL.toStrict  (encodeToLazyText event)
 
 
 
+-- Add contacts to user
+addContacts :: Sql.Connection -> M.User -> M.UserID -> IO Bool
+addContacts conn (M.User uid1 _ _) uid2 = do
+  execute conn "INSERT INTO Contacts (user1, user2) values (?,?);" (uid1, uid2)
+  rowID <- lastInsertRowId conn
+  return ((fromIntegral rowID) > 0)
+
+-- Remove contacts to user
+removeContacts :: Sql.Connection -> M.User -> M.UserID -> IO Bool
+removeContacts conn (M.User uid1 _ _) uid2 = do
+  execute conn "DELETE FROM Contacts (user1, user2) values (?,?);" (uid1, uid2)
+  rowID <- lastInsertRowId conn
+  return ((fromIntegral rowID) > 0)
+
+-- list contacts to user
+listContacts :: Sql.Connection -> M.User -> IO [(M.User)]
+listContacts conn (M.User uid _ _) = do
+  rs <- Sql.query conn "SELECT user2, firstName, lastName FROM Contacts, Users WHERE user1 = ? AND user2 = bizID UNION SELECT user1, firstName, lastName FROM Contacts, Users WHERE user2 = ? AND user1 = bizID ;" (Only (uid))
+  return (map toContactUser rs)
+
+-- Search user
+userSearch :: Sql.Connection -> M.User -> String -> IO [(M.User)]
+userSearch conn (M.User uid _ _) term = do
+--  rs <- Sql.query conn "SELECT bizID, firstName, lastName FROM Users WHERE firstName LIKE '%?%' OR lastName LIKE '%?%' OR emailAddress LIKE '%?%' OR phoneNumber LIKE '%?%';" (term)
+  rs <- Sql.query conn "SELECT bizID, firstName, lastName FROM Users WHERE firstName LIKE '%?%' OR lastName LIKE '%?%';" (uid, term)
+  return (map toUser rs)
+
+
+-- Utilities
+
+toContactUser :: (Integer, String, String) -> (M.User)
+toContactUser (userID, firstName, lastName) = (M.User userID firstName lastName)
+
+toUser :: (Integer, String, String) -> (M.User)
+toUser (userID, firstName, lastName) = (M.User userID firstName lastName)
