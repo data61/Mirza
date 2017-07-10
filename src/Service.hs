@@ -109,7 +109,8 @@ privateServer conn user =  rfid conn user
         :<|> contactsInfo conn user
         :<|> contactsAdd conn user
         :<|> contactsRemove conn user
-        :<|> contactsSearch conn user
+--        :<|> contactsSearch conn user
+        :<|> userSearch conn user
         :<|> eventList conn user
         :<|> eventUserList conn user
         :<|> eventSign conn user
@@ -191,16 +192,24 @@ eventUserList conn user eventID = liftIO $ Storage.eventUserList conn user event
 
 
 contactsInfo :: Sql.Connection -> User -> Handler [User]
-contactsInfo conn user = return []
+contactsInfo conn user = liftIO $ Storage.listContacts conn user
+
 
 contactsAdd :: Sql.Connection -> User -> UserID -> Handler Bool
-contactsAdd conn user uID = return False
+contactsAdd conn user userId = liftIO (Storage.addContacts conn user userId)
+
 
 contactsRemove :: Sql.Connection -> User -> UserID -> Handler Bool
-contactsRemove conn user uID = return False
+contactsRemove conn user userId = liftIO (Storage.removeContacts conn user userId)
+
 
 contactsSearch :: Sql.Connection -> User -> String -> Handler [User]
 contactsSearch conn user term = return []
+
+
+userSearch :: Sql.Connection -> User -> String -> Handler [User]
+userSearch conn user term = liftIO $ Storage.userSearch conn user term
+
 
 eventList :: Sql.Connection -> User -> UserID -> Handler [Event]
 eventList conn user uID = return []
