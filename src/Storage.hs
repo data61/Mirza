@@ -29,7 +29,7 @@ import Data.GS1.DWhy
 import Data.UUID.V4
 
 import Data.Aeson.Text
-import Data.ByteString.Char8 (pack)
+import Data.ByteString.Char8 (pack, unpack)
 import qualified Data.ByteString as ByteString
 import qualified Data.Text.Lazy as TxtL
 
@@ -115,18 +115,17 @@ newUser conn (M.NewUser phone email first last biz password) = do
 
 
 -- Basic Auth check using Scrypt hashes.
---authCheck :: Sql.Connection -> M.EmailAddress -> M.Password -> IO (Maybe M.User)
+authCheck :: Sql.Connection -> M.EmailAddress -> M.Password -> IO (Maybe M.User)
 authCheck conn email password = do
-  r <- Sql.query conn "SELECT rowID, firstName, lastName, passwordHash FROM Users WHERE emailAddress = ?;" (Only (email))
-  case (length r) of
-    0 -> return Nothing
-    _ -> let
-      (uid, firstName, lastName, hash) = head r
-      in
-        do
-          case verifyPass' (Pass password) (EncryptedPass hash) of
-            True -> return $ Just (M.User uid firstName lastName)
-            False -> return Nothing
+  r <- Sql.query conn "SELECT rowID, firstName, lastName, passwordHash FROM Users WHERE emailAddress = ?;" $ Only $ unpack $ email
+  if length r == 0
+     then return Nothing
+     else do
+       let (uid, firstName, lastName, hash) = head r
+       if verifyPass' (Pass password) (EncryptedPass hash)
+          then return $ Just $ M.User uid firstName lastName
+          else return Nothing
+
 
 -- Add the users public key to the DB
 addPublicKey :: Sql.Connection -> M.User -> M.RSAPublicKey-> IO (M.KeyID)
@@ -176,12 +175,11 @@ getUser conn email = do
 eventCreateObject :: Sql.Connection -> M.User -> M.NewObject -> IO Event
 eventCreateObject conn (M.User uid _ _ ) (M.NewObject epc epcisTime timezone objectID location) = do
   execute conn "INSERT INTO Objects (objectID, GS1Barcode) VALUES (?, ?);" (objectID, epc)
-  objectRowID <- lastInsertRowId conn
+  objectRowID <- lastInsertRowId conn -- this should probably be part of the uuid too...
   currentTime <- getCurrentTime
   uuid <- nextRandom
-  hashTimestamp <- getCurrentTime
   let
-      quantity = QuantityElement (EPCClass "FIXME") 1.0 Nothing
+      quantity = QuantityElement (EPCClass "FIXME - epc") 1.0 Nothing
       what =  ObjectDWhat Add [epc] [quantity]
       why  =  DWhy (Just CreatingClassInstance) (Just Active)
       when = DWhen epcisTime (Just currentTime) timezone
@@ -195,7 +193,7 @@ eventCreateObject conn (M.User uid _ _ ) (M.NewObject epc epcisTime timezone obj
   -- associate the event with the user. It's not signed yet.
   execute conn "INSERT INTO UserEvents (eventID, userID, hasSigned, addedBy) VALUES (?, ?, ?, ?);" (eventID, uid, False, uid)
   --insert a json representation of it into our table of hashes, it's not signed so it's clear text (not actually a hash).
-  execute conn "INSERT INTO Hashes (eventID, hash, isSigned, timestamp) VALUES (?, ?, ?, ?);" (eventID, jsonEvent, False, hashTimestamp)
+  execute conn "INSERT INTO Hashes (eventID, hash, isSigned, timestamp) VALUES (?, ?, ?, ?);" (eventID, jsonEvent, False, currentTime)
   return event
 
 -- List the users associated with an event
@@ -203,6 +201,28 @@ eventUserList :: Sql.Connection -> M.User -> EventID -> IO [(M.User, Bool)]
 eventUserList conn (M.User uid _ _ ) eventID = do
   r <- Sql.query conn "SELECT userID, firstName, lastName, hasSigned FROM UserEvents, Users WHERE eventID=? AND Users.id == UserEvents.userID;" (Only (uid))
   return (map toUserBool r)
+
+  {-
+eventAggregateObjects :: Sql.Connection -> M.User -> M.AggregatedObject -> IO Event
+eventAggregateObjects conn (M.User uid _ _ ) (M.AggregatedObject objectIDs containerID epcisTime timezone location bizStep disposition) = do
+  uuid <- nextRandom
+  currentTime <- getCurrentTime
+  let
+      eventID = EventID uuid
+      quantity = QuantityElement (EPCClass objectEPC) (length objectIDs) Nothing
+      what = AggregationDWhat Add (Just containerID) objectIDs [quantity] --FIXME
+      why = DWy (Just bizStep) (Just disposition)
+      when =  DWhen epcisTime (Just currentTime) timezone
+      (M.EventLocation readPt bizLoc) = location
+      dwhere = DWhere [readPt] [bizLoc] [] []
+      event = mkEvent ObjectEventT eventID what when why dwhere
+      jsonEvent = encodeEvent $ event
+  execute conn "INSERT INTO Events (eventID, objectID, what, why, location, timestamp, timezone, eventType, createdBy, jsonEvent) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);" (eventID, objectID, what, why, dwhere, epcisTime, timezone, ObjectEventT, uid, jsonEvent)
+  execute conn "INSERT INTO UserEvents (eventID, userID, hasSigned, addedBy) VALUES (?, ?, ?, ?);" (eventID, uid, False, uid)
+  execute conn "INSERT INTO Hashes (eventID, hash, isSigned, timestamp) VALUES (?, ?, ?, ?);" (eventID, jsonEvent, False, currentTime)
+  return event
+-}
+
 
 
 eventHashed :: Sql.Connection -> M.User -> EventID -> IO (Maybe M.HashedEvent)

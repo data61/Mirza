@@ -116,6 +116,7 @@ privateServer conn user =  rfid conn user
         :<|> eventHashed conn user
         :<|> eventCreateObject conn user
         :<|> eventAggregateObjects conn user
+        :<|> eventDisaggregateObjects conn user
         :<|> eventStartTransaction conn user
         :<|> eventTransformObject conn user
         :<|> Service.addPublicKey conn user
@@ -231,6 +232,9 @@ eventCreateObject conn user newObject =
 
 eventAggregateObjects :: Sql.Connection -> User -> AggregatedObject -> Handler Event
 eventAggregateObjects conn user aggObject = liftIO sampleEvent
+
+eventDisaggregateObjects :: Sql.Connection -> User -> DisaggregatedObject -> Handler Event
+eventDisaggregateObjects conn user aggObject = liftIO sampleEvent
 
 eventStartTransaction :: Sql.Connection -> User -> TransactionInfo -> Handler Event
 eventStartTransaction conn user aggObject = liftIO sampleEvent

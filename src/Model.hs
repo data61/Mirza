@@ -80,9 +80,9 @@ import Crypto.Hash.IO
 
 
 type UserID = Integer
-type EmailAddress = [Word]
+type EmailAddress = ByteString.ByteString
 type KeyID = Integer
-type Password = [Word]
+type Password = ByteString.ByteString
 
 newtype BinaryBlob = BinaryBlob ByteString.ByteString
   deriving (MimeUnrender OctetStream, MimeRender OctetStream, Generic)
@@ -208,10 +208,26 @@ data AggregatedObject = AggregatedObject {
   aggObject_containerID :: ObjectID,
   aggObject_timestamp :: EPCISTime,
   aggOject_timezone:: TimeZone,
-  aggObject_location :: EventLocation
+  aggObject_location :: EventLocation,
+  aggObject_bizStep :: BizStep,
+  aggObject_disposition :: Disposition
 } deriving (Show, Generic)
 $(deriveJSON defaultOptions ''AggregatedObject)
 instance ToSchema AggregatedObject
+
+data DisaggregatedObject = DisaggregatedObject {
+  daggObject_objectIDs :: [ObjectID],
+  daggObject_containerID :: ObjectID,
+  daggObject_timestamp :: EPCISTime,
+  daggOject_timezone:: TimeZone,
+  daggObject_location :: EventLocation,
+  daggObject_bizStep :: BizStep,
+  daggObject_disposition :: Disposition
+} deriving (Show, Generic)
+$(deriveJSON defaultOptions ''DisaggregatedObject)
+instance ToSchema DisaggregatedObject
+
+
 
 data TransformationInfo = TransformationInfo {
   transObject_objectIDs :: [ObjectID],
