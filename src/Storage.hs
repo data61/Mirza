@@ -309,21 +309,23 @@ addContacts conn (M.User uid1 _ _) uid2 = do
 -- Remove contacts to user
 removeContacts :: Sql.Connection -> M.User -> M.UserID -> IO Bool
 removeContacts conn (M.User uid1 _ _) uid2 = do
-  execute conn "DELETE FROM Contacts (user1, user2) values (?,?);" (uid1, uid2)
+  execute conn "DELETE FROM Contacts WHERE user1 = ? AND user2 = ?;" (uid1, uid2)
   rowID <- lastInsertRowId conn
+  print rowID
   return ((fromIntegral rowID) > 0)
 
 -- list contacts to user
 listContacts :: Sql.Connection -> M.User -> IO [(M.User)]
 listContacts conn (M.User uid _ _) = do
-  rs <- Sql.query conn "SELECT user2, firstName, lastName FROM Contacts, Users WHERE user1 = ? AND user2 = bizID UNION SELECT user1, firstName, lastName FROM Contacts, Users WHERE user2 = ? AND user1 = bizID ;" (Only (uid))
+  rs <- Sql.query conn "SELECT user2, firstName, lastName FROM Contacts, Users WHERE user1 = ? AND user2=Users.id UNION SELECT user1, firstName, lastName FROM Contacts, Users WHERE user2 = ? AND user1=Users.id;" (uid, uid)
+  print rs
   return (map toContactUser rs)
 
 -- Search user
 userSearch :: Sql.Connection -> M.User -> String -> IO [(M.User)]
 userSearch conn (M.User uid _ _) term = do
---  rs <- Sql.query conn "SELECT bizID, firstName, lastName FROM Users WHERE firstName LIKE '%?%' OR lastName LIKE '%?%' OR emailAddress LIKE '%?%' OR phoneNumber LIKE '%?%';" (term)
-  rs <- Sql.query conn "SELECT bizID, firstName, lastName FROM Users WHERE firstName LIKE '%?%' OR lastName LIKE '%?%';" (uid, term)
+  rs <- Sql.query conn "SELECT id, firstName, lastName FROM Users WHERE firstName LIKE '%'||?||'%' OR lastName LIKE '%'||?||'%';" (term, term)
+  print rs
   return (map toUser rs)
 
 
