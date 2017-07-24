@@ -317,6 +317,7 @@ removeContacts conn (M.User uid1 _ _) uid2 = do
 listContacts :: Sql.Connection -> M.User -> IO [(M.User)]
 listContacts conn (M.User uid _ _) = do
   rs <- Sql.query conn "SELECT user2, firstName, lastName FROM Contacts, Users WHERE user1 = ? AND user2 = bizID UNION SELECT user1, firstName, lastName FROM Contacts, Users WHERE user2 = ? AND user1 = bizID ;" (Only (uid))
+  print rs
   return (map toContactUser rs)
 
 -- Search user
@@ -324,6 +325,7 @@ userSearch :: Sql.Connection -> M.User -> String -> IO [(M.User)]
 userSearch conn (M.User uid _ _) term = do
 --  rs <- Sql.query conn "SELECT bizID, firstName, lastName FROM Users WHERE firstName LIKE '%?%' OR lastName LIKE '%?%' OR emailAddress LIKE '%?%' OR phoneNumber LIKE '%?%';" (term)
   rs <- Sql.query conn "SELECT bizID, firstName, lastName FROM Users WHERE firstName LIKE '%?%' OR lastName LIKE '%?%';" (uid, term)
+  print rs
   return (map toUser rs)
 
 
