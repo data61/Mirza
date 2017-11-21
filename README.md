@@ -10,11 +10,11 @@ Then get the latest version of stack by running:
 
 To build the server, run:
 
-stack build
+<code> stack build </code>
 
 To run it, run:
 
-stack exec supplyChainServer-exe -- run 
+<code> stack exec supplyChainServer-exe -- run </code>
 
 Then you can check out the API at:
 
@@ -22,6 +22,6 @@ http://localhost:8000/swagger-ui/
 
 To use ghci interactively, run 
 
-stack ghci
+<code> stack ghci </code>
 
 
