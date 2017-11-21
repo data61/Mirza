@@ -194,7 +194,7 @@ instance ToSchema EventLocation
 
 
 data NewObject = NewObject {
-  object_epcs :: EPC,
+  object_epcs :: LabelEPC,
   object_timestamp :: EPCISTime,
   object_timezone:: TimeZone,
   object_objectID :: ObjectID,

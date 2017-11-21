@@ -103,7 +103,8 @@ authCheck conn =
 
 
 privateServer :: Sql.Connection -> User -> Server PrivateAPI
-privateServer conn user =  rfid conn user
+privateServer conn user =
+             rfid conn user
         :<|> listEvents conn user
         :<|> eventInfo conn user
         :<|> contactsInfo conn user
@@ -111,6 +112,7 @@ privateServer conn user =  rfid conn user
         :<|> contactsRemove conn user
 --        :<|> contactsSearch conn user
         :<|> userSearch conn user
+        :<|> eventsGet conn user
         :<|> eventList conn user
         :<|> eventUserList conn user
         :<|> eventSign conn user
@@ -180,6 +182,10 @@ getPublicKeyInfo conn keyID = do
 rfid :: Sql.Connection -> User ->  String -> Handler RFIDInfo
 rfid conn user str = return (RFIDInfo New Nothing)
 
+-- This takes an EPC url, find the object's ID (from DB?) or maybe we just hash it?
+-- and then looks up all the events related to that item.
+eventsGet :: Sql.Connection -> User -> String -> Handler [Event]
+eventsGet conn user url = return []
 
 listEvents :: Sql.Connection -> User ->  String -> Handler [Event]
 listEvents conn user str = return []
@@ -258,10 +264,10 @@ sampleEvent=  do
 
 
 sampleWhat :: DWhat
-sampleWhat = ObjectDWhat Observe [GLN "urn:epc:id:sgtin:0614141" "107346" "2017", GLN "urn:epc:id:sgtin:0614141" "107346" "2018"] []
+sampleWhat = ObjectDWhat Observe [GIAI "2020939" "029393"]
 
 sampleWhy :: DWhy
-sampleWhy = DWhy (Just Arriving) (Just Data.GS1.DWhy.Active)
+sampleWhy = DWhy (Just Arriving) (Just Data.GS1.EPC.Active)
 
 sampleWhen :: DWhen
 sampleWhen = DWhen pt (Just pt) tz
