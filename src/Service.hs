@@ -112,7 +112,6 @@ privateServer conn user =
         :<|> contactsRemove conn user
 --        :<|> contactsSearch conn user
         :<|> userSearch conn user
-        :<|> eventsGet conn user
         :<|> eventList conn user
         :<|> eventUserList conn user
         :<|> eventSign conn user
@@ -184,9 +183,6 @@ rfid conn user str = return (RFIDInfo New Nothing)
 
 -- This takes an EPC url, find the object's ID (from DB?) or maybe we just hash it?
 -- and then looks up all the events related to that item.
-eventsGet :: Sql.Connection -> User -> String -> Handler [Event]
-eventsGet conn user url = return []
-
 listEvents :: Sql.Connection -> User ->  String -> Handler [Event]
 listEvents conn user str = return []
 
