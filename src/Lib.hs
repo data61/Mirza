@@ -29,8 +29,6 @@ import Prelude.Compat
 import           Control.Monad.IO.Class
 import           Control.Monad.Logger (runStderrLoggingT)
 
-
-
 import Servant
 import Servant.Server.Experimental.Auth()
 import Servant.Swagger
@@ -85,7 +83,7 @@ startApp sqliteFile = do
     case args of
         ("run":_) -> do
             p <- fromMaybe 8000 . (>>= readMaybe) <$> lookupEnv "PORT"
-            putStrLn $ "http://localhost:" ++ show p ++ "/"
+            putStrLn $ "http://localhost:" ++ show p ++ "/" ++ "swagger-ui/"
             Warp.run p =<< (mkApp sqliteFile uiFlavour)
         _ -> do
             putStrLn "Example application, used as a compilation check"
