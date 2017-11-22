@@ -62,7 +62,7 @@ import Crypto.PubKey.RSA
 
 
 import Control.Lens       hiding ((.=))
-import Control.Monad.Error
+import Control.Monad.Except
 
 import GHC.Generics       (Generic)
 
