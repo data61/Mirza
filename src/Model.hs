@@ -92,7 +92,7 @@ instance ToParamSchema BinaryBlob where
   toParamSchema _ = binaryParamSchema
 
 instance ToSchema BinaryBlob where
-  declareNamedSchema _ = pure $ NamedSchema (Just "BinaryBlob") $ binarySchema
+  declareNamedSchema _ = pure $ NamedSchema (Just "BinaryBlob") binarySchema
 
 instance Sql.FromRow BinaryBlob where
   fromRow = BinaryBlob <$> field
