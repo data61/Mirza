@@ -264,7 +264,7 @@ sampleEvent=  do
 
 
 sampleWhat :: DWhat
-sampleWhat = ObjectDWhat Observe [GIAI "2020939" "029393"]
+sampleWhat = ObjectDWhat Observe [IL (GIAI "2020939" "029393")] [] -- FIXME a quantity list needed here
 
 sampleWhy :: DWhy
 sampleWhy = DWhy (Just Arriving) (Just Data.GS1.EPC.Active)
