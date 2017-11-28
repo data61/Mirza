@@ -36,7 +36,7 @@ import           Control.Monad.Logger (runStderrLoggingT)
 
 import Control.Monad.Except
 
-
+-- is there a reason some of these modules are imported twice? -@sa
 import Servant
 import Servant.Server.Experimental.Auth()
 import Servant.Swagger
