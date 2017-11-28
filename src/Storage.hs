@@ -179,7 +179,7 @@ eventCreateObject conn (M.User uid _ _ ) (M.NewObject epc epcisTime timezone obj
   uuid <- nextRandom
   let
       quantity = ItemCount 3
-      what =  ObjectDWhat Add [epc]
+      what =  ObjectDWhat Add [epc] [] -- FIXME we need a quantity list here
       why  =  DWhy (Just CreatingClassInstance) (Just Active)
       when = DWhen epcisTime (Just currentTime) timezone
       eventID = EventID uuid
