@@ -161,13 +161,12 @@ getPublicKeyInfo conn keyID = do
 --just for debugging atm.
 getUser conn email = do
   r <- Sql.query conn "SELECT rowID, firstName, lastName FROM Users WHERE emailAddress = ?;" (Only (email))
-  case (length r) of
+  case length r of
     0 -> return Nothing
     _ -> let
       (uid, firstName, lastName) = head r
       in
-        do
-          return $ Just (M.User uid firstName lastName)
+        return $ Just (M.User uid firstName lastName)
 
 -- Given a user and a new object event, inserts the new object & the new object
 -- event into the db and returns the json encoded copy of the event.
@@ -187,7 +186,7 @@ eventCreateObject conn (M.User uid _ _ ) (M.NewObject epc epcisTime timezone obj
       (M.EventLocation readPt bizLoc) = location
       dwhere = DWhere [readPt] [bizLoc] [] []
       event = mkEvent ObjectEventT eventID what when why dwhere
-      jsonEvent = encodeEvent $ event
+      jsonEvent = encodeEvent event
   -- insert the event into the events db. Include a json encoded copy, later used for hashing and signing.
   execute conn "INSERT INTO Events (eventID, objectID, what, why, location, timestamp, timezone, eventType, createdBy, jsonEvent) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);" (eventID, objectID, what, why, dwhere, epcisTime, timezone, ObjectEventT, uid, jsonEvent)
   -- associate the event with the user. It's not signed yet.
