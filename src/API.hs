@@ -64,14 +64,13 @@ import Text.Read          (readMaybe)
 import Model
 
 type PrivateAPI =
-                 "rfid" :>  Capture "RFID" String:> "info" :> Get '[JSON] RFIDInfo
-            :<|> "rfid" :> Capture "RFID" String :> "events" :> Get '[JSON] [Event]
+                 "epc" :>  Capture "urn" String:> "info" :> Get '[JSON] EPCInfo
+            :<|> "epc" :> Capture "urn" String :> "events" :> Get '[JSON] [Event]
             :<|> "event" :> Capture "eventID" EventID:> "info" :> Get '[JSON] Event
             :<|> "contacts" :>  Get '[JSON] [User]
             :<|> "contacts" :> "add" :> Capture "userID" Integer :> Get '[JSON] Bool
             :<|> "contacts" :> "remove" :> Capture "userID" Integer :> Get '[JSON] Bool
             :<|> "contacts" :> "search" :> Capture "term" String :> Get '[JSON] [User]
-            :<|> "event" :> "get" :> Capture "epc_url" String :> Get '[JSON] [Event]
             :<|> "event" :> "list" :> Capture "userID" Integer :> Get '[JSON] [Event]
             :<|> "event" :> "listUsers" :> Capture "eventID" EventID :> Get '[JSON] [(User, Bool)]
             :<|> "event" :> "sign" :> ReqBody '[JSON] SignedEvent :> Post '[JSON] Bool
