@@ -104,7 +104,7 @@ authCheck conn =
 
 privateServer :: Sql.Connection -> User -> Server PrivateAPI
 privateServer conn user =
-             rfid conn user
+             epcInfo conn user
         :<|> listEvents conn user
         :<|> eventInfo conn user
         :<|> contactsInfo conn user
@@ -112,7 +112,6 @@ privateServer conn user =
         :<|> contactsRemove conn user
 --        :<|> contactsSearch conn user
         :<|> userSearch conn user
-        :<|> eventsGet conn user
         :<|> eventList conn user
         :<|> eventUserList conn user
         :<|> eventSign conn user
@@ -179,14 +178,11 @@ getPublicKeyInfo conn keyID = do
     Left e -> throwError err404 { errBody = LBSC8.pack $ show e }
     Right keyInfo -> return keyInfo
 
-rfid :: Sql.Connection -> User ->  String -> Handler RFIDInfo
-rfid conn user str = return (RFIDInfo New Nothing)
+epcInfo :: Sql.Connection -> User ->  String -> Handler EPCInfo
+epcInfo conn user str = return (EPCInfo New Nothing)
 
 -- This takes an EPC url, find the object's ID (from DB?) or maybe we just hash it?
 -- and then looks up all the events related to that item.
-eventsGet :: Sql.Connection -> User -> String -> Handler [Event]
-eventsGet conn user url = return []
-
 listEvents :: Sql.Connection -> User ->  String -> Handler [Event]
 listEvents conn user str = return []
 
