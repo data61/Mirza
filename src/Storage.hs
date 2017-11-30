@@ -173,8 +173,9 @@ getUser conn email = do
 -- event into the db and returns the json encoded copy of the event.
 -- It also inserts the json event into the db, later used for hashing
 eventCreateObject :: Sql.Connection -> M.User -> M.NewObject -> IO Event
-eventCreateObject conn (M.User uid _ _ ) (M.NewObject epc epcisTime timezone objectID location) = do
-  execute conn "INSERT INTO Objects (objectID, GS1Barcode) VALUES (?, ?);" (objectID, epc)
+eventCreateObject conn (M.User uid _ _ ) (M.NewObject epc epcisTime timezone location) = do
+  --FIXME!! need to define objects properly
+  execute conn "INSERT INTO Objects (objectID, GS1Barcode) VALUES (?, ?);" (epc, epc)
   objectRowID <- lastInsertRowId conn -- this should probably be part of the uuid too...
   currentTime <- getCurrentTime
   uuid <- nextRandom
@@ -189,7 +190,7 @@ eventCreateObject conn (M.User uid _ _ ) (M.NewObject epc epcisTime timezone obj
       event = mkEvent ObjectEventT eventID what when why dwhere
       jsonEvent = encodeEvent $ event
   -- insert the event into the events db. Include a json encoded copy, later used for hashing and signing.
-  execute conn "INSERT INTO Events (eventID, objectID, what, why, location, timestamp, timezone, eventType, createdBy, jsonEvent) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);" (eventID, objectID, what, why, dwhere, epcisTime, timezone, ObjectEventT, uid, jsonEvent)
+  execute conn "INSERT INTO Events (eventID, objectID, what, why, location, timestamp, timezone, eventType, createdBy, jsonEvent) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);" (eventID, epc, what, why, dwhere, epcisTime, timezone, ObjectEventT, uid, jsonEvent)
   -- associate the event with the user. It's not signed yet.
   execute conn "INSERT INTO UserEvents (eventID, userID, hasSigned, addedBy) VALUES (?, ?, ?, ?);" (eventID, uid, False, uid)
   --insert a json representation of it into our table of hashes, it's not signed so it's clear text (not actually a hash).

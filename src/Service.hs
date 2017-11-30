@@ -104,7 +104,7 @@ authCheck conn =
 
 privateServer :: Sql.Connection -> User -> Server PrivateAPI
 privateServer conn user =
-             rfid conn user
+             epcInfo conn user
         :<|> listEvents conn user
         :<|> eventInfo conn user
         :<|> contactsInfo conn user
@@ -178,8 +178,8 @@ getPublicKeyInfo conn keyID = do
     Left e -> throwError err404 { errBody = LBSC8.pack $ show e }
     Right keyInfo -> return keyInfo
 
-rfid :: Sql.Connection -> User ->  String -> Handler RFIDInfo
-rfid conn user str = return (RFIDInfo New Nothing)
+epcInfo :: Sql.Connection -> User ->  String -> Handler EPCInfo
+epcInfo conn user str = return (EPCInfo New Nothing)
 
 -- This takes an EPC url, find the object's ID (from DB?) or maybe we just hash it?
 -- and then looks up all the events related to that item.
@@ -260,7 +260,7 @@ sampleEvent=  do
 
 
 sampleWhat :: DWhat
-sampleWhat = ObjectDWhat Observe [GIAI "2020939" "029393"]
+sampleWhat = ObjectDWhat Observe [IL (GIAI "2020939" "029393")]
 
 sampleWhy :: DWhy
 sampleWhy = DWhy (Just Arriving) (Just Data.GS1.EPC.Active)
