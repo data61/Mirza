@@ -161,17 +161,17 @@ $(deriveJSON defaultOptions ''User)
 instance ToSchema User
 
 
-data RFIDState = New | InProgress | AwaitingDeploymentToBC | Customer | Finalised
+data EPCState = New | InProgress | AwaitingDeploymentToBC | Customer | Finalised
   deriving (Generic, Eq, Show)
-$(deriveJSON defaultOptions ''RFIDState)
-instance ToSchema RFIDState
+$(deriveJSON defaultOptions ''EPCState)
+instance ToSchema EPCState
 
-data RFIDInfo = RFIDInfo {
-  state :: RFIDState,
+data EPCInfo = EPCInfo {
+  state :: EPCState,
   owner :: Maybe UserID
 } deriving (Generic, Eq, Show)
-$(deriveJSON defaultOptions ''RFIDInfo)
-instance ToSchema RFIDInfo
+$(deriveJSON defaultOptions ''EPCInfo)
+instance ToSchema EPCInfo
 
 
 data NewUser = NewUser {
@@ -197,15 +197,14 @@ data NewObject = NewObject {
   object_epcs :: LabelEPC,
   object_timestamp :: EPCISTime,
   object_timezone:: TimeZone,
-  object_objectID :: ObjectID,
   object_location :: EventLocation
 } deriving (Show, Generic)
 $(deriveJSON defaultOptions ''NewObject)
 instance ToSchema NewObject
 
 data AggregatedObject = AggregatedObject {
-  aggObject_objectIDs :: [ObjectID],
-  aggObject_containerID :: ObjectID,
+  aggObject_objectIDs :: [LabelEPC],
+  aggObject_containerID :: LabelEPC,
   aggObject_timestamp :: EPCISTime,
   aggOject_timezone:: TimeZone,
   aggObject_location :: EventLocation,
@@ -216,8 +215,8 @@ $(deriveJSON defaultOptions ''AggregatedObject)
 instance ToSchema AggregatedObject
 
 data DisaggregatedObject = DisaggregatedObject {
-  daggObject_objectIDs :: [ObjectID],
-  daggObject_containerID :: ObjectID,
+  daggObject_objectIDs :: [LabelEPC],
+  daggObject_containerID :: LabelEPC,
   daggObject_timestamp :: EPCISTime,
   daggOject_timezone:: TimeZone,
   daggObject_location :: EventLocation,
@@ -230,12 +229,12 @@ instance ToSchema DisaggregatedObject
 
 
 data TransformationInfo = TransformationInfo {
-  transObject_objectIDs :: [ObjectID],
+  transObject_objectIDs :: [LabelEPC],
   transObject_timestamp :: EPCISTime,
   transObject_timezone:: TimeZone,
   transObject_location :: EventLocation,
   transObject_inputQuantity :: [Quantity],
-  transObject_outputObjectID :: [ObjectID],
+  transObject_outputObjectID :: [LabelEPC],
   transObject_outputQuantity :: [Quantity]
 } deriving (Show, Generic)
 $(deriveJSON defaultOptions ''TransformationInfo)
@@ -243,7 +242,7 @@ instance ToSchema TransformationInfo
 
 data TransactionInfo = TransactionInfo {
   transaction_userIDs :: [UserID],
-  transaction_objectIDs :: [ObjectID],
+  transaction_objectIDs :: [LabelEPC],
   transaction_parentID :: Maybe ParentID,
   transaction_bizTransaction :: [BizTransaction],
   transaction_quantities :: [QuantityElement]
