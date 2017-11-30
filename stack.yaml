@@ -3,9 +3,12 @@ extra-package-dbs: []
 packages:
 - '.'
 - ../GS1Combinators
+- ../Beam
 extra-deps:
 - servant-0.10
 - servant-multipart-0.10
 - servant-server-0.10
 - servant-swagger-1.1.2.1
+# - HDBC-sqlite3-2.3.3.1
+# - base-4.8.2.0
 resolver: lts-8.6
