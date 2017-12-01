@@ -3,7 +3,8 @@ extra-package-dbs: []
 packages:
 - '.'
 - ../GS1Combinators
-- ../Beam
+- location: ../Beam
+  extra-dep: true
 extra-deps:
 - aeson-1.1.2.0
 - cpphs-1.20.8
