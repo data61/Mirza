@@ -1,7 +1,4 @@
-{-# LANGUAGE DataKinds       #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE TypeOperators   #-}
-{-# LANGUAGE DeriveGeneric         #-}
+{-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
@@ -9,10 +6,9 @@
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
-{-# LANGUAGE CPP                        #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE UndecidableInstances       #-}
-{-# OPTIONS_GHC -fno-warn-orphans #-}
+{-# LANGUAGE CPP                   #-}
+{-# LANGUAGE UndecidableInstances  #-}
+{-# OPTIONS_GHC -fno-warn-orphans  #-}
 module Service where
 
 import Model
@@ -24,8 +20,8 @@ import Prelude.Compat
 
 import Database.SQLite.Simple as Sql hiding ((:.))
 
-import           Control.Monad.IO.Class
-import           Control.Monad.Logger (runStderrLoggingT)
+import Control.Monad.IO.Class
+import Control.Monad.Logger (runStderrLoggingT)
 
 
 import GHC.TypeLits (KnownSymbol)
@@ -59,9 +55,7 @@ import Network.Wai
 
 import Crypto.PubKey.RSA
 
-
 import Control.Lens       hiding ((.=))
-import Control.Monad.Except
 
 import GHC.Generics       (Generic)
 
@@ -96,7 +90,7 @@ authCheck conn =
         maybeUser <- Storage.authCheck conn username password
         case maybeUser of
            Nothing -> return Unauthorized
-           (Just user) -> return (Authorized (user))
+           (Just user) -> return (Authorized user)
   in BasicAuthCheck check
 
 
@@ -150,7 +144,7 @@ serverAPI = Proxy
 -- tagged with "foo-tag" This context is then supplied to 'server' and threaded
 -- to the BasicAuth HasServer handlers.
 basicAuthServerContext :: Sql.Connection -> Servant.Context (BasicAuthCheck User ': '[])
-basicAuthServerContext conn = (authCheck conn):. EmptyContext
+basicAuthServerContext conn = (authCheck conn) :. EmptyContext
 
 
 addPublicKey :: Sql.Connection -> User -> RSAPublicKey -> Handler KeyID
@@ -159,7 +153,6 @@ addPublicKey conn user sig = liftIO (Storage.addPublicKey conn user sig)
 
 newUser :: Sql.Connection -> NewUser -> Handler UserID
 newUser conn nu = liftIO (Storage.newUser conn nu)
-
 
 
 getPublicKey :: Sql.Connection -> KeyID -> Handler RSAPublicKey
@@ -279,5 +272,3 @@ eventInfo conn user eID = liftIO sampleEvent
 
 --eventHash :: EventID -> Handler SignedEvent
 --eventHash eID = return (SignedEvent eID (BinaryBlob ByteString.empty) [(BinaryBlob ByteString.empty)] [1,2])
-
-
