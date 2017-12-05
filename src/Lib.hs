@@ -1,7 +1,4 @@
 {-# LANGUAGE DataKinds       #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE TypeOperators   #-}
-{-# LANGUAGE DeriveGeneric         #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
@@ -10,7 +7,6 @@
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
 {-# LANGUAGE CPP                        #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE UndecidableInstances       #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
@@ -26,8 +22,8 @@ import Prelude        ()
 import Prelude.Compat
 
 
-import           Control.Monad.IO.Class
-import           Control.Monad.Logger (runStderrLoggingT)
+import Control.Monad.IO.Class
+import Control.Monad.Logger (runStderrLoggingT)
 
 import Servant
 import Servant.Server.Experimental.Auth()
@@ -73,8 +69,6 @@ import Storage as S
 import Service
 
 
-
-
 startApp :: FilePath -> IO ()
 startApp sqliteFile = do
     args <- getArgs
@@ -83,7 +77,7 @@ startApp sqliteFile = do
         ("run":_) -> do
             p <- fromMaybe 8000 . (>>= readMaybe) <$> lookupEnv "PORT"
             putStrLn $ "http://localhost:" ++ show p ++ "/" ++ "swagger-ui/"
-            Warp.run p =<< (mkApp sqliteFile uiFlavour)
+            Warp.run p =<< mkApp sqliteFile uiFlavour
         _ -> do
             putStrLn "Example application, used as a compilation check"
             putStrLn "To run, pass run argument: --test-arguments run"
@@ -100,7 +94,7 @@ app = (serveWithContext api basicAuthServerContext) . server'
 
 
 webApp :: Sql.Connection -> UIFlavour -> Application
-webApp conn = (serveWithContext api (basicAuthServerContext conn)) . (server' conn)
+webApp conn = serveWithContext api (basicAuthServerContext conn) . server' conn
 
 
 {-
@@ -158,6 +152,4 @@ server' conn uiFlavour = server Normal
         & info.description ?~ "Nested API"
     serveSwaggerAPI' SpecDown  = serveSwaggerAPI
         & info.description ?~ "Spec nested"
-
-
 

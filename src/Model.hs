@@ -1,7 +1,6 @@
 
 {-# LANGUAGE DataKinds       #-}
 {-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE TypeOperators   #-}
 {-# LANGUAGE DeriveGeneric         #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
@@ -20,27 +19,21 @@
 module Model where
 
 
+import Servant
+import Servant.Server.Experimental.Auth()
 import Servant.Swagger
 import Servant.Swagger.UI
 import Data.Swagger
-import qualified Data.ByteString as ByteString
-
 
 
 import Prelude        ()
 import Prelude.Compat
 
 
-import           Control.Monad.IO.Class
-import           Control.Monad.Logger (runStderrLoggingT)
+import Control.Monad.IO.Class
+import Control.Monad.Logger (runStderrLoggingT)
 
 import Control.Monad.Except
-
--- is there a reason some of these modules are imported twice? -@sa
-import Servant
-import Servant.Server.Experimental.Auth()
-import Servant.Swagger
-import Servant.Swagger.UI
 
 import GHC.TypeLits (KnownSymbol)
 
@@ -75,8 +68,6 @@ import System.Environment (getArgs, lookupEnv)
 import Text.Read          (readMaybe)
 import Data.Text as Txt
 import Crypto.Hash.IO
-
-
 
 type UserID = Integer
 type EmailAddress = ByteString.ByteString
