@@ -50,7 +50,6 @@ import Data.Swagger
 import Data.Maybe
 import Data.GS1.Event
 import Data.GS1.EventID
-import Data.GS1.Object
 import Data.GS1.EPC
 import Data.GS1.DWhen
 import Data.GS1.DWhere
@@ -244,8 +243,7 @@ data TransactionInfo = TransactionInfo {
   transaction_userIDs :: [UserID],
   transaction_objectIDs :: [LabelEPC],
   transaction_parentID :: Maybe ParentID,
-  transaction_bizTransaction :: [BizTransaction],
-  transaction_quantities :: [QuantityElement]
+  transaction_bizTransaction :: [BizTransaction]
 } deriving (Show, Generic)
 $(deriveJSON defaultOptions ''TransactionInfo)
 instance ToSchema TransactionInfo
