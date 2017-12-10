@@ -185,7 +185,7 @@ eventCreateObject conn (M.User uid _ _ ) (M.NewObject epc epcisTime timezone loc
       eventID = EventID uuid
       (M.EventLocation readPt bizLoc) = location
       dwhere = DWhere [readPt] [bizLoc] [] []
-      event = mkEvent ObjectEventT eventID what when why dwhere
+      event = Event ObjectEventT eventID what when why dwhere
       jsonEvent = encodeEvent event
   -- insert the event into the events db. Include a json encoded copy, later used for hashing and signing.
   execute conn "INSERT INTO Events (eventID, objectID, what, why, location, timestamp, timezone, eventType, createdBy, jsonEvent) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);" (eventID, epc, what, why, dwhere, epcisTime, timezone, ObjectEventT, uid, jsonEvent)
@@ -214,7 +214,7 @@ eventAggregateObjects conn (M.User uid _ _ ) (M.AggregatedObject objectIDs conta
       when =  DWhen epcisTime (Just currentTime) timezone
       (M.EventLocation readPt bizLoc) = location
       dwhere = DWhere [readPt] [bizLoc] [] []
-      event = mkEvent ObjectEventT eventID what when why dwhere
+      event = Event ObjectEventT eventID what when why dwhere
       jsonEvent = encodeEvent $ event
   execute conn "INSERT INTO Events (eventID, objectID, what, why, location, timestamp, timezone, eventType, createdBy, jsonEvent) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);" (eventID, objectID, what, why, dwhere, epcisTime, timezone, ObjectEventT, uid, jsonEvent)
   execute conn "INSERT INTO UserEvents (eventID, userID, hasSigned, addedBy) VALUES (?, ?, ?, ?);" (eventID, uid, False, uid)
