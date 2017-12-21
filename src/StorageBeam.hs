@@ -66,7 +66,7 @@ instance Beamable ContactsT
 
 
 data LabelsT f = LabelsT
-  { _labelId           :: Columnar f Int32
+  { _labelId           :: Columnar f (Auto Int32)
   , _gs1CompanyPrefix  :: Columnar f Text --should this be bizID instead?
   , _itemReference     :: Columnar f Text
   , _serialNumber      :: Columnar f Text
@@ -87,7 +87,7 @@ instance Beamable ItemT
 
 
 data TransformationT = TransformationT
-  { _transformationId             :: Columnar f Int32
+  { _transformationId             :: Columnar f (Auto Int32)
   , _transformationDescription    :: Columnar f Text
   , _transformBizID               :: Columnar f PrimaryKey BusinessT f
   }
@@ -104,13 +104,14 @@ data LocationT = LocationT
 instance Beamable LocationT
 
 data EventsT = EventsT
-  { _eventID                      :: Columnar f Int32
+  { _eventID                      :: Columnar f (Auto Int32)
+  , _foreignEventID               :: Columnar f Text
   , _labelID                      :: Columnar f PrimaryKey BusinessT f --the label scanned to generate this event.
-  , _whatID                       :: Columnar f Int32
-  , _whyID                        :: Columnar f Int32
-  , _whereID                      :: Columnar f Int32
-  , _whenID                       :: Columnar f Int32
-  , _createdBy                    :: Columnar f Int32 --userID
+  , _whatID                       :: Columnar f PrimaryKey WhatT f
+  , _whyID                        :: Columnar f PrimaryKey WhyT f
+  , _whereID                      :: Columnar f PrimaryKey WhereT f
+  , _whenID                       :: Columnar f PrimaryKey WhenT f
+  , _createdBy                    :: Columnar f PrimaryKey UserT f
   , _jsonEvent                    :: Columnar f Text
   }
   deriving Generic
@@ -120,10 +121,10 @@ data EventType = ObjectEvent | AggregationEvent | TransactionEvent | Transformat
   deriving (Show, Enum, Read)
 
 data WhatT = WhatT
-  { _whatID                       :: Columnar f Int32
+  { _whatID                       :: Columnar f (Auto Int32)
   , _whatType                     :: Columnar f EventType
   , _action                       :: Columnar f Action
-  , _parent                       :: Columnar f Int32 --labelID
+  , _parent                       :: Columnar f PrimaryKey LabelT f
   , _input                        :: Columnar f [LabelEPC]
   , _output                       :: Columnar f [LabelEPC]
   , _bizTransactionID             :: Columnar f Int32 -- probably link to a table of biztransactions
@@ -134,7 +135,7 @@ instance Beamable WhatT
 
 
 data WhyT = WhyT
-  { _whyID                      :: Columnar f Int32
+  { _whyID                      :: Columnar f (Auto Int32)
   , _bizStep                    :: Columnar f BizStep
   , _disposition                :: Columnar f Disposition
   }
@@ -142,7 +143,7 @@ data WhyT = WhyT
 instance Beamable WhyT
 
 data WhereT = WhereT
-  { _whereID                   :: Columnar f Int32
+  { _whereID                   :: Columnar f (Auto Int32)
   , _readPoint                 :: Columnar f PrimaryKey LocationT f
   , _bizLocation               :: Columnar f PrimaryKey LocationT f
   , _srcType                   :: Columnar f SourceDestType
