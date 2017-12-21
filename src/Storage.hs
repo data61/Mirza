@@ -19,7 +19,6 @@ import Crypto.Scrypt
 
 import Data.GS1.Event
 import Data.GS1.EventID
-import Data.GS1.Object
 import Data.GS1.EPC
 import Data.GS1.DWhen
 import Data.GS1.DWhere
@@ -105,19 +104,19 @@ let bb = M.BinaryBlob (pack "sldkfdssl")
 -- Create a new user in the database
 -- TODO: * do some sort of email/mobile phone verification before enabling their account
 --       * add sessionIDs and expiry dates
-newUser :: Sql.Connection -> M.NewUser -> IO (M.UserID)
+newUser :: Sql.Connection -> M.NewUser -> IO M.UserID
 newUser conn (M.NewUser phone email first last biz password) = do
   hash <- encryptPassIO' (Pass (pack password))
   execute conn "INSERT INTO Users (bizID, firstName, lastName, phoneNumber, passwordHash, emailAddress) \
-               \ VALUES (?, ?, ?, ?, ?, ?);" (biz, first, last, phone, (getEncryptedPass hash), email)
+               \ VALUES (?, ?, ?, ?, ?, ?);" (biz, first, last, phone, getEncryptedPass hash, email)
   rowID <- lastInsertRowId conn
-  return ((fromIntegral rowID) :: M.UserID)
+  return (fromIntegral rowID :: M.UserID)
 
 
 -- Basic Auth check using Scrypt hashes.
 authCheck :: Sql.Connection -> M.EmailAddress -> M.Password -> IO (Maybe M.User)
 authCheck conn email password = do
-  r <- Sql.query conn "SELECT rowID, firstName, lastName, passwordHash FROM Users WHERE emailAddress = ?;" $ Only $ unpack $ email
+  r <- Sql.query conn "SELECT rowID, firstName, lastName, passwordHash FROM Users WHERE emailAddress = ?;" $ Only $ unpack email
   if length r == 0
      then return Nothing
      else do
@@ -128,12 +127,12 @@ authCheck conn email password = do
 
 
 -- Add the users public key to the DB
-addPublicKey :: Sql.Connection -> M.User -> M.RSAPublicKey-> IO (M.KeyID)
+addPublicKey :: Sql.Connection -> M.User -> M.RSAPublicKey-> IO M.KeyID
 addPublicKey conn (M.User uid _ _)  (M.RSAPublicKey n e) = do
   timestamp <- getCurrentTime
   execute conn "INSERT INTO Keys (userID, rsa_n, rsa_e, creationTime) values (?, ?, ?, ?);" (uid, n, e, timestamp)
   rowID <- lastInsertRowId conn
-  return ((fromIntegral rowID) :: M.KeyID)
+  return (fromIntegral rowID :: M.KeyID)
 
 -- Get a particular public key from the DB
 getPublicKey :: (MonadError M.GetPropertyError m, MonadIO m) => Sql.Connection -> M.KeyID -> m M.RSAPublicKey
@@ -141,7 +140,7 @@ getPublicKey conn keyID = do
   rs <- liftIO $ Sql.query conn "SELECT rsa_n, rsa_e FROM Keys WHERE keyID = ?;" $ Only keyID
   if length rs == 0
      then throwError M.KE_InvalidKeyID
-     else do
+     else
        return $ uncurry M.RSAPublicKey $ head rs
 
 -- Get information about a particular public key from the DB
@@ -160,14 +159,13 @@ getPublicKeyInfo conn keyID = do
 --getUser :: Sql.Connection -> M.EmailAddress -> IO (Maybe M.User)
 --just for debugging atm.
 getUser conn email = do
-  r <- Sql.query conn "SELECT rowID, firstName, lastName FROM Users WHERE emailAddress = ?;" (Only (email))
-  case (length r) of
+  r <- Sql.query conn "SELECT rowID, firstName, lastName FROM Users WHERE emailAddress = ?;" (Only email)
+  case length r of
     0 -> return Nothing
     _ -> let
       (uid, firstName, lastName) = head r
       in
-        do
-          return $ Just (M.User uid firstName lastName)
+        return $ Just (M.User uid firstName lastName)
 
 -- Given a user and a new object event, inserts the new object & the new object
 -- event into the db and returns the json encoded copy of the event.
@@ -187,8 +185,8 @@ eventCreateObject conn (M.User uid _ _ ) (M.NewObject epc epcisTime timezone loc
       eventID = EventID uuid
       (M.EventLocation readPt bizLoc) = location
       dwhere = DWhere [readPt] [bizLoc] [] []
-      event = mkEvent ObjectEventT eventID what when why dwhere
-      jsonEvent = encodeEvent $ event
+      event = Event ObjectEventT eventID what when why dwhere
+      jsonEvent = encodeEvent event
   -- insert the event into the events db. Include a json encoded copy, later used for hashing and signing.
   execute conn "INSERT INTO Events (eventID, objectID, what, why, location, timestamp, timezone, eventType, createdBy, jsonEvent) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);" (eventID, epc, what, why, dwhere, epcisTime, timezone, ObjectEventT, uid, jsonEvent)
   -- associate the event with the user. It's not signed yet.
@@ -200,7 +198,7 @@ eventCreateObject conn (M.User uid _ _ ) (M.NewObject epc epcisTime timezone loc
 -- List the users associated with an event
 eventUserList :: Sql.Connection -> M.User -> EventID -> IO [(M.User, Bool)]
 eventUserList conn (M.User uid _ _ ) eventID = do
-  r <- Sql.query conn "SELECT userID, firstName, lastName, hasSigned FROM UserEvents, Users WHERE eventID=? AND Users.id == UserEvents.userID;" (Only (uid))
+  r <- Sql.query conn "SELECT userID, firstName, lastName, hasSigned FROM UserEvents, Users WHERE eventID=? AND Users.id == UserEvents.userID;" (Only uid)
   return (map toUserBool r)
 
   {-
@@ -216,7 +214,7 @@ eventAggregateObjects conn (M.User uid _ _ ) (M.AggregatedObject objectIDs conta
       when =  DWhen epcisTime (Just currentTime) timezone
       (M.EventLocation readPt bizLoc) = location
       dwhere = DWhere [readPt] [bizLoc] [] []
-      event = mkEvent ObjectEventT eventID what when why dwhere
+      event = Event ObjectEventT eventID what when why dwhere
       jsonEvent = encodeEvent $ event
   execute conn "INSERT INTO Events (eventID, objectID, what, why, location, timestamp, timezone, eventType, createdBy, jsonEvent) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);" (eventID, objectID, what, why, dwhere, epcisTime, timezone, ObjectEventT, uid, jsonEvent)
   execute conn "INSERT INTO UserEvents (eventID, userID, hasSigned, addedBy) VALUES (?, ?, ?, ?);" (eventID, uid, False, uid)
@@ -229,8 +227,8 @@ eventAggregateObjects conn (M.User uid _ _ ) (M.AggregatedObject objectIDs conta
 eventHashed :: Sql.Connection -> M.User -> EventID -> IO (Maybe M.HashedEvent)
 eventHashed conn _ eventID = do
   -- get an unsigned hash from the db
-  r <- Sql.query conn "SELECT hash FROM Hashes WHERE eventID=? AND isSigned=0;" (Only (eventID))
-  case (length r) of
+  r <- Sql.query conn "SELECT hash FROM Hashes WHERE eventID=? AND isSigned=0;" (Only eventID)
+  case length r of
     0 -> return Nothing
     _ -> return $ Just (M.HashedEvent eventID (head r))
 
@@ -247,7 +245,7 @@ eventSign conn (M.User uid _ _ ) (M.SignedEvent eventID keyID (M.Signature signa
   -- get original json encoded event from db
   r <- liftIO $ Sql.query conn "SELECT jsonEvent FROM Events WHERE eventID=?;" $ Only eventID
   blob <- case r of
-            [Only (x::String)] -> return $ pack $ x
+            [Only (x::String)] -> return $ pack x
             _      -> throwError M.SE_InvalidEventID
   checkSignature pubkey blob (M.Signature signature)
   liftIO $ execute conn "INSERT INTO Hashes (eventID, hash, isSigned, signedByUserID, keyID, timestamp) VALUES (?, ?, ?, ?, ?, ?);" (eventID, signature, True, uid, keyID, timestamp)

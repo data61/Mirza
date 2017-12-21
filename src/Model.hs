@@ -1,7 +1,6 @@
 
 {-# LANGUAGE DataKinds       #-}
 {-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE TypeOperators   #-}
 {-# LANGUAGE DeriveGeneric         #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
@@ -20,27 +19,21 @@
 module Model where
 
 
+import Servant
+import Servant.Server.Experimental.Auth()
 import Servant.Swagger
 import Servant.Swagger.UI
 import Data.Swagger
-import qualified Data.ByteString as ByteString
-
 
 
 import Prelude        ()
 import Prelude.Compat
 
 
-import           Control.Monad.IO.Class
-import           Control.Monad.Logger (runStderrLoggingT)
+import Control.Monad.IO.Class
+import Control.Monad.Logger (runStderrLoggingT)
 
 import Control.Monad.Except
-
-
-import Servant
-import Servant.Server.Experimental.Auth()
-import Servant.Swagger
-import Servant.Swagger.UI
 
 import GHC.TypeLits (KnownSymbol)
 
@@ -50,7 +43,6 @@ import Data.Swagger
 import Data.Maybe
 import Data.GS1.Event
 import Data.GS1.EventID
-import Data.GS1.Object
 import Data.GS1.EPC
 import Data.GS1.DWhen
 import Data.GS1.DWhere
@@ -77,8 +69,6 @@ import Text.Read          (readMaybe)
 import Data.Text as Txt
 import Crypto.Hash.IO
 
-
-
 type UserID = Integer
 type EmailAddress = ByteString.ByteString
 type KeyID = Integer
@@ -92,7 +82,7 @@ instance ToParamSchema BinaryBlob where
   toParamSchema _ = binaryParamSchema
 
 instance ToSchema BinaryBlob where
-  declareNamedSchema _ = pure $ NamedSchema (Just "BinaryBlob") $ binarySchema
+  declareNamedSchema _ = pure $ NamedSchema (Just "BinaryBlob") binarySchema
 
 instance Sql.FromRow BinaryBlob where
   fromRow = BinaryBlob <$> field
@@ -244,8 +234,7 @@ data TransactionInfo = TransactionInfo {
   transaction_userIDs :: [UserID],
   transaction_objectIDs :: [LabelEPC],
   transaction_parentID :: Maybe ParentID,
-  transaction_bizTransaction :: [BizTransaction],
-  transaction_quantities :: [QuantityElement]
+  transaction_bizTransaction :: [BizTransaction]
 } deriving (Show, Generic)
 $(deriveJSON defaultOptions ''TransactionInfo)
 instance ToSchema TransactionInfo
