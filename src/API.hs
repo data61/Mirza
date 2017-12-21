@@ -1,7 +1,3 @@
-{-# LANGUAGE DataKinds       #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE TypeOperators   #-}
-{-# LANGUAGE DeriveGeneric         #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
@@ -10,10 +6,9 @@
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
 {-# LANGUAGE CPP                        #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE UndecidableInstances       #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-{-# LANGUAGE DataKinds, KindSignatures #-}
+{-# LANGUAGE DataKinds #-}
 
 module API where
 
@@ -21,8 +16,8 @@ import Prelude        ()
 import Prelude.Compat
 
 
-import           Control.Monad.IO.Class
-import           Control.Monad.Logger (runStderrLoggingT)
+import Control.Monad.IO.Class
+import Control.Monad.Logger (runStderrLoggingT)
 
 
 
@@ -39,7 +34,6 @@ import Data.Swagger
 import Data.Maybe
 import Data.GS1.Event
 import Data.GS1.EventID
-import Data.GS1.Object
 import Data.GS1.EPC
 import Data.GS1.DWhen
 import Data.GS1.DWhere
