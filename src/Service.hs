@@ -249,7 +249,7 @@ eventTransformObject conn user aggObject = liftIO sampleEvent
 sampleEvent:: IO Event
 sampleEvent=  do
   uuid <- nextRandom
-  return (Event AggregationEventT (EventID uuid) sampleWhat sampleWhen sampleWhy sampleWhere)
+  return (Event AggregationEventT (Just $ EventID uuid) sampleWhat sampleWhen sampleWhy sampleWhere)
 
 
 sampleWhat :: DWhat

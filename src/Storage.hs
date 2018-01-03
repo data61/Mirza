@@ -182,7 +182,7 @@ eventCreateObject conn (M.User uid _ _ ) (M.NewObject epc epcisTime timezone loc
       what =  ObjectDWhat Add [epc]
       why  =  DWhy (Just CreatingClassInstance) (Just Active)
       when = DWhen epcisTime (Just currentTime) timezone
-      eventID = EventID uuid
+      eventID = Just $ EventID uuid
       (M.EventLocation readPt bizLoc) = location
       dwhere = DWhere [readPt] [bizLoc] [] []
       event = Event ObjectEventT eventID what when why dwhere
