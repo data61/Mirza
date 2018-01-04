@@ -8,15 +8,14 @@ import Database.Beam.Sqlite
 import Data.Text (Text)
 
 
-data UserT f = UserT
+data UserT f = User
   { _userID              :: Columnar f (Auto Int)
   , _bizID               :: Columnar f PrimaryKey BusinessT f
   , _firstName           :: Columnar f Text
   , _lastName            :: Columnar f Text
   , _phoneNumber         :: Columnar f Text
   , _passwordHash        :: Columnar f Text --XXX - should this be blob?
-  , _emailAddress        :: Columnar f Text
-  }
+  , _emailAddress        :: Columnar f Text }
   deriving Generic
 
 instance Table UserT where
