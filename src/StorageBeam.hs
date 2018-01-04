@@ -80,30 +80,30 @@ instance Beamable ItemT
 
 
 data TransformationT = Transformation
-  { _transformationId             :: C f (Auto Int32)
-  , _transformationDescription    :: C f Text
-  , _transformBizID               :: C f PrimaryKey BusinessT f }
+  { _transformationId           :: C f (Auto Int32)
+  , _transformationDescription  :: C f Text
+  , _transformBizID             :: C f PrimaryKey BusinessT f }
   deriving Generic
 instance Beamable TransformationT
 
 data LocationT = Location
-  { _locationID                  :: C f Int32
-  , _locationBizID               :: C f PrimaryKey BusinessT f
-  , _lat                         :: C f Float
-  , _long                        :: C f Float }
+  { _locationID                 :: C f Int32
+  , _locationBizID              :: C f PrimaryKey BusinessT f
+  , _lat                        :: C f Float
+  , _long                       :: C f Float }
   deriving Generic
 instance Beamable LocationT
 
 data EventsT = Events
-  { _eventID                      :: C f (Auto Int32)
-  , _foreignEventID               :: C f Text
-  , _labelID                      :: C f PrimaryKey BusinessT f --the label scanned to generate this event.
-  , _whatID                       :: C f PrimaryKey WhatT f
-  , _whyID                        :: C f PrimaryKey WhyT f
-  , _whereID                      :: C f PrimaryKey WhereT f
-  , _whenID                       :: C f PrimaryKey WhenT f
-  , _createdBy                    :: C f PrimaryKey UserT f
-  , _jsonEvent                    :: C f Text }
+  { _eventID                    :: C f (Auto Int32)
+  , _foreignEventID             :: C f Text
+  , _labelID                    :: C f PrimaryKey BusinessT f --the label scanned to generate this event.
+  , _whatID                     :: C f PrimaryKey WhatT f
+  , _whyID                      :: C f PrimaryKey WhyT f
+  , _whereID                    :: C f PrimaryKey WhereT f
+  , _whenID                     :: C f PrimaryKey WhenT f
+  , _createdBy                  :: C f PrimaryKey UserT f
+  , _jsonEvent                  :: C f Text }
   deriving Generic
 instance Beamable EventsT
 
@@ -114,14 +114,14 @@ data EventType = ObjectEvent
                  deriving (Show, Enum, Read)
 
 data WhatT = What
-  { _whatID                       :: C f (Auto Int32)
-  , _whatType                     :: C f EventType
-  , _action                       :: C f Action
-  , _parent                       :: C f PrimaryKey LabelT f
-  , _input                        :: C f [LabelEPC]
-  , _output                       :: C f [LabelEPC]
-  , _bizTransactionID             :: C f Int32 -- probably link to a table of biztransactions
-  , _transformationID             :: C f PrimaryKey TransformationT f }
+  { _whatID                     :: C f (Auto Int32)
+  , _whatType                   :: C f EventType
+  , _action                     :: C f Action
+  , _parent                     :: C f PrimaryKey LabelT f
+  , _input                      :: C f [LabelEPC]
+  , _output                     :: C f [LabelEPC]
+  , _bizTransactionID           :: C f Int32 -- probably link to a table of biztransactions
+  , _transformationID           :: C f PrimaryKey TransformationT f }
   deriving Generic
 instance Beamable WhatT
 
@@ -134,26 +134,26 @@ data WhyT = Why
 instance Beamable WhyT
 
 data WhereT = Where
-  { _whereID                   :: C f (Auto Int32)
-  , _readPoint                 :: C f PrimaryKey LocationT f
-  , _bizLocation               :: C f PrimaryKey LocationT f
-  , _srcType                   :: C f SourceDestType
-  , _destType                  :: C f SourceDestType }
+  { _whereID                    :: C f (Auto Int32)
+  , _readPoint                  :: C f PrimaryKey LocationT f
+  , _bizLocation                :: C f PrimaryKey LocationT f
+  , _srcType                    :: C f SourceDestType
+  , _destType                   :: C f SourceDestType }
   deriving Generic
 instance Beamable WhereT
 
 data WhenT = When
- { _whenID                   :: C f Int32
- , _eventTime                :: C f Int64
- , _recordTime               :: C f Int64
- , _timeZone                 :: C f TimeZone }
+ { _whenID                      :: C f Int32
+ , _eventTime                   :: C f Int64
+ , _recordTime                  :: C f Int64
+ , _timeZone                    :: C f TimeZone }
  deriving Generic
 instance Beamable WhenT
 
 
 data LabelEventsT = LabelEvents
- { _labelID                 :: C f PrimaryKey LabelsT f
- , _eventID                 :: C f PrimaryKey LocationT f }
+ { _labelID                     :: C f PrimaryKey LabelsT f
+ , _eventID                     :: C f PrimaryKey LocationT f }
 
 
 data SupplyChainDb f = SupplyChainDb
