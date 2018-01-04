@@ -29,7 +29,7 @@ instance Beamable (PrimaryKey UserId)
 type User = UserT Identity
 deriving instance Show User
 
-data KeysT f = KeysT
+data KeysT f = Keys
   { _keyID              :: Columnar f (Auto Int32)
   , _userID             :: Columnar f PrimaryKey UsersT f
   , _rsa_n              :: Columnar f Int32 --XXX should this be Int64?
@@ -40,7 +40,7 @@ data KeysT f = KeysT
   deriving Generic
 instance Beamable KeysT
 
-data BusinessT f = BusinessT
+data BusinessT f = Business
   { _bizID             :: Columnar f (Auto Int32)
   , _bizName           :: Columnar f Text
   , _gs1CompanyPrefix  :: Columnar f Int32
@@ -52,7 +52,7 @@ data BusinessT f = BusinessT
   deriving Generic
 instance Beamable BusinessT
 
-data ContactsT f = ContactsT
+data ContactsT f = Contacts
   { _contactID         :: Columnar f Int32
   , _user1ID           :: Columnar f PrimaryKey UsersT f
   , _user2ID           :: Columnar f PrimaryKey UsersT f }
@@ -60,7 +60,7 @@ data ContactsT f = ContactsT
 instance Beamable ContactsT
 
 
-data LabelsT f = LabelsT
+data LabelsT f = Labels
   { _labelId           :: Columnar f (Auto Int32)
   , _gs1CompanyPrefix  :: Columnar f Text --should this be bizID instead?
   , _itemReference     :: Columnar f Text
@@ -71,7 +71,7 @@ data LabelsT f = LabelsT
   deriving Generic
 instance Beamable LabelsT
 
-data ItemT f = ItemT
+data ItemT f = Item
   { _itemId            :: Columnar f Int32
   , _labelId           :: Columnar f PriamryKey LabelsT f
   , _itemDescription   :: Columnar f Text }
@@ -79,14 +79,14 @@ data ItemT f = ItemT
 instance Beamable ItemT
 
 
-data TransformationT = TransformationT
+data TransformationT = Transformation
   { _transformationId             :: Columnar f (Auto Int32)
   , _transformationDescription    :: Columnar f Text
   , _transformBizID               :: Columnar f PrimaryKey BusinessT f }
   deriving Generic
 instance Beamable TransformationT
 
-data LocationT = LocationT
+data LocationT = Location
   { _locationID                  :: Columnar f Int32
   , _locationBizID               :: Columnar f PrimaryKey BusinessT f
   , _lat                         :: Columnar f Float
@@ -94,7 +94,7 @@ data LocationT = LocationT
   deriving Generic
 instance Beamable LocationT
 
-data EventsT = EventsT
+data EventsT = Events
   { _eventID                      :: Columnar f (Auto Int32)
   , _foreignEventID               :: Columnar f Text
   , _labelID                      :: Columnar f PrimaryKey BusinessT f --the label scanned to generate this event.
@@ -113,7 +113,7 @@ data EventType = ObjectEvent
                | TransformationEvent
                  deriving (Show, Enum, Read)
 
-data WhatT = WhatT
+data WhatT = What
   { _whatID                       :: Columnar f (Auto Int32)
   , _whatType                     :: Columnar f EventType
   , _action                       :: Columnar f Action
@@ -126,14 +126,14 @@ data WhatT = WhatT
 instance Beamable WhatT
 
 
-data WhyT = WhyT
+data WhyT = Why
   { _whyID                      :: Columnar f (Auto Int32)
   , _bizStep                    :: Columnar f BizStep
   , _disposition                :: Columnar f Disposition }
   deriving Generic
 instance Beamable WhyT
 
-data WhereT = WhereT
+data WhereT = Where
   { _whereID                   :: Columnar f (Auto Int32)
   , _readPoint                 :: Columnar f PrimaryKey LocationT f
   , _bizLocation               :: Columnar f PrimaryKey LocationT f
@@ -142,7 +142,7 @@ data WhereT = WhereT
   deriving Generic
 instance Beamable WhereT
 
-data WhenT = WhenT
+data WhenT = When
  { _whenID                   :: Columnar f Int32
  , _eventTime                :: Columnar f Int64
  , _recordTime               :: Columnar f Int64
