@@ -51,16 +51,14 @@ data BusinessT f = BusinessT
   , _siteName          :: Columnar f Text
   , _bizAddress        :: Columnar f Text
   , _lat               :: Columnar f Float
-  , _long              :: Columnar f Float
-  }
+  , _long              :: Columnar f Float }
   deriving Generic
 instance Beamable BusinessT
 
 data ContactsT f = ContactsT
   { _contactID         :: Columnar f Int32
   , _user1ID           :: Columnar f PrimaryKey UsersT f
-  , _user2ID           :: Columnar f PrimaryKey UsersT f
-  }
+  , _user2ID           :: Columnar f PrimaryKey UsersT f }
   deriving Generic
 instance Beamable ContactsT
 
@@ -72,16 +70,14 @@ data LabelsT f = LabelsT
   , _serialNumber      :: Columnar f Text
   , _state             :: Columnar f Text
   , _labelType         :: Columnar f Text
-  , _lot               :: Columnar f Text
-  }
+  , _lot               :: Columnar f Text }
   deriving Generic
 instance Beamable LabelsT
 
 data ItemT f = ItemT
   { _itemId            :: Columnar f Int32
   , _labelId           :: Columnar f PriamryKey LabelsT f
-  , _itemDescription   :: Columnar f Text
-  }
+  , _itemDescription   :: Columnar f Text }
   deriving Generic
 instance Beamable ItemT
 
@@ -89,8 +85,7 @@ instance Beamable ItemT
 data TransformationT = TransformationT
   { _transformationId             :: Columnar f (Auto Int32)
   , _transformationDescription    :: Columnar f Text
-  , _transformBizID               :: Columnar f PrimaryKey BusinessT f
-  }
+  , _transformBizID               :: Columnar f PrimaryKey BusinessT f }
   deriving Generic
 instance Beamable TransformationT
 
@@ -98,8 +93,7 @@ data LocationT = LocationT
   { _locationID                  :: Columnar f Int32
   , _locationBizID               :: Columnar f PrimaryKey BusinessT f
   , _lat                         :: Columnar f Float
-  , _long                        :: Columnar f Float
-  }
+  , _long                        :: Columnar f Float }
   deriving Generic
 instance Beamable LocationT
 
@@ -112,13 +106,15 @@ data EventsT = EventsT
   , _whereID                      :: Columnar f PrimaryKey WhereT f
   , _whenID                       :: Columnar f PrimaryKey WhenT f
   , _createdBy                    :: Columnar f PrimaryKey UserT f
-  , _jsonEvent                    :: Columnar f Text
-  }
+  , _jsonEvent                    :: Columnar f Text }
   deriving Generic
 instance Beamable EventsT
 
-data EventType = ObjectEvent | AggregationEvent | TransactionEvent | TransformationEvent
-  deriving (Show, Enum, Read)
+data EventType = ObjectEvent
+               | AggregationEvent
+               | TransactionEvent
+               | TransformationEvent
+                 deriving (Show, Enum, Read)
 
 data WhatT = WhatT
   { _whatID                       :: Columnar f (Auto Int32)
@@ -128,17 +124,15 @@ data WhatT = WhatT
   , _input                        :: Columnar f [LabelEPC]
   , _output                       :: Columnar f [LabelEPC]
   , _bizTransactionID             :: Columnar f Int32 -- probably link to a table of biztransactions
-  , _transformationID             :: Columnar f PrimaryKey TransformationT f
-    }
-    deriving Generic
+  , _transformationID             :: Columnar f PrimaryKey TransformationT f }
+  deriving Generic
 instance Beamable WhatT
 
 
 data WhyT = WhyT
   { _whyID                      :: Columnar f (Auto Int32)
   , _bizStep                    :: Columnar f BizStep
-  , _disposition                :: Columnar f Disposition
-  }
+  , _disposition                :: Columnar f Disposition }
   deriving Generic
 instance Beamable WhyT
 
@@ -147,8 +141,7 @@ data WhereT = WhereT
   , _readPoint                 :: Columnar f PrimaryKey LocationT f
   , _bizLocation               :: Columnar f PrimaryKey LocationT f
   , _srcType                   :: Columnar f SourceDestType
-  , _destType                  :: Columnar f SourceDestType
-  }
+  , _destType                  :: Columnar f SourceDestType }
   deriving Generic
 instance Beamable WhereT
 
