@@ -45,6 +45,7 @@ import Data.GS1.DWhy
 import Data.Either.Combinators
 import Data.Time
 import Data.String.Conversions
+import Database.PostgreSQL.Simple
 
 import qualified Data.ByteString as ByteString
 import qualified Data.HashMap.Strict.InsOrd as IOrd
