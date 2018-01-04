@@ -9,17 +9,17 @@ import Data.Text (Text)
 
 
 data UserT f = User
-  { _userID              :: Columnar f (Auto Int)
-  , _bizID               :: Columnar f PrimaryKey BusinessT f
-  , _firstName           :: Columnar f Text
-  , _lastName            :: Columnar f Text
-  , _phoneNumber         :: Columnar f Text
-  , _passwordHash        :: Columnar f Text --XXX - should this be blob?
-  , _emailAddress        :: Columnar f Text }
+  { _userID              :: C f (Auto Int)
+  , _bizID               :: C f PrimaryKey BusinessT f
+  , _firstName           :: C f Text
+  , _lastName            :: C f Text
+  , _phoneNumber         :: C f Text
+  , _passwordHash        :: C f Text --XXX - should this be blob?
+  , _emailAddress        :: C f Text }
   deriving Generic
 
 instance Table UserT where
-  data PrimaryKey UserT f = UserId (Columnar f (Auto Int))
+  data PrimaryKey UserT f = UserId (C f (Auto Int))
     deriving Generic
   primaryKey = UserId . _userId
 
@@ -30,80 +30,80 @@ type User = UserT Identity
 deriving instance Show User
 
 data KeysT f = Keys
-  { _keyID              :: Columnar f (Auto Int32)
-  , _userID             :: Columnar f PrimaryKey UsersT f
-  , _rsa_n              :: Columnar f Int32 --XXX should this be Int64?
-  , _rsa_e              :: Columnar f Int32 -- as above
-  , _creationTime       :: Columnar f Int32 --XXX date.. Int64?
-  , _revocationTime     :: Columnar f Int32 -- as above
+  { _keyID              :: C f (Auto Int32)
+  , _userID             :: C f PrimaryKey UsersT f
+  , _rsa_n              :: C f Int32 --XXX should this be Int64?
+  , _rsa_e              :: C f Int32 -- as above
+  , _creationTime       :: C f Int32 --XXX date.. Int64?
+  , _revocationTime     :: C f Int32 -- as above
   }
   deriving Generic
 instance Beamable KeysT
 
 data BusinessT f = Business
-  { _bizID             :: Columnar f (Auto Int32)
-  , _bizName           :: Columnar f Text
-  , _gs1CompanyPrefix  :: Columnar f Int32
-  , _businessFunction  :: Columnar f Text
-  , _siteName          :: Columnar f Text
-  , _bizAddress        :: Columnar f Text
-  , _lat               :: Columnar f Float
-  , _long              :: Columnar f Float }
+  { _bizID             :: C f (Auto Int32)
+  , _bizName           :: C f Text
+  , _gs1CompanyPrefix  :: C f Int32
+  , _businessFunction  :: C f Text
+  , _siteName          :: C f Text
+  , _bizAddress        :: C f Text
+  , _lat               :: C f Float
+  , _long              :: C f Float }
   deriving Generic
 instance Beamable BusinessT
 
 data ContactsT f = Contacts
-  { _contactID         :: Columnar f Int32
-  , _user1ID           :: Columnar f PrimaryKey UsersT f
-  , _user2ID           :: Columnar f PrimaryKey UsersT f }
+  { _contactID         :: C f Int32
+  , _user1ID           :: C f PrimaryKey UsersT f
+  , _user2ID           :: C f PrimaryKey UsersT f }
   deriving Generic
 instance Beamable ContactsT
 
 
 data LabelsT f = Labels
-  { _labelId           :: Columnar f (Auto Int32)
-  , _gs1CompanyPrefix  :: Columnar f Text --should this be bizID instead?
-  , _itemReference     :: Columnar f Text
-  , _serialNumber      :: Columnar f Text
-  , _state             :: Columnar f Text
-  , _labelType         :: Columnar f Text
-  , _lot               :: Columnar f Text }
+  { _labelId           :: C f (Auto Int32)
+  , _gs1CompanyPrefix  :: C f Text --should this be bizID instead?
+  , _itemReference     :: C f Text
+  , _serialNumber      :: C f Text
+  , _state             :: C f Text
+  , _labelType         :: C f Text
+  , _lot               :: C f Text }
   deriving Generic
 instance Beamable LabelsT
 
 data ItemT f = Item
-  { _itemId            :: Columnar f Int32
-  , _labelId           :: Columnar f PriamryKey LabelsT f
-  , _itemDescription   :: Columnar f Text }
+  { _itemId            :: C f Int32
+  , _labelId           :: C f PriamryKey LabelsT f
+  , _itemDescription   :: C f Text }
   deriving Generic
 instance Beamable ItemT
 
 
 data TransformationT = Transformation
-  { _transformationId             :: Columnar f (Auto Int32)
-  , _transformationDescription    :: Columnar f Text
-  , _transformBizID               :: Columnar f PrimaryKey BusinessT f }
+  { _transformationId             :: C f (Auto Int32)
+  , _transformationDescription    :: C f Text
+  , _transformBizID               :: C f PrimaryKey BusinessT f }
   deriving Generic
 instance Beamable TransformationT
 
 data LocationT = Location
-  { _locationID                  :: Columnar f Int32
-  , _locationBizID               :: Columnar f PrimaryKey BusinessT f
-  , _lat                         :: Columnar f Float
-  , _long                        :: Columnar f Float }
+  { _locationID                  :: C f Int32
+  , _locationBizID               :: C f PrimaryKey BusinessT f
+  , _lat                         :: C f Float
+  , _long                        :: C f Float }
   deriving Generic
 instance Beamable LocationT
 
 data EventsT = Events
-  { _eventID                      :: Columnar f (Auto Int32)
-  , _foreignEventID               :: Columnar f Text
-  , _labelID                      :: Columnar f PrimaryKey BusinessT f --the label scanned to generate this event.
-  , _whatID                       :: Columnar f PrimaryKey WhatT f
-  , _whyID                        :: Columnar f PrimaryKey WhyT f
-  , _whereID                      :: Columnar f PrimaryKey WhereT f
-  , _whenID                       :: Columnar f PrimaryKey WhenT f
-  , _createdBy                    :: Columnar f PrimaryKey UserT f
-  , _jsonEvent                    :: Columnar f Text }
+  { _eventID                      :: C f (Auto Int32)
+  , _foreignEventID               :: C f Text
+  , _labelID                      :: C f PrimaryKey BusinessT f --the label scanned to generate this event.
+  , _whatID                       :: C f PrimaryKey WhatT f
+  , _whyID                        :: C f PrimaryKey WhyT f
+  , _whereID                      :: C f PrimaryKey WhereT f
+  , _whenID                       :: C f PrimaryKey WhenT f
+  , _createdBy                    :: C f PrimaryKey UserT f
+  , _jsonEvent                    :: C f Text }
   deriving Generic
 instance Beamable EventsT
 
@@ -114,46 +114,46 @@ data EventType = ObjectEvent
                  deriving (Show, Enum, Read)
 
 data WhatT = What
-  { _whatID                       :: Columnar f (Auto Int32)
-  , _whatType                     :: Columnar f EventType
-  , _action                       :: Columnar f Action
-  , _parent                       :: Columnar f PrimaryKey LabelT f
-  , _input                        :: Columnar f [LabelEPC]
-  , _output                       :: Columnar f [LabelEPC]
-  , _bizTransactionID             :: Columnar f Int32 -- probably link to a table of biztransactions
-  , _transformationID             :: Columnar f PrimaryKey TransformationT f }
+  { _whatID                       :: C f (Auto Int32)
+  , _whatType                     :: C f EventType
+  , _action                       :: C f Action
+  , _parent                       :: C f PrimaryKey LabelT f
+  , _input                        :: C f [LabelEPC]
+  , _output                       :: C f [LabelEPC]
+  , _bizTransactionID             :: C f Int32 -- probably link to a table of biztransactions
+  , _transformationID             :: C f PrimaryKey TransformationT f }
   deriving Generic
 instance Beamable WhatT
 
 
 data WhyT = Why
-  { _whyID                      :: Columnar f (Auto Int32)
-  , _bizStep                    :: Columnar f BizStep
-  , _disposition                :: Columnar f Disposition }
+  { _whyID                      :: C f (Auto Int32)
+  , _bizStep                    :: C f BizStep
+  , _disposition                :: C f Disposition }
   deriving Generic
 instance Beamable WhyT
 
 data WhereT = Where
-  { _whereID                   :: Columnar f (Auto Int32)
-  , _readPoint                 :: Columnar f PrimaryKey LocationT f
-  , _bizLocation               :: Columnar f PrimaryKey LocationT f
-  , _srcType                   :: Columnar f SourceDestType
-  , _destType                  :: Columnar f SourceDestType }
+  { _whereID                   :: C f (Auto Int32)
+  , _readPoint                 :: C f PrimaryKey LocationT f
+  , _bizLocation               :: C f PrimaryKey LocationT f
+  , _srcType                   :: C f SourceDestType
+  , _destType                  :: C f SourceDestType }
   deriving Generic
 instance Beamable WhereT
 
 data WhenT = When
- { _whenID                   :: Columnar f Int32
- , _eventTime                :: Columnar f Int64
- , _recordTime               :: Columnar f Int64
- , _timeZone                 :: Columnar f TimeZone }
+ { _whenID                   :: C f Int32
+ , _eventTime                :: C f Int64
+ , _recordTime               :: C f Int64
+ , _timeZone                 :: C f TimeZone }
  deriving Generic
 instance Beamable WhenT
 
 
 data LabelEventsT = LabelEvents
- { _labelID                 :: Columnar f PrimaryKey LabelsT f
- , _eventID                 :: Columnar f PrimaryKey LocationT f }
+ { _labelID                 :: C f PrimaryKey LabelsT f
+ , _eventID                 :: C f PrimaryKey LocationT f }
 
 
 data SupplyChainDb f = SupplyChainDb
