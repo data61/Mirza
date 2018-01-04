@@ -85,7 +85,7 @@ startApp sqliteFile = do
 
 -- easily start the app in ghci, no command line arguments required.
 startApp_nomain :: FilePath -> IO ()
-startApp_nomain filePath = Warp.run 8000 =<< (mkApp filePath Original)
+startApp_nomain filePath = Warp.run 8000 =<< mkApp filePath Original
 
 {-
 app :: UIFlavour -> Application
