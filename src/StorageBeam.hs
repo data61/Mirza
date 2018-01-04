@@ -28,9 +28,7 @@ instance Beamable UserT
 instance Beamable (PrimaryKey UserId)
 
 type User = UserT Identity
-  deriving instance Show User
-
-
+deriving instance Show User
 
 data KeysT f = KeysT
   { _keyID              :: Columnar f (Auto Int32)
@@ -149,34 +147,30 @@ data WhenT = WhenT
  { _whenID                   :: Columnar f Int32
  , _eventTime                :: Columnar f Int64
  , _recordTime               :: Columnar f Int64
- , _timeZone                 :: Columnar f TimeZone
- }
+ , _timeZone                 :: Columnar f TimeZone }
  deriving Generic
 instance Beamable WhenT
 
 
 data LabelEventsT = LabelEventsT
  { _labelID                 :: Columnar f PrimaryKey LabelsT f
- , _eventID                 :: Columnar f PrimaryKey LocationT f
- }
+ , _eventID                 :: Columnar f PrimaryKey LocationT f }
 
 
 data SupplyChainDb f = SupplyChainDb
-  {
-    _supplyChainUsers           :: (TableEntity UserT)
-    _supplyChainKeys            :: (TableEntity KeysT)
-    _supplyChainBusinesses      :: (TableEntity BusinessT)
-    _supplyChainContacts        :: (TableEntity ContactsT)
-    _supplyChainLabels          :: (TableEntity LabelsT)
-    _supplyChainTransformations :: (TableEntity TransformationT)
-    _supplyChainLocations       :: (TableEntity LocationT)
-    _supplyChainEvents          :: (TableEntity EventsT)
-    _supplyChainWhat            :: (TableEntity WhatT)
-    _supplyChainWhy             :: (TableEntity WhyT)
-    _supplyChainWhere           :: (TableEntity WhereT)
-    _supplyChainWhen            :: (TableEntity WhenT)
-    _supplyChainLabelEvents     :: (TableEntity LabelEventsT)
-  }
+  { _supplyChainUsers           :: TableEntity UserT
+  , _supplyChainKeys            :: TableEntity KeysT
+  , _supplyChainBusinesses      :: TableEntity BusinessT
+  , _supplyChainContacts        :: TableEntity ContactsT
+  , _supplyChainLabels          :: TableEntity LabelsT
+  , _supplyChainTransformations :: TableEntity TransformationT
+  , _supplyChainLocations       :: TableEntity LocationT
+  , _supplyChainEvents          :: TableEntity EventsT
+  , _supplyChainWhat            :: TableEntity WhatT
+  , _supplyChainWhy             :: TableEntity WhyT
+  , _supplyChainWhere           :: TableEntity WhereT
+  , _supplyChainWhen            :: TableEntity WhenT
+  , _supplyChainLabelEvents     :: TableEntity LabelEventsT }
   deriving Generic
 instance Database SupplyChainDb
 

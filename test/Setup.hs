@@ -1,17 +1,17 @@
 {-# START_FILE Setup.hs #-}
-import Distribution.Simple
-main = defaultMain
-
 {-# START_FILE test/Spec.hs #-}
 -- {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE OverloadedStrings #-}
+
 module Main (main) where
 
+import Distribution.Simple
 import Lib (app)
 import Test.Hspec
 import Test.Hspec.Wai
 import Test.Hspec.Wai.JSON
 
+main = defaultMain
 main :: IO ()
 main = hspec spec
 
