@@ -151,7 +151,7 @@ data WhenT = When
 instance Beamable WhenT
 
 
-data LabelEventsT = LabelEventsT
+data LabelEventsT = LabelEvents
  { _labelID                 :: Columnar f PrimaryKey LabelsT f
  , _eventID                 :: Columnar f PrimaryKey LocationT f }
 
