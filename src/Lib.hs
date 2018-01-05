@@ -46,7 +46,8 @@ import Data.Either.Combinators
 import Data.Time
 import Data.String.Conversions
 import Database.PostgreSQL.Simple
-
+-- import Data.ByteString hiding (elem)
+import Data.ByteString (pack, ByteString)
 import qualified Data.ByteString as ByteString
 import qualified Data.HashMap.Strict.InsOrd as IOrd
 import qualified Network.Wai.Handler.Warp as Warp
@@ -70,23 +71,23 @@ import Storage as S
 import Service
 
 
-startApp :: FilePath -> IO ()
-startApp sqliteFile = do
+startApp :: ByteString -> IO ()
+startApp dbConnStr = do
     args <- getArgs
     let uiFlavour = if "jensoleg" `elem` args then JensOleG else Original
     case args of
         ("run":_) -> do
             p <- fromMaybe 8000 . (>>= readMaybe) <$> lookupEnv "PORT"
             putStrLn $ "http://localhost:" ++ show p ++ "/" ++ "swagger-ui/"
-            Warp.run p =<< mkApp sqliteFile uiFlavour
+            Warp.run p =<< mkApp dbConnStr uiFlavour
         _ -> do
             putStrLn "Example application, used as a compilation check"
             putStrLn "To run, pass run argument: --test-arguments run"
 
 
 -- easily start the app in ghci, no command line arguments required.
-startApp_nomain :: FilePath -> IO ()
-startApp_nomain filePath = Warp.run 8000 =<< mkApp filePath Original
+startApp_nomain :: ByteString -> IO ()
+startApp_nomain dbConnStr = Warp.run 8000 =<< mkApp dbConnStr Original
 
 {-
 app :: UIFlavour -> Application
@@ -94,23 +95,26 @@ app = (serveWithContext api basicAuthServerContext) . server'
 -}
 
 
-webApp :: Sql.Connection -> UIFlavour -> Application
+webApp :: Database.PostgreSQL.Simple.Connection -> UIFlavour -> Application
 webApp conn = serveWithContext api (basicAuthServerContext conn) . server' conn
 
 
 {-
 mkApp :: FilePath -> UIFlavour ->  IO Application
-mkApp sqliteFile uiFlavour = do
+mkApp dbConnStr uiFlavour = do
   pool <- runStderrLoggingT $ do
-    createSqlitePool (cs sqliteFile) 5
+    createSqlitePool (cs dbConnStr) 5
   runSqlPool (runMigration migrate) pool
   return $ app pool uiFlavour
   -}
 
+-- @todo - make this a command line argument
+connectionStr :: ByteString
+connectionStr = "host=localhost dbname=ano002"
 
-mkApp :: FilePath -> UIFlavour ->  IO Application
-mkApp sqliteFile uiFlavour = do
-  conn <- Sql.open sqliteFile
+mkApp :: ByteString -> UIFlavour ->  IO Application
+mkApp dbConnStr uiFlavour = do
+  conn <- connectPostgreSQL dbConnStr
   createTables conn
   return (webApp conn uiFlavour)
 
