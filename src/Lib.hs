@@ -1,4 +1,4 @@
-{-# LANGUAGE DataKinds       #-}
+{-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
@@ -6,9 +6,9 @@
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
-{-# LANGUAGE CPP                        #-}
-{-# LANGUAGE UndecidableInstances       #-}
-{-# OPTIONS_GHC -fno-warn-orphans #-}
+{-# LANGUAGE CPP                   #-}
+{-# LANGUAGE UndecidableInstances  #-}
+{-# OPTIONS_GHC -fno-warn-orphans  #-}
 
 
 module Lib
