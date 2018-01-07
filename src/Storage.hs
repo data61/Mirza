@@ -36,10 +36,10 @@ import qualified Data.List.NonEmpty as NonEmpty
 import Database.PostgreSQL.Simple
 -- import Database.PostgreSQL.Simple as DBConn
 type DBConn = Connection
+
+
+
 -- to put in DB, we just convert it to json for now.
-
-
-
 
 
 -- Users in the system
@@ -75,7 +75,6 @@ userEventsTable = "CREATE TABLE IF NOT EXISTS UserEvents (id INTEGER PRIMARY KEY
 
 
 -- Create all the tables above, if they don't exist
--- createTables :: DBConn -> IO ()
 -- createTables :: DBConn -> IO ()
 createTables conn = do
   execute_ conn userTable
