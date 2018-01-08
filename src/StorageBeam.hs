@@ -59,7 +59,7 @@ instance Table UserT where
 
 data KeyT f = Key
   { _keyID              :: C f (Auto Int32)
-  , _keyUserID         :: PrimaryKey UserT f
+  , _keyUserID          :: PrimaryKey UserT f
   , _rsa_n              :: C f Int32 --XXX should this be Int64?
   , _rsa_e              :: C f Int32 -- as above
   , _creationTime       :: C f Int32 --XXX date.. Int64?
@@ -125,7 +125,7 @@ instance Table ContactsT where
 
 data LabelT f = Label
   { _labelID                 :: C f (Auto Int32)
-  , _labelGs1CompanyPrefix  :: C f Text --should this be bizID instead?
+  , _labelGs1CompanyPrefix   :: C f Text --should this be bizID instead?
   , _itemReference           :: C f Text
   , _serialNumber            :: C f Text
   , _state                   :: C f Text
