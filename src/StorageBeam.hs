@@ -57,25 +57,25 @@ instance Table UserT where
     deriving Generic
   primaryKey = UserId . _userID
 
-data KeysT f = Keys
+data KeyT f = Key
   { _keyID              :: C f (Auto Int32)
-  , _keysUserID         :: PrimaryKey UserT f
+  , _keyUserID         :: PrimaryKey UserT f
   , _rsa_n              :: C f Int32 --XXX should this be Int64?
   , _rsa_e              :: C f Int32 -- as above
   , _creationTime       :: C f Int32 --XXX date.. Int64?
   , _revocationTime     :: C f Int32 -- as above
   }
   deriving Generic
-type Keys = KeysT Identity
-type KeyId = PrimaryKey KeysT Identity
+type Key = KeyT Identity
+type KeyId = PrimaryKey KeyT Identity
 
-deriving instance Show Keys
+deriving instance Show Key
 
-instance Beamable KeysT
-instance Beamable (PrimaryKey KeysT)
+instance Beamable KeyT
+instance Beamable (PrimaryKey KeyT)
 
-instance Table KeysT where
-  data PrimaryKey KeysT f = KeyId (C f (Auto Int32))
+instance Table KeyT where
+  data PrimaryKey KeyT f = KeyId (C f (Auto Int32))
     deriving Generic
   primaryKey = KeyId . _keyID
 
@@ -123,32 +123,32 @@ instance Table ContactsT where
     deriving Generic
   primaryKey = ContactId . _contactID
 
-data LabelsT f = Labels
+data LabelT f = Label
   { _labelID                 :: C f (Auto Int32)
-  , _labelsGs1CompanyPrefix  :: C f Text --should this be bizID instead?
+  , _labelGs1CompanyPrefix  :: C f Text --should this be bizID instead?
   , _itemReference           :: C f Text
   , _serialNumber            :: C f Text
   , _state                   :: C f Text
   , _labelType               :: C f Text
   , _lot                     :: C f Text }
   deriving Generic
-type Labels = LabelsT Identity
-type LabelId = PrimaryKey LabelsT Identity
+type Label = LabelT Identity
+type LabelId = PrimaryKey LabelT Identity
 
-deriving instance Show Labels
+deriving instance Show Label
 
-instance Beamable LabelsT
-instance Beamable (PrimaryKey LabelsT)
-deriving instance Show (PrimaryKey LabelsT Identity)
+instance Beamable LabelT
+instance Beamable (PrimaryKey LabelT)
+deriving instance Show (PrimaryKey LabelT Identity)
 
-instance Table LabelsT where
-  data PrimaryKey LabelsT f = LabelId (C f (Auto Int32))
+instance Table LabelT where
+  data PrimaryKey LabelT f = LabelId (C f (Auto Int32))
     deriving Generic
   primaryKey = LabelId . _labelID
 
 data ItemT f = Item
   { _itemId            :: C f (Auto Int32)
-  , _itemLabelId       :: PrimaryKey LabelsT f
+  , _itemLabelId       :: PrimaryKey LabelT f
   , _itemDescription   :: C f Text }
   deriving Generic
 type Item = ItemT Identity
@@ -205,7 +205,7 @@ instance Table LocationT where
     deriving Generic
   primaryKey = LocationId . _locationID
 
-data EventsT f = Events
+data EventT f = Event
   { _eventID                    :: C f (Auto Int32)
   , _foreignEventID             :: C f Text
   , _eventLabelID               :: PrimaryKey BusinessT f --the label scanned to generate this event.
@@ -216,19 +216,19 @@ data EventsT f = Events
   , _eventCreatedBy             :: PrimaryKey UserT f
   , _jsonEvent                  :: C f Text }
   deriving Generic
-type Events = EventsT Identity
-type EventsId = PrimaryKey EventsT Identity
+type Event = EventT Identity
+type EventId = PrimaryKey EventT Identity
 
-deriving instance Show Events
+deriving instance Show Event
 
-instance Beamable EventsT
-instance Beamable (PrimaryKey EventsT)
-deriving instance Show (PrimaryKey EventsT Identity)
+instance Beamable EventT
+instance Beamable (PrimaryKey EventT)
+deriving instance Show (PrimaryKey EventT Identity)
 
-instance Table EventsT where
-  data PrimaryKey EventsT f = EventsId (C f (Auto Int32))
+instance Table EventT where
+  data PrimaryKey EventT f = EventId (C f (Auto Int32))
     deriving Generic
-  primaryKey = EventsId . _eventID
+  primaryKey = EventId . _eventID
 
 data EventType = ObjectEvent
                | AggregationEvent
@@ -241,7 +241,7 @@ data WhatT f = What
   { _whatID                     :: C f (Auto Int32)
   , _whatType                   :: C f EventType
   , _action                     :: C f Action
-  , _parent                     :: PrimaryKey LabelsT f
+  , _parent                     :: PrimaryKey LabelT f
   , _input                      :: C f [LabelEPC]
   , _output                     :: C f [LabelEPC]
   , _bizTransactionID           :: C f Int32 -- probably link to a table of biztransactions
@@ -320,39 +320,39 @@ instance Table WhenT where
     deriving Generic
   primaryKey = WhenId . _whenID
 
-data LabelEventsT f = LabelEvents
-  { _labelEventsID               :: C f (Auto Int32)
-  , _labelEventsLabelID          :: PrimaryKey LabelsT f
-  , _labelEventsEventID          :: PrimaryKey EventsT f }
+data LabelEventT f = LabelEvent
+  { _labelEventID               :: C f (Auto Int32)
+  , _labelEventLabelID          :: PrimaryKey LabelT f
+  , _labelEventEventID          :: PrimaryKey EventT f }
   deriving Generic
 
-type LabelEvents = LabelEventsT Identity
-type LabelEventsId = PrimaryKey LabelEventsT Identity
-deriving instance Show LabelEvents
-instance Beamable LabelEventsT
-instance Beamable (PrimaryKey LabelEventsT)
-deriving instance Show (PrimaryKey LabelEventsT Identity)
+type LabelEvent = LabelEventT Identity
+type LabelEventId = PrimaryKey LabelEventT Identity
+deriving instance Show LabelEvent
+instance Beamable LabelEventT
+instance Beamable (PrimaryKey LabelEventT)
+deriving instance Show (PrimaryKey LabelEventT Identity)
 
-instance Table LabelEventsT where
-  data PrimaryKey LabelEventsT f = LabelEventsId (C f (Auto Int32))
+instance Table LabelEventT where
+  data PrimaryKey LabelEventT f = LabelEventId (C f (Auto Int32))
     deriving Generic
-  primaryKey = LabelEventsId . _labelEventsID
+  primaryKey = LabelEventId . _labelEventID
 
 
 data SupplyChainDb f = SupplyChainDb
   { _supplyChainUsers           :: f (TableEntity UserT)
-  , _supplyChainKeys            :: f (TableEntity KeysT)
-  , _supplyChainBusinesses      :: f (TableEntity BusinessT)
-  , _supplyChainContacts        :: f (TableEntity ContactsT)
-  , _supplyChainLabels          :: f (TableEntity LabelsT)
-  , _supplyChainTransformations :: f (TableEntity TransformationT)
-  , _supplyChainLocations       :: f (TableEntity LocationT)
-  , _supplyChainEvents          :: f (TableEntity EventsT)
+  , _supplyChainKey            :: f (TableEntity KeyT)
+  , _supplyChainBusiness      :: f (TableEntity BusinessT)
+  , _supplyChainContact        :: f (TableEntity ContactsT)
+  , _supplyChainLabel          :: f (TableEntity LabelT)
+  , _supplyChainTransformation :: f (TableEntity TransformationT)
+  , _supplyChainLocation       :: f (TableEntity LocationT)
+  , _supplyChainEvent          :: f (TableEntity EventT)
   , _supplyChainWhat            :: f (TableEntity WhatT)
   , _supplyChainWhy             :: f (TableEntity WhyT)
   , _supplyChainWhere           :: f (TableEntity WhereT)
   , _supplyChainWhen            :: f (TableEntity WhenT)
-  , _supplyChainLabelEvents     :: f (TableEntity LabelEventsT) }
+  , _supplyChainLabelEvent     :: f (TableEntity LabelEventT) }
   deriving Generic
 instance Database SupplyChainDb
 
@@ -360,10 +360,11 @@ instance HasSqlValueSyntax be String => HasSqlValueSyntax be EventType where
   sqlValueSyntax = autoSqlValueSyntax
 
 instance FromField EventType where
-  fromField f bs = do x <- readMaybe <$> fromField f bs
-                      case x of
-                        Nothing -> returnError ConversionFailed f "Could not 'read' value for 'EventType'"
-                        Just x -> pure x
+  fromField f mdata = do 
+                        x <- readMaybe <$> fromField f mdata
+                        case x of
+                          Nothing -> returnError ConversionFailed f "Could not 'read' value for 'EventType'"
+                          Just x -> pure x
 
 instance FromBackendRow Postgres EventType
 
