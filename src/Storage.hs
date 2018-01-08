@@ -11,7 +11,7 @@ import Control.Monad.Except
 import qualified Model as M
 import qualified CryptHash as C
 import qualified Data.Text as Txt
-
+import Control.Monad (unless)
 import Data.Time.Clock
 import Data.Maybe (listToMaybe, fromMaybe)
 
@@ -257,9 +257,8 @@ eventSign conn (M.User uid _ _ ) (M.SignedEvent eventID keyID (M.Signature signa
 
 checkSignature :: (MonadError M.SigError m, MonadIO m) => M.RSAPublicKey -> ByteString.ByteString -> M.Signature -> m ()
 checkSignature pubkey blob signature =
-  if C.verifySignature pubkey blob signature
-     then return ()
-     else throwError M.SE_InvalidSignature
+  unless (C.verifySignature pubkey blob signature) $
+    throwError M.SE_InvalidSignature
 
 -- ready to send to blockchain when all the parties have signed
 checkReadyForBlockchain :: (MonadError M.SigError m, MonadIO m) => DBConn -> EventID -> m ()
@@ -290,7 +289,7 @@ sendToBlockchain package = return () -- if it fails, raise SE_SEND_TO_BLOCKCHAIN
 -- Utilities --
 
 toUserBool :: (Integer, String, String, Integer) -> (M.User, Bool)
-toUserBool (userID, firstName, lastName, hasSigned) = ((M.User userID firstName lastName), (hasSigned /= 0))
+toUserBool (userID, firstName, lastName, hasSigned) = (M.User userID firstName lastName, hasSigned /= 0)
 -- json encode the event
 -- currently do it automagically, but might what to be
 -- more systematic about it so it's easier to replicated. Maybe.
@@ -302,9 +301,9 @@ encodeEvent event = TxtL.toStrict  (encodeToLazyText event)
 -- Add contacts to user
 addContacts :: DBConn -> M.User -> M.UserID -> IO Bool
 addContacts conn (M.User uid1 _ _) uid2 = do
-  execute conn "INSERT INTO Contacts (user1, user2) values (?,?);" (uid1, uid2)
+  rowID <- execute conn "INSERT INTO Contacts (user1, user2) values (?,?);" (uid1, uid2)
   rowID <- lastInsertRowId conn
-  return ((fromIntegral rowID) > 0)
+  return (fromIntegral rowID > 0)
 
 -- Remove contacts to user
 removeContacts :: DBConn -> M.User -> M.UserID -> IO Bool
@@ -312,17 +311,17 @@ removeContacts conn (M.User uid1 _ _) uid2 = do
   execute conn "DELETE FROM Contacts WHERE user1 = ? AND user2 = ?;" (uid1, uid2)
   rowID <- lastInsertRowId conn
   print rowID
-  return ((fromIntegral rowID) > 0)
+  return (fromIntegral rowID > 0)
 
 -- list contacts to user
-listContacts :: DBConn -> M.User -> IO [(M.User)]
+listContacts :: DBConn -> M.User -> IO [M.User]
 listContacts conn (M.User uid _ _) = do
   rs <- query_ conn "SELECT user2, firstName, lastName FROM Contacts, Users WHERE user1 = ? AND user2=Users.id UNION SELECT user1, firstName, lastName FROM Contacts, Users WHERE user2 = ? AND user1=Users.id;" (uid, uid)
   print rs
   return (map toContactUser rs)
 
 -- Search user
-userSearch :: DBConn -> M.User -> String -> IO [(M.User)]
+userSearch :: DBConn -> M.User -> String -> IO [M.User]
 userSearch conn (M.User uid _ _) term = do
   rs <- query_ conn "SELECT id, firstName, lastName FROM Users WHERE firstName LIKE '%'||?||'%' OR lastName LIKE '%'||?||'%';" (term, term)
   print rs
@@ -331,8 +330,8 @@ userSearch conn (M.User uid _ _) term = do
 
 -- Utilities
 
-toContactUser :: (Integer, String, String) -> (M.User)
-toContactUser (userID, firstName, lastName) = (M.User userID firstName lastName)
+toContactUser :: (Integer, String, String) -> M.User
+toContactUser (userID, firstName, lastName) = M.User userID firstName lastName
 
-toUser :: (Integer, String, String) -> (M.User)
-toUser (userID, firstName, lastName) = (M.User userID firstName lastName)
+toUser :: (Integer, String, String) -> M.User
+toUser (userID, firstName, lastName) = M.User userID firstName lastName
