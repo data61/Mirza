@@ -1,17 +1,29 @@
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE DeriveGeneric      #-}
-{-# LANGUAGE FlexibleInstances  #-}
-{-# LANGUAGE OverloadedStrings  #-}
-{-# LANGUAGE StandaloneDeriving #-}
-{-# LANGUAGE TypeApplications   #-}
-{-# LANGUAGE TypeFamilies       #-}
-{-# LANGUAGE DataKinds          #-}
-
+{-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE DataKinds             #-}
+{-# LANGUAGE DeriveGeneric         #-}
+{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE StandaloneDeriving    #-}
+{-# LANGUAGE TypeApplications      #-}
+{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE UndecidableInstances  #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 module StorageBeam where
 
+import Control.Lens
 import Database.Beam as B
 import Database.Beam.Postgres
 import Database.PostgreSQL.Simple
+import Database.Beam.Backend
+import Database.Beam.Backend.SQL.BeamExtensions
+import Database.PostgreSQL.Simple.FromField
+import Database.Beam.Backend.SQL
+
+import Data.Text (Text)
+import Data.Int
+import Data.Time
+
+import Text.Read
 
 import Data.GS1.EventID
 import Data.GS1.EPC
@@ -20,9 +32,6 @@ import Data.GS1.DWhere
 import Data.GS1.DWhat
 import Data.GS1.DWhy
 
-import Data.Text (Text)
-import Data.Int
-import Data.Time
 
 data UserT f = User
   { _userID              :: C f (Auto Int)
@@ -138,7 +147,7 @@ instance Table LabelsT where
   primaryKey = LabelId . _labelID
 
 data ItemT f = Item
-  { _itemId            :: C f Int32
+  { _itemId            :: C f (Auto Int32)
   , _itemLabelId       :: PrimaryKey LabelsT f
   , _itemDescription   :: C f Text }
   deriving Generic
@@ -176,12 +185,12 @@ instance Table TransformationT where
   primaryKey = TransformationId . _transformationId
 
 data LocationT f = Location
-  { _locationID                 :: C f Int32
+  { _locationID                 :: C f (Auto Int32)
   , _locationBizID              :: PrimaryKey BusinessT f
   , _locationLat                :: C f Float
   , _locationLong               :: C f Float }
   deriving Generic
-instance Beamable LocationT
+
 type Location = LocationT Identity
 type LocationId = PrimaryKey LocationT Identity
 
@@ -238,15 +247,38 @@ data WhatT f = What
   , _bizTransactionID           :: C f Int32 -- probably link to a table of biztransactions
   , _transformationID           :: PrimaryKey TransformationT f }
   deriving Generic
+
+type What = WhatT Identity
+type WhatId = PrimaryKey WhatT Identity
+
+deriving instance Show What
 instance Beamable WhatT
 
+instance Beamable (PrimaryKey WhatT)
+deriving instance Show (PrimaryKey WhatT Identity)
+
+instance Table WhatT where
+  data PrimaryKey WhatT f = WhatId (C f (Auto Int32))
+    deriving Generic
+  primaryKey = WhatId . _whatID
 
 data WhyT f = Why
   { _whyID                      :: C f (Auto Int32)
   , _bizStep                    :: C f BizStep
   , _disposition                :: C f Disposition }
   deriving Generic
+
+type Why = WhyT Identity
+type WhyId = PrimaryKey WhyT Identity
+deriving instance Show Why
 instance Beamable WhyT
+instance Beamable (PrimaryKey WhyT)
+deriving instance Show (PrimaryKey WhyT Identity)
+
+instance Table WhyT where
+  data PrimaryKey WhyT f = WhyId (C f (Auto Int32))
+    deriving Generic
+  primaryKey = WhyId . _whyID
 
 data WhereT f = Where
   { _whereID                    :: C f (Auto Int32)
@@ -255,22 +287,56 @@ data WhereT f = Where
   , _srcType                    :: C f SourceDestType
   , _destType                   :: C f SourceDestType }
   deriving Generic
+
+type Where = WhereT Identity
+type WhereId = PrimaryKey WhereT Identity
+deriving instance Show Where
 instance Beamable WhereT
+instance Beamable (PrimaryKey WhereT)
+deriving instance Show (PrimaryKey WhereT Identity)
+
+instance Table WhereT where
+  data PrimaryKey WhereT f = WhereId (C f (Auto Int32))
+    deriving Generic
+  primaryKey = WhereId . _whereID
+
 
 data WhenT f = When
- { _whenID                      :: C f (Auto Int32)
- , _eventTime                   :: C f Int64
- , _recordTime                  :: C f Int64
- , _timeZone                    :: C f TimeZone }
- deriving Generic
+  { _whenID                      :: C f (Auto Int32)
+  , _eventTime                   :: C f Int64
+  , _recordTime                  :: C f Int64
+  , _timeZone                    :: C f TimeZone }
+  deriving Generic
+
+type When = WhenT Identity
+type WhenId = PrimaryKey WhenT Identity
+deriving instance Show When
 instance Beamable WhenT
+instance Beamable (PrimaryKey WhenT)
+deriving instance Show (PrimaryKey WhenT Identity)
 
+instance Table WhenT where
+  data PrimaryKey WhenT f = WhenId (C f (Auto Int32))
+    deriving Generic
+  primaryKey = WhenId . _whenID
 
--- doesn't have a primary key
 data LabelEventsT f = LabelEvents
- { _labelEventsID               :: C f (Auto Int32)
- , _labelEventsLabelID          :: PrimaryKey LabelsT f
- , _labelEventsEventID          :: PrimaryKey EventsT f }
+  { _labelEventsID               :: C f (Auto Int32)
+  , _labelEventsLabelID          :: PrimaryKey LabelsT f
+  , _labelEventsEventID          :: PrimaryKey EventsT f }
+  deriving Generic
+
+type LabelEvents = LabelEventsT Identity
+type LabelEventsId = PrimaryKey LabelEventsT Identity
+deriving instance Show LabelEvents
+instance Beamable LabelEventsT
+instance Beamable (PrimaryKey LabelEventsT)
+deriving instance Show (PrimaryKey LabelEventsT Identity)
+
+instance Table LabelEventsT where
+  data PrimaryKey LabelEventsT f = LabelEventsId (C f (Auto Int32))
+    deriving Generic
+  primaryKey = LabelEventsId . _labelEventsID
 
 
 data SupplyChainDb f = SupplyChainDb
@@ -289,3 +355,17 @@ data SupplyChainDb f = SupplyChainDb
   , _supplyChainLabelEvents     :: C f (TableEntity LabelEventsT) }
   deriving Generic
 instance Database SupplyChainDb
+
+instance HasSqlValueSyntax be String => HasSqlValueSyntax be EventType where
+  sqlValueSyntax = autoSqlValueSyntax
+
+instance FromField EventType where
+  fromField f bs = do x <- readMaybe <$> fromField f bs
+                      case x of
+                        Nothing -> returnError ConversionFailed f "Could not 'read' value for 'EventType'"
+                        Just x -> pure x
+
+instance FromBackendRow Postgres EventType
+
+supplyChainDb :: DatabaseSettings be SupplyChainDb
+supplyChainDb = defaultDbSettings
