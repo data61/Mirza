@@ -145,7 +145,7 @@ serverAPI = Proxy
 -- tagged with "foo-tag" This context is then supplied to 'server' and threaded
 -- to the BasicAuth HasServer handlers.
 basicAuthServerContext :: Sql.Connection -> Servant.Context (BasicAuthCheck User ': '[])
-basicAuthServerContext conn = (authCheck conn) :. EmptyContext
+basicAuthServerContext conn = authCheck conn :. EmptyContext
 
 
 addPublicKey :: Sql.Connection -> User -> RSAPublicKey -> Handler KeyID
