@@ -369,4 +369,74 @@ instance FromField EventType where
 instance FromBackendRow Postgres EventType
 
 supplyChainDb :: DatabaseSettings be SupplyChainDb
-supplyChainDb = defaultDbSettings
+supplyChainDb = defaultDbSettings `withDbModification`
+  dbModification
+    { 
+      _supplyChainUsers =
+        modifyTable (const "users") $
+        tableModification
+        { 
+          _userBizID = fieldNamed "biz_id"
+        }
+    , _supplyChainKeys =
+        modifyTable (const "keys") $
+        tableModification
+        {
+          _keyUserID = fieldNamed "user_id"
+        }
+    , _supplyChainBusinesses =
+        modifyTable (const "todo") $
+        tableModification {
+          _someField = fromField "short_name"
+        }
+    , _supplyChainContacts =
+        modifyTable (const "todo") $
+        tableModification {
+          _someField = fromField "short_name"
+        }
+    , _supplyChainLabels =
+        modifyTable (const "todo") $
+        tableModification {
+          _someField = fromField "short_name"
+        }
+    , _supplyChainTransformations =
+        modifyTable (const "todo") $
+        tableModification {
+          _someField = fromField "short_name"
+        }
+    , _supplyChainLocations =
+        modifyTable (const "todo") $
+        tableModification {
+          _someField = fromField "short_name"
+        }
+    , _supplyChainEvents =
+        modifyTable (const "todo") $
+        tableModification {
+          _someField = fromField "short_name"
+        }
+    , _supplyChainWhats =
+        modifyTable (const "todo") $
+        tableModification {
+          _someField = fromField "short_name"
+        }
+    , _supplyChainWhys =
+        modifyTable (const "todo") $
+        tableModification {
+          _someField = fromField "short_name"
+        }
+    , _supplyChainWheres =
+        modifyTable (const "todo") $
+        tableModification {
+          _someField = fromField "short_name"
+        }
+    , _supplyChainWhens =
+        modifyTable (const "todo") $
+        tableModification {
+          _someField = fromField "short_name"
+        }
+    , _supplyChainLabelEvents =
+        modifyTable (const "todo") $
+        tableModification {
+          _someField = fromField "short_name"
+        }
+    }
