@@ -21,6 +21,7 @@ library
                     , Service
                     , Storage
                     , CryptHash
+                    , StorageBeam
   build-depends:      base >= 4.7 && < 5
                     , GS1Combinators
                     , aeson
@@ -47,6 +48,9 @@ library
                     , cryptonite
                     , mtl
                     , postgresql-simple
+                    , beam-core
+                    , beam-postgres
+                    , time
   default-language:    Haskell2010
   default-extensions: FlexibleContexts
                     , FlexibleInstances
