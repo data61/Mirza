@@ -38,6 +38,7 @@ type User = UserT Identity
 type UserId = PrimaryKey UserT Identity
 
 deriving instance Show User
+deriving instance Show (PrimaryKey UserT Identity)
 
 instance Beamable UserT
 instance Beamable (PrimaryKey UserT)
@@ -56,7 +57,18 @@ data KeysT f = Keys
   , _revocationTime     :: C f Int32 -- as above
   }
   deriving Generic
+type Keys = KeysT Identity
+type KeyId = PrimaryKey KeysT Identity
+
+deriving instance Show Keys
+
 instance Beamable KeysT
+instance Beamable (PrimaryKey KeysT)
+
+instance Table KeysT where
+  data PrimaryKey KeysT f = KeyId (C f (Auto Int32))
+    deriving Generic
+  primaryKey = KeyId . _keyID
 
 data BusinessT f = Business
   { _bizID                :: C f (Auto Int32)
@@ -68,18 +80,42 @@ data BusinessT f = Business
   , _bizLat               :: C f Float
   , _bizLong              :: C f Float }
   deriving Generic
+type Business = BusinessT Identity
+type BizId = PrimaryKey BusinessT Identity
+
+deriving instance Show Business
+
 instance Beamable BusinessT
+instance Beamable (PrimaryKey BusinessT)
+deriving instance Show (PrimaryKey BusinessT Identity)
+
+instance Table BusinessT where
+  data PrimaryKey BusinessT f = BizId (C f (Auto Int32))
+    deriving Generic
+  primaryKey = BizId . _bizID
 
 data ContactsT f = Contacts
-  { _contactID                :: C f Int32
+  { _contactID                :: C f (Auto Int32)
   , _contactUser1ID           :: PrimaryKey UserT f
   , _contactUser2ID           :: PrimaryKey UserT f }
   deriving Generic
-instance Beamable ContactsT
 
+type Contacts = ContactsT Identity
+type ContactId = PrimaryKey ContactsT Identity
+
+deriving instance Show Contacts
+
+instance Beamable ContactsT
+instance Beamable (PrimaryKey ContactsT)
+deriving instance Show (PrimaryKey ContactsT Identity)
+
+instance Table ContactsT where
+  data PrimaryKey ContactsT f = ContactId (C f (Auto Int32))
+    deriving Generic
+  primaryKey = ContactId . _contactID
 
 data LabelsT f = Labels
-  { _labelId                 :: C f (Auto Int32)
+  { _labelID                 :: C f (Auto Int32)
   , _labelsGs1CompanyPrefix  :: C f Text --should this be bizID instead?
   , _itemReference           :: C f Text
   , _serialNumber            :: C f Text
@@ -87,30 +123,78 @@ data LabelsT f = Labels
   , _labelType               :: C f Text
   , _lot                     :: C f Text }
   deriving Generic
+type Labels = LabelsT Identity
+type LabelId = PrimaryKey LabelsT Identity
+
+deriving instance Show Labels
+
 instance Beamable LabelsT
+instance Beamable (PrimaryKey LabelsT)
+deriving instance Show (PrimaryKey LabelsT Identity)
+
+instance Table LabelsT where
+  data PrimaryKey LabelsT f = LabelId (C f (Auto Int32))
+    deriving Generic
+  primaryKey = LabelId . _labelID
 
 data ItemT f = Item
   { _itemId            :: C f Int32
   , _itemLabelId       :: PrimaryKey LabelsT f
   , _itemDescription   :: C f Text }
   deriving Generic
-instance Beamable ItemT
+type Item = ItemT Identity
+type ItemId = PrimaryKey ItemT Identity
 
+deriving instance Show Item
+
+instance Beamable ItemT
+instance Beamable (PrimaryKey ItemT)
+deriving instance Show (PrimaryKey ItemT Identity)
+
+instance Table ItemT where
+  data PrimaryKey ItemT f = ItemId (C f (Auto Int32))
+    deriving Generic
+  primaryKey = ItemId . _itemId
 
 data TransformationT f = Transformation
   { _transformationId           :: C f (Auto Int32)
   , _transformationDescription  :: C f Text
   , _transformBizID             :: PrimaryKey BusinessT f }
   deriving Generic
+type Transformation = TransformationT Identity
+type TransformationId = PrimaryKey TransformationT Identity
+
+deriving instance Show Transformation
+
 instance Beamable TransformationT
+instance Beamable (PrimaryKey TransformationT)
+deriving instance Show (PrimaryKey TransformationT Identity)
+
+instance Table TransformationT where
+  data PrimaryKey TransformationT f = TransformationId (C f (Auto Int32))
+    deriving Generic
+  primaryKey = TransformationId . _transformationId
 
 data LocationT f = Location
   { _locationID                 :: C f Int32
   , _locationBizID              :: PrimaryKey BusinessT f
   , _locationLat                :: C f Float
-  , _long                       :: C f Float }
+  , _locationLong               :: C f Float }
   deriving Generic
 instance Beamable LocationT
+type Location = LocationT Identity
+type LocationId = PrimaryKey LocationT Identity
+
+deriving instance Show Location
+
+instance Beamable LocationT
+instance Beamable (PrimaryKey LocationT)
+deriving instance Show (PrimaryKey LocationT Identity)
+
+instance Table LocationT where
+  data PrimaryKey LocationT f = LocationId (C f (Auto Int32))
+    deriving Generic
+  primaryKey = LocationId . _locationID
 
 data EventsT f = Events
   { _eventID                    :: C f (Auto Int32)
@@ -123,7 +207,19 @@ data EventsT f = Events
   , _eventCreatedBy             :: PrimaryKey UserT f
   , _jsonEvent                  :: C f Text }
   deriving Generic
+type Events = EventsT Identity
+type EventsId = PrimaryKey EventsT Identity
+
+deriving instance Show Events
+
 instance Beamable EventsT
+instance Beamable (PrimaryKey EventsT)
+deriving instance Show (PrimaryKey EventsT Identity)
+
+instance Table EventsT where
+  data PrimaryKey EventsT f = EventsId (C f (Auto Int32))
+    deriving Generic
+  primaryKey = EventsId . _eventID
 
 data EventType = ObjectEvent
                | AggregationEvent
@@ -161,7 +257,7 @@ data WhereT f = Where
 instance Beamable WhereT
 
 data WhenT f = When
- { _whenID                      :: C f Int32
+ { _whenID                      :: C f (Auto Int32)
  , _eventTime                   :: C f Int64
  , _recordTime                  :: C f Int64
  , _timeZone                    :: C f TimeZone }
@@ -169,9 +265,11 @@ data WhenT f = When
 instance Beamable WhenT
 
 
+-- doesn't have a primary key
 data LabelEventsT f = LabelEvents
- { _labelID                     :: PrimaryKey LabelsT f
- , _labelEventID                :: PrimaryKey LocationT f }
+ { _labelEventsID               :: C f (Auto Int32)
+ , _labelEventsLabelID          :: PrimaryKey LabelsT f
+ , _labelEventsEventID          :: PrimaryKey EventsT f }
 
 
 data SupplyChainDb f = SupplyChainDb
