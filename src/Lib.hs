@@ -69,7 +69,7 @@ import API
 import Model
 import Storage as S
 import Service
-
+import Migrate
 
 startApp :: ByteString -> IO ()
 startApp dbConnStr = do
