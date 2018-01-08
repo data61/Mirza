@@ -226,6 +226,7 @@ data EventType = ObjectEvent
                | TransactionEvent
                | TransformationEvent
                  deriving (Show, Enum, Read)
+-- fromField instance
 
 data WhatT f = What
   { _whatID                     :: C f (Auto Int32)
