@@ -2,15 +2,19 @@ flags: {}
 extra-package-dbs: []
 packages:
 - '.'
-- ../GS1Combinators
-- location: ../Beam
+- location:
+    git: https://github.com/tathougies/beam.git
+    commit: b15f69865d5025d64df863f0890eb681f28f9ae3
   extra-dep: true
+  subdirs:
+    - beam-core
+    - beam-migrate
+    - beam-postgres
 extra-deps:
-- aeson-1.1.2.0
-- cpphs-1.20.8
-- directory-1.2.7.1
+- git: git@github.csiro.au:Blockchain/GS1Combinators.git
+  commit: e3a43759f211289197d46c7d4cd7b523d9d66b3f
 - servant-0.10
+- servant-multipart-0.10
 - servant-server-0.10
 - servant-swagger-1.1.2.1
-- vector-0.12.0.1
-resolver: lts-8.6
+resolver: lts-9.0
