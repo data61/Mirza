@@ -47,17 +47,141 @@ data UserT f = User
   , _emailAddress        :: C f Text }
   deriving Generic
 
-migrationUser :: Migration PgCommandSyntax (CheckedDatabaseSettings Postgres SupplyChainDb)
-migrationUser =
-  SupplyChainDb <$> createTable "user"
-    (User (field "_userId" bigserial)
-          (field "_userBizID" (varchar (Just 45))) -- FIXME
-          (field "_firstName" (varchar (Just 45)) notNull)
-          (field "_lastName" (varchar (Just 45)) notNull)
-          (field "_phoneNumber" (varchar (Just 45)) notNull)
-          (field "_passwordHash" (varchar (Just 45)) notNull)
-          (field "_emailAddress" (varchar (Just 45)) notNull)
+maxLen = 120
+
+migrationStorage :: Migration PgCommandSyntax (CheckedDatabaseSettings Postgres SupplyChainDb)
+migrationStorage =
+  SupplyChainDb
+    <$> createTable "users"
+    (
+      User
+          (field "_userId" bigserial)
+          (BizId (field "_userBizId" bigserial))
+          (field "_firstName" (varchar (Just maxLen)) notNull)
+          (field "_lastName" (varchar (Just maxLen)) notNull)
+          (field "_phoneNumber" (varchar (Just maxLen)) notNull)
+          (field "_passwordHash" (varchar (Just maxLen)) notNull)
+          (field "_emailAddress" (varchar (Just maxLen)) notNull)
     )
+    <*> createTable "keys"
+    (
+      Key
+          (field "_keyId" bigserial)
+          (UserId (field "_userId" bigserial))
+          (field "_rsa_n" bigserial)
+          (field "_rsa_e" bigserial)
+          (field "_creationTime" bigserial)
+          (field "_revocationTime" bigserial)
+    )
+    <*> createTable "businesses"
+    (
+      Business
+          (field "_bizId" bigserial)
+          (field "_bizName" (varchar (Just maxLen)) notNull)
+          (field "_bizGs1CompanyPrefix" bigserial)
+          (field "_bizFunction" (varchar (Just maxLen)) notNull)
+          (field "_bizSiteName" (varchar (Just maxLen)) notNull)
+          (field "_bizAddress" (varchar (Just maxLen)) notNull)
+          (field "_bizLat" double notNull)
+          (field "_bizLong" double notNull)
+    )
+    <*> createTable "contacts"
+    (
+      Contact
+          (field "_contactId" bigserial)
+          (UserId (field "_contactUser1" bigserial))
+          (UserId (field "_contactUser2" bigserial))
+    )
+    <*> createTable "labels"
+    (
+      Label
+          (field "_labelId" bigserial)
+          (field "_labelGs1CompanyPrefix" (varchar (Just maxLen)) notNull)
+          (field "_itemReference" (varchar (Just maxLen)) notNull)
+          (field "_serialNumber" (varchar (Just maxLen)) notNull)
+          (field "_state" (varchar (Just maxLen)) notNull)
+          (field "_labelType" (varchar (Just maxLen)) notNull)
+          (field "_lot" (varchar (Just maxLen)) notNull)
+    )
+    <*> createTable "items"
+    (
+      Item
+          (field "_itemId" bigserial)
+          (LabelId (field "_itemLabelId" bigserial))
+          (field "_itemDescription" (varchar (Just maxLen)) notNull)
+    )
+    <*> createTable "transformations"
+    (
+      Transformation
+          (field "_transformationId" bigserial)
+          (field "_transformationDescription" (varchar (Just maxLen)) notNull)
+          (BizId (field "_transformBizId" bigserial))
+    )
+    <*> createTable "locations"
+    (
+      Location
+          (field "_locationId" bigserial)
+          (BizId (field "_locationBizId" bigserial))
+          (field "_locationLat" double)
+          (field "_locationLong" double)
+    )
+    <*> createTable "events"
+    (
+      Event
+          (field "_eventId" bigserial)
+          (field "_foreignEventId" (varchar (Just maxLen)) notNull)
+          (BizId (field "_eventLabelId" bigserial))
+          (WhatId (field "_eventWhatId" bigserial))
+          (WhyId (field "_eventWhyId" bigserial))
+          (WhereId (field "_eventWhereId" bigserial))
+          (WhenId (field "_eventWhenId" bigserial))
+          (UserId (field "_eventCreatedBy" bigserial))
+          (field "_jsonEvent" (varchar (Just maxLen)) notNull)
+    )
+    <*> createTable "whats"
+    (
+      What
+          (field "_whatId" bigserial)
+          (field "_whatType" bigserial) -- bigserial for now FIXME
+          (field "_action" bigserial) -- bigserial for now FIXME
+          (LabelId (field "_parent" bigserial)) -- bigserial for now FIXME
+          (field "_input" bigserial) -- bigserial for now FIXME
+          (field "_output" bigserial) -- bigserial for now FIXME
+          (field "_bizTransactionId" bigserial) -- bigserial for now FIXME
+          (TransformationId (field "_whatTransformationId" bigserial)) -- bigserial for now FIXME
+    )
+    <*> createTable "whys"
+    (
+      Why
+          (field "_whyId" bigserial)
+          (field "_bizStep" bigserial) -- waiting for the compuler to tell us the type
+          (field "_disposition" bigserial) -- waiting for the compuler to tell us the type
+    )
+    <*> createTable "wheres"
+    (
+      Where
+          (field "_whereId" bigserial)
+          (LocationId (field "_readPoint" bigserial))
+          (LocationId (field "_bizLocation" bigserial))
+          (field "_srcType" bigserial) -- waiting for compiler
+          (field "_destType" bigserial) -- waiting for compiler
+    )
+    <*> createTable "whens"
+    (
+      When
+          (field "_whenId" bigserial)
+          (field "_eventTime" bigserial)
+          (field "_recordTime" bigserial)
+          (field "_timeZone" (varchar (Just maxLen)) notNull)
+    )
+    <*> createTable "labelEvents"
+    (
+      LabelEvent
+          (field "_labelEventId" bigserial)
+          (LabelId (field "_labelEventLabelId" bigserial))
+          (EventId (field "_labelEventEventId" bigserial))
+    )
+
 
 type User = UserT Identity
 type UserId = PrimaryKey UserT Identity
