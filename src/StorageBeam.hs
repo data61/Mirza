@@ -503,7 +503,7 @@ instance HasSqlValueSyntax be String => HasSqlValueSyntax be EventType where
   sqlValueSyntax = autoSqlValueSyntax
 
 instance FromField EventType where
-  fromField f mdata = do 
+  fromField f mdata = do
                         x <- readMaybe <$> fromField f mdata
                         case x of
                           Nothing -> returnError ConversionFailed f "Could not 'read' value for 'EventType'"
