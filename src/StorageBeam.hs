@@ -415,27 +415,27 @@ supplyChainDb = defaultDbSettings `withDbModification`
           _someField = fromField "short_name"
         }
     , _supplyChainWhats =
-        modifyTable (const "todo") $
+        modifyTable (const "whats") $
         tableModification {
           _someField = fromField "short_name"
         }
     , _supplyChainWhys =
-        modifyTable (const "todo") $
+        modifyTable (const "whys") $
         tableModification {
           _someField = fromField "short_name"
         }
     , _supplyChainWheres =
-        modifyTable (const "todo") $
+        modifyTable (const "wheres") $
         tableModification {
           _someField = fromField "short_name"
         }
     , _supplyChainWhens =
-        modifyTable (const "todo") $
+        modifyTable (const "whens") $
         tableModification {
           _someField = fromField "short_name"
         }
     , _supplyChainLabelEvents =
-        modifyTable (const "todo") $
+        modifyTable (const "labelEvents") $
         tableModification {
           _someField = fromField "short_name"
         }
