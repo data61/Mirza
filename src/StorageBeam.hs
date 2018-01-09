@@ -32,6 +32,10 @@ import Data.GS1.DWhere
 import Data.GS1.DWhat
 import Data.GS1.DWhy
 
+import Database.Beam.Postgres.Migrate
+import Database.Beam.Migrate.SQL.Tables
+import Database.Beam.Migrate.SQL.Types
+import Database.Beam.Migrate.Types
 
 data UserT f = User
   { _userID              :: C f (Auto Int)
