@@ -26,6 +26,7 @@ import Data.Time
 import Text.Read
 
 import Data.GS1.EventID
+import qualified Data.GS1.Event as Ev
 import Data.GS1.EPC
 import Data.GS1.DWhen
 import Data.GS1.DWhere
@@ -371,16 +372,16 @@ instance Table EventT where
   primaryKey = EventId . _eventId
 
 -- isn't EventType already defined in GS1Combinators/src/.../Event.hs?
-data EventType = ObjectEvent
-               | AggregationEvent
-               | TransactionEvent
-               | TransformationEvent
-                 deriving (Show, Enum, Read)
+-- data EventType = ObjectEvent
+--                | AggregationEvent
+--                | TransactionEvent
+--                | TransformationEvent
+--                  deriving (Show, Enum, Read)
 -- fromField instance
 
 data WhatT f = What
   { _whatId                     :: C f (Auto Int32)
-  , _whatType                   :: C f EventType
+  , _whatType                   :: C f Ev.EventType
   , _action                     :: C f Action
   , _parent                     :: PrimaryKey LabelT f
   , _input                      :: C f [LabelEPC]
@@ -499,17 +500,17 @@ data SupplyChainDb f = SupplyChainDb
   deriving Generic
 instance Database SupplyChainDb
 
-instance HasSqlValueSyntax be String => HasSqlValueSyntax be EventType where
-  sqlValueSyntax = autoSqlValueSyntax
+-- instance HasSqlValueSyntax be String => HasSqlValueSyntax be EventType where
+--   sqlValueSyntax = autoSqlValueSyntax
 
-instance FromField EventType where
-  fromField f mdata = do
-                        x <- readMaybe <$> fromField f mdata
-                        case x of
-                          Nothing -> returnError ConversionFailed f "Could not 'read' value for 'EventType'"
-                          Just x -> pure x
+-- instance FromField EventType where
+--   fromField f mdata = do
+--                         x <- readMaybe <$> fromField f mdata
+--                         case x of
+--                           Nothing -> returnError ConversionFailed f "Could not 'read' value for 'EventType'"
+--                           Just x -> pure x
 
-instance FromBackendRow Postgres EventType
+-- instance FromBackendRow Postgres EventType
 
 supplyChainDb :: DatabaseSettings be SupplyChainDb
 supplyChainDb = defaultDbSettings
