@@ -47,6 +47,18 @@ data UserT f = User
   , _emailAddress        :: C f Text }
   deriving Generic
 
+migrationUser :: Migration PgCommandSyntax (CheckedDatabaseSettings Postgres SupplyChainDb)
+migrationUser =
+  SupplyChainDb <$> createTable "user"
+    (User (field "_userId" bigserial)
+          (field "_userBizID" (varchar (Just 45))) -- FIXME
+          (field "_firstName" (varchar (Just 45)) notNull)
+          (field "_lastName" (varchar (Just 45)) notNull)
+          (field "_phoneNumber" (varchar (Just 45)) notNull)
+          (field "_passwordHash" (varchar (Just 45)) notNull)
+          (field "_emailAddress" (varchar (Just 45)) notNull)
+    )
+
 type User = UserT Identity
 type UserId = PrimaryKey UserT Identity
 
