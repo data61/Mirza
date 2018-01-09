@@ -369,7 +369,8 @@ instance FromField EventType where
 instance FromBackendRow Postgres EventType
 
 supplyChainDb :: DatabaseSettings be SupplyChainDb
-supplyChainDb = defaultDbSettings `withDbModification`
+supplyChainDb = defaultDbSettings
+  `withDbModification`
   dbModification
     { 
       _supplyChainUsers =
@@ -385,32 +386,32 @@ supplyChainDb = defaultDbSettings `withDbModification`
           _keyUserID = fieldNamed "user_id"
         }
     , _supplyChainBusinesses =
-        modifyTable (const "todo") $
+        modifyTable (const "businesses") $
         tableModification {
           _someField = fromField "short_name"
         }
     , _supplyChainContacts =
-        modifyTable (const "todo") $
+        modifyTable (const "contacts") $
         tableModification {
           _someField = fromField "short_name"
         }
     , _supplyChainLabels =
-        modifyTable (const "todo") $
+        modifyTable (const "labels") $
         tableModification {
           _someField = fromField "short_name"
         }
     , _supplyChainTransformations =
-        modifyTable (const "todo") $
+        modifyTable (const "transformations") $
         tableModification {
           _someField = fromField "short_name"
         }
     , _supplyChainLocations =
-        modifyTable (const "todo") $
+        modifyTable (const "locations") $
         tableModification {
           _someField = fromField "short_name"
         }
     , _supplyChainEvents =
-        modifyTable (const "todo") $
+        modifyTable (const "events") $
         tableModification {
           _someField = fromField "short_name"
         }
