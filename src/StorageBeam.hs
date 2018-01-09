@@ -370,74 +370,74 @@ instance FromBackendRow Postgres EventType
 
 supplyChainDb :: DatabaseSettings be SupplyChainDb
 supplyChainDb = defaultDbSettings
-  `withDbModification`
-  dbModification
-    { 
-      _supplyChainUsers =
-        modifyTable (const "users") $
-        tableModification
-        { 
-          _userBizID = fieldNamed "biz_id"
-        }
-    , _supplyChainKeys =
-        modifyTable (const "keys") $
-        tableModification
-        {
-          _keyUserID = fieldNamed "user_id"
-        }
-    , _supplyChainBusinesses =
-        modifyTable (const "businesses") $
-        tableModification {
-          _someField = fromField "short_name"
-        }
-    , _supplyChainContacts =
-        modifyTable (const "contacts") $
-        tableModification {
-          _someField = fromField "short_name"
-        }
-    , _supplyChainLabels =
-        modifyTable (const "labels") $
-        tableModification {
-          _someField = fromField "short_name"
-        }
-    , _supplyChainTransformations =
-        modifyTable (const "transformations") $
-        tableModification {
-          _someField = fromField "short_name"
-        }
-    , _supplyChainLocations =
-        modifyTable (const "locations") $
-        tableModification {
-          _someField = fromField "short_name"
-        }
-    , _supplyChainEvents =
-        modifyTable (const "events") $
-        tableModification {
-          _someField = fromField "short_name"
-        }
-    , _supplyChainWhats =
-        modifyTable (const "whats") $
-        tableModification {
-          _someField = fromField "short_name"
-        }
-    , _supplyChainWhys =
-        modifyTable (const "whys") $
-        tableModification {
-          _someField = fromField "short_name"
-        }
-    , _supplyChainWheres =
-        modifyTable (const "wheres") $
-        tableModification {
-          _someField = fromField "short_name"
-        }
-    , _supplyChainWhens =
-        modifyTable (const "whens") $
-        tableModification {
-          _someField = fromField "short_name"
-        }
-    , _supplyChainLabelEvents =
-        modifyTable (const "labelEvents") $
-        tableModification {
-          _someField = fromField "short_name"
-        }
-    }
+  -- `withDbModification`
+  -- dbModification
+  --   { 
+  --     _supplyChainUsers =
+  --       modifyTable (const "users") $
+  --       tableModification
+  --       { 
+  --         _userBizID = fieldNamed "biz_id"
+  --       }
+  --   , _supplyChainKeys =
+  --       modifyTable (const "keys") $
+  --       tableModification
+  --       {
+  --         _keyUserID = fieldNamed "user_id"
+  --       }
+  --   , _supplyChainBusinesses =
+  --       modifyTable (const "businesses") $
+  --       tableModification {
+  --         _someField = fromField "short_name"
+  --       }
+  --   , _supplyChainContacts =
+  --       modifyTable (const "contacts") $
+  --       tableModification {
+  --         _someField = fromField "short_name"
+  --       }
+  --   , _supplyChainLabels =
+  --       modifyTable (const "labels") $
+  --       tableModification {
+  --         _someField = fromField "short_name"
+  --       }
+  --   , _supplyChainTransformations =
+  --       modifyTable (const "transformations") $
+  --       tableModification {
+  --         _someField = fromField "short_name"
+  --       }
+  --   , _supplyChainLocations =
+  --       modifyTable (const "locations") $
+  --       tableModification {
+  --         _someField = fromField "short_name"
+  --       }
+  --   , _supplyChainEvents =
+  --       modifyTable (const "events") $
+  --       tableModification {
+  --         _someField = fromField "short_name"
+  --       }
+  --   , _supplyChainWhats =
+  --       modifyTable (const "whats") $
+  --       tableModification {
+  --         _someField = fromField "short_name"
+  --       }
+  --   , _supplyChainWhys =
+  --       modifyTable (const "whys") $
+  --       tableModification {
+  --         _someField = fromField "short_name"
+  --       }
+  --   , _supplyChainWheres =
+  --       modifyTable (const "wheres") $
+  --       tableModification {
+  --         _someField = fromField "short_name"
+  --       }
+  --   , _supplyChainWhens =
+  --       modifyTable (const "whens") $
+  --       tableModification {
+  --         _someField = fromField "short_name"
+  --       }
+  --   , _supplyChainLabelEvents =
+  --       modifyTable (const "labelEvents") $
+  --       tableModification {
+  --         _someField = fromField "short_name"
+  --       }
+  --   }
