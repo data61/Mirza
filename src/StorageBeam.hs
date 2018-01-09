@@ -356,19 +356,20 @@ instance Table LabelEventT where
 
 
 data SupplyChainDb f = SupplyChainDb
-  { _supplyChainUsers           :: f (TableEntity UserT)
-  , _supplyChainKeys            :: f (TableEntity KeyT)
-  , _supplyChainBusinesses      :: f (TableEntity BusinessT)
-  , _supplyChainContacts        :: f (TableEntity ContactsT)
-  , _supplyChainLabels          :: f (TableEntity LabelT)
-  , _supplyChainTransformations :: f (TableEntity TransformationT)
-  , _supplyChainLocations       :: f (TableEntity LocationT)
-  , _supplyChainEvents          :: f (TableEntity EventT)
-  , _supplyChainWhats           :: f (TableEntity WhatT)
-  , _supplyChainWhys            :: f (TableEntity WhyT)
-  , _supplyChainWheres          :: f (TableEntity WhereT)
-  , _supplyChainWhens           :: f (TableEntity WhenT)
-  , _supplyChainLabelEvents     :: f (TableEntity LabelEventT) }
+  { _users           :: f (TableEntity UserT)
+  , _keys            :: f (TableEntity KeyT)
+  , _businesses      :: f (TableEntity BusinessT)
+  , _contacts        :: f (TableEntity ContactsT)
+  , _labels          :: f (TableEntity LabelT)
+  , _transformations :: f (TableEntity TransformationT)
+  , _locations       :: f (TableEntity LocationT)
+  , _events          :: f (TableEntity EventT)
+  , _whats           :: f (TableEntity WhatT)
+  , _whys            :: f (TableEntity WhyT)
+  , _wheres          :: f (TableEntity WhereT)
+  , _whens           :: f (TableEntity WhenT)
+  , _labelEvents     :: f (TableEntity LabelEventT)
+  }
   deriving Generic
 instance Database SupplyChainDb
 
