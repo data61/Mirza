@@ -32,6 +32,10 @@ import Data.GS1.DWhere
 import Data.GS1.DWhat
 import Data.GS1.DWhy
 
+import Database.Beam.Postgres.Migrate
+import Database.Beam.Migrate.SQL.Tables
+import Database.Beam.Migrate.SQL.Types
+import Database.Beam.Migrate.Types
 
 data UserT f = User
   { _userID              :: C f (Auto Int)
@@ -42,6 +46,18 @@ data UserT f = User
   , _passwordHash        :: C f Text --XXX - should this be blob?
   , _emailAddress        :: C f Text }
   deriving Generic
+
+migrationUser :: Migration PgCommandSyntax (CheckedDatabaseSettings Postgres SupplyChainDb)
+migrationUser =
+  SupplyChainDb <$> createTable "user"
+    (User (field "_userId" bigserial)
+          (field "_userBizID" (varchar (Just 45))) -- FIXME
+          (field "_firstName" (varchar (Just 45)) notNull)
+          (field "_lastName" (varchar (Just 45)) notNull)
+          (field "_phoneNumber" (varchar (Just 45)) notNull)
+          (field "_passwordHash" (varchar (Just 45)) notNull)
+          (field "_emailAddress" (varchar (Just 45)) notNull)
+    )
 
 type User = UserT Identity
 type UserId = PrimaryKey UserT Identity
@@ -340,19 +356,20 @@ instance Table LabelEventT where
 
 
 data SupplyChainDb f = SupplyChainDb
-  { _supplyChainUsers           :: f (TableEntity UserT)
-  , _supplyChainKeys            :: f (TableEntity KeyT)
-  , _supplyChainBusinesses      :: f (TableEntity BusinessT)
-  , _supplyChainContacts        :: f (TableEntity ContactsT)
-  , _supplyChainLabels          :: f (TableEntity LabelT)
-  , _supplyChainTransformations :: f (TableEntity TransformationT)
-  , _supplyChainLocations       :: f (TableEntity LocationT)
-  , _supplyChainEvents          :: f (TableEntity EventT)
-  , _supplyChainWhats           :: f (TableEntity WhatT)
-  , _supplyChainWhys            :: f (TableEntity WhyT)
-  , _supplyChainWheres          :: f (TableEntity WhereT)
-  , _supplyChainWhens           :: f (TableEntity WhenT)
-  , _supplyChainLabelEvents     :: f (TableEntity LabelEventT) }
+  { _users           :: f (TableEntity UserT)
+  , _keys            :: f (TableEntity KeyT)
+  , _businesses      :: f (TableEntity BusinessT)
+  , _contacts        :: f (TableEntity ContactsT)
+  , _labels          :: f (TableEntity LabelT)
+  , _transformations :: f (TableEntity TransformationT)
+  , _locations       :: f (TableEntity LocationT)
+  , _events          :: f (TableEntity EventT)
+  , _whats           :: f (TableEntity WhatT)
+  , _whys            :: f (TableEntity WhyT)
+  , _wheres          :: f (TableEntity WhereT)
+  , _whens           :: f (TableEntity WhenT)
+  , _labelEvents     :: f (TableEntity LabelEventT)
+  }
   deriving Generic
 instance Database SupplyChainDb
 
