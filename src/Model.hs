@@ -74,6 +74,9 @@ type EmailAddress = ByteString.ByteString
 type KeyID = Integer
 type Password = ByteString.ByteString
 
+type EPCUrn = String
+
+
 newtype BinaryBlob = BinaryBlob ByteString.ByteString
   deriving (MimeUnrender OctetStream, MimeRender OctetStream, Generic)
 
@@ -156,9 +159,9 @@ data EPCState = New | InProgress | AwaitingDeploymentToBC | Customer | Finalised
 $(deriveJSON defaultOptions ''EPCState)
 instance ToSchema EPCState
 
+-- XXX - do we want to retrieve more information than this?
 data EPCInfo = EPCInfo {
-  state :: EPCState,
-  owner :: Maybe UserID
+  state :: EPCState
 } deriving (Generic, Eq, Show)
 $(deriveJSON defaultOptions ''EPCInfo)
 instance ToSchema EPCInfo
