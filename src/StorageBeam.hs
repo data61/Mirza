@@ -148,7 +148,7 @@ migrationStorage =
           (LabelId (field "_parent" bigserial)) -- bigserial for now FIXME
           (field "_input" bigserial) -- bigserial for now FIXME
           (field "_output" bigserial) -- bigserial for now FIXME
-          (field "_bizTransactionId" bigserial) -- bigserial for now FIXME
+          (BizTransactionId (field "_bizTransactionId" bigserial)) -- bigserial for now FIXME
           (TransformationId (field "_whatTransformationId" bigserial)) -- bigserial for now FIXME
     )
     <*> createTable "whys"
@@ -386,7 +386,7 @@ data WhatT f = What
   , _parent                     :: PrimaryKey LabelT f
   , _input                      :: C f [LabelEPC]
   , _output                     :: C f [LabelEPC]
-  , _bizTransactionId           :: C f PrimaryKey BizTransactionsT f
+  , _whatBizTransactionId       :: PrimaryKey BizTransactionT f
   , _whatTransformationId       :: PrimaryKey TransformationT f }
   deriving Generic
 
@@ -405,30 +405,30 @@ instance Table WhatT where
   primaryKey = WhatId . _whatId
 
 
-data BizTransactionsT f = BizTransactionsT
-  { _bizTransactionsId          :: C f (Auto Int32)
+data BizTransactionT f = BizTransactionT
+  { _bizTransactionId          :: C f (Auto Int32)
   , _userID1                   :: PrimaryKey UserT f
   , _userID2                   :: PrimaryKey UserT f }
   deriving Generic
 
-type BizTransactions = BizTransactionsT Identity
-type BizTransactionsId = PrimaryKey BizTransactionsT Identity
+type BizTransaction = BizTransactionT Identity
+type BizTransactionId = PrimaryKey BizTransactionT Identity
 
-deriving instance Show BizTransactions
-instance Beamable BizTransactions
+deriving instance Show BizTransaction
+instance Beamable BizTransactionT
 
-instance Beamable (PrimaryKey BizTransactionsT)
-deriving instance Show (PrimaryKey BizTransactionsT Identity)
+instance Beamable (PrimaryKey BizTransactionT)
+deriving instance Show (PrimaryKey BizTransactionT Identity)
 
-instance Table BizTransactionsT where
-  data PrimaryKey BizTransactionsT f = BizTransactionsId (C f (Auto Int32))
+instance Table BizTransactionT where
+  data PrimaryKey BizTransactionT f = BizTransactionId (C f (Auto Int32))
     deriving Generic
-  primaryKey = BizTransactionsId . _bizTransactionsId
+  primaryKey = BizTransactionId . _bizTransactionId
 
 data WhyT f = Why
   { _whyId                      :: C f (Auto Int32)
-  , _bizStep                    :: C f BizStep
-  , _disposition                :: C f Disposition }
+  , _bizStep                    :: C f E.BizStep
+  , _disposition                :: C f E.Disposition }
   deriving Generic
 
 type Why = WhyT Identity
