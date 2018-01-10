@@ -27,7 +27,7 @@ import Text.Read
 
 import Data.GS1.EventID
 import qualified Data.GS1.Event as Ev
-import Data.GS1.EPC
+import qualified Data.GS1.EPC as E
 import Data.GS1.DWhen
 import Data.GS1.DWhere
 import Data.GS1.DWhat
@@ -382,7 +382,7 @@ instance Table EventT where
 data WhatT f = What
   { _whatId                     :: C f (Auto Int32)
   , _whatType                   :: C f Ev.EventType
-  , _action                     :: C f Action
+  , _action                     :: C f E.Action
   , _parent                     :: PrimaryKey LabelT f
   , _input                      :: C f [LabelEPC]
   , _output                     :: C f [LabelEPC]
@@ -447,8 +447,8 @@ data WhereT f = Where
   { _whereId                    :: C f (Auto Int32)
   , _readPoint                  :: PrimaryKey LocationT f
   , _bizLocation                :: PrimaryKey LocationT f
-  , _srcType                    :: C f SourceDestType
-  , _destType                   :: C f SourceDestType }
+  , _srcType                    :: C f E.SourceDestType
+  , _destType                   :: C f E.SourceDestType }
   deriving Generic
 
 type Where = WhereT Identity
