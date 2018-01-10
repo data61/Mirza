@@ -348,7 +348,7 @@ instance Table LocationT where
 
 data EventT f = Event
   { _eventId                    :: C f (Auto Int32)
-  , _foreignEventId             :: C f Text
+  , _foreignEventId             :: C f Text -- Event ID from XML from foreign systems.
   , _eventLabelId               :: PrimaryKey BusinessT f --the label scanned to generate this event.
   , _eventWhatId                :: PrimaryKey WhatT f
   , _eventWhyId                 :: PrimaryKey WhyT f
@@ -386,7 +386,7 @@ data WhatT f = What
   , _parent                     :: PrimaryKey LabelT f
   , _input                      :: C f [LabelEPC]
   , _output                     :: C f [LabelEPC]
-  , _bizTransactionId           :: C f Int32 -- probably link to a table of biztransactions
+  , _bizTransactionId           :: C f PrimaryKey BizTransactionsT f
   , _whatTransformationId       :: PrimaryKey TransformationT f }
   deriving Generic
 
@@ -403,6 +403,27 @@ instance Table WhatT where
   data PrimaryKey WhatT f = WhatId (C f (Auto Int32))
     deriving Generic
   primaryKey = WhatId . _whatId
+
+
+data BizTransactionsT f = BizTransactionsT
+  { _bizTransactionsId          :: C f (Auto Int32)
+  , _userID1                   :: PrimaryKey UserT f
+  , _userID2                   :: PrimaryKey UserT f }
+  deriving Generic
+
+type BizTransactions = BizTransactionsT Identity
+type BizTransactionsId = PrimaryKey BizTransactionsT Identity
+
+deriving instance Show BizTransactions
+instance Beamable BizTransactions
+
+instance Beamable (PrimaryKey BizTransactionsT)
+deriving instance Show (PrimaryKey BizTransactionsT Identity)
+
+instance Table BizTransactionsT where
+  data PrimaryKey BizTransactionsT f = BizTransactionsId (C f (Auto Int32))
+    deriving Generic
+  primaryKey = BizTransactionsId . _bizTransactionsId
 
 data WhyT f = Why
   { _whyId                      :: C f (Auto Int32)

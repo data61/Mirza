@@ -98,7 +98,7 @@ authCheck conn =
 
 privateServer :: Sql.Connection -> User -> Server PrivateAPI
 privateServer conn user =
-             epcInfo conn user
+             epcState conn user
         :<|> listEvents conn user
         :<|> eventInfo conn user
         :<|> contactsInfo conn user
@@ -171,17 +171,39 @@ getPublicKeyInfo conn keyID = do
     Left e -> throwError err404 { errBody = LBSC8.pack $ show e }
     Right keyInfo -> return keyInfo
 
-epcInfo :: Sql.Connection -> User ->  String -> Handler EPCInfo
-epcInfo conn user str = return (EPCInfo New Nothing)
+-- PSUEDO:
+-- In BeamQueries, implement a function getLabelIDState :: EPCUrn -> IO (_labelID, State)
+-- use readLabelEPC in EPC.hs to do it.
+-- SELECT * FROM Labels WHERE _labelGs1CompanyPrefix=gs1CompanyPrefix AND _labelType=type AND ...
 
--- This takes an EPC url, find the object's ID (from DB?) or maybe we just hash it?
+-- implement a function getWholeEventQuery :: EventID -> SQLQuery
+--  SELECT * FROM Events, DWhy, DWhat, DWhere WHERE
+--      Events._eventID=eventID AND DWhy._eventID=eventID AND DWhat._eventID=eventID AND DWhere._eventID=eventID;
+--
+-- implement a function constructEvents :: [WholeEvent] -> [Event]
+--
+
+-- PSUEDO:
+-- Use getLabelIDState
+epcState :: Sql.Connection -> User ->  EPCUrn -> Handler EPCState
+epcState conn user str = return (EPCState New)
+
+-- This takes an EPC urn, find the object's ID (from DB?) or maybe we just hash it?
 -- and then looks up all the events related to that item.
-listEvents :: Sql.Connection -> User ->  String -> Handler [Event]
-listEvents conn user str = return []
+-- PSEUDO:
+-- (labelID, _) <- getLabelIDState
+-- eventIDs <- SELECT eventID FROM DWhat WHERE _labelID=labelID;
+-- wholeEvents <- getWholeEvents
+-- return constructEvents wholeEvents
+listEvents :: Sql.Connection -> User ->  EPCUrn -> Handler [Event]
+listEvents conn user urn = return []
 
 
 -- given an event ID, list all the users associated with that event
 -- this can be used to make sure everything is signed
+-- PSEUDO:
+-- SELECT event.userID, userID1, userID2 FROM Events, BizTransactions WHERE Events._eventID=eventID AND BizTransactionsId=Events._eventID;
+--
 eventUserList :: Sql.Connection -> User -> EventID -> Handler [(User, Bool)]
 eventUserList conn user eventID = liftIO $ Storage.eventUserList conn user eventID
 
