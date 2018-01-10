@@ -151,6 +151,13 @@ migrationStorage =
           (BizTransactionId (field "_bizTransactionId" bigserial)) -- bigserial for now FIXME
           (TransformationId (field "_whatTransformationId" bigserial)) -- bigserial for now FIXME
     )
+    <*> createTable "bizTransactions"
+    (
+      BizTransaction
+          (field "_bizTransactionId" bigserial)
+          (UserId (field "_userID1" bigserial))
+          (UserId (field "_userID2" bigserial))
+    )
     <*> createTable "whys"
     (
       Why
@@ -513,6 +520,7 @@ data SupplyChainDb f = SupplyChainDb
   , _locations       :: f (TableEntity LocationT)
   , _events          :: f (TableEntity EventT)
   , _whats           :: f (TableEntity WhatT)
+  , _bizTransactions :: f (TableEntity BizTransactionT)
   , _whys            :: f (TableEntity WhyT)
   , _wheres          :: f (TableEntity WhereT)
   , _whens           :: f (TableEntity WhenT)
