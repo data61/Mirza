@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-module Storage where
+module BeamQueries where
 
 -- import Database.SQLite.Simple as Sql
 -- import Database.SQLite.Simple.Types as SqlTypes
@@ -45,9 +45,10 @@ insertUser conn dbFunc pass (M.NewUser phone email first last biz password) = do
    return (fromIntegral rowID :: M.UserID)
 
 newUser :: DBConn -> DBFunc -> M.NewUser -> IO M.UserID
-newUser conn dbFunc userInfo = do
-   hash <- encryptPassIO' (Pass (pack password))
-   return insertUser conn dbFunc hash userInfo
+newUser conn dbFunc userInfo =
+  do
+    hash <- encryptPassIO' (Pass (pack password))
+    return insertUser conn dbFunc hash userInfo
 
 offset_ 100 $
 filter_ (\customer -> ((customerFirstName customer `like_` "Jo%") &&. (customerLastName customer `like_` "S%")) &&.
