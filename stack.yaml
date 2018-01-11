@@ -4,7 +4,7 @@ packages:
 - '.'
 - location:
     git: https://github.com/tathougies/beam.git
-    commit: b15f69865d5025d64df863f0890eb681f28f9ae3
+    commit: 650515e50146e96b39d2b574c15aa24a13c37c26
   extra-dep: true
   subdirs:
     - beam-core
@@ -12,7 +12,7 @@ packages:
     - beam-postgres
 extra-deps:
 - git: git@github.csiro.au:Blockchain/GS1Combinators.git
-  commit: e3a43759f211289197d46c7d4cd7b523d9d66b3f
+  commit: 0514a70af90b7d8317eadc8a579734cda235f84e
 - servant-0.10
 - servant-multipart-0.10
 - servant-server-0.10
