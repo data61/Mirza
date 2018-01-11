@@ -35,19 +35,28 @@ import qualified Data.Text.Lazy as TxtL
 import qualified Data.List.NonEmpty as NonEmpty
 import Database.PostgreSQL.Simple
 -- import Database.PostgreSQL.Simple as DBConn
+
+import Database.Beam as DbB
+import Database.Beam.Postgres
+import Database.Beam.Backend.SQL
+import Database.Beam.Backend
+import Database.Beam.Backend.SQL.BeamExtensions
+
+type DBFunc = MonadBeam syntax be handle m => handle -> m a -> IO a
+
 type DBConn = Connection
 
 insertUser :: DBConn -> DBFunc -> EncryptedPass -> M.NewUser -> IO M.UserID
 insertUser conn dbFunc pass (M.NewUser phone email first last biz password) = do
   rowID <-dbFunc conn $ runInsertReturningList $
-        insertReturning (supplyChainDb ^. _users) $
+        (supplyChainDb ^. _users) $
           insertValues [(User (Auto Nothing) biz first last phone hash email)]
    return (fromIntegral rowID :: M.UserID)
 
 newUser :: DBConn -> DBFunc -> M.NewUser -> IO M.UserID
-newUser conn dbFunc userInfo = do
+newUser conn dbFunc (M.NewUser phone email first last biz password) = do
    hash <- encryptPassIO' (Pass (pack password))
-   return insertUser conn dbFunc hash userInfo
+   return insertUser conn dbFunc hash (M.NewUser phone email first last biz password)
 
 offset_ 100 $
 filter_ (\customer -> ((customerFirstName customer `like_` "Jo%") &&. (customerLastName customer `like_` "S%")) &&.
@@ -69,6 +78,7 @@ authCheck conn dbFunc email password = do
     r <- runSelectReturningList $ select theUser
   where
     theUser =
+  -- TODO = convert
   r <- query_ conn "SELECT rowID, firstName, lastName, passwordHash FROM Users WHERE emailAddress = ?;" $ Only $ unpack email
   if length r == 0
      then return Nothing
@@ -77,3 +87,21 @@ authCheck conn dbFunc email password = do
        if verifyPass' (Pass password) (EncryptedPass hash)
           then return $ Just $ M.User uid firstName lastName
           else return Nothing
+
+-- BELOW = Beam versions of SQL versions from Storage.hs
+
+-- execute conn "INSERT INTO Users (bizID, firstName, lastName, phoneNumber, passwordHash, emailAddress) VALUES (?, ?, ?, ?, ?, ?);" (biz, first, last, phone, getEncryptedPass hash, email)
+-- execute conn "INSERT INTO Keys (userID, rsa_n, rsa_e, creationTime) values (?, ?, ?, ?);" (uid, n, e, timestamp)
+
+addPublicKey :: DBConn -> DBFunc -> M.User -> M.RSAPublicKey-> IO M.KeyID
+addPublicKey conn dbFunc (M.User uid _ _)  (M.RSAPublicKey n e) = do
+  timestamp <- getCurrentTime
+  rowID <- dbFunc conn $ runInsertReturningList $
+           (supplyChainDb ^. _keys) $
+             insertValues [(Key (Auto Nothing) uid n e timestamp 0)] -- TODO = check if 0 is correct here... NOT SURE
+  return (fromIntegral rowID :: M.KeyID)
+
+eventCreateObject :: DBConn -> DBFunc -> M.User -> M.NewObject -> IO Event
+eventCreateObject conn dbFunc (M.User uid _ _ ) (M.NewObject epc epcisTime timezone location) = do
+  objectRowID <- dbFunc conn $runInsertReturningList $
+                 (supplyChainDb ^. _)   -- TODO = finish

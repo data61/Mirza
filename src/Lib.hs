@@ -87,7 +87,7 @@ startApp dbConnStr = do
 
 -- easily start the app in ghci, no command line arguments required.
 startApp_nomain :: ByteString -> IO ()
-startApp_nomain dbConnStr = Warp.run 8000 =<< mkApp dbConnStr Original
+startApp_nomain dbConnStr = Warp.run 8000 =<< mkApp True dbConnStr Original
 
 {-
 app :: UIFlavour -> Application
@@ -112,8 +112,13 @@ mkApp dbConnStr uiFlavour = do
 connectionStr :: ByteString
 connectionStr = "host=localhost dbname=ano002"
 
-mkApp :: ByteString -> UIFlavour ->  IO Application
-mkApp dbConnStr uiFlavour = do
+mkApp :: Bool -> ByteString -> UIFlavour ->  IO Application
+mkApp debug dbConnStr uiFlavour = do
+  let dbFunc = (
+      case debug of
+        True -> withDatabaseDebug putStrLn
+        False -> withDatabase
+  )
   conn <- connectPostgreSQL dbConnStr
   createTables conn
   return (webApp conn uiFlavour)
