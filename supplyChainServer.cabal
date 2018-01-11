@@ -23,7 +23,7 @@ library
                     , Storage
                     , CryptHash
                     , StorageBeam
-                    -- , Migrate
+                    , BeamQueries
   build-depends:      base >= 4.7 && < 5
                     , GS1Combinators
                     , aeson
