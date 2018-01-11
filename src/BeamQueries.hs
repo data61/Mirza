@@ -42,25 +42,25 @@ insertUser conn dbFunc pass (M.NewUser phone email first last biz password) = do
   rowID <-dbFunc conn $ runInsertReturningList $
         insertReturning (supplyChainDb ^. _users) $
           insertValues [(User (Auto Nothing) biz first last phone hash email)]
-   return (fromIntegral rowID :: M.UserID)
+  return (fromIntegral rowID :: M.UserID)
 
+-- | 
 newUser :: DBConn -> DBFunc -> M.NewUser -> IO M.UserID
-newUser conn dbFunc userInfo =
-  do
+newUser conn dbFunc userInfo = do
     hash <- encryptPassIO' (Pass (pack password))
     return insertUser conn dbFunc hash userInfo
 
-offset_ 100 $
-filter_ (\customer -> ((customerFirstName customer `like_` "Jo%") &&. (customerLastName customer `like_` "S%")) &&.
-                      (addressState (customerAddress customer) ==. just_ "CA" ||. addressState (customerAddress customer) ==. just_ "WA")) $
-        all_ (customer chinookDb)
+-- offset_ 100 $
+-- filter_ (\customer -> ((customerFirstName customer `like_` "Jo%") &&. (customerLastName customer `like_` "S%")) &&.
+--                       (addressState (customerAddress customer) ==. just_ "CA" ||. addressState (customerAddress customer) ==. just_ "WA")) $
+--         all_ (customer chinookDb)
 
 
-filter_ (\user -> (_emailAddress user) ==. just_ email) $ all_ (user supplyChainDb)
+-- filter_ (\user -> (_emailAddress user) ==. just_ email) $ all_ (user supplyChainDb)
 
-selectedUser <- dbFunc conn $ runSelectReturningList $ select $
-  do user <- all_ (supplyChainDb ^. users)
-     guard_ (_emailAddress
+-- selectedUser <- dbFunc conn $ runSelectReturningList $ select $
+--   do user <- all_ (supplyChainDb ^. users)
+--      guard_ (_emailAddress
 
 
 -- Basic Auth check using Scrypt hashes.
@@ -69,12 +69,12 @@ authCheck conn dbFunc email password = do
   dbFunc conn $ do
     r <- runSelectReturningList $ select theUser
   where
-    theUser =
-  r <- query_ conn "SELECT rowID, firstName, lastName, passwordHash FROM Users WHERE emailAddress = ?;" $ Only $ unpack email
-  if length r == 0
-     then return Nothing
-     else do
-       let (uid, firstName, lastName, hash) = head r
-       if verifyPass' (Pass password) (EncryptedPass hash)
-          then return $ Just $ M.User uid firstName lastName
-          else return Nothing
+    theUser = do
+      r <- query_ conn "SELECT rowID, firstName, lastName, passwordHash FROM Users WHERE emailAddress = ?;" $ Only $ unpack email
+      if length r == 0
+        then return Nothing
+        else do
+          let (uid, firstName, lastName, hash) = head r
+          if verifyPass' (Pass password) (EncryptedPass hash)
+              then return $ Just $ M.User uid firstName lastName
+              else return Nothing
