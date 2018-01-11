@@ -378,14 +378,6 @@ instance Table EventT where
     deriving Generic
   primaryKey = EventId . _eventId
 
--- isn't EventType already defined in GS1Combinators/src/.../Event.hs?
--- data EventType = ObjectEvent
---                | AggregationEvent
---                | TransactionEvent
---                | TransformationEvent
---                  deriving (Show, Enum, Read)
--- fromField instance
-
 data WhatT f = What
   { _whatId                     :: C f (Auto Int32)
   , _whatType                   :: C f Ev.EventType
