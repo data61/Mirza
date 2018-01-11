@@ -217,6 +217,7 @@ data KeyT f = Key
 type Key = KeyT Identity
 type KeyId = PrimaryKey KeyT Identity
 
+
 deriving instance Show Key
 
 instance Beamable KeyT
@@ -404,7 +405,7 @@ instance Table WhatT where
   primaryKey = WhatId . _whatId
 
 
-data BizTransactionT f = BizTransactionT
+data BizTransactionT f = BizTransaction
   { _bizTransactionId          :: C f (Auto Int32)
   , _userID1                   :: PrimaryKey UserT f
   , _userID2                   :: PrimaryKey UserT f }
