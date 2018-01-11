@@ -201,11 +201,7 @@ epcState conn user str = return New
 -- to find all the related "Whats"
 -- PSEUDO:
 -- (labelID, _) <- getLabelIDState
--- eventIDs <- SELECT eventID FROM DWhat WHERE _labelID=labelID;
--- wholeEvents <- getWholeEvents
--- return constructEvents wholeEvents
-
--- wholeEvents <- select * from events, dwhats, dwhy, dwhen where _whatItemID=2 AND _eventID=_whatEventID AND _eventID=_whenEventID AND _eventID=_whyEventID;
+-- wholeEvents <- select * from events, dwhats, dwhy, dwhen where _whatItemID=labelID AND _eventID=_whatEventID AND _eventID=_whenEventID AND _eventID=_whyEventID ORDER BY _eventTime;
 -- return map constructEvent wholeEvents
 listEvents :: DBConn -> User ->  EPCUrn -> Handler [Event]
 listEvents conn user urn = return []
