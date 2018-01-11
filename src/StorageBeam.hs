@@ -132,10 +132,6 @@ migrationStorage =
           (field "_eventId" bigserial)
           (field "_foreignEventId" (varchar (Just maxLen)) notNull)
           (BizId (field "_eventLabelId" bigserial))
-          (WhatId (field "_eventWhatId" bigserial))
-          (WhyId (field "_eventWhyId" bigserial))
-          (WhereId (field "_eventWhereId" bigserial))
-          (WhenId (field "_eventWhenId" bigserial))
           (UserId (field "_eventCreatedBy" bigserial))
           (field "_jsonEvent" (varchar (Just maxLen)) notNull)
     )
@@ -150,6 +146,7 @@ migrationStorage =
           (field "_output" bigserial) -- bigserial for now FIXME
           (BizTransactionId (field "_bizTransactionId" bigserial)) -- bigserial for now FIXME
           (TransformationId (field "_whatTransformationId" bigserial)) -- bigserial for now FIXME
+          (EventId (field "eventId" bigserial))
     )
     <*> createTable "bizTransactions"
     (
@@ -164,6 +161,7 @@ migrationStorage =
           (field "_whyId" bigserial)
           (field "_bizStep" bigserial) -- waiting for the compuler to tell us the type
           (field "_disposition" bigserial) -- waiting for the compuler to tell us the type
+          (EventId (field "eventId" bigserial))          
     )
     <*> createTable "wheres"
     (
@@ -173,6 +171,7 @@ migrationStorage =
           (LocationId (field "_bizLocation" bigserial))
           (field "_srcType" bigserial) -- waiting for compiler
           (field "_destType" bigserial) -- waiting for compiler
+          (EventId (field "eventId" bigserial))          
     )
     <*> createTable "whens"
     (
@@ -181,6 +180,7 @@ migrationStorage =
           (field "_eventTime" bigserial)
           (field "_recordTime" bigserial)
           (field "_timeZone" (varchar (Just maxLen)) notNull)
+          (EventId (field "eventId" bigserial))          
     )
     <*> createTable "labelEvents"
     (
@@ -358,10 +358,6 @@ data EventT f = Event
   { _eventId                    :: C f (Auto Int32)
   , _foreignEventId             :: C f Text -- Event ID from XML from foreign systems.
   , _eventLabelId               :: PrimaryKey BusinessT f --the label scanned to generate this event.
-  , _eventWhatId                :: PrimaryKey WhatT f
-  , _eventWhyId                 :: PrimaryKey WhyT f
-  , _eventWhereId               :: PrimaryKey WhereT f
-  , _eventWhenId                :: PrimaryKey WhenT f
   , _eventCreatedBy             :: PrimaryKey UserT f
   , _jsonEvent                  :: C f Text }
   deriving Generic
@@ -387,7 +383,8 @@ data WhatT f = What
   , _input                      :: C f [LabelEPC]
   , _output                     :: C f [LabelEPC]
   , _whatBizTransactionId       :: PrimaryKey BizTransactionT f
-  , _whatTransformationId       :: PrimaryKey TransformationT f }
+  , _whatTransformationId       :: PrimaryKey TransformationT f
+  , _whatEventId                :: PrimaryKey EventT f }
   deriving Generic
 
 type What = WhatT Identity
@@ -428,7 +425,9 @@ instance Table BizTransactionT where
 data WhyT f = Why
   { _whyId                      :: C f (Auto Int32)
   , _bizStep                    :: C f E.BizStep
-  , _disposition                :: C f E.Disposition }
+  , _disposition                :: C f E.Disposition 
+  , _whyEventId                 :: PrimaryKey EventT f }
+  
   deriving Generic
 
 type Why = WhyT Identity
@@ -448,7 +447,9 @@ data WhereT f = Where
   , _readPoint                  :: PrimaryKey LocationT f
   , _bizLocation                :: PrimaryKey LocationT f
   , _srcType                    :: C f E.SourceDestType
-  , _destType                   :: C f E.SourceDestType }
+  , _destType                   :: C f E.SourceDestType
+  , _whereEventId               :: PrimaryKey EventT f }
+  
   deriving Generic
 
 type Where = WhereT Identity
@@ -468,7 +469,9 @@ data WhenT f = When
   { _whenId                      :: C f (Auto Int32)
   , _eventTime                   :: C f Int64
   , _recordTime                  :: C f Int64
-  , _timeZone                    :: C f TimeZone }
+  , _timeZone                    :: C f TimeZone
+  , _whenEventId                 :: PrimaryKey EventT f }
+  
   deriving Generic
 
 type When = WhenT Identity
