@@ -42,6 +42,7 @@ import Data.GS1.DWhen
 import Data.GS1.DWhere
 import Data.GS1.DWhat
 import Data.GS1.DWhy
+import Data.GS1.Parser.Parser
 import Data.Either.Combinators
 import Data.Time
 import Data.String.Conversions
@@ -248,7 +249,7 @@ eventTransformObject conn user aggObject = liftIO sampleEvent
 sampleEvent:: IO Event
 sampleEvent=  do
   uuid <- nextRandom
-  return (Event AggregationEventT (EventID uuid) sampleWhat sampleWhen sampleWhy sampleWhere)
+  return (Event AggregationEventT (Just $ EventID uuid) sampleWhat sampleWhen sampleWhy sampleWhere)
 
 
 sampleWhat :: DWhat
@@ -261,8 +262,8 @@ sampleWhen :: DWhen
 sampleWhen = DWhen pt (Just pt) tz
   where
       t = "2017-01-24T13:08:24.11+10:00"
-      pt = fromRight' (parseStr2Time t :: Either EPCISTimeError EPCISTime)
-      tz = fromRight' (parseStr2TimeZone t :: Either EPCISTimeError TimeZone)
+      pt = fromRight' (parseStr2Time t)
+      tz = fromRight' (parseStr2TimeZone t)
 
 sampleWhere :: DWhere
 sampleWhere = DWhere [] [] [] []
