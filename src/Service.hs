@@ -201,11 +201,7 @@ epcState conn user str = return New
 -- to find all the related "Whats"
 -- PSEUDO:
 -- (labelID, _) <- getLabelIDState
--- eventIDs <- SELECT eventID FROM DWhat WHERE _labelID=labelID;
--- wholeEvents <- getWholeEvents
--- return constructEvents wholeEvents
-
--- wholeEvents <- select * from events, dwhats, dwhy, dwhen where _whatItemID=2 AND _eventID=_whatEventID AND _eventID=_whenEventID AND _eventID=_whyEventID;
+-- wholeEvents <- select * from events, dwhats, dwhy, dwhen where _whatItemID=labelID AND _eventID=_whatEventID AND _eventID=_whenEventID AND _eventID=_whyEventID ORDER BY _eventTime;
 -- return map constructEvent wholeEvents
 listEvents :: DBConn -> User ->  EPCUrn -> Handler [Event]
 listEvents conn user urn = return []
@@ -250,7 +246,8 @@ userSearch :: DBConn -> User -> String -> Handler [User]
 -- userSearch conn user term = liftIO $ Storage.userSearch conn user term
 userSearch conn user term = error "Storage module not implemented"
 
-
+-- |List events that a particular user was/is involved with
+-- use BizTransactions and events (createdby) tables
 eventList :: DBConn -> User -> UserID -> Handler [Event]
 eventList conn user uID = return []
 
