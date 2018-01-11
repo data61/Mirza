@@ -246,7 +246,8 @@ userSearch :: DBConn -> User -> String -> Handler [User]
 -- userSearch conn user term = liftIO $ Storage.userSearch conn user term
 userSearch conn user term = error "Storage module not implemented"
 
-
+-- |List events that a particular user was/is involved with
+-- use BizTransactions and events (createdby) tables
 eventList :: DBConn -> User -> UserID -> Handler [Event]
 eventList conn user uID = return []
 
