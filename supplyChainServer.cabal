@@ -15,13 +15,15 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     Lib
-  other-modules:       API
+  exposed-modules:    Lib
+                    , Migrate
+  other-modules:      API
                     , Model
                     , Service
                     , Storage
                     , CryptHash
                     , StorageBeam
+                    -- , Migrate
   build-depends:      base >= 4.7 && < 5
                     , GS1Combinators
                     , aeson
