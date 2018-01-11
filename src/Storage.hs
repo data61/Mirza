@@ -335,3 +335,4 @@ toContactUser (userID, firstName, lastName) = M.User userID firstName lastName
 
 toUser :: (Integer, String, String) -> M.User
 toUser (userID, firstName, lastName) = M.User userID firstName lastName
+-}
