@@ -37,7 +37,7 @@ import Database.PostgreSQL.Simple
 -- import Database.PostgreSQL.Simple as DBConn
 type DBConn = Connection
 
-
+{- 
 
 -- to put in DB, we just convert it to json for now.
 

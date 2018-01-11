@@ -57,7 +57,7 @@ import qualified Data.HashMap.Strict.InsOrd as IOrd
 import qualified Network.Wai.Handler.Warp as Warp
 import Network.Wai
 
-import Database.SQLite.Simple as Sql
+-- import Database.SQLite.Simple as Sql
 
 import Control.Lens       hiding ((.=))
 
@@ -87,8 +87,8 @@ instance ToParamSchema BinaryBlob where
 instance ToSchema BinaryBlob where
   declareNamedSchema _ = pure $ NamedSchema (Just "BinaryBlob") binarySchema
 
-instance Sql.FromRow BinaryBlob where
-  fromRow = BinaryBlob <$> field
+-- instance Sql.FromRow BinaryBlob where
+--   fromRow = BinaryBlob <$> field
 
 
 newtype EventHash = EventHash String
@@ -96,8 +96,8 @@ newtype EventHash = EventHash String
 $(deriveJSON defaultOptions ''EventHash)
 instance ToSchema EventHash
 
-instance Sql.FromRow EventHash where
-  fromRow = EventHash <$> field
+-- instance Sql.FromRow EventHash where
+--   fromRow = EventHash <$> field
 
 type JSONTxt = Txt.Text
 
@@ -110,11 +110,11 @@ newtype Signature = Signature String
 $(deriveJSON defaultOptions ''Signature)
 instance ToSchema Signature
 
-instance Sql.FromRow Signature where
-  fromRow = Signature <$> field
+-- instance Sql.FromRow Signature where
+--   fromRow = Signature <$> field
 
-instance Sql.ToRow Signature where
-  toRow (Signature s) = toRow $ Only s
+-- instance Sql.ToRow Signature where
+--   toRow (Signature s) = toRow $ Only s
 
 data RSAPublicKey = RSAPublicKey
   {

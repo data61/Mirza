@@ -18,8 +18,14 @@ import qualified Storage
 import Prelude        ()
 import Prelude.Compat
 
-import Database.SQLite.Simple as Sql hiding ((:.))
-
+-- import Database.SQLite.Simple as Sql hiding ((:.))
+import Database.Beam as B
+import Database.Beam.Postgres
+import Database.PostgreSQL.Simple hiding ((:.))
+import Database.Beam.Backend
+import Database.Beam.Backend.SQL.BeamExtensions
+import Database.PostgreSQL.Simple.FromField
+import Database.Beam.Backend.SQL
 import Control.Monad.IO.Class
 import Control.Monad.Logger (runStderrLoggingT)
 
@@ -68,6 +74,7 @@ import qualified Data.Text as Txt
 import Control.Monad.Except
 -- remove me eventually
 import Data.UUID.V4
+type DBConn = Connection
 
 instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub) where
   toSwagger _ =
@@ -85,18 +92,18 @@ sampleUser :: User
 sampleUser =  User 1 "Sara" "Falamaki"
 
 -- 'BasicAuthCheck' holds the handler we'll use to verify a username and password.
-authCheck :: Sql.Connection -> BasicAuthCheck User
-authCheck conn =
-  let check (BasicAuthData username password) = do
-        maybeUser <- Storage.authCheck conn username password
-        case maybeUser of
-           Nothing -> return Unauthorized
-           (Just user) -> return (Authorized user)
-  in BasicAuthCheck check
+authCheck :: DBConn -> BasicAuthCheck User
+authCheck conn = error "Storage module not implemented"
+  -- let check (BasicAuthData username password) = do
+  --       maybeUser <- Storage.authCheck conn username password
+  --       case maybeUser of
+  --          Nothing -> return Unauthorized
+  --          (Just user) -> return (Authorized user)
+  -- in BasicAuthCheck check
 
 
 
-privateServer :: Sql.Connection -> User -> Server PrivateAPI
+privateServer :: DBConn -> User -> Server PrivateAPI
 privateServer conn user =
              epcState conn user
         :<|> listEvents conn user
@@ -121,7 +128,7 @@ privateServer conn user =
         :<|> return . eventHash
         -}
 
-publicServer :: Sql.Connection -> Server PublicAPI
+publicServer :: DBConn -> Server PublicAPI
 publicServer conn =  Service.newUser conn
     :<|>  Service.getPublicKey conn
     :<|>  Service.getPublicKeyInfo conn
@@ -144,32 +151,36 @@ serverAPI = Proxy
 -- Basic Authentication requires a Context Entry with the 'BasicAuthCheck' value
 -- tagged with "foo-tag" This context is then supplied to 'server' and threaded
 -- to the BasicAuth HasServer handlers.
-basicAuthServerContext :: Sql.Connection -> Servant.Context (BasicAuthCheck User ': '[])
+basicAuthServerContext :: DBConn -> Servant.Context (BasicAuthCheck User ': '[])
 basicAuthServerContext conn = authCheck conn :. EmptyContext
 
 
-addPublicKey :: Sql.Connection -> User -> RSAPublicKey -> Handler KeyID
-addPublicKey conn user sig = liftIO (Storage.addPublicKey conn user sig)
+addPublicKey :: DBConn -> User -> RSAPublicKey -> Handler KeyID
+addPublicKey conn user sig = error "Storage module not implemented"
+  -- liftIO (Storage.addPublicKey conn user sig)
 
 
-newUser :: Sql.Connection -> NewUser -> Handler UserID
-newUser conn nu = liftIO (Storage.newUser conn nu)
+newUser :: DBConn -> NewUser -> Handler UserID
+newUser conn nu = error "Storage module not implemented"
+  -- liftIO (Storage.newUser conn nu)
 
 
-getPublicKey :: Sql.Connection -> KeyID -> Handler RSAPublicKey
-getPublicKey conn keyID = do
-  result <- liftIO $ runExceptT $ Storage.getPublicKey conn keyID
-  case result of
-    Left e -> throwError err400 { errBody = LBSC8.pack $ show e}
-    Right key -> return key
+getPublicKey :: DBConn -> KeyID -> Handler RSAPublicKey
+getPublicKey conn keyID = error "Storage module not implemented"
+  -- do
+  --   result <- liftIO $ runExceptT $ Storage.getPublicKey conn keyID
+  --   case result of
+  --     Left e -> throwError err400 { errBody = LBSC8.pack $ show e}
+  --     Right key -> return key
 
 
-getPublicKeyInfo :: Sql.Connection -> KeyID -> Handler KeyInfo
-getPublicKeyInfo conn keyID = do
-  result <- liftIO $ runExceptT $ Storage.getPublicKeyInfo conn keyID
-  case result of
-    Left e -> throwError err404 { errBody = LBSC8.pack $ show e }
-    Right keyInfo -> return keyInfo
+getPublicKeyInfo :: DBConn -> KeyID -> Handler KeyInfo
+getPublicKeyInfo conn keyID = error "Storage module not implemented"
+-- getPublicKeyInfo conn keyID = do
+--   result <- liftIO $ runExceptT $ Storage.getPublicKeyInfo conn keyID
+--   case result of
+--     Left e -> throwError err404 { errBody = LBSC8.pack $ show e }
+--     Right keyInfo -> return keyInfo
 
 -- PSUEDO:
 -- In BeamQueries, implement a function getLabelIDState :: EPCUrn -> IO (_labelID, State)
@@ -185,8 +196,8 @@ getPublicKeyInfo conn keyID = do
 
 -- PSUEDO:
 -- Use getLabelIDState
-epcState :: Sql.Connection -> User ->  EPCUrn -> Handler EPCState
-epcState conn user str = return (EPCState New)
+epcState :: DBConn -> User ->  EPCUrn -> Handler EPCState
+epcState conn user str = return New
 
 -- This takes an EPC urn, find the object's ID (from DB?) or maybe we just hash it?
 -- and then looks up all the events related to that item.
@@ -195,7 +206,7 @@ epcState conn user str = return (EPCState New)
 -- eventIDs <- SELECT eventID FROM DWhat WHERE _labelID=labelID;
 -- wholeEvents <- getWholeEvents
 -- return constructEvents wholeEvents
-listEvents :: Sql.Connection -> User ->  EPCUrn -> Handler [Event]
+listEvents :: DBConn -> User ->  EPCUrn -> Handler [Event]
 listEvents conn user urn = return []
 
 
@@ -204,44 +215,50 @@ listEvents conn user urn = return []
 -- PSEUDO:
 -- SELECT event.userID, userID1, userID2 FROM Events, BizTransactions WHERE Events._eventID=eventID AND BizTransactionsId=Events._eventID;
 --
-eventUserList :: Sql.Connection -> User -> EventID -> Handler [(User, Bool)]
-eventUserList conn user eventID = liftIO $ Storage.eventUserList conn user eventID
+eventUserList :: DBConn -> User -> EventID -> Handler [(User, Bool)]
+-- eventUserList conn user eventID = liftIO $ Storage.eventUserList conn user eventID
+eventUserList conn user eventID = error "Storage module not implemented"
 
 
-contactsInfo :: Sql.Connection -> User -> Handler [User]
-contactsInfo conn user = liftIO $ Storage.listContacts conn user
+contactsInfo :: DBConn -> User -> Handler [User]
+-- contactsInfo conn user = liftIO $ Storage.listContacts conn user
+contactsInfo conn user = error "Storage module not implemented"
 
 
-contactsAdd :: Sql.Connection -> User -> UserID -> Handler Bool
-contactsAdd conn user userId = liftIO (Storage.addContacts conn user userId)
+contactsAdd :: DBConn -> User -> UserID -> Handler Bool
+-- contactsAdd conn user userId = liftIO (Storage.addContacts conn user userId)
+contactsAdd conn user userId = error "Storage module not implemented"
 
 
-contactsRemove :: Sql.Connection -> User -> UserID -> Handler Bool
-contactsRemove conn user userId = liftIO (Storage.removeContacts conn user userId)
+contactsRemove :: DBConn -> User -> UserID -> Handler Bool
+-- contactsRemove conn user userId = liftIO (Storage.removeContacts conn user userId)
+contactsRemove conn user userId = error "Storage module not implemented"
 
 
-contactsSearch :: Sql.Connection -> User -> String -> Handler [User]
+contactsSearch :: DBConn -> User -> String -> Handler [User]
 contactsSearch conn user term = return []
 
 
-userSearch :: Sql.Connection -> User -> String -> Handler [User]
-userSearch conn user term = liftIO $ Storage.userSearch conn user term
+userSearch :: DBConn -> User -> String -> Handler [User]
+-- userSearch conn user term = liftIO $ Storage.userSearch conn user term
+userSearch conn user term = error "Storage module not implemented"
 
 
-eventList :: Sql.Connection -> User -> UserID -> Handler [Event]
+eventList :: DBConn -> User -> UserID -> Handler [Event]
 eventList conn user uID = return []
 
-eventSign :: Sql.Connection -> User -> SignedEvent -> Handler Bool
-eventSign conn user signedEvent = do
-  result <- liftIO $ runExceptT $ Storage.eventSign conn user signedEvent
-  case result of
-    Left SE_NeedMoreSignatures -> return False
-    Left e -> throwError err400 { errBody = LBSC8.pack $ show e }
-    Right () -> return True
+eventSign :: DBConn -> User -> SignedEvent -> Handler Bool
+eventSign conn user signedEvent = error "Storage module not implemented"
+-- eventSign conn user signedEvent = do
+--   result <- liftIO $ runExceptT $ Storage.eventSign conn user signedEvent
+--   case result of
+--     Left SE_NeedMoreSignatures -> return False
+--     Left e -> throwError err400 { errBody = LBSC8.pack $ show e }
+--     Right () -> return True
 
 -- do we need this?
 --
-eventHashed :: Sql.Connection -> User -> EventID -> Handler HashedEvent
+eventHashed :: DBConn -> User -> EventID -> Handler HashedEvent
 eventHashed conn user eventID = return (HashedEvent eventID (EventHash "Blob"))
   {-
 eventHashed conn user eventID = do
@@ -252,20 +269,20 @@ eventHashed conn user eventID = do
     -}
 
 -- Return the json encoded copy of the event
-eventCreateObject :: Sql.Connection -> User -> NewObject -> Handler Event
-eventCreateObject conn user newObject =
-  liftIO (Storage.eventCreateObject conn user newObject)
+eventCreateObject :: DBConn -> User -> NewObject -> Handler Event
+eventCreateObject conn user newObject = error "Storage module not implemented"
+  -- liftIO (Storage.eventCreateObject conn user newObject)
 
-eventAggregateObjects :: Sql.Connection -> User -> AggregatedObject -> Handler Event
+eventAggregateObjects :: DBConn -> User -> AggregatedObject -> Handler Event
 eventAggregateObjects conn user aggObject = liftIO sampleEvent
 
-eventDisaggregateObjects :: Sql.Connection -> User -> DisaggregatedObject -> Handler Event
+eventDisaggregateObjects :: DBConn -> User -> DisaggregatedObject -> Handler Event
 eventDisaggregateObjects conn user aggObject = liftIO sampleEvent
 
-eventStartTransaction :: Sql.Connection -> User -> TransactionInfo -> Handler Event
+eventStartTransaction :: DBConn -> User -> TransactionInfo -> Handler Event
 eventStartTransaction conn user aggObject = liftIO sampleEvent
 
-eventTransformObject :: Sql.Connection -> User -> TransformationInfo -> Handler Event
+eventTransformObject :: DBConn -> User -> TransformationInfo -> Handler Event
 eventTransformObject conn user aggObject = liftIO sampleEvent
 
 sampleEvent:: IO Event
@@ -290,7 +307,7 @@ sampleWhen = DWhen pt (Just pt) tz
 sampleWhere :: DWhere
 sampleWhere = DWhere [] [] [] []
 
-eventInfo :: Sql.Connection -> User -> EventID -> Handler Event
+eventInfo :: DBConn -> User -> EventID -> Handler Event
 eventInfo conn user eID = liftIO sampleEvent
 
 --eventHash :: EventID -> Handler SignedEvent

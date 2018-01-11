@@ -95,7 +95,7 @@ app = (serveWithContext api basicAuthServerContext) . server'
 -}
 
 
-webApp :: Database.PostgreSQL.Simple.Connection -> UIFlavour -> Application
+webApp :: DBConn -> UIFlavour -> Application
 webApp conn = serveWithContext api (basicAuthServerContext conn) . server' conn
 
 
@@ -115,7 +115,7 @@ connectionStr = "host=localhost dbname=ano002"
 mkApp :: ByteString -> UIFlavour ->  IO Application
 mkApp dbConnStr uiFlavour = do
   conn <- connectPostgreSQL dbConnStr
-  createTables conn
+--   createTables conn
   return (webApp conn uiFlavour)
 
 
@@ -135,7 +135,7 @@ data UIFlavour
     | JensOleG
     deriving (Eq)
 
-server' :: Sql.Connection -> UIFlavour -> Server API'
+server' :: DBConn -> UIFlavour -> Server API'
 server' conn uiFlavour = server Normal
     :<|> server Nested
     :<|> schemaUiServer (serveSwaggerAPI' SpecDown)
