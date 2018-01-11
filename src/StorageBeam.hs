@@ -48,6 +48,7 @@ data UserT f = User
   , _emailAddress        :: C f Text }
   deriving Generic
 
+maxLen :: Word
 maxLen = 120
 
 migrationStorage :: Migration PgCommandSyntax (CheckedDatabaseSettings Postgres SupplyChainDb)
@@ -216,7 +217,6 @@ data KeyT f = Key
   deriving Generic
 type Key = KeyT Identity
 type KeyId = PrimaryKey KeyT Identity
-
 
 deriving instance Show Key
 
