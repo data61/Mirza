@@ -176,11 +176,8 @@ getPublicKeyInfo conn keyID = do
 -- use readLabelEPC in EPC.hs to do it.
 -- SELECT * FROM Labels WHERE _labelGs1CompanyPrefix=gs1CompanyPrefix AND _labelType=type AND ...
 
--- implement a function getWholeEventQuery :: EventID -> SQLQuery
---  SELECT * FROM Events, DWhy, DWhat, DWhere WHERE
---      Events._eventID=eventID AND DWhy._eventID=eventID AND DWhat._eventID=eventID AND DWhere._eventID=eventID;
 --
--- implement a function constructEvents :: [WholeEvent] -> [Event]
+--
 --
 
 -- PSUEDO:
@@ -188,13 +185,13 @@ getPublicKeyInfo conn keyID = do
 epcState :: Sql.Connection -> User ->  EPCUrn -> Handler EPCState
 epcState conn user str = return (EPCState New)
 
--- This takes an EPC urn, find the object's ID (from DB?) or maybe we just hash it?
--- and then looks up all the events related to that item.
+-- This takes an EPC urn,
+-- and looks up all the events related to that item. First we've got
+-- to find all the related "Whats"
 -- PSEUDO:
--- (labelID, _) <- getLabelIDState
--- eventIDs <- SELECT eventID FROM DWhat WHERE _labelID=labelID;
--- wholeEvents <- getWholeEvents
--- return constructEvents wholeEvents
+-- wholeEvents <- select * from events, dwhats, dwhy, dwhen where _whatItemID=2 AND _eventID=_whatEventID AND _eventID=_whenEventID AND _eventID=_whyEventID;
+-- return map constructEvent wholeEvents
+--
 listEvents :: Sql.Connection -> User ->  EPCUrn -> Handler [Event]
 listEvents conn user urn = return []
 
@@ -203,6 +200,7 @@ listEvents conn user urn = return []
 -- this can be used to make sure everything is signed
 -- PSEUDO:
 -- SELECT event.userID, userID1, userID2 FROM Events, BizTransactions WHERE Events._eventID=eventID AND BizTransactionsId=Events._eventID;
+-- implement a function constructEvent :: WholeEvent -> Event
 --
 eventUserList :: Sql.Connection -> User -> EventID -> Handler [(User, Bool)]
 eventUserList conn user eventID = liftIO $ Storage.eventUserList conn user eventID
@@ -219,7 +217,11 @@ contactsAdd conn user userId = liftIO (Storage.addContacts conn user userId)
 contactsRemove :: Sql.Connection -> User -> UserID -> Handler Bool
 contactsRemove conn user userId = liftIO (Storage.removeContacts conn user userId)
 
-
+-- Given a search term, search the users contacts for a user matching
+-- that term
+-- might want to use reg-ex features of postgres10 here:
+-- PSEUDO:
+-- SELECT user2, firstName, lastName FROM Contacts, Users WHERE user1 LIKE *term* AND user2=Users.id UNION SELECT user1, firstName, lastName FROM Contacts, Users WHERE user2 = ? AND user1=Users.id;" (uid, uid)
 contactsSearch :: Sql.Connection -> User -> String -> Handler [User]
 contactsSearch conn user term = return []
 
