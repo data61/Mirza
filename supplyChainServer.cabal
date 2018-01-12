@@ -20,7 +20,7 @@ library
   other-modules:      API
                     , Model
                     , Service
-                    , Storage
+                    -- , Storage
                     , CryptHash
                     , StorageBeam
                     , BeamQueries
