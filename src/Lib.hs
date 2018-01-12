@@ -95,7 +95,7 @@ app = (serveWithContext api basicAuthServerContext) . server'
 -}
 
 
-webApp :: DBConn -> UIFlavour -> Application
+webApp :: Connection -> UIFlavour -> Application
 webApp conn = serveWithContext api (basicAuthServerContext conn) . server' conn
 
 
@@ -135,7 +135,7 @@ data UIFlavour
     | JensOleG
     deriving (Eq)
 
-server' :: DBConn -> UIFlavour -> Server API'
+server' :: Connection -> UIFlavour -> Server API'
 server' conn uiFlavour = server Normal
     :<|> server Nested
     :<|> schemaUiServer (serveSwaggerAPI' SpecDown)
