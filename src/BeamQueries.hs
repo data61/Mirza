@@ -45,10 +45,10 @@ insertUser conn dbFunc pass (M.NewUser phone email first last biz password) = do
   return (fromIntegral rowID :: M.UserID)
 
 -- | 
-newUser :: DBConn -> DBFunc -> M.NewUser -> IO M.UserID
-newUser conn dbFunc userInfo = do
-    hash <- encryptPassIO' (Pass (pack password))
-    return insertUser conn dbFunc hash userInfo
+-- newUser :: Connection -> M.NewUser -> IO M.UserID
+-- newUser conn dbFunc userInfo = do
+--     hash <- encryptPassIO' (Pass (pack password))
+--     return insertUser conn dbFunc hash userInfo
 
 -- offset_ 100 $
 -- filter_ (\customer -> ((customerFirstName customer `like_` "Jo%") &&. (customerLastName customer `like_` "S%")) &&.
@@ -64,17 +64,17 @@ newUser conn dbFunc userInfo = do
 
 
 -- Basic Auth check using Scrypt hashes.
-authCheck :: DBConn -> DBFunc -> M.EmailAddress -> M.Password -> IO (Maybe M.User)
-authCheck conn dbFunc email password = do
-  dbFunc conn $ do
-    r <- runSelectReturningList $ select theUser
-  where
-    theUser = do
-      r <- query_ conn "SELECT rowID, firstName, lastName, passwordHash FROM Users WHERE emailAddress = ?;" $ Only $ unpack email
-      if length r == 0
-        then return Nothing
-        else do
-          let (uid, firstName, lastName, hash) = head r
-          if verifyPass' (Pass password) (EncryptedPass hash)
-              then return $ Just $ M.User uid firstName lastName
-              else return Nothing
+-- authCheck :: Connection -> DBFunc -> M.EmailAddress -> M.Password -> IO (Maybe M.User)
+-- authCheck conn dbFunc email password = do
+--   dbFunc conn $ do
+--     r <- runSelectReturningList $ select theUser
+--   where
+--     theUser = do
+--       r <- query_ conn "SELECT rowID, firstName, lastName, passwordHash FROM Users WHERE emailAddress = ?;" $ Only $ unpack email
+--       if length r == 0
+--         then return Nothing
+--         else do
+--           let (uid, firstName, lastName, hash) = head r
+--           if verifyPass' (Pass password) (EncryptedPass hash)
+--               then return $ Just $ M.User uid firstName lastName
+--               else return Nothing
