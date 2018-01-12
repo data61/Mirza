@@ -65,7 +65,7 @@ import GHC.Generics       (Generic)
 import System.Environment (getArgs, lookupEnv)
 
 import Text.Read          (readMaybe)
-import Data.Text as Txt
+import Data.Text as T
 import Crypto.Hash.IO
 
 type UserID = Integer
@@ -98,7 +98,7 @@ instance ToSchema EventHash
 -- instance Sql.FromRow EventHash where
 --   fromRow = EventHash <$> field
 
-type JSONTxt = Txt.Text
+type JSONTxt = T.Text
 
 
 -- A signature is an EventHash that's been
@@ -167,12 +167,12 @@ instance ToSchema EPCInfo
 
 
 data NewUser = NewUser {
-  phoneNumber :: String,
-  emailAddress :: String,
-  firstName :: String,
-  lastName :: String,
+  phoneNumber :: T.Text,
+  emailAddress :: T.Text,
+  firstName :: T.Text,
+  lastName :: T.Text,
   company :: Integer,
-  password :: String
+  password :: T.Text
 } deriving (Generic, Eq, Show)
 $(deriveJSON defaultOptions ''NewUser)
 instance ToSchema NewUser
