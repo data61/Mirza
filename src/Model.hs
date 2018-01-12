@@ -177,6 +177,20 @@ data NewUser = NewUser {
 $(deriveJSON defaultOptions ''NewUser)
 instance ToSchema NewUser
 
+
+data Business = Business {
+  bizID :: Integer
+  , bizName :: T.Text
+  , gs1CompanyPrefix :: Integer
+  , function :: T.Text
+  , siteName :: T.Text
+  , address :: T.Text
+  , lat :: Float
+  , lng :: Float
+} deriving (Generic, Eq, Show)
+$(deriveJSON defaultOptions ''Business)
+instance ToSchema Business
+
 data EventLocation = EventLocation {
   readPoint :: ReadPointLocation,
   bizLocation :: BizLocation

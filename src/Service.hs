@@ -131,6 +131,7 @@ publicServer :: Connection -> Server PublicAPI
 publicServer conn =  Service.newUser conn
     :<|>  Service.getPublicKey conn
     :<|>  Service.getPublicKeyInfo conn
+    :<|>  Service.listBusinesses conn
 
 
 
@@ -244,6 +245,10 @@ contactsSearch conn user term = return []
 userSearch :: Connection -> User -> String -> Handler [User]
 -- userSearch conn user term = liftIO $ Storage.userSearch conn user term
 userSearch conn user term = error "Storage module not implemented"
+
+-- select * from Business;
+listBusinesses :: Connection -> Handler [Business]
+listBusinesses conn = error "Implement me"
 
 -- |List events that a particular user was/is involved with
 -- use BizTransactions and events (createdby) tables
