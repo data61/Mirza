@@ -38,14 +38,15 @@ import Database.Beam.Backend.SQL.BeamExtensions
 import Database.PostgreSQL.Simple.FromField
 import Database.Beam.Backend.SQL
 import StorageBeam
-
+  {-
 insertUser :: Connection -> EncryptedPass -> M.NewUser -> IO M.UserID
 insertUser conn pass (M.NewUser phone email first last biz password) = do
   rowID <- dbFunc conn $ runInsertReturningList (_users supplyChainDb) $
            insertValues [(User (Auto Nothing) biz first last phone password email)]
   return (fromIntegral rowID :: M.UserID)
+  -}
 
--- | 
+-- |
 -- newUser :: Connection -> M.NewUser -> IO M.UserID
 -- newUser conn dbFunc userInfo = do
 --     hash <- encryptPassIO' (Pass (pack password))

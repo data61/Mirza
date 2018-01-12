@@ -80,6 +80,7 @@ type PrivateAPI =
 type PublicAPI =   "newUser" :> ReqBody '[JSON] NewUser :> Post '[JSON] UserID
             :<|> "key" :> "get" :> Capture "keyID" KeyID :> Get '[JSON] RSAPublicKey
             :<|> "key" :> "getInfo" :> Capture "keyID" KeyID :> Get '[JSON] KeyInfo
+            :<|> "business" :> "list" :> Get '[JSON] [Business]
 
 type SwaggerAPI = SwaggerSchemaUI "swagger-ui" "swagger.json"
 
