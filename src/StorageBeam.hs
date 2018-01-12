@@ -196,6 +196,16 @@ migrationStorage =
     )
 
 
+data UserT f = User
+  { _userId              :: C f (Auto Int32)
+  , _userBizId           :: PrimaryKey BusinessT f
+  , _firstName           :: C f Text
+  , _lastName            :: C f Text
+  , _phoneNumber         :: C f Text
+  , _passwordHash        :: C f Text --XXX - should this be blob?
+  , _emailAddress        :: C f Text }
+  deriving Generic
+
 type User = UserT Identity
 type UserId = PrimaryKey UserT Identity
 
