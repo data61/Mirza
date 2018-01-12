@@ -24,8 +24,6 @@ import Data.Text (Text)
 import Data.Int
 import Data.Time
 
--- import Text.Read
-
 import qualified Data.GS1.Event as Ev
 import qualified Data.GS1.EPC as E
 import Data.GS1.DWhat
