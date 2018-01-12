@@ -30,14 +30,19 @@ import qualified Data.Text.Lazy as TxtL
 
 import qualified Data.List.NonEmpty as NonEmpty
 import Database.PostgreSQL.Simple
--- import Database.PostgreSQL.Simple as DBConn
-type DBConn = Connection
+import Control.Lens
+import Database.Beam as B
+import Database.Beam.Postgres
+import Database.Beam.Backend
+import Database.Beam.Backend.SQL.BeamExtensions
+import Database.PostgreSQL.Simple.FromField
+import Database.Beam.Backend.SQL
+import StorageBeam
 
-insertUser :: DBConn -> DBFunc -> EncryptedPass -> M.NewUser -> IO M.UserID
-insertUser conn dbFunc pass (M.NewUser phone email first last biz password) = do
-  rowID <-dbFunc conn $ runInsertReturningList $
-        insertReturning (supplyChainDb ^. _users) $
-          insertValues [(User (Auto Nothing) biz first last phone hash email)]
+insertUser :: Connection -> EncryptedPass -> M.NewUser -> IO M.UserID
+insertUser conn pass (M.NewUser phone email first last biz password) = do
+  rowID <- dbFunc conn $ runInsertReturningList (_users supplyChainDb) $
+           insertValues [(User (Auto Nothing) biz first last phone password email)]
   return (fromIntegral rowID :: M.UserID)
 
 -- | 
