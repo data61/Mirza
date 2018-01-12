@@ -18,7 +18,7 @@ connectionStr = pack "dbname=testsupplychainserver"
 
 createSchema :: Connection -> IO ()
 createSchema conn = do
-  withDatabaseDebug putStrLn conn $ executeMigration runNoReturn migrationStorage
+  dbFunc conn $ executeMigration runNoReturn migrationStorage
   return ()
 
 tryCreateSchema :: Connection -> IO ()

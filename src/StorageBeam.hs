@@ -13,40 +13,44 @@ module StorageBeam where
 import Control.Lens
 import Database.Beam as B
 import Database.Beam.Postgres
-import Database.PostgreSQL.Simple
-import Database.Beam.Backend
-import Database.Beam.Backend.SQL.BeamExtensions
-import Database.PostgreSQL.Simple.FromField
-import Database.Beam.Backend.SQL
+-- import Database.PostgreSQL.Simple
+-- import Database.Beam.Backend
+-- import Database.Beam.Backend.SQL.BeamExtensions
+-- import Database.PostgreSQL.Simple.FromField
+-- import Database.Beam.Backend.SQL
+-- import System.Environment (getArgs)
 
 import Data.Text (Text)
 import Data.Int
 import Data.Time
 
-import Text.Read
+-- import Text.Read
 
-import Data.GS1.EventID
 import qualified Data.GS1.Event as Ev
 import qualified Data.GS1.EPC as E
-import Data.GS1.DWhen
-import Data.GS1.DWhere
 import Data.GS1.DWhat
-import Data.GS1.DWhy
+-- import Data.GS1.EventID
+-- import Data.GS1.DWhen
+-- import Data.GS1.DWhere
+-- import Data.GS1.DWhy
 
 import Database.Beam.Postgres.Migrate
 import Database.Beam.Migrate.SQL.Tables
 import Database.Beam.Migrate.SQL.Types
 import Database.Beam.Migrate.Types
 
-data UserT f = User
-  { _userId              :: C f (Auto Int32)
-  , _userBizId           :: PrimaryKey BusinessT f
-  , _firstName           :: C f Text
-  , _lastName            :: C f Text
-  , _phoneNumber         :: C f Text
-  , _passwordHash        :: C f Text --XXX - should this be blob?
-  , _emailAddress        :: C f Text }
-  deriving Generic
+data Env = Prod | Dev
+
+-- | Given the environment, returns which db function to use
+-- dbFunc :: Env -> (Connection -> Pg a0 -> IO a0)
+-- dbFunc Prod = withDatabase
+-- dbFunc _    = withDatabaseDebug putStrLn
+
+-- |for the moment, comment in/out the appropriate line to the get the proper
+-- function
+dbFunc :: Connection -> (Pg a0 -> IO a0)
+-- dbFunc = withDatabase
+dbFunc = withDatabaseDebug putStrLn
 
 maxLen :: Word
 maxLen = 120
