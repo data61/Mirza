@@ -13,41 +13,44 @@ module StorageBeam where
 import Control.Lens
 import Database.Beam as B
 import Database.Beam.Postgres
-import Database.PostgreSQL.Simple
-import Database.Beam.Backend
-import Database.Beam.Backend.SQL.BeamExtensions
-import Database.PostgreSQL.Simple.FromField
-import Database.Beam.Backend.SQL
+-- import Database.PostgreSQL.Simple
+-- import Database.Beam.Backend
+-- import Database.Beam.Backend.SQL.BeamExtensions
+-- import Database.PostgreSQL.Simple.FromField
+-- import Database.Beam.Backend.SQL
+-- import System.Environment (getArgs)
 
 import Data.Text (Text)
 import Data.Int
 import Data.Time
 
-import Text.Read
-
-import Data.GS1.EventID
 import qualified Data.GS1.Event as Ev
-import Data.GS1.EPC
-import Data.GS1.DWhen
-import Data.GS1.DWhere
+import qualified Data.GS1.EPC as E
 import Data.GS1.DWhat
-import Data.GS1.DWhy
+-- import Data.GS1.EventID
+-- import Data.GS1.DWhen
+-- import Data.GS1.DWhere
+-- import Data.GS1.DWhy
 
 import Database.Beam.Postgres.Migrate
 import Database.Beam.Migrate.SQL.Tables
 import Database.Beam.Migrate.SQL.Types
 import Database.Beam.Migrate.Types
 
-data UserT f = User
-  { _userId              :: C f (Auto Int32)
-  , _userBizId           :: PrimaryKey BusinessT f
-  , _firstName           :: C f Text
-  , _lastName            :: C f Text
-  , _phoneNumber         :: C f Text
-  , _passwordHash        :: C f Text --XXX - should this be blob?
-  , _emailAddress        :: C f Text }
-  deriving Generic
+data Env = Prod | Dev
 
+-- | Given the environment, returns which db function to use
+-- dbFunc :: Env -> (Connection -> Pg a0 -> IO a0)
+-- dbFunc Prod = withDatabase
+-- dbFunc _    = withDatabaseDebug putStrLn
+
+-- |for the moment, comment in/out the appropriate line to the get the proper
+-- function
+dbFunc :: Connection -> (Pg a0 -> IO a0)
+-- dbFunc = withDatabase
+dbFunc = withDatabaseDebug putStrLn
+
+maxLen :: Word
 maxLen = 120
 
 migrationStorage :: Migration PgCommandSyntax (CheckedDatabaseSettings Postgres SupplyChainDb)
@@ -132,10 +135,6 @@ migrationStorage =
           (field "_eventId" bigserial)
           (field "_foreignEventId" (varchar (Just maxLen)) notNull)
           (BizId (field "_eventLabelId" bigserial))
-          (WhatId (field "_eventWhatId" bigserial))
-          (WhyId (field "_eventWhyId" bigserial))
-          (WhereId (field "_eventWhereId" bigserial))
-          (WhenId (field "_eventWhenId" bigserial))
           (UserId (field "_eventCreatedBy" bigserial))
           (field "_jsonEvent" (varchar (Just maxLen)) notNull)
     )
@@ -148,8 +147,16 @@ migrationStorage =
           (LabelId (field "_parent" bigserial)) -- bigserial for now FIXME
           (field "_input" bigserial) -- bigserial for now FIXME
           (field "_output" bigserial) -- bigserial for now FIXME
-          (field "_bizTransactionId" bigserial) -- bigserial for now FIXME
+          (BizTransactionId (field "_bizTransactionId" bigserial)) -- bigserial for now FIXME
           (TransformationId (field "_whatTransformationId" bigserial)) -- bigserial for now FIXME
+          (EventId (field "eventId" bigserial))
+    )
+    <*> createTable "bizTransactions"
+    (
+      BizTransaction
+          (field "_bizTransactionId" bigserial)
+          (UserId (field "_userID1" bigserial))
+          (UserId (field "_userID2" bigserial))
     )
     <*> createTable "whys"
     (
@@ -157,6 +164,7 @@ migrationStorage =
           (field "_whyId" bigserial)
           (field "_bizStep" bigserial) -- waiting for the compuler to tell us the type
           (field "_disposition" bigserial) -- waiting for the compuler to tell us the type
+          (EventId (field "eventId" bigserial))          
     )
     <*> createTable "wheres"
     (
@@ -166,6 +174,7 @@ migrationStorage =
           (LocationId (field "_bizLocation" bigserial))
           (field "_srcType" bigserial) -- waiting for compiler
           (field "_destType" bigserial) -- waiting for compiler
+          (EventId (field "eventId" bigserial))          
     )
     <*> createTable "whens"
     (
@@ -174,6 +183,7 @@ migrationStorage =
           (field "_eventTime" bigserial)
           (field "_recordTime" bigserial)
           (field "_timeZone" (varchar (Just maxLen)) notNull)
+          (EventId (field "eventId" bigserial))          
     )
     <*> createTable "labelEvents"
     (
@@ -183,6 +193,16 @@ migrationStorage =
           (EventId (field "_labelEventEventId" bigserial))
     )
 
+
+data UserT f = User
+  { _userId              :: C f (Auto Int32)
+  , _userBizId           :: PrimaryKey BusinessT f
+  , _firstName           :: C f Text
+  , _lastName            :: C f Text
+  , _phoneNumber         :: C f Text
+  , _passwordHash        :: C f Text --XXX - should this be blob?
+  , _emailAddress        :: C f Text }
+  deriving Generic
 
 type User = UserT Identity
 type UserId = PrimaryKey UserT Identity
@@ -348,12 +368,8 @@ instance Table LocationT where
 
 data EventT f = Event
   { _eventId                    :: C f (Auto Int32)
-  , _foreignEventId             :: C f Text
+  , _foreignEventId             :: C f Text -- Event ID from XML from foreign systems.
   , _eventLabelId               :: PrimaryKey BusinessT f --the label scanned to generate this event.
-  , _eventWhatId                :: PrimaryKey WhatT f
-  , _eventWhyId                 :: PrimaryKey WhyT f
-  , _eventWhereId               :: PrimaryKey WhereT f
-  , _eventWhenId                :: PrimaryKey WhenT f
   , _eventCreatedBy             :: PrimaryKey UserT f
   , _jsonEvent                  :: C f Text }
   deriving Generic
@@ -371,23 +387,16 @@ instance Table EventT where
     deriving Generic
   primaryKey = EventId . _eventId
 
--- isn't EventType already defined in GS1Combinators/src/.../Event.hs?
--- data EventType = ObjectEvent
---                | AggregationEvent
---                | TransactionEvent
---                | TransformationEvent
---                  deriving (Show, Enum, Read)
--- fromField instance
-
 data WhatT f = What
   { _whatId                     :: C f (Auto Int32)
   , _whatType                   :: C f Ev.EventType
-  , _action                     :: C f Action
+  , _action                     :: C f E.Action
   , _parent                     :: PrimaryKey LabelT f
   , _input                      :: C f [LabelEPC]
   , _output                     :: C f [LabelEPC]
-  , _bizTransactionId           :: C f Int32 -- probably link to a table of biztransactions
-  , _whatTransformationId       :: PrimaryKey TransformationT f }
+  , _whatBizTransactionId       :: PrimaryKey BizTransactionT f
+  , _whatTransformationId       :: PrimaryKey TransformationT f
+  , _whatEventId                :: PrimaryKey EventT f }
   deriving Generic
 
 type What = WhatT Identity
@@ -404,10 +413,33 @@ instance Table WhatT where
     deriving Generic
   primaryKey = WhatId . _whatId
 
+
+data BizTransactionT f = BizTransaction
+  { _bizTransactionId          :: C f (Auto Int32)
+  , _userID1                   :: PrimaryKey UserT f
+  , _userID2                   :: PrimaryKey UserT f }
+  deriving Generic
+
+type BizTransaction = BizTransactionT Identity
+type BizTransactionId = PrimaryKey BizTransactionT Identity
+
+deriving instance Show BizTransaction
+instance Beamable BizTransactionT
+
+instance Beamable (PrimaryKey BizTransactionT)
+deriving instance Show (PrimaryKey BizTransactionT Identity)
+
+instance Table BizTransactionT where
+  data PrimaryKey BizTransactionT f = BizTransactionId (C f (Auto Int32))
+    deriving Generic
+  primaryKey = BizTransactionId . _bizTransactionId
+
 data WhyT f = Why
   { _whyId                      :: C f (Auto Int32)
-  , _bizStep                    :: C f BizStep
-  , _disposition                :: C f Disposition }
+  , _bizStep                    :: C f E.BizStep
+  , _disposition                :: C f E.Disposition 
+  , _whyEventId                 :: PrimaryKey EventT f }
+  
   deriving Generic
 
 type Why = WhyT Identity
@@ -426,8 +458,10 @@ data WhereT f = Where
   { _whereId                    :: C f (Auto Int32)
   , _readPoint                  :: PrimaryKey LocationT f
   , _bizLocation                :: PrimaryKey LocationT f
-  , _srcType                    :: C f SourceDestType
-  , _destType                   :: C f SourceDestType }
+  , _srcType                    :: C f E.SourceDestType
+  , _destType                   :: C f E.SourceDestType
+  , _whereEventId               :: PrimaryKey EventT f }
+  
   deriving Generic
 
 type Where = WhereT Identity
@@ -447,7 +481,9 @@ data WhenT f = When
   { _whenId                      :: C f (Auto Int32)
   , _eventTime                   :: C f Int64
   , _recordTime                  :: C f Int64
-  , _timeZone                    :: C f TimeZone }
+  , _timeZone                    :: C f TimeZone
+  , _whenEventId                 :: PrimaryKey EventT f }
+  
   deriving Generic
 
 type When = WhenT Identity
@@ -492,6 +528,7 @@ data SupplyChainDb f = SupplyChainDb
   , _locations       :: f (TableEntity LocationT)
   , _events          :: f (TableEntity EventT)
   , _whats           :: f (TableEntity WhatT)
+  , _bizTransactions :: f (TableEntity BizTransactionT)
   , _whys            :: f (TableEntity WhyT)
   , _wheres          :: f (TableEntity WhereT)
   , _whens           :: f (TableEntity WhenT)

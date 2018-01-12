@@ -39,7 +39,7 @@ import Database.PostgreSQL.Simple
 
 type DBConn = Connection
 
-
+{- 
 
 -- to put in DB, we just convert it to json for now.
 
@@ -337,3 +337,4 @@ toContactUser (userID, firstName, lastName) = M.User userID firstName lastName
 
 toUser :: (Integer, String, String) -> M.User
 toUser (userID, firstName, lastName) = M.User userID firstName lastName
+-}

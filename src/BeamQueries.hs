@@ -1,10 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-module Storage where
-
--- import Database.SQLite.Simple as Sql
--- import Database.SQLite.Simple.Types as SqlTypes
--- import Database.SQLite.Simple.ToField
+module BeamQueries where
 
 import Control.Monad.Except
 
@@ -42,6 +38,11 @@ import Database.Beam.Backend.SQL
 import Database.Beam.Backend
 import Database.Beam.Backend.SQL.BeamExtensions
 
+import Control.Lens
+import Database.PostgreSQL.Simple.FromField
+import Database.Beam.Backend.SQL
+import StorageBeam
+
 type DBFunc = MonadBeam syntax be handle m => handle -> m a -> IO a
 
 type DBConn = Connection
@@ -58,17 +59,18 @@ newUser conn dbFunc (M.NewUser phone email first last biz password) = do
    hash <- encryptPassIO' (Pass (pack password))
    return insertUser conn dbFunc hash (M.NewUser phone email first last biz password)
 
-offset_ 100 $
-filter_ (\customer -> ((customerFirstName customer `like_` "Jo%") &&. (customerLastName customer `like_` "S%")) &&.
-                      (addressState (customerAddress customer) ==. just_ "CA" ||. addressState (customerAddress customer) ==. just_ "WA")) $
-        all_ (customer chinookDb)
+
+-- offset_ 100 $
+-- filter_ (\customer -> ((customerFirstName customer `like_` "Jo%") &&. (customerLastName customer `like_` "S%")) &&.
+--                       (addressState (customerAddress customer) ==. just_ "CA" ||. addressState (customerAddress customer) ==. just_ "WA")) $
+--         all_ (customer chinookDb)
 
 
-filter_ (\user -> (_emailAddress user) ==. just_ email) $ all_ (user supplyChainDb)
+-- filter_ (\user -> (_emailAddress user) ==. just_ email) $ all_ (user supplyChainDb)
 
-selectedUser <- dbFunc conn $ runSelectReturningList $ select $
-  do user <- all_ (supplyChainDb ^. users)
-     guard_ (_emailAddress
+-- selectedUser <- dbFunc conn $ runSelectReturningList $ select $
+--   do user <- all_ (supplyChainDb ^. users)
+--      guard_ (_emailAddress
 
 
 -- Basic Auth check using Scrypt hashes.
@@ -134,6 +136,7 @@ eventCreateObject conn dbFunc (M.User uid _ _ ) (M.NewObject epc epcisTime timez
     DbB.insert (supplyChainDb ^. _events) $
       insertValues [ Event (Auto Nothing) eventID epc what why dwhere epcisTime timezone ObjectEventT uid jsonEvent]
 
+  -- TODO = combine rows from bizTransactionTable and _eventCreatedBy field in Event table
   -- haven't added UserEvents insertion equivalent since redundant information and no equivalent
   -- hashes not added yet, but will later for blockchain
 

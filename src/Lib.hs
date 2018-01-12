@@ -46,6 +46,7 @@ import Data.Either.Combinators
 import Data.Time
 import Data.String.Conversions
 import Database.PostgreSQL.Simple
+-- import Database.PostgreSQL.Simple.Connection
 -- import Data.ByteString hiding (elem)
 import Data.ByteString (pack, ByteString)
 import qualified Data.ByteString as ByteString
@@ -61,13 +62,12 @@ import System.Environment (getArgs, lookupEnv)
 
 import Text.Read          (readMaybe)
 
-
-import Database.SQLite.Simple as Sql
-import Database.SQLite.Simple.Types as SqlTypes
+-- import Database.SQLite.Simple as Sql
+-- import Database.SQLite.Simple.Types as SqlTypes
 
 import API
 import Model
-import Storage as S
+-- import Storage as S
 import Service
 import Migrate
 
@@ -95,7 +95,7 @@ app = (serveWithContext api basicAuthServerContext) . server'
 -}
 
 
-webApp :: Database.PostgreSQL.Simple.Connection -> UIFlavour -> Application
+webApp :: Connection -> UIFlavour -> Application
 webApp conn = serveWithContext api (basicAuthServerContext conn) . server' conn
 
 
@@ -120,7 +120,7 @@ mkApp debug dbConnStr uiFlavour = do
         False -> withDatabase
   )
   conn <- connectPostgreSQL dbConnStr
-  createTables conn
+--   createTables conn
   return (webApp conn uiFlavour)
 
 
@@ -140,7 +140,7 @@ data UIFlavour
     | JensOleG
     deriving (Eq)
 
-server' :: Sql.Connection -> UIFlavour -> Server API'
+server' :: Connection -> UIFlavour -> Server API'
 server' conn uiFlavour = server Normal
     :<|> server Nested
     :<|> schemaUiServer (serveSwaggerAPI' SpecDown)
