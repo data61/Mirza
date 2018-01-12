@@ -37,6 +37,7 @@ import Control.Monad.Except
 
 import GHC.TypeLits (KnownSymbol)
 
+import Data.Int
 import Data.Aeson
 import Data.Aeson.TH
 import Data.Swagger
@@ -171,7 +172,7 @@ data NewUser = NewUser {
   emailAddress :: T.Text,
   firstName :: T.Text,
   lastName :: T.Text,
-  company :: Integer,
+  company :: Int32,
   password :: T.Text
 } deriving (Generic, Eq, Show)
 $(deriveJSON defaultOptions ''NewUser)
