@@ -13,7 +13,7 @@ module Service where
 
 import Model
 import API
-import qualified Storage
+-- import qualified StorageBeam
 
 import Prelude        ()
 import Prelude.Compat

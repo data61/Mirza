@@ -57,7 +57,6 @@ import qualified Data.HashMap.Strict.InsOrd as IOrd
 import qualified Network.Wai.Handler.Warp as Warp
 import Network.Wai
 
--- import Database.SQLite.Simple as Sql
 
 import Control.Lens       hiding ((.=))
 
