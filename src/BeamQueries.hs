@@ -2,10 +2,6 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 module BeamQueries where
 
--- import Database.SQLite.Simple as Sql
--- import Database.SQLite.Simple.Types as SqlTypes
--- import Database.SQLite.Simple.ToField
-
 import Control.Monad.Except
 
 import qualified Model as M
