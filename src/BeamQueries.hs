@@ -48,7 +48,7 @@ type DBConn = Connection
 
 insertUser :: DBConn -> DBFunc -> EncryptedPass -> M.NewUser -> IO M.UserID
 insertUser conn dbFunc pass (M.NewUser phone email first last biz password) = do
-  rowID <-dbFunc conn $ runInsertReturningList $
+  rowID <-dbFunc conn $ last $ runInsertReturningList $
         (supplyChainDb ^. _users) $
           insertValues [(User (Auto Nothing) biz first last phone hash email)]
    return (fromIntegral rowID :: M.UserID)
@@ -96,12 +96,46 @@ authCheck conn dbFunc email password = do
 addPublicKey :: DBConn -> DBFunc -> M.User -> M.RSAPublicKey-> IO M.KeyID
 addPublicKey conn dbFunc (M.User uid _ _)  (M.RSAPublicKey n e) = do
   timestamp <- getCurrentTime
-  rowID <- dbFunc conn $ runInsertReturningList $
+  rowID <- dbFunc conn $ last $ runInsertReturningList $
            (supplyChainDb ^. _keys) $
              insertValues [(Key (Auto Nothing) uid n e timestamp 0)] -- TODO = check if 0 is correct here... NOT SURE
   return (fromIntegral rowID :: M.KeyID)
 
+-- TODO = fix. 1 problem is nothing is done with filter value or asset type in objectRowID grabbing data insert
+-- 1 other problem is state never used... what is it???
+-- epc is a labelEPC
 eventCreateObject :: DBConn -> DBFunc -> M.User -> M.NewObject -> IO Event
 eventCreateObject conn dbFunc (M.User uid _ _ ) (M.NewObject epc epcisTime timezone location) = do
-  objectRowID <- dbFunc conn $runInsertReturningList $
-                 (supplyChainDb ^. _)   -- TODO = finish
+  objectRowID <- dbFunc conn $ last $ runInsertReturningList $ (supplyChainDb ^. _labels) $
+                   (case epc of
+                     IL il   -> (case il of
+                                 GIAI cp sn        -> insertValues [(Label (Auto Nothing) cp Nothing sn Nothing "GIAI" Nothing)]
+                                 SSCC cp sn        -> insertValues [(Label (Auto Nothing) cp Nothing sn Nothing "SSCC" Nothing)]
+                                 SGTIN cp fv ir sn -> insertValues [(Label (Auto Nothing) cp ir sn Nothing "SGTIN" Nothing)]
+                                 GRAI cp at sn     -> insertValues [(Label (Auto Nothing) cp Nothing sn Nothing "GIAI" Nothing)])
+                     CL cl q -> (case cl of
+                                 LGTIN cp ir lot   -> insertValues [(Label (Auto Nothing) cp ir Nothing Nothing "LGTIN" lot)]
+                                 CSGTIN cp fv ir   -> insertValues [(Label (Auto Nothing) cp ir Nothing Nothing "CSGTIN" Nothing)]))
+
+  currentTime <- getCurrentTime
+  uuid <- nextRandom
+  let
+      quantity = ItemCount 3
+      what =  ObjectDWhat Add [epc]
+      why  =  DWhy (Just CreatingClassInstance) (Just Active)
+      when = DWhen epcisTime (Just currentTime) timezone
+      eventID = Just $ EventID uuid
+      (M.EventLocation readPt bizLoc) = location
+      dwhere = DWhere [readPt] [bizLoc] [] []
+      event = Event ObjectEventT eventID what when why dwhere
+      jsonEvent = encodeEvent event
+
+  dbFunc conn $ DbB.runInsert $
+    DbB.insert (supplyChainDb ^. _events) $
+      insertValues [ Event (Auto Nothing) eventID epc what why dwhere epcisTime timezone ObjectEventT uid jsonEvent]
+
+  -- haven't added UserEvents insertion equivalent since redundant information and no equivalent
+  -- hashes not added yet, but will later for blockchain
+
+  return event
+
