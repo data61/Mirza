@@ -37,6 +37,7 @@ import Control.Monad.Except
 
 import GHC.TypeLits (KnownSymbol)
 
+import Data.Int
 import Data.Aeson
 import Data.Aeson.TH
 import Data.Swagger
@@ -57,7 +58,6 @@ import qualified Data.HashMap.Strict.InsOrd as IOrd
 import qualified Network.Wai.Handler.Warp as Warp
 import Network.Wai
 
-import Database.SQLite.Simple as Sql
 
 import Control.Lens       hiding ((.=))
 
@@ -66,13 +66,16 @@ import GHC.Generics       (Generic)
 import System.Environment (getArgs, lookupEnv)
 
 import Text.Read          (readMaybe)
-import Data.Text as Txt
+import Data.Text as T
 import Crypto.Hash.IO
 
 type UserID = Integer
 type EmailAddress = ByteString.ByteString
 type KeyID = Integer
 type Password = ByteString.ByteString
+
+type EPCUrn = String
+
 
 newtype BinaryBlob = BinaryBlob ByteString.ByteString
   deriving (MimeUnrender OctetStream, MimeRender OctetStream, Generic)
@@ -84,8 +87,8 @@ instance ToParamSchema BinaryBlob where
 instance ToSchema BinaryBlob where
   declareNamedSchema _ = pure $ NamedSchema (Just "BinaryBlob") binarySchema
 
-instance Sql.FromRow BinaryBlob where
-  fromRow = BinaryBlob <$> field
+-- instance Sql.FromRow BinaryBlob where
+--   fromRow = BinaryBlob <$> field
 
 
 newtype EventHash = EventHash String
@@ -93,10 +96,10 @@ newtype EventHash = EventHash String
 $(deriveJSON defaultOptions ''EventHash)
 instance ToSchema EventHash
 
-instance Sql.FromRow EventHash where
-  fromRow = EventHash <$> field
+-- instance Sql.FromRow EventHash where
+--   fromRow = EventHash <$> field
 
-type JSONTxt = Txt.Text
+type JSONTxt = T.Text
 
 
 -- A signature is an EventHash that's been
@@ -107,11 +110,11 @@ newtype Signature = Signature String
 $(deriveJSON defaultOptions ''Signature)
 instance ToSchema Signature
 
-instance Sql.FromRow Signature where
-  fromRow = Signature <$> field
+-- instance Sql.FromRow Signature where
+--   fromRow = Signature <$> field
 
-instance Sql.ToRow Signature where
-  toRow (Signature s) = toRow $ Only s
+-- instance Sql.ToRow Signature where
+--   toRow (Signature s) = toRow $ Only s
 
 data RSAPublicKey = RSAPublicKey
   {
@@ -157,21 +160,21 @@ data EPCState = New | InProgress | AwaitingDeploymentToBC | Customer | Finalised
 $(deriveJSON defaultOptions ''EPCState)
 instance ToSchema EPCState
 
+-- XXX - do we want to retrieve more information than this?
 data EPCInfo = EPCInfo {
-  state :: EPCState,
-  owner :: Maybe UserID
+  state :: EPCState
 } deriving (Generic, Eq, Show)
 $(deriveJSON defaultOptions ''EPCInfo)
 instance ToSchema EPCInfo
 
 
 data NewUser = NewUser {
-  phoneNumber :: String,
-  emailAddress :: String,
-  firstName :: String,
-  lastName :: String,
-  company :: Integer,
-  password :: String
+  phoneNumber :: T.Text,
+  emailAddress :: T.Text,
+  firstName :: T.Text,
+  lastName :: T.Text,
+  company :: Int32,
+  password :: T.Text
 } deriving (Generic, Eq, Show)
 $(deriveJSON defaultOptions ''NewUser)
 instance ToSchema NewUser
