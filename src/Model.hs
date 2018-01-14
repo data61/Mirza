@@ -1,47 +1,44 @@
-
-{-# LANGUAGE DataKinds       #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE DeriveGeneric         #-}
-{-# LANGUAGE FlexibleContexts      #-}
-{-# LANGUAGE FlexibleInstances     #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE OverloadedStrings     #-}
-{-# LANGUAGE ScopedTypeVariables   #-}
-{-# LANGUAGE TypeFamilies          #-}
-{-# LANGUAGE TypeOperators         #-}
+{-# LANGUAGE DataKinds                  #-}
+{-# LANGUAGE TemplateHaskell            #-}
+{-# LANGUAGE DeriveGeneric              #-}
+{-# LANGUAGE FlexibleContexts           #-}
+{-# LANGUAGE FlexibleInstances          #-}
+{-# LANGUAGE MultiParamTypeClasses      #-}
+{-# LANGUAGE OverloadedStrings          #-}
+{-# LANGUAGE ScopedTypeVariables        #-}
+{-# LANGUAGE TypeFamilies               #-}
+{-# LANGUAGE TypeOperators              #-}
 {-# LANGUAGE CPP                        #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE UndecidableInstances       #-}
-{-# OPTIONS_GHC -fno-warn-orphans #-}
-
-
+{-# OPTIONS_GHC -fno-warn-orphans       #-}
 
 module Model where
-
 
 import Servant
 import Servant.Server.Experimental.Auth()
 import Servant.Swagger
 import Servant.Swagger.UI
-import Data.Swagger
-
 
 import Prelude        ()
 import Prelude.Compat
 
-
 import Control.Monad.IO.Class
 import Control.Monad.Logger (runStderrLoggingT)
-
 import Control.Monad.Except
 
 import GHC.TypeLits (KnownSymbol)
+import GHC.Generics (Generic)
 
 import Data.Int
 import Data.Aeson
 import Data.Aeson.TH
 import Data.Swagger
 import Data.Maybe
+import Data.Either.Combinators
+import Data.Time
+import Data.String.Conversions
+
 import Data.GS1.Event
 import Data.GS1.EventID
 import Data.GS1.EPC
@@ -49,25 +46,17 @@ import Data.GS1.DWhen
 import Data.GS1.DWhere
 import Data.GS1.DWhat
 import Data.GS1.DWhy
-import Data.Either.Combinators
-import Data.Time
-import Data.String.Conversions
+import Data.Text as T
+import Text.Read          (readMaybe)
 
 import qualified Data.ByteString as ByteString
 import qualified Data.HashMap.Strict.InsOrd as IOrd
 import qualified Network.Wai.Handler.Warp as Warp
 import Network.Wai
 
-
 import Control.Lens       hiding ((.=))
 import Database.Beam.Backend.Types (Auto)
 
-import GHC.Generics       (Generic)
-
-import System.Environment (getArgs, lookupEnv)
-
-import Text.Read          (readMaybe)
-import Data.Text as T
 import Crypto.Hash.IO
 
 type UserID = Auto Int32
