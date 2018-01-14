@@ -60,6 +60,7 @@ import Network.Wai
 
 
 import Control.Lens       hiding ((.=))
+import Database.Beam.Backend.Types (Auto)
 
 import GHC.Generics       (Generic)
 
@@ -69,7 +70,10 @@ import Text.Read          (readMaybe)
 import Data.Text as T
 import Crypto.Hash.IO
 
-type UserID = Integer
+type UserID = Auto Int32
+instance ToSchema UserID
+-- type UserID = Integer
+
 type EmailAddress = ByteString.ByteString
 type KeyID = Integer
 type Password = ByteString.ByteString
@@ -172,11 +176,12 @@ data NewUser = NewUser {
   emailAddress :: T.Text,
   firstName :: T.Text,
   lastName :: T.Text,
-  company :: Int32,
+  company :: Integer,
   password :: T.Text
 } deriving (Generic, Eq, Show)
 $(deriveJSON defaultOptions ''NewUser)
 instance ToSchema NewUser
+-- instance ToSchema (Auto Int32)
 
 data EventLocation = EventLocation {
   readPoint :: ReadPointLocation,
