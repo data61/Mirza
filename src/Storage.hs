@@ -306,7 +306,6 @@ addContacts conn (M.User uid1 _ _) uid2 = do
   return (fromIntegral rowID > 0)
 
 -- Remove contacts to userfirst
-first
 removeContacts :: DBConn -> M.User -> M.UserID -> IO Bool
 removeContacts conn (M.User uid1 _ _) uid2 = do
   execute conn "DELETE FROM Contacts WHERE user1 = ? AND user2 = ?;" (uid1, uid2)

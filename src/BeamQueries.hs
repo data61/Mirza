@@ -49,23 +49,6 @@ insertUser conn pass (M.NewUser phone email firstName lastName biz password) = d
   return (_userId insertedUser)
 
 -- |
--- newUser :: Connection -> M.NewUser -> IO M.UserID
--- newUser conn dbFunc userInfo = do
---     hash <- encryptPassIO' (Pass (pack password))
---     return insertUser conn dbFunc hash userInfo
-
--- offset_ 100 $
--- filter_ (\customer -> ((customerFirstName customer `like_` "Jo%") &&. (customerLastName customer `like_` "S%")) &&.
---                       (addressState (customerAddress customer) ==. just_ "CA" ||. addressState (customerAddress customer) ==. just_ "WA")) $
---         all_ (customer chinookDb)
-
-
--- filter_ (\user -> (_emailAddress user) ==. just_ email) $ all_ (user supplyChainDb)
-
--- selectedUser <- dbFunc conn $ runSelectReturningList $ select $
---   do user <- all_ (supplyChainDb ^. users)
---      guard_ (_emailAddress
-
 
 -- Basic Auth check using Scrypt hashes.
 -- authCheck :: Connection -> DBFunc -> M.EmailAddress -> M.Password -> IO (Maybe M.User)
