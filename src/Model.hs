@@ -59,6 +59,7 @@ import Database.Beam.Backend.Types (Auto)
 
 import Crypto.Hash.IO
 
+type PrimaryKeyType = Auto Integer
 type UserID = Auto Int32
 instance ToSchema UserID
 instance ToParamSchema UserID where
