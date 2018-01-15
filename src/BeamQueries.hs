@@ -44,10 +44,9 @@ import Database.Beam.Backend.SQL
 import StorageBeam
 -- import Data.Maybe
 
-
 import Data.List.Unique
 
-type DBFunc = MonadBeam syntax be handle m => handle -> m a -> IO a
+type DBFunc = MonadBeam (syntax::Sql92SanityCheck) (be::BeamBackend) handle (m::MonadIO) => handle -> m a -> IO a
 
 type DBConn = Connection
 
