@@ -28,6 +28,7 @@ import Servant.Swagger.UI
 
 import GHC.TypeLits (KnownSymbol)
 
+import Data.Int
 import Data.Aeson
 import Data.Aeson.TH
 import Data.Swagger
@@ -42,6 +43,8 @@ import Data.GS1.DWhy
 import Data.Either.Combinators
 import Data.Time
 import Data.String.Conversions
+
+import Database.Beam.Backend.Types (Auto)
 
 import qualified Data.ByteString as ByteString
 import qualified Data.HashMap.Strict.InsOrd as IOrd
@@ -62,10 +65,10 @@ type PrivateAPI =
             :<|> "epc" :> Capture "urn" String :> "events" :> Get '[JSON] [Event]
             :<|> "event" :> Capture "eventID" EventID:> "info" :> Get '[JSON] Event
             :<|> "contacts" :>  Get '[JSON] [User]
-            :<|> "contacts" :> "add" :> Capture "userID" Integer :> Get '[JSON] Bool
-            :<|> "contacts" :> "remove" :> Capture "userID" Integer :> Get '[JSON] Bool
+            :<|> "contacts" :> "add" :> Capture "userID" (Auto Int32) :> Get '[JSON] Bool
+            :<|> "contacts" :> "remove" :> Capture "userID" (Auto Int32) :> Get '[JSON] Bool
             :<|> "contacts" :> "search" :> Capture "term" String :> Get '[JSON] [User]
-            :<|> "event" :> "list" :> Capture "userID" Integer :> Get '[JSON] [Event]
+            :<|> "event" :> "list" :> Capture "userID" (Auto Int32) :> Get '[JSON] [Event]
             :<|> "event" :> "listUsers" :> Capture "eventID" EventID :> Get '[JSON] [(User, Bool)]
             :<|> "event" :> "sign" :> ReqBody '[JSON] SignedEvent :> Post '[JSON] Bool
             :<|> "event" :> "getHash" :> ReqBody '[JSON] EventID :> Post '[JSON] HashedEvent
