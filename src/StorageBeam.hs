@@ -149,7 +149,7 @@ migrationStorage =
           (field "_output" bigserial) -- bigserial for now FIXME
           (BizTransactionId (field "_bizTransactionId" bigserial)) -- bigserial for now FIXME
           (TransformationId (field "_whatTransformationId" bigserial)) -- bigserial for now FIXME
-          (EventId (field "eventId" bigserial))
+          (EventId (field "_bizTransactionEventId" bigserial))
     )
     <*> createTable "bizTransactions"
     (
@@ -157,6 +157,7 @@ migrationStorage =
           (field "_bizTransactionId" bigserial)
           (UserId (field "_userID1" bigserial))
           (UserId (field "_userID2" bigserial))
+          (EventId (field "_eventID" bigserial))
     )
     <*> createTable "whys"
     (
@@ -164,7 +165,7 @@ migrationStorage =
           (field "_whyId" bigserial)
           (field "_bizStep" bigserial) -- waiting for the compuler to tell us the type
           (field "_disposition" bigserial) -- waiting for the compuler to tell us the type
-          (EventId (field "eventId" bigserial))          
+          (EventId (field "eventId" bigserial))
     )
     <*> createTable "wheres"
     (
@@ -174,7 +175,7 @@ migrationStorage =
           (LocationId (field "_bizLocation" bigserial))
           (field "_srcType" bigserial) -- waiting for compiler
           (field "_destType" bigserial) -- waiting for compiler
-          (EventId (field "eventId" bigserial))          
+          (EventId (field "eventId" bigserial))
     )
     <*> createTable "whens"
     (
@@ -183,7 +184,7 @@ migrationStorage =
           (field "_eventTime" bigserial)
           (field "_recordTime" bigserial)
           (field "_timeZone" (varchar (Just maxLen)) notNull)
-          (EventId (field "eventId" bigserial))          
+          (EventId (field "eventId" bigserial))
     )
     <*> createTable "labelEvents"
     (
@@ -417,7 +418,9 @@ instance Table WhatT where
 data BizTransactionT f = BizTransaction
   { _bizTransactionId          :: C f (Auto Int32)
   , _userID1                   :: PrimaryKey UserT f
-  , _userID2                   :: PrimaryKey UserT f }
+  , _userID2                   :: PrimaryKey UserT f
+  , _bizTransactionEventId     :: PrimaryKey EventT f }
+
   deriving Generic
 
 type BizTransaction = BizTransactionT Identity
@@ -437,9 +440,9 @@ instance Table BizTransactionT where
 data WhyT f = Why
   { _whyId                      :: C f (Auto Int32)
   , _bizStep                    :: C f E.BizStep
-  , _disposition                :: C f E.Disposition 
+  , _disposition                :: C f E.Disposition
   , _whyEventId                 :: PrimaryKey EventT f }
-  
+
   deriving Generic
 
 type Why = WhyT Identity
@@ -461,7 +464,7 @@ data WhereT f = Where
   , _srcType                    :: C f E.SourceDestType
   , _destType                   :: C f E.SourceDestType
   , _whereEventId               :: PrimaryKey EventT f }
-  
+
   deriving Generic
 
 type Where = WhereT Identity
@@ -483,7 +486,7 @@ data WhenT f = When
   , _recordTime                  :: C f Int64
   , _timeZone                    :: C f TimeZone
   , _whenEventId                 :: PrimaryKey EventT f }
-  
+
   deriving Generic
 
 type When = WhenT Identity
