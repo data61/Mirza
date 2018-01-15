@@ -110,7 +110,7 @@ mkApp dbConnStr uiFlavour = do
 
 -- @todo - make this a command line argument
 connectionStr :: ByteString
-connectionStr = "host=localhost dbname=ano002"
+connectionStr = "dbname=testsupplychainserver"
 
 mkApp :: Bool -> ByteString -> UIFlavour ->  IO Application
 mkApp debug dbConnStr uiFlavour = do

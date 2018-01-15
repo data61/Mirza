@@ -5,7 +5,8 @@ module BeamQueries where
 -- import Control.Monad.Except
 
 import qualified Model as M
--- import qualified CryptHash as C
+
+import qualified CryptHash as C
 -- import qualified Data.Text as Txt
 -- import Control.Monad (unless)
 -- import Data.Time.Clock
@@ -24,11 +25,13 @@ import Crypto.Scrypt
 -- import Data.UUID.V4
 
 -- import Data.Aeson.Text
--- import Data.ByteString.Char8 (pack, unpack)
--- import qualified Data.ByteString as ByteString
+import Data.Text.Encoding
+import Data.ByteString.Char8 (pack, unpack)
+
+import qualified Data.ByteString as ByteString
 -- import qualified Data.Text.Lazy as TxtL
 
--- import qualified Data.List.NonEmpty as NonEmpty
+import qualified Data.List.NonEmpty as NonEmpty
 import Database.PostgreSQL.Simple
 -- import Database.PostgreSQL.Simple as DBConn
 
@@ -46,27 +49,30 @@ import StorageBeam
 
 import Data.List.Unique
 
-type DBFunc = MonadBeam (syntax::Sql92SanityCheck) (be::BeamBackend) handle (m::MonadIO) => handle -> m a -> IO a
+import Control.Monad.Error
+
+import Data.GS1.EPC
+import Data.GS1.DWhat
 
 type DBConn = Connection
 
 -- TODO = need to actually define the lenses
 
-insertUser :: DBConn -> DBFunc -> EncryptedPass -> M.NewUser -> IO M.UserID
-insertUser conn dbFunc pass (M.NewUser phone email first last biz password) = do
+insertUser :: DBConn -> EncryptedPass -> M.NewUser -> IO M.UserID
+insertUser conn pass (M.NewUser phone email first last biz password) = do
   [rowID] <- dbFunc conn $ runInsertReturningList $
         (_users supplyChainDb) $
-          insertValues [(User (Auto Nothing) (BizId . Auto. Just . fromIntegral $ biz) first last phone hash email)]
-   return (_userId rowID)
+          insertValues [(User (Auto Nothing) (BizId biz) first last phone hash email)]
+  return (_userId rowID)
 
-newUser :: DBConn -> DBFunc -> M.NewUser -> IO M.UserID
-newUser conn dbFunc (M.NewUser phone email first last biz password) = do
-   hash <- encryptPassIO' (Pass (pack password))
-   return insertUser conn dbFunc hash (M.NewUser phone email first last biz password)
+newUser :: DBConn -> M.NewUser -> IO M.UserID
+newUser conn userInfo@(M.NewUser phone email first last biz password) = do
+   hash <- encryptPassIO' (Pass $ pack password)
+   return insertUser conn hash userInfo
 
 -- Basic Auth check using Scrypt hashes.
-authCheck :: DBConn -> DBFunc -> M.EmailAddress -> M.Password -> IO (Maybe M.User)
-authCheck conn dbFunc email password = do
+authCheck :: DBConn -> M.EmailAddress -> M.Password -> IO (Maybe M.User)
+authCheck conn email password = do
   r <- dbFunc conn $ runSelectReturningList $ select $ do
     allUsers <- all_ (_users supplyChainDb)
     guard_ (_emailAddress allUsers  ==. email)
@@ -84,16 +90,16 @@ authCheck conn dbFunc email password = do
 -- execute conn "INSERT INTO Users (bizID, firstName, lastName, phoneNumber, passwordHash, emailAddress) VALUES (?, ?, ?, ?, ?, ?);" (biz, first, last, phone, getEncryptedPass hash, email)
 -- execute conn "INSERT INTO Keys (userID, rsa_n, rsa_e, creationTime) values (?, ?, ?, ?);" (uid, n, e, timestamp)
 
-addPublicKey :: DBConn -> DBFunc -> M.User -> M.RSAPublicKey-> IO M.KeyID
-addPublicKey conn dbFunc (M.User uid _ _)  (M.RSAPublicKey n e) = do
+addPublicKey :: DBConn -> M.User -> M.RSAPublicKey-> IO M.KeyID
+addPublicKey conn (M.User uid _ _)  (M.RSAPublicKey n e) = do
   timestamp <- getCurrentTime
   [rowID] <- dbFunc conn $ ((runInsertReturningList $
            (_keys supplyChainDb) $
              insertValues [(Key (Auto Nothing) uid n e timestamp 0)])) -- TODO = check if 0 is correct here... NOT SURE
   return (_keyId rowID)
 
-getPublicKey :: (MonadError M.GetPropertyError m, MonadIO m) => DBConn -> DBFunc -> M.KeyID -> m M.RSAPublicKey
-getPublicKey conn dbFunc keyID = do
+getPublicKey :: (MonadError M.GetPropertyError m, MonadIO m) => DBConn -> M.KeyID -> m M.RSAPublicKey
+getPublicKey conn keyID = do
   r <- dbFunc conn $ runSelectReturningList $ select $ do
     allKeys <- all_ (_keys supplyChainDb)
     guard_ (_keyId allKeys ==. keyID)
@@ -104,8 +110,8 @@ getPublicKey conn dbFunc keyID = do
        let (keyId, uid, rsa_n, rsa_e, creationTime, revocationTime) = head r
        return $ M.RSAPublicKey rsa_n rsa_e
 
-getPublicKeyInfo :: (MonadError M.GetPropertyError m, MonadIO m) => DBConn -> DBFunc -> M.KeyID -> m M.KeyInfo
-getPublicKeyInfo conn dbFunc keyID = do
+getPublicKeyInfo :: (MonadError M.GetPropertyError m, MonadIO m) => DBConn -> M.KeyID -> m M.KeyInfo
+getPublicKeyInfo conn keyID = do
   r <- dbFunc conn $ runSelectReturningList $ select $ do
     allKeys <- all_ (_keys supplyChainDb)
     guard_ (_keyId allKeys ==. keyID)
@@ -116,8 +122,8 @@ getPublicKeyInfo conn dbFunc keyID = do
        let (keyId, uid, rsa_n, rsa_e, creationTime, revocationTime) = head r
        return $ M.KeyInfo uid creationTime revocationTime
 
-getUser :: DBConn -> DBFunc -> M.EmailAddress -> IO (Maybe M.User)
-getUser conn dbFunc email = do
+getUser :: DBConn -> M.EmailAddress -> IO (Maybe M.User)
+getUser conn email = do
   r <- dbFunc conn $ runSelectReturningList $ select $ do
     allUsers <- all_ (_users supplyChainDb)
     guard_ (_emailAddress allUsers ==. email)
@@ -133,18 +139,18 @@ getUser conn dbFunc email = do
 -- TODO = fix. 1 problem is nothing is done with filter value or asset type in objectRowID grabbing data insert
 -- 1 other problem is state never used... what is it???
 -- epc is a labelEPC
-eventCreateObject :: DBConn -> DBFunc -> M.User -> M.NewObject -> IO Event
-eventCreateObject conn dbFunc (M.User uid _ _ ) (M.NewObject epc epcisTime timezone location) = do
-  objectRowID <- dbFunc conn $ runInsert $ (_labels supplyChainDb) $
+eventCreateObject :: DBConn -> M.User -> M.NewObject -> IO Event
+eventCreateObject conn (M.User uid _ _ ) (M.NewObject epc epcisTime timezone location) = do
+  objectRowID <- dbFunc conn $ B.runInsert $ (_labels supplyChainDb) $
                    (case epc of
                      IL il   -> (case il of
-                                 GIAI cp sn        -> insertValues [(Label (Auto Nothing) cp Nothing sn Nothing "GIAI" Nothing)]
-                                 SSCC cp sn        -> insertValues [(Label (Auto Nothing) cp Nothing sn Nothing "SSCC" Nothing)]
-                                 SGTIN cp fv ir sn -> insertValues [(Label (Auto Nothing) cp ir sn Nothing "SGTIN" Nothing)]
-                                 GRAI cp at sn     -> insertValues [(Label (Auto Nothing) cp Nothing sn Nothing "GRAI" Nothing)])
+                                 GIAI cp sn        -> insertValues [Label (Auto Nothing) cp Nothing sn Nothing "GIAI" Nothing]
+                                 SSCC cp sn        -> insertValues [Label (Auto Nothing) cp Nothing sn Nothing "SSCC" Nothing]
+                                 SGTIN cp fv ir sn -> insertValues [Label (Auto Nothing) cp ir sn Nothing "SGTIN" Nothing]
+                                 GRAI cp at sn     -> insertValues [Label (Auto Nothing) cp Nothing sn Nothing "GRAI" Nothing])
                      CL cl q -> (case cl of
-                                 LGTIN cp ir lot   -> insertValues [(Label (Auto Nothing) cp ir Nothing Nothing "LGTIN" lot)]
-                                 CSGTIN cp fv ir   -> insertValues [(Label (Auto Nothing) cp ir Nothing Nothing "CSGTIN" Nothing)]))
+                                 LGTIN cp ir lot   -> insertValues [Label (Auto Nothing) cp ir Nothing Nothing "LGTIN" lot]
+                                 CSGTIN cp fv ir   -> insertValues [Label (Auto Nothing) cp ir Nothing Nothing "CSGTIN" Nothing]))
 
   currentTime <- getCurrentTime
   uuid <- nextRandom
@@ -169,9 +175,10 @@ eventCreateObject conn dbFunc (M.User uid _ _ ) (M.NewObject epc epcisTime timez
 
   return event
 
+-- TODO = use EventId or EventID ???
 -- TODO = fix... what is definition of hasSigned?
-eventUserList :: DBConn -> DBFunc -> M.User -> EventID -> IO [(M.User, Bool)]
-eventUserList conn dbFunc (M.User uid _ _ ) eventID = do
+eventUserList :: DBConn -> M.User -> EventId -> IO [(M.User, Bool)]
+eventUserList conn (M.User uid _ _ ) eventID = do
   r <- dbFunc conn $ runSelectReturningList $ select $ do
     allUsers <- all_ (_users supplyChainDb)
     allEvents <- all_ (_events supplyChainDb)
@@ -188,8 +195,8 @@ eventUserList conn dbFunc (M.User uid _ _ ) eventID = do
 -- eventHashed conn dbFunc _ eventID = do
 --   r <- 
 
-eventSign :: (MonadError M.SigError m, MonadIO m) => DBConn -> DBFunc -> M.User -> M.SignedEvent -> m ()
-eventSign conn dbFunc (M.User uid _ _ ) (M.SignedEvent eventID keyID (M.Signature signature)) = do
+eventSign :: (MonadError M.SigError m, MonadIO m) => DBConn -> M.User -> M.SignedEvent -> m ()
+eventSign conn (M.User uid _ _ ) (M.SignedEvent eventID keyID (M.Signature signature)) = do
   timestamp <- liftIO getCurrentTime
   rFull <- dbFunc conn $ runSelectReturningList $ select $ do
     allKeys <- all_ (_keys supplyChainDb)
@@ -221,16 +228,16 @@ eventSign conn dbFunc (M.User uid _ _ ) (M.SignedEvent eventID keyID (M.Signatur
   package <- createBlockchainPackage conn eventID
   liftIO $ sendToBlockchain package
 
-addContacts :: DBConn -> DBFunc -> M.User -> M.UserID -> IO Bool
-addContacts conn dbFunc (M.User uid1 _ _) uid2 = do
+addContacts :: DBConn -> M.User -> M.UserID -> IO Bool
+addContacts conn (M.User uid1 _ _) uid2 = do
   [rowID] <- dbFunc conn $ runInsertReturningList $
              (_contacts supplyChainDb) $
                insertValues [(Contact (Auto Nothing) uid1 uid2)]
   return (fromIntegral (_contactId rowID) > 0)
 
 -- don't return whether success/failure anymore since no Beam function to help
-removeContacts :: DBConn -> DBFunc -> M.User -> M.UserID -> IO ()
-removeContacts conn dbFunc (M.User uid1 _ _) uid2 = do
+removeContacts :: DBConn -> M.User -> M.UserID -> IO ()
+removeContacts conn (M.User uid1 _ _) uid2 = do
   dbFunc conn $
     runDelete $
     delete (_contacts supplyChainDb)
@@ -242,8 +249,9 @@ removeContacts conn dbFunc (M.User uid1 _ _) uid2 = do
 
 -- TODO - convert these below functions, and others in original file Storage.hs
 
+-- TODO = use EventId or EventID ???
 -- TODO = implement... there is no hash...
-createBlockchainPackage ::  (MonadError M.SigError m, MonadIO m) => DBConn -> EventID -> m C.BlockchainPackage
+createBlockchainPackage ::  (MonadError M.SigError m, MonadIO m) => DBConn -> EventId -> m C.BlockchainPackage
 createBlockchainPackage conn eventID = do
   -- XXX do we want to explicitly check that the hash is signed before assuming the first one is not?
   r <- liftIO $ query_ conn "SELECT hash, signedByUserID FROM Hashes WHERE eventID=? ORDER BY isSigned ASC;" $ Only eventID
@@ -265,8 +273,9 @@ checkSignature pubkey blob signature =
   unless (C.verifySignature pubkey blob signature) $
     throwError M.SE_InvalidSignature
 
+-- TODO = use EventId or EventID
 -- ready to send to blockchain when all the parties have signed
-checkReadyForBlockchain :: (MonadError M.SigError m, MonadIO m) => DBConn -> EventID -> m ()
+checkReadyForBlockchain :: (MonadError M.SigError m, MonadIO m) => DBConn -> EventId -> m ()
 --checkReadyForBlockchain conn eventID = undefined
 checkReadyForBlockchain conn eventID = do
   r <- liftIO $ query_ conn "SELECT COUNT(id) FROM UserEvents WHERE eventID=? AND hasSigned=FALSE;" $ Only eventID
@@ -276,8 +285,8 @@ checkReadyForBlockchain conn eventID = do
 
 -- note that use of complex from Data.List.Unique is not efficient
 -- no union, so we process making unique in haskell
-listContacts :: DBConn -> DBFunc -> M.User -> IO [M.User]
-listContacts conn dbFunc (M.User uid _ _) = do
+listContacts :: DBConn -> M.User -> IO [M.User]
+listContacts conn (M.User uid _ _) = do
   r_toGrabUser2 <- dbFunc conn $ runSelectReturningList $ select $ do
     allUsers <- all_ (_users supplyChainDb)
     allContacts <- all_ (_contacts supplyChainDb)
@@ -292,8 +301,8 @@ listContacts conn dbFunc (M.User uid _ _) = do
 
 -- TODO = how to do like, also '%||?||%'
 -- below is wrong!
-userSearch :: DBConn -> DBFunc -> M.User -> String -> IO [M.User]
-userSearch conn dbFunc (M.User uid _ _) term = do
+userSearch :: DBConn -> M.User -> String -> IO [M.User]
+userSearch conn (M.User uid _ _) term = do
   rs <- dbFunc conn $ runSelectReturningList $ select $ do
     allUsers <- all_ (_users supplyChainDb)
     guard_ (_firstName allUsers ==. term ||. lastName ==. term) -- TODO = fix
