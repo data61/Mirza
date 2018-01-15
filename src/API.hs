@@ -16,56 +16,58 @@ import Prelude        ()
 import Prelude.Compat
 
 
-import Control.Monad.IO.Class
-import Control.Monad.Logger (runStderrLoggingT)
+-- import Control.Monad.IO.Class
+-- import Control.Monad.Logger (runStderrLoggingT)
 
 
 
 import Servant
 import Servant.Server.Experimental.Auth()
-import Servant.Swagger
+-- import Servant.Swagger
 import Servant.Swagger.UI
 
-import GHC.TypeLits (KnownSymbol)
+-- import GHC.TypeLits (KnownSymbol)
 
-import Data.Aeson
-import Data.Aeson.TH
+-- import Data.Int
+-- import Data.Aeson
+-- import Data.Aeson.TH
 import Data.Swagger
-import Data.Maybe
+-- import Data.Maybe
 import Data.GS1.Event
 import Data.GS1.EventID
-import Data.GS1.EPC
-import Data.GS1.DWhen
-import Data.GS1.DWhere
-import Data.GS1.DWhat
-import Data.GS1.DWhy
-import Data.Either.Combinators
-import Data.Time
-import Data.String.Conversions
+-- import Data.GS1.EPC
+-- import Data.GS1.DWhen
+-- import Data.GS1.DWhere
+-- import Data.GS1.DWhat
+-- import Data.GS1.DWhy
+-- import Data.Either.Combinators
+-- import Data.Time
+-- import Data.String.Conversions
 
-import qualified Data.ByteString as ByteString
-import qualified Data.HashMap.Strict.InsOrd as IOrd
-import qualified Network.Wai.Handler.Warp as Warp
-import Network.Wai
+-- import qualified Data.ByteString as ByteString
+-- import qualified Data.HashMap.Strict.InsOrd as IOrd
+-- import qualified Network.Wai.Handler.Warp as Warp
+-- import Network.Wai
 
-import Control.Lens       hiding ((.=))
+-- import Control.Lens       hiding ((.=))
 
-import GHC.Generics       (Generic)
+-- import GHC.Generics       (Generic)
 
-import System.Environment (getArgs, lookupEnv)
+-- import System.Environment (getArgs, lookupEnv)
 
-import Text.Read          (readMaybe)
+-- import Text.Read          (readMaybe)
 import Model
+import StorageBeam (PrimaryKeyType)
 
 type PrivateAPI =
                  "epc" :>  Capture "urn" String:> "info" :> Get '[JSON] EPCState
             :<|> "epc" :> Capture "urn" String :> "events" :> Get '[JSON] [Event]
             :<|> "event" :> Capture "eventID" EventID:> "info" :> Get '[JSON] Event
             :<|> "contacts" :>  Get '[JSON] [User]
-            :<|> "contacts" :> "add" :> Capture "userID" Integer :> Get '[JSON] Bool
-            :<|> "contacts" :> "remove" :> Capture "userID" Integer :> Get '[JSON] Bool
+            :<|> "contacts" :> "add" :> Capture "userID" PrimaryKeyType :> Get '[JSON] Bool
+            :<|> "contacts" :> "remove" :> Capture "userID" PrimaryKeyType :> Get '[JSON] Bool
             :<|> "contacts" :> "search" :> Capture "term" String :> Get '[JSON] [User]
-            :<|> "event" :> "list" :> Capture "userID" Integer :> Get '[JSON] [Event]
+            :<|> "event" :> "list" :> Capture "userID" PrimaryKeyType :> Get '[JSON] [Event]
             :<|> "event" :> "listUsers" :> Capture "eventID" EventID :> Get '[JSON] [(User, Bool)]
             :<|> "event" :> "sign" :> ReqBody '[JSON] SignedEvent :> Post '[JSON] Bool
             :<|> "event" :> "getHash" :> ReqBody '[JSON] EventID :> Post '[JSON] HashedEvent

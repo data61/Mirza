@@ -8,6 +8,7 @@
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE UndecidableInstances  #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# OPTIONS_GHC -fno-warn-orphans  #-}
 module StorageBeam where
 
 import Control.Lens
@@ -27,15 +28,22 @@ import Data.Time
 import qualified Data.GS1.Event as Ev
 import qualified Data.GS1.EPC as E
 import Data.GS1.DWhat
--- import Data.GS1.EventID
--- import Data.GS1.DWhen
--- import Data.GS1.DWhere
--- import Data.GS1.DWhy
 
 import Database.Beam.Postgres.Migrate
 import Database.Beam.Migrate.SQL.Tables
 import Database.Beam.Migrate.SQL.Types
 import Database.Beam.Migrate.Types
+
+import Data.Swagger hiding (Contact)
+import Servant
+
+type PrimaryKeyType = Auto Integer
+instance ToSchema PrimaryKeyType
+instance ToParamSchema PrimaryKeyType where
+  toParamSchema _ = error "not implemented yet"
+instance FromHttpApiData PrimaryKeyType
+  -- where
+  --   parseUrlPiece = error "not implemented yet"
 
 data Env = Prod | Dev
 
@@ -195,7 +203,7 @@ migrationStorage =
 
 
 data UserT f = User
-  { _userId              :: C f (Auto Int32)
+  { _userId              :: C f PrimaryKeyType
   , _userBizId           :: PrimaryKey BusinessT f
   , _firstName           :: C f Text
   , _lastName            :: C f Text
@@ -214,12 +222,12 @@ instance Beamable UserT
 instance Beamable (PrimaryKey UserT)
 
 instance Table UserT where
-  data PrimaryKey UserT f = UserId (C f (Auto Int32))
+  data PrimaryKey UserT f = UserId (C f PrimaryKeyType)
     deriving Generic
   primaryKey = UserId . _userId
 
 data KeyT f = Key
-  { _keyId              :: C f (Auto Int32)
+  { _keyId              :: C f PrimaryKeyType
   , _keyUserId          :: PrimaryKey UserT f
   , _rsa_n              :: C f Int32 --XXX should this be Int64?
   , _rsa_e              :: C f Int32 -- as above
@@ -236,12 +244,12 @@ instance Beamable KeyT
 instance Beamable (PrimaryKey KeyT)
 
 instance Table KeyT where
-  data PrimaryKey KeyT f = KeyId (C f (Auto Int32))
+  data PrimaryKey KeyT f = KeyId (C f PrimaryKeyType)
     deriving Generic
   primaryKey = KeyId . _keyId
 
 data BusinessT f = Business
-  { _bizId                :: C f (Auto Int32)
+  { _bizId                :: C f PrimaryKeyType
   , _bizName              :: C f Text
   , _bizGs1CompanyPrefix  :: C f Int32
   , _bizFunction          :: C f Text
@@ -260,12 +268,12 @@ instance Beamable (PrimaryKey BusinessT)
 deriving instance Show (PrimaryKey BusinessT Identity)
 
 instance Table BusinessT where
-  data PrimaryKey BusinessT f = BizId (C f (Auto Int32))
+  data PrimaryKey BusinessT f = BizId (C f PrimaryKeyType)
     deriving Generic
   primaryKey = BizId . _bizId
 
 data ContactT f = Contact
-  { _contactId                :: C f (Auto Int32)
+  { _contactId                :: C f PrimaryKeyType
   , _contactUser1Id           :: PrimaryKey UserT f
   , _contactUser2Id           :: PrimaryKey UserT f }
   deriving Generic
@@ -280,12 +288,12 @@ instance Beamable (PrimaryKey ContactT)
 deriving instance Show (PrimaryKey ContactT Identity)
 
 instance Table ContactT where
-  data PrimaryKey ContactT f = ContactId (C f (Auto Int32))
+  data PrimaryKey ContactT f = ContactId (C f PrimaryKeyType)
     deriving Generic
   primaryKey = ContactId . _contactId
 
 data LabelT f = Label
-  { _labelId                 :: C f (Auto Int32)
+  { _labelId                 :: C f PrimaryKeyType
   , _labelGs1CompanyPrefix   :: C f Text --should this be bizId instead?
   , _itemReference           :: C f Text
   , _serialNumber            :: C f Text
@@ -303,12 +311,12 @@ instance Beamable (PrimaryKey LabelT)
 deriving instance Show (PrimaryKey LabelT Identity)
 
 instance Table LabelT where
-  data PrimaryKey LabelT f = LabelId (C f (Auto Int32))
+  data PrimaryKey LabelT f = LabelId (C f PrimaryKeyType)
     deriving Generic
   primaryKey = LabelId . _labelId
 
 data ItemT f = Item
-  { _itemId            :: C f (Auto Int32)
+  { _itemId            :: C f PrimaryKeyType
   , _itemLabelId       :: PrimaryKey LabelT f
   , _itemDescription   :: C f Text }
   deriving Generic
@@ -322,12 +330,12 @@ instance Beamable (PrimaryKey ItemT)
 deriving instance Show (PrimaryKey ItemT Identity)
 
 instance Table ItemT where
-  data PrimaryKey ItemT f = ItemId (C f (Auto Int32))
+  data PrimaryKey ItemT f = ItemId (C f PrimaryKeyType)
     deriving Generic
   primaryKey = ItemId . _itemId
 
 data TransformationT f = Transformation
-  { _transformationId           :: C f (Auto Int32)
+  { _transformationId           :: C f PrimaryKeyType
   , _transformationDescription  :: C f Text
   , _transformBizId             :: PrimaryKey BusinessT f }
   deriving Generic
@@ -341,12 +349,12 @@ instance Beamable (PrimaryKey TransformationT)
 deriving instance Show (PrimaryKey TransformationT Identity)
 
 instance Table TransformationT where
-  data PrimaryKey TransformationT f = TransformationId (C f (Auto Int32))
+  data PrimaryKey TransformationT f = TransformationId (C f PrimaryKeyType)
     deriving Generic
   primaryKey = TransformationId . _transformationId
 
 data LocationT f = Location
-  { _locationId                 :: C f (Auto Int32)
+  { _locationId                 :: C f PrimaryKeyType
   , _locationBizId              :: PrimaryKey BusinessT f
   , _locationLat                :: C f Float
   , _locationLong               :: C f Float }
@@ -362,12 +370,12 @@ instance Beamable (PrimaryKey LocationT)
 deriving instance Show (PrimaryKey LocationT Identity)
 
 instance Table LocationT where
-  data PrimaryKey LocationT f = LocationId (C f (Auto Int32))
+  data PrimaryKey LocationT f = LocationId (C f PrimaryKeyType)
     deriving Generic
   primaryKey = LocationId . _locationId
 
 data EventT f = Event
-  { _eventId                    :: C f (Auto Int32)
+  { _eventId                    :: C f PrimaryKeyType
   , _foreignEventId             :: C f Text -- Event ID from XML from foreign systems.
   , _eventLabelId               :: PrimaryKey BusinessT f --the label scanned to generate this event.
   , _eventCreatedBy             :: PrimaryKey UserT f
@@ -383,12 +391,12 @@ instance Beamable (PrimaryKey EventT)
 deriving instance Show (PrimaryKey EventT Identity)
 
 instance Table EventT where
-  data PrimaryKey EventT f = EventId (C f (Auto Int32))
+  data PrimaryKey EventT f = EventId (C f PrimaryKeyType)
     deriving Generic
   primaryKey = EventId . _eventId
 
 data WhatT f = What
-  { _whatId                     :: C f (Auto Int32)
+  { _whatId                     :: C f PrimaryKeyType
   , _whatType                   :: C f Ev.EventType
   , _action                     :: C f E.Action
   , _parent                     :: PrimaryKey LabelT f
@@ -409,13 +417,13 @@ instance Beamable (PrimaryKey WhatT)
 deriving instance Show (PrimaryKey WhatT Identity)
 
 instance Table WhatT where
-  data PrimaryKey WhatT f = WhatId (C f (Auto Int32))
+  data PrimaryKey WhatT f = WhatId (C f PrimaryKeyType)
     deriving Generic
   primaryKey = WhatId . _whatId
 
 
 data BizTransactionT f = BizTransaction
-  { _bizTransactionId          :: C f (Auto Int32)
+  { _bizTransactionId          :: C f PrimaryKeyType
   , _userID1                   :: PrimaryKey UserT f
   , _userID2                   :: PrimaryKey UserT f }
   deriving Generic
@@ -430,12 +438,12 @@ instance Beamable (PrimaryKey BizTransactionT)
 deriving instance Show (PrimaryKey BizTransactionT Identity)
 
 instance Table BizTransactionT where
-  data PrimaryKey BizTransactionT f = BizTransactionId (C f (Auto Int32))
+  data PrimaryKey BizTransactionT f = BizTransactionId (C f PrimaryKeyType)
     deriving Generic
   primaryKey = BizTransactionId . _bizTransactionId
 
 data WhyT f = Why
-  { _whyId                      :: C f (Auto Int32)
+  { _whyId                      :: C f PrimaryKeyType
   , _bizStep                    :: C f E.BizStep
   , _disposition                :: C f E.Disposition 
   , _whyEventId                 :: PrimaryKey EventT f }
@@ -450,12 +458,12 @@ instance Beamable (PrimaryKey WhyT)
 deriving instance Show (PrimaryKey WhyT Identity)
 
 instance Table WhyT where
-  data PrimaryKey WhyT f = WhyId (C f (Auto Int32))
+  data PrimaryKey WhyT f = WhyId (C f PrimaryKeyType)
     deriving Generic
   primaryKey = WhyId . _whyId
 
 data WhereT f = Where
-  { _whereId                    :: C f (Auto Int32)
+  { _whereId                    :: C f PrimaryKeyType
   , _readPoint                  :: PrimaryKey LocationT f
   , _bizLocation                :: PrimaryKey LocationT f
   , _srcType                    :: C f E.SourceDestType
@@ -472,13 +480,13 @@ instance Beamable (PrimaryKey WhereT)
 deriving instance Show (PrimaryKey WhereT Identity)
 
 instance Table WhereT where
-  data PrimaryKey WhereT f = WhereId (C f (Auto Int32))
+  data PrimaryKey WhereT f = WhereId (C f PrimaryKeyType)
     deriving Generic
   primaryKey = WhereId . _whereId
 
 
 data WhenT f = When
-  { _whenId                      :: C f (Auto Int32)
+  { _whenId                      :: C f PrimaryKeyType
   , _eventTime                   :: C f Int64
   , _recordTime                  :: C f Int64
   , _timeZone                    :: C f TimeZone
@@ -494,12 +502,12 @@ instance Beamable (PrimaryKey WhenT)
 deriving instance Show (PrimaryKey WhenT Identity)
 
 instance Table WhenT where
-  data PrimaryKey WhenT f = WhenId (C f (Auto Int32))
+  data PrimaryKey WhenT f = WhenId (C f PrimaryKeyType)
     deriving Generic
   primaryKey = WhenId . _whenId
 
 data LabelEventT f = LabelEvent
-  { _labelEventId               :: C f (Auto Int32)
+  { _labelEventId               :: C f PrimaryKeyType
   , _labelEventLabelId          :: PrimaryKey LabelT f
   , _labelEventEventId          :: PrimaryKey EventT f }
   deriving Generic
@@ -512,7 +520,7 @@ instance Beamable (PrimaryKey LabelEventT)
 deriving instance Show (PrimaryKey LabelEventT Identity)
 
 instance Table LabelEventT where
-  data PrimaryKey LabelEventT f = LabelEventId (C f (Auto Int32))
+  data PrimaryKey LabelEventT f = LabelEventId (C f PrimaryKeyType)
     deriving Generic
   primaryKey = LabelEventId . _labelEventId
 
