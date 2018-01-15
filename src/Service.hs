@@ -210,7 +210,7 @@ listEvents conn user urn = return []
 -- given an event ID, list all the users associated with that event
 -- this can be used to make sure everything is signed
 -- PSEUDO:
--- SELECT event.userID, userID1, userID2 FROM Events, BizTransactions WHERE Events._eventID=eventID AND BizTransactionsId=Events._eventID;
+-- SELECT event.userID, userID1, userID2 FROM Events, BizTransactions WHERE Events._eventID=eventID AND BizTransactionsEventId=Events._eventID;
 -- implement a function constructEvent :: WholeEvent -> Event
 --
 eventUserList :: Connection -> User -> EventID -> Handler [(User, Bool)]
