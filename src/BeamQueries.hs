@@ -83,8 +83,8 @@ newUser conn dbFunc (M.NewUser phone email first last biz password) = do
 authCheck :: DBConn -> DBFunc -> M.EmailAddress -> M.Password -> IO (Maybe M.User)
 authCheck conn dbFunc email password = do
   r <- dbFunc conn $ runSelectReturningList $ select $ do
-    allUsers <- all_ (supplyChainDb ^. _users)
-    guard_ (allUsers ^. _emailAddress ==. email)
+    allUsers <- all_ (_users supplyChainDb)
+    guard_ (_emailAddress allUsers  ==. email)
     pure allUsers
   if length r == 0
      then return Nothing
@@ -102,16 +102,16 @@ authCheck conn dbFunc email password = do
 addPublicKey :: DBConn -> DBFunc -> M.User -> M.RSAPublicKey-> IO M.KeyID
 addPublicKey conn dbFunc (M.User uid _ _)  (M.RSAPublicKey n e) = do
   timestamp <- getCurrentTime
-  rowID <- dbFunc conn $ ((last $ runInsertReturningList $
-           (supplyChainDb ^. _keys) $
-             insertValues [(Key (Auto Nothing) uid n e timestamp 0)]) ^. _keyId) -- TODO = check if 0 is correct here... NOT SURE
-  return (fromIntegral rowID :: M.KeyID)
+  [rowID] <- dbFunc conn $ ((runInsertReturningList $
+           (_keys supplyChainDb) $
+             insertValues [(Key (Auto Nothing) uid n e timestamp 0)])) -- TODO = check if 0 is correct here... NOT SURE
+  return (_keyId rowID)
 
 getPublicKey :: (MonadError M.GetPropertyError m, MonadIO m) => DBConn -> DBFunc -> M.KeyID -> m M.RSAPublicKey
 getPublicKey conn dbFunc keyID = do
   r <- dbFunc conn $ runSelectReturningList $ select $ do
-    allKeys <- all_ (supplyChainDb ^. _keys)
-    guard_ (allKeys ^. _keyId ==. keyID)
+    allKeys <- all_ (_keys supplyChainDb)
+    guard_ (_keyId allKeys ==. keyID)
     pure allKeys
   if length r == 0
      then throwError M.KE_InvalidKeyID
@@ -122,8 +122,8 @@ getPublicKey conn dbFunc keyID = do
 getPublicKeyInfo :: (MonadError M.GetPropertyError m, MonadIO m) => DBConn -> DBFunc -> M.KeyID -> m M.KeyInfo
 getPublicKeyInfo conn dbFunc keyID = do
   r <- dbFunc conn $ runSelectReturningList $ select $ do
-    allKeys <- all_ (supplyChainDb ^. _keys)
-    guard_ (allKeys ^. _keyId ==. keyID)
+    allKeys <- all_ (_keys supplyChainDb)
+    guard_ (_keyId allKeys ==. keyID)
     pure allKeys
   if length r == 0
      then throwError M.KE_InvalidKeyID
@@ -134,8 +134,8 @@ getPublicKeyInfo conn dbFunc keyID = do
 getUser :: DBConn -> DBFunc -> M.EmailAddress -> IO (Maybe M.User)
 getUser conn dbFunc email = do
   r <- dbFunc conn $ runSelectReturningList $ select $ do
-    allUsers <- all_ (supplyChainDb ^. _users)
-    guard_ (allUsers ^. _emailAddress ==. email)
+    allUsers <- all_ (_users supplyChainDb)
+    guard_ (_emailAddress allUsers ==. email)
     pure allUsers
   case length r of
     0 -> return Nothing
@@ -150,7 +150,7 @@ getUser conn dbFunc email = do
 -- epc is a labelEPC
 eventCreateObject :: DBConn -> DBFunc -> M.User -> M.NewObject -> IO Event
 eventCreateObject conn dbFunc (M.User uid _ _ ) (M.NewObject epc epcisTime timezone location) = do
-  objectRowID <- dbFunc conn $ ((last $ runInsertReturningList $ (supplyChainDb ^. _labels) $
+  objectRowID <- dbFunc conn $ runInsert $ (_labels supplyChainDb) $
                    (case epc of
                      IL il   -> (case il of
                                  GIAI cp sn        -> insertValues [(Label (Auto Nothing) cp Nothing sn Nothing "GIAI" Nothing)]
@@ -159,7 +159,7 @@ eventCreateObject conn dbFunc (M.User uid _ _ ) (M.NewObject epc epcisTime timez
                                  GRAI cp at sn     -> insertValues [(Label (Auto Nothing) cp Nothing sn Nothing "GRAI" Nothing)])
                      CL cl q -> (case cl of
                                  LGTIN cp ir lot   -> insertValues [(Label (Auto Nothing) cp ir Nothing Nothing "LGTIN" lot)]
-                                 CSGTIN cp fv ir   -> insertValues [(Label (Auto Nothing) cp ir Nothing Nothing "CSGTIN" Nothing)]))) ^. _labelId)
+                                 CSGTIN cp fv ir   -> insertValues [(Label (Auto Nothing) cp ir Nothing Nothing "CSGTIN" Nothing)]))
 
   currentTime <- getCurrentTime
   uuid <- nextRandom
@@ -175,7 +175,7 @@ eventCreateObject conn dbFunc (M.User uid _ _ ) (M.NewObject epc epcisTime timez
       jsonEvent = encodeEvent event
 
   dbFunc conn $ B.runInsert $
-    B.insert (supplyChainDb ^. _events) $
+    B.insert (_events supplyChainDb) $
       insertValues [ Event (Auto Nothing) eventID epc what why dwhere epcisTime timezone ObjectEventT uid jsonEvent]
 
   -- TODO = combine rows from bizTransactionTable and _eventCreatedBy field in Event table
@@ -188,9 +188,9 @@ eventCreateObject conn dbFunc (M.User uid _ _ ) (M.NewObject epc epcisTime timez
 eventUserList :: DBConn -> DBFunc -> M.User -> EventID -> IO [(M.User, Bool)]
 eventUserList conn dbFunc (M.User uid _ _ ) eventID = do
   r <- dbFunc conn $ runSelectReturningList $ select $ do
-    allUsers <- all_ (supplyChainDb ^. _users)
-    allEvents <- all_ (supplyChainDb ^. _events)
-    guard_ ((allUsers ^. _userId ==. allEvents ^. _eventCreatedBy) &&. (allEvents ^. _eventId ==. eventID) &&. (allEvents ^. _eventCreatedBy ==. uid))
+    allUsers <- all_ (_users supplyChainDb)
+    allEvents <- all_ (_events supplyChainDb)
+    guard_ ((_userId allUsers ==. _eventCreatedBy allEvents) &&. (_eventId allEvents ==. eventID) &&. (_eventCreatedBy allEvents ==. uid))
     pure allUsers
   -- TODO = if not creating means false, have to use left join and map null for to false
   return TODO
@@ -207,20 +207,20 @@ eventSign :: (MonadError M.SigError m, MonadIO m) => DBConn -> DBFunc -> M.User 
 eventSign conn dbFunc (M.User uid _ _ ) (M.SignedEvent eventID keyID (M.Signature signature)) = do
   timestamp <- liftIO getCurrentTime
   rFull <- dbFunc conn $ runSelectReturningList $ select $ do
-    allKeys <- all_ (supplyChainDb ^. _keys)
-    guard_ (allKeys ^. _keyId ==. keyID)
+    allKeys <- all_ (_keys supplyChainDb)
+    guard_ (_keyId allKeys ==. keyID)
     pure allKeys
     
-  r <- zip ((\e -> e ^. _rsa_n) <$> rFull) ((\e -> e ^. _rsa_e) <$> rFull)
+  r <- zip ((\e -> _rsa_n e) <$> rFull) ((\e -> _rsa_e e) <$> rFull)
 
   pubkey <- if length r == 0
     then throwError M.SE_InvalidKeyID
     else
       return $ uncurry M.RSAPublicKey $ head r
 
-  r <- dbFunc conn $ ((\e -> e ^. _jsonEvent) <$> (runSelectReturningList $ select $ do
-       allEvents <- all_ (supplyChainDb ^. _events)
-       guard_ (allEvents ^. _eventId ==. eventID)
+  r <- dbFunc conn $ ((\e -> _jsonEvent e) <$> (runSelectReturningList $ select $ do
+       allEvents <- all_ (_events supplyChainDb)
+       guard_ (_eventId allEvents ==. eventID)
        pure allEvents))
 
   blob <- case r of
@@ -238,19 +238,19 @@ eventSign conn dbFunc (M.User uid _ _ ) (M.SignedEvent eventID keyID (M.Signatur
 
 addContacts :: DBConn -> DBFunc -> M.User -> M.UserID -> IO Bool
 addContacts conn dbFunc (M.User uid1 _ _) uid2 = do
-  rowID <- dbFunc conn $ ((last $ runInsertReturningList $
-             (supplyChainDb ^. _contacts) $
-               insertValues [(Contact (Auto Nothing) uid1 uid2]) ^. _contactId)
-  return (fromIntegral rowID > 0)
+  [rowID] <- dbFunc conn $ runInsertReturningList $
+             (_contacts supplyChainDb) $
+               insertValues [(Contact (Auto Nothing) uid1 uid2)]
+  return (fromIntegral (_contactId rowID) > 0)
 
 -- don't return whether success/failure anymore since no Beam function to help
 removeContacts :: DBConn -> DBFunc -> M.User -> M.UserID -> IO ()
 removeContacts conn dbFunc (M.User uid1 _ _) uid2 = do
   dbFunc conn $
     runDelete $
-    delete (supplyChainDb ^. _contacts)
-           (\contact -> contact ^. _contactUser1Id ==. uid1 &&.
-                        contact ^.  _contactUser2Id ==. uid2)
+    delete (_contacts supplyChainDb)
+           (\contact -> _contactUser1Id contact ==. uid1 &&.
+                        _contactUser2Id contact ==. uid2)
   return ()
 
 
@@ -294,14 +294,14 @@ checkReadyForBlockchain conn eventID = do
 listContacts :: DBConn -> DBFunc -> M.User -> IO [M.User]
 listContacts conn dbFunc (M.User uid _ _) = do
   r_toGrabUser2 <- dbFunc conn $ runSelectReturningList $ select $ do
-    allUsers <- all_ (supplyChainDb ^. _users)
-    allContacts <- all_ (supplyChainDb ^. _contacts)
-    guard_ (allContacts ^. _contactUser1Id ==. uid &&. allUsers ^. _userId ==. allContacts ^. _contactUser2Id)
+    allUsers <- all_ (_users supplyChainDb)
+    allContacts <- all_ (_contacts supplyChainDb)
+    guard_ (_contactUser1Id allContacts ==. uid &&. _userId allUsers ==. _contactUser2Id allContacts)
     pure allUsers
   r_toGrabUser1 <- dbFunc conn $ runSelectReturningList $ select $ do
-    allUsers <- all_ (supplyChainDb ^. _users)
-    allContacts <- all_ (supplyChainDb ^. _contacts)
-    guard_ (allContacts ^. _contactUser2Id ==. uid &&. allUsers ^. _userId ==. allContacts ^. _contactUser1Id)
+    allUsers <- all_ (_users supplyChainDb)
+    allContacts <- all_ (_contacts supplyChainDb)
+    guard_ (_contactUser2Id allContacts ==. uid &&. _userId allUsers ==. _contactUser1Id allContacts)
     pure allUsers
   return $ unique $ contactUserToUser <$> (r_toGrabUser1 ++ r_toGrabUser2)
 
@@ -310,8 +310,8 @@ listContacts conn dbFunc (M.User uid _ _) = do
 userSearch :: DBConn -> DBFunc -> M.User -> String -> IO [M.User]
 userSearch conn dbFunc (M.User uid _ _) term = do
   rs <- dbFunc conn $ runSelectReturningList $ select $ do
-    allUsers <- all_ (supplyChainDb ^. _users)
-    guard_ (allUsers ^. _firstName ==. term ||. lastName ==. term) -- TODO = fix
+    allUsers <- all_ (_users supplyChainDb)
+    guard_ (_firstName allUsers ==. term ||. lastName ==. term) -- TODO = fix
     pure allUsers
   return (userToUser <$> rs)
 
