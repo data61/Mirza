@@ -88,7 +88,7 @@ instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub
 
 
 sampleUser :: User
-sampleUser =  User 1 "Sara" "Falamaki"
+sampleUser =  User (Auto Nothing) "Sara" "Falamaki"
 
 -- 'BasicAuthCheck' holds the handler we'll use to verify a username and password.
 authCheck :: Connection -> BasicAuthCheck User
