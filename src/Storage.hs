@@ -39,7 +39,7 @@ import Database.PostgreSQL.Simple
 
 type DBConn = Connection
 
-{- 
+
 
 -- to put in DB, we just convert it to json for now.
 
@@ -307,7 +307,7 @@ addContacts conn (M.User uid1 _ _) uid2 = do
   rowID <- lastInsertRowId conn
   return (fromIntegral rowID > 0)
 
--- Remove contacts to user
+-- Remove contacts to userfirst
 removeContacts :: DBConn -> M.User -> M.UserID -> IO Bool
 removeContacts conn (M.User uid1 _ _) uid2 = do
   execute conn "DELETE FROM Contacts WHERE user1 = ? AND user2 = ?;" (uid1, uid2)
@@ -337,4 +337,4 @@ toContactUser (userID, firstName, lastName) = M.User userID firstName lastName
 
 toUser :: (Integer, String, String) -> M.User
 toUser (userID, firstName, lastName) = M.User userID firstName lastName
--}
+

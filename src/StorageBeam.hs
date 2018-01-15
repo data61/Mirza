@@ -37,11 +37,11 @@ import Database.Beam.Migrate.Types
 import Data.Swagger hiding (Contact)
 import Servant
 
-type PrimaryKeyType = Auto Integer
-instance ToSchema PrimaryKeyType
-instance ToParamSchema PrimaryKeyType where
-  toParamSchema _ = error "not implemented yet"
-instance FromHttpApiData PrimaryKeyType
+type PrimaryKeyType = Integer
+-- instance ToSchema PrimaryKeyType
+-- instance ToParamSchema PrimaryKeyType where
+--   toParamSchema _ = error "not implemented yet"
+-- instance FromHttpApiData PrimaryKeyType
   -- where
   --   parseUrlPiece = error "not implemented yet"
 
