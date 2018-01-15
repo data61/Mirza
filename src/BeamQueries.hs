@@ -2,37 +2,37 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 module BeamQueries where
 
-import Control.Monad.Except
+-- import Control.Monad.Except
 
 import qualified Model as M
-import qualified CryptHash as C
-import qualified Data.Text as Txt
-import Control.Monad (unless)
-import Data.Time.Clock
-import Data.Maybe (listToMaybe, fromMaybe)
+-- import qualified CryptHash as C
+-- import qualified Data.Text as Txt
+-- import Control.Monad (unless)
+-- import Data.Time.Clock
+-- import Data.Maybe (listToMaybe, fromMaybe)
 
 import Crypto.Scrypt
 
-import Data.GS1.Event
-import Data.GS1.EventID
-import Data.GS1.EPC
-import Data.GS1.DWhen
-import Data.GS1.DWhere
-import Data.GS1.DWhat
-import Data.GS1.DWhy
+-- import Data.GS1.Event
+-- import Data.GS1.EventID
+-- import Data.GS1.EPC
+-- import Data.GS1.DWhen
+-- import Data.GS1.DWhere
+-- import Data.GS1.DWhat
+-- import Data.GS1.DWhy
 
-import Data.UUID.V4
+-- import Data.UUID.V4
 
-import Data.Aeson.Text
-import Data.ByteString.Char8 (pack, unpack)
-import qualified Data.ByteString as ByteString
-import qualified Data.Text.Lazy as TxtL
+-- import Data.Aeson.Text
+-- import Data.ByteString.Char8 (pack, unpack)
+-- import qualified Data.ByteString as ByteString
+-- import qualified Data.Text.Lazy as TxtL
 
-import qualified Data.List.NonEmpty as NonEmpty
+-- import qualified Data.List.NonEmpty as NonEmpty
 import Database.PostgreSQL.Simple
 -- import Database.PostgreSQL.Simple as DBConn
 
-import Database.Beam as DbB
+import Database.Beam as B
 import Database.Beam.Postgres
 import Database.Beam.Backend.SQL
 import Database.Beam.Backend
@@ -42,6 +42,8 @@ import Control.Lens
 import Database.PostgreSQL.Simple.FromField
 import Database.Beam.Backend.SQL
 import StorageBeam
+-- import Data.Maybe
+
 
 import Data.List.Unique
 
@@ -53,10 +55,10 @@ type DBConn = Connection
 
 insertUser :: DBConn -> DBFunc -> EncryptedPass -> M.NewUser -> IO M.UserID
 insertUser conn dbFunc pass (M.NewUser phone email first last biz password) = do
-  rowID <- dbFunc conn $ ((last $ runInsertReturningList $
-        (supplyChainDb ^. _users) $
-          insertValues [(User (Auto Nothing) biz first last phone hash email)]) ^. userId)
-   return (fromIntegral rowID :: M.UserID)
+  [rowID] <- dbFunc conn $ runInsertReturningList $
+        (_users supplyChainDb) $
+          insertValues [(User (Auto Nothing) (BizId . Auto. Just . fromIntegral $ biz) first last phone hash email)]
+   return (_userId rowID)
 
 newUser :: DBConn -> DBFunc -> M.NewUser -> IO M.UserID
 newUser conn dbFunc (M.NewUser phone email first last biz password) = do
@@ -172,8 +174,8 @@ eventCreateObject conn dbFunc (M.User uid _ _ ) (M.NewObject epc epcisTime timez
       event = Event ObjectEventT eventID what when why dwhere
       jsonEvent = encodeEvent event
 
-  dbFunc conn $ DbB.runInsert $
-    DbB.insert (supplyChainDb ^. _events) $
+  dbFunc conn $ B.runInsert $
+    B.insert (supplyChainDb ^. _events) $
       insertValues [ Event (Auto Nothing) eventID epc what why dwhere epcisTime timezone ObjectEventT uid jsonEvent]
 
   -- TODO = combine rows from bizTransactionTable and _eventCreatedBy field in Event table
