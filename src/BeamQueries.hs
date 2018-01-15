@@ -65,20 +65,6 @@ newUser conn dbFunc (M.NewUser phone email first last biz password) = do
    hash <- encryptPassIO' (Pass (pack password))
    return insertUser conn dbFunc hash (M.NewUser phone email first last biz password)
 
-
--- offset_ 100 $
--- filter_ (\customer -> ((customerFirstName customer `like_` "Jo%") &&. (customerLastName customer `like_` "S%")) &&.
---                       (addressState (customerAddress customer) ==. just_ "CA" ||. addressState (customerAddress customer) ==. just_ "WA")) $
---         all_ (customer chinookDb)
-
-
--- filter_ (\user -> (_emailAddress user) ==. just_ email) $ all_ (user supplyChainDb)
-
--- selectedUser <- dbFunc conn $ runSelectReturningList $ select $
---   do user <- all_ (supplyChainDb ^. users)
---      guard_ (_emailAddress
-
-
 -- Basic Auth check using Scrypt hashes.
 authCheck :: DBConn -> DBFunc -> M.EmailAddress -> M.Password -> IO (Maybe M.User)
 authCheck conn dbFunc email password = do
@@ -289,7 +275,7 @@ checkReadyForBlockchain conn eventID = do
     [Only (0::Integer)] -> pure ()
     _ -> throwError M.SE_NeedMoreSignatures
 
--- NOTE - might need to instantiate tuples as ord for unique???
+-- note that use of complex from Data.List.Unique is not efficient
 -- no union, so we process making unique in haskell
 listContacts :: DBConn -> DBFunc -> M.User -> IO [M.User]
 listContacts conn dbFunc (M.User uid _ _) = do
@@ -303,7 +289,7 @@ listContacts conn dbFunc (M.User uid _ _) = do
     allContacts <- all_ (_contacts supplyChainDb)
     guard_ (_contactUser2Id allContacts ==. uid &&. _userId allUsers ==. _contactUser1Id allContacts)
     pure allUsers
-  return $ unique $ contactUserToUser <$> (r_toGrabUser1 ++ r_toGrabUser2)
+  return $ (\l -> (complex l) ^. _1) $ contactUserToUser <$> (r_toGrabUser1 ++ r_toGrabUser2)
 
 -- TODO = how to do like, also '%||?||%'
 -- below is wrong!
