@@ -42,6 +42,8 @@ instance ToSchema PrimaryKeyType
 instance ToParamSchema PrimaryKeyType where
   toParamSchema _ = error "not implemented yet"
 instance FromHttpApiData PrimaryKeyType
+  -- where
+  --   parseUrlPiece = error "not implemented yet"
 
 data Env = Prod | Dev
 
