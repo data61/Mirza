@@ -59,12 +59,14 @@ import Database.Beam.Backend.Types (Auto)
 
 import Crypto.Hash.IO
 
-type PrimaryKeyType = Auto Integer
-type UserID = Auto Int32
-instance ToSchema UserID
-instance ToParamSchema UserID where
-  toParamSchema _ = error "not implemented yet"
-instance FromHttpApiData UserID
+import StorageBeam (PrimaryKeyType)
+
+type UserID = PrimaryKeyType
+
+-- instance ToSchema UserID
+-- instance ToParamSchema UserID where
+--   toParamSchema _ = error "not implemented yet"
+-- instance FromHttpApiData UserID
 -- type UserID = Integer
 
 type EmailAddress = ByteString.ByteString
