@@ -59,16 +59,17 @@ import System.Environment (getArgs, lookupEnv)
 
 import Text.Read          (readMaybe)
 import Model
+import StorageBeam (PrimaryKeyType)
 
 type PrivateAPI =
                  "epc" :>  Capture "urn" String:> "info" :> Get '[JSON] EPCState
             :<|> "epc" :> Capture "urn" String :> "events" :> Get '[JSON] [Event]
             :<|> "event" :> Capture "eventID" EventID:> "info" :> Get '[JSON] Event
             :<|> "contacts" :>  Get '[JSON] [User]
-            :<|> "contacts" :> "add" :> Capture "userID" (Auto Int32) :> Get '[JSON] Bool
-            :<|> "contacts" :> "remove" :> Capture "userID" (Auto Int32) :> Get '[JSON] Bool
+            :<|> "contacts" :> "add" :> Capture "userID" PrimaryKeyType :> Get '[JSON] Bool
+            :<|> "contacts" :> "remove" :> Capture "userID" PrimaryKeyType :> Get '[JSON] Bool
             :<|> "contacts" :> "search" :> Capture "term" String :> Get '[JSON] [User]
-            :<|> "event" :> "list" :> Capture "userID" (Auto Int32) :> Get '[JSON] [Event]
+            :<|> "event" :> "list" :> Capture "userID" PrimaryKeyType :> Get '[JSON] [Event]
             :<|> "event" :> "listUsers" :> Capture "eventID" EventID :> Get '[JSON] [(User, Bool)]
             :<|> "event" :> "sign" :> ReqBody '[JSON] SignedEvent :> Post '[JSON] Bool
             :<|> "event" :> "getHash" :> ReqBody '[JSON] EventID :> Post '[JSON] HashedEvent
