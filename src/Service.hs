@@ -74,6 +74,7 @@ import qualified Data.Text as Txt
 import Control.Monad.Except
 -- remove me eventually
 import Data.UUID.V4
+import BeamQueries
 
 instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub) where
   toSwagger _ =
@@ -161,9 +162,9 @@ addPublicKey conn user sig = error "Storage module not implemented"
 
 
 newUser :: Connection -> NewUser -> Handler UserID
-newUser conn nu = error "Storage module not implemented"
-  -- liftIO (Storage.newUser conn nu)
-
+-- newUser conn nu = error "Storage module not implemented"
+--   -- liftIO (Storage.newUser conn nu)
+newUser conn nu = liftIO (BeamQueries.newUser conn nu)
 
 getPublicKey :: Connection -> KeyID -> Handler RSAPublicKey
 getPublicKey conn keyID = error "Storage module not implemented"

@@ -24,7 +24,8 @@ import Crypto.Scrypt
 -- import Data.UUID.V4
 
 -- import Data.Aeson.Text
--- import Data.ByteString.Char8 (pack, unpack)
+import Data.Text.Encoding
+import Data.ByteString.Char8 (pack, unpack)
 -- import qualified Data.ByteString as ByteString
 -- import qualified Data.Text.Lazy as TxtL
 
@@ -46,9 +47,15 @@ insertUser conn pass (M.NewUser phone email firstName lastName biz password) = d
   [insertedUser] <- dbFunc conn $ runInsertReturningList (_users supplyChainDb) $
                     insertValues [(User 0 --(Auto Nothing)
                     (BizId biz) firstName lastName phone password email)]
+                    -- (BizId . Auto. Just . fromIntegral $ biz) firstName lastName phone password email)]
+
   return (_userId insertedUser)
 
 -- |
+newUser :: Connection -> M.NewUser -> IO M.UserID
+newUser conn userInfo@((M.NewUser phone email firstName lastName biz password)) = do
+    hash <- encryptPassIO' (Pass $ encodeUtf8 password)
+    insertUser conn hash userInfo
 
 -- Basic Auth check using Scrypt hashes.
 -- authCheck :: Connection -> DBFunc -> M.EmailAddress -> M.Password -> IO (Maybe M.User)
