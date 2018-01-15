@@ -50,8 +50,9 @@ sha256 :: Char8.ByteString -> Digest SHA256
 sha256 = hash
 
 verifySignature :: RSAPublicKey -> ByteString.ByteString -> M.Signature -> Bool
-verifySignature (RSAPublicKey n e) event (Signature signature) = PSS.verify (PSS.defaultPSSParams SHA256) pubKey event (Char8.pack signature)
-  where
-    pubKey = PublicKey 128 n e --FIXME
+verifySignature (RSAPublicKey n e) event (Signature signature) =
+    PSS.verify (PSS.defaultPSSParams SHA256) pubKey event (Char8.pack signature)
+    where
+      pubKey = PublicKey 128 n e --FIXME
 
 
