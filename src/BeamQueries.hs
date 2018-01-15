@@ -53,7 +53,7 @@ insertUser conn pass (M.NewUser phone email firstName lastName biz password) = d
 
 -- |
 newUser :: Connection -> M.NewUser -> IO M.UserID
-newUser conn userInfo@((M.NewUser phone email firstName lastName biz password)) = do
+newUser conn userInfo@(M.NewUser phone email firstName lastName biz password) = do
     hash <- encryptPassIO' (Pass $ encodeUtf8 password)
     insertUser conn hash userInfo
 
