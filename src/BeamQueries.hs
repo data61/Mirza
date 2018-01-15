@@ -2,43 +2,43 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 module BeamQueries where
 
-import Control.Monad.Except
+-- import Control.Monad.Except
 
 import qualified Model as M
-import qualified CryptHash as C
-import qualified Data.Text as Txt
-import Control.Monad (unless)
-import Data.Time.Clock
-import Data.Maybe (listToMaybe, fromMaybe)
+-- import qualified CryptHash as C
+-- import qualified Data.Text as Txt
+-- import Control.Monad (unless)
+-- import Data.Time.Clock
+-- import Data.Maybe (listToMaybe, fromMaybe)
 
 import Crypto.Scrypt
 
-import Data.GS1.Event
-import Data.GS1.EventID
-import Data.GS1.EPC
-import Data.GS1.DWhen
-import Data.GS1.DWhere
-import Data.GS1.DWhat
-import Data.GS1.DWhy
+-- import Data.GS1.Event
+-- import Data.GS1.EventID
+-- import Data.GS1.EPC
+-- import Data.GS1.DWhen
+-- import Data.GS1.DWhere
+-- import Data.GS1.DWhat
+-- import Data.GS1.DWhy
 
-import Data.UUID.V4
+-- import Data.UUID.V4
 
-import Data.Aeson.Text
-import Data.ByteString.Char8 (pack, unpack)
-import qualified Data.ByteString as ByteString
-import qualified Data.Text.Lazy as TxtL
+-- import Data.Aeson.Text
+-- import Data.ByteString.Char8 (pack, unpack)
+-- import qualified Data.ByteString as ByteString
+-- import qualified Data.Text.Lazy as TxtL
 
-import qualified Data.List.NonEmpty as NonEmpty
+-- import qualified Data.List.NonEmpty as NonEmpty
 import Database.PostgreSQL.Simple
-import Control.Lens
+-- import Control.Lens
 import Database.Beam as B
-import Database.Beam.Postgres
-import Database.Beam.Backend
+-- import Database.Beam.Postgres
+-- import Database.Beam.Backend
 import Database.Beam.Backend.SQL.BeamExtensions
-import Database.PostgreSQL.Simple.FromField
-import Database.Beam.Backend.SQL
+-- import Database.PostgreSQL.Simple.FromField
+-- import Database.Beam.Backend.SQL
 import StorageBeam
-import Data.Maybe
+-- import Data.Maybe
 
 
 insertUser :: Connection -> EncryptedPass -> M.NewUser -> IO M.UserID
