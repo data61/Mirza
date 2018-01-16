@@ -69,16 +69,24 @@ import Data.GS1.DWhat
 type DBConn = Connection
 
 -- TODO = (Auto Nothing) rather than 0?
-insertUser :: DBConn -> EncryptedPass -> M.NewUser -> IO M.UserID
-insertUser conn pass (M.NewUser phone email first last biz password) = do
-  [rowID] <- dbFunc conn $ runInsertReturningList (_users supplyChainDb) $
-               insertValues [(User 0 (BizId biz) first last phone password email)]
-  return (user_id rowID)
+insertUser :: Connection -> EncryptedPass -> M.NewUser -> IO M.UserID
+insertUser conn pass (M.NewUser phone email firstName lastName biz password) = do
 
-newUser :: DBConn -> M.NewUser -> IO M.UserID
-newUser conn userInfo@(M.NewUser phone email first last biz password) = do
-   hash <- encryptPassIO' (Pass $ encodeUtf8 password)
-   insertUser conn hash userInfo
+  [insertedUser] <- dbFunc conn $ runInsertReturningList (_users supplyChainDb) $
+                    insertValues [(User 0 --(Auto Nothing)
+                    (BizId biz) firstName lastName phone password email)]
+                    -- (BizId . Auto. Just . fromIntegral $ biz) firstName lastName phone password email)]
+  -- print insertedUser
+  return (user_id insertedUser)
+
+-- |
+newUser :: Connection -> M.NewUser -> IO M.UserID
+newUser conn userInfo@(M.NewUser phone email firstName lastName biz password) = do
+    hash <- encryptPassIO' (Pass $ encodeUtf8 password)
+    insertUser conn hash userInfo
+
+userTable2Model :: SB.User -> M.User
+userTable2Model = error "not implemented yet"
 
 -- Basic Auth check using Scrypt hashes.
 authCheck :: DBConn -> M.EmailAddress -> M.Password -> IO (Maybe M.User)
