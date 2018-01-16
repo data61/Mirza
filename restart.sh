@@ -15,4 +15,4 @@ then
     stack clean
 fi
 stack build
-stack exec supplyChainServer-exe -- run migrate
+stack exec supplyChainServer-exe -- run migrate jensoleg
