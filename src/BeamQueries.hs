@@ -1,17 +1,17 @@
 {-# LANGUAGE OverloadedStrings      #-}
 {-# LANGUAGE ScopedTypeVariables    #-}
+{-# LANGUAGE DeriveGeneric          #-}
+{-# LANGUAGE TemplateHaskell, GADTs #-}
+{-# LANGUAGE FlexibleContexts       #-}
+{-# LANGUAGE FlexibleInstances      #-}
+{-# LANGUAGE TypeFamilies           #-}
+{-# LANGUAGE TypeApplications       #-}
+{-# LANGUAGE StandaloneDeriving     #-}
+{-# LANGUAGE TypeSynonymInstances   #-}
+{-#LANGUAGE PartialTypeSignatures   #-}
+{-# LANGUAGE UndecidableInstances   #-}
+{-# LANGUAGE MultiParamTypeClasses  #-}
 
--- {-# LANGUAGE DeriveGeneric          #-}
--- {-# LANGUAGE TemplateHaskell, GADTs #-}
--- {-# LANGUAGE FlexibleContexts       #-}
--- {-# LANGUAGE FlexibleInstances      #-}
--- {-# LANGUAGE TypeFamilies           #-}
--- {-# LANGUAGE TypeApplications       #-}
--- {-# LANGUAGE StandaloneDeriving     #-}
--- {-# LANGUAGE TypeSynonymInstances   #-}
--- {-#LANGUAGE PartialTypeSignatures   #-}
--- {-# LANGUAGE UndecidableInstances   #-}
--- {-# LANGUAGE MultiParamTypeClasses  #-}
 
 module BeamQueries where
 
