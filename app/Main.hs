@@ -57,8 +57,4 @@ runProgram :: ServerOptions -> IO ()
 runProgram (ServerOptions debug False connectionStr port flavour) = startApp connectionStr debug port flavour
 runProgram _ = migrate
 
--- main = migrate -- make this a command line argument
--- cmd args -->
-    -- run_schema
-    -- env (prod/dev --> create DBFunc based on this)
-    -- connectionStr
+
