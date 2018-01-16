@@ -13,7 +13,8 @@
 
 module Lib
     ( startApp,
-      startApp_nomain
+      startApp_nomain,
+      UIFlavour(..)
     )
     where
 
@@ -71,18 +72,10 @@ import Model
 import Service
 import Migrate
 
-startApp :: ByteString -> IO ()
-startApp dbConnStr = do
-    args <- getArgs
-    let uiFlavour = if "jensoleg" `elem` args then JensOleG else Original
-    case args of
-        ("run":_) -> do
-            p <- fromMaybe 8000 . (>>= readMaybe) <$> lookupEnv "PORT"
-            putStrLn $ "http://localhost:" ++ show p ++ "/" ++ "swagger-ui/"
-            Warp.run p =<< mkApp dbConnStr uiFlavour
-        _ -> do
-            putStrLn "Example application, used as a compilation check"
-            putStrLn "To run, pass run argument: --test-arguments run"
+startApp :: ByteString -> Bool -> Int -> UIFlavour-> IO ()
+startApp dbConnStr isDebug port uiFlavour = do
+     putStrLn $ "http://localhost:" ++ show port ++ "/" ++ "swagger-ui/"
+     Warp.run port =<< mkApp dbConnStr uiFlavour
 
 
 -- easily start the app in ghci, no command line arguments required.
@@ -133,7 +126,7 @@ data Variant
 data UIFlavour
     = Original
     | JensOleG
-    deriving (Eq)
+    deriving (Eq, Read, Show)
 
 server' :: Connection -> UIFlavour -> Server API'
 server' conn uiFlavour = server Normal

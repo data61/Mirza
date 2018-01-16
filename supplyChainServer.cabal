@@ -54,6 +54,7 @@ library
                     , beam-postgres
                     , time
                     , beam-migrate
+                    , optparse-applicative
   default-language:   Haskell2010
   default-extensions: FlexibleContexts
                     , FlexibleInstances
@@ -86,6 +87,7 @@ executable supplyChainServer-exe
                      , uuid
                      , cryptonite
                      , mtl
+                     , optparse-applicative
   default-language:    Haskell2010
   default-language:    Haskell2010
 
