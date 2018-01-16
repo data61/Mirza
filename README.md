@@ -31,7 +31,7 @@ Note that you can change "testsupplychainserver" for any database name you like.
 
 Finally, to run the server, do:
 
-<code>stack exec supplyChainServer-exe --run --migrate </code>
+<code>stack exec supplyChainServer-exe -- run migrate </code>
 
 Then you can check out the API at:
 
