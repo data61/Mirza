@@ -561,8 +561,8 @@ instance Database SupplyChainDb
 --   sqlValueSyntax = autoSqlValueSyntax
 
 -- instance FromField EventType where
---   fieldNamed f mdata = do
---                         x <- readMaybe <$> fieldNamed f mdata
+--   fromField f mdata = do
+--                         x <- readMaybe <$> fromField f mdata
 --                         case x of
 --                           Nothing -> returnError ConversionFailed f "Could not 'read' value for 'EventType'"
 --                           Just x -> pure x
