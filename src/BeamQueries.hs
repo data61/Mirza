@@ -90,16 +90,15 @@ userTable2Model = error "not implemented yet"
 authCheck :: Connection -> M.EmailAddress -> M.Password -> IO (Maybe M.User)
 authCheck conn email password = do
   r <- dbFunc conn $ runSelectReturningList $ select $ do
-    allUsers <- all_ (_users supplyChainDb)
-    guard_ (_emailAddress allUsers  ==. email)
-    pure allUsers
-  if length r == 0
-     then return Nothing
-     else do
-       let (uid, bizID, firstName, lastName, phoneNumber, hash, emailAddress) = head r
-       if verifyPass' (Pass password) (EncryptedPass hash)
-          then return $ Just $ M.User uid firstName lastName
+        user <- all_ (_users supplyChainDb)
+        guard_ (email_address user  ==. val_ email)
+        pure user
+  case r of
+    [user] -> do
+        if verifyPass' (Pass password) (EncryptedPass $ encodeUtf8 $ password_hash user)
+          then return $ Just $ userTable2Model user
           else return Nothing
+    _ -> return Nothing -- null list or multiple elements
 
 -- BELOW = Beam versions of SQL versions from Storage.hs
 
