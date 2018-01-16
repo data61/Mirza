@@ -11,15 +11,24 @@
 {-# OPTIONS_GHC -fno-warn-orphans  #-}
 module StorageBeam where
 
+{-
+1. convert all table definitions to under_score case
+2. make the schema definitions consistent with the table definitions
+3. for each primaryKey = .+Id \. .* (this is a regex), make the relevant change (eg. _itemId becomes item_id)
+4. For each foreign key, make changes that appear similar to the changes made to UserT table
+5. Do it for each of the tables (or the ones allocated to you)
+VSCode shortcut for multi-line cursors: Ctrl+Shift+Up/Down
+-}
+
 import Control.Lens
 import Database.Beam as B
 import Database.Beam.Postgres
--- import Database.PostgreSQL.Simple
--- import Database.Beam.Backend
--- import Database.Beam.Backend.SQL.BeamExtensions
--- import Database.PostgreSQL.Simple.FromField
--- import Database.Beam.Backend.SQL
--- import System.Environment (getArgs)
+import Database.PostgreSQL.Simple
+import Database.Beam.Backend
+import Database.Beam.Backend.SQL.BeamExtensions
+import Database.PostgreSQL.Simple.FromField
+import Database.Beam.Backend.SQL
+import System.Environment (getArgs)
 
 import Data.Text (Text)
 import Data.Int
@@ -67,150 +76,150 @@ migrationStorage =
     <$> createTable "users"
     (
       User
-          (field "_userId" bigserial)
-          (BizId (field "_userBizId" bigserial))
-          (field "_firstName" (varchar (Just maxLen)) notNull)
-          (field "_lastName" (varchar (Just maxLen)) notNull)
-          (field "_phoneNumber" (varchar (Just maxLen)) notNull)
-          (field "_passwordHash" (varchar (Just maxLen)) notNull)
-          (field "_emailAddress" (varchar (Just maxLen)) notNull)
+          (field "user_id" bigserial)
+          (BizId (field "user_biz_id" bigserial))
+          (field "first_name" (varchar (Just maxLen)) notNull)
+          (field "last_name" (varchar (Just maxLen)) notNull)
+          (field "phone_number" (varchar (Just maxLen)) notNull)
+          (field "password_hash" (varchar (Just maxLen)) notNull)
+          (field "email_address" (varchar (Just maxLen)) notNull)
     )
     <*> createTable "keys"
     (
       Key
-          (field "_keyId" bigserial)
-          (UserId (field "_userId" bigserial))
-          (field "_rsa_n" bigserial)
-          (field "_rsa_e" bigserial)
-          (field "_creationTime" bigserial)
-          (field "_revocationTime" bigserial)
+          (field "key_id" bigserial)
+          (UserId (field "key_user_id" bigserial))
+          (field "rsa_n" bigserial)
+          (field "rsa_e" bigserial)
+          (field "creation_time" bigserial)
+          (field "revocation_time" bigserial)
     )
     <*> createTable "businesses"
     (
       Business
-          (field "_bizId" bigserial)
-          (field "_bizName" (varchar (Just maxLen)) notNull)
-          (field "_bizGs1CompanyPrefix" bigserial)
-          (field "_bizFunction" (varchar (Just maxLen)) notNull)
-          (field "_bizSiteName" (varchar (Just maxLen)) notNull)
-          (field "_bizAddress" (varchar (Just maxLen)) notNull)
-          (field "_bizLat" double notNull)
-          (field "_bizLong" double notNull)
+          (field "biz_id" bigserial)
+          (field "biz_name" (varchar (Just maxLen)) notNull)
+          (field "biz_gs1CompanyPrefix" bigserial)
+          (field "biz_function" (varchar (Just maxLen)) notNull)
+          (field "biz_siteName" (varchar (Just maxLen)) notNull)
+          (field "biz_address" (varchar (Just maxLen)) notNull)
+          (field "biz_lat" double notNull)
+          (field "biz_long" double notNull)
     )
     <*> createTable "contacts"
     (
       Contact
-          (field "_contactId" bigserial)
-          (UserId (field "_contactUser1" bigserial))
-          (UserId (field "_contactUser2" bigserial))
+          (field "contact_id" bigserial)
+          (UserId (field "contact_user1_id" bigserial))
+          (UserId (field "contact_user2_id" bigserial))
     )
     <*> createTable "labels"
     (
       Label
-          (field "_labelId" bigserial)
-          (field "_labelGs1CompanyPrefix" (varchar (Just maxLen)) notNull)
-          (field "_itemReference" (varchar (Just maxLen)) notNull)
-          (field "_serialNumber" (varchar (Just maxLen)) notNull)
-          (field "_state" (varchar (Just maxLen)) notNull)
-          (field "_labelType" (varchar (Just maxLen)) notNull)
-          (field "_lot" (varchar (Just maxLen)) notNull)
+          (field "label_id" bigserial)
+          (field "label_gs1_company_prefix" (varchar (Just maxLen)) notNull)
+          (field "item_reference" (varchar (Just maxLen)) notNull)
+          (field "serial_number" (varchar (Just maxLen)) notNull)
+          (field "state" (varchar (Just maxLen)) notNull)
+          (field "label_type" (varchar (Just maxLen)) notNull)
+          (field "lot" (varchar (Just maxLen)) notNull)
     )
     <*> createTable "items"
     (
       Item
-          (field "_itemId" bigserial)
-          (LabelId (field "_itemLabelId" bigserial))
-          (field "_itemDescription" (varchar (Just maxLen)) notNull)
+          (field "item_id" bigserial)
+          (LabelId (field "item_label_id" bigserial))
+          (field "item_description" (varchar (Just maxLen)) notNull)
     )
     <*> createTable "transformations"
     (
       Transformation
-          (field "_transformationId" bigserial)
-          (field "_transformationDescription" (varchar (Just maxLen)) notNull)
-          (BizId (field "_transformBizId" bigserial))
+          (field "transformation_id" bigserial)
+          (field "transformation_description" (varchar (Just maxLen)) notNull)
+          (BizId (field "transformation_biz_id" bigserial))
     )
     <*> createTable "locations"
     (
       Location
-          (field "_locationId" bigserial)
-          (BizId (field "_locationBizId" bigserial))
-          (field "_locationLat" double)
-          (field "_locationLong" double)
+          (field "location_id" bigserial)
+          (BizId (field "location_biz_id" bigserial))
+          (field "location_lat" double)
+          (field "location_long" double)
     )
     <*> createTable "events"
     (
       Event
-          (field "_eventId" bigserial)
-          (field "_foreignEventId" (varchar (Just maxLen)) notNull)
-          (BizId (field "_eventLabelId" bigserial))
-          (UserId (field "_eventCreatedBy" bigserial))
-          (field "_jsonEvent" (varchar (Just maxLen)) notNull)
+          (field "event_id" bigserial)
+          (field "foreign_event_id" (varchar (Just maxLen)) notNull)
+          (BizId (field "event_label_id" bigserial))
+          (UserId (field "event_created_by" bigserial))
+          (field "json_event" (varchar (Just maxLen)) notNull)
     )
     <*> createTable "whats"
     (
       What
-          (field "_whatId" bigserial)
-          (field "_whatType" bigserial) -- bigserial for now FIXME
-          (field "_action" bigserial) -- bigserial for now FIXME
-          (LabelId (field "_parent" bigserial)) -- bigserial for now FIXME
-          (field "_input" bigserial) -- bigserial for now FIXME
-          (field "_output" bigserial) -- bigserial for now FIXME
-          (BizTransactionId (field "_bizTransactionId" bigserial)) -- bigserial for now FIXME
-          (TransformationId (field "_whatTransformationId" bigserial)) -- bigserial for now FIXME
-          (EventId (field "_bizTransactionEventId" bigserial))
+          (field "what_id" bigserial)
+          (field "what_type" bigserial) -- bigserial for now FIXME
+          (field "action" bigserial) -- bigserial for now FIXME
+          (LabelId (field "parent" bigserial)) -- bigserial for now FIXME
+          (field "input" bigserial) -- bigserial for now FIXME
+          (field "output" bigserial) -- bigserial for now FIXME
+          (BizTransactionId (field "what_biz_transaction_id" bigserial)) -- bigserial for now FIXME
+          (TransformationId (field "what_transformation_id" bigserial)) -- bigserial for now FIXME
+          (EventId (field "what_event_id" bigserial))
     )
     <*> createTable "bizTransactions"
     (
       BizTransaction
-          (field "_bizTransactionId" bigserial)
-          (UserId (field "_userID1" bigserial))
-          (UserId (field "_userID2" bigserial))
-          (EventId (field "_eventID" bigserial))
+          (field "biz_transaction_id" bigserial)
+          (UserId (field "user_id1" bigserial))
+          (UserId (field "user_id2" bigserial))
+          (EventId (field "biz_transaction_event_id" bigserial))
     )
     <*> createTable "whys"
     (
       Why
-          (field "_whyId" bigserial)
-          (field "_bizStep" bigserial) -- waiting for the compuler to tell us the type
-          (field "_disposition" bigserial) -- waiting for the compuler to tell us the type
-          (EventId (field "eventId" bigserial))
+          (field "why_id" bigserial)
+          (field "biz_step" bigserial) -- waiting for the compuler to tell us the type
+          (field "disposition" bigserial) -- waiting for the compuler to tell us the type
+          (EventId (field "why_event_id" bigserial))
     )
     <*> createTable "wheres"
     (
       Where
-          (field "_whereId" bigserial)
-          (LocationId (field "_readPoint" bigserial))
-          (LocationId (field "_bizLocation" bigserial))
-          (field "_srcType" bigserial) -- waiting for compiler
-          (field "_destType" bigserial) -- waiting for compiler
-          (EventId (field "eventId" bigserial))
+          (field "where_id" bigserial)
+          (LocationId (field "read_point" bigserial))
+          (LocationId (field "biz_location" bigserial))
+          (field "src_type" bigserial) -- waiting for compiler
+          (field "dest_type" bigserial) -- waiting for compiler
+          (EventId (field "where_event_id" bigserial))
     )
     <*> createTable "whens"
     (
       When
-          (field "_whenId" bigserial)
-          (field "_eventTime" bigserial)
-          (field "_recordTime" bigserial)
-          (field "_timeZone" (varchar (Just maxLen)) notNull)
-          (EventId (field "eventId" bigserial))
+          (field "when_id" bigserial)
+          (field "event_time" bigserial)
+          (field "record_time" bigserial)
+          (field "time_zone" (varchar (Just maxLen)) notNull)
+          (EventId (field "when_event_id" bigserial))
     )
     <*> createTable "labelEvents"
     (
       LabelEvent
-          (field "_labelEventId" bigserial)
-          (LabelId (field "_labelEventLabelId" bigserial))
-          (EventId (field "_labelEventEventId" bigserial))
+          (field "label_event_id" bigserial)
+          (LabelId (field "label_event_label_id" bigserial))
+          (EventId (field "label_event_event_id" bigserial))
     )
 
 
 data UserT f = User
-  { _userId              :: C f PrimaryKeyType
-  , _userBizId           :: PrimaryKey BusinessT f
-  , _firstName           :: C f Text
-  , _lastName            :: C f Text
-  , _phoneNumber         :: C f Text
-  , _passwordHash        :: C f Text --XXX - should this be blob?
-  , _emailAddress        :: C f Text }
+  { user_id              :: C f PrimaryKeyType
+  , user_biz_id          :: PrimaryKey BusinessT f
+  , first_name           :: C f Text
+  , last_name            :: C f Text
+  , phone_number         :: C f Text
+  , password_hash        :: C f Text --XXX - should this be blob?
+  , email_address        :: C f Text }
   deriving Generic
 
 type User = UserT Identity
@@ -225,15 +234,15 @@ instance Beamable (PrimaryKey UserT)
 instance Table UserT where
   data PrimaryKey UserT f = UserId (C f PrimaryKeyType)
     deriving Generic
-  primaryKey = UserId . _userId
+  primaryKey = UserId . user_id
 
 data KeyT f = Key
-  { _keyId              :: C f PrimaryKeyType
-  , _keyUserId          :: PrimaryKey UserT f
-  , _rsa_n              :: C f Int32 --XXX should this be Int64?
-  , _rsa_e              :: C f Int32 -- as above
-  , _creationTime       :: C f Int32 --XXX date.. Int64?
-  , _revocationTime     :: C f Int32 -- as above
+  { key_id             :: C f PrimaryKeyType
+  , key_user_id        :: PrimaryKey UserT f
+  , rsa_n              :: C f Int32 --XXX should this be Int64?
+  , rsa_e              :: C f Int32 -- as above
+  , creationTime       :: C f Int32 --XXX date.. Int64?
+  , revocationTime     :: C f Int32 -- as above
   }
   deriving Generic
 type Key = KeyT Identity
@@ -247,17 +256,17 @@ instance Beamable (PrimaryKey KeyT)
 instance Table KeyT where
   data PrimaryKey KeyT f = KeyId (C f PrimaryKeyType)
     deriving Generic
-  primaryKey = KeyId . _keyId
+  primaryKey = KeyId . key_id
 
 data BusinessT f = Business
-  { _bizId                :: C f PrimaryKeyType
-  , _bizName              :: C f Text
-  , _bizGs1CompanyPrefix  :: C f Int32
-  , _bizFunction          :: C f Text
-  , _bizSiteName          :: C f Text
-  , _bizAddress           :: C f Text
-  , _bizLat               :: C f Float
-  , _bizLong              :: C f Float }
+  { biz_id                :: C f PrimaryKeyType
+  , biz_name              :: C f Text
+  , biz_gs1CompanyPrefix  :: C f Int32
+  , biz_function          :: C f Text
+  , biz_siteName          :: C f Text
+  , biz_address           :: C f Text
+  , biz_lat               :: C f Float
+  , biz_long              :: C f Float }
   deriving Generic
 type Business = BusinessT Identity
 type BizId = PrimaryKey BusinessT Identity
@@ -271,12 +280,12 @@ deriving instance Show (PrimaryKey BusinessT Identity)
 instance Table BusinessT where
   data PrimaryKey BusinessT f = BizId (C f PrimaryKeyType)
     deriving Generic
-  primaryKey = BizId . _bizId
+  primaryKey = BizId . biz_id
 
 data ContactT f = Contact
-  { _contactId                :: C f PrimaryKeyType
-  , _contactUser1Id           :: PrimaryKey UserT f
-  , _contactUser2Id           :: PrimaryKey UserT f }
+  { contact_id                :: C f PrimaryKeyType
+  , contact_user1_id           :: PrimaryKey UserT f
+  , contact_user2_id           :: PrimaryKey UserT f }
   deriving Generic
 
 type Contact = ContactT Identity
@@ -291,16 +300,16 @@ deriving instance Show (PrimaryKey ContactT Identity)
 instance Table ContactT where
   data PrimaryKey ContactT f = ContactId (C f PrimaryKeyType)
     deriving Generic
-  primaryKey = ContactId . _contactId
+  primaryKey = ContactId . contact_id
 
 data LabelT f = Label
-  { _labelId                 :: C f PrimaryKeyType
-  , _labelGs1CompanyPrefix   :: C f Text --should this be bizId instead?
-  , _itemReference           :: C f Text
-  , _serialNumber            :: C f Text
-  , _state                   :: C f Text
-  , _labelType               :: C f Text
-  , _lot                     :: C f Text }
+  { label_id                 :: C f PrimaryKeyType
+  , label_gs1_company_prefix :: C f Text --should this be bizId instead?
+  , item_reference           :: C f Text
+  , serial_number            :: C f Text
+  , state                    :: C f Text
+  , label_type               :: C f Text
+  , lot                      :: C f Text }
   deriving Generic
 type Label = LabelT Identity
 type LabelId = PrimaryKey LabelT Identity
@@ -314,12 +323,12 @@ deriving instance Show (PrimaryKey LabelT Identity)
 instance Table LabelT where
   data PrimaryKey LabelT f = LabelId (C f PrimaryKeyType)
     deriving Generic
-  primaryKey = LabelId . _labelId
+  primaryKey = LabelId . label_id
 
 data ItemT f = Item
-  { _itemId            :: C f PrimaryKeyType
-  , _itemLabelId       :: PrimaryKey LabelT f
-  , _itemDescription   :: C f Text }
+  { item_id            :: C f PrimaryKeyType
+  , item_label_id       :: PrimaryKey LabelT f
+  , item_description   :: C f Text }
   deriving Generic
 type Item = ItemT Identity
 type ItemId = PrimaryKey ItemT Identity
@@ -333,12 +342,12 @@ deriving instance Show (PrimaryKey ItemT Identity)
 instance Table ItemT where
   data PrimaryKey ItemT f = ItemId (C f PrimaryKeyType)
     deriving Generic
-  primaryKey = ItemId . _itemId
+  primaryKey = ItemId . item_id
 
 data TransformationT f = Transformation
-  { _transformationId           :: C f PrimaryKeyType
-  , _transformationDescription  :: C f Text
-  , _transformBizId             :: PrimaryKey BusinessT f }
+  { transformation_id           :: C f PrimaryKeyType
+  , transformation_description  :: C f Text
+  , transformation_biz_id           :: PrimaryKey BusinessT f }
   deriving Generic
 type Transformation = TransformationT Identity
 type TransformationId = PrimaryKey TransformationT Identity
@@ -352,13 +361,13 @@ deriving instance Show (PrimaryKey TransformationT Identity)
 instance Table TransformationT where
   data PrimaryKey TransformationT f = TransformationId (C f PrimaryKeyType)
     deriving Generic
-  primaryKey = TransformationId . _transformationId
+  primaryKey = TransformationId . transformation_id
 
 data LocationT f = Location
-  { _locationId                 :: C f PrimaryKeyType
-  , _locationBizId              :: PrimaryKey BusinessT f
-  , _locationLat                :: C f Float
-  , _locationLong               :: C f Float }
+  { location_id                 :: C f PrimaryKeyType
+  , location_biz_id             :: PrimaryKey BusinessT f
+  , location_lat                :: C f Float
+  , location_long               :: C f Float }
   deriving Generic
 
 type Location = LocationT Identity
@@ -373,14 +382,14 @@ deriving instance Show (PrimaryKey LocationT Identity)
 instance Table LocationT where
   data PrimaryKey LocationT f = LocationId (C f PrimaryKeyType)
     deriving Generic
-  primaryKey = LocationId . _locationId
+  primaryKey = LocationId . location_id
 
 data EventT f = Event
-  { _eventId                    :: C f PrimaryKeyType
-  , _foreignEventId             :: C f Text -- Event ID from XML from foreign systems.
-  , _eventLabelId               :: PrimaryKey BusinessT f --the label scanned to generate this event.
-  , _eventCreatedBy             :: PrimaryKey UserT f
-  , _jsonEvent                  :: C f Text }
+  { event_id                    :: C f PrimaryKeyType
+  , foreign_event_id             :: C f Text -- Event ID from XML from foreign systems.
+  , event_label_id               :: PrimaryKey BusinessT f --the label scanned to generate this event.
+  , event_created_by             :: PrimaryKey UserT f
+  , json_event                  :: C f Text }
   deriving Generic
 type Event = EventT Identity
 type EventId = PrimaryKey EventT Identity
@@ -394,18 +403,18 @@ deriving instance Show (PrimaryKey EventT Identity)
 instance Table EventT where
   data PrimaryKey EventT f = EventId (C f PrimaryKeyType)
     deriving Generic
-  primaryKey = EventId . _eventId
+  primaryKey = EventId . event_id
 
 data WhatT f = What
-  { _whatId                     :: C f PrimaryKeyType
-  , _whatType                   :: C f Ev.EventType
-  , _action                     :: C f E.Action
-  , _parent                     :: PrimaryKey LabelT f
-  , _input                      :: C f [LabelEPC]
-  , _output                     :: C f [LabelEPC]
-  , _whatBizTransactionId       :: PrimaryKey BizTransactionT f
-  , _whatTransformationId       :: PrimaryKey TransformationT f
-  , _whatEventId                :: PrimaryKey EventT f }
+  { what_id                     :: C f PrimaryKeyType
+  , what_type                   :: C f Ev.EventType
+  , action                     :: C f E.Action
+  , parent                     :: PrimaryKey LabelT f
+  , input                      :: C f [LabelEPC]
+  , output                     :: C f [LabelEPC]
+  , what_biz_transaction_id       :: PrimaryKey BizTransactionT f
+  , what_transformation_id       :: PrimaryKey TransformationT f
+  , what_event_id                :: PrimaryKey EventT f }
   deriving Generic
 
 type What = WhatT Identity
@@ -420,14 +429,14 @@ deriving instance Show (PrimaryKey WhatT Identity)
 instance Table WhatT where
   data PrimaryKey WhatT f = WhatId (C f PrimaryKeyType)
     deriving Generic
-  primaryKey = WhatId . _whatId
+  primaryKey = WhatId . what_id
 
 
 data BizTransactionT f = BizTransaction
-  { _bizTransactionId          :: C f PrimaryKeyType
-  , _userID1                   :: PrimaryKey UserT f
-  , _userID2                   :: PrimaryKey UserT f
-  , _bizTransactionEventId     :: PrimaryKey EventT f }
+  { biz_transaction_id          :: C f PrimaryKeyType
+  , user_id1                   :: PrimaryKey UserT f
+  , user_id2                   :: PrimaryKey UserT f
+  , biz_transaction_event_id     :: PrimaryKey EventT f }
 
   deriving Generic
 
@@ -443,13 +452,13 @@ deriving instance Show (PrimaryKey BizTransactionT Identity)
 instance Table BizTransactionT where
   data PrimaryKey BizTransactionT f = BizTransactionId (C f PrimaryKeyType)
     deriving Generic
-  primaryKey = BizTransactionId . _bizTransactionId
+  primaryKey = BizTransactionId . biz_transaction_id
 
 data WhyT f = Why
-  { _whyId                      :: C f PrimaryKeyType
-  , _bizStep                    :: C f E.BizStep
-  , _disposition                :: C f E.Disposition
-  , _whyEventId                 :: PrimaryKey EventT f }
+  { why_id                      :: C f PrimaryKeyType
+  , biz_step                    :: C f E.BizStep
+  , disposition                :: C f E.Disposition
+  , why_event_id                 :: PrimaryKey EventT f }
 
   deriving Generic
 
@@ -463,15 +472,15 @@ deriving instance Show (PrimaryKey WhyT Identity)
 instance Table WhyT where
   data PrimaryKey WhyT f = WhyId (C f PrimaryKeyType)
     deriving Generic
-  primaryKey = WhyId . _whyId
+  primaryKey = WhyId . why_id
 
 data WhereT f = Where
-  { _whereId                    :: C f PrimaryKeyType
-  , _readPoint                  :: PrimaryKey LocationT f
-  , _bizLocation                :: PrimaryKey LocationT f
-  , _srcType                    :: C f E.SourceDestType
-  , _destType                   :: C f E.SourceDestType
-  , _whereEventId               :: PrimaryKey EventT f }
+  { where_id                    :: C f PrimaryKeyType
+  , read_point                  :: PrimaryKey LocationT f
+  , biz_location                :: PrimaryKey LocationT f
+  , src_type                    :: C f E.SourceDestType
+  , dest_type                   :: C f E.SourceDestType
+  , where_event_id               :: PrimaryKey EventT f }
 
   deriving Generic
 
@@ -485,15 +494,15 @@ deriving instance Show (PrimaryKey WhereT Identity)
 instance Table WhereT where
   data PrimaryKey WhereT f = WhereId (C f PrimaryKeyType)
     deriving Generic
-  primaryKey = WhereId . _whereId
+  primaryKey = WhereId . where_id
 
 
 data WhenT f = When
-  { _whenId                      :: C f PrimaryKeyType
-  , _eventTime                   :: C f Int64
-  , _recordTime                  :: C f Int64
-  , _timeZone                    :: C f TimeZone
-  , _whenEventId                 :: PrimaryKey EventT f }
+  { when_id                      :: C f PrimaryKeyType
+  , event_time                   :: C f Int64
+  , record_time                  :: C f Int64
+  , time_zone                    :: C f TimeZone
+  , when_event_id                 :: PrimaryKey EventT f }
 
   deriving Generic
 
@@ -507,12 +516,12 @@ deriving instance Show (PrimaryKey WhenT Identity)
 instance Table WhenT where
   data PrimaryKey WhenT f = WhenId (C f PrimaryKeyType)
     deriving Generic
-  primaryKey = WhenId . _whenId
+  primaryKey = WhenId . when_id
 
 data LabelEventT f = LabelEvent
-  { _labelEventId               :: C f PrimaryKeyType
-  , _labelEventLabelId          :: PrimaryKey LabelT f
-  , _labelEventEventId          :: PrimaryKey EventT f }
+  { label_event_id               :: C f PrimaryKeyType
+  , label_event_label_id          :: PrimaryKey LabelT f
+  , label_event_event_id          :: PrimaryKey EventT f }
   deriving Generic
 
 type LabelEvent = LabelEventT Identity
@@ -525,7 +534,7 @@ deriving instance Show (PrimaryKey LabelEventT Identity)
 instance Table LabelEventT where
   data PrimaryKey LabelEventT f = LabelEventId (C f PrimaryKeyType)
     deriving Generic
-  primaryKey = LabelEventId . _labelEventId
+  primaryKey = LabelEventId . label_event_id
 
 
 data SupplyChainDb f = SupplyChainDb
@@ -562,74 +571,94 @@ instance Database SupplyChainDb
 
 supplyChainDb :: DatabaseSettings be SupplyChainDb
 supplyChainDb = defaultDbSettings
-  -- `withDbModification`
-  -- dbModification
-  --   {
-  --     _supplyChainUsers =
-  --       modifyTable (const "users") $
-  --       tableModification
-  --       {
-  --         _userBizId = fieldNamed "biz_id"
-  --       }
-  --   , _supplyChainKeys =
-  --       modifyTable (const "keys") $
-  --       tableModification
-  --       {
-  --         _keyUserId = fieldNamed "user_id"
-  --       }
-  --   , _supplyChainBusinesses =
-  --       modifyTable (const "businesses") $
-  --       tableModification {
-  --         _someField = fromField "short_name"
-  --       }
-  --   , _supplyChainContact =
-  --       modifyTable (const "contacts") $
-  --       tableModification {
-  --         _someField = fromField "short_name"
-  --       }
-  --   , _supplyChainLabels =
-  --       modifyTable (const "labels") $
-  --       tableModification {
-  --         _someField = fromField "short_name"
-  --       }
-  --   , _supplyChainTransformations =
-  --       modifyTable (const "transformations") $
-  --       tableModification {
-  --         _someField = fromField "short_name"
-  --       }
-  --   , _supplyChainLocations =
-  --       modifyTable (const "locations") $
-  --       tableModification {
-  --         _someField = fromField "short_name"
-  --       }
-  --   , _supplyChainEvents =
-  --       modifyTable (const "events") $
-  --       tableModification {
-  --         _someField = fromField "short_name"
-  --       }
-  --   , _supplyChainWhats =
-  --       modifyTable (const "whats") $
-  --       tableModification {
-  --         _someField = fromField "short_name"
-  --       }
-  --   , _supplyChainWhys =
-  --       modifyTable (const "whys") $
-  --       tableModification {
-  --         _someField = fromField "short_name"
-  --       }
-  --   , _supplyChainWheres =
-  --       modifyTable (const "wheres") $
-  --       tableModification {
-  --         _someField = fromField "short_name"
-  --       }
-  --   , _supplyChainWhens =
-  --       modifyTable (const "whens") $
-  --       tableModification {
-  --         _someField = fromField "short_name"
-  --       }
-  --   , _supplyChainLabelEvents =
-  --       modifyTable (const "labelEvents") $
-  --       tableModification {
-  --         _someField = fromField "short_name"
-  --       }
-  --   }
+  `withDbModification`
+  dbModification
+    {
+      _users =
+        modifyTable (const "users") $
+        tableModification
+        {
+          user_biz_id = BizId (fieldNamed "user_biz_id")
+        }
+    , _keys =
+        modifyTable (const "keys") $
+        tableModification
+        {
+          key_user_id = UserId (fieldNamed "key_user_id")
+        }
+    -- , _businesses =
+    --     modifyTable (const "businesses") $
+    --     tableModification {
+    --       someField = Id (fieldNamed "short_name")
+    --     }
+    , _contacts =
+        modifyTable (const "contacts") $
+        tableModification {
+          contact_user1_id = UserId (fieldNamed "contact_user1_id")
+        , contact_user2_id = UserId (fieldNamed "contact_user2_id") 
+        }
+    -- , _labels =
+    --     modifyTable (const "labels") $
+    --     tableModification {
+    --       someField = Id (fieldNamed "short_name")
+    --     }
+    , _items =
+        modifyTable (const "items") $
+        tableModification {
+          item_label_id = LabelId (fieldNamed "item_label_id")
+        }
+    , _transformations =
+        modifyTable (const "transformations") $
+        tableModification {
+          transformation_biz_id = BizId (fieldNamed "transformation_biz_id")
+        }
+    , _locations =
+        modifyTable (const "locations") $
+        tableModification {
+          location_biz_id = BizId (fieldNamed "location_biz_id")
+        }
+    , _events =
+        modifyTable (const "events") $
+        tableModification {
+          event_label_id = BizId (fieldNamed "event_label_id")
+        , event_created_by = UserId (fieldNamed "event_created_by")
+        }
+    , _whats =
+        modifyTable (const "whats") $
+        tableModification {
+          parent = LabelId (fieldNamed "parent")
+        , what_biz_transaction_id = BizTransactionId (fieldNamed "what_biz_transaction_id")
+        , what_transformation_id = TransformationId (fieldNamed "what_transformation_id")
+        , what_event_id = EventId (fieldNamed "what_event_id")
+        }
+    , _bizTransactions =
+        modifyTable (const "bizTransactions") $
+        tableModification {
+          user_id1 = UserId (fieldNamed "user_id1")
+        , user_id2 = UserId (fieldNamed "user_id2")
+        , biz_transaction_event_id = EventId (fieldNamed "biz_transaction_event_id")
+        }
+    , _whys =
+        modifyTable (const "whys") $
+        tableModification {
+          why_event_id = EventId (fieldNamed "why_event_id")
+        }
+    , _wheres =
+        modifyTable (const "wheres") $
+        tableModification {
+          read_point = LocationId (fieldNamed "read_point")
+        , biz_location = LocationId (fieldNamed "biz_location")
+        , where_event_id = EventId (fieldNamed "where_event_id")
+        }
+    , _whens =
+        modifyTable (const "whens") $
+        tableModification {
+          when_event_id = EventId (fieldNamed "when_event_id")
+        }
+    , _labelEvents =
+        modifyTable (const "labelEvents") $
+        tableModification {
+          label_event_label_id = LabelId (fieldNamed "label_event_label_id")
+        , label_event_event_id = EventId (fieldNamed "label_event_event_id")
+        }
+      }

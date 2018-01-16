@@ -12,9 +12,26 @@ To build the server, run:
 
 <code>stack build </code>
 
-To run it, run:
+Before you run the server, make sure you have PostgreSQL 10 or higher installed.
 
-<code>stack exec supplyChainServer-exe -- run </code>
+To install, you can follow the instructions <a href="http://yallalabs.com/linux/how-to-install-and-use-postgresql-10-on-ubuntu-16-04/" target="_blank"> here. </a>
+Note that you may need to run the commands as a super user.
+
+Create a Postgres account.
+There are good instructions <a href="https://www.digitalocean.com/community/tutorials/how-to-install-and-use-postgresql-on-ubuntu-16-04" target="_blank"> here. </a>
+
+Type in <code>psql</code> and see that you can open up a psql shell.
+
+After that, to create the database, run
+
+<code>chmod +x manage_db.sh</code><br>
+<code>./manage_db.sh testsupplychainserver</code>
+
+Note that you can change "testsupplychainserver" for any database name you like.
+
+Finally, to run the server, do:
+
+<code>stack exec supplyChainServer-exe -- run migrate </code>
 
 Then you can check out the API at:
 
