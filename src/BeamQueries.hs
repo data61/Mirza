@@ -59,14 +59,12 @@ import Database.Beam.Backend.SQL
 import StorageBeam as SB
 -- import Data.Maybe
 
-import Data.List.Unique
+-- import Data.List.Unique
 
 import Control.Monad.Error
 
 import Data.GS1.EPC
 import Data.GS1.DWhat
-
-type DBConn = Connection
 
 -- TODO = (Auto Nothing) rather than 0?
 insertUser :: Connection -> EncryptedPass -> M.NewUser -> IO M.UserID
@@ -89,7 +87,7 @@ userTable2Model :: SB.User -> M.User
 userTable2Model = error "not implemented yet"
 
 -- Basic Auth check using Scrypt hashes.
-authCheck :: DBConn -> M.EmailAddress -> M.Password -> IO (Maybe M.User)
+authCheck :: Connection -> M.EmailAddress -> M.Password -> IO (Maybe M.User)
 authCheck conn email password = do
   r <- dbFunc conn $ runSelectReturningList $ select $ do
     allUsers <- all_ (_users supplyChainDb)
@@ -108,7 +106,7 @@ authCheck conn email password = do
 -- execute conn "INSERT INTO Users (bizID, firstName, lastName, phoneNumber, passwordHash, emailAddress) VALUES (?, ?, ?, ?, ?, ?);" (biz, first, last, phone, getEncryptedPass hash, email)
 -- execute conn "INSERT INTO Keys (userID, rsa_n, rsa_e, creationTime) values (?, ?, ?, ?);" (uid, n, e, timestamp)
 
-addPublicKey :: DBConn -> M.User -> M.RSAPublicKey-> IO M.KeyID
+addPublicKey :: Connection -> M.User -> M.RSAPublicKey-> IO M.KeyID
 addPublicKey conn (M.User uid _ _)  (M.RSAPublicKey n e) = do
   timestamp <- getCurrentTime
   [rowID] <- dbFunc conn $ ((runInsertReturningList $
@@ -116,7 +114,7 @@ addPublicKey conn (M.User uid _ _)  (M.RSAPublicKey n e) = do
              insertValues [(Key (Auto Nothing) uid n e timestamp 0)])) -- TODO = check if 0 is correct here... NOT SURE
   return (_keyId rowID)
 
-getPublicKey :: (MonadError M.GetPropertyError m, MonadIO m) => DBConn -> M.KeyID -> m M.RSAPublicKey
+getPublicKey :: (MonadError M.GetPropertyError m, MonadIO m) => Connection -> M.KeyID -> m M.RSAPublicKey
 getPublicKey conn keyID = do
   r <- dbFunc conn $ runSelectReturningList $ select $ do
     allKeys <- all_ (_keys supplyChainDb)
@@ -128,7 +126,7 @@ getPublicKey conn keyID = do
        let (keyId, uid, rsa_n, rsa_e, creationTime, revocationTime) = head r
        return $ M.RSAPublicKey rsa_n rsa_e
 
-getPublicKeyInfo :: (MonadError M.GetPropertyError m, MonadIO m) => DBConn -> M.KeyID -> m M.KeyInfo
+getPublicKeyInfo :: (MonadError M.GetPropertyError m, MonadIO m) => Connection -> M.KeyID -> m M.KeyInfo
 getPublicKeyInfo conn keyID = do
   r <- dbFunc conn $ runSelectReturningList $ select $ do
     allKeys <- all_ (_keys supplyChainDb)
@@ -140,7 +138,7 @@ getPublicKeyInfo conn keyID = do
        let (keyId, uid, rsa_n, rsa_e, creationTime, revocationTime) = head r
        return $ M.KeyInfo uid creationTime revocationTime
 
-getUser :: DBConn -> M.EmailAddress -> IO (Maybe M.User)
+getUser :: Connection -> M.EmailAddress -> IO (Maybe M.User)
 getUser conn email = do
   r <- dbFunc conn $ runSelectReturningList $ select $ do
     allUsers <- all_ (_users supplyChainDb)
@@ -157,7 +155,7 @@ getUser conn email = do
 -- TODO = fix. 1 problem is nothing is done with filter value or asset type in objectRowID grabbing data insert
 -- 1 other problem is state never used... what is it???
 -- epc is a labelEPC
-eventCreateObject :: DBConn -> M.User -> M.NewObject -> IO Event
+eventCreateObject :: Connection -> M.User -> M.NewObject -> IO Event
 eventCreateObject conn (M.User uid _ _ ) (M.NewObject epc epcisTime timezone location) = do
   objectRowID <- dbFunc conn $ B.runInsert $ (_labels supplyChainDb) $
                    (case epc of
@@ -195,7 +193,7 @@ eventCreateObject conn (M.User uid _ _ ) (M.NewObject epc epcisTime timezone loc
 
 -- TODO = use EventId or EventID ???
 -- TODO = fix... what is definition of hasSigned?
-eventUserList :: DBConn -> M.User -> EventId -> IO [(M.User, Bool)]
+eventUserList :: Connection -> M.User -> EventId -> IO [(M.User, Bool)]
 eventUserList conn (M.User uid _ _ ) eventID = do
   r <- dbFunc conn $ runSelectReturningList $ select $ do
     allUsers <- all_ (_users supplyChainDb)
@@ -209,11 +207,11 @@ eventUserList conn (M.User uid _ _ ) eventID = do
 -- toUserBool (userID, firstName, lastName, hasSigned) = (M.User userID firstName lastName, hasSigned /= 0)
 
 -- NOT currently relevant since events not currently hashed
--- eventHashed :: DBConn -> DBFunc -> M.User -> EventID -> IO (Maybe M.HashedEvent)
+-- eventHashed :: Connection -> DBFunc -> M.User -> EventID -> IO (Maybe M.HashedEvent)
 -- eventHashed conn dbFunc _ eventID = do
 --   r <- 
 
-eventSign :: (MonadError M.SigError m, MonadIO m) => DBConn -> M.User -> M.SignedEvent -> m ()
+eventSign :: (MonadError M.SigError m, MonadIO m) => Connection -> M.User -> M.SignedEvent -> m ()
 eventSign conn (M.User uid _ _ ) (M.SignedEvent eventID keyID (M.Signature signature)) = do
   timestamp <- liftIO getCurrentTime
   rFull <- dbFunc conn $ runSelectReturningList $ select $ do
@@ -246,7 +244,7 @@ eventSign conn (M.User uid _ _ ) (M.SignedEvent eventID keyID (M.Signature signa
   package <- createBlockchainPackage conn eventID
   liftIO $ sendToBlockchain package
 
-addContacts :: DBConn -> M.User -> M.UserID -> IO Bool
+addContacts :: Connection -> M.User -> M.UserID -> IO Bool
 addContacts conn (M.User uid1 _ _) uid2 = do
   [rowID] <- dbFunc conn $ runInsertReturningList $
              (_contacts supplyChainDb) $
@@ -254,7 +252,7 @@ addContacts conn (M.User uid1 _ _) uid2 = do
   return (fromIntegral (_contactId rowID) > 0)
 
 -- don't return whether success/failure anymore since no Beam function to help
-removeContacts :: DBConn -> M.User -> M.UserID -> IO ()
+removeContacts :: Connection -> M.User -> M.UserID -> IO ()
 removeContacts conn (M.User uid1 _ _) uid2 = do
   dbFunc conn $
     runDelete $
@@ -269,7 +267,7 @@ removeContacts conn (M.User uid1 _ _) uid2 = do
 
 -- TODO = use EventId or EventID ???
 -- TODO = implement... there is no hash...
-createBlockchainPackage ::  (MonadError M.SigError m, MonadIO m) => DBConn -> EventId -> m C.BlockchainPackage
+createBlockchainPackage ::  (MonadError M.SigError m, MonadIO m) => Connection -> EventId -> m C.BlockchainPackage
 createBlockchainPackage conn eventID = do
   -- XXX do we want to explicitly check that the hash is signed before assuming the first one is not?
   r <- liftIO $ query_ conn "SELECT hash, signedByUserID FROM Hashes WHERE eventID=? ORDER BY isSigned ASC;" $ Only eventID
@@ -293,7 +291,7 @@ checkSignature pubkey blob signature =
 
 -- TODO = use EventId or EventID
 -- ready to send to blockchain when all the parties have signed
-checkReadyForBlockchain :: (MonadError M.SigError m, MonadIO m) => DBConn -> EventId -> m ()
+checkReadyForBlockchain :: (MonadError M.SigError m, MonadIO m) => Connection -> EventId -> m ()
 --checkReadyForBlockchain conn eventID = undefined
 checkReadyForBlockchain conn eventID = do
   r <- liftIO $ query_ conn "SELECT COUNT(id) FROM UserEvents WHERE eventID=? AND hasSigned=FALSE;" $ Only eventID
@@ -303,7 +301,7 @@ checkReadyForBlockchain conn eventID = do
 
 -- note that use of complex from Data.List.Unique is not efficient
 -- no union, so we process making unique in haskell
-listContacts :: DBConn -> M.User -> IO [M.User]
+listContacts :: Connection -> M.User -> IO [M.User]
 listContacts conn (M.User uid _ _) = do
   r_toGrabUser2 <- dbFunc conn $ runSelectReturningList $ select $ do
     allUsers <- all_ (_users supplyChainDb)
@@ -319,7 +317,7 @@ listContacts conn (M.User uid _ _) = do
 
 -- TODO = how to do like, also '%||?||%'
 -- below is wrong!
-userSearch :: DBConn -> M.User -> String -> IO [M.User]
+userSearch :: Connection -> M.User -> String -> IO [M.User]
 userSearch conn (M.User uid _ _) term = do
   rs <- dbFunc conn $ runSelectReturningList $ select $ do
     allUsers <- all_ (_users supplyChainDb)
