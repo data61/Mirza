@@ -67,13 +67,13 @@ migrationStorage =
     <$> createTable "users"
     (
       User
-          (field "_userId" bigserial)
-          (BizId (field "_userBizId" bigserial))
-          (field "_firstName" (varchar (Just maxLen)) notNull)
-          (field "_lastName" (varchar (Just maxLen)) notNull)
-          (field "_phoneNumber" (varchar (Just maxLen)) notNull)
-          (field "_passwordHash" (varchar (Just maxLen)) notNull)
-          (field "_emailAddress" (varchar (Just maxLen)) notNull)
+          (field "user_id" bigserial)
+          (BizId (field "user_biz_id" bigserial))
+          (field "first_name" (varchar (Just maxLen)) notNull)
+          (field "last_name" (varchar (Just maxLen)) notNull)
+          (field "phone_number" (varchar (Just maxLen)) notNull)
+          (field "password_hash" (varchar (Just maxLen)) notNull)
+          (field "email_address_blah" (varchar (Just maxLen)) notNull)
     )
     <*> createTable "keys"
     (
@@ -204,13 +204,13 @@ migrationStorage =
 
 
 data UserT f = User
-  { _userId              :: C f PrimaryKeyType
-  , _userBizId           :: PrimaryKey BusinessT f
-  , _firstName           :: C f Text
-  , _lastName            :: C f Text
-  , _phoneNumber         :: C f Text
-  , _passwordHash        :: C f Text --XXX - should this be blob?
-  , _emailAddress        :: C f Text }
+  { user_id              :: C f PrimaryKeyType
+  , user_biz_id          :: PrimaryKey BusinessT f
+  , first_name           :: C f Text
+  , last_name            :: C f Text
+  , phone_number         :: C f Text
+  , password_hash        :: C f Text --XXX - should this be blob?
+  , email_address        :: C f Text }
   deriving Generic
 
 type User = UserT Identity
@@ -225,7 +225,7 @@ instance Beamable (PrimaryKey UserT)
 instance Table UserT where
   data PrimaryKey UserT f = UserId (C f PrimaryKeyType)
     deriving Generic
-  primaryKey = UserId . _userId
+  primaryKey = UserId . user_id
 
 data KeyT f = Key
   { _keyId              :: C f PrimaryKeyType
