@@ -6,11 +6,12 @@
 echo Recreating the database
 ./manage_db.sh testsupplychainserver
 
+# Defaulting opt to avoid error
 GIVEN_OPT=$1
 OPTION=${GIVEN_OPT:="some_random_text"}
 
 echo Building the modules
-if test $OPTION = '--from-scratch'
+if test $OPTION = '--clean'
 then
     stack clean
 fi
