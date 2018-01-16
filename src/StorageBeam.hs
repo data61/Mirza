@@ -11,6 +11,15 @@
 {-# OPTIONS_GHC -fno-warn-orphans  #-}
 module StorageBeam where
 
+{-
+1. convert all table definitions to under_score case
+2. make the schema definitions consistent with the table definitions
+3. for each primaryKey = .+Id \. .* (this is a regex), make the relevant change (eg. _itemId becomes item_id)
+4. For each foreign key, make changes that appear similar to the changes made to UserT table
+5. Do it for each of the tables (or the ones allocated to you)
+VSCode shortcut for multi-line cursors: Ctrl+Shift+Up/Down
+-}
+
 import Control.Lens
 import Database.Beam as B
 import Database.Beam.Postgres
@@ -68,7 +77,7 @@ migrationStorage =
     (
       User
           (field "user_id" bigserial)
-          (BizId (field "user_biz_id__id" bigserial))
+          (BizId (field "user_biz_id" bigserial))
           (field "first_name" (varchar (Just maxLen)) notNull)
           (field "last_name" (varchar (Just maxLen)) notNull)
           (field "phone_number" (varchar (Just maxLen)) notNull)
@@ -78,12 +87,12 @@ migrationStorage =
     <*> createTable "keys"
     (
       Key
-          (field "_keyId" bigserial)
-          (UserId (field "_userId" bigserial))
-          (field "_rsa_n" bigserial)
-          (field "_rsa_e" bigserial)
-          (field "_creationTime" bigserial)
-          (field "_revocationTime" bigserial)
+          (field "key_id" bigserial)
+          (UserId (field "key_user_id" bigserial))
+          (field "rsa_n" bigserial)
+          (field "rsa_e" bigserial)
+          (field "creation_time" bigserial)
+          (field "revocation_time" bigserial)
     )
     <*> createTable "businesses"
     (
@@ -228,12 +237,12 @@ instance Table UserT where
   primaryKey = UserId . user_id
 
 data KeyT f = Key
-  { _keyId              :: C f PrimaryKeyType
-  , _keyUserId          :: PrimaryKey UserT f
-  , _rsa_n              :: C f Int32 --XXX should this be Int64?
-  , _rsa_e              :: C f Int32 -- as above
-  , _creationTime       :: C f Int32 --XXX date.. Int64?
-  , _revocationTime     :: C f Int32 -- as above
+  { key_id             :: C f PrimaryKeyType
+  , key_user_id        :: PrimaryKey UserT f
+  , rsa_n              :: C f Int32 --XXX should this be Int64?
+  , rsa_e              :: C f Int32 -- as above
+  , creationTime       :: C f Int32 --XXX date.. Int64?
+  , revocationTime     :: C f Int32 -- as above
   }
   deriving Generic
 type Key = KeyT Identity
@@ -247,7 +256,7 @@ instance Beamable (PrimaryKey KeyT)
 instance Table KeyT where
   data PrimaryKey KeyT f = KeyId (C f PrimaryKeyType)
     deriving Generic
-  primaryKey = KeyId . _keyId
+  primaryKey = KeyId . key_id
 
 data BusinessT f = Business
   { _bizId                :: C f PrimaryKeyType
@@ -562,74 +571,74 @@ instance Database SupplyChainDb
 
 supplyChainDb :: DatabaseSettings be SupplyChainDb
 supplyChainDb = defaultDbSettings
-  -- `withDbModification`
-  -- dbModification
-  --   {
-  --     _supplyChainUsers =
-  --       modifyTable (const "users") $
-  --       tableModification
-  --       {
-  --         _userBizId = fieldNamed "biz_id"
-  --       }
-  --   , _supplyChainKeys =
-  --       modifyTable (const "keys") $
-  --       tableModification
-  --       {
-  --         _keyUserId = fieldNamed "user_id"
-  --       }
-  --   , _supplyChainBusinesses =
-  --       modifyTable (const "businesses") $
-  --       tableModification {
-  --         _someField = fromField "short_name"
-  --       }
-  --   , _supplyChainContact =
-  --       modifyTable (const "contacts") $
-  --       tableModification {
-  --         _someField = fromField "short_name"
-  --       }
-  --   , _supplyChainLabels =
-  --       modifyTable (const "labels") $
-  --       tableModification {
-  --         _someField = fromField "short_name"
-  --       }
-  --   , _supplyChainTransformations =
-  --       modifyTable (const "transformations") $
-  --       tableModification {
-  --         _someField = fromField "short_name"
-  --       }
-  --   , _supplyChainLocations =
-  --       modifyTable (const "locations") $
-  --       tableModification {
-  --         _someField = fromField "short_name"
-  --       }
-  --   , _supplyChainEvents =
-  --       modifyTable (const "events") $
-  --       tableModification {
-  --         _someField = fromField "short_name"
-  --       }
-  --   , _supplyChainWhats =
-  --       modifyTable (const "whats") $
-  --       tableModification {
-  --         _someField = fromField "short_name"
-  --       }
-  --   , _supplyChainWhys =
-  --       modifyTable (const "whys") $
-  --       tableModification {
-  --         _someField = fromField "short_name"
-  --       }
-  --   , _supplyChainWheres =
-  --       modifyTable (const "wheres") $
-  --       tableModification {
-  --         _someField = fromField "short_name"
-  --       }
-  --   , _supplyChainWhens =
-  --       modifyTable (const "whens") $
-  --       tableModification {
-  --         _someField = fromField "short_name"
-  --       }
-  --   , _supplyChainLabelEvents =
-  --       modifyTable (const "labelEvents") $
-  --       tableModification {
-  --         _someField = fromField "short_name"
-  --       }
-  --   }
+  `withDbModification`
+  dbModification
+    {
+      _users =
+        modifyTable (const "users") $
+        tableModification
+        {
+          user_biz_id = BizId (fieldNamed "user_biz_id")
+        }
+    , _keys =
+        modifyTable (const "keys") $
+        tableModification
+        {
+          key_user_id = UserId (fieldNamed "key_user_id")
+        }
+    , _businesses =
+        modifyTable (const "businesses") $
+        tableModification {
+          _someField = fromField "short_name"
+        }
+    , _contacts =
+        modifyTable (const "contacts") $
+        tableModification {
+          _someField = fromField "short_name"
+        }
+    , _labels =
+        modifyTable (const "labels") $
+        tableModification {
+          _someField = fromField "short_name"
+        }
+    , _transformations =
+        modifyTable (const "transformations") $
+        tableModification {
+          _someField = fromField "short_name"
+        }
+    , _locations =
+        modifyTable (const "locations") $
+        tableModification {
+          _someField = fromField "short_name"
+        }
+    , _events =
+        modifyTable (const "events") $
+        tableModification {
+          _someField = fromField "short_name"
+        }
+    , _whats =
+        modifyTable (const "whats") $
+        tableModification {
+          _someField = fromField "short_name"
+        }
+    , _whys =
+        modifyTable (const "whys") $
+        tableModification {
+          _someField = fromField "short_name"
+        }
+    , _wheres =
+        modifyTable (const "wheres") $
+        tableModification {
+          _someField = fromField "short_name"
+        }
+    , _whens =
+        modifyTable (const "whens") $
+        tableModification {
+          _someField = fromField "short_name"
+        }
+    , _labelEvents =
+        modifyTable (const "labelEvents") $
+        tableModification {
+          _someField = fromField "short_name"
+        }
+      }
