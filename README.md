@@ -23,7 +23,7 @@ There are good instructions <a href="https://www.digitalocean.com/community/tuto
 Type in <code>psql</code> and see that you can open up a psql shell.
 
 After that, to create the database, run
-<code>chmod +x manage_db.sh</code><b>
+<code>chmod +x manage_db.sh</code><br>
 <code>./manage_db.sh testsupplychainserver</code>
 
 Note that you can change "testsupplychainserver" for any database name you like.
