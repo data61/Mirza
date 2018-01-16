@@ -68,7 +68,7 @@ migrationStorage =
     (
       User
           (field "user_id" bigserial)
-          (BizId (field "user_biz_id" bigserial))
+          (BizId (field "user_biz_id__id" bigserial))
           (field "first_name" (varchar (Just maxLen)) notNull)
           (field "last_name" (varchar (Just maxLen)) notNull)
           (field "phone_number" (varchar (Just maxLen)) notNull)
