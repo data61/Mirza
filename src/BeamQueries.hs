@@ -56,7 +56,7 @@ import Database.Beam.Backend.SQL.BeamExtensions
 import Control.Lens
 import Database.PostgreSQL.Simple.FromField
 import Database.Beam.Backend.SQL
-import StorageBeam
+import StorageBeam as SB
 -- import Data.Maybe
 
 import Data.List.Unique
