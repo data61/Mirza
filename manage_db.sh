@@ -6,6 +6,8 @@ set -u
 if [ $# -lt 1 ]; then
 cat << eof
 please enter a name of the test database (testsupplychainserver)
+you can run:
+./manage_db.sh testsupplychainserver
 eof
     exit 1
 fi
