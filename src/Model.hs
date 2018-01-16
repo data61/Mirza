@@ -69,10 +69,9 @@ type UserID = PrimaryKeyType
 -- instance FromHttpApiData UserID
 -- type UserID = Integer
 
-type EmailAddress = ByteString.ByteString
+type EmailAddress = T.Text
 type KeyID = Integer
 type Password = ByteString.ByteString
-
 type EPCUrn = String
 
 
@@ -146,8 +145,8 @@ instance ToSchema KeyInfo
 
 data User = User {
     userId        :: UserID
-  , userFirstName :: String
-  , userLastName  :: String
+  , userFirstName :: T.Text
+  , userLastName  :: T.Text
 } deriving (Generic, Eq, Show)
 $(deriveJSON defaultOptions ''User)
 instance ToSchema User
