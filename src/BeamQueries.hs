@@ -1,5 +1,18 @@
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE OverloadedStrings      #-}
+{-# LANGUAGE ScopedTypeVariables    #-}
+
+-- {-# LANGUAGE DeriveGeneric          #-}
+-- {-# LANGUAGE TemplateHaskell, GADTs #-}
+-- {-# LANGUAGE FlexibleContexts       #-}
+-- {-# LANGUAGE FlexibleInstances      #-}
+-- {-# LANGUAGE TypeFamilies           #-}
+-- {-# LANGUAGE TypeApplications       #-}
+-- {-# LANGUAGE StandaloneDeriving     #-}
+-- {-# LANGUAGE TypeSynonymInstances   #-}
+-- {-#LANGUAGE PartialTypeSignatures   #-}
+-- {-# LANGUAGE UndecidableInstances   #-}
+-- {-# LANGUAGE MultiParamTypeClasses  #-}
+
 module BeamQueries where
 
 -- import Control.Monad.Except
@@ -56,19 +69,17 @@ import Data.GS1.DWhat
 
 type DBConn = Connection
 
--- TODO = need to actually define the lenses
-
+-- TODO = (Auto Nothing) rather than 0?
 insertUser :: DBConn -> EncryptedPass -> M.NewUser -> IO M.UserID
 insertUser conn pass (M.NewUser phone email first last biz password) = do
-  [rowID] <- dbFunc conn $ runInsertReturningList $
-        (_users supplyChainDb) $
-          insertValues [(User (Auto Nothing) (BizId biz) first last phone hash email)]
-  return (_userId rowID)
+  [rowID] <- dbFunc conn $ runInsertReturningList (_users supplyChainDb) $
+               insertValues [(User 0 (BizId biz) first last phone password email)]
+  return (user_id rowID)
 
 newUser :: DBConn -> M.NewUser -> IO M.UserID
 newUser conn userInfo@(M.NewUser phone email first last biz password) = do
-   hash <- encryptPassIO' (Pass $ pack password)
-   return insertUser conn hash userInfo
+   hash <- encryptPassIO' (Pass $ encodeUtf8 password)
+   insertUser conn hash userInfo
 
 -- Basic Auth check using Scrypt hashes.
 authCheck :: DBConn -> M.EmailAddress -> M.Password -> IO (Maybe M.User)

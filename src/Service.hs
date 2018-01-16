@@ -133,6 +133,7 @@ publicServer :: Connection -> Server PublicAPI
 publicServer conn =  Service.newUser conn
     :<|>  Service.getPublicKey conn
     :<|>  Service.getPublicKeyInfo conn
+    :<|>  Service.listBusinesses conn
 
 
 
@@ -211,7 +212,7 @@ listEvents conn user urn = return []
 -- given an event ID, list all the users associated with that event
 -- this can be used to make sure everything is signed
 -- PSEUDO:
--- SELECT event.userID, userID1, userID2 FROM Events, BizTransactions WHERE Events._eventID=eventID AND BizTransactionsId=Events._eventID;
+-- SELECT event.userID, userID1, userID2 FROM Events, BizTransactions WHERE Events._eventID=eventID AND BizTransactionsEventId=Events._eventID;
 -- implement a function constructEvent :: WholeEvent -> Event
 --
 eventUserList :: Connection -> User -> EventID -> Handler [(User, Bool)]
@@ -246,6 +247,10 @@ contactsSearch conn user term = return []
 userSearch :: Connection -> User -> String -> Handler [User]
 -- userSearch conn user term = liftIO $ Storage.userSearch conn user term
 userSearch conn user term = error "Storage module not implemented"
+
+-- select * from Business;
+listBusinesses :: Connection -> Handler [Business]
+listBusinesses conn = error "Implement me"
 
 -- |List events that a particular user was/is involved with
 -- use BizTransactions and events (createdby) tables
