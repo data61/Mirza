@@ -46,7 +46,6 @@ import qualified Data.ByteString as ByteString
 
 import qualified Data.List.NonEmpty as NonEmpty
 import Database.PostgreSQL.Simple
--- import Database.PostgreSQL.Simple as DBConn
 
 import Database.Beam as B
 import Database.Beam.Postgres
