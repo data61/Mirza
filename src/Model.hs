@@ -153,6 +153,7 @@ $(deriveJSON defaultOptions ''User)
 instance ToSchema User
 
 
+
 data EPCState = New | InProgress | AwaitingDeploymentToBC | Customer | Finalised
   deriving (Generic, Eq, Show)
 $(deriveJSON defaultOptions ''EPCState)
