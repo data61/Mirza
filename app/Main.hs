@@ -5,8 +5,9 @@ import Lib
 import Migrate
 
 main :: IO ()
-main = startApp connectionStr
--- main = migrate -- make this a command line argument
+main = do
+  migrate -- make this a command line argument
+  startApp connectionStr
 -- cmd args -->
     -- run_schema
     -- env (prod/dev --> create DBFunc based on this)
