@@ -54,6 +54,7 @@ library
                     , beam-postgres
                     , time
                     , beam-migrate
+                    , Unique
   default-language:   Haskell2010
   default-extensions: FlexibleContexts
                     , FlexibleInstances
