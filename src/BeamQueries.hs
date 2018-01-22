@@ -2,15 +2,9 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 module BeamQueries where
 
--- import Control.Monad.Except
-
 import qualified Model as M
 -- import qualified CryptHash as C
 -- import qualified Data.Text as Txt
--- import Control.Monad (unless)
--- import Data.Time.Clock
--- import Data.Maybe (listToMaybe, fromMaybe)
-
 import Crypto.Scrypt
 
 -- import Data.GS1.Event
@@ -28,8 +22,6 @@ import Data.Text.Encoding
 import Data.ByteString.Char8 (pack, unpack)
 -- import qualified Data.ByteString as ByteString
 -- import qualified Data.Text.Lazy as TxtL
-
--- import qualified Data.List.NonEmpty as NonEmpty
 import Database.PostgreSQL.Simple
 -- import Control.Lens
 import Database.Beam as B

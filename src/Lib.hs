@@ -129,10 +129,12 @@ server' conn uiFlavour = server Normal
     :<|> server Nested
     :<|> schemaUiServer (serveSwaggerAPI' SpecDown)
   where
+    appProxy = Proxy :: Proxy AC.AppM
     server :: Variant -> Server API
     server variant =
-      schemaUiServer (serveSwaggerAPI' variant) :<|> (privateServer conn :<|> publicServer conn)
-
+      schemaUiServer (serveSwaggerAPI' variant) :<|> (privateServer conn :<|> publicServer)
+    nt = appMToHandler
+    mainServer = hoistServer appProxy nt (server Normal)
     schemaUiServer
         :: (Server api ~ Handler Swagger)
         => Swagger -> Server (SwaggerSchemaUI' dir api)
