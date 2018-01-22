@@ -6,10 +6,11 @@ import           Test.Hspec
 import           Database.PostgreSQL.Simple
 
 import           BeamQueries
+import           Model
 
 testNewUser :: SpecWith Connection
 testNewUser = do
-  describe "blah" $ do
-    it "blah" $ \c -> do
+  describe "newUser" $ do
+    it "newUser" $ \c -> do
       
       1 `shouldBe` 1

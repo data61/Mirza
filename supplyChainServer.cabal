@@ -18,13 +18,12 @@ library
   exposed-modules:    Lib
                     , Migrate
                     , BeamQueries
+                    , Model
   other-modules:      API
                     , AppConfig
-                    , Model
                     , Service
                     , CryptHash
                     , StorageBeam
-                    --, BeamQueries
   build-depends:      base >= 4.7 && < 5
                     , GS1Combinators
                     , aeson

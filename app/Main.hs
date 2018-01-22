@@ -55,6 +55,6 @@ main = runProgram =<< execParser opts
 
 runProgram :: ServerOptions -> IO ()
 runProgram (ServerOptions debug False connectionStr port flavour) = startApp connectionStr debug port flavour
-runProgram _ = migrate
+runProgram _ = migrate Migrate.connectionStr
 
 
