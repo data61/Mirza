@@ -1,17 +1,20 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Migrate where
 
-import StorageBeam -- the schemas
-import Database.Beam (withDatabaseDebug, withDatabase)
-import Database.Beam.Postgres (Connection)
-import Database.Beam.Migrate.Types
-import Database.Beam.Backend (runNoReturn)
-
-
 import qualified Control.Exception as E
-import Database.PostgreSQL.Simple(SqlError ,connectPostgreSQL)
-import Database.Beam.Postgres (Connection)
-import Data.ByteString.Char8 (ByteString, pack)
+import           StorageBeam -- the schemas
+import           Database.Beam (withDatabaseDebug, withDatabase)
+import           Database.Beam.Postgres (Connection, Pg)
+import           Database.Beam.Migrate.Types
+import           Database.Beam.Backend (runNoReturn)
+
+import           Database.PostgreSQL.Simple(SqlError ,connectPostgreSQL)
+import           Database.Beam.Postgres (Connection)
+import           Data.ByteString.Char8 (ByteString, pack)
+
+
+dbFunc :: Connection -> Pg a -> IO a
+dbFunc = withDatabaseDebug putStrLn
 
 connectionStr :: ByteString
 connectionStr = pack "dbname=testsupplychainserver"
