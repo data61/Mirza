@@ -21,7 +21,7 @@ module Lib
 
 import Prelude        ()
 import Prelude.Compat
-
+import qualified AppConfig as AC
 
 -- import Control.Monad.IO.Class
 -- import Control.Monad.Logger (runStderrLoggingT)
