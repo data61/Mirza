@@ -43,12 +43,12 @@ import StorageBeam
 insertUser :: Connection -> EncryptedPass -> M.NewUser -> IO M.UserID
 insertUser conn pass (M.NewUser phone email firstName lastName biz password) = do
 
-  [insertedUser] <- dbFunc conn $ runInsertReturningList (_users supplyChainDb) $
+  insertedUserList <- dbFunc conn $ runInsertReturningList (_users supplyChainDb) $
                     insertValues [(User 0 --(Auto Nothing)
                     (BizId biz) firstName lastName phone password email)]
                     -- (BizId . Auto. Just . fromIntegral $ biz) firstName lastName phone password email)]
   -- print insertedUser
-  return (user_id insertedUser)
+  return (user_id $ last insertedUserList)
 
 -- |
 newUser :: Connection -> M.NewUser -> IO M.UserID
