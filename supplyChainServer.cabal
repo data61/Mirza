@@ -14,16 +14,17 @@ extra-source-files:  README.md
 cabal-version:       >=1.10
 
 library
-  hs-source-dirs:      src
+  hs-source-dirs:     src
   exposed-modules:    Lib
                     , Migrate
+                    , BeamQueries
   other-modules:      API
                     , Model
                     , Service
                     -- , Storage
                     , CryptHash
                     , StorageBeam
-                    , BeamQueries
+                    --, BeamQueries
   build-depends:      base >= 4.7 && < 5
                     , GS1Combinators
                     , aeson
@@ -95,6 +96,7 @@ test-suite supplyChainServer-test
   type:                exitcode-stdio-1.0
   hs-source-dirs:      test
   main-is:             Spec.hs
+  other-modules:       Tests.BeamQueries
   build-depends:       base
                      , GS1Combinators
                      , supplyChainServer
