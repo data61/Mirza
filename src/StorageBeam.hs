@@ -56,19 +56,6 @@ type PrimaryKeyType = Integer
   -- where
   --   parseUrlPiece = error "not implemented yet"
 
-data Env = Prod | Dev
-
--- | Given the environment, returns which db function to use
--- dbFunc :: Env -> (Connection -> Pg a0 -> IO a0)
--- dbFunc Prod = withDatabase
--- dbFunc _    = withDatabaseDebug putStrLn
-
--- |for the moment, comment in/out the appropriate line to the get the proper
--- function
-dbFunc :: Connection -> (Pg a0 -> IO a0)
--- dbFunc = withDatabase
-dbFunc = withDatabaseDebug putStrLn
-
 maxLen :: Word
 maxLen = 120
 
