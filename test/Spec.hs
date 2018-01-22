@@ -12,8 +12,12 @@ import Control.Exception (bracket)
 
 -- dbFunc = withDatabaseDebug putStrLn
 
+-- initially get into postgres using: sudo -u postgres psql postgres
+-- from then on use: sudo -u per276 psql testsupplychainserver2
+-- create role per276 with login;
+-- create database testsupplychainserver2;
 dbConnStr :: ByteString
-dbConnStr = "dbname=testsupplychainserver"
+dbConnStr = "dbname=testsupplychainserver2"
 
 openConnection :: IO Connection
 openConnection = connectPostgreSQL dbConnStr

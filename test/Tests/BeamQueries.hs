@@ -11,4 +11,5 @@ testNewUser :: SpecWith Connection
 testNewUser = do
   describe "blah" $ do
     it "blah" $ \c -> do
+      
       1 `shouldBe` 1
