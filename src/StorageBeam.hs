@@ -47,6 +47,8 @@ import Data.Swagger hiding (Contact)
 import Servant
 
 type PrimaryKeyType = Integer
+-- IMPLEMENTME
+-- Change PrimaryKeyType to ``Auto Int`` and define the instances below
 -- instance ToSchema PrimaryKeyType
 -- instance ToParamSchema PrimaryKeyType where
 --   toParamSchema _ = error "not implemented yet"
