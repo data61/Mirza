@@ -74,7 +74,8 @@ import qualified Data.Text as Txt
 import Control.Monad.Except
 -- remove me eventually
 import Data.UUID.V4
-import BeamQueries
+import qualified BeamQueries as BQ
+import qualified AppConfig as AC
 
 instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub) where
   toSwagger _ =
@@ -128,14 +129,25 @@ privateServer conn user =
           {-
         :<|> return . eventHash
         -}
+-- | ``nt`` stands for natural transformation
+-- here, we are transforming from AppM to Handler
+appMToHandler :: forall x. AC.Env -> AC.AppM x -> Handler x
+appMToHandler env = liftIO . flip runReaderT env . AC.unAppM
 
-publicServer :: Connection -> Server PublicAPI
-publicServer conn =  Service.newUser conn
-    :<|>  Service.getPublicKey conn
-    :<|>  Service.getPublicKeyInfo conn
-    :<|>  Service.listBusinesses conn
-
-
+-- publicServer :: Server PublicAPI
+-- publicServer env = 
+--     let server =      Service.newUser
+--                 :<|>  Service.getPublicKey
+--                 :<|>  Service.getPublicKeyInfo
+--                 :<|>  Service.listBusinesses
+--         -- appProxy = Proxy :: Proxy AC.AppM
+--     in
+--       enter (appMToHandler env) server
+--       -- enter appMToHandler server env
+publicServer =        Service.newUser
+                :<|>  Service.getPublicKey
+                :<|>  Service.getPublicKeyInfo
+                :<|>  Service.listBusinesses
 
 -- | Swagger spec for server API.
 serveSwaggerAPI :: Swagger
@@ -162,13 +174,14 @@ addPublicKey conn user sig = error "Storage module not implemented"
   -- liftIO (Storage.addPublicKey conn user sig)
 
 
-newUser :: Connection -> NewUser -> Handler UserID
+newUser :: NewUser -> AC.AppM UserID
 -- newUser conn nu = error "Storage module not implemented"
 --   -- liftIO (Storage.newUser conn nu)
-newUser conn nu = liftIO (BeamQueries.newUser conn nu)
+newUser nu = BQ.newUser nu
+  -- pure uId
 
-getPublicKey :: Connection -> KeyID -> Handler RSAPublicKey
-getPublicKey conn keyID = error "Storage module not implemented"
+getPublicKey :: KeyID -> Handler RSAPublicKey
+getPublicKey keyID = error "Storage module not implemented"
   -- do
   --   result <- liftIO $ runExceptT $ Storage.getPublicKey conn keyID
   --   case result of
@@ -176,8 +189,8 @@ getPublicKey conn keyID = error "Storage module not implemented"
   --     Right key -> return key
 
 
-getPublicKeyInfo :: Connection -> KeyID -> Handler KeyInfo
-getPublicKeyInfo conn keyID = error "Storage module not implemented"
+getPublicKeyInfo :: KeyID -> Handler KeyInfo
+getPublicKeyInfo keyID = error "Storage module not implemented"
 -- getPublicKeyInfo conn keyID = do
 --   result <- liftIO $ runExceptT $ Storage.getPublicKeyInfo conn keyID
 --   case result of
@@ -249,8 +262,8 @@ userSearch :: Connection -> User -> String -> Handler [User]
 userSearch conn user term = error "Storage module not implemented"
 
 -- select * from Business;
-listBusinesses :: Connection -> Handler [Business]
-listBusinesses conn = error "Implement me"
+listBusinesses :: Handler [Business]
+listBusinesses = error "Implement me"
 
 -- |List events that a particular user was/is involved with
 -- use BizTransactions and events (createdby) tables
