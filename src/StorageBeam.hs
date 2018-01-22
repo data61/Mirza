@@ -168,7 +168,7 @@ migrationStorage =
           (TransformationId (field "what_transformation_id" bigserial)) -- bigserial for now FIXME
           (EventId (field "what_event_id" bigserial))
     )
-    <*> createTable "biztransactions"
+    <*> createTable "bizTransactions"
     (
       BizTransaction
           (field "biz_transaction_id" bigserial)
