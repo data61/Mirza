@@ -8,7 +8,7 @@
 {-# LANGUAGE TypeApplications       #-}
 {-# LANGUAGE StandaloneDeriving     #-}
 {-# LANGUAGE TypeSynonymInstances   #-}
-{-#LANGUAGE PartialTypeSignatures   #-}
+{-# LANGUAGE PartialTypeSignatures  #-}
 {-# LANGUAGE UndecidableInstances   #-}
 {-# LANGUAGE MultiParamTypeClasses  #-}
 
