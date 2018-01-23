@@ -2,16 +2,16 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 module Storage where
 
-import Database.SQLite.Simple as Sql
-import Database.SQLite.Simple.Types as SqlTypes
-import Database.SQLite.Simple.ToField
+-- import Database.SQLite.Simple as Sql
+-- import Database.SQLite.Simple.Types as SqlTypes
+-- import Database.SQLite.Simple.ToField
 
 import Control.Monad.Except
 
 import qualified Model as M
 import qualified CryptHash as C
 import qualified Data.Text as Txt
-
+import Control.Monad (unless)
 import Data.Time.Clock
 import Data.Maybe (listToMaybe, fromMaybe)
 
@@ -33,12 +33,13 @@ import qualified Data.ByteString as ByteString
 import qualified Data.Text.Lazy as TxtL
 
 import qualified Data.List.NonEmpty as NonEmpty
+import Database.PostgreSQL.Simple
+-- import Database.PostgreSQL.Simple as DBConn
+type DBConn = Connection
+
 
 
 -- to put in DB, we just convert it to json for now.
-
-
-
 
 
 -- Users in the system
@@ -74,7 +75,7 @@ userEventsTable = "CREATE TABLE IF NOT EXISTS UserEvents (id INTEGER PRIMARY KEY
 
 
 -- Create all the tables above, if they don't exist
-createTables :: Sql.Connection -> IO ()
+-- createTables :: DBConn -> IO ()
 createTables conn = do
   execute_ conn userTable
   execute_ conn keyTable
@@ -97,14 +98,14 @@ let bb = M.BinaryBlob (pack "sldkfdssl")
  bracket (open "test.sqlite") (close) (\conn -> do Storage.newUser conn nu)
  bracket (open "test.sqlite") (close) (\conn -> do Storage.authCheck conn "sara@csiro" "foobar")
  bracket (open "test.sqlite") (close) (\conn -> do Storage.addPublicKey conn user bb)
- bracket (open "test.sqlite") (close) (\conn -> Sql.query conn "SELECT rowID, firstName, lastName, passwordHash FROM Users WHERE emailAddress = ?;" (Only ("sara@csiro")))
+ bracket (open "test.sqlite") (close) (\conn -> query_ conn "SELECT rowID, firstName, lastName, passwordHash FROM Users WHERE emailAddress = ?;" (Only ("sara@csiro")))
 
 -}
 
 -- Create a new user in the database
 -- TODO: * do some sort of email/mobile phone verification before enabling their account
 --       * add sessionIDs and expiry dates
-newUser :: Sql.Connection -> M.NewUser -> IO M.UserID
+newUser :: DBConn -> M.NewUser -> IO M.UserID
 newUser conn (M.NewUser phone email first last biz password) = do
   hash <- encryptPassIO' (Pass (pack password))
   execute conn "INSERT INTO Users (bizID, firstName, lastName, phoneNumber, passwordHash, emailAddress) \
@@ -114,9 +115,9 @@ newUser conn (M.NewUser phone email first last biz password) = do
 
 
 -- Basic Auth check using Scrypt hashes.
-authCheck :: Sql.Connection -> M.EmailAddress -> M.Password -> IO (Maybe M.User)
+authCheck :: DBConn -> M.EmailAddress -> M.Password -> IO (Maybe M.User)
 authCheck conn email password = do
-  r <- Sql.query conn "SELECT rowID, firstName, lastName, passwordHash FROM Users WHERE emailAddress = ?;" $ Only $ unpack email
+  r <- query_ conn "SELECT rowID, firstName, lastName, passwordHash FROM Users WHERE emailAddress = ?;" $ Only $ unpack email
   if length r == 0
      then return Nothing
      else do
@@ -127,7 +128,7 @@ authCheck conn email password = do
 
 
 -- Add the users public key to the DB
-addPublicKey :: Sql.Connection -> M.User -> M.RSAPublicKey-> IO M.KeyID
+addPublicKey :: DBConn -> M.User -> M.RSAPublicKey-> IO M.KeyID
 addPublicKey conn (M.User uid _ _)  (M.RSAPublicKey n e) = do
   timestamp <- getCurrentTime
   execute conn "INSERT INTO Keys (userID, rsa_n, rsa_e, creationTime) values (?, ?, ?, ?);" (uid, n, e, timestamp)
@@ -135,9 +136,9 @@ addPublicKey conn (M.User uid _ _)  (M.RSAPublicKey n e) = do
   return (fromIntegral rowID :: M.KeyID)
 
 -- Get a particular public key from the DB
-getPublicKey :: (MonadError M.GetPropertyError m, MonadIO m) => Sql.Connection -> M.KeyID -> m M.RSAPublicKey
+getPublicKey :: (MonadError M.GetPropertyError m, MonadIO m) => DBConn -> M.KeyID -> m M.RSAPublicKey
 getPublicKey conn keyID = do
-  rs <- liftIO $ Sql.query conn "SELECT rsa_n, rsa_e FROM Keys WHERE keyID = ?;" $ Only keyID
+  rs <- liftIO $ query_ conn "SELECT rsa_n, rsa_e FROM Keys WHERE keyID = ?;" $ Only keyID
   if length rs == 0
      then throwError M.KE_InvalidKeyID
      else
@@ -147,19 +148,19 @@ getPublicKey conn keyID = do
 -- This is separate to the getPublicKey function because the former
 -- returns binary data. Separate calls for binary data and JSON data are just easier
 -- to deal with on both sides of the network.
-getPublicKeyInfo :: (MonadError M.GetPropertyError m, MonadIO m) => Sql.Connection -> M.KeyID -> m M.KeyInfo
+getPublicKeyInfo :: (MonadError M.GetPropertyError m, MonadIO m) => DBConn -> M.KeyID -> m M.KeyInfo
 getPublicKeyInfo conn keyID = do
-  r <- liftIO $ Sql.query conn "SELECT UserID, creationTime, revocationTime FROM Keys WHERE keyID = ?;" $ Only keyID
+  r <- liftIO $ query_ conn "SELECT UserID, creationTime, revocationTime FROM Keys WHERE keyID = ?;" $ Only keyID
   if length r == 0
      then throwError M.KE_InvalidKeyID
      else do
        let (uid, creationTime, revocationTime) = head r
        return $ M.KeyInfo uid creationTime revocationTime
 
---getUser :: Sql.Connection -> M.EmailAddress -> IO (Maybe M.User)
+--getUser :: DBConn -> M.EmailAddress -> IO (Maybe M.User)
 --just for debugging atm.
 getUser conn email = do
-  r <- Sql.query conn "SELECT rowID, firstName, lastName FROM Users WHERE emailAddress = ?;" (Only email)
+  r <- query_ conn "SELECT rowID, firstName, lastName FROM Users WHERE emailAddress = ?;" (Only email)
   case length r of
     0 -> return Nothing
     _ -> let
@@ -170,7 +171,7 @@ getUser conn email = do
 -- Given a user and a new object event, inserts the new object & the new object
 -- event into the db and returns the json encoded copy of the event.
 -- It also inserts the json event into the db, later used for hashing
-eventCreateObject :: Sql.Connection -> M.User -> M.NewObject -> IO Event
+eventCreateObject :: DBConn -> M.User -> M.NewObject -> IO Event
 eventCreateObject conn (M.User uid _ _ ) (M.NewObject epc epcisTime timezone location) = do
   --FIXME!! need to define objects properly
   execute conn "INSERT INTO Objects (objectID, GS1Barcode) VALUES (?, ?);" (epc, epc)
@@ -196,13 +197,13 @@ eventCreateObject conn (M.User uid _ _ ) (M.NewObject epc epcisTime timezone loc
   return event
 
 -- List the users associated with an event
-eventUserList :: Sql.Connection -> M.User -> EventID -> IO [(M.User, Bool)]
+eventUserList :: DBConn -> M.User -> EventID -> IO [(M.User, Bool)]
 eventUserList conn (M.User uid _ _ ) eventID = do
-  r <- Sql.query conn "SELECT userID, firstName, lastName, hasSigned FROM UserEvents, Users WHERE eventID=? AND Users.id == UserEvents.userID;" (Only uid)
+  r <- query_ conn "SELECT userID, firstName, lastName, hasSigned FROM UserEvents, Users WHERE eventID=? AND Users.id == UserEvents.userID;" (Only uid)
   return (map toUserBool r)
 
   {-
-eventAggregateObjects :: Sql.Connection -> M.User -> M.AggregatedObject -> IO Event
+eventAggregateObjects :: DBConn -> M.User -> M.AggregatedObject -> IO Event
 eventAggregateObjects conn (M.User uid _ _ ) (M.AggregatedObject objectIDs containerID epcisTime timezone location bizStep disposition) = do
   uuid <- nextRandom
   currentTime <- getCurrentTime
@@ -224,26 +225,26 @@ eventAggregateObjects conn (M.User uid _ _ ) (M.AggregatedObject objectIDs conta
 
 
 
-eventHashed :: Sql.Connection -> M.User -> EventID -> IO (Maybe M.HashedEvent)
+eventHashed :: DBConn -> M.User -> EventID -> IO (Maybe M.HashedEvent)
 eventHashed conn _ eventID = do
   -- get an unsigned hash from the db
-  r <- Sql.query conn "SELECT hash FROM Hashes WHERE eventID=? AND isSigned=0;" (Only eventID)
+  r <- query_ conn "SELECT hash FROM Hashes WHERE eventID=? AND isSigned=0;" (Only eventID)
   case length r of
     0 -> return Nothing
     _ -> return $ Just (M.HashedEvent eventID (head r))
 
 -- insert it into the hashtable as a signed event & insert it into userevents
-eventSign :: (MonadError M.SigError m, MonadIO m) => Sql.Connection -> M.User -> M.SignedEvent -> m ()
+eventSign :: (MonadError M.SigError m, MonadIO m) => DBConn -> M.User -> M.SignedEvent -> m ()
 eventSign conn (M.User uid _ _ ) (M.SignedEvent eventID keyID (M.Signature signature)) = do
   timestamp <- liftIO getCurrentTime
   -- get publikey key using keyID
-  r <- liftIO $ Sql.query conn "SELECT rsa_n, rsa_e FROM Keys WHERE id=?;" $ Only keyID
+  r <- liftIO $ query_ conn "SELECT rsa_n, rsa_e FROM Keys WHERE id=?;" $ Only keyID
   pubkey <- if length r == 0
     then throwError M.SE_InvalidKeyID
     else
       return $ uncurry M.RSAPublicKey $ head r
   -- get original json encoded event from db
-  r <- liftIO $ Sql.query conn "SELECT jsonEvent FROM Events WHERE eventID=?;" $ Only eventID
+  r <- liftIO $ query_ conn "SELECT jsonEvent FROM Events WHERE eventID=?;" $ Only eventID
   blob <- case r of
             [Only (x::String)] -> return $ pack x
             _      -> throwError M.SE_InvalidEventID
@@ -256,23 +257,22 @@ eventSign conn (M.User uid _ _ ) (M.SignedEvent eventID keyID (M.Signature signa
 
 checkSignature :: (MonadError M.SigError m, MonadIO m) => M.RSAPublicKey -> ByteString.ByteString -> M.Signature -> m ()
 checkSignature pubkey blob signature =
-  if C.verifySignature pubkey blob signature
-     then return ()
-     else throwError M.SE_InvalidSignature
+  unless (C.verifySignature pubkey blob signature) $
+    throwError M.SE_InvalidSignature
 
 -- ready to send to blockchain when all the parties have signed
-checkReadyForBlockchain :: (MonadError M.SigError m, MonadIO m) => Sql.Connection -> EventID -> m ()
+checkReadyForBlockchain :: (MonadError M.SigError m, MonadIO m) => DBConn -> EventID -> m ()
 --checkReadyForBlockchain conn eventID = undefined
 checkReadyForBlockchain conn eventID = do
-  r <- liftIO $ Sql.query conn "SELECT COUNT(id) FROM UserEvents WHERE eventID=? AND hasSigned=FALSE;" $ Only eventID
+  r <- liftIO $ query_ conn "SELECT COUNT(id) FROM UserEvents WHERE eventID=? AND hasSigned=FALSE;" $ Only eventID
   case r of
     [Only (0::Integer)] -> pure ()
     _ -> throwError M.SE_NeedMoreSignatures
 
-createBlockchainPackage ::  (MonadError M.SigError m, MonadIO m) => Sql.Connection -> EventID -> m C.BlockchainPackage
+createBlockchainPackage ::  (MonadError M.SigError m, MonadIO m) => DBConn -> EventID -> m C.BlockchainPackage
 createBlockchainPackage conn eventID = do
   -- XXX do we want to explicitly check that the hash is signed before assuming the first one is not?
-  r <- liftIO $ Sql.query conn "SELECT hash, signedByUserID FROM Hashes WHERE eventID=? ORDER BY isSigned ASC;" $ Only eventID
+  r <- liftIO $ query_ conn "SELECT hash, signedByUserID FROM Hashes WHERE eventID=? ORDER BY isSigned ASC;" $ Only eventID
   if length r > 2
     then
       let (plainHash, userID) = head r
@@ -289,7 +289,7 @@ sendToBlockchain package = return () -- if it fails, raise SE_SEND_TO_BLOCKCHAIN
 -- Utilities --
 
 toUserBool :: (Integer, String, String, Integer) -> (M.User, Bool)
-toUserBool (userID, firstName, lastName, hasSigned) = ((M.User userID firstName lastName), (hasSigned /= 0))
+toUserBool (userID, firstName, lastName, hasSigned) = (M.User userID firstName lastName, hasSigned /= 0)
 -- json encode the event
 -- currently do it automagically, but might what to be
 -- more systematic about it so it's easier to replicated. Maybe.
@@ -299,39 +299,40 @@ encodeEvent event = TxtL.toStrict  (encodeToLazyText event)
 
 
 -- Add contacts to user
-addContacts :: Sql.Connection -> M.User -> M.UserID -> IO Bool
+addContacts :: DBConn -> M.User -> M.UserID -> IO Bool
 addContacts conn (M.User uid1 _ _) uid2 = do
-  execute conn "INSERT INTO Contacts (user1, user2) values (?,?);" (uid1, uid2)
+  rowID <- execute conn "INSERT INTO Contacts (user1, user2) values (?,?);" (uid1, uid2)
   rowID <- lastInsertRowId conn
-  return ((fromIntegral rowID) > 0)
+  return (fromIntegral rowID > 0)
 
--- Remove contacts to user
-removeContacts :: Sql.Connection -> M.User -> M.UserID -> IO Bool
+-- Remove contacts to userfirst
+removeContacts :: DBConn -> M.User -> M.UserID -> IO Bool
 removeContacts conn (M.User uid1 _ _) uid2 = do
   execute conn "DELETE FROM Contacts WHERE user1 = ? AND user2 = ?;" (uid1, uid2)
   rowID <- lastInsertRowId conn
   print rowID
-  return ((fromIntegral rowID) > 0)
+  return (fromIntegral rowID > 0)
 
 -- list contacts to user
-listContacts :: Sql.Connection -> M.User -> IO [(M.User)]
+listContacts :: DBConn -> M.User -> IO [M.User]
 listContacts conn (M.User uid _ _) = do
-  rs <- Sql.query conn "SELECT user2, firstName, lastName FROM Contacts, Users WHERE user1 = ? AND user2=Users.id UNION SELECT user1, firstName, lastName FROM Contacts, Users WHERE user2 = ? AND user1=Users.id;" (uid, uid)
+  rs <- query_ conn "SELECT user2, firstName, lastName FROM Contacts, Users WHERE user1 = ? AND user2=Users.id UNION SELECT user1, firstName, lastName FROM Contacts, Users WHERE user2 = ? AND user1=Users.id;" (uid, uid)
   print rs
   return (map toContactUser rs)
 
 -- Search user
-userSearch :: Sql.Connection -> M.User -> String -> IO [(M.User)]
+userSearch :: DBConn -> M.User -> String -> IO [M.User]
 userSearch conn (M.User uid _ _) term = do
-  rs <- Sql.query conn "SELECT id, firstName, lastName FROM Users WHERE firstName LIKE '%'||?||'%' OR lastName LIKE '%'||?||'%';" (term, term)
+  rs <- query_ conn "SELECT id, firstName, lastName FROM Users WHERE firstName LIKE '%'||?||'%' OR lastName LIKE '%'||?||'%';" (term, term)
   print rs
   return (map toUser rs)
 
 
 -- Utilities
 
-toContactUser :: (Integer, String, String) -> (M.User)
-toContactUser (userID, firstName, lastName) = (M.User userID firstName lastName)
+toContactUser :: (Integer, String, String) -> M.User
+toContactUser (userID, firstName, lastName) = M.User userID firstName lastName
 
-toUser :: (Integer, String, String) -> (M.User)
-toUser (userID, firstName, lastName) = (M.User userID firstName lastName)
+toUser :: (Integer, String, String) -> M.User
+toUser (userID, firstName, lastName) = M.User userID firstName lastName
+
