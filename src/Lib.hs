@@ -25,7 +25,8 @@ import qualified AppConfig as AC
 
 -- import Control.Monad.IO.Class
 -- import Control.Monad.Logger (runStderrLoggingT)
-
+import           Control.Monad.Reader   (MonadReader, ReaderT, runReaderT,
+                                         asks, ask, liftIO)
 import Servant
 import Servant.Server.Experimental.Auth()
 -- import Servant.Swagger
@@ -63,20 +64,24 @@ import System.Environment (getArgs, lookupEnv)
 
 import Text.Read          (readMaybe)
 
-import API
--- import Model
--- import Storage as S
-import Service
+import           API
+import           Service
+import qualified AppConfig as AC
+import           GHC.Word        (Word16)
 
-startApp :: ByteString -> Bool -> Int -> UIFlavour-> IO ()
+
+startApp :: ByteString -> Bool -> Word16 -> UIFlavour-> IO ()
 startApp dbConnStr isDebug port uiFlavour = do
-     putStrLn $ "http://localhost:" ++ show port ++ "/" ++ "swagger-ui/"
-     Warp.run port =<< mkApp dbConnStr uiFlavour
-
+    conn <- connectPostgreSQL dbConnStr
+    let envT = AC.mkEnvType isDebug
+        env  = AC.Env envT conn
+        app = return $ webApp env uiFlavour
+    putStrLn $ "http://localhost:" ++ show port ++ "/" ++ "swagger-ui/"
+    Warp.run (fromIntegral port) =<< app
 
 -- easily start the app in ghci, no command line arguments required.
 startApp_nomain :: ByteString -> IO ()
-startApp_nomain dbConnStr = Warp.run 8000 =<< mkApp dbConnStr Original
+startApp_nomain dbConnStr = startApp dbConnStr True 8000 Original
 
 {-
 app :: UIFlavour -> Application
