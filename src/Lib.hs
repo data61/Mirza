@@ -18,20 +18,19 @@ module Lib
     )
     where
 
-
-import Prelude        ()
-import Prelude.Compat
+import           Prelude        ()
+import           Prelude.Compat
 import qualified AppConfig as AC
 
-import Servant
-import Servant.Server.Experimental.Auth()
-import Servant.Swagger.UI
+import           Servant
+import           Servant.Server.Experimental.Auth()
+import           Servant.Swagger.UI
 
-import Data.Swagger
-import Database.PostgreSQL.Simple
-import Data.ByteString (ByteString)
+import           Data.Swagger
+import           Database.PostgreSQL.Simple
+import           Data.ByteString (ByteString)
 import qualified Network.Wai.Handler.Warp as Warp
-import Control.Lens       hiding ((.=))
+import           Control.Lens       hiding ((.=))
 
 import           API
 import           Service
