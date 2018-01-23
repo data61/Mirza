@@ -52,8 +52,9 @@ newUser userInfo@(M.NewUser _ _ _ _ _ password) = do
     hash <- liftIO $ encryptPassIO' (Pass $ encodeUtf8 password)
     insertUser hash userInfo
 
-userTable2Model :: SB.User -> M.User
-userTable2Model = error "not implemented yet"
+-- SB.User = SB.User uid bizId fName lName phNum passHash email
+userTableToModel :: SB.User -> M.User
+userTableToModel (User uid _ fName lName _ _ _) = M.User uid fName lName
 
 -- Basic Auth check using Scrypt hashes.
 authCheck :: M.EmailAddress -> M.Password -> AppM (Maybe M.User)
@@ -65,7 +66,7 @@ authCheck email password = do
   case r of
     [user] -> do
         if verifyPass' (Pass password) (EncryptedPass $ encodeUtf8 $ password_hash user)
-          then return $ Just $ userTable2Model user
+          then return $ Just $ userTableToModel user
           else return Nothing
     _ -> return Nothing -- null list or multiple elements
 
