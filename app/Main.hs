@@ -52,8 +52,8 @@ main = runProgram =<< execParser opts
 
 
 runProgram :: ServerOptions -> IO ()
-runProgram (ServerOptions debug False connectionStr port flavour) =
-    startApp connectionStr debug (fromIntegral port) flavour
+runProgram (ServerOptions isDebug False connStr portNum flavour) =
+    startApp connStr isDebug (fromIntegral portNum) flavour
 runProgram _ = migrate
 
 defConnectionStr :: ByteString

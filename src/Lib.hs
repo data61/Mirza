@@ -23,50 +23,18 @@ import Prelude        ()
 import Prelude.Compat
 import qualified AppConfig as AC
 
--- import Control.Monad.IO.Class
--- import Control.Monad.Logger (runStderrLoggingT)
-import           Control.Monad.Reader   (MonadReader, ReaderT, runReaderT,
-                                         asks, ask, liftIO)
 import Servant
 import Servant.Server.Experimental.Auth()
--- import Servant.Swagger
 import Servant.Swagger.UI
 
--- import GHC.TypeLits (KnownSymbol)
-
--- import Data.Aeson
--- import Data.Aeson.TH
 import Data.Swagger
-import Data.Maybe
--- import Data.GS1.Event
--- import Data.GS1.EPC
--- import Data.GS1.DWhen
--- import Data.GS1.DWhere
--- import Data.GS1.DWhat
--- import Data.GS1.DWhy
--- import Data.Either.Combinators
--- import Data.Time
--- import Data.String.Conversions
 import Database.PostgreSQL.Simple
--- import Database.PostgreSQL.Simple.Connection
--- import Data.ByteString hiding (elem)
 import Data.ByteString (ByteString)
--- import qualified Data.ByteString (ByteString) as ByteString
--- import qualified Data.HashMap.Strict.InsOrd as IOrd
 import qualified Network.Wai.Handler.Warp as Warp
--- import Network.Wai
-
 import Control.Lens       hiding ((.=))
-
--- import GHC.Generics       (Generic)
-
-import System.Environment (getArgs, lookupEnv)
-
-import Text.Read          (readMaybe)
 
 import           API
 import           Service
-import qualified AppConfig as AC
 import           GHC.Word        (Word16)
 
 

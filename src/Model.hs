@@ -17,17 +17,10 @@ module Model where
 
 import Servant
 import Servant.Server.Experimental.Auth()
-import Servant.Swagger
-import Servant.Swagger.UI
 
 import Prelude        ()
 import Prelude.Compat
 
-import Control.Monad.IO.Class
-import Control.Monad.Logger (runStderrLoggingT)
-import Control.Monad.Except
-
-import GHC.TypeLits (KnownSymbol)
 import GHC.Generics (Generic)
 
 import Data.Int
@@ -37,7 +30,6 @@ import Data.Swagger
 import Data.Maybe
 import Data.Either.Combinators
 import Data.Time
-import Data.String.Conversions
 
 import Data.GS1.Event
 import Data.GS1.EventID

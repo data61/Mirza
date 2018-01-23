@@ -13,34 +13,13 @@ module Service where
 
 import           Model
 import           API
--- import qualified StorageBeam
-
-import           Prelude.Compat
-
--- import Database.SQLite.Simple as Sql hiding ((:.))
-import           Database.Beam as B
-import           Database.Beam.Postgres
-import           Database.PostgreSQL.Simple hiding ((:.))
-import           Database.Beam.Backend
-import           Database.Beam.Backend.SQL.BeamExtensions
-import           Database.PostgreSQL.Simple.FromField
-import           Database.Beam.Backend.SQL
-import           Control.Monad.IO.Class
-import           Control.Monad.Logger (runStderrLoggingT)
-import qualified Control.Category as C
 
 import           GHC.TypeLits (KnownSymbol)
 
 import           Servant
-import           Servant.Server (enter)
 import           Servant.Server.Experimental.Auth()
 import           Servant.Swagger
-import           Servant.Swagger.UI
-
-import           Data.Aeson
-import           Data.Aeson.TH
 import           Data.Swagger
-import           Data.Maybe
 import           Data.GS1.Event
 import           Data.GS1.EventID
 import           Data.GS1.EPC
@@ -50,9 +29,6 @@ import           Data.GS1.DWhat
 import           Data.GS1.DWhy
 import           Data.GS1.Parser.Parser
 import           Data.Either.Combinators
-import           Data.Time
-import           Data.String.Conversions
-
 
 import qualified Data.ByteString as ByteString
 import qualified Data.ByteString.Lazy.Char8 as LBSC8
