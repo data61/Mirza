@@ -106,8 +106,10 @@ authCheck = error "Storage module not implemented"
   -- in BasicAuthCheck check
 
 
+appMToHandler :: forall x. AC.Env -> AC.AppM x -> Handler x
+appMToHandler env = liftIO . flip runReaderT env . AC.unAppM
 
-privateServer :: User -> Server PrivateAPI
+privateServer :: User -> ServerT PrivateAPI AC.AppM
 privateServer user =
              epcState user
         :<|> listEvents user
@@ -128,32 +130,16 @@ privateServer user =
         :<|> eventTransformObject user
         :<|> Service.addPublicKey user
 
-          {-
-        :<|> return . eventHash
-        -}
+publicServer :: ServerT PublicAPI AC.AppM
+publicServer =     Service.newUser
+              :<|> Service.getPublicKey
+              :<|> Service.getPublicKeyInfo
+              :<|> Service.listBusinesses
+              
+appHandlers = privateServer :<|> publicServer
 
--- appMToHandler :: AC.Env -> AC.AppM :~> Handler
--- appMToHandler env = Nat appMToHandler'
---   where
---   appMToHandler' :: AC.AppM a -> Handler a
---   appMToHandler' h = runReaderT h env
-
-
--- publicServer :: Server PublicAPI
--- publicServer env = 
---     let server =      Service.newUser
---                 :<|>  Service.getPublicKey
---                 :<|>  Service.getPublicKeyInfo
---                 :<|>  Service.listBusinesses
---         -- appProxy = Proxy :: Proxy AC.AppM
---     in
---       enter (appMToHandler env) server
---       -- enter appMToHandler server env
-publicServer :: Server PublicAPI
-publicServer =        Service.newUser
-                :<|>  Service.getPublicKey
-                :<|>  Service.getPublicKeyInfo
-                :<|>  Service.listBusinesses
+serverAPI :: Proxy ServerAPI
+serverAPI = Proxy
 
 -- | Swagger spec for server API.
 serveSwaggerAPI :: Swagger
@@ -163,9 +149,6 @@ serveSwaggerAPI = toSwagger serverAPI
   & info.description ?~ "This is an API that tests swagger integration"
   & info.license ?~ ("MIT" & url ?~ URL "http://mit.com")
 
-
-serverAPI :: Proxy ServerAPI
-serverAPI = Proxy
 
 -- | We need to supply our handlers with the right Context. In this case,
 -- Basic Authentication requires a Context Entry with the 'BasicAuthCheck' value
