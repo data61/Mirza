@@ -46,6 +46,7 @@ import Database.Beam.Migrate.Types
 import Data.Swagger hiding (Contact)
 import Servant
 
+-- type PrimaryKeyType = Integer
 type PrimaryKeyType = Integer
 -- IMPLEMENTME
 -- Change PrimaryKeyType to ``Auto Int`` and define the instances below
@@ -53,8 +54,8 @@ type PrimaryKeyType = Integer
 -- instance ToParamSchema PrimaryKeyType where
 --   toParamSchema _ = error "not implemented yet"
 -- instance FromHttpApiData PrimaryKeyType
-  -- where
-  --   parseUrlPiece = error "not implemented yet"
+--   where
+--     parseUrlPiece = error "not implemented yet"
 
 maxLen :: Word
 maxLen = 120
