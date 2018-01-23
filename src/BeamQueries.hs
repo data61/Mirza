@@ -201,8 +201,8 @@ eventSign  (M.User uid _ _ ) (M.SignedEvent eventID keyID (M.Signature signature
   -- TODO = note that there is no hashes table now, so insert into hashes excluded
   -- TODO = userevents is combination of biztransactiontable and _eventCreatedBy field in event table, explore this
 
-  checkReadyForBlockchain conn eventID
-  package <- createBlockchainPackage conn eventID
+  checkReadyForBlockchain eventID
+  package <- createBlockchainPackage eventID
   liftIO $ sendToBlockchain package
 
 addContacts :: M.User -> M.UserID -> IO Bool
@@ -229,7 +229,7 @@ removeContacts  (M.User uid1 _ _) uid2 = do
 -- TODO = use EventId or EventID ???
 -- TODO = implement... there is no hash...
 createBlockchainPackage ::  (MonadError M.SigError m, MonadIO m) => EventId -> m C.BlockchainPackage
-createBlockchainPackage  eventID = do
+createBlockchainPackage eventID = do
   -- XXX do we want to explicitly check that the hash is signed before assuming the first one is not?
   r <- liftIO $ query_ conn "SELECT hash, signedByUserID FROM Hashes WHERE eventID=? ORDER BY isSigned ASC;" $ Only eventID
   if length r > 2
