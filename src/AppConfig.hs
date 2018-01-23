@@ -5,6 +5,7 @@ module AppConfig (
   AppM (..)
   , dbFunc
   , runDb
+  , mkEnvType
   , Env(..)
 )
 where
@@ -15,16 +16,22 @@ import           Database.Beam.Postgres (Pg)
 import           Control.Monad.IO.Class (MonadIO)
 import           Control.Monad.Reader   (MonadReader, ReaderT, runReaderT,
                                          asks, ask, liftIO)
-
+-- import           GHC.Word               (Word16)
+import           Servant.Server (Handler)
 data EnvType = Prod | Dev
+
+mkEnvType :: Bool -> EnvType
+mkEnvType False = Prod
+mkEnvType _ = Dev
 
 data Env = Env
   { envType :: EnvType
   , dbConn  :: Connection
+  -- , port    :: Word16
   }
 
 newtype AppM a = AppM
-  { unAppM :: ReaderT Env IO a }
+  { unAppM :: ReaderT Env Handler a }
   deriving ( Functor
            , Applicative
            , Monad
