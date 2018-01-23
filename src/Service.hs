@@ -158,20 +158,19 @@ basicAuthServerContext :: Servant.Context (BasicAuthCheck User ': '[])
 basicAuthServerContext = authCheck :. EmptyContext
 
 
-addPublicKey :: User -> RSAPublicKey -> Handler KeyID
+addPublicKey :: User -> RSAPublicKey -> AC.AppM KeyID
 addPublicKey user sig = error "Storage module not implemented"
   -- liftIO (Storage.addPublicKey user sig)
 
 
-newUser :: NewUser -> Handler UserID
+newUser :: NewUser -> AC.AppM UserID
 -- newUser nu = error "Storage module not implemented"
 --   -- liftIO (Storage.newUser nu)
--- newUser nu = BQ.newUser nu
-newUser nu = error "not implemented yet"
+newUser = BQ.newUser
+-- newUser nu = error "not implemented yet"
 
-  -- pure uId
 
-getPublicKey :: KeyID -> Handler RSAPublicKey
+getPublicKey :: KeyID -> AC.AppM RSAPublicKey
 getPublicKey keyID = error "Storage module not implemented"
   -- do
   --   result <- liftIO $ runExceptT $ Storage.getPublicKey keyID
@@ -180,7 +179,7 @@ getPublicKey keyID = error "Storage module not implemented"
   --     Right key -> return key
 
 
-getPublicKeyInfo :: KeyID -> Handler KeyInfo
+getPublicKeyInfo :: KeyID -> AC.AppM KeyInfo
 getPublicKeyInfo keyID = error "Storage module not implemented"
 -- getPublicKeyInfo keyID = do
 --   result <- liftIO $ runExceptT $ Storage.getPublicKeyInfo keyID
@@ -193,13 +192,9 @@ getPublicKeyInfo keyID = error "Storage module not implemented"
 -- use readLabelEPC in EPC.hs to do it.
 -- SELECT * FROM Labels WHERE _labelGs1CompanyPrefix=gs1CompanyPrefix AND _labelType=type AND ...
 
---
---
---
-
 -- PSUEDO:
 -- Use getLabelIDState
-epcState :: User ->  EPCUrn -> Handler EPCState
+epcState :: User ->  EPCUrn -> AC.AppM EPCState
 epcState user str = return New
 
 -- This takes an EPC urn,
@@ -209,7 +204,7 @@ epcState user str = return New
 -- (labelID, _) <- getLabelIDState
 -- wholeEvents <- select * from events, dwhats, dwhy, dwhen where _whatItemID=labelID AND _eventID=_whatEventID AND _eventID=_whenEventID AND _eventID=_whyEventID ORDER BY _eventTime;
 -- return map constructEvent wholeEvents
-listEvents :: User ->  EPCUrn -> Handler [Event]
+listEvents :: User ->  EPCUrn -> AC.AppM [Event]
 listEvents user urn = return []
 
 
@@ -219,22 +214,22 @@ listEvents user urn = return []
 -- SELECT event.userID, userID1, userID2 FROM Events, BizTransactions WHERE Events._eventID=eventID AND BizTransactionsEventId=Events._eventID;
 -- implement a function constructEvent :: WholeEvent -> Event
 --
-eventUserList :: User -> EventID -> Handler [(User, Bool)]
+eventUserList :: User -> EventID -> AC.AppM [(User, Bool)]
 -- eventUserList user eventID = liftIO $ Storage.eventUserList user eventID
 eventUserList user eventID = error "Storage module not implemented"
 
 
-contactsInfo :: User -> Handler [User]
+contactsInfo :: User -> AC.AppM [User]
 -- contactsInfo user = liftIO $ Storage.listContacts user
 contactsInfo user = error "Storage module not implemented"
 
 
-contactsAdd :: User -> UserID -> Handler Bool
+contactsAdd :: User -> UserID -> AC.AppM Bool
 -- contactsAdd user userId = liftIO (Storage.addContacts user userId)
 contactsAdd user userId = error "Storage module not implemented"
 
 
-contactsRemove :: User -> UserID -> Handler Bool
+contactsRemove :: User -> UserID -> AC.AppM Bool
 -- contactsRemove user userId = liftIO (Storage.removeContacts user userId)
 contactsRemove user userId = error "Storage module not implemented"
 
@@ -244,24 +239,24 @@ contactsRemove user userId = error "Storage module not implemented"
 -- might want to use reg-ex features of postgres10 here:
 -- PSEUDO:
 -- SELECT user2, firstName, lastName FROM Contacts, Users WHERE user1 LIKE *term* AND user2=Users.id UNION SELECT user1, firstName, lastName FROM Contacts, Users WHERE user2 = ? AND user1=Users.id;" (uid, uid)
-contactsSearch :: User -> String -> Handler [User]
+contactsSearch :: User -> String -> AC.AppM [User]
 contactsSearch user term = return []
 
 
-userSearch :: User -> String -> Handler [User]
+userSearch :: User -> String -> AC.AppM [User]
 -- userSearch user term = liftIO $ Storage.userSearch user term
 userSearch user term = error "Storage module not implemented"
 
 -- select * from Business;
-listBusinesses :: Handler [Business]
+listBusinesses :: AC.AppM [Business]
 listBusinesses = error "Implement me"
 
 -- |List events that a particular user was/is involved with
 -- use BizTransactions and events (createdby) tables
-eventList :: User -> UserID -> Handler [Event]
+eventList :: User -> UserID -> AC.AppM [Event]
 eventList user uID = return []
 
-eventSign :: User -> SignedEvent -> Handler Bool
+eventSign :: User -> SignedEvent -> AC.AppM Bool
 eventSign user signedEvent = error "Storage module not implemented"
 -- eventSign user signedEvent = do
 --   result <- liftIO $ runExceptT $ Storage.eventSign user signedEvent
@@ -272,7 +267,7 @@ eventSign user signedEvent = error "Storage module not implemented"
 
 -- do we need this?
 --
-eventHashed :: User -> EventID -> Handler HashedEvent
+eventHashed :: User -> EventID -> AC.AppM HashedEvent
 eventHashed user eventID = return (HashedEvent eventID (EventHash "Blob"))
   {-
 eventHashed user eventID = do
@@ -283,20 +278,20 @@ eventHashed user eventID = do
     -}
 
 -- Return the json encoded copy of the event
-eventCreateObject :: User -> NewObject -> Handler Event
+eventCreateObject :: User -> NewObject -> AC.AppM Event
 eventCreateObject user newObject = error "Storage module not implemented"
   -- liftIO (Storage.eventCreateObject user newObject)
 
-eventAggregateObjects :: User -> AggregatedObject -> Handler Event
+eventAggregateObjects :: User -> AggregatedObject -> AC.AppM Event
 eventAggregateObjects user aggObject = liftIO sampleEvent
 
-eventDisaggregateObjects :: User -> DisaggregatedObject -> Handler Event
+eventDisaggregateObjects :: User -> DisaggregatedObject -> AC.AppM Event
 eventDisaggregateObjects user aggObject = liftIO sampleEvent
 
-eventStartTransaction :: User -> TransactionInfo -> Handler Event
+eventStartTransaction :: User -> TransactionInfo -> AC.AppM Event
 eventStartTransaction user aggObject = liftIO sampleEvent
 
-eventTransformObject :: User -> TransformationInfo -> Handler Event
+eventTransformObject :: User -> TransformationInfo -> AC.AppM Event
 eventTransformObject user aggObject = liftIO sampleEvent
 
 sampleEvent:: IO Event
@@ -321,8 +316,8 @@ sampleWhen = DWhen pt (Just pt) tz
 sampleWhere :: DWhere
 sampleWhere = DWhere [] [] [] []
 
-eventInfo :: User -> EventID -> Handler Event
+eventInfo :: User -> EventID -> AC.AppM Event
 eventInfo user eID = liftIO sampleEvent
 
---eventHash :: EventID -> Handler SignedEvent
+--eventHash :: EventID -> AC.AppM SignedEvent
 --eventHash eID = return (SignedEvent eID (BinaryBlob ByteString.empty) [(BinaryBlob ByteString.empty)] [1,2])
