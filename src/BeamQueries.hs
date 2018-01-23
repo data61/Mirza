@@ -32,6 +32,11 @@ import           Data.GS1.DWhat
 import           Data.Time.Clock (getCurrentTime)
 import           Control.Monad.Except (throwError)
 
+-- Until this module compiles, look at:
+-- https://github.csiro.au/Blockchain/supplyChainServer/blob/pg-schema-matt/src/BeamQueries.hs
+-- to figure out what it was when work was started
+-- especially, if some variable is out of scope, look at the import list there
+
 insertUser :: EncryptedPass -> M.NewUser -> AppM M.UserID
 insertUser pass (M.NewUser phone email firstName lastName biz password) = do
   [insertedUserList] <- runDb $ runInsertReturningList (_users supplyChainDb) $
