@@ -1,3 +1,5 @@
+module BeamQueries where
+
 {-# LANGUAGE OverloadedStrings      #-}
 {-# LANGUAGE ScopedTypeVariables    #-}
 {-# LANGUAGE DeriveGeneric          #-}
@@ -33,11 +35,12 @@ import           Data.Time.Clock (getCurrentTime)
 
 insertUser :: EncryptedPass -> M.NewUser -> AppM M.UserID
 insertUser pass (M.NewUser phone email firstName lastName biz password) = do
-  [insertedUser] <- runDb $ runInsertReturningList (_users supplyChainDb) $
-                    insertValues [(User 0 --(Auto Nothing)
-                    (BizId biz) firstName lastName phone password email)]
+  [insertedUserList] <- runDb $ runInsertReturningList (_users supplyChainDb) $
+                    insertValues ([(User (Auto Nothing)
+                    (BizId . Auto $ Just biz)--(BizId biz)
+                    firstName lastName phone password email)]::[StorageBeam.User])
                     -- (BizId . Auto. Just . fromIntegral $ biz) firstName lastName phone password email)]
-  return (user_id insertedUser)
+  return (user_id insertedUserList)
 
 -- |
 newUser :: M.NewUser -> AppM M.UserID
