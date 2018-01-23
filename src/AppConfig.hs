@@ -1,3 +1,4 @@
+
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings          #-}
 
@@ -13,6 +14,7 @@ where
 import           Database.PostgreSQL.Simple (Connection)
 import qualified Database.Beam as B
 import           Database.Beam.Postgres (Pg)
+
 import           Control.Monad.IO.Class (MonadIO)
 import           Control.Monad.Reader   (MonadReader, ReaderT, runReaderT,
                                          asks, ask, liftIO)
@@ -61,3 +63,4 @@ dbFunc = do
 -- | Helper function to run db functions
 runDb :: Pg b -> AppM b
 runDb q = dbFunc >>= (\f -> liftIO $ f q)
+

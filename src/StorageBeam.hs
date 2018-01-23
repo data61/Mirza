@@ -9,6 +9,13 @@
 {-# LANGUAGE UndecidableInstances  #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# OPTIONS_GHC -fno-warn-orphans  #-}
+
+-- extra languages... was in tutorial.hs . Added since trying to figure out how to fix auto-increment bug
+{-# LANGUAGE TemplateHaskell, GADTs       #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE TypeSynonymInstances #-}
+{-#LANGUAGE PartialTypeSignatures #-}
+
 module StorageBeam where
 
 {-
@@ -42,15 +49,21 @@ import Database.Beam.Migrate.SQL.Tables
 import Database.Beam.Migrate.SQL.Types
 import Database.Beam.Migrate.Types
 
-type PrimaryKeyType = Integer
--- IMPLEMENTME
--- Change PrimaryKeyType to ``Auto Int`` and define the instances below
--- instance ToSchema PrimaryKeyType
--- instance ToParamSchema PrimaryKeyType where
---   toParamSchema _ = error "not implemented yet"
--- instance FromHttpApiData PrimaryKeyType
---   where
---     parseUrlPiece = error "not implemented yet"
+import Data.Swagger hiding (Contact)
+import Servant
+
+import Data.UUID
+
+type PrimaryKeyType = Auto UUID -- Integer -- Auto Int
+
+--IMPLEMENTME
+--Change PrimaryKeyType to ``Auto Int`` and define the instances below
+instance ToSchema PrimaryKeyType
+instance ToParamSchema PrimaryKeyType where
+  -- TODO = refactor this, want toParamSchema for ToParamSchema UUID
+  -- https://github.com/GetShopTV/swagger2/blob/master/src/Data/Swagger/Internal/ParamSchema.hs#L268
+  toParamSchema _ = mempty & type_ .~ SwaggerString & Data.Swagger.format ?~ "uuid"
+instance FromHttpApiData PrimaryKeyType
 
 maxLen :: Word
 maxLen = 120
