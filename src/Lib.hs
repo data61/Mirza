@@ -89,8 +89,14 @@ app = (serveWithContext api basicAuthServerContext) . server'
 -}
 
 
-webApp :: Connection -> UIFlavour -> Application
-webApp conn = serveWithContext api (basicAuthServerContext conn) . server' conn
+-- Application = Request -> (Response -> IO ResponseReceived) -> IO ResponseReceived
+webApp :: AC.Env -> UIFlavour -> Application
+webApp env uiFlavour  = serveWithContext api basicAuthServerContext (server' env uiFlavour)
+
+-- | ``nt`` stands for natural transformation
+-- here, we are transforming from AppM to Handler
+appMToHandler :: forall x. AC.Env -> AC.AppM x -> Handler x
+appMToHandler env = flip runReaderT env . AC.unAppM
 
 
 {-
