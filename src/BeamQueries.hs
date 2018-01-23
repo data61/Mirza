@@ -62,17 +62,15 @@ authCheck email password = do
           else return Nothing
     _ -> return Nothing -- null list or multiple elements
 
-
 -- BELOW = Beam versions of SQL versions from Storage.hs
 -- execute conn "INSERT INTO Users (bizID, firstName, lastName, phoneNumber, passwordHash, emailAddress) VALUES (?, ?, ?, ?, ?, ?);" (biz, first, last, phone, getEncryptedPass hash, email)
 -- execute conn "INSERT INTO Keys (userID, rsa_n, rsa_e, creationTime) values (?, ?, ?, ?);" (uid, n, e, timestamp)
-addPublicKey :: M.User -> M.RSAPublicKey-> IO M.KeyID
+addPublicKey :: M.User -> M.RSAPublicKey-> AppM M.KeyID
 addPublicKey (M.User uid _ _)  (M.RSAPublicKey n e) = do
-  timestamp <- getCurrentTime
-  [rowID] <- runDb $ ((runInsertReturningList $
-           (_keys supplyChainDb) $
-             insertValues [(Key (Auto Nothing) uid n e timestamp 0)])) -- TODO = check if 0 is correct here... NOT SURE
-  return (_keyId rowID)
+  timestamp <- liftIO getCurrentTime
+  [rowID] <- runDb $ runInsertReturningList (_keys supplyChainDb) $
+             insertValues [(Key (Auto Nothing) uid n e timestamp 0)] -- TODO = check if 0 is correct here... NOT SURE
+  return (KeyId rowID)
 
 getPublicKey :: (MonadError M.GetPropertyError m, MonadIO m) => M.KeyID -> m M.RSAPublicKey
 getPublicKey keyID = do
