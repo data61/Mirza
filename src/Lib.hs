@@ -112,15 +112,6 @@ mkApp dbConnStr uiFlavour = do
 connectionStr :: ByteString
 connectionStr = "dbname=testsupplychainserver"
 
-mkApp :: ByteString -> UIFlavour ->  IO Application
-mkApp dbConnStr uiFlavour = do
-  conn <- connectPostgreSQL dbConnStr
---   createTables conn
-  return (webApp conn uiFlavour)
-
-
-
-
 -- Implementation
 
 -- | We test different ways to nest API, so we have an enumeration
@@ -135,17 +126,16 @@ data UIFlavour
     | JensOleG
     deriving (Eq, Read, Show)
 
-server' :: Connection -> UIFlavour -> Server API'
-server' conn uiFlavour = server Normal
+server' :: AC.Env -> UIFlavour -> Server API'
+server' env uiFlavour = enter (appMToHandler env) $ server Normal
     :<|> server Nested
     :<|> schemaUiServer (serveSwaggerAPI' SpecDown)
   where
-    appProxy = Proxy :: Proxy AC.AppM
+    -- appProxy = Proxy :: Proxy AC.AppM
     server :: Variant -> Server API
     server variant =
-      schemaUiServer (serveSwaggerAPI' variant) :<|> (privateServer conn :<|> publicServer)
-    nt = appMToHandler
-    mainServer = hoistServer appProxy nt (server Normal)
+      schemaUiServer (serveSwaggerAPI' variant) :<|> (privateServer :<|> publicServer)
+    -- mainServer = enter (appMToHandler env) (server Normal)
     schemaUiServer
         :: (Server api ~ Handler Swagger)
         => Swagger -> Server (SwaggerSchemaUI' dir api)
