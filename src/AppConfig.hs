@@ -32,7 +32,7 @@ data Env = Env
   }
 
 newtype AppM a = AppM
-  { unAppM :: ReaderT Env Handler a }
+  { unAppM :: ReaderT Env IO a }
   deriving ( Functor
            , Applicative
            , Monad
