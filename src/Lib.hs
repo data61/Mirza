@@ -93,25 +93,6 @@ app = (serveWithContext api basicAuthServerContext) . server'
 webApp :: AC.Env -> UIFlavour -> Application
 webApp env uiFlavour  = serveWithContext api basicAuthServerContext (server' env uiFlavour)
 
--- | ``nt`` stands for natural transformation
--- here, we are transforming from AppM to Handler
-appMToHandler :: forall x. AC.Env -> AC.AppM x -> Handler x
--- appMToHandler env = liftIO . flip runReaderT env . AC.unAppM
-appMToHandler env = flip runReaderT env . AC.unAppM
-
-{-
-mkApp :: FilePath -> UIFlavour ->  IO Application
-mkApp dbConnStr uiFlavour = do
-  pool <- runStderrLoggingT $ do
-    createSqlitePool (cs dbConnStr) 5
-  runSqlPool (runMigration migrate) pool
-  return $ app pool uiFlavour
-  -}
-
--- @todo - make this a command line argument
-connectionStr :: ByteString
-connectionStr = "dbname=testsupplychainserver"
-
 -- Implementation
 
 -- | We test different ways to nest API, so we have an enumeration
