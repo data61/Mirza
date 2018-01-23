@@ -16,19 +16,20 @@ module BeamQueries where
 
 import qualified Model as M
 import qualified CryptHash as C
-
-import Crypto.Scrypt
-import Data.Text.Encoding
-import Database.PostgreSQL.Simple
-import Database.Beam as B
-import Database.Beam.Backend.SQL.BeamExtensions
-import StorageBeam as SB
-import AppConfig (AppM, runDb)
-import Control.Monad.Error (MonadError)
-import Data.GS1.EPC
-import Data.GS1.DWhat
 import qualified Data.List.NonEmpty as NonEmpty
 import qualified Data.ByteString as ByteString
+
+import           Crypto.Scrypt
+import           Data.Text.Encoding
+import           Database.PostgreSQL.Simple
+import           Database.Beam as B
+import           Database.Beam.Backend.SQL.BeamExtensions
+import           Control.Monad.Error (MonadError)
+import           StorageBeam as SB
+import           AppConfig (AppM, runDb)
+import           Data.GS1.EPC
+import           Data.GS1.DWhat
+import           Data.Time.Clock (getCurrentTime)
 
 insertUser :: EncryptedPass -> M.NewUser -> AppM M.UserID
 insertUser pass (M.NewUser phone email firstName lastName biz password) = do
