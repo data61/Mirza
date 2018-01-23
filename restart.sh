@@ -16,4 +16,4 @@ then
     stack clean
 fi
 stack build
-stack exec supplyChainServer-exe -- run migrate jensoleg
+stack exec supplyChainServer-exe -- -i
