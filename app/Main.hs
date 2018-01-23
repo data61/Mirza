@@ -42,8 +42,6 @@ serverOptions = ServerOptions
          <> value JensOleG)
 
 
-
-
 main :: IO ()
 main = runProgram =<< execParser opts
   where
