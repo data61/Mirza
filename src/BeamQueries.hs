@@ -18,14 +18,13 @@ import qualified Model as M
 import qualified CryptHash as C
 import qualified Data.List.NonEmpty as NonEmpty
 import qualified Data.ByteString as ByteString
+import qualified StorageBeam as SB
 
 import           Crypto.Scrypt
 import           Data.Text.Encoding
 import           Database.PostgreSQL.Simple
 import           Database.Beam as B
 import           Database.Beam.Backend.SQL.BeamExtensions
--- import           Control.Monad.Error (MonadError)
-import           StorageBeam as SB
 import           AppConfig (AppM, runDb)
 import           Data.GS1.EPC
 import           Data.GS1.DWhat
@@ -39,12 +38,12 @@ import           Control.Monad.Except (throwError, MonadError)
 
 insertUser :: EncryptedPass -> M.NewUser -> AppM M.UserID
 insertUser pass (M.NewUser phone email firstName lastName biz password) = do
-  [insertedUserList] <- runDb $ runInsertReturningList (_users supplyChainDb) $
-                    insertValues ([(User (Auto Nothing)
-                    (BizId . Auto $ Just biz)--(BizId biz)
+  [insertedUserList] <- runDb $ runInsertReturningList (SB._users SB.supplyChainDb) $
+                    insertValues ([(SB.User (Auto Nothing)
+                    (SB.BizId . Auto $ Just biz)--(BizId biz)
                     firstName lastName phone password email)]::[SB.User])
                     -- (BizId . Auto. Just . fromIntegral $ biz) firstName lastName phone password email)]
-  return (user_id insertedUserList)
+  return (SB.user_id insertedUserList)
 
 -- |
 newUser :: M.NewUser -> AppM M.UserID
@@ -54,18 +53,18 @@ newUser userInfo@(M.NewUser _ _ _ _ _ password) = do
 
 -- SB.User = SB.User uid bizId fName lName phNum passHash email
 userTableToModel :: SB.User -> M.User
-userTableToModel (User uid _ fName lName _ _ _) = M.User uid fName lName
+userTableToModel (SB.User uid _ fName lName _ _ _) = M.User uid fName lName
 
 -- Basic Auth check using Scrypt hashes.
 authCheck :: M.EmailAddress -> M.Password -> AppM (Maybe M.User)
 authCheck email password = do
   r <- runDb $ runSelectReturningList $ select $ do
-        user <- all_ (_users supplyChainDb)
-        guard_ (email_address user  ==. val_ email)
+        user <- all_ (SB._users SB.supplyChainDb)
+        guard_ (SB.email_address user  ==. val_ email)
         pure user
   case r of
     [user] -> do
-        if verifyPass' (Pass password) (EncryptedPass $ encodeUtf8 $ password_hash user)
+        if verifyPass' (Pass password) (EncryptedPass $ encodeUtf8 $ SB.password_hash user)
           then return $ Just $ userTableToModel user
           else return Nothing
     _ -> return Nothing -- null list or multiple elements
@@ -73,12 +72,12 @@ authCheck email password = do
 -- BELOW = Beam versions of SQL versions from Storage.hs
 -- execute conn "INSERT INTO Users (bizID, firstName, lastName, phoneNumber, passwordHash, emailAddress) VALUES (?, ?, ?, ?, ?, ?);" (biz, first, last, phone, getEncryptedPass hash, email)
 -- execute conn "INSERT INTO Keys (userID, rsa_n, rsa_e, creationTime) values (?, ?, ?, ?);" (uid, n, e, timestamp)
--- addPublicKey :: M.User -> M.RSAPublicKey-> AppM M.KeyID
--- addPublicKey (M.User uid _ _)  (M.RSAPublicKey n e) = do
---   timestamp <- liftIO getCurrentTime
---   [rowID] <- runDb $ runInsertReturningList (_keys supplyChainDb) $
---              insertValues [(Key (Auto Nothing) uid n e timestamp 0)] -- TODO = check if 0 is correct here... NOT SURE
---   return (KeyId rowID)
+addPublicKey :: M.User -> M.RSAPublicKey-> AppM M.KeyID
+addPublicKey (M.User uid _ _)  (M.RSAPublicKey n e) = do
+  timestamp <- liftIO getCurrentTime
+  [rowID] <- runDb $ runInsertReturningList (SB._keys SB.supplyChainDb) $
+             insertValues [(SB.Key (Auto Nothing) (SB.UserId uid) n e timestamp 0)] -- TODO = check if 0 is correct here... NOT SURE
+  return (SB.key_id rowID)
 
 -- getPublicKey :: (MonadError M.GetPropertyError m, MonadIO m) => M.KeyID -> m M.RSAPublicKey
 -- getPublicKey keyID = do
