@@ -37,7 +37,7 @@ insertUser pass (M.NewUser phone email firstName lastName biz password) = do
   [insertedUserList] <- runDb $ runInsertReturningList (_users supplyChainDb) $
                     insertValues ([(User (Auto Nothing)
                     (BizId . Auto $ Just biz)--(BizId biz)
-                    firstName lastName phone password email)]::[StorageBeam.User])
+                    firstName lastName phone password email)]::[SB.User])
                     -- (BizId . Auto. Just . fromIntegral $ biz) firstName lastName phone password email)]
   return (user_id insertedUserList)
 
@@ -193,7 +193,7 @@ eventSign  (M.User uid _ _ ) (M.SignedEvent eventID keyID (M.Signature signature
        pure allEvents))
 
   blob <- case r of
-            [Only (x::String)] -> return $ pack x
+            [Only x] -> return $ pack x
             _      -> throwError M.SE_InvalidEventID
 
   checkSignature pubkey blob (M.Signature signature)
@@ -252,12 +252,11 @@ checkSignature pubkey blob signature =
 
 -- TODO = use EventId or EventID
 -- ready to send to blockchain when all the parties have signed
-checkReadyForBlockchain :: (MonadError M.SigError m, MonadIO m) => EventId -> m ()
---checkReadyForBlockchain conn eventID = undefined
-checkReadyForBlockchain conn eventID = do
+checkReadyForBlockchain :: (MonadError M.SigError m, MonadIO m) => Connection -> EventId -> m ()
+checkReadyForBlockchain eventID = do
   r <- liftIO $ query_ conn "SELECT COUNT(id) FROM UserEvents WHERE eventID=? AND hasSigned=FALSE;" $ Only eventID
   case r of
-    [Only (0::Integer)] -> pure ()
+    [Only 0] -> pure ()
     _ -> throwError M.SE_NeedMoreSignatures
 
 -- note that use of complex from Data.List.Unique is not efficient
