@@ -30,6 +30,7 @@ import           AppConfig (AppM, runDb)
 import           Data.GS1.EPC
 import           Data.GS1.DWhat
 import           Data.Time.Clock (getCurrentTime)
+import           Control.Monad.Except (throwError)
 
 insertUser :: EncryptedPass -> M.NewUser -> AppM M.UserID
 insertUser pass (M.NewUser phone email firstName lastName biz password) = do
