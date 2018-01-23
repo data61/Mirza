@@ -18,6 +18,7 @@ import           Control.Monad.Reader   (MonadReader, ReaderT, runReaderT,
                                          asks, ask, liftIO)
 -- import           GHC.Word               (Word16)
 import           Servant.Server (Handler)
+
 data EnvType = Prod | Dev
 
 mkEnvType :: Bool -> EnvType
@@ -57,6 +58,6 @@ dbFunc = do
     Prod -> pure $ B.withDatabase conn
     _    -> pure $ B.withDatabaseDebug putStrLn conn
 
--- | 
+-- | Helper function to run db functions
 runDb :: Pg b -> AppM b
 runDb q = dbFunc >>= (\f -> liftIO $ f q)
