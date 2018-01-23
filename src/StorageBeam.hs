@@ -9,6 +9,13 @@
 {-# LANGUAGE UndecidableInstances  #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# OPTIONS_GHC -fno-warn-orphans  #-}
+
+-- extra languages... was in tutorial.hs . Added since trying to figure out how to fix auto-increment bug
+{-# LANGUAGE TemplateHaskell, GADTs       #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE TypeSynonymInstances #-}
+{-#LANGUAGE PartialTypeSignatures #-}
+
 module StorageBeam where
 
 {-
@@ -46,13 +53,27 @@ import Database.Beam.Migrate.Types
 import Data.Swagger hiding (Contact)
 import Servant
 
-type PrimaryKeyType = Integer
--- instance ToSchema PrimaryKeyType
--- instance ToParamSchema PrimaryKeyType where
---   toParamSchema _ = error "not implemented yet"
--- instance FromHttpApiData PrimaryKeyType
-  -- where
-  --   parseUrlPiece = error "not implemented yet"
+import Data.UUID
+
+type PrimaryKeyType = Auto UUID -- Integer -- Auto Int
+
+--IMPLEMENTME
+--Change PrimaryKeyType to ``Auto Int`` and define the instances below
+instance ToSchema PrimaryKeyType
+instance ToParamSchema PrimaryKeyType where
+  -- TODO = refactor this, want toParamSchema for ToParamSchema UUID
+  -- https://github.com/GetShopTV/swagger2/blob/master/src/Data/Swagger/Internal/ParamSchema.hs#L268
+  toParamSchema _ = mempty & type_ .~ SwaggerString & Data.Swagger.format ?~ "uuid"
+  --toParamSchema _ = (toParamSchema _) :: (ParamSchema UUID)
+  --toParamSchema = toParamSchema (Proxy a :: Proxy UUID)
+  -- toParamSchema _ = uuidParamSchema
+  -- toParamSchema (Proxy :: Proxy UUID) = toParamSchema uuid
+--  toParamSchema (Proxy uuid) = toParamSchema uuid
+--  toParamSchema p = error "not implemented yet"
+
+instance FromHttpApiData PrimaryKeyType
+--   where
+--     parseUrlPiece t = error "not implemented yet"
 
 data Env = Prod | Dev
 

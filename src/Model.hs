@@ -61,6 +61,8 @@ import Crypto.Hash.IO
 
 import StorageBeam (PrimaryKeyType)
 
+import Data.UUID
+
 type UserID = PrimaryKeyType
 
 -- instance ToSchema UserID
@@ -171,7 +173,7 @@ data NewUser = NewUser {
   emailAddress :: T.Text,
   firstName :: T.Text,
   lastName :: T.Text,
-  company :: Integer,
+  company :: UUID,--Integer,
   password :: T.Text
 } deriving (Generic, Eq, Show)
 $(deriveJSON defaultOptions ''NewUser)
@@ -180,7 +182,7 @@ instance ToSchema NewUser
 
 
 data Business = Business {
-  bizID :: Integer
+  bizID :: UUID--Integer
   , bizName :: T.Text
   , gs1CompanyPrefix :: Integer
   , function :: T.Text
