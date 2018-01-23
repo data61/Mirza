@@ -26,7 +26,8 @@ serverOptions = ServerOptions
          <> short 'i'
          <> help "Put empty tables into a fresh database" )
       <*> option auto
-          ( long "connectionString"
+          ( long "conn"
+         <> short 'c'
          <> help "database connection string"
          <> showDefault
          <> value "dbname=testsupplychainserver")
