@@ -594,9 +594,7 @@ supplyChainDb = defaultDbSettings
     , _contacts =
         modifyTable (const "contacts") $
         tableModification {
-          biz_transaction_type_id = ()
-        , biz_transaction_id_urn = ()
-        , contact_user1_id = UserId (fieldNamed "contact_user1_id")
+         contact_user1_id = UserId (fieldNamed "contact_user1_id")
         , contact_user2_id = UserId (fieldNamed "contact_user2_id")
         }
     -- , _labels =
@@ -636,9 +634,7 @@ supplyChainDb = defaultDbSettings
     , _bizTransactions =
         modifyTable (const "bizTransactions") $
         tableModification {
-          user_id1 = UserId (fieldNamed "user_id1")
-        , user_id2 = UserId (fieldNamed "user_id2")
-        , biz_transaction_event_id = EventId (fieldNamed "biz_transaction_event_id")
+          biz_transaction_event_id = EventId (fieldNamed "biz_transaction_event_id")
         }
     , _whys =
         modifyTable (const "whys") $
