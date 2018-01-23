@@ -96,10 +96,10 @@ sampleUser :: User
 sampleUser =  User 1 "Sara" "Falamaki"
 
 -- 'BasicAuthCheck' holds the handler we'll use to verify a username and password.
-authCheck :: Connection -> BasicAuthCheck User
-authCheck conn = error "Storage module not implemented"
+authCheck :: BasicAuthCheck User
+authCheck = error "Storage module not implemented"
   -- let check (BasicAuthData username password) = do
-  --       maybeUser <- Storage.authCheck conn username password
+  --       maybeUser <- Storage.authCheck username password
   --       case maybeUser of
   --          Nothing -> return Unauthorized
   --          (Just user) -> return (Authorized user)
@@ -107,34 +107,37 @@ authCheck conn = error "Storage module not implemented"
 
 
 
-privateServer :: Connection -> User -> Server PrivateAPI
-privateServer conn user =
-             epcState conn user
-        :<|> listEvents conn user
-        :<|> eventInfo conn user
-        :<|> contactsInfo conn user
-        :<|> contactsAdd conn user
-        :<|> contactsRemove conn user
---        :<|> contactsSearch conn user
-        :<|> userSearch conn user
-        :<|> eventList conn user
-        :<|> eventUserList conn user
-        :<|> eventSign conn user
-        :<|> eventHashed conn user
-        :<|> eventCreateObject conn user
-        :<|> eventAggregateObjects conn user
-        :<|> eventDisaggregateObjects conn user
-        :<|> eventStartTransaction conn user
-        :<|> eventTransformObject conn user
-        :<|> Service.addPublicKey conn user
+privateServer :: User -> Server PrivateAPI
+privateServer user =
+             epcState user
+        :<|> listEvents user
+        :<|> eventInfo user
+        :<|> contactsInfo user
+        :<|> contactsAdd user
+        :<|> contactsRemove user
+--        :<|> contactsSearch user
+        :<|> userSearch user
+        :<|> eventList user
+        :<|> eventUserList user
+        :<|> eventSign user
+        :<|> eventHashed user
+        :<|> eventCreateObject user
+        :<|> eventAggregateObjects user
+        :<|> eventDisaggregateObjects user
+        :<|> eventStartTransaction user
+        :<|> eventTransformObject user
+        :<|> Service.addPublicKey user
 
           {-
         :<|> return . eventHash
         -}
--- | ``nt`` stands for natural transformation
--- here, we are transforming from AppM to Handler
-appMToHandler :: forall x. AC.Env -> AC.AppM x -> Handler x
-appMToHandler env = liftIO . flip runReaderT env . AC.unAppM
+
+-- appMToHandler :: AC.Env -> AC.AppM :~> Handler
+-- appMToHandler env = Nat appMToHandler'
+--   where
+--   appMToHandler' :: AC.AppM a -> Handler a
+--   appMToHandler' h = runReaderT h env
+
 
 -- publicServer :: Server PublicAPI
 -- publicServer env = 
@@ -146,6 +149,7 @@ appMToHandler env = liftIO . flip runReaderT env . AC.unAppM
 --     in
 --       enter (appMToHandler env) server
 --       -- enter appMToHandler server env
+publicServer :: Server PublicAPI
 publicServer =        Service.newUser
                 :<|>  Service.getPublicKey
                 :<|>  Service.getPublicKeyInfo
@@ -167,25 +171,27 @@ serverAPI = Proxy
 -- Basic Authentication requires a Context Entry with the 'BasicAuthCheck' value
 -- tagged with "foo-tag" This context is then supplied to 'server' and threaded
 -- to the BasicAuth HasServer handlers.
-basicAuthServerContext :: Connection -> Servant.Context (BasicAuthCheck User ': '[])
-basicAuthServerContext conn = authCheck conn :. EmptyContext
+basicAuthServerContext :: Servant.Context (BasicAuthCheck User ': '[])
+basicAuthServerContext = authCheck :. EmptyContext
 
 
-addPublicKey :: Connection -> User -> RSAPublicKey -> Handler KeyID
-addPublicKey conn user sig = error "Storage module not implemented"
-  -- liftIO (Storage.addPublicKey conn user sig)
+addPublicKey :: User -> RSAPublicKey -> Handler KeyID
+addPublicKey user sig = error "Storage module not implemented"
+  -- liftIO (Storage.addPublicKey user sig)
 
 
-newUser :: NewUser -> AC.AppM UserID
--- newUser conn nu = error "Storage module not implemented"
---   -- liftIO (Storage.newUser conn nu)
-newUser nu = BQ.newUser nu
+newUser :: NewUser -> Handler UserID
+-- newUser nu = error "Storage module not implemented"
+--   -- liftIO (Storage.newUser nu)
+-- newUser nu = BQ.newUser nu
+newUser nu = error "not implemented yet"
+
   -- pure uId
 
 getPublicKey :: KeyID -> Handler RSAPublicKey
 getPublicKey keyID = error "Storage module not implemented"
   -- do
-  --   result <- liftIO $ runExceptT $ Storage.getPublicKey conn keyID
+  --   result <- liftIO $ runExceptT $ Storage.getPublicKey keyID
   --   case result of
   --     Left e -> throwError err400 { errBody = LBSC8.pack $ show e}
   --     Right key -> return key
@@ -193,8 +199,8 @@ getPublicKey keyID = error "Storage module not implemented"
 
 getPublicKeyInfo :: KeyID -> Handler KeyInfo
 getPublicKeyInfo keyID = error "Storage module not implemented"
--- getPublicKeyInfo conn keyID = do
---   result <- liftIO $ runExceptT $ Storage.getPublicKeyInfo conn keyID
+-- getPublicKeyInfo keyID = do
+--   result <- liftIO $ runExceptT $ Storage.getPublicKeyInfo keyID
 --   case result of
 --     Left e -> throwError err404 { errBody = LBSC8.pack $ show e }
 --     Right keyInfo -> return keyInfo
@@ -210,8 +216,8 @@ getPublicKeyInfo keyID = error "Storage module not implemented"
 
 -- PSUEDO:
 -- Use getLabelIDState
-epcState :: Connection -> User ->  EPCUrn -> Handler EPCState
-epcState conn user str = return New
+epcState :: User ->  EPCUrn -> Handler EPCState
+epcState user str = return New
 
 -- This takes an EPC urn,
 -- and looks up all the events related to that item. First we've got
@@ -220,8 +226,8 @@ epcState conn user str = return New
 -- (labelID, _) <- getLabelIDState
 -- wholeEvents <- select * from events, dwhats, dwhy, dwhen where _whatItemID=labelID AND _eventID=_whatEventID AND _eventID=_whenEventID AND _eventID=_whyEventID ORDER BY _eventTime;
 -- return map constructEvent wholeEvents
-listEvents :: Connection -> User ->  EPCUrn -> Handler [Event]
-listEvents conn user urn = return []
+listEvents :: User ->  EPCUrn -> Handler [Event]
+listEvents user urn = return []
 
 
 -- given an event ID, list all the users associated with that event
@@ -230,24 +236,24 @@ listEvents conn user urn = return []
 -- SELECT event.userID, userID1, userID2 FROM Events, BizTransactions WHERE Events._eventID=eventID AND BizTransactionsEventId=Events._eventID;
 -- implement a function constructEvent :: WholeEvent -> Event
 --
-eventUserList :: Connection -> User -> EventID -> Handler [(User, Bool)]
--- eventUserList conn user eventID = liftIO $ Storage.eventUserList conn user eventID
-eventUserList conn user eventID = error "Storage module not implemented"
+eventUserList :: User -> EventID -> Handler [(User, Bool)]
+-- eventUserList user eventID = liftIO $ Storage.eventUserList user eventID
+eventUserList user eventID = error "Storage module not implemented"
 
 
-contactsInfo :: Connection -> User -> Handler [User]
--- contactsInfo conn user = liftIO $ Storage.listContacts conn user
-contactsInfo conn user = error "Storage module not implemented"
+contactsInfo :: User -> Handler [User]
+-- contactsInfo user = liftIO $ Storage.listContacts user
+contactsInfo user = error "Storage module not implemented"
 
 
-contactsAdd :: Connection -> User -> UserID -> Handler Bool
--- contactsAdd conn user userId = liftIO (Storage.addContacts conn user userId)
-contactsAdd conn user userId = error "Storage module not implemented"
+contactsAdd :: User -> UserID -> Handler Bool
+-- contactsAdd user userId = liftIO (Storage.addContacts user userId)
+contactsAdd user userId = error "Storage module not implemented"
 
 
-contactsRemove :: Connection -> User -> UserID -> Handler Bool
--- contactsRemove conn user userId = liftIO (Storage.removeContacts conn user userId)
-contactsRemove conn user userId = error "Storage module not implemented"
+contactsRemove :: User -> UserID -> Handler Bool
+-- contactsRemove user userId = liftIO (Storage.removeContacts user userId)
+contactsRemove user userId = error "Storage module not implemented"
 
 
 -- Given a search term, search the users contacts for a user matching
@@ -255,13 +261,13 @@ contactsRemove conn user userId = error "Storage module not implemented"
 -- might want to use reg-ex features of postgres10 here:
 -- PSEUDO:
 -- SELECT user2, firstName, lastName FROM Contacts, Users WHERE user1 LIKE *term* AND user2=Users.id UNION SELECT user1, firstName, lastName FROM Contacts, Users WHERE user2 = ? AND user1=Users.id;" (uid, uid)
-contactsSearch :: Connection -> User -> String -> Handler [User]
-contactsSearch conn user term = return []
+contactsSearch :: User -> String -> Handler [User]
+contactsSearch user term = return []
 
 
-userSearch :: Connection -> User -> String -> Handler [User]
--- userSearch conn user term = liftIO $ Storage.userSearch conn user term
-userSearch conn user term = error "Storage module not implemented"
+userSearch :: User -> String -> Handler [User]
+-- userSearch user term = liftIO $ Storage.userSearch user term
+userSearch user term = error "Storage module not implemented"
 
 -- select * from Business;
 listBusinesses :: Handler [Business]
@@ -269,13 +275,13 @@ listBusinesses = error "Implement me"
 
 -- |List events that a particular user was/is involved with
 -- use BizTransactions and events (createdby) tables
-eventList :: Connection -> User -> UserID -> Handler [Event]
-eventList conn user uID = return []
+eventList :: User -> UserID -> Handler [Event]
+eventList user uID = return []
 
-eventSign :: Connection -> User -> SignedEvent -> Handler Bool
-eventSign conn user signedEvent = error "Storage module not implemented"
--- eventSign conn user signedEvent = do
---   result <- liftIO $ runExceptT $ Storage.eventSign conn user signedEvent
+eventSign :: User -> SignedEvent -> Handler Bool
+eventSign user signedEvent = error "Storage module not implemented"
+-- eventSign user signedEvent = do
+--   result <- liftIO $ runExceptT $ Storage.eventSign user signedEvent
 --   case result of
 --     Left SE_NeedMoreSignatures -> return False
 --     Left e -> throwError err400 { errBody = LBSC8.pack $ show e }
@@ -283,32 +289,32 @@ eventSign conn user signedEvent = error "Storage module not implemented"
 
 -- do we need this?
 --
-eventHashed :: Connection -> User -> EventID -> Handler HashedEvent
-eventHashed conn user eventID = return (HashedEvent eventID (EventHash "Blob"))
+eventHashed :: User -> EventID -> Handler HashedEvent
+eventHashed user eventID = return (HashedEvent eventID (EventHash "Blob"))
   {-
-eventHashed conn user eventID = do
-  mHash <- liftIO $ Storage.eventHashed conn user eventID
+eventHashed user eventID = do
+  mHash <- liftIO $ Storage.eventHashed user eventID
   case mHash of
     Nothing -> throwError err404 { errBody = "Unknown eventID" }
     Just i -> return i
     -}
 
 -- Return the json encoded copy of the event
-eventCreateObject :: Connection -> User -> NewObject -> Handler Event
-eventCreateObject conn user newObject = error "Storage module not implemented"
-  -- liftIO (Storage.eventCreateObject conn user newObject)
+eventCreateObject :: User -> NewObject -> Handler Event
+eventCreateObject user newObject = error "Storage module not implemented"
+  -- liftIO (Storage.eventCreateObject user newObject)
 
-eventAggregateObjects :: Connection -> User -> AggregatedObject -> Handler Event
-eventAggregateObjects conn user aggObject = liftIO sampleEvent
+eventAggregateObjects :: User -> AggregatedObject -> Handler Event
+eventAggregateObjects user aggObject = liftIO sampleEvent
 
-eventDisaggregateObjects :: Connection -> User -> DisaggregatedObject -> Handler Event
-eventDisaggregateObjects conn user aggObject = liftIO sampleEvent
+eventDisaggregateObjects :: User -> DisaggregatedObject -> Handler Event
+eventDisaggregateObjects user aggObject = liftIO sampleEvent
 
-eventStartTransaction :: Connection -> User -> TransactionInfo -> Handler Event
-eventStartTransaction conn user aggObject = liftIO sampleEvent
+eventStartTransaction :: User -> TransactionInfo -> Handler Event
+eventStartTransaction user aggObject = liftIO sampleEvent
 
-eventTransformObject :: Connection -> User -> TransformationInfo -> Handler Event
-eventTransformObject conn user aggObject = liftIO sampleEvent
+eventTransformObject :: User -> TransformationInfo -> Handler Event
+eventTransformObject user aggObject = liftIO sampleEvent
 
 sampleEvent:: IO Event
 sampleEvent=  do
@@ -332,8 +338,8 @@ sampleWhen = DWhen pt (Just pt) tz
 sampleWhere :: DWhere
 sampleWhere = DWhere [] [] [] []
 
-eventInfo :: Connection -> User -> EventID -> Handler Event
-eventInfo conn user eID = liftIO sampleEvent
+eventInfo :: User -> EventID -> Handler Event
+eventInfo user eID = liftIO sampleEvent
 
 --eventHash :: EventID -> Handler SignedEvent
 --eventHash eID = return (SignedEvent eID (BinaryBlob ByteString.empty) [(BinaryBlob ByteString.empty)] [1,2])
