@@ -34,22 +34,9 @@ import qualified Data.ByteString as ByteString
 import qualified Data.ByteString.Lazy.Char8 as LBSC8
 import qualified Data.HashMap.Strict.InsOrd as IOrd
 import qualified Network.Wai.Handler.Warp as Warp
-import           Control.Monad.Reader   (MonadReader, ReaderT, runReaderT,
+import           Control.Monad.Reader   (runReaderT,
                                          asks, ask, liftIO)
-import Network.Wai
-
-import Crypto.PubKey.RSA
-
 import Control.Lens       hiding ((.=))
-
-import GHC.Generics       (Generic)
-
-import System.Environment (getArgs, lookupEnv)
-
-import Text.Read          (readMaybe)
-import qualified Data.Text as Txt
-
-import Control.Monad.Except
 -- remove me eventually
 import Data.UUID.V4
 import qualified BeamQueries as BQ

@@ -3,13 +3,12 @@ module Migrate where
 
 import qualified Control.Exception as E
 import           StorageBeam -- the schemas
-import           Database.Beam (withDatabaseDebug, withDatabase)
+import           Database.Beam (withDatabaseDebug)
 import           Database.Beam.Postgres (Connection, Pg)
 import           Database.Beam.Migrate.Types
 import           Database.Beam.Backend (runNoReturn)
 
 import           Database.PostgreSQL.Simple(SqlError ,connectPostgreSQL)
-import           Database.Beam.Postgres (Connection)
 import           Data.ByteString.Char8 (ByteString, pack)
 
 

@@ -28,7 +28,6 @@ import Database.Beam.Backend
 import Database.Beam.Backend.SQL.BeamExtensions
 import Database.PostgreSQL.Simple.FromField
 import Database.Beam.Backend.SQL
-import System.Environment (getArgs)
 
 import Data.Text (Text)
 import Data.Int
@@ -43,10 +42,6 @@ import Database.Beam.Migrate.SQL.Tables
 import Database.Beam.Migrate.SQL.Types
 import Database.Beam.Migrate.Types
 
-import Data.Swagger hiding (Contact)
-import Servant
-
--- type PrimaryKeyType = Integer
 type PrimaryKeyType = Integer
 -- IMPLEMENTME
 -- Change PrimaryKeyType to ``Auto Int`` and define the instances below

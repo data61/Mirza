@@ -23,33 +23,18 @@ import Prelude.Compat
 
 import GHC.Generics (Generic)
 
-import Data.Int
 import Data.Aeson
 import Data.Aeson.TH
 import Data.Swagger
-import Data.Maybe
-import Data.Either.Combinators
 import Data.Time
 
-import Data.GS1.Event
 import Data.GS1.EventID
 import Data.GS1.EPC
-import Data.GS1.DWhen
 import Data.GS1.DWhere
 import Data.GS1.DWhat
-import Data.GS1.DWhy
 import Data.Text as T
-import Text.Read          (readMaybe)
 
 import qualified Data.ByteString as ByteString
-import qualified Data.HashMap.Strict.InsOrd as IOrd
-import qualified Network.Wai.Handler.Warp as Warp
-import Network.Wai
-
-import Control.Lens       hiding ((.=))
-import Database.Beam.Backend.Types (Auto)
-
-import Crypto.Hash.IO
 
 import StorageBeam (PrimaryKeyType)
 
