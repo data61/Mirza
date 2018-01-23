@@ -14,8 +14,6 @@ module BeamQueries where
 {-# LANGUAGE UndecidableInstances   #-}
 {-# LANGUAGE MultiParamTypeClasses  #-}
 
-module BeamQueries where
-
 import qualified Model as M
 import qualified CryptHash as C
 import qualified Data.List.NonEmpty as NonEmpty
