@@ -172,8 +172,8 @@ migrationStorage =
     (
       BizTransaction
           (field "biz_transaction_id" bigserial)
-          (UserId (field "user_id1" bigserial))
-          (UserId (field "user_id2" bigserial))
+          (field "biz_transaction_type_id" (varchar (Just maxLen)))
+          (field "biz_transaction_id_urn" (varchar (Just maxLen)))
           (EventId (field "biz_transaction_event_id" bigserial))
     )
     <*> createTable "whys"
@@ -434,9 +434,9 @@ instance Table WhatT where
 
 data BizTransactionT f = BizTransaction
   { biz_transaction_id          :: C f PrimaryKeyType
-  , user_id1                   :: PrimaryKey UserT f
-  , user_id2                   :: PrimaryKey UserT f
-  , biz_transaction_event_id     :: PrimaryKey EventT f }
+  , biz_transaction_type_id     :: C f Text
+  , biz_transaction_id_urn      :: C f Text
+  , biz_transaction_event_id    :: PrimaryKey EventT f }
 
   deriving Generic
 
@@ -594,8 +594,10 @@ supplyChainDb = defaultDbSettings
     , _contacts =
         modifyTable (const "contacts") $
         tableModification {
-          contact_user1_id = UserId (fieldNamed "contact_user1_id")
-        , contact_user2_id = UserId (fieldNamed "contact_user2_id") 
+          biz_transaction_type_id = ()
+        , biz_transaction_id_urn = ()
+        , contact_user1_id = UserId (fieldNamed "contact_user1_id")
+        , contact_user2_id = UserId (fieldNamed "contact_user2_id")
         }
     -- , _labels =
     --     modifyTable (const "labels") $
