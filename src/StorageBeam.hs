@@ -35,7 +35,6 @@ import Database.Beam.Backend
 import Database.Beam.Backend.SQL.BeamExtensions
 import Database.PostgreSQL.Simple.FromField
 import Database.Beam.Backend.SQL
-import System.Environment (getArgs)
 
 import Data.Text (Text)
 import Data.Int
@@ -64,29 +63,7 @@ instance ToParamSchema PrimaryKeyType where
   -- TODO = refactor this, want toParamSchema for ToParamSchema UUID
   -- https://github.com/GetShopTV/swagger2/blob/master/src/Data/Swagger/Internal/ParamSchema.hs#L268
   toParamSchema _ = mempty & type_ .~ SwaggerString & Data.Swagger.format ?~ "uuid"
-  --toParamSchema _ = (toParamSchema _) :: (ParamSchema UUID)
-  --toParamSchema = toParamSchema (Proxy a :: Proxy UUID)
-  -- toParamSchema _ = uuidParamSchema
-  -- toParamSchema (Proxy :: Proxy UUID) = toParamSchema uuid
---  toParamSchema (Proxy uuid) = toParamSchema uuid
---  toParamSchema p = error "not implemented yet"
-
 instance FromHttpApiData PrimaryKeyType
---   where
---     parseUrlPiece t = error "not implemented yet"
-
-data Env = Prod | Dev
-
--- | Given the environment, returns which db function to use
--- dbFunc :: Env -> (Connection -> Pg a0 -> IO a0)
--- dbFunc Prod = withDatabase
--- dbFunc _    = withDatabaseDebug putStrLn
-
--- |for the moment, comment in/out the appropriate line to the get the proper
--- function
-dbFunc :: Connection -> (Pg a0 -> IO a0)
--- dbFunc = withDatabase
-dbFunc = withDatabaseDebug putStrLn
 
 maxLen :: Word
 maxLen = 120

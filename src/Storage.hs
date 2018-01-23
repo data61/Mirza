@@ -35,6 +35,8 @@ import qualified Data.Text.Lazy as TxtL
 import qualified Data.List.NonEmpty as NonEmpty
 import Database.PostgreSQL.Simple
 -- import Database.PostgreSQL.Simple as DBConn
+--import Database.Beam.Postgres.Connection
+
 type DBConn = Connection
 
 
