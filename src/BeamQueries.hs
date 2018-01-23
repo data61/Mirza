@@ -1,5 +1,19 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+
+-- extra languages... was in tutorial.hs . Added since trying to figure out how to fix auto-increment bug
+{-# LANGUAGE DeriveGeneric         #-}
+{-# LANGUAGE TemplateHaskell, GADTs       #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE TypeApplications      #-}
+{-# LANGUAGE StandaloneDeriving   #-}
+{-# LANGUAGE TypeSynonymInstances #-}
+{-#LANGUAGE PartialTypeSignatures #-}
+{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+
 module BeamQueries where
 
 -- import Control.Monad.Except
@@ -44,8 +58,9 @@ insertUser :: Connection -> EncryptedPass -> M.NewUser -> IO M.UserID
 insertUser conn pass (M.NewUser phone email firstName lastName biz password) = do
 
   insertedUserList <- dbFunc conn $ runInsertReturningList (_users supplyChainDb) $
-                    insertValues [(User 0 --(Auto Nothing)
-                    (BizId biz) firstName lastName phone password email)]
+                    insertValues ([(User (Auto Nothing)--0 --(Auto Nothing)
+                    (BizId . Auto $ Just biz)--(BizId biz)
+                    firstName lastName phone password email)]::[StorageBeam.User])
                     -- (BizId . Auto. Just . fromIntegral $ biz) firstName lastName phone password email)]
   -- print insertedUser
   return (user_id $ last insertedUserList)
