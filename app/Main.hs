@@ -22,7 +22,7 @@ serverOptions = ServerOptions
           ( long "debug"
          <> help "Print Databse Debug Messages" )
       <*> switch
-          ( long "initialise database"
+          ( long "init-db"
          <> short 'i'
          <> help "Put empty tables into a fresh database" )
       <*> option auto
