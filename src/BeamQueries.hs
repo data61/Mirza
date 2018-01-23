@@ -96,7 +96,7 @@ getPublicKeyInfo keyID = do
        let (keyId, uid, rsa_n, rsa_e, creationTime, revocationTime) = head r
        return $ M.KeyInfo uid creationTime revocationTime
 
-getUser :: M.EmailAddress -> IO (Maybe M.User)
+getUser :: M.EmailAddress -> AppM (Maybe M.User)
 getUser  email = do
   r <- runDb $ runSelectReturningList $ select $ do
     allUsers <- all_ (_users supplyChainDb)
@@ -113,7 +113,7 @@ getUser  email = do
 -- TODO = fix. 1 problem is nothing is done with filter value or asset type in objectRowID grabbing data insert
 -- 1 other problem is state never used... what is it???
 -- epc is a labelEPC
-eventCreateObject :: M.User -> M.NewObject -> IO Event
+eventCreateObject :: M.User -> M.NewObject -> AppM Event
 eventCreateObject  (M.User uid _ _ ) (M.NewObject epc epcisTime timezone location) = do
   objectRowID <- runDb $ B.runInsert $ (_labels supplyChainDb) $
                    (case epc of
@@ -126,7 +126,7 @@ eventCreateObject  (M.User uid _ _ ) (M.NewObject epc epcisTime timezone locatio
                                  LGTIN cp ir lot   -> insertValues [Label (Auto Nothing) cp ir Nothing Nothing "LGTIN" lot]
                                  CSGTIN cp fv ir   -> insertValues [Label (Auto Nothing) cp ir Nothing Nothing "CSGTIN" Nothing]))
 
-  currentTime <- getCurrentTime
+  currentTime <- liftIO getCurrentTime
   uuid <- nextRandom
   let
       quantity = ItemCount 3
@@ -151,7 +151,7 @@ eventCreateObject  (M.User uid _ _ ) (M.NewObject epc epcisTime timezone locatio
 
 -- TODO = use EventId or EventID ???
 -- TODO = fix... what is definition of hasSigned?
-eventUserList :: M.User -> EventId -> IO [(M.User, Bool)]
+eventUserList :: M.User -> EventId -> AppM [(M.User, Bool)]
 eventUserList  (M.User uid _ _ ) eventID = do
   r <- runDb $ runSelectReturningList $ select $ do
     allUsers <- all_ (_users supplyChainDb)
