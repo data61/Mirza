@@ -83,12 +83,6 @@ startApp dbConnStr isDebug port uiFlavour = do
 startApp_nomain :: ByteString -> IO ()
 startApp_nomain dbConnStr = startApp dbConnStr True 8000 Original
 
-{-
-app :: UIFlavour -> Application
-app = (serveWithContext api basicAuthServerContext) . server'
--}
-
-
 -- Application = Request -> (Response -> IO ResponseReceived) -> IO ResponseReceived
 webApp :: AC.Env -> UIFlavour -> Application
 webApp env uiFlavour  = serveWithContext api basicAuthServerContext (server' env uiFlavour)
