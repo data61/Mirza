@@ -96,8 +96,8 @@ webApp env uiFlavour  = serveWithContext api basicAuthServerContext (server' env
 -- | ``nt`` stands for natural transformation
 -- here, we are transforming from AppM to Handler
 appMToHandler :: forall x. AC.Env -> AC.AppM x -> Handler x
+-- appMToHandler env = liftIO . flip runReaderT env . AC.unAppM
 appMToHandler env = flip runReaderT env . AC.unAppM
-
 
 {-
 mkApp :: FilePath -> UIFlavour ->  IO Application
