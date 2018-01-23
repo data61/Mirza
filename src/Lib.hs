@@ -108,14 +108,15 @@ data UIFlavour
     deriving (Eq, Read, Show)
 
 server' :: AC.Env -> UIFlavour -> Server API'
-server' env uiFlavour = enter (appMToHandler env) $ server Normal
-    :<|> server Nested
-    :<|> schemaUiServer (serveSwaggerAPI' SpecDown)
+server' env uiFlavour = server Normal
+        :<|> server Nested
+        :<|> schemaUiServer (serveSwaggerAPI' SpecDown)
   where
+    
     -- appProxy = Proxy :: Proxy AC.AppM
     server :: Variant -> Server API
     server variant =
-      schemaUiServer (serveSwaggerAPI' variant) :<|> (privateServer :<|> publicServer)
+      schemaUiServer (serveSwaggerAPI' variant) :<|> enter (NT (appMToHandler env)) appHandlers
     -- mainServer = enter (appMToHandler env) (server Normal)
     schemaUiServer
         :: (Server api ~ Handler Swagger)
@@ -130,4 +131,3 @@ server' env uiFlavour = enter (appMToHandler env) $ server Normal
         & info.description ?~ "Nested API"
     serveSwaggerAPI' SpecDown  = serveSwaggerAPI
         & info.description ?~ "Spec nested"
-
