@@ -28,7 +28,6 @@ import Database.Beam.Backend
 import Database.Beam.Backend.SQL.BeamExtensions
 import Database.PostgreSQL.Simple.FromField
 import Database.Beam.Backend.SQL
-import System.Environment (getArgs)
 
 import Data.Text (Text)
 import Data.Int
@@ -43,29 +42,15 @@ import Database.Beam.Migrate.SQL.Tables
 import Database.Beam.Migrate.SQL.Types
 import Database.Beam.Migrate.Types
 
-import Data.Swagger hiding (Contact)
-import Servant
-
 type PrimaryKeyType = Integer
+-- IMPLEMENTME
+-- Change PrimaryKeyType to ``Auto Int`` and define the instances below
 -- instance ToSchema PrimaryKeyType
 -- instance ToParamSchema PrimaryKeyType where
 --   toParamSchema _ = error "not implemented yet"
 -- instance FromHttpApiData PrimaryKeyType
-  -- where
-  --   parseUrlPiece = error "not implemented yet"
-
-data Env = Prod | Dev
-
--- | Given the environment, returns which db function to use
--- dbFunc :: Env -> (Connection -> Pg a0 -> IO a0)
--- dbFunc Prod = withDatabase
--- dbFunc _    = withDatabaseDebug putStrLn
-
--- |for the moment, comment in/out the appropriate line to the get the proper
--- function
-dbFunc :: Connection -> (Pg a0 -> IO a0)
--- dbFunc = withDatabase
-dbFunc = withDatabaseDebug putStrLn
+--   where
+--     parseUrlPiece = error "not implemented yet"
 
 maxLen :: Word
 maxLen = 120
@@ -172,8 +157,8 @@ migrationStorage =
     (
       BizTransaction
           (field "biz_transaction_id" bigserial)
-          (UserId (field "user_id1" bigserial))
-          (UserId (field "user_id2" bigserial))
+          (field "biz_transaction_type_id" (varchar (Just maxLen)))
+          (field "biz_transaction_id_urn" (varchar (Just maxLen)))
           (EventId (field "biz_transaction_event_id" bigserial))
     )
     <*> createTable "whys"
@@ -434,9 +419,9 @@ instance Table WhatT where
 
 data BizTransactionT f = BizTransaction
   { biz_transaction_id          :: C f PrimaryKeyType
-  , user_id1                   :: PrimaryKey UserT f
-  , user_id2                   :: PrimaryKey UserT f
-  , biz_transaction_event_id     :: PrimaryKey EventT f }
+  , biz_transaction_type_id     :: C f Text
+  , biz_transaction_id_urn      :: C f Text
+  , biz_transaction_event_id    :: PrimaryKey EventT f }
 
   deriving Generic
 
@@ -594,8 +579,8 @@ supplyChainDb = defaultDbSettings
     , _contacts =
         modifyTable (const "contacts") $
         tableModification {
-          contact_user1_id = UserId (fieldNamed "contact_user1_id")
-        , contact_user2_id = UserId (fieldNamed "contact_user2_id") 
+         contact_user1_id = UserId (fieldNamed "contact_user1_id")
+        , contact_user2_id = UserId (fieldNamed "contact_user2_id")
         }
     -- , _labels =
     --     modifyTable (const "labels") $
@@ -634,9 +619,7 @@ supplyChainDb = defaultDbSettings
     , _bizTransactions =
         modifyTable (const "bizTransactions") $
         tableModification {
-          user_id1 = UserId (fieldNamed "user_id1")
-        , user_id2 = UserId (fieldNamed "user_id2")
-        , biz_transaction_event_id = EventId (fieldNamed "biz_transaction_event_id")
+          biz_transaction_event_id = EventId (fieldNamed "biz_transaction_event_id")
         }
     , _whys =
         modifyTable (const "whys") $
