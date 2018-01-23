@@ -55,7 +55,7 @@ main = runProgram =<< execParser opts
 runProgram :: ServerOptions -> IO ()
 runProgram (ServerOptions isDebug False connStr portNum flavour) =
     startApp connStr isDebug (fromIntegral portNum) flavour
-runProgram _ = migrate
+runProgram _ = migrate defConnectionStr
 
 defConnectionStr :: ByteString
 defConnectionStr = "dbname=testsupplychainserver"
