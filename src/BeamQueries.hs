@@ -10,13 +10,14 @@ import Database.Beam as B
 import Database.Beam.Backend.SQL.BeamExtensions
 import StorageBeam
 import AppConfig (AppM, runDb)
+import Data.Maybe (fromJust)
 
 insertUser :: EncryptedPass -> M.NewUser -> AppM M.UserID
 insertUser pass (M.NewUser phone email firstName lastName biz password) = do
 
   [insertedUser] <- runDb $ runInsertReturningList (_users supplyChainDb) $
-                    insertValues [(User 0 --(Auto Nothing)
-                    (BizId biz) firstName lastName phone password email)]
+                    insertValues [(User (Auto Nothing) --0
+                    (BizId . Auto . Just $ biz) firstName lastName phone password email)]
                     -- (BizId . Auto. Just . fromIntegral $ biz) firstName lastName phone password email)]
   -- print insertedUser
   return (user_id insertedUser)

@@ -35,7 +35,7 @@ import Data.GS1.DWhat
 import Data.Text as T
 
 import qualified Data.ByteString as ByteString
-
+import Data.UUID (UUID)
 import StorageBeam (PrimaryKeyType)
 
 type UserID = PrimaryKeyType
@@ -148,7 +148,7 @@ data NewUser = NewUser {
   emailAddress :: T.Text,
   firstName :: T.Text,
   lastName :: T.Text,
-  company :: Integer,
+  company :: UUID,
   password :: T.Text
 } deriving (Generic, Eq, Show)
 $(deriveJSON defaultOptions ''NewUser)
@@ -157,7 +157,7 @@ instance ToSchema NewUser
 
 
 data Business = Business {
-  bizID :: Integer
+  bizID :: UUID
   , bizName :: T.Text
   , gs1CompanyPrefix :: Integer
   , function :: T.Text
