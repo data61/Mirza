@@ -42,7 +42,7 @@ import           Control.Monad.Except (throwError, MonadError)
   "emailAddress": "abc",
   "firstName": "sajid",
   "lastName": "anower",
-  "company": "00000000-0000-0000-0000-000000000000",
+  "company": "5",
   "password": "password"
 }
 
