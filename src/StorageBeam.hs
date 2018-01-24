@@ -492,8 +492,8 @@ instance Table WhereT where
 
 data WhenT f = When
   { when_id                      :: C f PrimaryKeyType
-  , event_time                   :: C f Int64
-  , record_time                  :: C f Int64
+  , event_time                   :: C f E.EPCISTime
+  , record_time                  :: C f (Maybe E.EPCISTime)
   , time_zone                    :: C f TimeZone
   , when_event_id                 :: PrimaryKey EventT f }
 
