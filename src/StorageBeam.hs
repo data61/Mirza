@@ -180,8 +180,8 @@ migrationStorage =
     (
       Why
           (field "why_id" pkSerialType)
-          (field "biz_step" bigserial) -- waiting for the compuler to tell us the type
-          (field "disposition" bigserial) -- waiting for the compuler to tell us the type
+          (field "biz_step" bigserial) -- waiting for the compiler to tell us the type
+          (field "disposition" bigserial) -- waiting for the compiler to tell us the type
           (EventId (field "why_event_id" pkSerialType))
     )
     <*> createTable "wheres"
