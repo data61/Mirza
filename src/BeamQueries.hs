@@ -52,19 +52,19 @@ import           Control.Monad.Except (throwError, MonadError)
 -- insertUser :: (MonadError M.DBError m) => EncryptedPass -> M.NewUser -> AppM M.UserID
 insertUser :: EncryptedPass -> M.NewUser -> AppM M.UserID
 insertUser pass (M.NewUser phone email firstName lastName biz password) = do
-  liftIO $ print "foo"
+  -- liftIO $ print "foo"
   insertedUserList <- runDb $ runInsertReturningList (SB._users SB.supplyChainDb) $
                     insertValues ([(SB.User (Auto Nothing)
                     (SB.BizId . Auto $ Just biz)--(BizId biz)
                     firstName lastName phone password email)] ::[SB.User])
                     -- (BizId . Auto. Just . fromIntegral $ biz) firstName lastName phone password email)]
-  liftIO $ print insertedUserList
+  -- liftIO $ print insertedUserList
   return $ SB.user_id $ last insertedUserList
 
 -- |
 newUser :: M.NewUser -> AppM M.UserID
 newUser userInfo@(M.NewUser _ _ _ _ _ password) = do
-    liftIO $ print "blah"
+    -- liftIO $ print "blah"
     hash <- liftIO $ encryptPassIO' (Pass $ encodeUtf8 password)
     insertUser hash userInfo
 
