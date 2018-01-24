@@ -61,14 +61,16 @@ type PrimaryKeyType = UUID
 maxLen :: Word
 maxLen = 120
 
+pkSerialType = uuid
+
 migrationStorage :: Migration PgCommandSyntax (CheckedDatabaseSettings Postgres SupplyChainDb)
 migrationStorage =
   SupplyChainDb
     <$> createTable "users"
     (
       User
-          (field "user_id" bigserial)
-          (BizId (field "user_biz_id" bigserial))
+          (field "user_id" pkSerialType)
+          (BizId (field "user_biz_id" pkSerialType))
           (field "first_name" (varchar (Just maxLen)) notNull)
           (field "last_name" (varchar (Just maxLen)) notNull)
           (field "phone_number" (varchar (Just maxLen)) notNull)
@@ -78,19 +80,19 @@ migrationStorage =
     <*> createTable "keys"
     (
       Key
-          (field "key_id" bigserial)
-          (UserId (field "key_user_id" bigserial))
-          (field "rsa_n" bigserial)
-          (field "rsa_e" bigserial)
-          (field "creation_time" bigserial)
-          (field "revocation_time" bigserial)
+          (field "key_id" pkSerialType)
+          (UserId (field "key_user_id" pkSerialType))
+          (field "rsa_n" text)
+          (field "rsa_e" text)
+          (field "creation_time" bigint)
+          (field "revocation_time" bigint)
     )
     <*> createTable "businesses"
     (
       Business
-          (field "biz_id" bigserial)
+          (field "biz_id" pkSerialType)
           (field "biz_name" (varchar (Just maxLen)) notNull)
-          (field "biz_gs1CompanyPrefix" bigserial)
+          (field "biz_gs1CompanyPrefix" int)
           (field "biz_function" (varchar (Just maxLen)) notNull)
           (field "biz_siteName" (varchar (Just maxLen)) notNull)
           (field "biz_address" (varchar (Just maxLen)) notNull)
@@ -100,14 +102,14 @@ migrationStorage =
     <*> createTable "contacts"
     (
       Contact
-          (field "contact_id" bigserial)
-          (UserId (field "contact_user1_id" bigserial))
-          (UserId (field "contact_user2_id" bigserial))
+          (field "contact_id" pkSerialType)
+          (UserId (field "contact_user1_id" pkSerialType))
+          (UserId (field "contact_user2_id" pkSerialType))
     )
     <*> createTable "labels"
     (
       Label
-          (field "label_id" bigserial)
+          (field "label_id" pkSerialType)
           (field "label_gs1_company_prefix" (varchar (Just maxLen)) notNull)
           (field "item_reference" (varchar (Just maxLen)) notNull)
           (field "serial_number" (varchar (Just maxLen)) notNull)
@@ -118,88 +120,88 @@ migrationStorage =
     <*> createTable "items"
     (
       Item
-          (field "item_id" bigserial)
-          (LabelId (field "item_label_id" bigserial))
+          (field "item_id" pkSerialType)
+          (LabelId (field "item_label_id" pkSerialType))
           (field "item_description" (varchar (Just maxLen)) notNull)
     )
     <*> createTable "transformations"
     (
       Transformation
-          (field "transformation_id" bigserial)
+          (field "transformation_id" pkSerialType)
           (field "transformation_description" (varchar (Just maxLen)) notNull)
-          (BizId (field "transformation_biz_id" bigserial))
+          (BizId (field "transformation_biz_id" pkSerialType))
     )
     <*> createTable "locations"
     (
       Location
-          (field "location_id" bigserial)
-          (BizId (field "location_biz_id" bigserial))
+          (field "location_id" pkSerialType)
+          (BizId (field "location_biz_id" pkSerialType))
           (field "location_lat" double)
           (field "location_long" double)
     )
     <*> createTable "events"
     (
       Event
-          (field "event_id" bigserial)
+          (field "event_id" pkSerialType)
           (field "foreign_event_id" (varchar (Just maxLen)) notNull)
-          (BizId (field "event_label_id" bigserial))
-          (UserId (field "event_created_by" bigserial))
+          (BizId (field "event_label_id" pkSerialType))
+          (UserId (field "event_created_by" pkSerialType))
           (field "json_event" (varchar (Just maxLen)) notNull)
     )
     <*> createTable "whats"
     (
       What
-          (field "what_id" bigserial)
-          (field "what_type" bigserial) -- bigserial for now FIXME
+          (field "what_id" pkSerialType)
+          (field "what_type" pkSerialType) -- bigserial for now FIXME
           (field "action" bigserial) -- bigserial for now FIXME
-          (LabelId (field "parent" bigserial)) -- bigserial for now FIXME
+          (LabelId (field "parent" pkSerialType)) -- bigserial for now FIXME
           (field "input" bigserial) -- bigserial for now FIXME
           (field "output" bigserial) -- bigserial for now FIXME
-          (BizTransactionId (field "what_biz_transaction_id" bigserial)) -- bigserial for now FIXME
-          (TransformationId (field "what_transformation_id" bigserial)) -- bigserial for now FIXME
-          (EventId (field "what_event_id" bigserial))
+          (BizTransactionId (field "what_biz_transaction_id" pkSerialType))
+          (TransformationId (field "what_transformation_id" pkSerialType))
+          (EventId (field "what_event_id" pkSerialType))
     )
     <*> createTable "bizTransactions"
     (
       BizTransaction
-          (field "biz_transaction_id" bigserial)
+          (field "biz_transaction_id" pkSerialType)
           (field "biz_transaction_type_id" (varchar (Just maxLen)))
           (field "biz_transaction_id_urn" (varchar (Just maxLen)))
-          (EventId (field "biz_transaction_event_id" bigserial))
+          (EventId (field "biz_transaction_event_id" pkSerialType))
     )
     <*> createTable "whys"
     (
       Why
-          (field "why_id" bigserial)
+          (field "why_id" pkSerialType)
           (field "biz_step" bigserial) -- waiting for the compuler to tell us the type
           (field "disposition" bigserial) -- waiting for the compuler to tell us the type
-          (EventId (field "why_event_id" bigserial))
+          (EventId (field "why_event_id" pkSerialType))
     )
     <*> createTable "wheres"
     (
       Where
-          (field "where_id" bigserial)
-          (LocationId (field "read_point" bigserial))
-          (LocationId (field "biz_location" bigserial))
+          (field "where_id" pkSerialType)
+          (LocationId (field "read_point" pkSerialType))
+          (LocationId (field "biz_location" pkSerialType))
           (field "src_type" bigserial) -- waiting for compiler
           (field "dest_type" bigserial) -- waiting for compiler
-          (EventId (field "where_event_id" bigserial))
+          (EventId (field "where_event_id" pkSerialType))
     )
     <*> createTable "whens"
     (
       When
-          (field "when_id" bigserial)
-          (field "event_time" bigserial)
-          (field "record_time" bigserial)
-          (field "time_zone" (varchar (Just maxLen)) notNull)
-          (EventId (field "when_event_id" bigserial))
+          (field "when_id" pkSerialType)
+          (field "event_time" bigint)
+          (field "record_time" bigint)
+          (field "time_zone" bigint)
+          (EventId (field "when_event_id" pkSerialType))
     )
     <*> createTable "labelEvents"
     (
       LabelEvent
-          (field "label_event_id" bigserial)
-          (LabelId (field "label_event_label_id" bigserial))
-          (EventId (field "label_event_event_id" bigserial))
+          (field "label_event_id" pkSerialType)
+          (LabelId (field "label_event_label_id" pkSerialType))
+          (EventId (field "label_event_event_id" pkSerialType))
     )
 
 
