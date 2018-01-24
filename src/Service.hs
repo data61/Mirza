@@ -72,7 +72,7 @@ authCheck = error "Storage module not implemented"
 
 
 appMToHandler :: forall x. AC.Env -> AC.AppM x -> Handler x
-appMToHandler env = liftIO . flip runReaderT env . AC.unAppM
+appMToHandler env = flip runReaderT env . AC.unAppM
 
 privateServer :: User -> ServerT PrivateAPI AC.AppM
 privateServer user =
@@ -128,7 +128,9 @@ addPublicKey user sig = error "Storage module not implemented"
   -- liftIO (Storage.addPublicKey user sig)
 
 newUser :: NewUser -> AC.AppM UserID
-newUser nu = BQ.newUser nu
+newUser nu = do
+    liftIO $ print "newUser:service"
+    BQ.newUser nu
   -- liftIO $ print insertedUserList
   -- case insertedUserList of
   --   [user] -> return (SB.user_id user)
