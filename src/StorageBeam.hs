@@ -63,7 +63,10 @@ instance ToParamSchema PrimaryKeyType where
   -- TODO = refactor this, want toParamSchema for ToParamSchema UUID
   -- https://github.com/GetShopTV/swagger2/blob/master/src/Data/Swagger/Internal/ParamSchema.hs#L268
   toParamSchema _ = mempty & type_ .~ SwaggerString & Data.Swagger.format ?~ "uuid"
-instance FromHttpApiData PrimaryKeyType
+instance FromHttpApiData PrimaryKeyType where
+  -- parseUrlPiece :: Text -> Either Text PrimaryKeyType
+  parseUrlPiece t = error $ show t ++ " parseUP"
+  parseQueryParam t = error $ show t ++ " parseQP"
 
 maxLen :: Word
 maxLen = 120
