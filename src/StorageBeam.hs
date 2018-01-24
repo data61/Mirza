@@ -320,7 +320,7 @@ instance Table LabelT where
 
 data ItemT f = Item
   { item_id            :: C f PrimaryKeyType
-  , item_label_id       :: PrimaryKey LabelT f
+  , item_label_id      :: PrimaryKey LabelT f
   , item_description   :: C f Text }
   deriving Generic
 type Item = ItemT Identity
@@ -340,7 +340,7 @@ instance Table ItemT where
 data TransformationT f = Transformation
   { transformation_id           :: C f PrimaryKeyType
   , transformation_description  :: C f Text
-  , transformation_biz_id           :: PrimaryKey BusinessT f }
+  , transformation_biz_id       :: PrimaryKey BusinessT f }
   deriving Generic
 type Transformation = TransformationT Identity
 type TransformationId = PrimaryKey TransformationT Identity
@@ -399,15 +399,15 @@ instance Table EventT where
   primaryKey = EventId . event_id
 
 data WhatT f = What
-  { what_id                     :: C f PrimaryKeyType
-  , what_type                   :: C f Ev.EventType
+  { what_id                    :: C f PrimaryKeyType
+  , what_type                  :: C f Ev.EventType
   , action                     :: C f E.Action
   , parent                     :: PrimaryKey LabelT f
   , input                      :: C f [LabelEPC]
   , output                     :: C f [LabelEPC]
-  , what_biz_transaction_id       :: PrimaryKey BizTransactionT f
-  , what_transformation_id       :: PrimaryKey TransformationT f
-  , what_event_id                :: PrimaryKey EventT f }
+  , what_biz_transaction_id    :: PrimaryKey BizTransactionT f
+  , what_transformation_id     :: PrimaryKey TransformationT f
+  , what_event_id              :: PrimaryKey EventT f }
   deriving Generic
 
 type What = WhatT Identity
@@ -513,8 +513,8 @@ instance Table WhenT where
 
 data LabelEventT f = LabelEvent
   { label_event_id               :: C f PrimaryKeyType
-  , label_event_label_id          :: PrimaryKey LabelT f
-  , label_event_event_id          :: PrimaryKey EventT f }
+  , label_event_label_id         :: PrimaryKey LabelT f
+  , label_event_event_id         :: PrimaryKey EventT f }
   deriving Generic
 
 type LabelEvent = LabelEventT Identity
