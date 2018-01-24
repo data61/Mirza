@@ -41,4 +41,10 @@ To use ghci interactively, run
 
 <code>stack ghci </code>
 
-
+Things to do before next release:
+- [x] Integrate ReaderT Monad
+- [ ] Add tests for all the endpoints
+- [ ] Finish backend implementation (queries) for all endpoints
+- [ ] Decide on a `PrimaryKeyType`
+- [ ] Define instances for selected `PrimaryKeyType`
+- [ ] Add remaining tables (`EventHash`, etc)

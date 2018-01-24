@@ -28,7 +28,6 @@ import Database.Beam.Backend
 import Database.Beam.Backend.SQL.BeamExtensions
 import Database.PostgreSQL.Simple.FromField
 import Database.Beam.Backend.SQL
-import System.Environment (getArgs)
 
 import Data.Text (Text)
 import Data.Int
@@ -43,29 +42,15 @@ import Database.Beam.Migrate.SQL.Tables
 import Database.Beam.Migrate.SQL.Types
 import Database.Beam.Migrate.Types
 
-import Data.Swagger hiding (Contact)
-import Servant
-
 type PrimaryKeyType = Integer
+-- IMPLEMENTME
+-- Change PrimaryKeyType to ``Auto Int`` and define the instances below
 -- instance ToSchema PrimaryKeyType
 -- instance ToParamSchema PrimaryKeyType where
 --   toParamSchema _ = error "not implemented yet"
 -- instance FromHttpApiData PrimaryKeyType
-  -- where
-  --   parseUrlPiece = error "not implemented yet"
-
-data Env = Prod | Dev
-
--- | Given the environment, returns which db function to use
--- dbFunc :: Env -> (Connection -> Pg a0 -> IO a0)
--- dbFunc Prod = withDatabase
--- dbFunc _    = withDatabaseDebug putStrLn
-
--- |for the moment, comment in/out the appropriate line to the get the proper
--- function
-dbFunc :: Connection -> (Pg a0 -> IO a0)
--- dbFunc = withDatabase
-dbFunc = withDatabaseDebug putStrLn
+--   where
+--     parseUrlPiece = error "not implemented yet"
 
 maxLen :: Word
 maxLen = 120

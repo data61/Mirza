@@ -9,11 +9,11 @@ import Options.Applicative
 import Data.Semigroup ((<>))
 
 data ServerOptions = ServerOptions
-  { debug      :: Bool
-  , initDB     :: Bool
+  { debug         :: Bool
+  , initDB        :: Bool
   , connectionStr :: ByteString
-  , port :: Int
-  , uiFlavour :: UIFlavour
+  , port          :: Int
+  , uiFlavour     :: UIFlavour
   }
 
 serverOptions :: Parser ServerOptions
@@ -42,8 +42,6 @@ serverOptions = ServerOptions
          <> value JensOleG)
 
 
-
-
 main :: IO ()
 main = runProgram =<< execParser opts
   where
@@ -54,7 +52,10 @@ main = runProgram =<< execParser opts
 
 
 runProgram :: ServerOptions -> IO ()
-runProgram (ServerOptions debug False connectionStr port flavour) = startApp connectionStr debug port flavour
+runProgram (ServerOptions isDebug False connStr portNum flavour) =
+    startApp connStr isDebug (fromIntegral portNum) flavour
 runProgram _ = migrate
 
+defConnectionStr :: ByteString
+defConnectionStr = "dbname=testsupplychainserver"
 
