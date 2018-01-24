@@ -35,7 +35,18 @@ import           Control.Monad.Except (throwError, MonadError)
 -- https://github.csiro.au/Blockchain/supplyChainServer/blob/pg-schema-matt/src/BeamQueries.hs
 -- to figure out what it was when work was started
 -- especially, if some variable is out of scope, look at the import list there
+{- 
 
+{
+  "phoneNumber": "0412",
+  "emailAddress": "abc",
+  "firstName": "sajid",
+  "lastName": "anower",
+  "company": "00000000-0000-0000-0000-000000000000",
+  "password": "password"
+}
+
+ -}
 insertUser :: EncryptedPass -> M.NewUser -> AppM M.UserID
 insertUser pass (M.NewUser phone email firstName lastName biz password) = do
   insertedUserList <- runDb $ runInsertReturningList (SB._users SB.supplyChainDb) $
