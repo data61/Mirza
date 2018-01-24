@@ -16,7 +16,7 @@ module StorageBeam where
 2. make the schema definitions consistent with the table definitions
 3. for each primaryKey = .+Id \. .* (this is a regex), make the relevant change (eg. _itemId becomes item_id)
 4. For each foreign key, make changes that appear similar to the changes made to UserT table
-5. Do it for each of the tables (or the ones allocated to you)
+5. Do it for each of the tables
 VSCode shortcut for multi-line cursors: Ctrl+Shift+Up/Down
 -}
 
