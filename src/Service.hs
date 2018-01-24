@@ -36,7 +36,9 @@ import qualified Data.HashMap.Strict.InsOrd as IOrd
 import qualified Network.Wai.Handler.Warp as Warp
 import           Control.Monad.Reader   (runReaderT,
                                          asks, ask, liftIO)
-import Control.Lens       hiding ((.=))
+import           Control.Lens       hiding ((.=))
+import           Control.Monad.Except (runExceptT)
+
 -- remove me eventually
 import Data.UUID.V4
 import qualified BeamQueries as BQ
