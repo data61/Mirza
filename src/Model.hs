@@ -39,7 +39,8 @@ import qualified Data.ByteString as ByteString
 import StorageBeam (PrimaryKeyType)
 
 import Data.UUID
-
+import           Control.Monad.Except (throwError, MonadError)
+import Control.Exception (IOException)
 type UserID = PrimaryKeyType
 
 -- instance ToSchema UserID
@@ -253,7 +254,7 @@ data HashedEvent = HashedEvent {
 $(deriveJSON defaultOptions ''HashedEvent)
 instance ToSchema HashedEvent
 
-data SigError = SE_NeedMoreSignatures
+data SigError =  SE_NeedMoreSignatures
                | SE_InvalidSignature
                | SE_InvalidUser
                | SE_BlockchainSendFailed
@@ -266,4 +267,7 @@ data SigError = SE_NeedMoreSignatures
 data GetPropertyError = KE_InvalidKeyID
                       | KE_InvalidUserID
                       deriving (Show, Read, Generic)
+
+data DBError = DBE_InsertionFail
+               deriving (Show, Read, Generic)
 --instance Except GetPropertyError
