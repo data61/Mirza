@@ -77,7 +77,8 @@ server' env uiFlavour = server Normal
     -- appProxy = Proxy :: Proxy AC.AppM
     server :: Variant -> Server API
     server variant =
-      schemaUiServer (serveSwaggerAPI' variant) :<|> enter (NT (appMToHandler env)) appHandlers
+      schemaUiServer (serveSwaggerAPI' variant)
+        :<|> enter (NT (appMToHandler env)) appHandlers
     -- mainServer = enter (appMToHandler env) (server Normal)
     schemaUiServer
         :: (Server api ~ Handler Swagger)
