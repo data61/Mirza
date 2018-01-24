@@ -31,7 +31,7 @@ serverOptions = ServerOptions
          <> short 'c'
          <> help "database connection string"
          <> showDefault
-         <> value "dbname=testsupplychainserver")
+         <> value defConnectionStr)
        <*> option auto
           ( long "port"
          <> help "Port to run database on"
