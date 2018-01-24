@@ -20,30 +20,32 @@ module StorageBeam where
 VSCode shortcut for multi-line cursors: Ctrl+Shift+Up/Down
 -}
 
-import Control.Lens
-import Database.Beam as B
-import Database.Beam.Postgres
-import Database.PostgreSQL.Simple
-import Database.Beam.Backend
-import Database.Beam.Backend.SQL.BeamExtensions
-import Database.PostgreSQL.Simple.FromField
-import Database.Beam.Backend.SQL
+import           Control.Lens
+import           Database.Beam as B
+import           Database.Beam.Postgres
+import           Database.PostgreSQL.Simple
+import           Database.Beam.Backend
+import           Database.Beam.Backend.SQL.BeamExtensions
+import           Database.PostgreSQL.Simple.FromField
+import           Database.Beam.Backend.SQL
 
-import Data.Text (Text)
-import Data.Int
-import Data.Time
+import           Data.Text (Text)
+import           Data.Int
+import           Data.Time
 
 import qualified Data.GS1.Event as Ev
 import qualified Data.GS1.EPC as E
-import Data.GS1.DWhat
+import           Data.GS1.DWhat
+import           Data.UUID (UUID)
+import           Database.Beam.Postgres.Migrate
+import           Database.Beam.Migrate.SQL.Tables
+import           Database.Beam.Migrate.SQL.Types
+import           Database.Beam.Migrate.Types
+import           Data.Swagger hiding (Contact)
+import           Servant
 
-import Database.Beam.Postgres.Migrate
-import Database.Beam.Migrate.SQL.Tables
-import Database.Beam.Migrate.SQL.Types
-import Database.Beam.Migrate.Types
-
-type PrimaryKeyType = Integer
--- IMPLEMENTME
+type PrimaryKeyType = UUID
+-- IMPLEMENTME - NOT NOW
 -- Change PrimaryKeyType to ``Auto Int`` and define the instances below
 -- instance ToSchema PrimaryKeyType
 -- instance ToParamSchema PrimaryKeyType where
