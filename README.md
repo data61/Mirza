@@ -27,7 +27,8 @@ After that, to create the database, run
 `stack exec supplyChainServer-exe -- -i -c testsupplychainserver`
 
 Note that you can change "testsupplychainserver" for any database name you like.
-Not giving it the `-c` flag will result in a database named testsupplychainserver.
+Not giving it the `-c` flag will result in a database named
+`testsupplychainserver`.
 
 Finally, to run the server, do:
 
@@ -46,7 +47,7 @@ If you find yourself deleting and recreating the database frequently, run
 `testsupplychainserver`, create it anew and run the migration script
 to create all the relevant tables.
 
-To to a clean build, do `./restart.sh --clean`.
+To do a clean build, do `./restart.sh --clean`.
 
 
 Things to do before next release:
