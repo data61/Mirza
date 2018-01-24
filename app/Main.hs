@@ -9,7 +9,7 @@ import Options.Applicative
 import Data.Semigroup ((<>))
 
 data ServerOptions = ServerOptions
-  { debug         :: Bool
+  { verbose       :: Bool
   , initDB        :: Bool
   , connectionStr :: ByteString
   , port          :: Int
@@ -19,7 +19,8 @@ data ServerOptions = ServerOptions
 serverOptions :: Parser ServerOptions
 serverOptions = ServerOptions
       <$> switch
-          ( long "debug"
+          ( long "verbose"
+         <> short 'v'
          <> help "Print Databse Debug Messages" )
       <*> switch
           ( long "init-db"
@@ -35,7 +36,7 @@ serverOptions = ServerOptions
           ( long "port"
          <> help "Port to run database on"
          <> showDefault
-         <> value 8080)
+         <> value 8000)
        <*> option auto
           ( long "uiFlavour"
          <> help "Use jensoleg or Original UI Flavour for the Swagger API"
@@ -59,4 +60,3 @@ runProgram _ = migrate defConnectionStr
 
 defConnectionStr :: ByteString
 defConnectionStr = "dbname=testsupplychainserver"
-
