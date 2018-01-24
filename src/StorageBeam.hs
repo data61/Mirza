@@ -258,8 +258,8 @@ data BusinessT f = Business
   , biz_function          :: C f Text
   , biz_siteName          :: C f Text
   , biz_address           :: C f Text
-  , biz_lat               :: C f Float
-  , biz_long              :: C f Float }
+  , biz_lat               :: C f Double
+  , biz_long              :: C f Double }
   deriving Generic
 type Business = BusinessT Identity
 type BizId = PrimaryKey BusinessT Identity
@@ -359,8 +359,8 @@ instance Table TransformationT where
 data LocationT f = Location
   { location_id                 :: C f PrimaryKeyType
   , location_biz_id             :: PrimaryKey BusinessT f
-  , location_lat                :: C f Float
-  , location_long               :: C f Float }
+  , location_lat                :: C f Double
+  , location_long               :: C f Double }
   deriving Generic
 
 type Location = LocationT Identity
