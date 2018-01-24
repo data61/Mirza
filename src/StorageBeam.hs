@@ -237,8 +237,8 @@ instance Table UserT where
 data KeyT f = Key
   { key_id             :: C f PrimaryKeyType
   , key_user_id        :: PrimaryKey UserT f
-  , rsa_n              :: C f Int32 --XXX should this be Int64?
-  , rsa_e              :: C f Int32 -- as above
+  , rsa_n              :: C f Int64 --XXX should this be Int64?
+  , rsa_e              :: C f Int64 -- as above
   , creationTime       :: C f Int32 --XXX date.. Int64?
   , revocationTime     :: C f Int32 -- as above
   }
