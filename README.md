@@ -47,7 +47,7 @@ If you find yourself deleting and recreating the database frequently, run
 `testsupplychainserver`, create it anew and run the migration script
 to create all the relevant tables.
 
-To do a clean build, do `./restart.sh --clean`.
+To do a clean build instead, do `./restart.sh --clean`.
 
 
 Things to do before next release:
@@ -57,4 +57,4 @@ Things to do before next release:
 - [ ] Decide on a `PrimaryKeyType`
 - [ ] Define instances for selected `PrimaryKeyType`
 - [ ] Add remaining tables (`EventHash`, etc)
-- [ ] (Unlikely) Write a `setup.sh` for developers coming in
+- [ ] (Unlikely) Write a `setup.sh` for new developers coming in
