@@ -20,6 +20,9 @@ import           Control.Monad.Reader   (MonadReader, ReaderT, runReaderT,
                                          asks, ask, liftIO)
 -- import           GHC.Word               (Word16)
 import           Servant.Server (Handler)
+import           Control.Monad.Except (MonadError)
+import           Model (DBError)
+
 
 data EnvType = Prod | Dev
 
@@ -40,6 +43,7 @@ newtype AppM a = AppM
            , Monad
            , MonadReader Env
            , MonadIO
+          --  , MonadError DBError
            )
 
 getDBConn :: AppM Connection
