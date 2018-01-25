@@ -553,6 +553,10 @@ instance Table LabelEventT where
   primaryKey = LabelEventId . label_event_id
 
 
+-- ADDITIONAL TABLES
+
+-- END OF ADDITIONAL TABLES
+
 data SupplyChainDb f = SupplyChainDb
   { _users           :: f (TableEntity UserT)
   , _keys            :: f (TableEntity KeyT)
