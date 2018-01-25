@@ -55,6 +55,6 @@ Things to do before next release:
 - [ ] Add tests for all the endpoints
 - [ ] Finish backend implementation (queries) for all endpoints
 - [ ] Decide on a `PrimaryKeyType`
-- [ ] Define instances for selected `PrimaryKeyType`
+- [x] Define instances for selected `PrimaryKeyType`
 - [ ] Add remaining tables (`EventHash`, etc)
 - [ ] (Unlikely) Write a `setup.sh` for new developers coming in
