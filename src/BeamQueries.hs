@@ -38,8 +38,8 @@ import           Control.Monad.Except (throwError, MonadError)
 -- https://github.csiro.au/Blockchain/supplyChainServer/blob/pg-schema-matt/src/BeamQueries.hs
 -- to figure out what it was when work was started
 -- especially, if some variable is out of scope, look at the import list there
-{- 
 
+{- 
 {
   "phoneNumber": "0412",
   "emailAddress": "abc",
@@ -48,9 +48,9 @@ import           Control.Monad.Except (throwError, MonadError)
   "company": "5",
   "password": "password"
 }
-
  -}
--- insertUser :: (MonadError M.DBError m) => EncryptedPass -> M.NewUser -> AppM M.UserID
+
+-- USE pass!
 insertUser :: EncryptedPass -> M.NewUser -> AppM M.UserID
 insertUser pass (M.NewUser phone email firstName lastName biz password) = do
   -- liftIO $ print "foo"
