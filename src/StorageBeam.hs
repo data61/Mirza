@@ -159,8 +159,8 @@ migrationStorage =
     (
       What
           (field "what_id" pkSerialType)
-          (field "what_type" pkSerialType) -- bigserial for now FIXME
-          (field "action" bigserial) -- bigserial for now FIXME
+          (field "what_type" text)
+          (field "action" text) -- bigserial for now FIXME
           (LabelId (field "parent" pkSerialType)) -- bigserial for now FIXME
           (field "input" bigserial) -- bigserial for now FIXME
           (field "output" bigserial) -- bigserial for now FIXME
@@ -178,10 +178,11 @@ migrationStorage =
     )
     <*> createTable "whys"
     (
+      -- _b :: DataType PgDataTypeSyntax E.BizStep
       Why
           (field "why_id" pkSerialType)
-          (field "biz_step" bigserial) -- waiting for the compiler to tell us the type
-          (field "disposition" bigserial) -- waiting for the compiler to tell us the type
+          (field "biz_step" text) -- waiting for the compiler to tell us the type
+          (field "disposition" text) -- waiting for the compiler to tell us the type
           (EventId (field "why_event_id" pkSerialType))
     )
     <*> createTable "wheres"
@@ -190,8 +191,8 @@ migrationStorage =
           (field "where_id" pkSerialType)
           (LocationId (field "read_point" pkSerialType))
           (LocationId (field "biz_location" pkSerialType))
-          (field "src_type" bigserial) -- waiting for compiler
-          (field "dest_type" bigserial) -- waiting for compiler
+          (field "src_type" text) -- waiting for compiler
+          (field "dest_type" text) -- waiting for compiler
           (EventId (field "where_event_id" pkSerialType))
     )
     <*> createTable "whens"
@@ -407,8 +408,8 @@ instance Table EventT where
 
 data WhatT f = What
   { what_id                    :: C f PrimaryKeyType
-  , what_type                  :: C f Ev.EventType
-  , action                     :: C f E.Action
+  , what_type                  :: C f Text -- Ev.EventType
+  , action                     :: C f Text -- E.Action
   , parent                     :: PrimaryKey LabelT f
   , input                      :: C f [LabelEPC]
   , output                     :: C f [LabelEPC]
@@ -456,9 +457,9 @@ instance Table BizTransactionT where
 
 data WhyT f = Why
   { why_id                      :: C f PrimaryKeyType
-  , biz_step                    :: C f E.BizStep
-  , disposition                :: C f E.Disposition
-  , why_event_id                 :: PrimaryKey EventT f }
+  , biz_step                    :: C f Text -- E.BizStep
+  , disposition                 :: C f Text -- E.Disposition
+  , why_event_id                :: PrimaryKey EventT f }
 
   deriving Generic
 
@@ -478,9 +479,9 @@ data WhereT f = Where
   { where_id                    :: C f PrimaryKeyType
   , read_point                  :: PrimaryKey LocationT f
   , biz_location                :: PrimaryKey LocationT f
-  , src_type                    :: C f E.SourceDestType
-  , dest_type                   :: C f E.SourceDestType
-  , where_event_id               :: PrimaryKey EventT f }
+  , src_type                    :: C f Text -- E.SourceDestType
+  , dest_type                   :: C f Text -- E.SourceDestType
+  , where_event_id              :: PrimaryKey EventT f }
 
   deriving Generic
 
