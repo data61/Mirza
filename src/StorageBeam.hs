@@ -130,11 +130,12 @@ migrationStorage =
     (
       Label
           (field "label_id" pkSerialType)
+          (field "label_type" (varchar (Just maxLen)) notNull)
+          (WhatId (field "label_what_id" pkSerialType))
           (field "label_gs1_company_prefix" (varchar (Just maxLen)) notNull)
           (field "item_reference" (varchar (Just maxLen)) notNull)
           (field "serial_number" (varchar (Just maxLen)) notNull)
           (field "state" (varchar (Just maxLen)) notNull)
-          (field "label_type" (varchar (Just maxLen)) notNull)
           (field "lot" (varchar (Just maxLen)) notNull)
     )
     <*> createTable "items"
@@ -173,10 +174,10 @@ migrationStorage =
       What
           (field "what_id" pkSerialType)
           (field "what_type" text)
-          (field "action" text) -- bigserial for now FIXME
-          (LabelId (field "parent" pkSerialType)) -- bigserial for now FIXME
-          (field "input" bigserial) -- bigserial for now FIXME
-          (field "output" bigserial) -- bigserial for now FIXME
+          (field "action" text)
+          (LabelId (field "parent" pkSerialType))
+          -- (field "input" bigserial)
+          -- (field "output" bigserial)
           (BizTransactionId (field "what_biz_transaction_id" pkSerialType))
           (TransformationId (field "what_transformation_id" pkSerialType))
           (EventId (field "what_event_id" pkSerialType))
@@ -318,11 +319,13 @@ instance Table ContactT where
 
 data LabelT f = Label
   { label_id                 :: C f PrimaryKeyType
+  , label_type               :: C f Text -- input/output/parent
+  , label_what_id            :: PrimaryKey WhatT f
   , label_gs1_company_prefix :: C f Text --should this be bizId instead?
   , item_reference           :: C f Text
   , serial_number            :: C f Text
   , state                    :: C f Text
-  , label_type               :: C f Text
+  -- , label_type               :: C f Text
   , lot                      :: C f Text }
   deriving Generic
 type Label = LabelT Identity
@@ -424,8 +427,8 @@ data WhatT f = What
   , what_type                  :: C f Text -- Ev.EventType
   , action                     :: C f Text -- E.Action
   , parent                     :: PrimaryKey LabelT f
-  , input                      :: C f [LabelEPC]
-  , output                     :: C f [LabelEPC]
+  -- , input                      :: C f [LabelEPC]
+  -- , output                     :: C f [LabelEPC]
   , what_biz_transaction_id    :: PrimaryKey BizTransactionT f
   , what_transformation_id     :: PrimaryKey TransformationT f
   , what_event_id              :: PrimaryKey EventT f }
