@@ -20,6 +20,7 @@ import qualified Data.List.NonEmpty as NonEmpty
 import qualified Data.ByteString as ByteString
 import qualified StorageBeam as SB
 
+import           Data.UUID.V4 (nextRandom)
 import           Data.UUID (fromString)
 import           Data.Maybe (fromJust)
 import           Crypto.Scrypt
@@ -53,11 +54,11 @@ import           Control.Monad.Except (throwError, MonadError)
 insertUser :: EncryptedPass -> M.NewUser -> AppM M.UserID
 insertUser pass (M.NewUser phone email firstName lastName biz password) = do
   -- liftIO $ print "foo"
+  userId <- liftIO $ nextRandom
   insertedUserList <- runDb $ runInsertReturningList (SB._users SB.supplyChainDb) $
-                    insertValues ([(SB.User (Auto Nothing)
-                    (SB.BizId . Auto $ Just biz)--(BizId biz)
+                    insertValues ([(SB.User userId
+                    (SB.BizId  biz)--(BizId biz)
                     firstName lastName phone password email)] ::[SB.User])
-                    -- (BizId . Auto. Just . fromIntegral $ biz) firstName lastName phone password email)]
   -- liftIO $ print insertedUserList
   return $ SB.user_id $ last insertedUserList
 
