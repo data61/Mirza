@@ -192,11 +192,10 @@ migrationStorage =
     )
     <*> createTable "whys"
     (
-      -- _b :: DataType PgDataTypeSyntax E.BizStep
       Why
           (field "why_id" pkSerialType)
-          (field "biz_step" text) -- waiting for the compiler to tell us the type
-          (field "disposition" text) -- waiting for the compiler to tell us the type
+          (field "biz_step" text)
+          (field "disposition" text)
           (EventId (field "why_event_id" pkSerialType))
     )
     <*> createTable "wheres"
