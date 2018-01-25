@@ -607,11 +607,11 @@ instance Table HashesT where
 
 -}
 data BlockChainT f = BlockChain
-  { blockchain_id       :: C f PrimaryKeyType
-  , blockchain_event_id :: PrimaryKey EventT f
-  , blockchain_hash     :: C f ByteString
-  , blockchain_address  :: C f Text
-  -- , blockchain_id       :: C f Integer
+  { blockchain_id         :: C f PrimaryKeyType
+  , blockchain_event_id   :: PrimaryKey EventT f
+  , blockchain_hash       :: C f ByteString
+  , blockchain_address    :: C f Text
+  , blockchain_foreign_id :: C f Integer
   } deriving Generic
 
 type BlockChain = BlockChainT Identity
