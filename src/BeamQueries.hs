@@ -15,9 +15,9 @@ module BeamQueries where
 {-# LANGUAGE MultiParamTypeClasses  #-}
 
 import qualified Model as M
-import qualified CryptHash as C
-import qualified Data.List.NonEmpty as NonEmpty
-import qualified Data.ByteString as ByteString
+-- import qualified CryptHash as C
+-- import qualified Data.List.NonEmpty as NonEmpty
+-- import qualified Data.ByteString as ByteString
 import qualified StorageBeam as SB
 
 import           Data.UUID.V4 (nextRandom)
