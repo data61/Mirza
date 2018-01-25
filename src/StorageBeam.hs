@@ -80,6 +80,7 @@ type PrimaryKeyType = UUID
 maxLen :: Word
 maxLen = 120
 
+pkSerialType :: DataType PgDataTypeSyntax UUID
 pkSerialType = uuid
 
 migrationStorage :: Migration PgCommandSyntax (CheckedDatabaseSettings Postgres SupplyChainDb)
