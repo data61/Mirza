@@ -104,8 +104,8 @@ migrationStorage =
           (UserId (field "key_user_id" pkSerialType))
           (field "rsa_n" text)
           (field "rsa_e" text)
-          (field "creation_time" bigint)
-          (field "revocation_time" bigint)
+          -- (field "creation_time" timestamptz) -- HEROIC
+          -- (field "revocation_time" timestamp) -- HEROIC
     )
     <*> createTable "businesses"
     (
@@ -204,17 +204,17 @@ migrationStorage =
           (field "where_id" pkSerialType)
           (LocationId (field "read_point" pkSerialType))
           (LocationId (field "biz_location" pkSerialType))
-          (field "src_type" text) -- waiting for compiler
-          (field "dest_type" text) -- waiting for compiler
+          (field "src_type" text)
+          (field "dest_type" text)
           (EventId (field "where_event_id" pkSerialType))
     )
     <*> createTable "whens"
     (
       When
           (field "when_id" pkSerialType)
-          (field "event_time" bigint)
-          (field "record_time" bigint)
-          (field "time_zone" bigint)
+          -- (field "event_time" bigint) -- HEROIC
+          -- (field "record_time" bigint) -- HEROIC
+          -- (field "time_zone" bigint) -- HEROIC
           (EventId (field "when_event_id" pkSerialType))
     )
     <*> createTable "labelEvents"
@@ -255,8 +255,8 @@ data KeyT f = Key
   , key_user_id        :: PrimaryKey UserT f
   , rsa_n              :: C f Text --XXX should this be Int64?
   , rsa_e              :: C f Text -- as above
-  , creationTime       :: C f E.EPCISTime --XXX date.. Int64?
-  , revocationTime     :: C f E.EPCISTime -- as above
+  -- , creationTime       :: C f E.EPCISTime -- HEROIC
+  -- , revocationTime     :: C f E.EPCISTime -- HEROIC
   }
   deriving Generic
 type Key = KeyT Identity
@@ -513,9 +513,9 @@ instance Table WhereT where
 
 data WhenT f = When
   { when_id                      :: C f PrimaryKeyType
-  , event_time                   :: C f E.EPCISTime
-  , record_time                  :: C f (Maybe E.EPCISTime)
-  , time_zone                    :: C f TimeZone
+  -- , event_time                   :: C f E.EPCISTime -- HEROIC
+  -- , record_time                  :: C f (Maybe E.EPCISTime) -- HEROIC
+  -- , time_zone                    :: C f TimeZone -- HEROIC
   , when_event_id                 :: PrimaryKey EventT f }
 
   deriving Generic
