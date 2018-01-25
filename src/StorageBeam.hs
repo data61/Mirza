@@ -1,3 +1,15 @@
+-- Please do not remove any commented out code in this module.
+-- We are working with a WIP library, namely Beam.
+-- Also, most of the commented out code in table definitions
+-- are there for
+-- 1. Reference. To see how the Haskell data type looks like
+-- 2. As a record of what the types were previously --> to help us decide
+--      whether or not to roll back some changes
+
+-- If you see the word ``HEROIC`` anywhere, it probably means that
+-- we are waiting on Beam to implement something. For example,
+-- migration support for UTCTime
+
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE DeriveGeneric         #-}
