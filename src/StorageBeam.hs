@@ -47,14 +47,14 @@ import           Database.Beam.Backend
 import           Database.Beam.Backend.SQL.BeamExtensions
 import           Database.PostgreSQL.Simple.FromField
 import           Database.Beam.Backend.SQL
-
+import qualified Database.PostgreSQL.Simple.Time as PgT
 import           Data.Text (Text)
 import           Data.Int
 import           Data.Time
 
 import qualified Data.GS1.Event as Ev
 import qualified Data.GS1.EPC as E
-import           Data.GS1.DWhat
+import qualified Data.GS1.DWhat as DWhat
 import           Data.UUID (UUID)
 import           Database.Beam.Postgres.Migrate
 import           Database.Beam.Migrate.SQL.Tables
