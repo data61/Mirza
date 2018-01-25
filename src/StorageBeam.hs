@@ -51,7 +51,7 @@ import qualified Database.PostgreSQL.Simple.Time as PgT
 import           Data.Text (Text)
 import           Data.Int
 import           Data.Time
-
+import           Data.ByteString (ByteString)
 import qualified Data.GS1.Event as Ev
 import qualified Data.GS1.EPC as E
 import qualified Data.GS1.DWhat as DWhat
@@ -554,7 +554,77 @@ instance Table LabelEventT where
 
 
 -- ADDITIONAL TABLES
+data UserEventsT f = UserEvents
+  { user_events_id         :: C f PrimaryKeyType
+  , user_events_event_id   :: PrimaryKey EventT f
+  , user_events_user_id    :: PrimaryKey UserT f
+  , user_events_has_signed :: C f Bool
+  , user_events_added_by   :: PrimaryKey UserT f
+  , user_events_signedHash :: C f ByteString
+  }
+  deriving Generic
 
+type UserEvents = UserEventsT Identity
+type UserEventsId = PrimaryKey UserEventsT Identity
+deriving instance Show UserEvents
+instance Beamable UserEventsT
+instance Beamable (PrimaryKey UserEventsT)
+deriving instance Show (PrimaryKey UserEventsT Identity)
+
+instance Table UserEventsT where
+  data PrimaryKey UserEventsT f = UserEventsId (C f PrimaryKeyType)
+    deriving Generic
+  primaryKey = UserEventsId . user_events_id
+
+{-
+    hashTable   =  "CREATE TABLE IF NOT EXISTS Hashes (id INTEGER PRIMARY KEY AUTOINCREMENT, eventID INTEGER NOT NULL, hash BLOB NOT NULL, isSigned INTEGER DEFAULT 0, signedByUserID INTEGER, keyID INTEGER DEFAULT -1,timestamp INTEGER NOT NULL);"
+
+-}
+data HashesT f = Hashes
+  { hashes_id                :: C f PrimaryKeyType
+  , hashes_event_id          :: PrimaryKey EventT f
+  , hashes_hash              :: C f ByteString
+  , hashes_is_signed         :: C f Bool
+  , hashes_signed_by_user_id :: PrimaryKey UserT f
+  , hashes_key_id            :: PrimaryKey KeyT f
+  }
+  deriving Generic
+type Hashes = HashesT Identity
+type HashesId = PrimaryKey HashesT Identity
+
+-- deriving instance Show Hashes
+
+instance Beamable HashesT
+instance Beamable (PrimaryKey HashesT)
+deriving instance Show (PrimaryKey HashesT Identity)
+
+instance Table HashesT where
+  data PrimaryKey HashesT f = HashesId (C f PrimaryKeyType)
+    deriving Generic
+  primaryKey = HashesId . hashes_id
+
+{- blockChainTable = "CREATE TABLE IF NOT EXISTS BlockchainTable (id INTEGER PRIMARY KEY AUTOINCREMENT, eventID INTEGER NOT NULL, hash BLOB NOT NULL, blockChain address text NOT NULL, blockChainID INTEGER NOT NULL);"
+
+-}
+data BlockChainT f = BlockChain
+  { blockchain_id       :: C f PrimaryKeyType
+  , blockchain_event_id :: PrimaryKey EventT f
+  , blockchain_hash     :: C f ByteString
+  , blockchain_address  :: C f Text
+  -- , blockchain_id       :: C f Integer
+  } deriving Generic
+
+type BlockChain = BlockChainT Identity
+type BlockChainId = PrimaryKey BlockChainT Identity
+deriving instance Show BlockChain
+instance Beamable BlockChainT
+instance Beamable (PrimaryKey BlockChainT)
+deriving instance Show (PrimaryKey BlockChainT Identity)
+
+instance Table BlockChainT where
+  data PrimaryKey BlockChainT f = BlockChainId (C f PrimaryKeyType)
+    deriving Generic
+  primaryKey = BlockChainId . blockchain_id
 -- END OF ADDITIONAL TABLES
 
 data SupplyChainDb f = SupplyChainDb
