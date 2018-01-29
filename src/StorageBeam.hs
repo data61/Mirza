@@ -502,6 +502,7 @@ instance Table BizTransactionT where
     deriving Generic
   primaryKey = BizTransactionId . biz_transaction_id
 
+
 data WhyT f = Why
   { why_id                      :: C f PrimaryKeyType
   , biz_step                    :: C f Text -- E.BizStep
