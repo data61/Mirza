@@ -93,7 +93,7 @@ migrationStorage =
           (field "last_name" (varchar (Just maxLen)) notNull)
           (field "phone_number" (varchar (Just maxLen)) notNull)
           (field "password_hash" (varchar (Just maxLen)) notNull)
-          (field "email_address" (varchar (Just maxLen)) notNull)
+          (field "email_address" (varchar (Just maxLen)) notNull) -- uniqueColumn
     )
     <*> createTable "keys"
     (
@@ -210,7 +210,7 @@ migrationStorage =
       When
           (field "when_id" pkSerialType notNull)
           (field "event_time" timestamptz notNull)
-          (field "record_time" timestamptz) -- this is a Maybe
+          (field "record_time" (maybeType timestamptz))
           (field "time_zone" (varchar (Just maxTzLen)) notNull)
           (EventId (field "when_event_id" pkSerialType))
     )
@@ -549,7 +549,7 @@ type OffsetString = Text
 data WhenT f = When
   { when_id                      :: C f PrimaryKeyType
   , event_time                   :: C f LocalTime
-  , record_time                  :: C f LocalTime -- Maybe LocalTime
+  , record_time                  :: C f (Maybe LocalTime)
   , time_zone                    :: C f OffsetString -- TimeZone
   -- call unpack . timeZoneOffsetString on the TimeZone object
   -- to put it in the db
