@@ -270,10 +270,9 @@ instance Table KeyT where
   primaryKey = KeyId . key_id
 
 -- CBV-Standard-1-2-r-2016-09-29.pdf Page 11
-type GS1CompanyPrefix = Text
 
 data BusinessT f = Business
-  { biz_gs1CompanyPrefix  :: C f GS1CompanyPrefix -- PrimaryKey
+  { biz_gs1CompanyPrefix  :: C f E.GS1CompanyPrefix -- PrimaryKey
   , biz_name              :: C f Text
   , biz_function          :: C f Text
   , biz_siteName          :: C f Text
@@ -291,7 +290,7 @@ instance Beamable (PrimaryKey BusinessT)
 deriving instance Show (PrimaryKey BusinessT Identity)
 
 instance Table BusinessT where
-  data PrimaryKey BusinessT f = BizId (C f GS1CompanyPrefix)
+  data PrimaryKey BusinessT f = BizId (C f E.GS1CompanyPrefix)
     deriving Generic
   primaryKey = BizId . biz_gs1CompanyPrefix
 

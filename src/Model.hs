@@ -41,6 +41,7 @@ import StorageBeam (PrimaryKeyType)
 import Data.UUID
 import           Control.Monad.Except (throwError, MonadError)
 import Control.Exception (IOException)
+
 type UserID = PrimaryKeyType
 
 -- instance ToSchema UserID
@@ -160,14 +161,14 @@ instance ToSchema NewUser
 
 
 data Business = Business {
-  bizID :: UUID
-  , bizName :: T.Text
-  , gs1CompanyPrefix :: Integer
-  , function :: T.Text
-  , siteName :: T.Text
-  , address :: T.Text
-  , lat :: Float
-  , lng :: Float
+  bizID :: UUID,
+  bizName :: T.Text,
+  gs1CompanyPrefix :: GS1CompanyPrefix,
+  function :: T.Text,
+  siteName :: T.Text,
+  address :: T.Text,
+  lat :: Float,
+  lng :: Float
 } deriving (Generic, Eq, Show)
 $(deriveJSON defaultOptions ''Business)
 instance ToSchema Business
