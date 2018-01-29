@@ -43,11 +43,11 @@ import           Database.Beam.Postgres
 -- import           Database.Beam.Backend.SQL
 -- import qualified Database.PostgreSQL.Simple.Time as PgT
 import           Data.Text (Text)
-import           Data.Int
+-- import           Data.Int
 import           Data.Time
 import           Data.ByteString (ByteString)
 -- import qualified Data.GS1.Event as Ev
--- import qualified Data.GS1.EPC as E
+import qualified Data.GS1.EPC as E
 -- import qualified Data.GS1.DWhat as DWhat
 import           Data.UUID (UUID)
 import           Database.Beam.Postgres.Migrate
