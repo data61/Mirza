@@ -22,12 +22,6 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# OPTIONS_GHC -fno-warn-orphans  #-}
 
--- extra languages... was in tutorial.hs . Added since trying to figure out how to fix auto-increment bug
--- {-# LANGUAGE TemplateHaskell, GADTs       #-}
--- {-# LANGUAGE FlexibleContexts      #-}
--- {-# LANGUAGE TypeSynonymInstances #-}
--- {-# LANGUAGE PartialTypeSignatures #-}
-
 module StorageBeam where
 
 {-
