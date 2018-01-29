@@ -15,5 +15,6 @@ if test $OPTION = '--clean'
 then
     stack clean
 fi
+
 stack build
 stack exec supplyChainServer-exe -- -i
