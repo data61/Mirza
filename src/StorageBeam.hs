@@ -223,6 +223,40 @@ migrationStorage =
           (EventId (field "label_event_event_id" pkSerialType))
     )
 
+    -- note that all ADDITIONAL TABLES have all fields as NOT NULL
+    -- representing bytestring?
+    <*> createTable "userEvents"
+    (
+      UserEvents
+          (field "user_events_id" pkSerialType notNull)
+          (EventId (field "user_events_event_id" pkSerialType notNull))
+          (UserId (field "user_events_user_id" pkSerialType notNull))
+          (field "user_events_has_signed" boolean notNull)
+          (UserId (field "user_events_added_by" pkSerialType notNull))
+          (field "user_events_signedHash" bytea notNull)
+    )
+    <*> createTable "hashes"
+    (
+      Hashes
+          (field "hashes_id" pkSerialType notNull)
+          (EventId (field "hashes_event_id" pkSerialType notNull))
+          (field "hashes_hash" bytea notNull)
+          (field "hashes_is_signed" boolean notNull)
+          (UserId (field "hashes_signed_by_user_id" pkSerialType notNull))
+          (KeyId (field "hashes_key_id" pkSerialType notNull))
+    )
+    <*> createTable "blockchain"
+    (
+      BlockChain
+          (field "blockchain_id" pkSerialType notNull)
+          (EventId (field "blockchain_event_id" pkSerialType notNull))
+          (field "blockchain_hash" bytea notNull)
+          (field "blockchain_address" text notNull)
+          -- can use int or smallInt here because Integer is instance of Integral
+          -- note: Database.Beam.Migrate.SQL.Types
+          (field "blockchain_foreign_id" int notNull)
+    )
+
 
 data UserT f = User
   { user_id              :: C f PrimaryKeyType
@@ -643,6 +677,9 @@ data SupplyChainDb f = SupplyChainDb
   , _wheres          :: f (TableEntity WhereT)
   , _whens           :: f (TableEntity WhenT)
   , _labelEvents     :: f (TableEntity LabelEventT)
+  , _userEvents      :: f (TableEntity UserEventsT)
+  , _hashes          :: f (TableEntity HashesT)
+  , _blockchain      :: f (TableEntity BlockChainT)
   }
   deriving Generic
 instance Database SupplyChainDb
@@ -749,4 +786,24 @@ supplyChainDb = defaultDbSettings
           label_event_label_id = LabelId (fieldNamed "label_event_label_id")
         , label_event_event_id = EventId (fieldNamed "label_event_event_id")
         }
-      }
+    -- all the foreign keys are relevant here
+    , _userEvents =
+        modifyTable (const "userEvents") $
+        tableModification {
+          user_events_event_id = EventId (fieldNamed "user_events_event_id")
+        , user_events_user_id = UserId (fieldNamed "user_events_user_id")
+        , user_events_added_by = UserId (fieldNamed "user_events_added_by")
+        }
+    , _hashes =
+        modifyTable (const "hashes") $
+        tableModification {
+          hashes_event_id = EventId (fieldNamed "hashes_event_id")
+        , hashes_signed_by_user_id = UserId (fieldNamed "hashes_signed_by_user_id")
+        , hashes_key_id = KeyId (fieldNamed "hashes_key_id")
+        }
+    , _blockchain =
+        modifyTable (const "blockchain") $
+        tableModification {
+          blockchain_event_id = EventId (fieldNamed "blockchain_event_id")
+        }
+    }
