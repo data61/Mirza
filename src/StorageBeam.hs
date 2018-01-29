@@ -87,7 +87,7 @@ migrationStorage =
     <$> createTable "users"
     (
       User
-          (field "user_id" pkSerialType)
+          (field "user_id" pkSerialType notNull)
           (BizId (field "user_biz_id" text))
           (field "first_name" (varchar (Just maxLen)) notNull)
           (field "last_name" (varchar (Just maxLen)) notNull)
@@ -98,7 +98,7 @@ migrationStorage =
     <*> createTable "keys"
     (
       Key
-          (field "key_id" pkSerialType)
+          (field "key_id" pkSerialType notNull)
           (UserId (field "key_user_id" pkSerialType))
           (field "rsa_n" text)
           (field "rsa_e" text)
@@ -108,7 +108,7 @@ migrationStorage =
     <*> createTable "businesses"
     (
       Business
-          (field "biz_gs1_company_prefix" text)
+          (field "biz_gs1_company_prefix" text notNull)
           (field "biz_name" (varchar (Just maxLen)) notNull)
           (field "biz_function" (varchar (Just maxLen)) notNull)
           (field "biz_site_name" (varchar (Just maxLen)) notNull)
@@ -119,14 +119,14 @@ migrationStorage =
     <*> createTable "contacts"
     (
       Contact
-          (field "contact_id" pkSerialType)
+          (field "contact_id" pkSerialType notNull)
           (UserId (field "contact_user1_id" pkSerialType))
           (UserId (field "contact_user2_id" pkSerialType))
     )
     <*> createTable "labels"
     (
       Label
-          (field "label_id" pkSerialType)
+          (field "label_id" pkSerialType notNull)
           (field "label_type" (varchar (Just maxLen)) notNull)
           (WhatId (field "label_what_id" pkSerialType))
           (field "label_gs1_company_prefix" (varchar (Just maxLen)) notNull)
@@ -138,21 +138,21 @@ migrationStorage =
     <*> createTable "items"
     (
       Item
-          (field "item_id" pkSerialType)
+          (field "item_id" pkSerialType notNull)
           (LabelId (field "item_label_id" pkSerialType))
           (field "item_description" (varchar (Just maxLen)) notNull)
     )
     <*> createTable "transformations"
     (
       Transformation
-          (field "transformation_id" pkSerialType)
+          (field "transformation_id" pkSerialType notNull)
           (field "transformation_description" (varchar (Just maxLen)) notNull)
           (BizId (field "transformation_biz_id" text))
     )
     <*> createTable "locations"
     (
       Location
-          (field "location_id" pkSerialType)
+          (field "location_id" pkSerialType notNull)
           (BizId (field "location_biz_id" text))
           (field "location_lat" double)
           (field "location_long" double)
@@ -160,7 +160,7 @@ migrationStorage =
     <*> createTable "events"
     (
       Event
-          (field "event_id" pkSerialType)
+          (field "event_id" pkSerialType notNull)
           (field "foreign_event_id" (varchar (Just maxLen)) notNull)
           (BizId (field "event_label_id" text))
           (UserId (field "event_created_by" pkSerialType))
@@ -169,7 +169,7 @@ migrationStorage =
     <*> createTable "whats"
     (
       What
-          (field "what_id" pkSerialType)
+          (field "what_id" pkSerialType notNull)
           (field "what_type" text)
           (field "action" text)
           (LabelId (field "parent" pkSerialType))
@@ -182,7 +182,7 @@ migrationStorage =
     <*> createTable "bizTransactions"
     (
       BizTransaction
-          (field "biz_transaction_id" pkSerialType)
+          (field "biz_transaction_id" pkSerialType notNull)
           (field "biz_transaction_type_id" (varchar (Just maxLen)))
           (field "biz_transaction_id_urn" (varchar (Just maxLen)))
           (EventId (field "biz_transaction_event_id" pkSerialType))
@@ -190,7 +190,7 @@ migrationStorage =
     <*> createTable "whys"
     (
       Why
-          (field "why_id" pkSerialType)
+          (field "why_id" pkSerialType notNull)
           (field "biz_step" text)
           (field "disposition" text)
           (EventId (field "why_event_id" pkSerialType))
@@ -198,7 +198,7 @@ migrationStorage =
     <*> createTable "wheres"
     (
       Where
-          (field "where_id" pkSerialType)
+          (field "where_id" pkSerialType notNull)
           (LocationId (field "read_point" pkSerialType))
           (LocationId (field "biz_location" pkSerialType))
           (field "src_type" text)
@@ -217,7 +217,7 @@ migrationStorage =
     <*> createTable "labelEvents"
     (
       LabelEvent
-          (field "label_event_id" pkSerialType)
+          (field "label_event_id" pkSerialType notNull)
           (LabelId (field "label_event_label_id" pkSerialType))
           (EventId (field "label_event_event_id" pkSerialType))
     )
