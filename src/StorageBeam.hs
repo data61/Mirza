@@ -74,6 +74,10 @@ type PrimaryKeyType = UUID
 maxLen :: Word
 maxLen = 120
 
+-- length of the timezone offset
+maxTzLen :: Word
+maxTzLen = 10
+
 pkSerialType :: DataType PgDataTypeSyntax UUID
 pkSerialType = uuid
 
@@ -98,8 +102,8 @@ migrationStorage =
           (UserId (field "key_user_id" pkSerialType))
           (field "rsa_n" text)
           (field "rsa_e" text)
-          -- (field "creation_time" timestamptz) -- HEROIC
-          -- (field "revocation_time" timestamp) -- HEROIC
+          (field "creation_time" timestamptz)
+          (field "revocation_time" timestamptz)
     )
     <*> createTable "businesses"
     (
@@ -205,10 +209,10 @@ migrationStorage =
     <*> createTable "whens"
     (
       When
-          (field "when_id" pkSerialType)
-          -- (field "event_time" bigint) -- HEROIC
-          -- (field "record_time" bigint) -- HEROIC
-          -- (field "time_zone" bigint) -- HEROIC
+          (field "when_id" pkSerialType notNull)
+          (field "event_time" timestamptz notNull)
+          (field "record_time" timestamptz) -- this is a Maybe
+          (field "time_zone" (varchar (Just maxTzLen)) notNull)
           (EventId (field "when_event_id" pkSerialType))
     )
     <*> createTable "labelEvents"
@@ -249,8 +253,8 @@ data KeyT f = Key
   , key_user_id        :: PrimaryKey UserT f
   , rsa_n              :: C f Text --XXX should this be Int64?
   , rsa_e              :: C f Text -- as above
-  -- , creationTime       :: C f E.EPCISTime -- HEROIC
-  -- , revocationTime     :: C f E.EPCISTime -- HEROIC
+  , creationTime       :: C f LocalTime -- UTCTime
+  , revocationTime     :: C f LocalTime -- UTCTime
   }
   deriving Generic
 type Key = KeyT Identity
@@ -506,14 +510,16 @@ instance Table WhereT where
     deriving Generic
   primaryKey = WhereId . where_id
 
+type OffsetString = Text
 
 data WhenT f = When
   { when_id                      :: C f PrimaryKeyType
-  -- , event_time                   :: C f E.EPCISTime -- HEROIC
-  -- , record_time                  :: C f (Maybe E.EPCISTime) -- HEROIC
-  -- , time_zone                    :: C f TimeZone -- HEROIC
-  , when_event_id                 :: PrimaryKey EventT f }
-
+  , event_time                   :: C f LocalTime
+  , record_time                  :: C f LocalTime -- Maybe LocalTime
+  , time_zone                    :: C f OffsetString -- TimeZone
+  -- call unpack . timeZoneOffsetString on the TimeZone object
+  -- to put it in the db
+  , when_event_id                :: PrimaryKey EventT f }
   deriving Generic
 
 type When = WhenT Identity
