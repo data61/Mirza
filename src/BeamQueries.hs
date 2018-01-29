@@ -69,6 +69,7 @@ newUser userInfo@(M.NewUser _ _ _ _ _ password) = do
     hash <- liftIO $ encryptPassIO' (Pass $ encodeUtf8 password)
     insertUser hash userInfo
 
+-- | Converts a DB representation of ``User`` to a Model representation
 -- SB.User = SB.User uid bizId fName lName phNum passHash email
 userTableToModel :: SB.User -> M.User
 userTableToModel (SB.User uid _ fName lName _ _ _) = M.User uid fName lName
