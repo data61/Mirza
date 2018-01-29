@@ -108,13 +108,13 @@ migrationStorage =
     <*> createTable "businesses"
     (
       Business
-          (field "biz_gs1CompanyPrefix" text)
+          (field "biz_gs1_company_prefix" text)
           (field "biz_name" (varchar (Just maxLen)) notNull)
           (field "biz_function" (varchar (Just maxLen)) notNull)
-          (field "biz_siteName" (varchar (Just maxLen)) notNull)
+          (field "biz_site_name" (varchar (Just maxLen)) notNull)
           (field "biz_address" (varchar (Just maxLen)) notNull)
-          (field "biz_lat" double notNull)
-          (field "biz_long" double notNull)
+          (field "biz_lat" double)
+          (field "biz_long" double)
     )
     <*> createTable "contacts"
     (
