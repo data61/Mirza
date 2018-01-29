@@ -36,26 +36,26 @@ VSCode shortcut for multi-line cursors: Ctrl+Shift+Up/Down
 import           Control.Lens
 import           Database.Beam as B
 import           Database.Beam.Postgres
-import           Database.PostgreSQL.Simple
-import           Database.Beam.Backend
-import           Database.Beam.Backend.SQL.BeamExtensions
-import           Database.PostgreSQL.Simple.FromField
-import           Database.Beam.Backend.SQL
-import qualified Database.PostgreSQL.Simple.Time as PgT
+-- import           Database.PostgreSQL.Simple
+-- import           Database.Beam.Backend
+-- import           Database.Beam.Backend.SQL.BeamExtensions
+-- import           Database.PostgreSQL.Simple.FromField
+-- import           Database.Beam.Backend.SQL
+-- import qualified Database.PostgreSQL.Simple.Time as PgT
 import           Data.Text (Text)
 import           Data.Int
 import           Data.Time
 import           Data.ByteString (ByteString)
-import qualified Data.GS1.Event as Ev
-import qualified Data.GS1.EPC as E
-import qualified Data.GS1.DWhat as DWhat
+-- import qualified Data.GS1.Event as Ev
+-- import qualified Data.GS1.EPC as E
+-- import qualified Data.GS1.DWhat as DWhat
 import           Data.UUID (UUID)
 import           Database.Beam.Postgres.Migrate
 import           Database.Beam.Migrate.SQL.Tables
 import           Database.Beam.Migrate.SQL.Types
 import           Database.Beam.Migrate.Types
-import           Data.Swagger hiding (Contact)
-import           Servant
+import           Data.Swagger ()
+import           Servant ()
 
 type PrimaryKeyType = UUID
 -- IMPLEMENTME - NOT NOW
