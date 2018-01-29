@@ -88,7 +88,7 @@ migrationStorage =
     (
       User
           (field "user_id" pkSerialType)
-          (BizId (field "user_biz_id" pkSerialType))
+          (BizId (field "user_biz_id" text))
           (field "first_name" (varchar (Just maxLen)) notNull)
           (field "last_name" (varchar (Just maxLen)) notNull)
           (field "phone_number" (varchar (Just maxLen)) notNull)
@@ -108,9 +108,8 @@ migrationStorage =
     <*> createTable "businesses"
     (
       Business
-          (field "biz_id" pkSerialType)
+          (field "biz_gs1CompanyPrefix" text)
           (field "biz_name" (varchar (Just maxLen)) notNull)
-          (field "biz_gs1CompanyPrefix" int)
           (field "biz_function" (varchar (Just maxLen)) notNull)
           (field "biz_siteName" (varchar (Just maxLen)) notNull)
           (field "biz_address" (varchar (Just maxLen)) notNull)
@@ -148,13 +147,13 @@ migrationStorage =
       Transformation
           (field "transformation_id" pkSerialType)
           (field "transformation_description" (varchar (Just maxLen)) notNull)
-          (BizId (field "transformation_biz_id" pkSerialType))
+          (BizId (field "transformation_biz_id" text))
     )
     <*> createTable "locations"
     (
       Location
           (field "location_id" pkSerialType)
-          (BizId (field "location_biz_id" pkSerialType))
+          (BizId (field "location_biz_id" text))
           (field "location_lat" double)
           (field "location_long" double)
     )
@@ -163,7 +162,7 @@ migrationStorage =
       Event
           (field "event_id" pkSerialType)
           (field "foreign_event_id" (varchar (Just maxLen)) notNull)
-          (BizId (field "event_label_id" pkSerialType))
+          (BizId (field "event_label_id" text))
           (UserId (field "event_created_by" pkSerialType))
           (field "json_event" (varchar (Just maxLen)) notNull)
     )
@@ -270,10 +269,12 @@ instance Table KeyT where
     deriving Generic
   primaryKey = KeyId . key_id
 
+-- CBV-Standard-1-2-r-2016-09-29.pdf Page 11
+type GS1CompanyPrefix = Text
+
 data BusinessT f = Business
-  { biz_id                :: C f PrimaryKeyType
+  { biz_gs1CompanyPrefix  :: C f GS1CompanyPrefix -- PrimaryKey
   , biz_name              :: C f Text
-  , biz_gs1CompanyPrefix  :: C f Int32
   , biz_function          :: C f Text
   , biz_siteName          :: C f Text
   , biz_address           :: C f Text
@@ -290,9 +291,9 @@ instance Beamable (PrimaryKey BusinessT)
 deriving instance Show (PrimaryKey BusinessT Identity)
 
 instance Table BusinessT where
-  data PrimaryKey BusinessT f = BizId (C f PrimaryKeyType)
+  data PrimaryKey BusinessT f = BizId (C f GS1CompanyPrefix)
     deriving Generic
-  primaryKey = BizId . biz_id
+  primaryKey = BizId . biz_gs1CompanyPrefix
 
 data ContactT f = Contact
   { contact_id                :: C f PrimaryKeyType
