@@ -225,7 +225,7 @@ migrationStorage =
     <*> createTable "userEvents"
     (
       UserEvents
-          (field "user_events_id" pkSerialType notNull)
+          (field "user_events_id" pkSerialType)
           (EventId (field "user_events_event_id" pkSerialType notNull))
           (UserId (field "user_events_user_id" pkSerialType notNull))
           (field "user_events_has_signed" boolean notNull)
@@ -235,7 +235,7 @@ migrationStorage =
     <*> createTable "hashes"
     (
       Hashes
-          (field "hashes_id" pkSerialType notNull)
+          (field "hashes_id" pkSerialType)
           (EventId (field "hashes_event_id" pkSerialType notNull))
           (field "hashes_hash" bytea notNull)
           (field "hashes_is_signed" boolean notNull)
@@ -245,7 +245,7 @@ migrationStorage =
     <*> createTable "blockchain"
     (
       BlockChain
-          (field "blockchain_id" pkSerialType notNull)
+          (field "blockchain_id" pkSerialType)
           (EventId (field "blockchain_event_id" pkSerialType notNull))
           (field "blockchain_hash" bytea notNull)
           (field "blockchain_address" text notNull)
