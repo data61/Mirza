@@ -136,9 +136,12 @@ addPublicKey user sig = error "Storage module not implemented"
   -- liftIO (Storage.addPublicKey user sig)
 
 newUser :: NewUser -> AC.AppM UserID
-newUser nu = do
-    liftIO $ print "newUser:service"
-    BQ.newUser nu
+newUser nu = BQ.newUser nu
+    -- liftIO $ print "newUser:service"
+    -- r <- runExceptT $ intercept $ BQ.newUser nu
+    -- case r of
+    --     Left  _ -> liftIO $ putStrLn "caught error"
+    --     Right _ -> liftIO $ putStrLn "nope, didn't catch no error"
   -- liftIO $ print insertedUserList
   -- case insertedUserList of
   --   [user] -> return (SB.user_id user)
