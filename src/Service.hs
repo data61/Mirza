@@ -38,7 +38,8 @@ import           Control.Monad.Reader   (runReaderT,
                                          asks, ask, liftIO)
 import           Control.Lens       hiding ((.=))
 import           Control.Monad.Except (runExceptT)
-
+import qualified Control.Exception.Lifted as ExL
+import           Control.Monad.Trans.Except
 -- remove me eventually
 import Data.UUID.V4
 import qualified BeamQueries as BQ
@@ -115,6 +116,13 @@ serveSwaggerAPI = toSwagger serverAPI
   & info.license ?~ ("MIT" & url ?~ URL "http://mit.com")
 
 
+-- intercept :: ExceptT ServantErr IO a -> ExceptT ServantErr IO a
+intercept a = do
+  r <- ExL.try a
+  case r of
+    Right x -> return x
+    Left e -> throwE e
+
 -- | We need to supply our handlers with the right Context. In this case,
 -- Basic Authentication requires a Context Entry with the 'BasicAuthCheck' value
 -- tagged with "foo-tag" This context is then supplied to 'server' and threaded
@@ -128,9 +136,12 @@ addPublicKey user sig = error "Storage module not implemented"
   -- liftIO (Storage.addPublicKey user sig)
 
 newUser :: NewUser -> AC.AppM UserID
-newUser nu = do
-    liftIO $ print "newUser:service"
-    BQ.newUser nu
+newUser nu = BQ.newUser nu
+    -- liftIO $ print "newUser:service"
+    -- r <- runExceptT $ intercept $ BQ.newUser nu
+    -- case r of
+    --     Left  _ -> liftIO $ putStrLn "caught error"
+    --     Right _ -> liftIO $ putStrLn "nope, didn't catch no error"
   -- liftIO $ print insertedUserList
   -- case insertedUserList of
   --   [user] -> return (SB.user_id user)
