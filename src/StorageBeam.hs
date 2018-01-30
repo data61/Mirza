@@ -92,7 +92,7 @@ migrationStorage =
           (field "last_name" (varchar (Just maxLen)) notNull)
           (field "phone_number" (varchar (Just maxLen)) notNull)
           (field "password_hash" (varchar (Just maxLen)) notNull)
-          (field "email_address" (varchar (Just maxLen)) notNull) -- uniqueColumn
+          (field "email_address" (varchar (Just maxLen)) uniqueColumn) -- uniqueColumn
     )
     <*> createTable "keys"
     (
