@@ -52,7 +52,6 @@ import qualified Data.GS1.EPC as E
 import           Data.UUID (UUID)
 import           Database.Beam.Postgres.Migrate
 import           Database.Beam.Migrate.SQL.Tables
-import           Database.Beam.Migrate.SQL.Types
 import           Database.Beam.Migrate.Types
 import           Data.Swagger ()
 import           Servant ()
@@ -78,7 +77,7 @@ maxLen = 120
 maxTzLen :: Word
 maxTzLen = 10
 
-pkSerialType :: DataType PgDataTypeSyntax UUID
+-- pkSerialType :: DataType PgDataTypeSyntax UUID
 pkSerialType = uuid
 
 migrationStorage :: Migration PgCommandSyntax (CheckedDatabaseSettings Postgres SupplyChainDb)
