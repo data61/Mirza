@@ -222,7 +222,6 @@ migrationStorage =
     )
 
     -- note that all ADDITIONAL TABLES have all fields as NOT NULL
-    -- representing bytestring?
     <*> createTable "userEvents"
     (
       UserEvents
