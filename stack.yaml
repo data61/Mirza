@@ -3,8 +3,8 @@ extra-package-dbs: []
 packages:
 - '.'
 - location:
-    git: https://github.com/tathougies/beam.git
-    commit: 3553ba7edcc3b85749530262fc12af6584061fa2
+    git: https://github.com/sajidanower23/beam.git
+    commit: 23768de6031914b7115b67b85a8fd86386a0dec6
   extra-dep: true
   subdirs:
     - beam-core
@@ -19,5 +19,6 @@ extra-deps:
 - servant-swagger-1.1.2.1
 - vector-0.12.0.1
 - storable-tuple-0.0.3.3
+# - beam-migrate-0.2.0.0
 resolver: lts-9.21
 # allow-newer: true
