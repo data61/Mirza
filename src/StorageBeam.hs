@@ -52,7 +52,6 @@ import qualified Data.GS1.EPC as E
 import           Data.UUID (UUID)
 import           Database.Beam.Postgres.Migrate
 import           Database.Beam.Migrate.SQL.Tables
-import           Database.Beam.Migrate.SQL.Types
 import           Database.Beam.Migrate.Types
 import           Data.Swagger ()
 import           Servant ()
@@ -78,7 +77,7 @@ maxLen = 120
 maxTzLen :: Word
 maxTzLen = 10
 
-pkSerialType :: DataType PgDataTypeSyntax UUID
+-- pkSerialType :: DataType PgDataTypeSyntax UUID
 pkSerialType = uuid
 
 migrationStorage :: Migration PgCommandSyntax (CheckedDatabaseSettings Postgres SupplyChainDb)
@@ -93,7 +92,7 @@ migrationStorage =
           (field "last_name" (varchar (Just maxLen)) notNull)
           (field "phone_number" (varchar (Just maxLen)) notNull)
           (field "password_hash" (varchar (Just maxLen)) notNull)
-          (field "email_address" (varchar (Just maxLen)) notNull) -- uniqueColumn
+          (field "email_address" (varchar (Just maxLen)) uniqueColumn) -- uniqueColumn
     )
     <*> createTable "keys"
     (
@@ -223,11 +222,10 @@ migrationStorage =
     )
 
     -- note that all ADDITIONAL TABLES have all fields as NOT NULL
-    -- representing bytestring?
     <*> createTable "userEvents"
     (
       UserEvents
-          (field "user_events_id" pkSerialType notNull)
+          (field "user_events_id" pkSerialType)
           (EventId (field "user_events_event_id" pkSerialType notNull))
           (UserId (field "user_events_user_id" pkSerialType notNull))
           (field "user_events_has_signed" boolean notNull)
@@ -237,7 +235,7 @@ migrationStorage =
     <*> createTable "hashes"
     (
       Hashes
-          (field "hashes_id" pkSerialType notNull)
+          (field "hashes_id" pkSerialType)
           (EventId (field "hashes_event_id" pkSerialType notNull))
           (field "hashes_hash" bytea notNull)
           (field "hashes_is_signed" boolean notNull)
@@ -247,12 +245,10 @@ migrationStorage =
     <*> createTable "blockchain"
     (
       BlockChain
-          (field "blockchain_id" pkSerialType notNull)
+          (field "blockchain_id" pkSerialType)
           (EventId (field "blockchain_event_id" pkSerialType notNull))
           (field "blockchain_hash" bytea notNull)
           (field "blockchain_address" text notNull)
-          -- can use int or smallInt here because Integer is instance of Integral
-          -- note: Database.Beam.Migrate.SQL.Types
           (field "blockchain_foreign_id" int notNull)
     )
 
