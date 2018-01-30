@@ -42,10 +42,10 @@ import           Control.Monad.Except (throwError, MonadError)
 {- 
 {
   "phoneNumber": "0412",
-  "emailAddress": "abc",
+  "emailAddress": "abc@gmail.com",
   "firstName": "sajid",
   "lastName": "anower",
-  "company": "5",
+  "company": "4000001",
   "password": "password"
 }
  -}
