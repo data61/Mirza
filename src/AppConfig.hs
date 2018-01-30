@@ -37,6 +37,7 @@ data Env = Env
 
 -- runReaderT :: r -> m a
 -- ReaderT r m a
+-- type Handler a = ExceptT ServantErr IO a
 newtype AppM a = AppM
   { unAppM :: ReaderT Env Handler a }
   deriving ( Functor
