@@ -249,8 +249,6 @@ migrationStorage =
           (EventId (field "blockchain_event_id" pkSerialType notNull))
           (field "blockchain_hash" bytea notNull)
           (field "blockchain_address" text notNull)
-          -- can use int or smallInt here because Integer is instance of Integral
-          -- note: Database.Beam.Migrate.SQL.Types
           (field "blockchain_foreign_id" int notNull)
     )
 
