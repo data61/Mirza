@@ -38,7 +38,8 @@ import           Control.Monad.Reader   (runReaderT,
                                          asks, ask, liftIO)
 import           Control.Lens       hiding ((.=))
 import           Control.Monad.Except (runExceptT)
-
+import qualified Control.Exception.Lifted as ExL
+import           Control.Monad.Trans.Except
 -- remove me eventually
 import Data.UUID.V4
 import qualified BeamQueries as BQ
