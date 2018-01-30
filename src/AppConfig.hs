@@ -17,11 +17,10 @@ import           Database.Beam.Postgres (Pg)
 
 import           Control.Monad.IO.Class (MonadIO)
 import           Control.Monad.Reader   (MonadReader, ReaderT, runReaderT,
-                                         asks, ask, liftIO)
+                                         asks, liftIO)
 -- import           GHC.Word               (Word16)
 import           Servant.Server (Handler)
 import           Control.Monad.Except (MonadError)
-import           Model (DBError)
 
 
 data EnvType = Prod | Dev
@@ -43,7 +42,6 @@ newtype AppM a = AppM
            , Monad
            , MonadReader Env
            , MonadIO
-          --  , MonadError DBError
            )
 
 getDBConn :: AppM Connection
