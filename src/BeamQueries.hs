@@ -53,12 +53,12 @@ import           Control.Monad.Except (throwError, MonadError)
 -- USE pass!
 insertUser :: EncryptedPass -> M.NewUser -> AppM M.UserID
 insertUser pass (M.NewUser phone email firstName lastName biz password) = do
-  -- liftIO $ print "foo"
   userId <- liftIO $ nextRandom
+  -- liftIO $ print "newUser:BQ"
   insertedUserList <- runDb $ runInsertReturningList (SB._users SB.supplyChainDb) $
                     insertValues ([(SB.User userId
-                    (SB.BizId  biz)--(BizId biz)
-                    firstName lastName phone password email)] ::[SB.User])
+                    (SB.BizId  biz)
+                    firstName lastName phone password email)])-- ::[SB.User])
   -- liftIO $ print insertedUserList
   return $ SB.user_id $ last insertedUserList
 
