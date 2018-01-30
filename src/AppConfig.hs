@@ -35,6 +35,8 @@ data Env = Env
   -- , port    :: Word16
   }
 
+-- runReaderT :: r -> m a
+-- ReaderT r m a
 newtype AppM a = AppM
   { unAppM :: ReaderT Env Handler a }
   deriving ( Functor
