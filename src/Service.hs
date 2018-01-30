@@ -116,6 +116,13 @@ serveSwaggerAPI = toSwagger serverAPI
   & info.license ?~ ("MIT" & url ?~ URL "http://mit.com")
 
 
+-- intercept :: ExceptT ServantErr IO a -> ExceptT ServantErr IO a
+intercept a = do
+  r <- ExL.try a
+  case r of
+    Right x -> return x
+    Left e -> throwE e
+
 -- | We need to supply our handlers with the right Context. In this case,
 -- Basic Authentication requires a Context Entry with the 'BasicAuthCheck' value
 -- tagged with "foo-tag" This context is then supplied to 'server' and threaded
