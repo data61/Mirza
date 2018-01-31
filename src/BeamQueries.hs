@@ -148,31 +148,29 @@ getPublicKey keyID = do
     Right _ -> throwError $ GetPropErr M.KE_InvalidKeyID
     Left e  -> throwError $ GetPropErr M.KE_InvalidKeyID
 
--- getPublicKeyInfo :: (MonadError M.GetPropertyError m, MonadIO m) => M.KeyID -> m M.KeyInfo
--- getPublicKeyInfo keyID = do
---   r <- runDb $ runSelectReturningList $ select $ do
---     allKeys <- all_ (_keys supplyChainDb)
---     guard_ (_keyId allKeys ==. keyID)
---     pure allKeys
---   if length r == 0
---      then throwError M.KE_InvalidKeyID
---      else do
---        let (keyId, uid, rsa_n, rsa_e, creationTime, revocationTime) = head r
---        return $ M.KeyInfo uid creationTime revocationTime
+getPublicKeyInfo :: M.KeyID -> AppM M.KeyInfo
+getPublicKeyInfo keyID = do
+  r <- runDb $ runSelectReturningList $ select $ do
+    allKeys <- all_ (SB._keys SB.supplyChainDb)
+    guard_ (SB.key_id allKeys ==. val_ keyID)
+    pure allKeys
 
--- getUser :: M.EmailAddress -> AppM (Maybe M.User)
--- getUser  email = do
---   r <- runDb $ runSelectReturningList $ select $ do
---     allUsers <- all_ (_users supplyChainDb)
---     guard_ (_emailAddress allUsers ==. email)
---     pure allUsers
---   case length r of
---     0 -> return Nothing
---     _ -> let
---       (uid, bizID, firstName, lastName, phone, hash, emailAddress) = head r
---       in
---         return $ Just (M.User uid firstName lastName)
+  case r of
+    Right [(SB.Key _ (SB.UserId uId) _ _ creationTime revocationTime)] ->
+       return $ M.KeyInfo uId (toEPCISTime creationTime) (toEPCISTime revocationTime)
+    Right _ -> throwError $ GetPropErr M.KE_InvalidKeyID
+    Left e  -> throwError $ GetPropErr M.KE_InvalidKeyID
 
+
+getUser :: M.EmailAddress -> AppM (Maybe M.User)
+getUser  email = do
+  r <- runDb $ runSelectReturningList $ select $ do
+    allUsers <- all_ (SB._users SB.supplyChainDb)
+    guard_ (SB.email_address allUsers ==. val_ email)
+    pure allUsers
+  case r of
+    Right [u] -> return $ Just $ userTableToModel u
+    _  -> return Nothing
 
 -- -- TODO = fix. 1 problem is nothing is done with filter value or asset type in objectRowID grabbing data insert
 -- -- 1 other problem is state never used... what is it???
