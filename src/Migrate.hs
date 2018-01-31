@@ -23,14 +23,32 @@ createSchema conn = do
   dbFunc conn $ executeMigration runNoReturn migrationStorage
   return ()
 
+-- dropSchema :: Connection -> IO ()
+-- dropSchema conn = do
+--   dbFunc conn $ executeMigration runNoReturn dropTables
+--   return ()
+
 tryCreateSchema :: Connection -> IO ()
 tryCreateSchema conn = E.catch (createSchema conn) handleErr
   where
     handleErr :: SqlError -> IO ()
-    handleErr e = print e
+    handleErr  = print 
+
+-- tryDrop :: Connection -> IO ()
+-- tryDrop conn = E.catch (dropSchema conn) handleErr
+--   where
+--     handleErr :: SqlError -> IO ()
+--     handleErr  = print 
 
 migrate :: ByteString -> IO ()
 migrate connStr = do
   conn <- connectPostgreSQL connStr
   tryCreateSchema conn
   print $ "Successfully created table. ConnectionStr was " ++ show connStr
+
+
+-- deleteAllTables :: ByteString -> IO ()
+-- deleteAllTables connStr = do
+--   conn <- connectPostgreSQL connStr
+--   tryDrop conn
+--   print $ "Dropped all tables. Constr was: " ++ show connStr

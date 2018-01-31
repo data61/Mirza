@@ -10,6 +10,7 @@ import Database.PostgreSQL.Simple
 import Data.ByteString
 import Control.Exception (bracket)
 import Migrate
+import AppConfig as AC
 
 -- dbFunc = withDatabaseDebug putStrLn
 
@@ -24,7 +25,10 @@ dbConnStr = "dbname=testsupplychainserver2"
 openConnection :: IO Connection
 openConnection = do
   conn <- connectPostgreSQL dbConnStr
+  let envT = AC.mkEnvType True
+      env  = AC.Env envT conn
   migrate dbConnStr
+  -- TODO
   return conn
 
 closeConnection :: Connection -> IO ()

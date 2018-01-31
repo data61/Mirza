@@ -80,6 +80,29 @@ maxTzLen = 10
 -- pkSerialType :: DataType PgDataTypeSyntax UUID
 pkSerialType = uuid
 
+dropTables :: Migration syntax ()
+dropTables = (fmap . fmap . fmap) dropTable migrationStorage
+--dropTable <$> migrationStorage
+  -- SupplyChainDb
+  --   <$> dropTable "users"
+  --   <*> dropTable "keys"
+  --   <*> dropTable "businesses"
+  --   <*> dropTable "contacts"
+  --   <*> dropTable "labels"
+  --   <*> dropTable "items"
+  --   <*> dropTable "transformations"
+  --   <*> dropTable "locations"
+  --   <*> dropTable "events"
+  --   <*> dropTable "whats"
+  --   <*> dropTable "bizTransactions"
+  --   <*> dropTable "whys"
+  --   <*> dropTable "wheres"
+  --   <*> dropTable "whens"
+  --   <*> dropTable "labelEvents"
+  --   <*> dropTable "userEvents"
+  --   <*> dropTable "hashes"
+  --   <*> dropTable "blockchain"
+
 migrationStorage :: Migration PgCommandSyntax (CheckedDatabaseSettings Postgres SupplyChainDb)
 migrationStorage =
   SupplyChainDb
@@ -679,6 +702,7 @@ data SupplyChainDb f = SupplyChainDb
   }
   deriving Generic
 instance Database SupplyChainDb
+instance Monad SupplyChainDb
 
 -- instance HasSqlValueSyntax be String => HasSqlValueSyntax be EventType where
 --   sqlValueSyntax = autoSqlValueSyntax
