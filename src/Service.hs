@@ -55,8 +55,6 @@ instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub
       & securityDefinitions .~ authSchemes
       & allOperations . security .~ securityRequirements
 
-
-
 -- sampleUser :: User
 -- -- sampleUser =  User (Auto Nothing) "Sara" "Falamaki"
 -- sampleUser =  User 1 "Sara" "Falamaki"

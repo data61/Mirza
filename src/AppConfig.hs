@@ -62,11 +62,7 @@ getDBConn = asks dbConn
 getEnvType :: AppM EnvType
 getEnvType = asks envType
 
--- |for the moment, comment in/out the appropriate line to the get the proper
--- function
--- dbFunc :: Connection -> (Pg a0 -> IO a0)
-dbFunc :: AppM (Pg a0 -> IO a0)
--- dbFunc = withDatabase
+dbFunc :: AppM (Pg a -> IO a)
 dbFunc = do
   conn <- getDBConn
   e <- getEnvType
