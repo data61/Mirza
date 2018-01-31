@@ -29,5 +29,8 @@ if [ $psql_exit_status != 0 ]; then
     exit $psql_exit_status
 fi
 
+# @todo add some fake companies to the db to begin with
+# eventuially, we will get an updated list from ASIC and populate the db
+
 echo "sql script successful"
 exit 0
