@@ -139,15 +139,6 @@ addPublicKey user sig = error "Storage module not implemented"
 
 newUser :: NewUser -> AC.AppM UserID
 newUser nu = BQ.newUser nu
-    -- liftIO $ print "newUser:service"
-    -- r <- runExceptT $ intercept $ BQ.newUser nu
-    -- case r of
-    --     Left  _ -> liftIO $ putStrLn "caught error"
-    --     Right _ -> liftIO $ putStrLn "nope, didn't catch no error"
-  -- liftIO $ print insertedUserList
-  -- case insertedUserList of
-  --   [user] -> return (SB.user_id user)
-  --   _      -> throwError M.DBE_InsertionFail
 
 getPublicKey :: KeyID -> AC.AppM RSAPublicKey
 getPublicKey keyID = error "Storage module not implemented"
