@@ -36,7 +36,8 @@ import qualified Data.Text as T
 import           Data.GS1.EPC
 import           Data.GS1.DWhat
 import           Data.Time.LocalTime (utc, TimeZone, utcToLocalTime
-                                     , LocalTime)
+                                     , LocalTime, localTimeToUTC)
+import           Data.Time (UTCTime)
 
 -- Until this module compiles, look at:
 -- https://github.csiro.au/Blockchain/supplyChainServer/blob/pg-schema-matt/src/BeamQueries.hs
@@ -53,6 +54,9 @@ import           Data.Time.LocalTime (utc, TimeZone, utcToLocalTime
   "password": "password"
 }
  -}
+
+toEPCISTime :: LocalTime -> UTCTime
+toEPCISTime = localTimeToUTC utc
 
 generateTimeStamp :: AppM LocalTime
 generateTimeStamp = do
@@ -122,6 +126,7 @@ addPublicKey (M.User uid _ _)  (M.RSAPublicKey n e) = do
                    (T.pack $ show n)
                    (T.pack $ show e)
                    timeStamp -- 0
+                   timeStamp -- revocationTime ?
                  )
                ] -- TODO = check if 0 is correct here... NOT SURE
   case r of
