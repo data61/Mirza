@@ -21,7 +21,7 @@ import qualified Model as M
 import qualified StorageBeam as SB
 
 import           Data.UUID.V4 (nextRandom)
-import           Data.UUID (fromString)
+import           Data.UUID (fromString, UUID)
 import           Data.Maybe (fromJust)
 import           Crypto.Scrypt
 import           Data.Text.Encoding
@@ -29,11 +29,14 @@ import           Database.PostgreSQL.Simple
 import           Database.Beam as B
 import           Database.Beam.Backend.SQL.BeamExtensions
 import           AppConfig (AppM, runDb, AppError(..))
-import           Data.GS1.EPC
-import           Data.GS1.DWhat
 import           Data.Time.Clock (getCurrentTime)
 import           Control.Monad.Except (throwError, MonadError)
 import qualified Control.Exception as ExL
+import           Data.Text (Text, pack)
+import           Data.GS1.EPC
+import           Data.GS1.DWhat
+import           Data.Time.LocalTime (utc, TimeZone, utcToLocalTime
+                                     , LocalTime)
 
 -- Until this module compiles, look at:
 -- https://github.csiro.au/Blockchain/supplyChainServer/blob/pg-schema-matt/src/BeamQueries.hs
@@ -50,6 +53,14 @@ import qualified Control.Exception as ExL
   "password": "password"
 }
  -}
+
+generateTimeStamp :: AppM LocalTime
+generateTimeStamp = do
+  utcTime <- liftIO getCurrentTime
+  return $ utcToLocalTime utc utcTime
+
+generatePk :: AppM UUID
+generatePk = liftIO $ nextRandom
 
 -- USE pass!
 insertUser :: EncryptedPass -> M.NewUser -> AppM M.UserID
