@@ -102,7 +102,7 @@ migrationStorage =
           (field "rsa_n" text)
           (field "rsa_e" text)
           (field "creation_time" timestamptz)
-          (field "revocation_time" timestamptz)
+          -- (field "revocation_time" timestamptz)
     )
     <*> createTable "businesses"
     (
@@ -283,7 +283,7 @@ data KeyT f = Key
   , rsa_n              :: C f Text --XXX should this be Int64?
   , rsa_e              :: C f Text -- as above
   , creationTime       :: C f LocalTime -- UTCTime
-  , revocationTime     :: C f LocalTime -- UTCTime
+  -- , revocationTime     :: C f LocalTime -- UTCTime
   }
   deriving Generic
 type Key = KeyT Identity

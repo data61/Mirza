@@ -139,7 +139,7 @@ basicAuthServerContext = authCheck :. EmptyContext
 
 
 addPublicKey :: User -> RSAPublicKey -> AC.AppM KeyID
-addPublicKey user sig = error "Storage module not implemented"
+addPublicKey = BQ.addPublicKey
   -- liftIO (Storage.addPublicKey user sig)
 
 newUser :: NewUser -> AC.AppM UserID
