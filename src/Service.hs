@@ -143,7 +143,7 @@ addPublicKey user sig = error "Storage module not implemented"
   -- liftIO (Storage.addPublicKey user sig)
 
 newUser :: NewUser -> AC.AppM UserID
-newUser nu = BQ.newUser nu
+newUser = BQ.newUser
 
 getPublicKey :: KeyID -> AC.AppM RSAPublicKey
 getPublicKey keyID = error "Storage module not implemented"

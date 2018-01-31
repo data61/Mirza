@@ -65,7 +65,7 @@ generatePk = liftIO $ nextRandom
 -- USE pass!
 insertUser :: EncryptedPass -> M.NewUser -> AppM M.UserID
 insertUser pass (M.NewUser phone email firstName lastName biz password) = do
-  userId <- liftIO $ nextRandom
+  userId <- generatePk
   -- liftIO $ print "newUser:BQ"
   res <- runDb $
             runInsertReturningList (SB._users SB.supplyChainDb) $
