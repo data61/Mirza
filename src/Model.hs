@@ -16,33 +16,31 @@
 module Model where
 
 import qualified Data.ByteString.Lazy.Char8 as LBSC8
-import Servant
-import Servant.Server.Experimental.Auth()
+import qualified Data.ByteString as BS
+import           Data.Text as T
 
-import Prelude        ()
-import Prelude.Compat
+import           Servant
+import           Servant.Server.Experimental.Auth()
+import           Data.Swagger
 
-import GHC.Generics (Generic)
+import           Prelude        ()
+import           Prelude.Compat
+import           GHC.Generics (Generic)
 
-import Data.Aeson
-import Data.Aeson.TH
-import Data.Swagger
-import Data.Time
+import           Control.Monad.Except (throwError, MonadError, Except)
+import           Control.Monad.Error.Class (Error)
+import           Control.Exception (IOException)
 
-import Data.GS1.EventID
-import Data.GS1.EPC
-import Data.GS1.DWhere
-import Data.GS1.DWhat
-import Data.Text as T
+import           Data.Aeson
+import           Data.Aeson.TH
+import           Data.Time
 
-import qualified Data.ByteString as ByteString
-import Data.UUID (UUID)
-import StorageBeam (PrimaryKeyType)
-
-import Data.UUID
-import Control.Monad.Except (throwError, MonadError, Except)
-import Control.Monad.Error.Class (Error)
-import Control.Exception (IOException)
+import           Data.GS1.EventID
+import           Data.GS1.EPC
+import           Data.GS1.DWhere
+import           Data.GS1.DWhat
+import           Data.UUID (UUID)
+import           StorageBeam (PrimaryKeyType)
 
 type UserID = PrimaryKeyType
 
@@ -54,11 +52,11 @@ type UserID = PrimaryKeyType
 
 type EmailAddress = T.Text
 type KeyID = PrimaryKeyType
-type Password = ByteString.ByteString
+type Password = BS.ByteString
 type EPCUrn = String
 
 
-newtype BinaryBlob = BinaryBlob ByteString.ByteString
+newtype BinaryBlob = BinaryBlob BS.ByteString
   deriving (MimeUnrender OctetStream, MimeRender OctetStream, Generic)
 
 
@@ -263,7 +261,7 @@ class AppServantError err where
   -- errCode      :: 
 
 data SigError = SE_NeedMoreSignatures T.Text
-              | SE_InvalidSignature ByteString.ByteString
+              | SE_InvalidSignature BS.ByteString
               | SE_InvalidUser T.Text
               | SE_BlockchainSendFailed
               | SE_InvalidEventID Int
