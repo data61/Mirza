@@ -56,12 +56,15 @@ insertUser :: EncryptedPass -> M.NewUser -> AppM M.UserID
 insertUser pass (M.NewUser phone email firstName lastName biz password) = do
   userId <- liftIO $ nextRandom
   -- liftIO $ print "newUser:BQ"
-  insertedUserList <- runDb $ runInsertReturningList (SB._users SB.supplyChainDb) $
-                    insertValues ([(SB.User userId
-                    (SB.BizId  biz)
-                    firstName lastName phone password email)])-- ::[SB.User])
-  -- liftIO $ print insertedUserList
-  return $ SB.user_id $ last insertedUserList
+  res <- runDb $
+            runInsertReturningList (SB._users SB.supplyChainDb) $
+            insertValues ([(SB.User userId
+            (SB.BizId  biz)
+            firstName lastName phone password email)])-- ::[SB.User])
+  case res of
+    Left e -> throwError $ DBErr M.DBE_EmailExists
+    Right [r] -> return $ SB.user_id r
+    _ -> error "unhandled as of yet"
 
 -- |
 newUser :: M.NewUser -> AppM M.UserID
@@ -83,11 +86,13 @@ authCheck email password = do
         guard_ (SB.email_address user  ==. val_ email)
         pure user
   case r of
-    [user] -> do
+    Left e -> throwError $ GetPropErr M.KE_InvalidUserID
+    Right [user] -> do
         if verifyPass' (Pass password) (EncryptedPass $ encodeUtf8 $ SB.password_hash user)
           then return $ Just $ userTableToModel user
           else return Nothing
-    _ -> return Nothing -- null list or multiple elements
+    Right [] -> throwError $ GetPropErr M.KE_InvalidUserID
+    _  -> return Nothing -- null list or multiple elements
 
 
 -- BELOW = Beam versions of SQL versions from Storage.hs
