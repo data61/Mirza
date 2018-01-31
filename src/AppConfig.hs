@@ -71,9 +71,6 @@ dbFunc = do
     _    -> pure $ B.withDatabaseDebug putStrLn conn
 
 -- | Helper function to run db functions
--- runDb :: Pg b -> AppM b
 runDb :: Pg a -> AppM (Either SqlError a)
-runDb q = do
-  -- df <- dbFunc
-  dbFunc >>= (\f -> liftIO $ Exc.try $ f q)
+runDb q = dbFunc >>= (\f -> liftIO $ Exc.try $ f q)
 
