@@ -92,10 +92,11 @@ userTableToModel (SB.User uid _ fName lName _ _ _) = M.User uid fName lName
 -- Basic Auth check using Scrypt hashes.
 authCheck :: M.EmailAddress -> M.Password -> AppM (Maybe M.User)
 authCheck email password = do
-  r <- runDb $ runSelectReturningList $ select $ do
-        user <- all_ (SB._users SB.supplyChainDb)
-        guard_ (SB.email_address user  ==. val_ email)
-        pure user
+  r <- runDb $
+          runSelectReturningList $ select $ do
+          user <- all_ (SB._users SB.supplyChainDb)
+          guard_ (SB.email_address user  ==. val_ email)
+          pure user
   case r of
     Left e -> throwError $ GetPropErr M.KE_InvalidUserID
     Right [user] -> do
