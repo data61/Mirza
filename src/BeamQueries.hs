@@ -28,11 +28,12 @@ import           Data.Text.Encoding
 import           Database.PostgreSQL.Simple
 import           Database.Beam as B
 import           Database.Beam.Backend.SQL.BeamExtensions
-import           AppConfig (AppM, runDb)
+import           AppConfig (AppM, runDb, AppError(..))
 import           Data.GS1.EPC
 import           Data.GS1.DWhat
 import           Data.Time.Clock (getCurrentTime)
 import           Control.Monad.Except (throwError, MonadError)
+import qualified Control.Exception as ExL
 
 -- Until this module compiles, look at:
 -- https://github.csiro.au/Blockchain/supplyChainServer/blob/pg-schema-matt/src/BeamQueries.hs

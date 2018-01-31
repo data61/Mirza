@@ -8,10 +8,12 @@ module AppConfig (
   , runDb
   , mkEnvType
   , Env(..)
+  , AppError(..)
 )
 where
 
-import           Database.PostgreSQL.Simple (Connection)
+import           Control.Exception.Lifted (try)
+import           Database.PostgreSQL.Simple (Connection, SqlError(..))
 import qualified Database.Beam as B
 import           Database.Beam.Postgres (Pg)
 
@@ -19,9 +21,10 @@ import           Control.Monad.IO.Class (MonadIO)
 import           Control.Monad.Reader   (MonadReader, ReaderT, runReaderT,
                                          asks, liftIO)
 -- import           GHC.Word               (Word16)
-import           Servant.Server (Handler)
-import           Control.Monad.Except (MonadError)
-
+import           Servant.Server (Handler, ServantErr)
+import           Control.Monad.Except (MonadError, ExceptT(..))
+import qualified Model as M
+import qualified Control.Exception as Exc
 
 data EnvType = Prod | Dev
 
@@ -35,9 +38,14 @@ data Env = Env
   -- , port    :: Word16
   }
 
+data AppError = DBErr M.DBError
+              | SigErr M.SigError
+              | GetPropErr M.GetPropertyError
+
 -- runReaderT :: r -> m a
 -- ReaderT r m a
 -- type Handler a = ExceptT ServantErr IO a
+-- newtype ExceptT e m a :: * -> (* -> *) -> * -> *
 newtype AppM a = AppM
   { unAppM :: ReaderT Env Handler a }
   deriving ( Functor

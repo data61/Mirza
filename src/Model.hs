@@ -15,6 +15,7 @@
 
 module Model where
 
+import qualified Data.ByteString.Lazy.Char8 as LBSC8
 import Servant
 import Servant.Server.Experimental.Auth()
 
@@ -39,7 +40,8 @@ import Data.UUID (UUID)
 import StorageBeam (PrimaryKeyType)
 
 import Data.UUID
-import           Control.Monad.Except (throwError, MonadError)
+import Control.Monad.Except (throwError, MonadError, Except)
+import Control.Monad.Error.Class (Error)
 import Control.Exception (IOException)
 
 type UserID = PrimaryKeyType
@@ -255,20 +257,34 @@ data HashedEvent = HashedEvent {
 $(deriveJSON defaultOptions ''HashedEvent)
 instance ToSchema HashedEvent
 
-data SigError =  SE_NeedMoreSignatures
-               | SE_InvalidSignature
-               | SE_InvalidUser
-               | SE_BlockchainSendFailed
-               | SE_InvalidEventID
-               | SE_InvalidKeyID
-               | SE_SEND_TO_BLOCKCHAIN_FAILED
-               deriving (Show, Read, Generic)
---instance Except SigError
+-- Interface for converting custom errors to ServantErr
+class AppServantError err where
+  toServantErr :: err -> ServantErr
+  -- errCode      :: 
+
+data SigError = SE_NeedMoreSignatures T.Text
+              | SE_InvalidSignature ByteString.ByteString
+              | SE_InvalidUser T.Text
+              | SE_BlockchainSendFailed
+              | SE_InvalidEventID Int
+              | SE_InvalidKeyID
+              deriving (Show, Read, Generic)
+
+instance AppServantError SigError where
+  toServantErr e = err500 {errBody = LBSC8.pack $ show e}
+
 
 data GetPropertyError = KE_InvalidKeyID
                       | KE_InvalidUserID
                       deriving (Show, Read, Generic)
 
+instance AppServantError GetPropertyError where
+  toServantErr e = err500 {errBody = LBSC8.pack $ show e}
+
 data DBError = DBE_InsertionFail
-               deriving (Show, Read, Generic)
---instance Except GetPropertyError
+             | DBE_EmailExists
+             deriving (Show, Read, Generic)
+
+instance AppServantError DBError where
+  toServantErr e = err500 {errBody = LBSC8.pack $ show e}
+
