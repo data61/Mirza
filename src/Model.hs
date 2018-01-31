@@ -53,7 +53,7 @@ type UserID = PrimaryKeyType
 -- type UserID = Integer
 
 type EmailAddress = T.Text
-type KeyID = Integer
+type KeyID = PrimaryKeyType
 type Password = ByteString.ByteString
 type EPCUrn = String
 
