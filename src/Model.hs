@@ -127,9 +127,9 @@ $(deriveJSON defaultOptions ''KeyInfo)
 instance ToSchema KeyInfo
 
 data User = User {
-    userId        :: UserID
-  , userFirstName :: T.Text
-  , userLastName  :: T.Text
+    userId        :: UserID,
+    userFirstName :: T.Text,
+    userLastName  :: T.Text
 } deriving (Generic, Eq, Show)
 $(deriveJSON defaultOptions ''User)
 instance ToSchema User
