@@ -110,12 +110,24 @@ authCheck email password = do
 -- BELOW = Beam versions of SQL versions from Storage.hs
 -- execute conn "INSERT INTO Users (bizID, firstName, lastName, phoneNumber, passwordHash, emailAddress) VALUES (?, ?, ?, ?, ?, ?);" (biz, first, last, phone, getEncryptedPass hash, email)
 -- execute conn "INSERT INTO Keys (userID, rsa_n, rsa_e, creationTime) values (?, ?, ?, ?);" (uid, n, e, timestamp)
--- addPublicKey :: M.User -> M.RSAPublicKey-> AppM M.KeyID
--- addPublicKey (M.User uid _ _)  (M.RSAPublicKey n e) = do
---   timestamp <- liftIO getCurrentTime
---   [rowID] <- runDb $ runInsertReturningList (SB._keys SB.supplyChainDb) $
---              insertValues [(SB.Key (Auto Nothing) (SB.UserId uid) n e timestamp 0)] -- TODO = check if 0 is correct here... NOT SURE
---   return (SB.key_id rowID)
+addPublicKey :: M.User -> M.RSAPublicKey-> AppM M.KeyID
+addPublicKey (M.User uid _ _)  (M.RSAPublicKey n e) = do
+  keyId <- generatePk
+  timeStamp <- generateTimeStamp
+  r <- runDb $ runInsertReturningList (SB._keys SB.supplyChainDb) $
+               insertValues
+               [
+                 (
+                   SB.Key keyId (SB.UserId uid)
+                  (pack $ show n)
+                  (pack $ show e)
+                  timeStamp -- 0
+                 )
+               ] -- TODO = check if 0 is correct here... NOT SURE
+  case r of
+    Right [rowId] -> return (SB.key_id rowId)
+    Right _       -> throwError $ GetPropErr M.KE_InvalidKeyID
+    Left  e       -> throwError $ SigErr M.SE_InvalidKeyID
 
 -- getPublicKey :: (MonadError M.GetPropertyError m, MonadIO m) => M.KeyID -> m M.RSAPublicKey
 -- getPublicKey keyID = do
