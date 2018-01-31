@@ -47,12 +47,13 @@ data AppError = DBErr M.DBError
 -- type Handler a = ExceptT ServantErr IO a
 -- newtype ExceptT e m a :: * -> (* -> *) -> * -> *
 newtype AppM a = AppM
-  { unAppM :: ReaderT Env Handler a }
+  { unAppM :: ReaderT Env (ExceptT AppError IO) a }
   deriving ( Functor
            , Applicative
            , Monad
            , MonadReader Env
            , MonadIO
+           , MonadError AppError
            )
 
 getDBConn :: AppM Connection
@@ -74,6 +75,9 @@ dbFunc = do
     _    -> pure $ B.withDatabaseDebug putStrLn conn
 
 -- | Helper function to run db functions
-runDb :: Pg b -> AppM b
-runDb q = dbFunc >>= (\f -> liftIO $ f q)
+-- runDb :: Pg b -> AppM b
+runDb :: Pg a -> AppM (Either SqlError a)
+runDb q = do
+  -- df <- dbFunc
+  dbFunc >>= (\f -> liftIO $ Exc.try $ f q)
 
