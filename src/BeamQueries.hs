@@ -32,7 +32,7 @@ import           AppConfig (AppM, runDb, AppError(..))
 import           Data.Time.Clock (getCurrentTime)
 import           Control.Monad.Except (throwError, MonadError)
 import qualified Control.Exception as ExL
-import           Data.Text (Text, pack)
+import qualified Data.Text as T
 import           Data.GS1.EPC
 import           Data.GS1.DWhat
 import           Data.Time.LocalTime (utc, TimeZone, utcToLocalTime
@@ -119,27 +119,29 @@ addPublicKey (M.User uid _ _)  (M.RSAPublicKey n e) = do
                [
                  (
                    SB.Key keyId (SB.UserId uid)
-                  (pack $ show n)
-                  (pack $ show e)
-                  timeStamp -- 0
+                   (T.pack $ show n)
+                   (T.pack $ show e)
+                   timeStamp -- 0
                  )
                ] -- TODO = check if 0 is correct here... NOT SURE
   case r of
     Right [rowId] -> return (SB.key_id rowId)
-    Right _       -> throwError $ GetPropErr M.KE_InvalidKeyID
+    Right _       -> throwError $ SigErr M.SE_InvalidKeyID
     Left  e       -> throwError $ SigErr M.SE_InvalidKeyID
 
--- getPublicKey :: (MonadError M.GetPropertyError m, MonadIO m) => M.KeyID -> m M.RSAPublicKey
--- getPublicKey keyID = do
---   r <- runDb $ runSelectReturningList $ select $ do
---     allKeys <- all_ (_keys supplyChainDb)
---     guard_ (_keyId allKeys ==. keyID)
---     pure allKeys
---   if length r == 0
---      then throwError M.KE_InvalidKeyID
---      else do
---        let (keyId, uid, rsa_n, rsa_e, creationTime, revocationTime) = head r
---        return $ M.RSAPublicKey rsa_n rsa_e
+getPublicKey :: M.KeyID -> AppM M.RSAPublicKey
+getPublicKey keyID = do
+  r <- runDb $ runSelectReturningList $ select $ do
+    allKeys <- all_ (SB._keys SB.supplyChainDb)
+    guard_ (SB.key_id allKeys ==. val_ keyID)
+    pure allKeys
+
+  case r of
+    -- Right [(keyId, uid, rsa_n, rsa_e, creationTime, revocationTime)] ->
+    Right [k] ->
+        return $ M.RSAPublicKey (read $ T.unpack $ SB.rsa_n k) (read $ T.unpack $ SB.rsa_e k)
+    Right _ -> throwError $ GetPropErr M.KE_InvalidKeyID
+    Left e  -> throwError $ GetPropErr M.KE_InvalidKeyID
 
 -- getPublicKeyInfo :: (MonadError M.GetPropertyError m, MonadIO m) => M.KeyID -> m M.KeyInfo
 -- getPublicKeyInfo keyID = do
