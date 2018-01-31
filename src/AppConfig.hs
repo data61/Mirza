@@ -1,3 +1,4 @@
+
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings          #-}
 
@@ -13,11 +14,14 @@ where
 import           Database.PostgreSQL.Simple (Connection)
 import qualified Database.Beam as B
 import           Database.Beam.Postgres (Pg)
+
 import           Control.Monad.IO.Class (MonadIO)
 import           Control.Monad.Reader   (MonadReader, ReaderT, runReaderT,
-                                         asks, ask, liftIO)
+                                         asks, liftIO)
 -- import           GHC.Word               (Word16)
 import           Servant.Server (Handler)
+import           Control.Monad.Except (MonadError)
+
 
 data EnvType = Prod | Dev
 
@@ -31,8 +35,11 @@ data Env = Env
   -- , port    :: Word16
   }
 
+-- runReaderT :: r -> m a
+-- ReaderT r m a
+-- type Handler a = ExceptT ServantErr IO a
 newtype AppM a = AppM
-  { unAppM :: ReaderT Env IO a }
+  { unAppM :: ReaderT Env Handler a }
   deriving ( Functor
            , Applicative
            , Monad
@@ -61,3 +68,4 @@ dbFunc = do
 -- | Helper function to run db functions
 runDb :: Pg b -> AppM b
 runDb q = dbFunc >>= (\f -> liftIO $ f q)
+

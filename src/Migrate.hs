@@ -29,8 +29,8 @@ tryCreateSchema conn = E.catch (createSchema conn) handleErr
     handleErr :: SqlError -> IO ()
     handleErr e = print e
 
-migrate :: IO ()
-migrate = do
-  conn <- connectPostgreSQL connectionStr
+migrate :: ByteString -> IO ()
+migrate connStr = do
+  conn <- connectPostgreSQL connStr
   tryCreateSchema conn
-  print $ "Successfully created table. ConnectionStr was " ++ show connectionStr
+  print $ "Successfully created table. ConnectionStr was " ++ show connStr

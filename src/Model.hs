@@ -35,8 +35,12 @@ import Data.GS1.DWhat
 import Data.Text as T
 
 import qualified Data.ByteString as ByteString
-
+import Data.UUID (UUID)
 import StorageBeam (PrimaryKeyType)
+
+import Data.UUID
+import           Control.Monad.Except (throwError, MonadError)
+import Control.Exception (IOException)
 
 type UserID = PrimaryKeyType
 
@@ -46,10 +50,9 @@ type UserID = PrimaryKeyType
 -- instance FromHttpApiData UserID
 -- type UserID = Integer
 
-type EmailAddress = ByteString.ByteString
+type EmailAddress = T.Text
 type KeyID = Integer
 type Password = ByteString.ByteString
-
 type EPCUrn = String
 
 
@@ -123,11 +126,12 @@ instance ToSchema KeyInfo
 
 data User = User {
     userId        :: UserID
-  , userFirstName :: String
-  , userLastName  :: String
+  , userFirstName :: T.Text
+  , userLastName  :: T.Text
 } deriving (Generic, Eq, Show)
 $(deriveJSON defaultOptions ''User)
 instance ToSchema User
+
 
 
 data EPCState = New | InProgress | AwaitingDeploymentToBC | Customer | Finalised
@@ -148,7 +152,7 @@ data NewUser = NewUser {
   emailAddress :: T.Text,
   firstName :: T.Text,
   lastName :: T.Text,
-  company :: Integer,
+  company :: T.Text,
   password :: T.Text
 } deriving (Generic, Eq, Show)
 $(deriveJSON defaultOptions ''NewUser)
@@ -157,14 +161,14 @@ instance ToSchema NewUser
 
 
 data Business = Business {
-  bizID :: Integer
-  , bizName :: T.Text
-  , gs1CompanyPrefix :: Integer
-  , function :: T.Text
-  , siteName :: T.Text
-  , address :: T.Text
-  , lat :: Float
-  , lng :: Float
+  bizID :: UUID,
+  bizName :: T.Text,
+  gs1CompanyPrefix :: GS1CompanyPrefix,
+  function :: T.Text,
+  siteName :: T.Text,
+  address :: T.Text,
+  lat :: Float,
+  lng :: Float
 } deriving (Generic, Eq, Show)
 $(deriveJSON defaultOptions ''Business)
 instance ToSchema Business
@@ -251,7 +255,7 @@ data HashedEvent = HashedEvent {
 $(deriveJSON defaultOptions ''HashedEvent)
 instance ToSchema HashedEvent
 
-data SigError = SE_NeedMoreSignatures
+data SigError =  SE_NeedMoreSignatures
                | SE_InvalidSignature
                | SE_InvalidUser
                | SE_BlockchainSendFailed
@@ -264,4 +268,7 @@ data SigError = SE_NeedMoreSignatures
 data GetPropertyError = KE_InvalidKeyID
                       | KE_InvalidUserID
                       deriving (Show, Read, Generic)
+
+data DBError = DBE_InsertionFail
+               deriving (Show, Read, Generic)
 --instance Except GetPropertyError

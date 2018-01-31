@@ -1,3 +1,15 @@
+-- Please do not remove any commented out code in this module.
+-- We are working with a WIP library, namely Beam.
+-- In table definitions
+-- most of the commented out code are there for
+-- 1. Reference. To see how the Haskell data type looks like
+-- 2. As a record of what the types were previously
+--  --> to help us decide whether or not to roll back some changes
+
+-- If you see the word ``WAITING_FOR_LIB_FIX`` anywhere, it probably means that
+-- we are waiting on a library (eg. Beam) to implement something. For example,
+-- migration support for UTCTime
+
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE DeriveGeneric         #-}
@@ -9,6 +21,7 @@
 {-# LANGUAGE UndecidableInstances  #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# OPTIONS_GHC -fno-warn-orphans  #-}
+
 module StorageBeam where
 
 {-
@@ -16,44 +29,56 @@ module StorageBeam where
 2. make the schema definitions consistent with the table definitions
 3. for each primaryKey = .+Id \. .* (this is a regex), make the relevant change (eg. _itemId becomes item_id)
 4. For each foreign key, make changes that appear similar to the changes made to UserT table
-5. Do it for each of the tables (or the ones allocated to you)
+5. Do it for each of the tables
 VSCode shortcut for multi-line cursors: Ctrl+Shift+Up/Down
 -}
 
-import Control.Lens
-import Database.Beam as B
-import Database.Beam.Postgres
-import Database.PostgreSQL.Simple
-import Database.Beam.Backend
-import Database.Beam.Backend.SQL.BeamExtensions
-import Database.PostgreSQL.Simple.FromField
-import Database.Beam.Backend.SQL
-
-import Data.Text (Text)
-import Data.Int
-import Data.Time
-
-import qualified Data.GS1.Event as Ev
+import           Control.Lens
+import           Database.Beam as B
+import           Database.Beam.Postgres
+-- import           Database.PostgreSQL.Simple
+-- import           Database.Beam.Backend
+-- import           Database.Beam.Backend.SQL.BeamExtensions
+-- import           Database.PostgreSQL.Simple.FromField
+-- import           Database.Beam.Backend.SQL
+-- import qualified Database.PostgreSQL.Simple.Time as PgT
+import           Data.Text (Text)
+-- import           Data.Int
+import           Data.Time
+import           Data.ByteString (ByteString)
+-- import qualified Data.GS1.Event as Ev
 import qualified Data.GS1.EPC as E
-import Data.GS1.DWhat
+-- import qualified Data.GS1.DWhat as DWhat
+import           Data.UUID (UUID)
+import           Database.Beam.Postgres.Migrate
+import           Database.Beam.Migrate.SQL.Tables
+import           Database.Beam.Migrate.Types
+import           Data.Swagger ()
+import           Servant ()
 
-import Database.Beam.Postgres.Migrate
-import Database.Beam.Migrate.SQL.Tables
-import Database.Beam.Migrate.SQL.Types
-import Database.Beam.Migrate.Types
-
-type PrimaryKeyType = Integer
--- IMPLEMENTME
+type PrimaryKeyType = UUID
+-- IMPLEMENTME - NOT NOW
 -- Change PrimaryKeyType to ``Auto Int`` and define the instances below
 -- instance ToSchema PrimaryKeyType
 -- instance ToParamSchema PrimaryKeyType where
---   toParamSchema _ = error "not implemented yet"
--- instance FromHttpApiData PrimaryKeyType
---   where
---     parseUrlPiece = error "not implemented yet"
+--   -- TODO = refactor this, want toParamSchema for ToParamSchema UUID
+--   -- https://github.com/GetShopTV/swagger2/blob/master/src/Data/Swagger/Internal/ParamSchema.hs#L268
+--   toParamSchema _ = mempty & type_ .~ SwaggerString & Data.Swagger.format ?~ "uuid"
+-- instance FromHttpApiData PrimaryKeyType where
+--   -- parseUrlPiece :: Text -> Either Text PrimaryKeyType
+--   parseUrlPiece t = error $ show t ++ " parseUP"
+--   parseQueryParam t = error $ show t ++ " parseQP"
+
 
 maxLen :: Word
 maxLen = 120
+
+-- length of the timezone offset
+maxTzLen :: Word
+maxTzLen = 10
+
+-- pkSerialType :: DataType PgDataTypeSyntax UUID
+pkSerialType = uuid
 
 migrationStorage :: Migration PgCommandSyntax (CheckedDatabaseSettings Postgres SupplyChainDb)
 migrationStorage =
@@ -61,139 +86,170 @@ migrationStorage =
     <$> createTable "users"
     (
       User
-          (field "user_id" bigserial)
-          (BizId (field "user_biz_id" bigserial))
+          (field "user_id" pkSerialType)
+          (BizId (field "user_biz_id" text))
           (field "first_name" (varchar (Just maxLen)) notNull)
           (field "last_name" (varchar (Just maxLen)) notNull)
           (field "phone_number" (varchar (Just maxLen)) notNull)
           (field "password_hash" (varchar (Just maxLen)) notNull)
-          (field "email_address" (varchar (Just maxLen)) notNull)
+          (field "email_address" (varchar (Just maxLen)) uniqueColumn) -- uniqueColumn
     )
     <*> createTable "keys"
     (
       Key
-          (field "key_id" bigserial)
-          (UserId (field "key_user_id" bigserial))
-          (field "rsa_n" bigserial)
-          (field "rsa_e" bigserial)
-          (field "creation_time" bigserial)
-          (field "revocation_time" bigserial)
+          (field "key_id" pkSerialType)
+          (UserId (field "key_user_id" pkSerialType))
+          (field "rsa_n" text)
+          (field "rsa_e" text)
+          (field "creation_time" timestamptz)
+          (field "revocation_time" timestamptz)
     )
     <*> createTable "businesses"
     (
       Business
-          (field "biz_id" bigserial)
+          (field "biz_gs1_company_prefix" text)
           (field "biz_name" (varchar (Just maxLen)) notNull)
-          (field "biz_gs1CompanyPrefix" bigserial)
           (field "biz_function" (varchar (Just maxLen)) notNull)
-          (field "biz_siteName" (varchar (Just maxLen)) notNull)
+          (field "biz_site_name" (varchar (Just maxLen)) notNull)
           (field "biz_address" (varchar (Just maxLen)) notNull)
-          (field "biz_lat" double notNull)
-          (field "biz_long" double notNull)
+          (field "biz_lat" double)
+          (field "biz_long" double)
     )
     <*> createTable "contacts"
     (
       Contact
-          (field "contact_id" bigserial)
-          (UserId (field "contact_user1_id" bigserial))
-          (UserId (field "contact_user2_id" bigserial))
+          (field "contact_id" pkSerialType)
+          (UserId (field "contact_user1_id" pkSerialType))
+          (UserId (field "contact_user2_id" pkSerialType))
     )
     <*> createTable "labels"
     (
       Label
-          (field "label_id" bigserial)
+          (field "label_id" pkSerialType)
+          (field "label_type" (varchar (Just maxLen)) notNull)
+          (WhatId (field "label_what_id" pkSerialType))
           (field "label_gs1_company_prefix" (varchar (Just maxLen)) notNull)
           (field "item_reference" (varchar (Just maxLen)) notNull)
           (field "serial_number" (varchar (Just maxLen)) notNull)
           (field "state" (varchar (Just maxLen)) notNull)
-          (field "label_type" (varchar (Just maxLen)) notNull)
           (field "lot" (varchar (Just maxLen)) notNull)
     )
     <*> createTable "items"
     (
       Item
-          (field "item_id" bigserial)
-          (LabelId (field "item_label_id" bigserial))
+          (field "item_id" pkSerialType)
+          (LabelId (field "item_label_id" pkSerialType))
           (field "item_description" (varchar (Just maxLen)) notNull)
     )
     <*> createTable "transformations"
     (
       Transformation
-          (field "transformation_id" bigserial)
+          (field "transformation_id" pkSerialType)
           (field "transformation_description" (varchar (Just maxLen)) notNull)
-          (BizId (field "transformation_biz_id" bigserial))
+          (BizId (field "transformation_biz_id" text))
     )
     <*> createTable "locations"
     (
       Location
-          (field "location_id" bigserial)
-          (BizId (field "location_biz_id" bigserial))
+          (field "location_id" pkSerialType)
+          (BizId (field "location_biz_id" text))
           (field "location_lat" double)
           (field "location_long" double)
     )
     <*> createTable "events"
     (
       Event
-          (field "event_id" bigserial)
+          (field "event_id" pkSerialType)
           (field "foreign_event_id" (varchar (Just maxLen)) notNull)
-          (BizId (field "event_label_id" bigserial))
-          (UserId (field "event_created_by" bigserial))
+          (BizId (field "event_label_id" text))
+          (UserId (field "event_created_by" pkSerialType))
           (field "json_event" (varchar (Just maxLen)) notNull)
     )
     <*> createTable "whats"
     (
       What
-          (field "what_id" bigserial)
-          (field "what_type" bigserial) -- bigserial for now FIXME
-          (field "action" bigserial) -- bigserial for now FIXME
-          (LabelId (field "parent" bigserial)) -- bigserial for now FIXME
-          (field "input" bigserial) -- bigserial for now FIXME
-          (field "output" bigserial) -- bigserial for now FIXME
-          (BizTransactionId (field "what_biz_transaction_id" bigserial)) -- bigserial for now FIXME
-          (TransformationId (field "what_transformation_id" bigserial)) -- bigserial for now FIXME
-          (EventId (field "what_event_id" bigserial))
+          (field "what_id" pkSerialType)
+          (field "what_type" text)
+          (field "action" text)
+          (LabelId (field "parent" pkSerialType))
+          -- (field "input" bigserial)
+          -- (field "output" bigserial)
+          (BizTransactionId (field "what_biz_transaction_id" pkSerialType))
+          (TransformationId (field "what_transformation_id" pkSerialType))
+          (EventId (field "what_event_id" pkSerialType))
     )
     <*> createTable "bizTransactions"
     (
       BizTransaction
-          (field "biz_transaction_id" bigserial)
+          (field "biz_transaction_id" pkSerialType)
           (field "biz_transaction_type_id" (varchar (Just maxLen)))
           (field "biz_transaction_id_urn" (varchar (Just maxLen)))
-          (EventId (field "biz_transaction_event_id" bigserial))
+          (EventId (field "biz_transaction_event_id" pkSerialType))
     )
     <*> createTable "whys"
     (
       Why
-          (field "why_id" bigserial)
-          (field "biz_step" bigserial) -- waiting for the compuler to tell us the type
-          (field "disposition" bigserial) -- waiting for the compuler to tell us the type
-          (EventId (field "why_event_id" bigserial))
+          (field "why_id" pkSerialType)
+          (field "biz_step" text)
+          (field "disposition" text)
+          (EventId (field "why_event_id" pkSerialType))
     )
     <*> createTable "wheres"
     (
       Where
-          (field "where_id" bigserial)
-          (LocationId (field "read_point" bigserial))
-          (LocationId (field "biz_location" bigserial))
-          (field "src_type" bigserial) -- waiting for compiler
-          (field "dest_type" bigserial) -- waiting for compiler
-          (EventId (field "where_event_id" bigserial))
+          (field "where_id" pkSerialType)
+          (LocationId (field "read_point" pkSerialType))
+          (LocationId (field "biz_location" pkSerialType))
+          (field "src_type" text)
+          (field "dest_type" text)
+          (EventId (field "where_event_id" pkSerialType))
     )
     <*> createTable "whens"
     (
       When
-          (field "when_id" bigserial)
-          (field "event_time" bigserial)
-          (field "record_time" bigserial)
-          (field "time_zone" (varchar (Just maxLen)) notNull)
-          (EventId (field "when_event_id" bigserial))
+          (field "when_id" pkSerialType notNull)
+          (field "event_time" timestamptz notNull)
+          (field "record_time" (maybeType timestamptz))
+          (field "time_zone" (varchar (Just maxTzLen)) notNull)
+          (EventId (field "when_event_id" pkSerialType))
     )
     <*> createTable "labelEvents"
     (
       LabelEvent
-          (field "label_event_id" bigserial)
-          (LabelId (field "label_event_label_id" bigserial))
-          (EventId (field "label_event_event_id" bigserial))
+          (field "label_event_id" pkSerialType)
+          (LabelId (field "label_event_label_id" pkSerialType))
+          (EventId (field "label_event_event_id" pkSerialType))
+    )
+
+    -- note that all ADDITIONAL TABLES have all fields as NOT NULL
+    <*> createTable "userEvents"
+    (
+      UserEvents
+          (field "user_events_id" pkSerialType)
+          (EventId (field "user_events_event_id" pkSerialType notNull))
+          (UserId (field "user_events_user_id" pkSerialType notNull))
+          (field "user_events_has_signed" boolean notNull)
+          (UserId (field "user_events_added_by" pkSerialType notNull))
+          (field "user_events_signedHash" bytea notNull)
+    )
+    <*> createTable "hashes"
+    (
+      Hashes
+          (field "hashes_id" pkSerialType)
+          (EventId (field "hashes_event_id" pkSerialType notNull))
+          (field "hashes_hash" bytea notNull)
+          (field "hashes_is_signed" boolean notNull)
+          (UserId (field "hashes_signed_by_user_id" pkSerialType notNull))
+          (KeyId (field "hashes_key_id" pkSerialType notNull))
+    )
+    <*> createTable "blockchain"
+    (
+      BlockChain
+          (field "blockchain_id" pkSerialType)
+          (EventId (field "blockchain_event_id" pkSerialType notNull))
+          (field "blockchain_hash" bytea notNull)
+          (field "blockchain_address" text notNull)
+          (field "blockchain_foreign_id" int notNull)
     )
 
 
@@ -224,10 +280,10 @@ instance Table UserT where
 data KeyT f = Key
   { key_id             :: C f PrimaryKeyType
   , key_user_id        :: PrimaryKey UserT f
-  , rsa_n              :: C f Int32 --XXX should this be Int64?
-  , rsa_e              :: C f Int32 -- as above
-  , creationTime       :: C f Int32 --XXX date.. Int64?
-  , revocationTime     :: C f Int32 -- as above
+  , rsa_n              :: C f Text --XXX should this be Int64?
+  , rsa_e              :: C f Text -- as above
+  , creationTime       :: C f LocalTime -- UTCTime
+  , revocationTime     :: C f LocalTime -- UTCTime
   }
   deriving Generic
 type Key = KeyT Identity
@@ -243,15 +299,16 @@ instance Table KeyT where
     deriving Generic
   primaryKey = KeyId . key_id
 
+-- CBV-Standard-1-2-r-2016-09-29.pdf Page 11
+
 data BusinessT f = Business
-  { biz_id                :: C f PrimaryKeyType
+  { biz_gs1CompanyPrefix  :: C f E.GS1CompanyPrefix -- PrimaryKey
   , biz_name              :: C f Text
-  , biz_gs1CompanyPrefix  :: C f Int32
   , biz_function          :: C f Text
   , biz_siteName          :: C f Text
   , biz_address           :: C f Text
-  , biz_lat               :: C f Float
-  , biz_long              :: C f Float }
+  , biz_lat               :: C f Double
+  , biz_long              :: C f Double }
   deriving Generic
 type Business = BusinessT Identity
 type BizId = PrimaryKey BusinessT Identity
@@ -263,9 +320,9 @@ instance Beamable (PrimaryKey BusinessT)
 deriving instance Show (PrimaryKey BusinessT Identity)
 
 instance Table BusinessT where
-  data PrimaryKey BusinessT f = BizId (C f PrimaryKeyType)
+  data PrimaryKey BusinessT f = BizId (C f E.GS1CompanyPrefix)
     deriving Generic
-  primaryKey = BizId . biz_id
+  primaryKey = BizId . biz_gs1CompanyPrefix
 
 data ContactT f = Contact
   { contact_id                :: C f PrimaryKeyType
@@ -289,11 +346,13 @@ instance Table ContactT where
 
 data LabelT f = Label
   { label_id                 :: C f PrimaryKeyType
+  , label_type               :: C f Text -- input/output/parent
+  , label_what_id            :: PrimaryKey WhatT f
   , label_gs1_company_prefix :: C f Text --should this be bizId instead?
   , item_reference           :: C f Text
   , serial_number            :: C f Text
   , state                    :: C f Text
-  , label_type               :: C f Text
+  -- , label_type               :: C f Text
   , lot                      :: C f Text }
   deriving Generic
 type Label = LabelT Identity
@@ -312,7 +371,7 @@ instance Table LabelT where
 
 data ItemT f = Item
   { item_id            :: C f PrimaryKeyType
-  , item_label_id       :: PrimaryKey LabelT f
+  , item_label_id      :: PrimaryKey LabelT f
   , item_description   :: C f Text }
   deriving Generic
 type Item = ItemT Identity
@@ -332,7 +391,7 @@ instance Table ItemT where
 data TransformationT f = Transformation
   { transformation_id           :: C f PrimaryKeyType
   , transformation_description  :: C f Text
-  , transformation_biz_id           :: PrimaryKey BusinessT f }
+  , transformation_biz_id       :: PrimaryKey BusinessT f }
   deriving Generic
 type Transformation = TransformationT Identity
 type TransformationId = PrimaryKey TransformationT Identity
@@ -351,8 +410,8 @@ instance Table TransformationT where
 data LocationT f = Location
   { location_id                 :: C f PrimaryKeyType
   , location_biz_id             :: PrimaryKey BusinessT f
-  , location_lat                :: C f Float
-  , location_long               :: C f Float }
+  , location_lat                :: C f Double
+  , location_long               :: C f Double }
   deriving Generic
 
 type Location = LocationT Identity
@@ -391,15 +450,15 @@ instance Table EventT where
   primaryKey = EventId . event_id
 
 data WhatT f = What
-  { what_id                     :: C f PrimaryKeyType
-  , what_type                   :: C f Ev.EventType
-  , action                     :: C f E.Action
+  { what_id                    :: C f PrimaryKeyType
+  , what_type                  :: C f Text -- Ev.EventType
+  , action                     :: C f Text -- E.Action
   , parent                     :: PrimaryKey LabelT f
-  , input                      :: C f [LabelEPC]
-  , output                     :: C f [LabelEPC]
-  , what_biz_transaction_id       :: PrimaryKey BizTransactionT f
-  , what_transformation_id       :: PrimaryKey TransformationT f
-  , what_event_id                :: PrimaryKey EventT f }
+  -- , input                      :: C f [LabelEPC]
+  -- , output                     :: C f [LabelEPC]
+  , what_biz_transaction_id    :: PrimaryKey BizTransactionT f
+  , what_transformation_id     :: PrimaryKey TransformationT f
+  , what_event_id              :: PrimaryKey EventT f }
   deriving Generic
 
 type What = WhatT Identity
@@ -441,9 +500,9 @@ instance Table BizTransactionT where
 
 data WhyT f = Why
   { why_id                      :: C f PrimaryKeyType
-  , biz_step                    :: C f E.BizStep
-  , disposition                :: C f E.Disposition
-  , why_event_id                 :: PrimaryKey EventT f }
+  , biz_step                    :: C f Text -- E.BizStep
+  , disposition                 :: C f Text -- E.Disposition
+  , why_event_id                :: PrimaryKey EventT f }
 
   deriving Generic
 
@@ -463,9 +522,9 @@ data WhereT f = Where
   { where_id                    :: C f PrimaryKeyType
   , read_point                  :: PrimaryKey LocationT f
   , biz_location                :: PrimaryKey LocationT f
-  , src_type                    :: C f E.SourceDestType
-  , dest_type                   :: C f E.SourceDestType
-  , where_event_id               :: PrimaryKey EventT f }
+  , src_type                    :: C f Text -- E.SourceDestType
+  , dest_type                   :: C f Text -- E.SourceDestType
+  , where_event_id              :: PrimaryKey EventT f }
 
   deriving Generic
 
@@ -481,14 +540,16 @@ instance Table WhereT where
     deriving Generic
   primaryKey = WhereId . where_id
 
+type OffsetString = Text
 
 data WhenT f = When
   { when_id                      :: C f PrimaryKeyType
-  , event_time                   :: C f Int64
-  , record_time                  :: C f Int64
-  , time_zone                    :: C f TimeZone
-  , when_event_id                 :: PrimaryKey EventT f }
-
+  , event_time                   :: C f LocalTime
+  , record_time                  :: C f (Maybe LocalTime)
+  , time_zone                    :: C f OffsetString -- TimeZone
+  -- call unpack . timeZoneOffsetString on the TimeZone object
+  -- to put it in the db
+  , when_event_id                :: PrimaryKey EventT f }
   deriving Generic
 
 type When = WhenT Identity
@@ -505,8 +566,8 @@ instance Table WhenT where
 
 data LabelEventT f = LabelEvent
   { label_event_id               :: C f PrimaryKeyType
-  , label_event_label_id          :: PrimaryKey LabelT f
-  , label_event_event_id          :: PrimaryKey EventT f }
+  , label_event_label_id         :: PrimaryKey LabelT f
+  , label_event_event_id         :: PrimaryKey EventT f }
   deriving Generic
 
 type LabelEvent = LabelEventT Identity
@@ -521,6 +582,80 @@ instance Table LabelEventT where
     deriving Generic
   primaryKey = LabelEventId . label_event_id
 
+
+-- ADDITIONAL TABLES
+data UserEventsT f = UserEvents
+  { user_events_id         :: C f PrimaryKeyType
+  , user_events_event_id   :: PrimaryKey EventT f
+  , user_events_user_id    :: PrimaryKey UserT f
+  , user_events_has_signed :: C f Bool
+  , user_events_added_by   :: PrimaryKey UserT f
+  , user_events_signedHash :: C f ByteString
+  }
+  deriving Generic
+
+type UserEvents = UserEventsT Identity
+type UserEventsId = PrimaryKey UserEventsT Identity
+deriving instance Show UserEvents
+instance Beamable UserEventsT
+instance Beamable (PrimaryKey UserEventsT)
+deriving instance Show (PrimaryKey UserEventsT Identity)
+
+instance Table UserEventsT where
+  data PrimaryKey UserEventsT f = UserEventsId (C f PrimaryKeyType)
+    deriving Generic
+  primaryKey = UserEventsId . user_events_id
+
+{-
+    hashTable   =  "CREATE TABLE IF NOT EXISTS Hashes (id INTEGER PRIMARY KEY AUTOINCREMENT, eventID INTEGER NOT NULL, hash BLOB NOT NULL, isSigned INTEGER DEFAULT 0, signedByUserID INTEGER, keyID INTEGER DEFAULT -1,timestamp INTEGER NOT NULL);"
+
+-}
+data HashesT f = Hashes
+  { hashes_id                :: C f PrimaryKeyType
+  , hashes_event_id          :: PrimaryKey EventT f
+  , hashes_hash              :: C f ByteString
+  , hashes_is_signed         :: C f Bool
+  , hashes_signed_by_user_id :: PrimaryKey UserT f
+  , hashes_key_id            :: PrimaryKey KeyT f
+  }
+  deriving Generic
+type Hashes = HashesT Identity
+type HashesId = PrimaryKey HashesT Identity
+
+-- deriving instance Show Hashes
+
+instance Beamable HashesT
+instance Beamable (PrimaryKey HashesT)
+deriving instance Show (PrimaryKey HashesT Identity)
+
+instance Table HashesT where
+  data PrimaryKey HashesT f = HashesId (C f PrimaryKeyType)
+    deriving Generic
+  primaryKey = HashesId . hashes_id
+
+{- blockChainTable = "CREATE TABLE IF NOT EXISTS BlockchainTable (id INTEGER PRIMARY KEY AUTOINCREMENT, eventID INTEGER NOT NULL, hash BLOB NOT NULL, blockChain address text NOT NULL, blockChainID INTEGER NOT NULL);"
+
+-}
+data BlockChainT f = BlockChain
+  { blockchain_id         :: C f PrimaryKeyType
+  , blockchain_event_id   :: PrimaryKey EventT f
+  , blockchain_hash       :: C f ByteString
+  , blockchain_address    :: C f Text
+  , blockchain_foreign_id :: C f Integer
+  } deriving Generic
+
+type BlockChain = BlockChainT Identity
+type BlockChainId = PrimaryKey BlockChainT Identity
+deriving instance Show BlockChain
+instance Beamable BlockChainT
+instance Beamable (PrimaryKey BlockChainT)
+deriving instance Show (PrimaryKey BlockChainT Identity)
+
+instance Table BlockChainT where
+  data PrimaryKey BlockChainT f = BlockChainId (C f PrimaryKeyType)
+    deriving Generic
+  primaryKey = BlockChainId . blockchain_id
+-- END OF ADDITIONAL TABLES
 
 data SupplyChainDb f = SupplyChainDb
   { _users           :: f (TableEntity UserT)
@@ -538,6 +673,9 @@ data SupplyChainDb f = SupplyChainDb
   , _wheres          :: f (TableEntity WhereT)
   , _whens           :: f (TableEntity WhenT)
   , _labelEvents     :: f (TableEntity LabelEventT)
+  , _userEvents      :: f (TableEntity UserEventsT)
+  , _hashes          :: f (TableEntity HashesT)
+  , _blockchain      :: f (TableEntity BlockChainT)
   }
   deriving Generic
 instance Database SupplyChainDb
@@ -644,4 +782,24 @@ supplyChainDb = defaultDbSettings
           label_event_label_id = LabelId (fieldNamed "label_event_label_id")
         , label_event_event_id = EventId (fieldNamed "label_event_event_id")
         }
-      }
+    -- all the foreign keys are relevant here
+    , _userEvents =
+        modifyTable (const "userEvents") $
+        tableModification {
+          user_events_event_id = EventId (fieldNamed "user_events_event_id")
+        , user_events_user_id = UserId (fieldNamed "user_events_user_id")
+        , user_events_added_by = UserId (fieldNamed "user_events_added_by")
+        }
+    , _hashes =
+        modifyTable (const "hashes") $
+        tableModification {
+          hashes_event_id = EventId (fieldNamed "hashes_event_id")
+        , hashes_signed_by_user_id = UserId (fieldNamed "hashes_signed_by_user_id")
+        , hashes_key_id = KeyId (fieldNamed "hashes_key_id")
+        }
+    , _blockchain =
+        modifyTable (const "blockchain") $
+        tableModification {
+          blockchain_event_id = EventId (fieldNamed "blockchain_event_id")
+        }
+    }
