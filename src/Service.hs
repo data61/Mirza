@@ -73,7 +73,11 @@ authCheck = error "Storage module not implemented"
 
 
 appMToHandler :: forall x. AC.Env -> AC.AppM x -> Handler x
-appMToHandler env = flip runReaderT env . AC.unAppM
+appMToHandler env act = do
+  res <- liftIO $ runExceptT $ runReaderT (AC.unAppM act) env
+  case res of
+    Left (AC.DBErr e) -> throwError $ err500 { errBody = "Just threw an error" }
+    Right a  -> return a
 
 privateServer :: User -> ServerT PrivateAPI AC.AppM
 privateServer user =
