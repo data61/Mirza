@@ -11,6 +11,7 @@ import Data.Semigroup ((<>))
 data ServerOptions = ServerOptions
   { verbose       :: Bool
   , initDB        :: Bool
+  , clearDB       :: Bool
   , connectionStr :: ByteString
   , port          :: Int
   , uiFlavour     :: UIFlavour
@@ -26,6 +27,10 @@ serverOptions = ServerOptions
           ( long "init-db"
          <> short 'i'
          <> help "Put empty tables into a fresh database" )
+      <*> switch
+          ( long "clear-db"
+         <> short 'e'
+         <> help "Erase the database - DROP ALL TABLES" )
       <*> option auto
           ( long "conn"
          <> short 'c'
@@ -54,7 +59,9 @@ main = runProgram =<< execParser opts
 
 
 runProgram :: ServerOptions -> IO ()
-runProgram (ServerOptions isDebug False connStr portNum flavour) =
+runProgram (ServerOptions isDebug False _connStr portNum flavour) =
+    startApp connStr isDebug (fromIntegral portNum) flavour
+runProgram (ServerOptions _ _ True connStr portNum flavour) =
     startApp connStr isDebug (fromIntegral portNum) flavour
 runProgram _ = migrate defConnectionStr
 
