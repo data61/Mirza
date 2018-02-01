@@ -34,11 +34,17 @@ import           Control.Monad.Except (throwError, MonadError)
 import qualified Control.Exception as ExL
 import qualified Data.Text as T
 import           Data.GS1.EPC
-import           Data.GS1.DWhat
+import           Data.GS1.DWhat (DWhat(..), LabelEPC(..))
+import           Data.GS1.DWhy (DWhy(..))
+import           Data.GS1.DWhere (DWhere(..))
+import           Data.GS1.DWhen (DWhen(..))
 import qualified Data.GS1.EventID as EvId
+import           Data.GS1.Event (Event(..), EventType(..))
 import           Data.Time.LocalTime (utc, TimeZone, utcToLocalTime
                                      , LocalTime, localTimeToUTC)
 import           Data.Time (UTCTime)
+import           Data.Aeson.Encode.Pretty
+import qualified Data.Text.Lazy as TxtL
 
 -- Until this module compiles, look at:
 -- https://github.csiro.au/Blockchain/supplyChainServer/blob/pg-schema-matt/src/BeamQueries.hs
@@ -174,45 +180,53 @@ getUser  email = do
 
 
 epcToStorageLabel :: SB.PrimaryKeyType -> LabelEPC -> SB.Label
-epcToStorageLabel pk (IL (GIAI cp sn))        = error "not implemented yet" -- SB.Label pk "GIAI" cp Nothing sn Nothing Nothing
-epcToStorageLabel pk (IL (SSCC cp sn))        = error "not implemented yet" -- SB.Label pk "SSCC" cp Nothing sn Nothing Nothing
-epcToStorageLabel pk (IL (SGTIN cp fv ir sn)) = error "not implemented yet" -- SB.Label pk "SGTIN" cp ir sn Nothing Nothing
-epcToStorageLabel pk (IL (GRAI cp at sn))     = error "not implemented yet" -- SB.Label pk "GRAI" cp Nothing sn Nothing Nothing
-epcToStorageLabel pk (CL (LGTIN cp ir lot) q) = error "not implemented yet" -- SB.Label pk "LGTIN" cp ir Nothing Nothing lot
-epcToStorageLabel pk (CL (CSGTIN cp fv ir) q) = error "not implemented yet" -- SB.Label pk "CSGTIN" cp ir Nothing Nothing Nothing
+epcToStorageLabel pk (IL (GIAI cp sn))        = SB.Label pk "GIAI" cp Nothing sn Nothing Nothing  -- error "not implemented yet" 
+epcToStorageLabel pk (IL (SSCC cp sn))        = SB.Label pk "SSCC" cp Nothing sn Nothing Nothing  -- error "not implemented yet" 
+epcToStorageLabel pk (IL (SGTIN cp fv ir sn)) = SB.Label pk "SGTIN" cp ir sn Nothing Nothing  -- error "not implemented yet" 
+epcToStorageLabel pk (IL (GRAI cp at sn))     = SB.Label pk "GRAI" cp Nothing sn Nothing Nothing  -- error "not implemented yet" 
+epcToStorageLabel pk (CL (LGTIN cp ir lot) q) = SB.Label pk "LGTIN" cp ir Nothing Nothing lot  -- error "not implemented yet" 
+epcToStorageLabel pk (CL (CSGTIN cp fv ir) q) = SB.Label pk "CSGTIN" cp ir Nothing Nothing Nothing  -- error "not implemented yet" 
+
+
 
 -- TODO = fix. 1 problem is nothing is done with filter value or asset type in objectRowID grabbing data insert
 -- 1 other problem is state never used... what is it???
 -- epc is a labelEPC
--- eventCreateObject :: M.User -> M.NewObject -> AppM SB.Event
--- eventCreateObject  (M.User uid _ _ ) (M.NewObject epc epcisTime timezone location) = do
---   labelId <- generatePk
---   objectRowID <- runDb $ B.runInsert $
---                  insert (SB._labels SB.supplyChainDb) $
---                  insertValues [epcToStorageLabel labelId epc]
+eventCreateObject :: M.User -> M.NewObject -> AppM SB.Event
+eventCreateObject  (M.User uid _ _ ) (M.NewObject epc epcisTime timezone (M.EventLocation rp bizL)) = do
 
---   currentTime <- liftIO getCurrentTime
---   uuid <- generatePk
---   let
---       quantity = ItemCount 3
---       what =  ObjectDWhat Add [epc]
---       why  =  DWhy (Just CreatingClassInstance) (Just Active)
---       when = DWhen epcisTime (Just currentTime) timezone
---       eventID = Just $ EventID uuid
---       (M.EventLocation readPt bizLoc) = location
---       dwhere = DWhere [readPt] [bizLoc] [] []
---       event = Event ObjectEventT eventID what when why dwhere
---       jsonEvent = encodeEvent event
+  labelId <- generatePk
+  objectRowID <- runDb $ B.runInsert $
+                 insert (SB._labels SB.supplyChainDb) $
+                 insertValues [epcToStorageLabel labelId epc]
 
---   runDb $ B.runInsert $
---     B.insert (_events supplyChainDb) $
---       insertValues [ Event (Auto Nothing) eventID epc what why dwhere epcisTime timezone ObjectEventT uid jsonEvent]
+  currentTime <- liftIO getCurrentTime
+  uuid <- generatePk
+  let
+      dwhat =  ObjectDWhat Add [epc]
+      dwhere = DWhere [rp] [bizL] [] []
+      quantity = ItemCount 3
+      dwhy  =  DWhy (Just CreatingClassInstance) (Just Active)
+      dwhen = DWhen epcisTime (Just currentTime) timezone
+      eventId = Just $ EvId.EventID uuid
+      event = Event ObjectEventT eventId dwhat dwhen dwhy dwhere
+      jsonEvent = encodeEvent event
 
---   -- TODO = combine rows from bizTransactionTable and _eventCreatedBy field in Event table
---   -- haven't added UserEvents insertion equivalent since redundant information and no equivalent
---   -- hashes not added yet, but will later for blockchain
+  runDb $ B.runInsert $
+    B.insert (_events supplyChainDb) $
+      insertValues [ Event (Auto Nothing) eventID epc what why dwhere epcisTime timezone ObjectEventT uid jsonEvent]
 
---   return event
+  -- TODO = combine rows from bizTransactionTable and _eventCreatedBy field in Event table
+  -- haven't added UserEvents insertion equivalent since redundant information and no equivalent
+  -- hashes not added yet, but will later for blockchain
+
+  return event
+
+-- json encode the event
+-- currently do it automagically, but might what to be
+-- more systematic about it so it's easier to replicated. Maybe.
+encodeEvent :: Event -> T.Text
+encodeEvent event = TxtL.toStrict  (encodeToLazyText event)
 
 -- -- TODO = fix... what is definition of hasSigned?
 -- eventUserList :: M.User -> EvId.EventID -> AppM [(M.User, Bool)]
