@@ -38,9 +38,7 @@ data Env = Env
   -- , port    :: Word16
   }
 
-data AppError = DBErr M.DBError
-              | SigErr M.SigError
-              | GetPropErr M.GetPropertyError
+data AppError = AppError M.ServiceError
 
 -- runReaderT :: r -> m a
 -- ReaderT r m a

@@ -77,7 +77,7 @@ insertUser pass (M.NewUser phone email firstName lastName biz password) = do
             (SB.BizId  biz)
             firstName lastName phone password email)])-- ::[SB.User])
   case res of
-    Left e -> throwError $ DBErr M.DBE_EmailExists
+    Left e -> throwError $ AppError $ M.EmailExists email
     Right [r] -> return $ SB.user_id r
     _ -> error "unhandled as of yet"
 
@@ -102,12 +102,12 @@ authCheck email password = do
           guard_ (SB.email_address user  ==. val_ email)
           pure user
   case r of
-    Left e -> throwError $ GetPropErr M.KE_InvalidUserID
+    Left e -> throwError $ AppError M.BackendErr
     Right [user] -> do
         if verifyPass' (Pass password) (EncryptedPass $ encodeUtf8 $ SB.password_hash user)
           then return $ Just $ userTableToModel user
           else return Nothing
-    Right [] -> throwError $ GetPropErr M.KE_InvalidUserID
+    Right [] -> throwError $ AppError $ M.EmailNotFound email
     _  -> return Nothing -- null list or multiple elements
 
 
@@ -131,35 +131,35 @@ addPublicKey (M.User uid _ _)  (M.RSAPublicKey n e) = do
                ] -- TODO = check if 0 is correct here... NOT SURE
   case r of
     Right [rowId] -> return (SB.key_id rowId)
-    Right _       -> throwError $ SigErr M.SE_InvalidKeyID
-    Left  e       -> throwError $ SigErr M.SE_InvalidKeyID
+    Right _       -> throwError $ AppError $ M.InvalidKeyID keyId
+    Left  e       -> throwError $ AppError $ M.InvalidKeyID keyId
 
 getPublicKey :: M.KeyID -> AppM M.RSAPublicKey
-getPublicKey keyID = do
+getPublicKey keyId = do
   r <- runDb $ runSelectReturningList $ select $ do
     allKeys <- all_ (SB._keys SB.supplyChainDb)
-    guard_ (SB.key_id allKeys ==. val_ keyID)
+    guard_ (SB.key_id allKeys ==. val_ keyId)
     pure allKeys
 
   case r of
     -- Right [(keyId, uid, rsa_n, rsa_e, creationTime, revocationTime)] ->
     Right [k] ->
         return $ M.RSAPublicKey (read $ T.unpack $ SB.rsa_n k) (read $ T.unpack $ SB.rsa_e k)
-    Right _ -> throwError $ GetPropErr M.KE_InvalidKeyID
-    Left e  -> throwError $ GetPropErr M.KE_InvalidKeyID
+    Right _ -> throwError $ AppError $ M.InvalidKeyID keyId
+    Left e  -> throwError $ AppError $ M.InvalidKeyID keyId
 
 getPublicKeyInfo :: M.KeyID -> AppM M.KeyInfo
-getPublicKeyInfo keyID = do
+getPublicKeyInfo keyId = do
   r <- runDb $ runSelectReturningList $ select $ do
     allKeys <- all_ (SB._keys SB.supplyChainDb)
-    guard_ (SB.key_id allKeys ==. val_ keyID)
+    guard_ (SB.key_id allKeys ==. val_ keyId)
     pure allKeys
 
   case r of
     Right [(SB.Key _ (SB.UserId uId) _ _ creationTime revocationTime)] ->
        return $ M.KeyInfo uId (toEPCISTime creationTime) (toEPCISTime revocationTime)
-    Right _ -> throwError $ GetPropErr M.KE_InvalidKeyID
-    Left e  -> throwError $ GetPropErr M.KE_InvalidKeyID
+    Right _ -> throwError $ AppError $ M.InvalidKeyID keyId
+    Left e  -> throwError $ AppError $ M.InvalidKeyID keyId
 
 
 getUser :: M.EmailAddress -> AppM (Maybe M.User)
@@ -175,21 +175,21 @@ getUser  email = do
 -- -- TODO = fix. 1 problem is nothing is done with filter value or asset type in objectRowID grabbing data insert
 -- -- 1 other problem is state never used... what is it???
 -- -- epc is a labelEPC
--- eventCreateObject :: M.User -> M.NewObject -> AppM Event
+-- eventCreateObject :: M.User -> M.NewObject -> AppM SB.Event
 -- eventCreateObject  (M.User uid _ _ ) (M.NewObject epc epcisTime timezone location) = do
---   objectRowID <- runDb $ B.runInsert $ (_labels supplyChainDb) $
+--   objectRowID <- runDb $ B.runInsert $ (SB._labels SB.supplyChainDb) $
 --                    (case epc of
 --                      IL il   -> (case il of
---                                  GIAI cp sn        -> insertValues [Label (Auto Nothing) cp Nothing sn Nothing "GIAI" Nothing]
---                                  SSCC cp sn        -> insertValues [Label (Auto Nothing) cp Nothing sn Nothing "SSCC" Nothing]
---                                  SGTIN cp fv ir sn -> insertValues [Label (Auto Nothing) cp ir sn Nothing "SGTIN" Nothing]
---                                  GRAI cp at sn     -> insertValues [Label (Auto Nothing) cp Nothing sn Nothing "GRAI" Nothing])
+--                                  GIAI cp sn        -> insertValues [SB.Label (Auto Nothing) cp Nothing sn Nothing "GIAI" Nothing]
+--                                  SSCC cp sn        -> insertValues [SB.Label (Auto Nothing) cp Nothing sn Nothing "SSCC" Nothing]
+--                                  SGTIN cp fv ir sn -> insertValues [SB.Label (Auto Nothing) cp ir sn Nothing "SGTIN" Nothing]
+--                                  GRAI cp at sn     -> insertValues [SB.Label (Auto Nothing) cp Nothing sn Nothing "GRAI" Nothing])
 --                      CL cl q -> (case cl of
---                                  LGTIN cp ir lot   -> insertValues [Label (Auto Nothing) cp ir Nothing Nothing "LGTIN" lot]
---                                  CSGTIN cp fv ir   -> insertValues [Label (Auto Nothing) cp ir Nothing Nothing "CSGTIN" Nothing]))
+--                                  LGTIN cp ir lot   -> insertValues [SB.Label (Auto Nothing) cp ir Nothing Nothing "LGTIN" lot]
+--                                  CSGTIN cp fv ir   -> insertValues [SB.Label (Auto Nothing) cp ir Nothing Nothing "CSGTIN" Nothing]))
 
 --   currentTime <- liftIO getCurrentTime
---   uuid <- nextRandom
+--   uuid <- liftIO nextRandom
 --   let
 --       quantity = ItemCount 3
 --       what =  ObjectDWhat Add [epc]
@@ -233,11 +233,11 @@ getUser  email = do
 -- --   r <- 
 
 -- eventSign :: (MonadError M.SigError m, MonadIO m) => M.User -> M.SignedEvent -> m ()
--- eventSign  (M.User uid _ _ ) (M.SignedEvent eventID keyID (M.Signature signature)) = do
+-- eventSign  (M.User uid _ _ ) (M.SignedEvent eventID keyId (M.Signature signature)) = do
 --   timestamp <- liftIO getCurrentTime
 --   rFull <- runDb $ runSelectReturningList $ select $ do
 --     allKeys <- all_ (_keys supplyChainDb)
---     guard_ (_keyId allKeys ==. keyID)
+--     guard_ (_keyId allKeys ==. keyId)
 --     pure allKeys
     
 --   r <- zip ((\e -> _rsa_n e) <$> rFull) ((\e -> _rsa_e e) <$> rFull)
