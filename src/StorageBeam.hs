@@ -136,6 +136,13 @@ migrationStorage =
           (field "quantity_amount" (maybeType double))
           (field "quantity_uom" (maybeType $ varchar (Just maxLen)))
     )
+    <*> createTable "what_labels"
+    (
+      WhatLabel
+          (field "what_label_id" pkSerialType)
+          (WhatId (field "what_label_what_id" pkSerialType))
+          (LabelId (field "what_label_label_id" pkSerialType))
+    )
     <*> createTable "items"
     (
       Item
@@ -373,6 +380,28 @@ instance Table LabelT where
   data PrimaryKey LabelT f = LabelId (C f PrimaryKeyType)
     deriving Generic
   primaryKey = LabelId . label_id
+
+data WhatLabelT f = WhatLabel
+  { what_label_id       :: C f PrimaryKeyType
+  , what_label_what_id  :: PrimaryKey WhatT f
+  , what_label_label_id :: PrimaryKey LabelT f }
+  deriving Generic
+
+type WhatLabel = WhatLabelT Identity
+type WhatLabelId = PrimaryKey WhatLabelT Identity
+
+deriving instance Show WhatLabel
+
+instance Beamable WhatLabelT
+instance Beamable (PrimaryKey WhatLabelT)
+deriving instance Show (PrimaryKey WhatLabelT Identity)
+
+-- this table does not have a primary key
+instance Table WhatLabelT where
+  data PrimaryKey WhatLabelT f = WhatLabelId (C f PrimaryKeyType)
+    deriving Generic
+  primaryKey = WhatLabelId . what_label_id
+
 
 data ItemT f = Item
   { item_id            :: C f PrimaryKeyType
@@ -668,6 +697,7 @@ data SupplyChainDb f = SupplyChainDb
   , _businesses      :: f (TableEntity BusinessT)
   , _contacts        :: f (TableEntity ContactT)
   , _labels          :: f (TableEntity LabelT)
+  , _what_labels     :: f (TableEntity WhatLabelT)
   , _items           :: f (TableEntity ItemT)
   , _transformations :: f (TableEntity TransformationT)
   , _locations       :: f (TableEntity LocationT)
@@ -730,6 +760,12 @@ supplyChainDb = defaultDbSettings
     --     tableModification {
     --       someField = Id (fieldNamed "short_name")
     --     }
+    , _what_labels =
+        modifyTable (const "what_labels") $
+        tableModification {
+          what_label_what_id = WhatId (fieldNamed "what_label_what_id")
+        , what_label_label_id = LabelId (fieldNamed "what_label_label_id")
+        }
     , _items =
         modifyTable (const "items") $
         tableModification {
