@@ -172,24 +172,27 @@ getUser  email = do
     Right [u] -> return $ Just $ userTableToModel u
     _  -> return Nothing
 
--- -- TODO = fix. 1 problem is nothing is done with filter value or asset type in objectRowID grabbing data insert
--- -- 1 other problem is state never used... what is it???
--- -- epc is a labelEPC
+
+epcToStorageLabel :: SB.PrimaryKeyType -> LabelEPC -> SB.Label
+epcToStorageLabel pk (IL (GIAI cp sn))        = error "not implemented yet" -- SB.Label pk "GIAI" cp Nothing sn Nothing Nothing
+epcToStorageLabel pk (IL (SSCC cp sn))        = error "not implemented yet" -- SB.Label pk "SSCC" cp Nothing sn Nothing Nothing
+epcToStorageLabel pk (IL (SGTIN cp fv ir sn)) = error "not implemented yet" -- SB.Label pk "SGTIN" cp ir sn Nothing Nothing
+epcToStorageLabel pk (IL (GRAI cp at sn))     = error "not implemented yet" -- SB.Label pk "GRAI" cp Nothing sn Nothing Nothing
+epcToStorageLabel pk (CL (LGTIN cp ir lot) q) = error "not implemented yet" -- SB.Label pk "LGTIN" cp ir Nothing Nothing lot
+epcToStorageLabel pk (CL (CSGTIN cp fv ir) q) = error "not implemented yet" -- SB.Label pk "CSGTIN" cp ir Nothing Nothing Nothing
+
+-- TODO = fix. 1 problem is nothing is done with filter value or asset type in objectRowID grabbing data insert
+-- 1 other problem is state never used... what is it???
+-- epc is a labelEPC
 -- eventCreateObject :: M.User -> M.NewObject -> AppM SB.Event
 -- eventCreateObject  (M.User uid _ _ ) (M.NewObject epc epcisTime timezone location) = do
---   objectRowID <- runDb $ B.runInsert $ (SB._labels SB.supplyChainDb) $
---                    (case epc of
---                      IL il   -> (case il of
---                                  GIAI cp sn        -> insertValues [SB.Label (Auto Nothing) cp Nothing sn Nothing "GIAI" Nothing]
---                                  SSCC cp sn        -> insertValues [SB.Label (Auto Nothing) cp Nothing sn Nothing "SSCC" Nothing]
---                                  SGTIN cp fv ir sn -> insertValues [SB.Label (Auto Nothing) cp ir sn Nothing "SGTIN" Nothing]
---                                  GRAI cp at sn     -> insertValues [SB.Label (Auto Nothing) cp Nothing sn Nothing "GRAI" Nothing])
---                      CL cl q -> (case cl of
---                                  LGTIN cp ir lot   -> insertValues [SB.Label (Auto Nothing) cp ir Nothing Nothing "LGTIN" lot]
---                                  CSGTIN cp fv ir   -> insertValues [SB.Label (Auto Nothing) cp ir Nothing Nothing "CSGTIN" Nothing]))
+--   labelId <- generatePk
+--   objectRowID <- runDb $ B.runInsert $
+--                  insert (SB._labels SB.supplyChainDb) $
+--                  insertValues [epcToStorageLabel labelId epc]
 
 --   currentTime <- liftIO getCurrentTime
---   uuid <- liftIO nextRandom
+--   uuid <- generatePk
 --   let
 --       quantity = ItemCount 3
 --       what =  ObjectDWhat Add [epc]
