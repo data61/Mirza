@@ -35,6 +35,7 @@ import qualified Control.Exception as ExL
 import qualified Data.Text as T
 import           Data.GS1.EPC
 import           Data.GS1.DWhat
+import qualified Data.GS1.EventID as EvId
 import           Data.Time.LocalTime (utc, TimeZone, utcToLocalTime
                                      , LocalTime, localTimeToUTC)
 import           Data.Time (UTCTime)
@@ -213,9 +214,8 @@ epcToStorageLabel pk (CL (CSGTIN cp fv ir) q) = error "not implemented yet" -- S
 
 --   return event
 
--- -- TODO = use EventId or EventID ???
 -- -- TODO = fix... what is definition of hasSigned?
--- eventUserList :: M.User -> EventId -> AppM [(M.User, Bool)]
+-- eventUserList :: M.User -> EvId.EventID -> AppM [(M.User, Bool)]
 -- eventUserList  (M.User uid _ _ ) eventID = do
 --   r <- runDb $ runSelectReturningList $ select $ do
 --     allUsers <- all_ (_users supplyChainDb)
