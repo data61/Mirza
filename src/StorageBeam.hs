@@ -80,11 +80,44 @@ maxTzLen = 10
 -- pkSerialType :: DataType PgDataTypeSyntax UUID
 pkSerialType = uuid
 
-dropTables :: Migration syntax ()
-dropTables = (fmap . fmap . fmap) dropTable migrationStorage
---dropTable <$> migrationStorage
+-- NOTES
+-- f is the arg to dropTable... this is on type level... SupplyChainDb constructor is a function
+-- 
+
+-- problem = can't map dropTable over the SupplyChainDb as it's not a functor, this solves that
+--dropIndividualTables :: (Monad m) => SupplyChainDb f -> m ()
+-- dropIndividualTables :: (Monad m) => SupplyChainDb f -> m ()
+-- dropIndividualTables db = do
+--   -- TODO
+--   return ()
+
+--dropTables :: Migration syntax ()
+--dropTables =
+  --(fmap . fmap . fmap . fmap . fmap) dropTable migrationStorage
+  -- return ()
+--(fmap . fmap . fmap . fmap) dropTable migrationStorage
+  --dropTable <$> --migrationStorage
+
   -- SupplyChainDb
-  --   <$> dropTable "users"
+  --   <$> dropTable User
+  --   <*> dropTable Key
+  --   <*> dropTable Business
+  --   <*> dropTable Contact
+  --   <*> dropTable Label
+  --   <*> dropTable Item
+  --   <*> dropTable Transformation
+  --   <*> dropTable Location
+  --   <*> dropTable Event
+  --   <*> dropTable What
+  --   <*> dropTable BizTransaction
+  --   <*> dropTable Why
+  --   <*> dropTable Where
+  --   <*> dropTable When
+  --   <*> dropTable LabelEvent
+  --   <*> dropTable UserEvents
+  --   <*> dropTable Hashes
+  --   <*> dropTable BlockChain
+
   --   <*> dropTable "keys"
   --   <*> dropTable "businesses"
   --   <*> dropTable "contacts"
@@ -702,7 +735,6 @@ data SupplyChainDb f = SupplyChainDb
   }
   deriving Generic
 instance Database SupplyChainDb
-instance Monad SupplyChainDb
 
 -- instance HasSqlValueSyntax be String => HasSqlValueSyntax be EventType where
 --   sqlValueSyntax = autoSqlValueSyntax
