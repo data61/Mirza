@@ -226,8 +226,9 @@ epcToStorageLabel pk (CL (CSGTIN cp fv ir) q) = error "not implemented yet" -- S
 --   -- return TODO
 --   error "TODO"
 
--- -- toUserBool :: (Integer, String, String, Integer) -> (M.User, Bool)
--- -- toUserBool (userID, firstName, lastName, hasSigned) = (M.User userID firstName lastName, hasSigned /= 0)
+-- toUserBool :: (SB.PrimaryKeyType, T.Text, T.Text, Integer) -> (M.User, Bool)
+-- toUserBool (userID, firstName, lastName, hasSigned) =
+--   (M.User userID firstName lastName, hasSigned /= 0)
 
 -- -- NOT currently relevant since events not currently hashed
 -- -- eventHashed :: DBFunc -> M.User -> EventID -> IO (Maybe M.HashedEvent)
