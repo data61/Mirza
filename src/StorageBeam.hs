@@ -352,7 +352,6 @@ data LabelT f = Label
   , item_reference           :: C f Text
   , serial_number            :: C f Text
   , state                    :: C f Text
-  -- , label_type               :: C f Text
   , lot                      :: C f Text }
   deriving Generic
 type Label = LabelT Identity
