@@ -146,10 +146,10 @@ data EPCInfo = EPCInfo {
 $(deriveJSON defaultOptions ''EPCInfo)
 instance ToSchema EPCInfo
 
-
+type Email = T.Text
 data NewUser = NewUser {
   phoneNumber :: T.Text,
-  emailAddress :: T.Text,
+  emailAddress :: Email,
   firstName :: T.Text,
   lastName :: T.Text,
   company :: T.Text,
@@ -255,34 +255,51 @@ data HashedEvent = HashedEvent {
 $(deriveJSON defaultOptions ''HashedEvent)
 instance ToSchema HashedEvent
 
--- Interface for converting custom errors to ServantErr
-class AppServantError err where
-  toServantErr :: err -> ServantErr
-  -- errCode      :: 
+-- | A sum type of errors that may occur in the Service layer
+data ServiceError = NeedMoreSignatures T.Text
+                  | InvalidSignature BS.ByteString
+                  | BlockchainSendFailed
+                  | InvalidEventID Int
+                  | InvalidKeyID KeyID
+                  | InvalidUserID UserID
+                  | InsertionFail
+                  | EmailExists Email
+                  | EmailNotFound Email
+                  | BackendErr
+                  deriving (Show, Read, Generic)
 
-data SigError = SE_NeedMoreSignatures T.Text
-              | SE_InvalidSignature BS.ByteString
-              | SE_InvalidUser T.Text
-              | SE_BlockchainSendFailed
-              | SE_InvalidEventID Int
-              | SE_InvalidKeyID
-              deriving (Show, Read, Generic)
+{-
+Do not remove the following commented out code until explicitly asked to
+They serve as reference to what the errors used to be before they
+were merged into ``ServiceError``
+-}
+-- -- Interface for converting custom errors to ServantErr
+-- class AppServantError err where
+--   toServantErr :: err -> ServantErr
 
-instance AppServantError SigError where
-  toServantErr e = err500 {errBody = LBSC8.pack $ show e}
+-- data SigError = SE_NeedMoreSignatures T.Text
+--               | SE_InvalidSignature BS.ByteString
+--               | SE_InvalidUser T.Text
+--               | SE_BlockchainSendFailed
+--               | SE_InvalidEventID Int
+--               | SE_InvalidKeyID
+--               deriving (Show, Read, Generic)
+
+-- instance AppServantError SigError where
+--   toServantErr e = err500 {errBody = LBSC8.pack $ show e}
 
 
-data GetPropertyError = KE_InvalidKeyID
-                      | KE_InvalidUserID
-                      deriving (Show, Read, Generic)
+-- data GetPropertyError = KE_InvalidKeyID
+--                       | KE_InvalidUserID
+--                       deriving (Show, Read, Generic)
 
-instance AppServantError GetPropertyError where
-  toServantErr e = err500 {errBody = LBSC8.pack $ show e}
+-- instance AppServantError GetPropertyError where
+--   toServantErr e = err500 {errBody = LBSC8.pack $ show e}
 
-data DBError = DBE_InsertionFail
-             | DBE_EmailExists
-             deriving (Show, Read, Generic)
+-- data DBError = DBE_InsertionFail
+--              | DBE_EmailExists
+--              deriving (Show, Read, Generic)
 
-instance AppServantError DBError where
-  toServantErr e = err500 {errBody = LBSC8.pack $ show e}
+-- instance AppServantError DBError where
+--   toServantErr e = err500 {errBody = LBSC8.pack $ show e}
 
