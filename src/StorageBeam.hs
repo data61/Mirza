@@ -155,6 +155,7 @@ migrationStorage =
       Location
           (field "location_id" pkSerialType)
           (BizId (field "location_biz_id" text))
+          -- this needs to be locationReferenceNum
           (field "location_lat" double)
           (field "location_long" double)
     )
