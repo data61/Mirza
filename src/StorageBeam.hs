@@ -129,10 +129,12 @@ migrationStorage =
           (field "label_type" (varchar (Just maxLen)) notNull)
           (WhatId (field "label_what_id" pkSerialType))
           (field "label_gs1_company_prefix" (varchar (Just maxLen)) notNull)
-          (field "item_reference" (varchar (Just maxLen)) notNull)
-          (field "serial_number" (varchar (Just maxLen)) notNull)
-          (field "state" (varchar (Just maxLen)) notNull)
-          (field "lot" (varchar (Just maxLen)) notNull)
+          (field "item_reference" (maybeType $ varchar (Just maxLen)) notNull)
+          (field "serial_number" (maybeType $ varchar (Just maxLen)) notNull)
+          (field "state" (varchar (Just maxLen)))
+          (field "lot" (maybeType $ varchar (Just maxLen)))
+          (field "quantity_amount" (maybeType double))
+          (field "quantity_uom" (maybeType $ varchar (Just maxLen)))
     )
     <*> createTable "items"
     (
@@ -161,7 +163,7 @@ migrationStorage =
       Event
           (field "event_id" pkSerialType)
           (field "foreign_event_id" (varchar (Just maxLen)) notNull)
-          (BizId (field "event_label_id" text))
+          -- (BizId (field "event_label_id" text))
           (UserId (field "event_created_by" pkSerialType))
           (field "json_event" (varchar (Just maxLen)) notNull)
     )
@@ -349,10 +351,13 @@ data LabelT f = Label
   , label_type               :: C f Text -- input/output/parent
   , label_what_id            :: PrimaryKey WhatT f
   , label_gs1_company_prefix :: C f Text --should this be bizId instead?
-  , item_reference           :: C f Text
-  , serial_number            :: C f Text
+  , item_reference           :: C f (Maybe Text)
+  , serial_number            :: C f (Maybe Text)
   , state                    :: C f Text
-  , lot                      :: C f Text }
+  , lot                      :: C f (Maybe Text)
+  , quantity_amount          :: C f (Maybe Double)
+  , quantity_uom             :: C f (Maybe E.Uom) -- T.Text
+  }
   deriving Generic
 type Label = LabelT Identity
 type LabelId = PrimaryKey LabelT Identity
@@ -429,9 +434,9 @@ instance Table LocationT where
 
 data EventT f = Event
   { event_id                    :: C f PrimaryKeyType
-  , foreign_event_id             :: C f Text -- Event ID from XML from foreign systems.
-  , event_label_id               :: PrimaryKey BusinessT f --the label scanned to generate this event.
-  , event_created_by             :: PrimaryKey UserT f
+  , foreign_event_id            :: C f Text -- Event ID from XML from foreign systems.
+  -- , event_label_id              :: PrimaryKey BusinessT f --the label scanned to generate this event.
+  , event_created_by            :: PrimaryKey UserT f
   , json_event                  :: C f Text }
   deriving Generic
 type Event = EventT Identity
@@ -742,8 +747,8 @@ supplyChainDb = defaultDbSettings
     , _events =
         modifyTable (const "events") $
         tableModification {
-          event_label_id = BizId (fieldNamed "event_label_id")
-        , event_created_by = UserId (fieldNamed "event_created_by")
+          -- event_label_id = BizId (fieldNamed "event_label_id")
+          event_created_by = UserId (fieldNamed "event_created_by")
         }
     , _whats =
         modifyTable (const "whats") $
