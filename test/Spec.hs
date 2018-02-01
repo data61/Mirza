@@ -25,10 +25,12 @@ dbConnStr = "dbname=testsupplychainserver2"
 openConnection :: IO Connection
 openConnection = do
   conn <- connectPostgreSQL dbConnStr
-  let envT = AC.mkEnvType True
-      env  = AC.Env envT conn
-  migrate dbConnStr
-  -- TODO
+  -- let envT = AC.mkEnvType True
+  --     env  = AC.Env envT conn
+  -- migrate dbConnStr
+  -- -- TODO
+  -- return conn
+  tryCreateSchema conn
   return conn
 
 closeConnection :: Connection -> IO ()
