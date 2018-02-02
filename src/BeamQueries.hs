@@ -62,14 +62,22 @@ import qualified Data.Text.Lazy as TxtL
 }
  -}
 
+-- Following are a bunch of utility functions to do household stuff like
+-- generating primary keys, timestamps - stuff that almost every function
+-- below would need to do anyway
+
+-- | Reads back the ``LocalTime`` in UTCTime (with an offset of 0)
 toEPCISTime :: LocalTime -> UTCTime
 toEPCISTime = localTimeToUTC utc
 
+-- | Generates a timestamp in LocalTime + 0:00 offset
+-- which is a UTCTime
 generateTimeStamp :: AppM LocalTime
 generateTimeStamp = do
   utcTime <- liftIO getCurrentTime
   return $ utcToLocalTime utc utcTime
 
+-- | shorthand for wrapping ``UUID.nextRandom`` in ``AppM``
 generatePk :: AppM UUID
 generatePk = liftIO $ nextRandom
 
