@@ -265,7 +265,22 @@ insertDWhy dwhy eventId = do
 
 
 
-insertDWhere :: DWhere -> AppM SB.PrimaryKeyType
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+insertDWhere :: DWhere -> SB.PrimaryKeyType -> AppM SB.PrimaryKeyType
 insertDWhere = error "not implemented yet"
 
 toStorageDWhere :: SB.PrimaryKeyType -> DWhere -> SB.PrimaryKeyType -> SB.Where
@@ -310,12 +325,12 @@ eventCreateObject  (M.User uid _ _ ) (M.NewObject epc epcisTime timezone (M.Even
       event = Event eventType foreignEventId dwhat dwhen dwhy dwhere
       jsonEvent = encodeEvent event
 
-  labelId <- generatePk
-  whatId <- insertDWhat dwhat
-  whenId <- insertDWhen dwhen
-  whyId <- insertDWhy dwhy
-  whereId <- insertDWhere dwhere
   eventId <- insertEvent uid jsonEvent event
+  labelId <- generatePk
+  whatId <- insertDWhat dwhat eventId
+  whenId <- insertDWhen dwhen eventId
+  whyId <- insertDWhy dwhy eventId
+  whereId <- insertDWhere dwhere eventId
 
   -- TODO = combine rows from bizTransactionTable and _eventCreatedBy field in Event table
   -- haven't added UserEvents insertion equivalent since redundant information and no equivalent
