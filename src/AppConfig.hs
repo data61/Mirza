@@ -9,6 +9,7 @@ module AppConfig (
   , mkEnvType
   , Env(..)
   , AppError(..)
+  , runAppM
 )
 where
 
@@ -22,7 +23,7 @@ import           Control.Monad.Reader   (MonadReader, ReaderT, runReaderT,
                                          asks, liftIO)
 -- import           GHC.Word               (Word16)
 import           Servant.Server (Handler, ServantErr)
-import           Control.Monad.Except (MonadError, ExceptT(..))
+import           Control.Monad.Except (MonadError, ExceptT(..), runExceptT)
 import qualified Model as M
 import qualified Control.Exception as Exc
 
@@ -72,3 +73,6 @@ dbFunc = do
 runDb :: Pg a -> AppM (Either SqlError a)
 runDb q = dbFunc >>= (\f -> liftIO $ Exc.try $ f q)
 
+
+runAppM :: Env -> AppM a -> IO (Either AppError a)
+runAppM env aM = runExceptT $ (runReaderT . unAppM) aM env
