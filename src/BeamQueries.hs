@@ -208,24 +208,24 @@ insertDWhat dwhat = do
   return pk
 
 
-toStorageDWhen :: SB.PrimaryKeyType -> DWhat -> SB.What
+toStorageDWhen :: SB.PrimaryKeyType -> DWhen -> SB.When
 toStorageDWhen = error "not implemented yet"
 
 insertDWhen :: DWhen -> AppM SB.PrimaryKeyType
 insertDWhen = error "not implemented yet"
 
 
-toStorageDWhy :: SB.PrimaryKeyType -> DWhat -> SB.What
+toStorageDWhy :: SB.PrimaryKeyType -> DWhy -> SB.Why
 toStorageDWhy = error "not implemented yet"
 
-insertDWhy :: DWhen -> AppM SB.PrimaryKeyType
+insertDWhy :: DWhy -> AppM SB.PrimaryKeyType
 insertDWhy = error "not implemented yet"
 
 
-insertDWhere :: DWhen -> AppM SB.PrimaryKeyType
+insertDWhere :: DWhere -> AppM SB.PrimaryKeyType
 insertDWhere = error "not implemented yet"
 
-toStorageDWhere :: SB.PrimaryKeyType -> DWhat -> SB.What
+toStorageDWhere :: SB.PrimaryKeyType -> DWhere -> SB.Where
 toStorageDWhere = error "not implemented yet"
 
 
