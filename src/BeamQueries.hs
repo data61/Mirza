@@ -284,7 +284,7 @@ insertDWhere :: DWhere -> SB.PrimaryKeyType -> AppM SB.PrimaryKeyType
 insertDWhere = error "not implemented yet"
 
 toStorageDWhere :: SB.PrimaryKeyType -> DWhere -> SB.PrimaryKeyType -> SB.Where
-toStorageDWhere = error "not implemented yet"
+toStorageDWhere pKey (DWhere rPoint bizLoc srcT destT) eventId = error "not implemented yet"
 
 
 -- extractEventId :: Maybe EvId.EventID -> Maybe SB.PrimaryKeyType
