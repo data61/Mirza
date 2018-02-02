@@ -170,7 +170,7 @@ migrationStorage =
     (
       Event
           (field "event_id" pkSerialType)
-          (field "foreign_event_id" (varchar (Just maxLen)) notNull)
+          (field "foreign_event_id" (maybeType pkSerialType))
           -- (BizId (field "event_label_id" text))
           (UserId (field "event_created_by" pkSerialType))
           (field "json_event" (varchar (Just maxLen)) notNull)
@@ -464,7 +464,7 @@ instance Table LocationT where
 
 data EventT f = Event
   { event_id                    :: C f PrimaryKeyType
-  , foreign_event_id            :: C f Text -- Event ID from XML from foreign systems.
+  , foreign_event_id            :: C f (Maybe PrimaryKeyType) -- Event ID from XML from foreign systems.
   -- , event_label_id              :: PrimaryKey BusinessT f --the label scanned to generate this event.
   , event_created_by            :: PrimaryKey UserT f
   , json_event                  :: C f Text }
