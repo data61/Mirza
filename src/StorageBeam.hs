@@ -185,10 +185,19 @@ migrationStorage =
           (field "label_type" (varchar (Just maxLen)) notNull)
           (WhatId (field "label_what_id" pkSerialType))
           (field "label_gs1_company_prefix" (varchar (Just maxLen)) notNull)
-          (field "item_reference" (varchar (Just maxLen)) notNull)
-          (field "serial_number" (varchar (Just maxLen)) notNull)
-          (field "state" (varchar (Just maxLen)) notNull)
-          (field "lot" (varchar (Just maxLen)) notNull)
+          (field "item_reference" (maybeType $ varchar (Just maxLen)) notNull)
+          (field "serial_number" (maybeType $ varchar (Just maxLen)) notNull)
+          (field "state" (varchar (Just maxLen)))
+          (field "lot" (maybeType $ varchar (Just maxLen)))
+          (field "quantity_amount" (maybeType double))
+          (field "quantity_uom" (maybeType $ varchar (Just maxLen)))
+    )
+    <*> createTable "what_labels"
+    (
+      WhatLabel
+          (field "what_label_id" pkSerialType)
+          (WhatId (field "what_label_what_id" pkSerialType))
+          (LabelId (field "what_label_label_id" pkSerialType))
     )
     <*> createTable "items"
     (
@@ -209,23 +218,24 @@ migrationStorage =
       Location
           (field "location_id" pkSerialType notNull)
           (BizId (field "location_biz_id" text))
+          -- this needs to be locationReferenceNum
           (field "location_lat" double)
           (field "location_long" double)
     )
     <*> createTable "events"
     (
       Event
-          (field "event_id" pkSerialType notNull)
-          (field "foreign_event_id" (varchar (Just maxLen)) notNull)
-          (BizId (field "event_label_id" text))
+          (field "event_id" pkSerialType)
+          (field "foreign_event_id" (maybeType pkSerialType))
+          -- (BizId (field "event_label_id" text))
           (UserId (field "event_created_by" pkSerialType))
           (field "json_event" (varchar (Just maxLen)) notNull)
     )
     <*> createTable "whats"
     (
       What
-          (field "what_id" pkSerialType notNull)
-          (field "what_type" text)
+          (field "what_id" pkSerialType)
+          (field "what_event_type" text)
           (field "action" text)
           (LabelId (field "parent" pkSerialType))
           -- (field "input" bigserial)
@@ -405,11 +415,13 @@ data LabelT f = Label
   , label_type               :: C f Text -- input/output/parent
   , label_what_id            :: PrimaryKey WhatT f
   , label_gs1_company_prefix :: C f Text --should this be bizId instead?
-  , item_reference           :: C f Text
-  , serial_number            :: C f Text
+  , item_reference           :: C f (Maybe Text)
+  , serial_number            :: C f (Maybe Text)
   , state                    :: C f Text
-  -- , label_type               :: C f Text
-  , lot                      :: C f Text }
+  , lot                      :: C f (Maybe Text)
+  , quantity_amount          :: C f (Maybe Double)
+  , quantity_uom             :: C f (Maybe E.Uom) -- T.Text
+  }
   deriving Generic
 type Label = LabelT Identity
 type LabelId = PrimaryKey LabelT Identity
@@ -424,6 +436,28 @@ instance Table LabelT where
   data PrimaryKey LabelT f = LabelId (C f PrimaryKeyType)
     deriving Generic
   primaryKey = LabelId . label_id
+
+data WhatLabelT f = WhatLabel
+  { what_label_id       :: C f PrimaryKeyType
+  , what_label_what_id  :: PrimaryKey WhatT f
+  , what_label_label_id :: PrimaryKey LabelT f }
+  deriving Generic
+
+type WhatLabel = WhatLabelT Identity
+type WhatLabelId = PrimaryKey WhatLabelT Identity
+
+deriving instance Show WhatLabel
+
+instance Beamable WhatLabelT
+instance Beamable (PrimaryKey WhatLabelT)
+deriving instance Show (PrimaryKey WhatLabelT Identity)
+
+-- this table does not have a primary key
+instance Table WhatLabelT where
+  data PrimaryKey WhatLabelT f = WhatLabelId (C f PrimaryKeyType)
+    deriving Generic
+  primaryKey = WhatLabelId . what_label_id
+
 
 data ItemT f = Item
   { item_id            :: C f PrimaryKeyType
@@ -486,9 +520,9 @@ instance Table LocationT where
 
 data EventT f = Event
   { event_id                    :: C f PrimaryKeyType
-  , foreign_event_id             :: C f Text -- Event ID from XML from foreign systems.
-  , event_label_id               :: PrimaryKey BusinessT f --the label scanned to generate this event.
-  , event_created_by             :: PrimaryKey UserT f
+  , foreign_event_id            :: C f (Maybe PrimaryKeyType) -- Event ID from XML from foreign systems.
+  -- , event_label_id              :: PrimaryKey BusinessT f --the label scanned to generate this event.
+  , event_created_by            :: PrimaryKey UserT f
   , json_event                  :: C f Text }
   deriving Generic
 type Event = EventT Identity
@@ -507,7 +541,7 @@ instance Table EventT where
 
 data WhatT f = What
   { what_id                    :: C f PrimaryKeyType
-  , what_type                  :: C f Text -- Ev.EventType
+  , what_event_type            :: C f Text -- Ev.EventType
   , action                     :: C f Text -- E.Action
   , parent                     :: PrimaryKey LabelT f
   -- , input                      :: C f [LabelEPC]
@@ -719,6 +753,7 @@ data SupplyChainDb f = SupplyChainDb
   , _businesses      :: f (TableEntity BusinessT)
   , _contacts        :: f (TableEntity ContactT)
   , _labels          :: f (TableEntity LabelT)
+  , _what_labels     :: f (TableEntity WhatLabelT)
   , _items           :: f (TableEntity ItemT)
   , _transformations :: f (TableEntity TransformationT)
   , _locations       :: f (TableEntity LocationT)
@@ -781,6 +816,12 @@ supplyChainDb = defaultDbSettings
     --     tableModification {
     --       someField = Id (fieldNamed "short_name")
     --     }
+    , _what_labels =
+        modifyTable (const "what_labels") $
+        tableModification {
+          what_label_what_id = WhatId (fieldNamed "what_label_what_id")
+        , what_label_label_id = LabelId (fieldNamed "what_label_label_id")
+        }
     , _items =
         modifyTable (const "items") $
         tableModification {
@@ -799,8 +840,8 @@ supplyChainDb = defaultDbSettings
     , _events =
         modifyTable (const "events") $
         tableModification {
-          event_label_id = BizId (fieldNamed "event_label_id")
-        , event_created_by = UserId (fieldNamed "event_created_by")
+          -- event_label_id = BizId (fieldNamed "event_label_id")
+          event_created_by = UserId (fieldNamed "event_created_by")
         }
     , _whats =
         modifyTable (const "whats") $
