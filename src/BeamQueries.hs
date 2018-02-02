@@ -41,7 +41,8 @@ import           Data.GS1.DWhen (DWhen(..))
 import qualified Data.GS1.EventID as EvId
 import           Data.GS1.Event (Event(..), EventType(..))
 import           Data.Time.LocalTime (utc, TimeZone, utcToLocalTime
-                                     , LocalTime, localTimeToUTC)
+                                     , LocalTime, localTimeToUTC
+                                     , timeZoneOffsetString)
 import           Data.Time (UTCTime)
 import           Data.Aeson.Encode.Pretty
 import           Data.Aeson.Text (encodeToLazyText)
@@ -70,6 +71,10 @@ import qualified Data.Text.Lazy as TxtL
 -- | Reads back the ``LocalTime`` in UTCTime (with an offset of 0)
 toEPCISTime :: LocalTime -> UTCTime
 toEPCISTime = localTimeToUTC utc
+
+-- | Shorthand for type-casting UTCTime to LocalTime before storing them in DB
+toLocalTime :: UTCTime -> LocalTime
+toLocalTime = utcToLocalTime utc
 
 -- | Generates a timestamp in LocalTime + 0:00 offset
 -- which is a UTCTime
@@ -204,22 +209,57 @@ insertDWhat :: DWhat -> AppM SB.PrimaryKeyType
 insertDWhat dwhat = do
   pk <- generatePk
   r <- runDb $ B.runInsert $ B.insert (SB._whats SB.supplyChainDb)
-             $ insertValues [toStorageWhat pk dwhat]
-  return pk
+             $ insertValues [toStorageDWhat pKey dwhat eventId]
+  return pKey
 
 
-toStorageDWhen :: SB.PrimaryKeyType -> DWhen -> SB.When
-toStorageDWhen = error "not implemented yet"
+toStorageDWhen :: SB.PrimaryKeyType
+               -> DWhen
+               -> SB.PrimaryKeyType
+               -> SB.When
+toStorageDWhen pKey (DWhen eventTime mRecordTime tZone) eventId =
+  SB.When pKey
+    (toLocalTime eventTime)
+    (toLocalTime <$> mRecordTime)
+    (T.pack . timeZoneOffsetString $ tZone)
+    (SB.EventId eventId)
 
-insertDWhen :: DWhen -> AppM SB.PrimaryKeyType
-insertDWhen = error "not implemented yet"
+insertDWhen :: DWhen -> SB.PrimaryKeyType -> AppM SB.PrimaryKeyType
+insertDWhen dwhen eventId =  do
+  pKey <- generatePk
+  r <- runDb $ B.runInsert $ B.insert (SB._whens SB.supplyChainDb)
+             $ insertValues [toStorageDWhen pKey dwhen eventId]
+  return pKey
 
 
-toStorageDWhy :: SB.PrimaryKeyType -> DWhy -> SB.Why
-toStorageDWhy = error "not implemented yet"
+toStorageDWhy :: SB.PrimaryKeyType -> DWhy -> SB.PrimaryKeyType -> SB.Why
+toStorageDWhy pKey (DWhy mBiz mDisp) eventId =
+  SB.Why pKey
+    (printURI <$> mBiz)
+    (printURI <$> mDisp)
+    (SB.EventId eventId)
 
-insertDWhy :: DWhy -> AppM SB.PrimaryKeyType
-insertDWhy = error "not implemented yet"
+insertDWhy :: DWhy -> SB.PrimaryKeyType -> AppM SB.PrimaryKeyType
+insertDWhy dwhy eventId = do
+  pKey <- generatePk
+  r <- runDb $ B.runInsert $ B.insert (SB._whys SB.supplyChainDb)
+             $ insertValues [toStorageDWhy pKey dwhy eventId]
+  return pKey
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 insertDWhere :: DWhere -> AppM SB.PrimaryKeyType
