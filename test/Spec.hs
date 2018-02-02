@@ -22,24 +22,21 @@ import AppConfig as AC
 dbConnStr :: ByteString
 dbConnStr = "dbname=testsupplychainserver2"
 
-openConnection :: IO Connection
+openConnection :: IO (Connection, Env)
 openConnection = do
   conn <- connectPostgreSQL dbConnStr
-  -- let envT = AC.mkEnvType True
-  --     env  = AC.Env envT conn
-  -- migrate dbConnStr
-  -- -- TODO
-  -- return conn
+  let envT = AC.mkEnvType True
+      env  = AC.Env envT conn
   tryCreateSchema conn
-  return conn
+  return (conn, env)
 
-closeConnection :: Connection -> IO ()
-closeConnection conn = do
+closeConnection :: (Connection, Env) -> IO ()
+closeConnection (conn, env) = do
   -- drop all tables created by migration
   execute_ conn "DROP TABLE IF EXISTS users, keys, businesses, contacts, labels, items, transformations, locations, events, whats, \"bizTransactions\", whys, wheres, whens, \"labelEvents\", \"userEvents\", hashes, blockchain;"
   close conn
 
-withDatabaseConnection :: (Connection -> IO ()) -> IO ()
+withDatabaseConnection :: ((Connection, Env) -> IO ()) -> IO ()
 withDatabaseConnection = bracket openConnection closeConnection
 
 main :: IO ()

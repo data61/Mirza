@@ -17,37 +17,13 @@ import Database.Beam.Backend.Types (Auto (..))
 
 import Control.Monad.IO.Class
 import Data.Maybe
+import AppConfig (runAppM, Env)
+import Data.Either.Combinators
 
-compare :: (Monad m, Monad n) => m a -> n a -> Bool
-compare v1 v2 = (==) <$> v1
-
-testNewUser :: SpecWith Connection
+testNewUser :: SpecWith (Connection, Env)
 testNewUser = do
   describe "newUser" $ do
-    it "newUser1" $ \conn ->
+    it "newUser1" $ \(conn, env) ->
       let uid_check = (fromJust $ fromString "c2cc10e1-57d6-4b6f-9899-38d972112d8c") in do
-      --uid <- newUser conn (NewUser "000" "fake@gmail.com" "Bob" "Smith" (fromJust $ fromString "c2cc10e1-57d6-4b6f-9899-38d972112d8c") "password")
-      --uid `shouldBe` (Auto $ fromString "c2cc10e1-57d6-4b6f-9899-38d972112d8c")
-      --(fromJust $ fromString "c2cc10e1-57d6-4b6f-9899-38d972112d8c") "password")
-      --uid_check <- Auto $ fromString "c2cc10e1-57d6-4b6f-9899-38d972112d8c"
-      --fromString "c2cc10e1-57d6-4b6f-9899-38d972112d8c"--liftIO $ fromString "c2cc10e1-57d6-4b6f-9899-38d972112d8c"
-      --uid_check_wrapped <- return uid_check
-      --uid_unwrapped <- uid
-
-        uid <- newUser (NewUser "000" "fake@gmail.com" "Bob" "Smith" "blah Ltd" "password")
-        uid `shouldBe` uid
-        --uid_check `shouldBe` uid_check--(liftIO $ uid_check)
-
-      --uid `shouldBe` uid_check
-       --(liftIO $ fromString "c2cc10e1-57d6-4b6f-9899-38d972112d8c")--(Auto $ fromString "c2cc10e1-57d6-4b6f-9899-38d972112d8c")
-      --((Auto (fromJust $ fromString "c2cc10e1-57d6-4b6f-9899-38d972112d8c"))::PrimaryKeyType)
-
-    -- TODO = fix... bug
-    -- it "newUser2" $ \conn -> do
-    --   uid_blah <- newUser conn (NewUser "000" "fake@gmail.com" "Bob" "Smith" 42 "password")
-    --   uid <- newUser conn (NewUser "001" "fake1@gmail.com" "Bob1" "Smith1" 421 "password1")
-    --   uid `shouldBe` 1
-
-  -- describe "insertUser" $ do
-  --   it "insertUser1" $ \conn -> do
-  --     uid <- 
+        uid <- fromRight' <$> (runAppM env $ newUser (NewUser "000" "fake@gmail.com" "Bob" "Smith" "blah Ltd" "password"))
+        uid `shouldBe` uid_check
