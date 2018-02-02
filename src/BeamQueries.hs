@@ -318,7 +318,7 @@ eventCreateObject  (M.User uid _ _ ) (M.NewObject epc epcisTime timezone (M.Even
       eventType = ObjectEventT
       dwhat =  ObjectDWhat Add [epc]
       dwhere = DWhere [rp] [bizL] [] []
-      quantity = ItemCount 3
+      quantity = ItemCount 3 -- useful for label
       dwhy  =  DWhy (Just CreatingClassInstance) (Just Active)
       dwhen = DWhen epcisTime (Just $ toEPCISTime currentTime) timezone
       foreignEventId = mEventId
