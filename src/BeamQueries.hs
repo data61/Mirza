@@ -249,10 +249,6 @@ insertEvent userId jsonEvent event = do
   return pk
 
 
-
--- is there a reason EventId is a newtype?
--- is there a reason EventId is a Maybe?
-
 -- TODO = fix. 1 problem is nothing is done with filter value or asset type in objectRowID grabbing data insert
 -- 1 other problem is state never used... what is it???
 -- epc is a labelEPC
