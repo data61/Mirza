@@ -194,12 +194,12 @@ getUser  email = do
 
 -- should ``type`` be a maybe?
 epcToStorageLabel :: SB.PrimaryKeyType -> LabelEPC -> SB.Label
-epcToStorageLabel pk (IL (GIAI cp sn))         = error "not implemented yet" -- SB.Label pk "GIAI" cp Nothing sn Nothing Nothing
-epcToStorageLabel pk (IL (SSCC cp sn))         = error "not implemented yet" -- SB.Label pk "SSCC" cp Nothing sn Nothing Nothing
-epcToStorageLabel pk (IL (SGTIN cp fv ir sn))  = error "not implemented yet" -- SB.Label pk "SGTIN" cp ir sn Nothing Nothing
-epcToStorageLabel pk (IL (GRAI cp at sn))      = error "not implemented yet" -- SB.Label pk "GRAI" cp Nothing sn Nothing Nothing
-epcToStorageLabel pk (CL (LGTIN cp ir lot) mQ) = error "not implemented yet" -- SB.Label pk "LGTIN" cp ir Nothing Nothing lot
-epcToStorageLabel pk (CL (CSGTIN cp fv ir) mQ) = error "not implemented yet" -- SB.Label pk "CSGTIN" cp ir Nothing Nothing Nothing
+epcToStorageLabel pKey (IL (GIAI cp sn))         = error "not implemented yet" -- SB.Label pKey "GIAI" cp Nothing sn Nothing Nothing
+epcToStorageLabel pKey (IL (SSCC cp sn))         = error "not implemented yet" -- SB.Label pKey "SSCC" cp Nothing sn Nothing Nothing
+epcToStorageLabel pKey (IL (SGTIN cp fv ir sn))  = error "not implemented yet" -- SB.Label pKey "SGTIN" cp ir sn Nothing Nothing
+epcToStorageLabel pKey (IL (GRAI cp at sn))      = error "not implemented yet" -- SB.Label pKey "GRAI" cp Nothing sn Nothing Nothing
+epcToStorageLabel pKey (CL (LGTIN cp ir lot) mQ) = error "not implemented yet" -- SB.Label pKey "LGTIN" cp ir Nothing Nothing lot
+epcToStorageLabel pKey (CL (CSGTIN cp fv ir) mQ) = error "not implemented yet" -- SB.Label pKey "CSGTIN" cp ir Nothing Nothing Nothing
 
 -- | GS1 DWhat to Storage DWhat
 toStorageWhat :: SB.PrimaryKeyType -> DWhat -> SB.What
