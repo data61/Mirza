@@ -44,6 +44,7 @@ import           Data.Time.LocalTime (utc, TimeZone, utcToLocalTime
                                      , LocalTime, localTimeToUTC)
 import           Data.Time (UTCTime)
 import           Data.Aeson.Encode.Pretty
+import           Data.Aeson.Text (encodeToLazyText)
 import qualified Data.Text.Lazy as TxtL
 
 -- Until this module compiles, look at:
@@ -184,18 +185,64 @@ getUser  email = do
     pure allUsers
   case r of
     Right [u] -> return $ Just $ userTableToModel u
-    _  -> return Nothing
+    _  ->        return Nothing
 
-
+-- should ``type`` be a maybe?
 epcToStorageLabel :: SB.PrimaryKeyType -> LabelEPC -> SB.Label
-epcToStorageLabel pk (IL (GIAI cp sn))        = SB.Label pk "GIAI" cp Nothing sn Nothing Nothing  -- error "not implemented yet" 
-epcToStorageLabel pk (IL (SSCC cp sn))        = SB.Label pk "SSCC" cp Nothing sn Nothing Nothing  -- error "not implemented yet" 
-epcToStorageLabel pk (IL (SGTIN cp fv ir sn)) = SB.Label pk "SGTIN" cp ir sn Nothing Nothing  -- error "not implemented yet" 
-epcToStorageLabel pk (IL (GRAI cp at sn))     = SB.Label pk "GRAI" cp Nothing sn Nothing Nothing  -- error "not implemented yet" 
-epcToStorageLabel pk (CL (LGTIN cp ir lot) q) = SB.Label pk "LGTIN" cp ir Nothing Nothing lot  -- error "not implemented yet" 
-epcToStorageLabel pk (CL (CSGTIN cp fv ir) q) = SB.Label pk "CSGTIN" cp ir Nothing Nothing Nothing  -- error "not implemented yet" 
+epcToStorageLabel pk (IL (GIAI cp sn))         = error "not implemented yet" -- SB.Label pk "GIAI" cp Nothing sn Nothing Nothing
+epcToStorageLabel pk (IL (SSCC cp sn))         = error "not implemented yet" -- SB.Label pk "SSCC" cp Nothing sn Nothing Nothing
+epcToStorageLabel pk (IL (SGTIN cp fv ir sn))  = error "not implemented yet" -- SB.Label pk "SGTIN" cp ir sn Nothing Nothing
+epcToStorageLabel pk (IL (GRAI cp at sn))      = error "not implemented yet" -- SB.Label pk "GRAI" cp Nothing sn Nothing Nothing
+epcToStorageLabel pk (CL (LGTIN cp ir lot) mQ) = error "not implemented yet" -- SB.Label pk "LGTIN" cp ir Nothing Nothing lot
+epcToStorageLabel pk (CL (CSGTIN cp fv ir) mQ) = error "not implemented yet" -- SB.Label pk "CSGTIN" cp ir Nothing Nothing Nothing
+
+-- | GS1 DWhat to Storage DWhat
+toStorageWhat :: SB.PrimaryKeyType -> DWhat -> SB.What
+toStorageWhat pk (ObjectDWhat act epcs) = error "not implemented yet"
+
+insertDWhat :: DWhat -> AppM SB.PrimaryKeyType
+insertDWhat dwhat = do
+  pk <- generatePk
+  r <- runDb $ B.runInsert $ B.insert (SB._whats SB.supplyChainDb)
+             $ insertValues [toStorageWhat pk dwhat]
+  return pk
 
 
+toStorageDWhen :: SB.PrimaryKeyType -> DWhat -> SB.What
+toStorageDWhen = error "not implemented yet"
+
+insertDWhen :: DWhen -> AppM SB.PrimaryKeyType
+insertDWhen = error "not implemented yet"
+
+
+toStorageDWhy :: SB.PrimaryKeyType -> DWhat -> SB.What
+toStorageDWhy = error "not implemented yet"
+
+insertDWhy :: DWhen -> AppM SB.PrimaryKeyType
+insertDWhy = error "not implemented yet"
+
+
+insertDWhere :: DWhen -> AppM SB.PrimaryKeyType
+insertDWhere = error "not implemented yet"
+
+toStorageDWhere :: SB.PrimaryKeyType -> DWhat -> SB.What
+toStorageDWhere = error "not implemented yet"
+
+
+toStorageEvent :: SB.PrimaryKeyType -> SB.PrimaryKeyType -> T.Text -> Event -> SB.Event
+toStorageEvent pk userId jsonEvent (Event _ (Just eventId) _ _ _ _) = SB.Event pk eventId (SB.UserId userId) jsonEvent 
+
+insertEvent :: SB.PrimaryKeyType -> T.Text -> Event -> AppM SB.PrimaryKeyType
+insertEvent userId jsonEvent event = do
+  pk <- generatePk
+  r <- runDb $ B.runInsert $ B.insert (SB._events SB.supplyChainDb)
+             $ insertValues [toStorageEvent pk userId jsonEvent event]
+  return pk
+
+
+
+-- is there a reason EventId is a newtype?
+-- is there a reason EventId is a Maybe?
 
 -- TODO = fix. 1 problem is nothing is done with filter value or asset type in objectRowID grabbing data insert
 -- 1 other problem is state never used... what is it???
@@ -203,26 +250,28 @@ epcToStorageLabel pk (CL (CSGTIN cp fv ir) q) = SB.Label pk "CSGTIN" cp ir Nothi
 eventCreateObject :: M.User -> M.NewObject -> AppM SB.Event
 eventCreateObject  (M.User uid _ _ ) (M.NewObject epc epcisTime timezone (M.EventLocation rp bizL)) = do
 
-  labelId <- generatePk
-  objectRowID <- runDb $ B.runInsert $
-                 insert (SB._labels SB.supplyChainDb) $
-                 insertValues [epcToStorageLabel labelId epc]
-
-  currentTime <- liftIO getCurrentTime
-  uuid <- generatePk
+  currentTime <- generateTimeStamp
+  eventIdPk <- generatePk
   let
+      eventType = ObjectEventT
       dwhat =  ObjectDWhat Add [epc]
       dwhere = DWhere [rp] [bizL] [] []
       quantity = ItemCount 3
       dwhy  =  DWhy (Just CreatingClassInstance) (Just Active)
-      dwhen = DWhen epcisTime (Just currentTime) timezone
-      eventId = Just $ EvId.EventID uuid
-      event = Event ObjectEventT eventId dwhat dwhen dwhy dwhere
+      dwhen = DWhen epcisTime (Just $ toEPCISTime currentTime) timezone
+      eventId = Just $ EvId.EventID eventIdPk
+      event = Event eventType eventId dwhat dwhen dwhy dwhere
       jsonEvent = encodeEvent event
 
+  labelId <- generatePk
+  whatId <- insertDWhat dwhat
+  whenId <- generatePk
+  whyId <- generatePk
+  whereId <- generatePk
+
   runDb $ B.runInsert $
-    B.insert (_events supplyChainDb) $
-      insertValues [ Event (Auto Nothing) eventID epc what why dwhere epcisTime timezone ObjectEventT uid jsonEvent]
+      B.insert (SB._events SB.supplyChainDb) $
+      insertValues [ SB.Event eventType eventId dwhat dwhen dwhy dwhere]-- epcisTime timezone ObjectEventT uid jsonEvent]
 
   -- TODO = combine rows from bizTransactionTable and _eventCreatedBy field in Event table
   -- haven't added UserEvents insertion equivalent since redundant information and no equivalent
