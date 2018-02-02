@@ -33,6 +33,7 @@ openConnection = do
 closeConnection :: (Connection, Env) -> IO ()
 closeConnection (conn, env) = do
   -- drop all tables created by migration
+  -- TODO = ensure that this list of table names is complete
   execute_ conn "DROP TABLE IF EXISTS users, keys, businesses, contacts, labels, what_labels, items, transformations, locations, events, whats, \"bizTransactions\", whys, wheres, whens, \"labelEvents\", \"userEvents\", hashes, blockchain;"
   close conn
 
