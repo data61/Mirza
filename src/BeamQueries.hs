@@ -202,12 +202,15 @@ epcToStorageLabel pKey (CL (LGTIN cp ir lot) mQ) = error "not implemented yet" -
 epcToStorageLabel pKey (CL (CSGTIN cp fv ir) mQ) = error "not implemented yet" -- SB.Label pKey "CSGTIN" cp ir Nothing Nothing Nothing
 
 -- | GS1 DWhat to Storage DWhat
-toStorageWhat :: SB.PrimaryKeyType -> DWhat -> SB.What
-toStorageWhat pk (ObjectDWhat act epcs) = error "not implemented yet"
+toStorageDWhat :: SB.PrimaryKeyType
+               -> DWhat
+               -> SB.PrimaryKeyType
+               -> SB.What
+toStorageDWhat pKey (ObjectDWhat act epcs) = error "not implemented yet"
 
-insertDWhat :: DWhat -> AppM SB.PrimaryKeyType
-insertDWhat dwhat = do
-  pk <- generatePk
+insertDWhat :: DWhat -> SB.PrimaryKeyType -> AppM SB.PrimaryKeyType
+insertDWhat dwhat eventId = do
+  pKey <- generatePk
   r <- runDb $ B.runInsert $ B.insert (SB._whats SB.supplyChainDb)
              $ insertValues [toStorageDWhat pKey dwhat eventId]
   return pKey
@@ -283,10 +286,10 @@ toStorageEvent pKey userId jsonEvent mEventId =
 
 insertEvent :: SB.PrimaryKeyType -> T.Text -> Event -> AppM SB.PrimaryKeyType
 insertEvent userId jsonEvent event = do
-  pk <- generatePk
+  pKey <- generatePk
   r <- runDb $ B.runInsert $ B.insert (SB._events SB.supplyChainDb)
-             $ insertValues [toStorageEvent pk userId jsonEvent (_eid event)]
-  return pk
+             $ insertValues [toStorageEvent pKey userId jsonEvent (_eid event)]
+  return pKey
 
 
 -- TODO = fix. 1 problem is nothing is done with filter value or asset type in objectRowID grabbing data insert
