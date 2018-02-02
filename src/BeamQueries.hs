@@ -256,7 +256,6 @@ eventCreateObject :: M.User -> M.NewObject -> AppM SB.EventId
 eventCreateObject  (M.User uid _ _ ) (M.NewObject epc epcisTime timezone (M.EventLocation rp bizL) mEventId) = do
 
   currentTime <- generateTimeStamp
-  eventIdPk <- generatePk
   let
       eventType = ObjectEventT
       dwhat =  ObjectDWhat Add [epc]
@@ -264,19 +263,16 @@ eventCreateObject  (M.User uid _ _ ) (M.NewObject epc epcisTime timezone (M.Even
       quantity = ItemCount 3
       dwhy  =  DWhy (Just CreatingClassInstance) (Just Active)
       dwhen = DWhen epcisTime (Just $ toEPCISTime currentTime) timezone
-      eventId = Just $ EvId.EventID eventIdPk
-      event = Event eventType eventId dwhat dwhen dwhy dwhere
+      foreignEventId = mEventId
+      event = Event eventType foreignEventId dwhat dwhen dwhy dwhere
       jsonEvent = encodeEvent event
 
   labelId <- generatePk
   whatId <- insertDWhat dwhat
-  whenId <- generatePk
-  whyId <- generatePk
-  whereId <- generatePk
-
-  runDb $ B.runInsert $
-      B.insert (SB._events SB.supplyChainDb) $
-      insertValues [ SB.Event eventType eventId dwhat dwhen dwhy dwhere]-- epcisTime timezone ObjectEventT uid jsonEvent]
+  whenId <- insertDWhen dwhen
+  whyId <- insertDWhy dwhy
+  whereId <- insertDWhere dwhere
+  eventId <- insertEvent uid jsonEvent event
 
   -- TODO = combine rows from bizTransactionTable and _eventCreatedBy field in Event table
   -- haven't added UserEvents insertion equivalent since redundant information and no equivalent
