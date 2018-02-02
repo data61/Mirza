@@ -41,7 +41,8 @@ import           Data.GS1.DWhen (DWhen(..))
 import qualified Data.GS1.EventID as EvId
 import           Data.GS1.Event (Event(..), EventType(..))
 import           Data.Time.LocalTime (utc, TimeZone, utcToLocalTime
-                                     , LocalTime, localTimeToUTC)
+                                     , LocalTime, localTimeToUTC
+                                     , timeZoneOffsetString)
 import           Data.Time (UTCTime)
 import           Data.Aeson.Encode.Pretty
 import           Data.Aeson.Text (encodeToLazyText)
@@ -70,6 +71,10 @@ import qualified Data.Text.Lazy as TxtL
 -- | Reads back the ``LocalTime`` in UTCTime (with an offset of 0)
 toEPCISTime :: LocalTime -> UTCTime
 toEPCISTime = localTimeToUTC utc
+
+-- | Shorthand for type-casting UTCTime to LocalTime before storing them in DB
+toLocalTime :: UTCTime -> LocalTime
+toLocalTime = utcToLocalTime utc
 
 -- | Generates a timestamp in LocalTime + 0:00 offset
 -- which is a UTCTime
@@ -189,64 +194,117 @@ getUser  email = do
 
 -- should ``type`` be a maybe?
 epcToStorageLabel :: SB.PrimaryKeyType -> LabelEPC -> SB.Label
-epcToStorageLabel pk (IL (GIAI cp sn))         = error "not implemented yet" -- SB.Label pk "GIAI" cp Nothing sn Nothing Nothing
-epcToStorageLabel pk (IL (SSCC cp sn))         = error "not implemented yet" -- SB.Label pk "SSCC" cp Nothing sn Nothing Nothing
-epcToStorageLabel pk (IL (SGTIN cp fv ir sn))  = error "not implemented yet" -- SB.Label pk "SGTIN" cp ir sn Nothing Nothing
-epcToStorageLabel pk (IL (GRAI cp at sn))      = error "not implemented yet" -- SB.Label pk "GRAI" cp Nothing sn Nothing Nothing
-epcToStorageLabel pk (CL (LGTIN cp ir lot) mQ) = error "not implemented yet" -- SB.Label pk "LGTIN" cp ir Nothing Nothing lot
-epcToStorageLabel pk (CL (CSGTIN cp fv ir) mQ) = error "not implemented yet" -- SB.Label pk "CSGTIN" cp ir Nothing Nothing Nothing
+epcToStorageLabel pKey (IL (GIAI cp sn))         = error "not implemented yet" -- SB.Label pKey "GIAI" cp Nothing sn Nothing Nothing
+epcToStorageLabel pKey (IL (SSCC cp sn))         = error "not implemented yet" -- SB.Label pKey "SSCC" cp Nothing sn Nothing Nothing
+epcToStorageLabel pKey (IL (SGTIN cp fv ir sn))  = error "not implemented yet" -- SB.Label pKey "SGTIN" cp ir sn Nothing Nothing
+epcToStorageLabel pKey (IL (GRAI cp at sn))      = error "not implemented yet" -- SB.Label pKey "GRAI" cp Nothing sn Nothing Nothing
+epcToStorageLabel pKey (CL (LGTIN cp ir lot) mQ) = error "not implemented yet" -- SB.Label pKey "LGTIN" cp ir Nothing Nothing lot
+epcToStorageLabel pKey (CL (CSGTIN cp fv ir) mQ) = error "not implemented yet" -- SB.Label pKey "CSGTIN" cp ir Nothing Nothing Nothing
 
 -- | GS1 DWhat to Storage DWhat
-toStorageWhat :: SB.PrimaryKeyType -> DWhat -> SB.What
-toStorageWhat pk (ObjectDWhat act epcs) = error "not implemented yet"
+toStorageDWhat :: SB.PrimaryKeyType
+               -> DWhat
+               -> SB.PrimaryKeyType
+               -> SB.What
+toStorageDWhat pKey (ObjectDWhat act epcs) = error "not implemented yet"
 
-insertDWhat :: DWhat -> AppM SB.PrimaryKeyType
-insertDWhat dwhat = do
-  pk <- generatePk
+insertDWhat :: DWhat -> SB.PrimaryKeyType -> AppM SB.PrimaryKeyType
+insertDWhat dwhat eventId = do
+  pKey <- generatePk
   r <- runDb $ B.runInsert $ B.insert (SB._whats SB.supplyChainDb)
-             $ insertValues [toStorageWhat pk dwhat]
-  return pk
+             $ insertValues [toStorageDWhat pKey dwhat eventId]
+  return pKey
 
 
-toStorageDWhen :: SB.PrimaryKeyType -> DWhen -> SB.When
-toStorageDWhen = error "not implemented yet"
+toStorageDWhen :: SB.PrimaryKeyType
+               -> DWhen
+               -> SB.PrimaryKeyType
+               -> SB.When
+toStorageDWhen pKey (DWhen eventTime mRecordTime tZone) eventId =
+  SB.When pKey
+    (toLocalTime eventTime)
+    (toLocalTime <$> mRecordTime)
+    (T.pack . timeZoneOffsetString $ tZone)
+    (SB.EventId eventId)
 
-insertDWhen :: DWhen -> AppM SB.PrimaryKeyType
-insertDWhen = error "not implemented yet"
+insertDWhen :: DWhen -> SB.PrimaryKeyType -> AppM SB.PrimaryKeyType
+insertDWhen dwhen eventId =  do
+  pKey <- generatePk
+  r <- runDb $ B.runInsert $ B.insert (SB._whens SB.supplyChainDb)
+             $ insertValues [toStorageDWhen pKey dwhen eventId]
+  return pKey
 
 
-toStorageDWhy :: SB.PrimaryKeyType -> DWhy -> SB.Why
-toStorageDWhy = error "not implemented yet"
+toStorageDWhy :: SB.PrimaryKeyType -> DWhy -> SB.PrimaryKeyType -> SB.Why
+toStorageDWhy pKey (DWhy mBiz mDisp) eventId =
+  SB.Why pKey
+    (printURI <$> mBiz)
+    (printURI <$> mDisp)
+    (SB.EventId eventId)
 
-insertDWhy :: DWhy -> AppM SB.PrimaryKeyType
-insertDWhy = error "not implemented yet"
+insertDWhy :: DWhy -> SB.PrimaryKeyType -> AppM SB.PrimaryKeyType
+insertDWhy dwhy eventId = do
+  pKey <- generatePk
+  r <- runDb $ B.runInsert $ B.insert (SB._whys SB.supplyChainDb)
+             $ insertValues [toStorageDWhy pKey dwhy eventId]
+  return pKey
 
 
-insertDWhere :: DWhere -> AppM SB.PrimaryKeyType
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+insertDWhere :: DWhere -> SB.PrimaryKeyType -> AppM SB.PrimaryKeyType
 insertDWhere = error "not implemented yet"
 
-toStorageDWhere :: SB.PrimaryKeyType -> DWhere -> SB.Where
+toStorageDWhere :: SB.PrimaryKeyType -> DWhere -> SB.PrimaryKeyType -> SB.Where
 toStorageDWhere = error "not implemented yet"
 
 
-extractEventId :: Maybe EvId.EventID -> Maybe SB.PrimaryKeyType
-extractEventId (Just (EvId.EventID eventId)) = Just eventId
-extractEventId _ = Nothing
+-- extractEventId :: Maybe EvId.EventID -> Maybe SB.PrimaryKeyType
+-- extractEventId (Just (EvId.EventID eventId)) = Just eventId
+-- extractEventId _ = Nothing
 
 toStorageEvent :: SB.PrimaryKeyType
                -> SB.PrimaryKeyType
                -> T.Text
                -> Maybe EvId.EventID
                -> SB.Event
-toStorageEvent pk userId jsonEvent mEventId =
-  SB.Event pk (extractEventId mEventId) (SB.UserId userId) jsonEvent
+toStorageEvent pKey userId jsonEvent mEventId =
+  SB.Event pKey (EvId.getEventId <$> mEventId) (SB.UserId userId) jsonEvent
 
 insertEvent :: SB.PrimaryKeyType -> T.Text -> Event -> AppM SB.PrimaryKeyType
 insertEvent userId jsonEvent event = do
-  pk <- generatePk
+  pKey <- generatePk
   r <- runDb $ B.runInsert $ B.insert (SB._events SB.supplyChainDb)
-             $ insertValues [toStorageEvent pk userId jsonEvent (_eid event)]
-  return pk
+             $ insertValues [toStorageEvent pKey userId jsonEvent (_eid event)]
+  return pKey
 
 
 -- TODO = fix. 1 problem is nothing is done with filter value or asset type in objectRowID grabbing data insert
@@ -267,12 +325,12 @@ eventCreateObject  (M.User uid _ _ ) (M.NewObject epc epcisTime timezone (M.Even
       event = Event eventType foreignEventId dwhat dwhen dwhy dwhere
       jsonEvent = encodeEvent event
 
-  labelId <- generatePk
-  whatId <- insertDWhat dwhat
-  whenId <- insertDWhen dwhen
-  whyId <- insertDWhy dwhy
-  whereId <- insertDWhere dwhere
   eventId <- insertEvent uid jsonEvent event
+  labelId <- generatePk
+  whatId <- insertDWhat dwhat eventId
+  whenId <- insertDWhen dwhen eventId
+  whyId <- insertDWhy dwhy eventId
+  whereId <- insertDWhere dwhere eventId
 
   -- TODO = combine rows from bizTransactionTable and _eventCreatedBy field in Event table
   -- haven't added UserEvents insertion equivalent since redundant information and no equivalent

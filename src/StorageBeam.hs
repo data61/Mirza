@@ -255,9 +255,9 @@ migrationStorage =
     <*> createTable "whys"
     (
       Why
-          (field "why_id" pkSerialType notNull)
-          (field "biz_step" text)
-          (field "disposition" text)
+          (field "why_id" pkSerialType)
+          (field "biz_step" (maybeType text))
+          (field "disposition" (maybeType text))
           (EventId (field "why_event_id" pkSerialType))
     )
     <*> createTable "wheres"
@@ -590,8 +590,8 @@ instance Table BizTransactionT where
 
 data WhyT f = Why
   { why_id                      :: C f PrimaryKeyType
-  , biz_step                    :: C f Text -- E.BizStep
-  , disposition                 :: C f Text -- E.Disposition
+  , biz_step                    :: C f (Maybe Text) -- E.BizStep
+  , disposition                 :: C f (Maybe Text) -- E.Disposition
   , why_event_id                :: PrimaryKey EventT f }
 
   deriving Generic
