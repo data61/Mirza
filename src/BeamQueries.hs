@@ -279,7 +279,7 @@ eventCreateObject  (M.User uid _ _ ) (M.NewObject epc epcisTime timezone (M.Even
 
   return event
 
--- json encode the event
+-- | Json encode the event
 -- currently do it automagically, but might what to be
 -- more systematic about it so it's easier to replicated. Maybe.
 encodeEvent :: Event -> T.Text
