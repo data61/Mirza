@@ -15,32 +15,32 @@
 
 module Model where
 
-import Servant
-import Servant.Server.Experimental.Auth()
+-- import qualified Data.ByteString.Lazy.Char8 as LBSC8
+import qualified Data.ByteString as BS
+import           Data.Text as T
 
-import Prelude        ()
-import Prelude.Compat
+import           Servant
+import           Servant.Server.Experimental.Auth()
+import           Data.Swagger
 
-import GHC.Generics (Generic)
+import           Prelude        ()
+import           Prelude.Compat
+import           GHC.Generics (Generic)
 
-import Data.Aeson
-import Data.Aeson.TH
-import Data.Swagger
-import Data.Time
+-- import           Control.Monad.Except (throwError, MonadError, Except)
+-- import           Control.Monad.Error.Class (Error)
+-- import           Control.Exception (IOException)
 
-import Data.GS1.EventID
-import Data.GS1.EPC
-import Data.GS1.DWhere
-import Data.GS1.DWhat
-import Data.Text as T
+import           Data.Aeson
+import           Data.Aeson.TH
+import           Data.Time
 
-import qualified Data.ByteString as ByteString
-import Data.UUID (UUID)
-import StorageBeam (PrimaryKeyType)
-
-import Data.UUID
-import           Control.Monad.Except (throwError, MonadError)
-import Control.Exception (IOException)
+import           Data.GS1.EventID
+import           Data.GS1.EPC
+import           Data.GS1.DWhere
+import           Data.GS1.DWhat
+import           Data.UUID (UUID)
+import           StorageBeam (PrimaryKeyType)
 
 type UserID = PrimaryKeyType
 
@@ -51,12 +51,12 @@ type UserID = PrimaryKeyType
 -- type UserID = Integer
 
 type EmailAddress = T.Text
-type KeyID = Integer
-type Password = ByteString.ByteString
+type KeyID = PrimaryKeyType
+type Password = BS.ByteString
 type EPCUrn = String
 
 
-newtype BinaryBlob = BinaryBlob ByteString.ByteString
+newtype BinaryBlob = BinaryBlob BS.ByteString
   deriving (MimeUnrender OctetStream, MimeRender OctetStream, Generic)
 
 
@@ -118,16 +118,16 @@ instance ToSchema RSAPublicKey
 
 data KeyInfo = KeyInfo {
   userID         :: UserID,
-  creationTime   :: Integer,
-  revocationTime :: Integer
+  creationTime   :: EPCISTime,
+  revocationTime :: EPCISTime
 }deriving (Generic, Eq, Show)
 $(deriveJSON defaultOptions ''KeyInfo)
 instance ToSchema KeyInfo
 
 data User = User {
-    userId        :: UserID
-  , userFirstName :: T.Text
-  , userLastName  :: T.Text
+    userId        :: UserID,
+    userFirstName :: T.Text,
+    userLastName  :: T.Text
 } deriving (Generic, Eq, Show)
 $(deriveJSON defaultOptions ''User)
 instance ToSchema User
@@ -146,10 +146,10 @@ data EPCInfo = EPCInfo {
 $(deriveJSON defaultOptions ''EPCInfo)
 instance ToSchema EPCInfo
 
-
+type Email = T.Text
 data NewUser = NewUser {
   phoneNumber :: T.Text,
-  emailAddress :: T.Text,
+  emailAddress :: Email,
   firstName :: T.Text,
   lastName :: T.Text,
   company :: T.Text,
@@ -185,7 +185,8 @@ data NewObject = NewObject {
   object_epcs :: LabelEPC,
   object_timestamp :: EPCISTime,
   object_timezone:: TimeZone,
-  object_location :: EventLocation
+  object_location :: EventLocation,
+  object_foreign_event_id :: Maybe EventID
 } deriving (Show, Generic)
 $(deriveJSON defaultOptions ''NewObject)
 instance ToSchema NewObject
@@ -194,10 +195,11 @@ data AggregatedObject = AggregatedObject {
   aggObject_objectIDs :: [LabelEPC],
   aggObject_containerID :: LabelEPC,
   aggObject_timestamp :: EPCISTime,
-  aggOject_timezone:: TimeZone,
+  aggObject_timezone:: TimeZone,
   aggObject_location :: EventLocation,
   aggObject_bizStep :: BizStep,
-  aggObject_disposition :: Disposition
+  aggObject_disposition :: Disposition,
+  aggObject_foreign_event_id :: Maybe EventID
 } deriving (Show, Generic)
 $(deriveJSON defaultOptions ''AggregatedObject)
 instance ToSchema AggregatedObject
@@ -206,15 +208,14 @@ data DisaggregatedObject = DisaggregatedObject {
   daggObject_objectIDs :: [LabelEPC],
   daggObject_containerID :: LabelEPC,
   daggObject_timestamp :: EPCISTime,
-  daggOject_timezone:: TimeZone,
+  daggObject_timezone:: TimeZone,
   daggObject_location :: EventLocation,
   daggObject_bizStep :: BizStep,
-  daggObject_disposition :: Disposition
+  daggObject_disposition :: Disposition,
+  daggObject_foreign_event_id :: Maybe EventID
 } deriving (Show, Generic)
 $(deriveJSON defaultOptions ''DisaggregatedObject)
 instance ToSchema DisaggregatedObject
-
-
 
 data TransformationInfo = TransformationInfo {
   transObject_objectIDs :: [LabelEPC],
@@ -223,7 +224,8 @@ data TransformationInfo = TransformationInfo {
   transObject_location :: EventLocation,
   transObject_inputQuantity :: [Quantity],
   transObject_outputObjectID :: [LabelEPC],
-  transObject_outputQuantity :: [Quantity]
+  transObject_outputQuantity :: [Quantity],
+  transObject_foreign_event_id :: Maybe EventID
 } deriving (Show, Generic)
 $(deriveJSON defaultOptions ''TransformationInfo)
 instance ToSchema TransformationInfo
@@ -255,20 +257,51 @@ data HashedEvent = HashedEvent {
 $(deriveJSON defaultOptions ''HashedEvent)
 instance ToSchema HashedEvent
 
-data SigError =  SE_NeedMoreSignatures
-               | SE_InvalidSignature
-               | SE_InvalidUser
-               | SE_BlockchainSendFailed
-               | SE_InvalidEventID
-               | SE_InvalidKeyID
-               | SE_SEND_TO_BLOCKCHAIN_FAILED
-               deriving (Show, Read, Generic)
---instance Except SigError
+-- | A sum type of errors that may occur in the Service layer
+data ServiceError = NeedMoreSignatures T.Text
+                  | InvalidSignature BS.ByteString
+                  | BlockchainSendFailed
+                  | InvalidEventID Int
+                  | InvalidKeyID KeyID
+                  | InvalidUserID UserID
+                  | InsertionFail
+                  | EmailExists Email
+                  | EmailNotFound Email
+                  | BackendErr
+                  deriving (Show, Read, Generic)
 
-data GetPropertyError = KE_InvalidKeyID
-                      | KE_InvalidUserID
-                      deriving (Show, Read, Generic)
+{-
+Do not remove the following commented out code until explicitly asked to
+They serve as reference to what the errors used to be before they
+were merged into ``ServiceError``
+-}
+-- -- Interface for converting custom errors to ServantErr
+-- class AppServantError err where
+--   toServantErr :: err -> ServantErr
 
-data DBError = DBE_InsertionFail
-               deriving (Show, Read, Generic)
---instance Except GetPropertyError
+-- data SigError = SE_NeedMoreSignatures T.Text
+--               | SE_InvalidSignature BS.ByteString
+--               | SE_InvalidUser T.Text
+--               | SE_BlockchainSendFailed
+--               | SE_InvalidEventID Int
+--               | SE_InvalidKeyID
+--               deriving (Show, Read, Generic)
+
+-- instance AppServantError SigError where
+--   toServantErr e = err500 {errBody = LBSC8.pack $ show e}
+
+
+-- data GetPropertyError = KE_InvalidKeyID
+--                       | KE_InvalidUserID
+--                       deriving (Show, Read, Generic)
+
+-- instance AppServantError GetPropertyError where
+--   toServantErr e = err500 {errBody = LBSC8.pack $ show e}
+
+-- data DBError = DBE_InsertionFail
+--              | DBE_EmailExists
+--              deriving (Show, Read, Generic)
+
+-- instance AppServantError DBError where
+--   toServantErr e = err500 {errBody = LBSC8.pack $ show e}
+

@@ -36,7 +36,7 @@ openConnection = do
 closeConnection :: Connection -> IO ()
 closeConnection conn = do
   -- drop all tables created by migration
-  execute_ conn "DROP TABLE IF EXISTS \"bizTransactions\", businesses, contacts, items, events, keys, \"labelEvents\", labels, locations, transformations, users, whats, whens, wheres, whys;"
+  execute_ conn "DROP TABLE IF EXISTS users, keys, businesses, contacts, labels, items, transformations, locations, events, whats, \"bizTransactions\", whys, wheres, whens, \"labelEvents\", \"userEvents\", hashes, blockchain;"
   close conn
 
 withDatabaseConnection :: (Connection -> IO ()) -> IO ()

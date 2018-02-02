@@ -1,14 +1,16 @@
-{-# LANGUAGE DataKinds             #-}
-{-# LANGUAGE FlexibleContexts      #-}
-{-# LANGUAGE FlexibleInstances     #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE OverloadedStrings     #-}
-{-# LANGUAGE ScopedTypeVariables   #-}
-{-# LANGUAGE TypeFamilies          #-}
-{-# LANGUAGE TypeOperators         #-}
-{-# LANGUAGE CPP                   #-}
-{-# LANGUAGE UndecidableInstances  #-}
-{-# OPTIONS_GHC -fno-warn-orphans  #-}
+{-# LANGUAGE DataKinds                  #-}
+{-# LANGUAGE FlexibleContexts           #-}
+{-# LANGUAGE FlexibleInstances          #-}
+{-# LANGUAGE MultiParamTypeClasses      #-}
+{-# LANGUAGE OverloadedStrings          #-}
+{-# LANGUAGE ScopedTypeVariables        #-}
+{-# LANGUAGE TypeFamilies               #-}
+{-# LANGUAGE TypeOperators              #-}
+{-# LANGUAGE CPP                        #-}
+{-# LANGUAGE UndecidableInstances       #-}
+{-# LANGUAGE PolyKinds                  #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# OPTIONS_GHC -fno-warn-orphans       #-}
 module Service where
 
 import           Model
@@ -41,9 +43,12 @@ import           Control.Monad.Except (runExceptT)
 import qualified Control.Exception.Lifted as ExL
 import           Control.Monad.Trans.Except
 -- remove me eventually
-import Data.UUID.V4
+import           Data.UUID.V4
 import qualified BeamQueries as BQ
 import qualified AppConfig as AC
+import           Control.Monad.Reader   (MonadReader, ReaderT, runReaderT,
+                                         asks, ask, liftIO)
+import           Control.Monad.Trans.Either (EitherT(..))
 
 instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub) where
   toSwagger _ =
@@ -54,8 +59,6 @@ instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub
       toSwagger (Proxy :: Proxy sub)
       & securityDefinitions .~ authSchemes
       & allOperations . security .~ securityRequirements
-
-
 
 -- sampleUser :: User
 -- -- sampleUser =  User (Auto Nothing) "Sara" "Falamaki"
@@ -73,7 +76,11 @@ authCheck = error "Storage module not implemented"
 
 
 appMToHandler :: forall x. AC.Env -> AC.AppM x -> Handler x
-appMToHandler env = flip runReaderT env . AC.unAppM
+appMToHandler env act = do
+  res <- liftIO $ runExceptT $ runReaderT (AC.unAppM act) env
+  case res of
+    Left (AC.AppError e) -> throwError $ err500 { errBody = "Just threw an error" }
+    Right a  -> return a
 
 privateServer :: User -> ServerT PrivateAPI AC.AppM
 privateServer user =
@@ -115,14 +122,6 @@ serveSwaggerAPI = toSwagger serverAPI
   & info.description ?~ "This is an API that tests swagger integration"
   & info.license ?~ ("MIT" & url ?~ URL "http://mit.com")
 
-
--- intercept :: ExceptT ServantErr IO a -> ExceptT ServantErr IO a
-intercept a = do
-  r <- ExL.try a
-  case r of
-    Right x -> return x
-    Left e -> throwE e
-
 -- | We need to supply our handlers with the right Context. In this case,
 -- Basic Authentication requires a Context Entry with the 'BasicAuthCheck' value
 -- tagged with "foo-tag" This context is then supplied to 'server' and threaded
@@ -132,20 +131,11 @@ basicAuthServerContext = authCheck :. EmptyContext
 
 
 addPublicKey :: User -> RSAPublicKey -> AC.AppM KeyID
-addPublicKey user sig = error "Storage module not implemented"
+addPublicKey = BQ.addPublicKey
   -- liftIO (Storage.addPublicKey user sig)
 
 newUser :: NewUser -> AC.AppM UserID
-newUser nu = BQ.newUser nu
-    -- liftIO $ print "newUser:service"
-    -- r <- runExceptT $ intercept $ BQ.newUser nu
-    -- case r of
-    --     Left  _ -> liftIO $ putStrLn "caught error"
-    --     Right _ -> liftIO $ putStrLn "nope, didn't catch no error"
-  -- liftIO $ print insertedUserList
-  -- case insertedUserList of
-  --   [user] -> return (SB.user_id user)
-  --   _      -> throwError M.DBE_InsertionFail
+newUser = BQ.newUser
 
 getPublicKey :: KeyID -> AC.AppM RSAPublicKey
 getPublicKey keyID = error "Storage module not implemented"
