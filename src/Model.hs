@@ -15,7 +15,7 @@
 
 module Model where
 
-import qualified Data.ByteString.Lazy.Char8 as LBSC8
+-- import qualified Data.ByteString.Lazy.Char8 as LBSC8
 import qualified Data.ByteString as BS
 import           Data.Text as T
 
@@ -27,9 +27,9 @@ import           Prelude        ()
 import           Prelude.Compat
 import           GHC.Generics (Generic)
 
-import           Control.Monad.Except (throwError, MonadError, Except)
-import           Control.Monad.Error.Class (Error)
-import           Control.Exception (IOException)
+-- import           Control.Monad.Except (throwError, MonadError, Except)
+-- import           Control.Monad.Error.Class (Error)
+-- import           Control.Exception (IOException)
 
 import           Data.Aeson
 import           Data.Aeson.TH
@@ -185,7 +185,8 @@ data NewObject = NewObject {
   object_epcs :: LabelEPC,
   object_timestamp :: EPCISTime,
   object_timezone:: TimeZone,
-  object_location :: EventLocation
+  object_location :: EventLocation,
+  object_foreign_event_id :: Maybe EventID
 } deriving (Show, Generic)
 $(deriveJSON defaultOptions ''NewObject)
 instance ToSchema NewObject
@@ -194,10 +195,11 @@ data AggregatedObject = AggregatedObject {
   aggObject_objectIDs :: [LabelEPC],
   aggObject_containerID :: LabelEPC,
   aggObject_timestamp :: EPCISTime,
-  aggOject_timezone:: TimeZone,
+  aggObject_timezone:: TimeZone,
   aggObject_location :: EventLocation,
   aggObject_bizStep :: BizStep,
-  aggObject_disposition :: Disposition
+  aggObject_disposition :: Disposition,
+  aggObject_foreign_event_id :: Maybe EventID
 } deriving (Show, Generic)
 $(deriveJSON defaultOptions ''AggregatedObject)
 instance ToSchema AggregatedObject
@@ -206,15 +208,14 @@ data DisaggregatedObject = DisaggregatedObject {
   daggObject_objectIDs :: [LabelEPC],
   daggObject_containerID :: LabelEPC,
   daggObject_timestamp :: EPCISTime,
-  daggOject_timezone:: TimeZone,
+  daggObject_timezone:: TimeZone,
   daggObject_location :: EventLocation,
   daggObject_bizStep :: BizStep,
-  daggObject_disposition :: Disposition
+  daggObject_disposition :: Disposition,
+  daggObject_foreign_event_id :: Maybe EventID
 } deriving (Show, Generic)
 $(deriveJSON defaultOptions ''DisaggregatedObject)
 instance ToSchema DisaggregatedObject
-
-
 
 data TransformationInfo = TransformationInfo {
   transObject_objectIDs :: [LabelEPC],
@@ -223,7 +224,8 @@ data TransformationInfo = TransformationInfo {
   transObject_location :: EventLocation,
   transObject_inputQuantity :: [Quantity],
   transObject_outputObjectID :: [LabelEPC],
-  transObject_outputQuantity :: [Quantity]
+  transObject_outputQuantity :: [Quantity],
+  transObject_foreign_event_id :: Maybe EventID
 } deriving (Show, Generic)
 $(deriveJSON defaultOptions ''TransformationInfo)
 instance ToSchema TransformationInfo
