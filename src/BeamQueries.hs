@@ -252,8 +252,8 @@ insertEvent userId jsonEvent event = do
 -- TODO = fix. 1 problem is nothing is done with filter value or asset type in objectRowID grabbing data insert
 -- 1 other problem is state never used... what is it???
 -- epc is a labelEPC
-eventCreateObject :: M.User -> M.NewObject -> AppM SB.Event
-eventCreateObject  (M.User uid _ _ ) (M.NewObject epc epcisTime timezone (M.EventLocation rp bizL)) = do
+eventCreateObject :: M.User -> M.NewObject -> AppM SB.EventId
+eventCreateObject  (M.User uid _ _ ) (M.NewObject epc epcisTime timezone (M.EventLocation rp bizL) mEventId) = do
 
   currentTime <- generateTimeStamp
   eventIdPk <- generatePk
@@ -282,7 +282,7 @@ eventCreateObject  (M.User uid _ _ ) (M.NewObject epc epcisTime timezone (M.Even
   -- haven't added UserEvents insertion equivalent since redundant information and no equivalent
   -- hashes not added yet, but will later for blockchain
 
-  return event
+  return (SB.EventId eventId)
 
 -- | Json encode the event
 -- currently do it automagically, but might what to be
