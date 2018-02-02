@@ -265,21 +265,21 @@ insertDWhy dwhy eventId = do
 insertDWhere :: DWhere -> AppM SB.PrimaryKeyType
 insertDWhere = error "not implemented yet"
 
-toStorageDWhere :: SB.PrimaryKeyType -> DWhere -> SB.Where
+toStorageDWhere :: SB.PrimaryKeyType -> DWhere -> SB.PrimaryKeyType -> SB.Where
 toStorageDWhere = error "not implemented yet"
 
 
-extractEventId :: Maybe EvId.EventID -> Maybe SB.PrimaryKeyType
-extractEventId (Just (EvId.EventID eventId)) = Just eventId
-extractEventId _ = Nothing
+-- extractEventId :: Maybe EvId.EventID -> Maybe SB.PrimaryKeyType
+-- extractEventId (Just (EvId.EventID eventId)) = Just eventId
+-- extractEventId _ = Nothing
 
 toStorageEvent :: SB.PrimaryKeyType
                -> SB.PrimaryKeyType
                -> T.Text
                -> Maybe EvId.EventID
                -> SB.Event
-toStorageEvent pk userId jsonEvent mEventId =
-  SB.Event pk (extractEventId mEventId) (SB.UserId userId) jsonEvent
+toStorageEvent pKey userId jsonEvent mEventId =
+  SB.Event pKey (EvId.getEventId <$> mEventId) (SB.UserId userId) jsonEvent
 
 insertEvent :: SB.PrimaryKeyType -> T.Text -> Event -> AppM SB.PrimaryKeyType
 insertEvent userId jsonEvent event = do
