@@ -22,6 +22,13 @@ import AppConfig as AC
 dbConnStr :: ByteString
 dbConnStr = "dbname=testsupplychainserver2"
 
+-- INTERESTING NOTE
+-- receive this error if the tables already exist
+--  uncaught exception: ErrorCall (Data.Either.Combinators.fromRight: Argument takes form 'Left _'
+--  CallStack (from HasCallStack):
+--    error, called at src/Data/Either/Combinators.hs:106:24 in either-4.4.1.1-6PiwKYkn4v6B4KO2R2Fu1b:Data.Either.Combinators)
+
+
 openConnection :: IO (Connection, Env)
 openConnection = do
   conn <- connectPostgreSQL dbConnStr
@@ -32,9 +39,22 @@ openConnection = do
 
 closeConnection :: (Connection, Env) -> IO ()
 closeConnection (conn, env) = do
-  -- drop all tables created by migration
-  -- TODO = ensure that this list of table names is complete
-  execute_ conn "DROP TABLE IF EXISTS users, keys, businesses, contacts, labels, what_labels, items, transformations, locations, events, whats, \"bizTransactions\", whys, wheres, whens, \"labelEvents\", \"userEvents\", hashes, blockchain;"
+  -- note if remove this drop tables string, so have tables, will have to run twice for test to work
+
+  -- drop all tables created by migration. Equivalent to, at the time of writing;
+  --execute_ conn "DROP TABLE IF EXISTS users, keys, businesses, contacts, labels, what_labels, items, transformations, locations, events, whats, \"bizTransactions\", whys, wheres, whens, \"labelEvents\", \"userEvents\", hashes, blockchain;"
+
+  --https://stackoverflow.com/questions/3327312/drop-all-tables-in-postgresql
+  execute_ conn "DO $$ DECLARE                                                                              \
+               \     r RECORD;                                                                              \
+               \ BEGIN                                                                                      \
+               \     FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = current_schema()) LOOP    \
+               \         EXECUTE 'DROP TABLE IF EXISTS ' || quote_ident(r.tablename) || ' CASCADE';         \
+               \     END LOOP;                                                                              \
+               \ END $$;                                                                                    "
+  -- following is single line version in case want to for style, or want to copy into terminal... is same query
+  --execute_ conn "DO $$ DECLARE r RECORD; BEGIN FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = current_schema()) LOOP EXECUTE 'DROP TABLE IF EXISTS ' || quote_ident(r.tablename) || ' CASCADE'; END LOOP; END $$;                                                                                    "
+
   close conn
 
 withDatabaseConnection :: ((Connection, Env) -> IO ()) -> IO ()
