@@ -142,7 +142,7 @@ migrationStorage =
     <$> createTable "users"
     (
       User
-          (field "user_id" pkSerialType notNull)
+          (field "user_id" pkSerialType)
           (BizId (field "user_biz_id" text))
           (field "first_name" (varchar (Just maxLen)) notNull)
           (field "last_name" (varchar (Just maxLen)) notNull)
@@ -153,7 +153,7 @@ migrationStorage =
     <*> createTable "keys"
     (
       Key
-          (field "key_id" pkSerialType notNull)
+          (field "key_id" pkSerialType)
           (UserId (field "key_user_id" pkSerialType))
           (field "rsa_n" text)
           (field "rsa_e" text)
@@ -163,7 +163,7 @@ migrationStorage =
     <*> createTable "businesses"
     (
       Business
-          (field "biz_gs1_company_prefix" text notNull)
+          (field "biz_gs1_company_prefix" text) -- note is primary key
           (field "biz_name" (varchar (Just maxLen)) notNull)
           (field "biz_function" (varchar (Just maxLen)) notNull)
           (field "biz_site_name" (varchar (Just maxLen)) notNull)
@@ -174,14 +174,14 @@ migrationStorage =
     <*> createTable "contacts"
     (
       Contact
-          (field "contact_id" pkSerialType notNull)
+          (field "contact_id" pkSerialType)
           (UserId (field "contact_user1_id" pkSerialType))
           (UserId (field "contact_user2_id" pkSerialType))
     )
     <*> createTable "labels"
     (
       Label
-          (field "label_id" pkSerialType notNull)
+          (field "label_id" pkSerialType)
           (field "label_type" (varchar (Just maxLen)) notNull)
           (WhatId (field "label_what_id" pkSerialType))
           (field "label_gs1_company_prefix" (varchar (Just maxLen)) notNull)
@@ -202,21 +202,21 @@ migrationStorage =
     <*> createTable "items"
     (
       Item
-          (field "item_id" pkSerialType notNull)
+          (field "item_id" pkSerialType)
           (LabelId (field "item_label_id" pkSerialType))
           (field "item_description" (varchar (Just maxLen)) notNull)
     )
     <*> createTable "transformations"
     (
       Transformation
-          (field "transformation_id" pkSerialType notNull)
+          (field "transformation_id" pkSerialType)
           (field "transformation_description" (varchar (Just maxLen)) notNull)
           (BizId (field "transformation_biz_id" text))
     )
     <*> createTable "locations"
     (
       Location
-          (field "location_id" pkSerialType notNull)
+          (field "location_id" pkSerialType)
           (BizId (field "location_biz_id" text))
           -- this needs to be locationReferenceNum
           (field "location_lat" double)
@@ -247,7 +247,7 @@ migrationStorage =
     <*> createTable "bizTransactions"
     (
       BizTransaction
-          (field "biz_transaction_id" pkSerialType notNull)
+          (field "biz_transaction_id" pkSerialType)
           (field "biz_transaction_type_id" (varchar (Just maxLen)))
           (field "biz_transaction_id_urn" (varchar (Just maxLen)))
           (EventId (field "biz_transaction_event_id" pkSerialType))
@@ -263,7 +263,7 @@ migrationStorage =
     <*> createTable "wheres"
     (
       Where
-          (field "where_id" pkSerialType notNull)
+          (field "where_id" pkSerialType)
           (LocationId (field "read_point" pkSerialType))
           (LocationId (field "biz_location" pkSerialType))
           (field "src_type" text)
@@ -273,7 +273,7 @@ migrationStorage =
     <*> createTable "whens"
     (
       When
-          (field "when_id" pkSerialType notNull)
+          (field "when_id" pkSerialType)
           (field "event_time" timestamptz notNull)
           (field "record_time" (maybeType timestamptz))
           (field "time_zone" (varchar (Just maxTzLen)) notNull)
@@ -282,7 +282,7 @@ migrationStorage =
     <*> createTable "labelEvents"
     (
       LabelEvent
-          (field "label_event_id" pkSerialType notNull)
+          (field "label_event_id" pkSerialType)
           (LabelId (field "label_event_label_id" pkSerialType))
           (EventId (field "label_event_event_id" pkSerialType))
     )
