@@ -229,14 +229,23 @@ toStorageDWhere :: SB.PrimaryKeyType -> DWhere -> SB.Where
 toStorageDWhere = error "not implemented yet"
 
 
-toStorageEvent :: SB.PrimaryKeyType -> SB.PrimaryKeyType -> T.Text -> Event -> SB.Event
-toStorageEvent pk userId jsonEvent (Event _ (Just eventId) _ _ _ _) = SB.Event pk eventId (SB.UserId userId) jsonEvent 
+extractEventId :: Maybe EvId.EventID -> Maybe SB.PrimaryKeyType
+extractEventId (Just (EvId.EventID eventId)) = Just eventId
+extractEventId _ = Nothing
+
+toStorageEvent :: SB.PrimaryKeyType
+               -> SB.PrimaryKeyType
+               -> T.Text
+               -> Maybe EvId.EventID
+               -> SB.Event
+toStorageEvent pk userId jsonEvent mEventId =
+  SB.Event pk (extractEventId mEventId) (SB.UserId userId) jsonEvent
 
 insertEvent :: SB.PrimaryKeyType -> T.Text -> Event -> AppM SB.PrimaryKeyType
 insertEvent userId jsonEvent event = do
   pk <- generatePk
   r <- runDb $ B.runInsert $ B.insert (SB._events SB.supplyChainDb)
-             $ insertValues [toStorageEvent pk userId jsonEvent event]
+             $ insertValues [toStorageEvent pk userId jsonEvent (_eid event)]
   return pk
 
 
