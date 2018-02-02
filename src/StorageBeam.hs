@@ -179,7 +179,7 @@ migrationStorage =
     (
       What
           (field "what_id" pkSerialType)
-          (field "what_type" text)
+          (field "what_event_type" text)
           (field "action" text)
           (LabelId (field "parent" pkSerialType))
           -- (field "input" bigserial)
@@ -485,7 +485,7 @@ instance Table EventT where
 
 data WhatT f = What
   { what_id                    :: C f PrimaryKeyType
-  , what_type                  :: C f Text -- Ev.EventType
+  , what_event_type            :: C f Text -- Ev.EventType
   , action                     :: C f Text -- E.Action
   , parent                     :: PrimaryKey LabelT f
   -- , input                      :: C f [LabelEPC]
