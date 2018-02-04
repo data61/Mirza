@@ -80,6 +80,62 @@ maxTzLen = 10
 -- pkSerialType :: DataType PgDataTypeSyntax UUID
 pkSerialType = uuid
 
+-- NOTES
+-- f is the arg to dropTable... this is on type level... SupplyChainDb constructor is a function
+-- 
+
+-- problem = can't map dropTable over the SupplyChainDb as it's not a functor, this solves that
+--dropIndividualTables :: (Monad m) => SupplyChainDb f -> m ()
+-- dropIndividualTables :: (Monad m) => SupplyChainDb f -> m ()
+-- dropIndividualTables db = do
+--   -- TODO
+--   return ()
+
+--dropTables :: Migration syntax ()
+--dropTables =
+  --(fmap . fmap . fmap . fmap . fmap) dropTable migrationStorage
+  -- return ()
+--(fmap . fmap . fmap . fmap) dropTable migrationStorage
+  --dropTable <$> --migrationStorage
+
+  -- SupplyChainDb
+  --   <$> dropTable User
+  --   <*> dropTable Key
+  --   <*> dropTable Business
+  --   <*> dropTable Contact
+  --   <*> dropTable Label
+  --   <*> dropTable Item
+  --   <*> dropTable Transformation
+  --   <*> dropTable Location
+  --   <*> dropTable Event
+  --   <*> dropTable What
+  --   <*> dropTable BizTransaction
+  --   <*> dropTable Why
+  --   <*> dropTable Where
+  --   <*> dropTable When
+  --   <*> dropTable LabelEvent
+  --   <*> dropTable UserEvents
+  --   <*> dropTable Hashes
+  --   <*> dropTable BlockChain
+
+  --   <*> dropTable "keys"
+  --   <*> dropTable "businesses"
+  --   <*> dropTable "contacts"
+  --   <*> dropTable "labels"
+  --   <*> dropTable "items"
+  --   <*> dropTable "transformations"
+  --   <*> dropTable "locations"
+  --   <*> dropTable "events"
+  --   <*> dropTable "whats"
+  --   <*> dropTable "bizTransactions"
+  --   <*> dropTable "whys"
+  --   <*> dropTable "wheres"
+  --   <*> dropTable "whens"
+  --   <*> dropTable "labelEvents"
+  --   <*> dropTable "userEvents"
+  --   <*> dropTable "hashes"
+  --   <*> dropTable "blockchain"
+
 migrationStorage :: Migration PgCommandSyntax (CheckedDatabaseSettings Postgres SupplyChainDb)
 migrationStorage =
   SupplyChainDb
@@ -107,7 +163,7 @@ migrationStorage =
     <*> createTable "businesses"
     (
       Business
-          (field "biz_gs1_company_prefix" text)
+          (field "biz_gs1_company_prefix" text) -- note is primary key
           (field "biz_name" (varchar (Just maxLen)) notNull)
           (field "biz_function" (varchar (Just maxLen)) notNull)
           (field "biz_site_name" (varchar (Just maxLen)) notNull)
@@ -217,7 +273,7 @@ migrationStorage =
     <*> createTable "whens"
     (
       When
-          (field "when_id" pkSerialType notNull)
+          (field "when_id" pkSerialType)
           (field "event_time" timestamptz notNull)
           (field "record_time" (maybeType timestamptz))
           (field "time_zone" (varchar (Just maxTzLen)) notNull)
