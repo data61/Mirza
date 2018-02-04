@@ -54,8 +54,8 @@ Things to do before next release:
 - [x] Integrate ReaderT Monad
 - [ ] Add tests for all the endpoints
 - [ ] Finish backend implementation (queries) for all endpoints
-- [ ] Decide on a `PrimaryKeyType`
+- [x] Decide on a `PrimaryKeyType`
 - [x] Define instances for selected `PrimaryKeyType`
 - [x] Add remaining tables (`EventHash`, etc)
 - [ ] (Unlikely) Write a `setup.sh` for new developers coming in
-- [ ] Add exception handling using ExceptT
+- [x] Add exception handling using ExceptT
