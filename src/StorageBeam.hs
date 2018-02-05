@@ -209,10 +209,9 @@ migrationStorage =
     (
       Where
           (field "where_id" pkSerialType)
-          (LocationId (field "read_point" pkSerialType))
-          (LocationId (field "biz_location" pkSerialType))
-          (field "src_type" text)
-          (field "dest_type" text)
+          (field "where_source_dest_type" (maybeType $ varchar (Just maxLen)) notNull)
+          (LocationId (field "where_location_id" pkSerialType))
+          (field "where_location_field" (varchar (Just maxLen)) notNull)
           (EventId (field "where_event_id" pkSerialType))
     )
     <*> createTable "whens"
