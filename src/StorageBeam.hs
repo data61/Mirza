@@ -20,6 +20,8 @@
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE UndecidableInstances  #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+-- {-# LANGUAGE DeriveAnyClass        #-}
+-- {-# LANGUAGE GeneralizedNewtypeDeriving  #-}
 {-# OPTIONS_GHC -fno-warn-orphans  #-}
 
 module StorageBeam where
@@ -36,23 +38,23 @@ VSCode shortcut for multi-line cursors: Ctrl+Shift+Up/Down
 import           Control.Lens
 import           Database.Beam as B
 import           Database.Beam.Postgres
--- import           Database.PostgreSQL.Simple
--- import           Database.Beam.Backend
--- import           Database.Beam.Backend.SQL.BeamExtensions
--- import           Database.PostgreSQL.Simple.FromField
--- import           Database.Beam.Backend.SQL
--- import qualified Database.PostgreSQL.Simple.Time as PgT
+
 import           Data.Text (Text)
--- import           Data.Int
 import           Data.Time
 import           Data.ByteString (ByteString)
 -- import qualified Data.GS1.Event as Ev
-import qualified Data.GS1.EPC as E
+import qualified Data.GS1.EPC as EPC
 -- import qualified Data.GS1.DWhat as DWhat
+import           Text.Read (readMaybe)
 import           Data.UUID (UUID)
+import           Database.PostgreSQL.Simple.FromField (FromField,
+                                                      fromField,
+                                                      returnError)
+import           Database.PostgreSQL.Simple.ToField (ToField)
 import           Database.Beam.Postgres.Migrate
 import           Database.Beam.Migrate.SQL.Tables
 import           Database.Beam.Migrate.Types
+import           Database.Beam.Backend.SQL
 import           Data.Swagger ()
 import           Servant ()
 
@@ -68,7 +70,6 @@ type PrimaryKeyType = UUID
 --   -- parseUrlPiece :: Text -> Either Text PrimaryKeyType
 --   parseUrlPiece t = error $ show t ++ " parseUP"
 --   parseQueryParam t = error $ show t ++ " parseQP"
-
 
 maxLen :: Word
 maxLen = 120
