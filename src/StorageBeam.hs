@@ -144,11 +144,11 @@ migrationStorage =
       User
           (field "user_id" pkSerialType)
           (BizId (field "user_biz_id" text))
-          (field "first_name" (varchar (Just maxLen)) notNull)
-          (field "last_name" (varchar (Just maxLen)) notNull)
-          (field "phone_number" (varchar (Just maxLen)) notNull)
-          (field "password_hash" (varchar (Just maxLen)) notNull)
-          (field "email_address" (varchar (Just maxLen)) uniqueColumn) -- uniqueColumn
+          (field "user_first_name" (varchar (Just maxLen)) notNull)
+          (field "user_last_name" (varchar (Just maxLen)) notNull)
+          (field "user_phone_number" (varchar (Just maxLen)) notNull)
+          (field "user_password_hash" (varchar (Just maxLen)) notNull)
+          (field "user_email_address" (varchar (Just maxLen)) uniqueColumn) -- uniqueColumn
     )
     <*> createTable "keys"
     (
@@ -322,11 +322,11 @@ migrationStorage =
 data UserT f = User
   { user_id              :: C f PrimaryKeyType
   , user_biz_id          :: PrimaryKey BusinessT f
-  , first_name           :: C f Text
-  , last_name            :: C f Text
-  , phone_number         :: C f Text
-  , password_hash        :: C f Text --XXX - should this be blob?
-  , email_address        :: C f Text }
+  , user_first_name           :: C f Text
+  , user_last_name            :: C f Text
+  , user_phone_number         :: C f Text
+  , user_password_hash        :: C f Text --XXX - should this be blob?
+  , user_email_address        :: C f Text }
   deriving Generic
 
 type User = UserT Identity
