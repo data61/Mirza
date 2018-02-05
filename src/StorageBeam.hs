@@ -637,8 +637,6 @@ data WhenT f = When
   , event_time                   :: C f LocalTime
   , record_time                  :: C f (Maybe LocalTime)
   , time_zone                    :: C f OffsetString -- TimeZone
-  -- call unpack . timeZoneOffsetString on the TimeZone object
-  -- to put it in the db
   , when_event_id                :: PrimaryKey EventT f }
   deriving Generic
 
