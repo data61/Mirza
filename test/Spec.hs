@@ -21,7 +21,7 @@ import Data.Int
 -- create role per276 with login;
 -- create database testsupplychainserver2;
 dbConnStr :: ByteString
-dbConnStr = "dbname=testsupplychainserver2"
+dbConnStr = "dbname=testsupplychainserver"
 
 -- INTERESTING NOTE ON MIGRATION
 -- receive this error if the tables already exist (not in tests anymore since delete them beforehand)
