@@ -126,8 +126,8 @@ instance ToSchema KeyInfo
 
 data User = User {
     userId        :: UserID,
-    userFirstName :: T.Text,
-    userLastName  :: T.Text
+    user_first_name :: T.Text,
+    user_last_name  :: T.Text
 } deriving (Generic, Eq, Show)
 $(deriveJSON defaultOptions ''User)
 instance ToSchema User
@@ -148,10 +148,10 @@ instance ToSchema EPCInfo
 
 type Email = T.Text
 data NewUser = NewUser {
-  phoneNumber :: T.Text,
-  emailAddress :: Email,
-  firstName :: T.Text,
-  lastName :: T.Text,
+  userPhoneNumber :: T.Text,
+  userEmailAddress :: Email,
+  userFirstName :: T.Text,
+  userLastName :: T.Text,
   company :: T.Text,
   password :: T.Text
 } deriving (Generic, Eq, Show)

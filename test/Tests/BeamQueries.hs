@@ -44,10 +44,10 @@ testNewUser = do
       let uid_check = (fromJust $ fromString "c2cc10e1-57d6-4b6f-9899-38d972112d8c")
           user1 = (NewUser "000" "fake@gmail.com" "Bob" "Smith" "blah Ltd" "password") in do
         uid <- fromRight' <$> (runAppM env $ newUser user1)
+        
         user <- fromRight' <$> (runAppM env $ selectUser uid)
-        --user `shouldBe` user1
-        --user1 `shouldBe` (fromJust user)
-        print "blasddd"
-        print $ show user
-        --user `shouldBe` user
-        (fromJust user) `shouldSatisfy`(\u -> (userFirstName u) == "Bob")
+
+        print "USER"
+        --print $ show user
+        --1 `shouldBe` 1
+        (fromJust user) `shouldSatisfy` (\u -> (user_first_name u) == "Bob")
