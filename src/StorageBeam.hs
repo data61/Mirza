@@ -209,10 +209,9 @@ migrationStorage =
     (
       Where
           (field "where_id" pkSerialType)
-          (LocationId (field "read_point" pkSerialType))
-          (LocationId (field "biz_location" pkSerialType))
-          (field "src_type" text)
-          (field "dest_type" text)
+          (field "where_source_dest_type" (maybeType $ varchar (Just maxLen)) notNull)
+          (LocationId (field "where_location_id" pkSerialType))
+          (field "where_location_field" (varchar (Just maxLen)) notNull)
           (EventId (field "where_event_id" pkSerialType))
     )
     <*> createTable "whens"
@@ -574,12 +573,10 @@ instance HasSqlValueSyntax be String => HasSqlValueSyntax be LocationField where
 
 data WhereT f = Where
   { where_id                    :: C f PrimaryKeyType
-  , read_point                  :: PrimaryKey LocationT f
-  , biz_location                :: PrimaryKey LocationT f
-  , src_type                    :: C f Text -- E.SourceDestType
-  , dest_type                   :: C f Text -- E.SourceDestType
+  , where_source_dest_type      :: C f (Maybe Text) -- (Maybe EPC.SourceDestType)
+  , where_location_id           :: PrimaryKey LocationT f
+  , where_location_field        :: C f Text -- LocationField
   , where_event_id              :: PrimaryKey EventT f }
-
   deriving Generic
 
 type Where = WhereT Identity
