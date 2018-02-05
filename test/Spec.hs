@@ -19,7 +19,7 @@ import Data.Int
 -- initially get into postgres using: sudo -u postgres psql postgres
 -- from then on use: sudo -u per276 psql testsupplychainserver2
 -- create role per276 with login;
--- create database testsupplychainserver2;
+-- create database testsupplychainserver;
 dbConnStr :: ByteString
 dbConnStr = "dbname=testsupplychainserver"
 
