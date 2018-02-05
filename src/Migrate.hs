@@ -20,7 +20,7 @@ defConnectionStr = "dbname=devsupplychainserver"
 
 createSchema :: Connection -> IO ()
 createSchema conn = do
-  dbFunc conn $ executeMigration runNoReturn migrationStorage
+  dbFunc conn $ executeMigration runNoReturn $ migrationStorage ()
   return ()
 
 -- dropSchema :: Connection -> IO ()
