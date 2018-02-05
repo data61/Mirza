@@ -46,7 +46,7 @@ serverOptions = ServerOptions
           ( long "uiFlavour"
          <> help "Use jensoleg or Original UI Flavour for the Swagger API"
          <> showDefault
-         <> value JensOleG)
+         <> value Original)
 
 
 main :: IO ()
