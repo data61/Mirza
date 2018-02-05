@@ -53,7 +53,7 @@ import qualified Data.Text.Lazy as TxtL
 -- to figure out what it was when work was started
 -- especially, if some variable is out of scope, look at the import list there
 
-{- 
+{-
 {
   "phoneNumber": "0412",
   "emailAddress": "abc@gmail.com",
@@ -280,8 +280,46 @@ insertDWhy dwhy eventId = do
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 insertDWhere :: DWhere -> SB.PrimaryKeyType -> AppM SB.PrimaryKeyType
-insertDWhere = error "not implemented yet"
+insertDWhere dwhere eventId = do
+  pKey <- generatePk
+  r <- runDb $ B.runInsert $ B.insert (SB._wheres SB.supplyChainDb)
+             $ insertValues [toStorageDWhere pKey dwhere eventId]
+  return pKey
+
 
 toStorageDWhere :: SB.PrimaryKeyType -> DWhere -> SB.PrimaryKeyType -> SB.Where
 toStorageDWhere pKey (DWhere rPoint bizLoc srcT destT) eventId = error "not implemented yet"
