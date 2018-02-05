@@ -554,6 +554,24 @@ instance Table WhyT where
     deriving Generic
   primaryKey = WhyId . why_id
 
+-- | The record fields in Data.GS1.DWhere for the data type DWhere
+data LocationField = Src | Dest | BizLocation | ReadPoint
+                    deriving (Generic, Show, Eq)
+
+instance FromField LocationField -- where
+--   fromField f bs = do x <- readMaybe <$> fromField f bs
+--                       case x of
+--                         Nothing ->
+--                           returnError ConversionFailed
+--                             f "Could not 'read' value for 'SourceDestType'"
+--                         Just x -> pure x
+
+instance FromBackendRow Postgres LocationField
+instance ToField LocationField
+instance HasSqlValueSyntax be String => HasSqlValueSyntax be LocationField where
+  sqlValueSyntax = autoSqlValueSyntax
+
+
 data WhereT f = Where
   { where_id                    :: C f PrimaryKeyType
   , read_point                  :: PrimaryKey LocationT f
