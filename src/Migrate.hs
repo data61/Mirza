@@ -5,18 +5,18 @@ import qualified Control.Exception as E
 import           StorageBeam -- the schemas
 import           Database.Beam (withDatabaseDebug)
 import           Database.Beam.Postgres (Connection, Pg)
-import           Database.Beam.Migrate.Types
+import           Database.Beam.Migrate.Types (executeMigration)
 import           Database.Beam.Backend (runNoReturn)
 
 import           Database.PostgreSQL.Simple(SqlError ,connectPostgreSQL)
-import           Data.ByteString.Char8 (ByteString, pack)
+import           Data.ByteString.Char8 (ByteString)
 
 
 dbFunc :: Connection -> Pg a -> IO a
 dbFunc = withDatabaseDebug putStrLn
 
-connectionStr :: ByteString
-connectionStr = pack "dbname=testsupplychainserver"
+defConnectionStr :: ByteString
+defConnectionStr = "dbname=devsupplychainserver"
 
 createSchema :: Connection -> IO ()
 createSchema conn = do

@@ -4,7 +4,7 @@ module Main where
 import Lib
 import Migrate
 import Data.ByteString
-
+import Migrate (defConnectionStr)
 import Options.Applicative
 import Data.Semigroup ((<>))
 
@@ -69,7 +69,3 @@ runProgram :: ServerOptions -> IO ()
 runProgram (ServerOptions isDebug False connStr portNum flavour) =
     startApp connStr isDebug (fromIntegral portNum) flavour
 runProgram _ = migrate defConnectionStr
-
-
-defConnectionStr :: ByteString
-defConnectionStr = "dbname=testsupplychainserver"
