@@ -81,8 +81,8 @@ maxTzLen = 10
 -- pkSerialType :: DataType PgDataTypeSyntax UUID
 pkSerialType = uuid
 
-migrationStorage :: Migration PgCommandSyntax (CheckedDatabaseSettings Postgres SupplyChainDb)
-migrationStorage =
+migrationStorage :: () -> Migration PgCommandSyntax (CheckedDatabaseSettings Postgres SupplyChainDb)
+migrationStorage () =
   SupplyChainDb
     <$> createTable "users"
     (
