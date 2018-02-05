@@ -31,7 +31,7 @@ import           Data.GS1.DWhat
 import           Data.GS1.DWhy
 import           Data.GS1.Parser.Parser
 import           Data.Either.Combinators
-
+import           Data.Text.Encoding (encodeUtf8)
 import qualified Data.ByteString as ByteString
 import qualified Data.ByteString.Lazy.Char8 as LBSC8
 import qualified Data.HashMap.Strict.InsOrd as IOrd
@@ -43,6 +43,7 @@ import           Control.Monad.Except (runExceptT)
 import qualified Control.Exception.Lifted as ExL
 import           Control.Monad.Trans.Except
 -- remove me eventually
+import qualified Model as M
 import           Data.UUID.V4
 import qualified BeamQueries as BQ
 import qualified AppConfig as AC
@@ -78,9 +79,16 @@ authCheck = error "Storage module not implemented"
 appMToHandler :: forall x. AC.Env -> AC.AppM x -> Handler x
 appMToHandler env act = do
   res <- liftIO $ runExceptT $ runReaderT (AC.unAppM act) env
+  liftIO $ print "We are in appMToHandler"
   case res of
-    Left (AC.AppError e) -> throwError $ err500 { errBody = "Just threw an error" }
-    Right a  -> return a
+    Left (AC.AppError (M.EmailExists em)) -> do
+      liftIO $ print "We are in Left"
+      throwError $ err400
+          { errBody = LBSC8.fromChunks $
+                      ["User email ", encodeUtf8 em, " exists"]}
+    Right a  -> do
+      liftIO $ print "We are in Right"
+      return a
 
 privateServer :: User -> ServerT PrivateAPI AC.AppM
 privateServer user =
