@@ -445,6 +445,7 @@ instance Table TransformationT where
 data LocationT f = Location
   { location_id                 :: C f PrimaryKeyType
   , location_biz_id             :: PrimaryKey BusinessT f
+  -- this needs to be locationReferenceNum
   , location_lat                :: C f Double
   , location_long               :: C f Double }
   deriving Generic
