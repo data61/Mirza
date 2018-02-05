@@ -312,7 +312,7 @@ instance Table KeyT where
 -- CBV-Standard-1-2-r-2016-09-29.pdf Page 11
 
 data BusinessT f = Business
-  { biz_gs1CompanyPrefix  :: C f E.GS1CompanyPrefix -- PrimaryKey
+  { biz_gs1CompanyPrefix  :: C f EPC.GS1CompanyPrefix -- PrimaryKey
   , biz_name              :: C f Text
   , biz_function          :: C f Text
   , biz_siteName          :: C f Text
@@ -330,7 +330,7 @@ instance Beamable (PrimaryKey BusinessT)
 deriving instance Show (PrimaryKey BusinessT Identity)
 
 instance Table BusinessT where
-  data PrimaryKey BusinessT f = BizId (C f E.GS1CompanyPrefix)
+  data PrimaryKey BusinessT f = BizId (C f EPC.GS1CompanyPrefix)
     deriving Generic
   primaryKey = BizId . biz_gs1CompanyPrefix
 
@@ -364,7 +364,7 @@ data LabelT f = Label
   , state                    :: C f Text
   , lot                      :: C f (Maybe Text)
   , quantity_amount          :: C f (Maybe Double)
-  , quantity_uom             :: C f (Maybe E.Uom) -- T.Text
+  , quantity_uom             :: C f (Maybe EPC.Uom) -- T.Text
   }
   deriving Generic
 type Label = LabelT Identity
@@ -486,7 +486,7 @@ instance Table EventT where
 data WhatT f = What
   { what_id                    :: C f PrimaryKeyType
   , what_event_type            :: C f Text -- Ev.EventType
-  , action                     :: C f Text -- E.Action
+  , action                     :: C f Text -- EPC.Action
   , parent                     :: PrimaryKey LabelT f
   -- , input                      :: C f [LabelEPC]
   -- , output                     :: C f [LabelEPC]
@@ -534,8 +534,8 @@ instance Table BizTransactionT where
 
 data WhyT f = Why
   { why_id                      :: C f PrimaryKeyType
-  , biz_step                    :: C f (Maybe Text) -- E.BizStep
-  , disposition                 :: C f (Maybe Text) -- E.Disposition
+  , biz_step                    :: C f (Maybe Text) -- EPC.BizStep
+  , disposition                 :: C f (Maybe Text) -- EPC.Disposition
   , why_event_id                :: PrimaryKey EventT f }
 
   deriving Generic
