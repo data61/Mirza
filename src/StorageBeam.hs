@@ -81,8 +81,8 @@ maxTzLen = 10
 -- pkSerialType :: DataType PgDataTypeSyntax UUID
 pkSerialType = uuid
 
-migrationStorage :: Migration PgCommandSyntax (CheckedDatabaseSettings Postgres SupplyChainDb)
-migrationStorage =
+migrationStorage :: () -> Migration PgCommandSyntax (CheckedDatabaseSettings Postgres SupplyChainDb)
+migrationStorage () =
   SupplyChainDb
     <$> createTable "users"
     (
@@ -93,7 +93,7 @@ migrationStorage =
           (field "last_name" (varchar (Just maxLen)) notNull)
           (field "phone_number" (varchar (Just maxLen)) notNull)
           (field "password_hash" (varchar (Just maxLen)) notNull)
-          (field "email_address" (varchar (Just maxLen)) uniqueColumn) -- uniqueColumn
+          (field "email_address" (varchar (Just maxLen)) unique) -- uniqueColumn
     )
     <*> createTable "keys"
     (
@@ -823,8 +823,7 @@ supplyChainDb = defaultDbSettings
     , _wheres =
         modifyTable (const "wheres") $
         tableModification {
-          read_point = LocationId (fieldNamed "read_point")
-        , biz_location = LocationId (fieldNamed "biz_location")
+          where_location_id = LocationId (fieldNamed "where_location_id")
         , where_event_id = EventId (fieldNamed "where_event_id")
         }
     , _whens =
