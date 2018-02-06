@@ -333,6 +333,8 @@ instance Table BusinessT where
   data PrimaryKey BusinessT f = BizId (C f EPC.GS1CompanyPrefix)
     deriving Generic
   primaryKey = BizId . biz_gs1_company_prefix
+-- added by Matt
+deriving instance Eq (PrimaryKey BusinessT Identity)
 
 data ContactT f = Contact
   { contact_id                :: C f PrimaryKeyType

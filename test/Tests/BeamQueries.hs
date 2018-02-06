@@ -25,7 +25,9 @@ import           Database.Beam.Backend.SQL.BeamExtensions
 import Database.Beam
 import Control.Lens
 
-selectUser :: M.UserID -> AppM (Maybe M.User)
+import qualified Data.Text as T
+
+selectUser :: M.UserID -> AppM (Maybe SB.User)
 selectUser uid = do
   r <- runDb $
           runSelectReturningList $ select $ do
@@ -33,7 +35,7 @@ selectUser uid = do
           guard_ (SB.user_id user ==. val_ uid)
           pure user
   case r of
-    Right [user] -> return $ Just $ userTableToModel user
+    Right [user] -> return $ Just user
     _ -> return Nothing
 
 testNewUser :: SpecWith (Connection, Env)
@@ -43,11 +45,14 @@ testNewUser = do
       let uid_check = (fromJust $ fromString "c2cc10e1-57d6-4b6f-9899-38d972112d8c")
           user1 = (M.NewUser "000" "fake@gmail.com" "Bob" "Smith" "blah Ltd" "password") in do
         
-        print "USER"
         uid <- fromRight' <$> (runAppM env $ newUser user1)
-        print "USER AGAIN"
         user <- fromRight' <$> (runAppM env $ selectUser uid)
 
         print $ show user
-        --1 `shouldBe` 1
-        (fromJust user) `shouldSatisfy` (\u -> (M.userFirstName u) == "Bob")
+
+        (fromJust user) `shouldSatisfy` (\u -> (SB.phone_number u) == "000" &&
+                                               (SB.email_address u) == "fake@gmail.com" &&
+                                               (SB.first_name u) == "Bob" &&
+                                               (SB.last_name u) == "Smith" &&
+                                               (SB.user_biz_id u) == (SB.BizId "blah Ltd") &&
+                                               (SB.password_hash u) == "password")
