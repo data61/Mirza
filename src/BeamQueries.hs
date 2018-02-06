@@ -320,14 +320,32 @@ insertEvent userId jsonEvent event = do
              [toStorageEvent pKey userId jsonEvent (_eid event)]
   return pKey
 
+-- insertUserEvent
+insertUserEvent :: SB.PrimaryKeyType
+                -> SB.PrimaryKeyType
+                -> SB.PrimaryKeyType
+                -> Bool
+                -> (Maybe ByteString)
+                -> AppM ()
+insertUserEvent eventId userId addedByUserId signed signedHash = do
+  pKey <- generatePk
+  runDb $ B.runInsert $ B.insert (SB._user_events SB.supplyChainDb)
+        $ insertValues
+        [
+          SB.UserEvent pKey
+          (SB.EventId eventId)
+          (SB.UserId userId)
+          signed
+          (SB.UserId addedByUserId)
+          signedHash
+        ]
+  return ()
 
--- TODO = fix. 1 problem is nothing is done with filter value or asset type in objectRowID grabbing data insert
--- 1 other problem is state never used... what is it???
--- epc is a labelEPC
 eventCreateObject :: M.User -> M.NewObject -> AppM SB.EventId
 eventCreateObject
-  (M.User uid _ _ )
-  (M.NewObject epc epcisTime timezone (M.EventLocation rp bizL src dest) mEventId) = do
+  (M.User userId _ _ )
+  (M.NewObject epc epcisTime timezone
+      (M.EventLocation rp bizL src dest) mEventId) = do
 
   currentTime <- generateTimeStamp
   let
@@ -341,13 +359,13 @@ eventCreateObject
       event = Event eventType foreignEventId dwhat dwhen dwhy dwhere
       jsonEvent = encodeEvent event
 
-  eventId <- insertEvent uid jsonEvent event
+  eventId <- insertEvent userId jsonEvent event
   labelId <- generatePk
   whatId <- insertDWhat dwhat eventId
   whenId <- insertDWhen dwhen eventId
   whyId <- insertDWhy dwhy eventId
   insertDWhere dwhere eventId
-
+  insertUserEvent eventId userId userId False Nothing
   -- TODO = combine rows from bizTransactionTable and _eventCreatedBy field in Event table
   -- haven't added UserEvents insertion equivalent since redundant information and no equivalent
   -- hashes not added yet, but will later for blockchain
