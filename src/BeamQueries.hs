@@ -15,14 +15,10 @@ module BeamQueries where
 {-# LANGUAGE MultiParamTypeClasses  #-}
 
 import qualified Model as M
--- import qualified CryptHash as C
--- import qualified Data.List.NonEmpty as NonEmpty
--- import qualified Data.ByteString as ByteString
 import qualified StorageBeam as SB
-
+import           Data.ByteString (ByteString)
 import           Data.UUID.V4 (nextRandom)
-import           Data.UUID (fromString, UUID)
-import           Data.Maybe (fromJust)
+import           Data.UUID (UUID)
 import           Crypto.Scrypt
 import           Data.Text.Encoding
 import           Database.PostgreSQL.Simple
@@ -30,8 +26,7 @@ import           Database.Beam as B
 import           Database.Beam.Backend.SQL.BeamExtensions
 import           AppConfig (AppM, runDb, AppError(..))
 import           Data.Time.Clock (getCurrentTime)
-import           Control.Monad.Except (throwError, MonadError)
-import qualified Control.Exception as ExL
+import           Control.Monad.Except (throwError)
 import qualified Data.Text as T
 import           Data.GS1.EPC
 import           Data.GS1.DWhat (DWhat(..), LabelEPC(..))
@@ -40,22 +35,13 @@ import           Data.GS1.DWhere (DWhere(..), SrcDestLocation)
 import           Data.GS1.DWhen (DWhen(..))
 import qualified Data.GS1.EventID as EvId
 import           Data.GS1.Event (Event(..), EventType(..))
-import           Data.Time.LocalTime (utc, TimeZone, utcToLocalTime
+import           Data.Time.LocalTime (utc, utcToLocalTime
                                      , LocalTime, localTimeToUTC
                                      , timeZoneOffsetString)
 import           Data.Time (UTCTime)
-import           Data.Aeson.Encode.Pretty
 import           Data.Aeson.Text (encodeToLazyText)
 import qualified Data.Text.Lazy as TxtL
-import           Database.PostgreSQL.Simple.FromField (FromField, Field,
-                                                      fromField, Conversion,
-                                                      returnError)
-import           Database.PostgreSQL.Simple.ToField (ToField, toField,
-                                                     Action(..))
--- Until this module compiles, look at:
--- https://github.csiro.au/Blockchain/supplyChainServer/blob/pg-schema-matt/src/BeamQueries.hs
--- to figure out what it was when work was started
--- especially, if some variable is out of scope, look at the import list there
+
 
 {-
 {
@@ -139,7 +125,7 @@ authCheck email password = do
 -- execute conn "INSERT INTO Users (bizID, firstName, lastName, phoneNumber, passwordHash, emailAddress) VALUES (?, ?, ?, ?, ?, ?);" (biz, first, last, phone, getEncryptedPass hash, email)
 -- execute conn "INSERT INTO Keys (userID, rsa_n, rsa_e, creationTime) values (?, ?, ?, ?);" (uid, n, e, timestamp)
 addPublicKey :: M.User -> M.RSAPublicKey-> AppM M.KeyID
-addPublicKey (M.User uid _ _)  (M.RSAPublicKey n e) = do
+addPublicKey (M.User uid _ _)  (M.RSAPublicKey rsa_n rsa_e) = do
   keyId <- generatePk
   timeStamp <- generateTimeStamp
   r <- runDb $ runInsertReturningList (SB._keys SB.supplyChainDb) $
@@ -147,8 +133,8 @@ addPublicKey (M.User uid _ _)  (M.RSAPublicKey n e) = do
                [
                  (
                    SB.Key keyId (SB.UserId uid)
-                   (T.pack $ show n)
-                   (T.pack $ show e)
+                   (T.pack $ show rsa_n)
+                   (T.pack $ show rsa_e)
                    timeStamp -- 0
                    timeStamp -- revocationTime ?
                  )
@@ -294,7 +280,8 @@ insertLocationEPC
              $ insertValues [stWhere]
   return pKey
 
--- | Wrapper for insertSingleDwhere
+-- | Maps the relevant insert function for all
+-- ReadPoint, BizLocation, Src, Dest
 insertDWhere :: DWhere -> SB.PrimaryKeyType -> AppM ()
 insertDWhere (DWhere rPoint bizLoc srcT destT) eventId = do
   return $ insertLocationEPC SB.ReadPoint eventId <$> rPoint
