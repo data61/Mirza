@@ -602,13 +602,13 @@ instance Table WhereT where
     deriving Generic
   primaryKey = WhereId . where_id
 
-type OffsetString = Text
+type TzOffsetString = Text
 
 data WhenT f = When
   { when_id                      :: C f PrimaryKeyType
   , event_time                   :: C f LocalTime
   , record_time                  :: C f (Maybe LocalTime)
-  , time_zone                    :: C f OffsetString -- TimeZone
+  , time_zone                    :: C f TzOffsetString -- TimeZone
   , when_event_id                :: PrimaryKey EventT f }
   deriving Generic
 
