@@ -51,8 +51,8 @@ selectUser uid = do
     Right [user] -> return $ Just user
     _ -> return Nothing
 
-testNewUser :: SpecWith (Connection, Env)
-testNewUser = do
+testQueries :: SpecWith (Connection, Env)
+testQueries = do
   describe "newUser tests" $ do
     it "newUser test 1" $ \(conn, env) -> do
         hash <- hashIO

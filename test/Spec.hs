@@ -44,8 +44,8 @@ dropTables conn =
 -- following is single line version in case want to for style, or want to copy into terminal... is same query
 -- execute_ conn "DO $$ DECLARE r RECORD; BEGIN FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = current_schema()) LOOP EXECUTE 'DROP TABLE IF EXISTS ' || quote_ident(r.tablename) || ' CASCADE'; END LOOP; END $$;"
 
-openConnection :: IO (Connection, Env)
-openConnection = do
+testsSetup :: IO (Connection, Env)
+testsSetup = do
   conn <- connectPostgreSQL dbConnStr                                                                                  
   dropTables conn -- drop tables before so if already exist no problems... means tables get overwritten though
   let envT = AC.mkEnvType True
@@ -53,12 +53,12 @@ openConnection = do
   tryCreateSchema conn
   return (conn, env)
 
-closeConnection :: (Connection, Env) -> IO ()
-closeConnection (conn, env) = do
+testsTearDown :: (Connection, Env) -> IO ()
+testsTearDown (conn, env) = do
   close conn
 
 withDatabaseConnection :: ((Connection, Env) -> IO ()) -> IO ()
-withDatabaseConnection = bracket openConnection closeConnection
+withDatabaseConnection = bracket testsSetup testsTearDown
 
 main :: IO ()
-main = hspec $ around withDatabaseConnection testNewUser
+main = hspec $ around withDatabaseConnection testQueries
