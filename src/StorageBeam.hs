@@ -92,7 +92,7 @@ migrationStorage () =
           (field "first_name" (varchar (Just maxLen)) notNull)
           (field "last_name" (varchar (Just maxLen)) notNull)
           (field "phone_number" (varchar (Just maxLen)) notNull)
-          (field "password_hash" (varchar (Just maxLen)) notNull)
+          (field "password_hash" binaryLargeObject notNull)
           (field "email_address" (varchar (Just maxLen)) unique) -- uniqueColumn
     )
     <*> createTable "keys"
@@ -269,7 +269,7 @@ data UserT f = User
   , first_name           :: C f Text
   , last_name            :: C f Text
   , phone_number         :: C f Text
-  , password_hash        :: C f Text --XXX - should this be blob?
+  , password_hash        :: C f ByteString --XXX - should this be blob?
   , email_address        :: C f Text }
   deriving Generic
 
