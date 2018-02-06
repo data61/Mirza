@@ -738,18 +738,6 @@ data SupplyChainDb f = SupplyChainDb
   deriving Generic
 instance Database SupplyChainDb
 
--- instance HasSqlValueSyntax be String => HasSqlValueSyntax be EventType where
---   sqlValueSyntax = autoSqlValueSyntax
-
--- instance FromField EventType where
---   fromField f mdata = do
---                         x <- readMaybe <$> fromField f mdata
---                         case x of
---                           Nothing -> returnError ConversionFailed f "Could not 'read' value for 'EventType'"
---                           Just x -> pure x
-
--- instance FromBackendRow Postgres EventType
-
 supplyChainDb :: DatabaseSettings be SupplyChainDb
 supplyChainDb = defaultDbSettings
   `withDbModification`
