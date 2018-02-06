@@ -49,7 +49,7 @@ to create all the relevant tables.
 
 To do a clean build instead, do `./restart.sh --clean`.
 
-###Useful Tools
+### Useful Tool
 - [GS1 Company Database](https://www.gs1us.org/tools/gs1-company-database-gepir) - You can search for GLN (Global Location Number) of GS1 Companies here
 
 Things to do before next release:
