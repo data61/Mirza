@@ -7,7 +7,7 @@ import           Test.Hspec
 import           Database.PostgreSQL.Simple
 
 import           BeamQueries
-import           Model
+import qualified Model as M
 
 import Data.UUID (fromString)
 import Data.Maybe (fromJust)
@@ -26,7 +26,7 @@ import           Database.Beam.Backend.SQL.BeamExtensions
 import Database.Beam
 import Control.Lens
 
-selectUser :: UserID -> AppM (Maybe User)
+selectUser :: UserID -> AppM (Maybe M.User)
 selectUser uid = do
   r <- runDb $
           runSelectReturningList $ select $ do
@@ -42,12 +42,12 @@ testNewUser = do
   describe "newUser" $ do
     it "newUser1" $ \(conn, env) ->
       let uid_check = (fromJust $ fromString "c2cc10e1-57d6-4b6f-9899-38d972112d8c")
-          user1 = (NewUser "000" "fake@gmail.com" "Bob" "Smith" "blah Ltd" "password") in do
+          user1 = (M.NewUser "000" "fake@gmail.com" "Bob" "Smith" "blah Ltd" "password") in do
         uid <- fromRight' <$> (runAppM env $ newUser user1)
         
         user <- fromRight' <$> (runAppM env $ selectUser uid)
 
         print "USER"
-        --print $ show user
+        print $ show user
         --1 `shouldBe` 1
-        (fromJust user) `shouldSatisfy` (\u -> (user_first_name u) == "Bob")
+        (fromJust user) `shouldSatisfy` (\u -> (M.userFirstName u) == "Bob")

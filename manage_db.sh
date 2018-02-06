@@ -3,11 +3,12 @@
 set -e
 set -u
 
+export DBNAME="devsupplychainserver"
 if [ $# -lt 1 ]; then
 cat << eof
-please enter a name of the test database (testsupplychainserver)
+please enter a name of the test database ($DBNAME)
 you can run:
-./manage_db.sh testsupplychainserver
+./manage_db.sh $DBNAME
 eof
     exit 1
 fi
@@ -19,8 +20,8 @@ psql \
     --echo-all \
     --set AUTOCOMMIT=off \
     --set ON_ERROR_STOP=on << EOF
-DROP DATABASE IF EXISTS testsupplychainserver;
-CREATE DATABASE testsupplychainserver;
+DROP DATABASE IF EXISTS $DBNAME;
+CREATE DATABASE $DBNAME;
 EOF
 
 psql_exit_status=$?
