@@ -173,8 +173,10 @@ $(deriveJSON defaultOptions ''Business)
 instance ToSchema Business
 
 data EventLocation = EventLocation {
-  readPoint :: ReadPointLocation,
-  bizLocation :: BizLocation
+  readPoint    :: ReadPointLocation,
+  bizLocation  :: BizLocation,
+  srcType      :: SrcDestLocation,
+  destType     :: SrcDestLocation
 } deriving (Show, Generic)
 $(deriveJSON defaultOptions ''EventLocation)
 instance ToSchema EventLocation

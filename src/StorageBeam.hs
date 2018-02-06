@@ -163,7 +163,7 @@ migrationStorage () =
     <*> createTable "locations"
     (
       Location
-          (field "location_id" pkSerialType)
+          (field "location_id" text)
           (BizId (field "location_biz_id" text))
           -- this needs to be locationReferenceNum
           (field "location_lat" double)
@@ -212,7 +212,7 @@ migrationStorage () =
       Where
           (field "where_id" pkSerialType)
           (field "where_source_dest_type" (maybeType $ varchar (Just maxLen)) notNull)
-          (LocationId (field "where_location_id" pkSerialType))
+          (field "where_gs1_location_id" (varchar (Just maxLen)) notNull)
           (field "where_location_field" (varchar (Just maxLen)) notNull)
           (EventId (field "where_event_id" pkSerialType))
     )
@@ -444,7 +444,7 @@ instance Table TransformationT where
   primaryKey = TransformationId . transformation_id
 
 data LocationT f = Location
-  { location_id                 :: C f PrimaryKeyType
+  { location_id                 :: C f Text
   , location_biz_id             :: PrimaryKey BusinessT f
   -- this needs to be locationReferenceNum
   , location_lat                :: C f Double
@@ -461,7 +461,7 @@ instance Beamable (PrimaryKey LocationT)
 deriving instance Show (PrimaryKey LocationT Identity)
 
 instance Table LocationT where
-  data PrimaryKey LocationT f = LocationId (C f PrimaryKeyType)
+  data PrimaryKey LocationT f = LocationId (C f Text)
     deriving Generic
   primaryKey = LocationId . location_id
 
@@ -585,7 +585,7 @@ instance HasSqlValueSyntax be String => HasSqlValueSyntax be LocationField where
 data WhereT f = Where
   { where_id                    :: C f PrimaryKeyType
   , where_source_dest_type      :: C f (Maybe Text) -- (Maybe EPC.SourceDestType)
-  , where_location_id           :: PrimaryKey LocationT f
+  , where_gs1_location_id       :: C f Text -- locationReferenceNum
   , where_location_field        :: C f Text -- LocationField
   , where_event_id              :: PrimaryKey EventT f }
   deriving Generic
@@ -834,8 +834,7 @@ supplyChainDb = defaultDbSettings
     , _wheres =
         modifyTable (const "wheres") $
         tableModification {
-          where_location_id = LocationId (fieldNamed "where_location_id")
-        , where_event_id = EventId (fieldNamed "where_event_id")
+          where_event_id = EventId (fieldNamed "where_event_id")
         }
     , _whens =
         modifyTable (const "whens") $

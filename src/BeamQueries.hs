@@ -36,7 +36,7 @@ import qualified Data.Text as T
 import           Data.GS1.EPC
 import           Data.GS1.DWhat (DWhat(..), LabelEPC(..))
 import           Data.GS1.DWhy (DWhy(..))
-import           Data.GS1.DWhere (DWhere(..))
+import           Data.GS1.DWhere (DWhere(..), SrcDestLocation)
 import           Data.GS1.DWhen (DWhen(..))
 import qualified Data.GS1.EventID as EvId
 import           Data.GS1.Event (Event(..), EventType(..))
@@ -47,7 +47,11 @@ import           Data.Time (UTCTime)
 import           Data.Aeson.Encode.Pretty
 import           Data.Aeson.Text (encodeToLazyText)
 import qualified Data.Text.Lazy as TxtL
-
+import           Database.PostgreSQL.Simple.FromField (FromField, Field,
+                                                      fromField, Conversion,
+                                                      returnError)
+import           Database.PostgreSQL.Simple.ToField (ToField, toField,
+                                                     Action(..))
 -- Until this module compiles, look at:
 -- https://github.csiro.au/Blockchain/supplyChainServer/blob/pg-schema-matt/src/BeamQueries.hs
 -- to figure out what it was when work was started
@@ -249,84 +253,56 @@ insertDWhy dwhy eventId = do
              $ insertValues [toStorageDWhy pKey dwhy eventId]
   return pKey
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-insertDWhere :: DWhere -> SB.PrimaryKeyType -> AppM SB.PrimaryKeyType
-insertDWhere dwhere eventId = do
+toText :: Show a => a -> T.Text
+toText = T.pack . show
+
+insertSrcDestType :: SB.LocationField
+                  -> SB.PrimaryKeyType
+                  -> SrcDestLocation
+                  -> AppM SB.PrimaryKeyType
+insertSrcDestType
+  locField
+  eventId
+  (sdType, SGLN gs1Company (LocationReferenceNum locationRef) ext) = do
   pKey <- generatePk
+  let
+      stWhere = SB.Where pKey
+                (Just . toText $ sdType)
+                locationRef
+                (toText locField)
+                (SB.EventId eventId)
   r <- runDb $ B.runInsert $ B.insert (SB._wheres SB.supplyChainDb)
-             $ insertValues [toStorageDWhere pKey dwhere eventId]
+             $ insertValues [stWhere]
   return pKey
 
+insertLocationEPC :: SB.LocationField
+                  -> SB.PrimaryKeyType
+                  -> LocationEPC
+                  -> AppM SB.PrimaryKeyType
+insertLocationEPC
+  locField
+  eventId
+  (SGLN gs1Company (LocationReferenceNum locationRef) ext) = do
+  pKey <- generatePk
+  let
+      stWhere = SB.Where pKey
+                Nothing
+                locationRef
+                (toText locField)
+                (SB.EventId eventId)
+  r <- runDb $ B.runInsert $ B.insert (SB._wheres SB.supplyChainDb)
+             $ insertValues [stWhere]
+  return pKey
 
-toStorageDWhere :: SB.PrimaryKeyType
-                -> DWhere
-                -> SB.PrimaryKeyType
-                -> SB.Where
-toStorageDWhere pKey (DWhere rPoint bizLoc srcT destT) eventId =
-  error "not implemented yet"
+-- | Wrapper for insertSingleDwhere
+insertDWhere :: DWhere -> SB.PrimaryKeyType -> AppM ()
+insertDWhere (DWhere rPoint bizLoc srcT destT) eventId = do
+  return $ insertLocationEPC SB.ReadPoint eventId <$> rPoint
+  return $ insertLocationEPC SB.BizLocation eventId <$> bizLoc
+  return $ insertSrcDestType SB.Src eventId <$> srcT
+  return $ insertSrcDestType SB.Dest eventId <$> destT
+  return ()
+
 
 toStorageEvent :: SB.PrimaryKeyType
                -> SB.PrimaryKeyType
@@ -351,13 +327,13 @@ insertEvent userId jsonEvent event = do
 eventCreateObject :: M.User -> M.NewObject -> AppM SB.EventId
 eventCreateObject
   (M.User uid _ _ )
-  (M.NewObject epc epcisTime timezone (M.EventLocation rp bizL) mEventId) = do
+  (M.NewObject epc epcisTime timezone (M.EventLocation rp bizL src dest) mEventId) = do
 
   currentTime <- generateTimeStamp
   let
       eventType = ObjectEventT
       dwhat =  ObjectDWhat Add [epc]
-      dwhere = DWhere [rp] [bizL] [] []
+      dwhere = DWhere [rp] [bizL] [src] [dest]
       quantity = ItemCount 3 -- useful for label
       dwhy  =  DWhy (Just CreatingClassInstance) (Just Active)
       dwhen = DWhen epcisTime (Just $ toEPCISTime currentTime) timezone
