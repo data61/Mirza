@@ -286,6 +286,8 @@ instance Table UserT where
   data PrimaryKey UserT f = UserId (C f PrimaryKeyType)
     deriving Generic
   primaryKey = UserId . user_id
+-- added by Matt
+deriving instance Eq (PrimaryKey UserT Identity)
 
 data KeyT f = Key
   { key_id             :: C f PrimaryKeyType
@@ -308,6 +310,8 @@ instance Table KeyT where
   data PrimaryKey KeyT f = KeyId (C f PrimaryKeyType)
     deriving Generic
   primaryKey = KeyId . key_id
+-- added by Matt
+deriving instance Eq (PrimaryKey KeyT Identity)
 
 -- CBV-Standard-1-2-r-2016-09-29.pdf Page 11
 
@@ -382,6 +386,8 @@ instance Table LabelT where
   data PrimaryKey LabelT f = LabelId (C f PrimaryKeyType)
     deriving Generic
   primaryKey = LabelId . label_id
+-- added by Matt
+deriving instance Eq (PrimaryKey LabelT Identity)
 
 data WhatLabelT f = WhatLabel
   { what_label_id       :: C f PrimaryKeyType
@@ -442,6 +448,8 @@ instance Table TransformationT where
   data PrimaryKey TransformationT f = TransformationId (C f PrimaryKeyType)
     deriving Generic
   primaryKey = TransformationId . transformation_id
+-- added by Matt
+deriving instance Eq (PrimaryKey TransformationT Identity)
 
 data LocationT f = Location
   { location_id                 :: C f PrimaryKeyType
@@ -464,6 +472,8 @@ instance Table LocationT where
   data PrimaryKey LocationT f = LocationId (C f PrimaryKeyType)
     deriving Generic
   primaryKey = LocationId . location_id
+-- added by Matt
+deriving instance Eq (PrimaryKey LocationT Identity)
 
 data EventT f = Event
   { event_id                    :: C f PrimaryKeyType
@@ -485,6 +495,8 @@ instance Table EventT where
   data PrimaryKey EventT f = EventId (C f PrimaryKeyType)
     deriving Generic
   primaryKey = EventId . event_id
+-- added by Matt
+deriving instance Eq (PrimaryKey EventT Identity)
 
 data WhatT f = What
   { what_id                    :: C f PrimaryKeyType
@@ -511,6 +523,8 @@ instance Table WhatT where
   data PrimaryKey WhatT f = WhatId (C f PrimaryKeyType)
     deriving Generic
   primaryKey = WhatId . what_id
+-- added by Matt
+deriving instance Eq (PrimaryKey WhatT Identity)
 
 
 data BizTransactionT f = BizTransaction
@@ -534,6 +548,8 @@ instance Table BizTransactionT where
   data PrimaryKey BizTransactionT f = BizTransactionId (C f PrimaryKeyType)
     deriving Generic
   primaryKey = BizTransactionId . biz_transaction_id
+-- added by Matt
+deriving instance Eq (PrimaryKey BizTransactionT Identity)
 
 data WhyT f = Why
   { why_id                      :: C f PrimaryKeyType
@@ -706,6 +722,7 @@ instance Table BlockChainT where
   data PrimaryKey BlockChainT f = BlockChainId (C f PrimaryKeyType)
     deriving Generic
   primaryKey = BlockChainId . blockchain_id
+
 -- END OF ADDITIONAL TABLES
 
 data SupplyChainDb f = SupplyChainDb
