@@ -11,7 +11,6 @@ import qualified Model as M
 
 import Data.UUID (fromString)
 import Data.Maybe (fromJust)
-import StorageBeam (PrimaryKeyType)
 
 import Database.Beam.Backend.Types (Auto (..))
 
@@ -26,7 +25,7 @@ import           Database.Beam.Backend.SQL.BeamExtensions
 import Database.Beam
 import Control.Lens
 
-selectUser :: UserID -> AppM (Maybe M.User)
+selectUser :: M.UserID -> AppM (Maybe M.User)
 selectUser uid = do
   r <- runDb $
           runSelectReturningList $ select $ do
@@ -43,11 +42,12 @@ testNewUser = do
     it "newUser1" $ \(conn, env) ->
       let uid_check = (fromJust $ fromString "c2cc10e1-57d6-4b6f-9899-38d972112d8c")
           user1 = (M.NewUser "000" "fake@gmail.com" "Bob" "Smith" "blah Ltd" "password") in do
-        uid <- fromRight' <$> (runAppM env $ newUser user1)
         
+        print "USER"
+        uid <- fromRight' <$> (runAppM env $ newUser user1)
+        print "USER AGAIN"
         user <- fromRight' <$> (runAppM env $ selectUser uid)
 
-        print "USER"
         print $ show user
         --1 `shouldBe` 1
         (fromJust user) `shouldSatisfy` (\u -> (M.userFirstName u) == "Bob")

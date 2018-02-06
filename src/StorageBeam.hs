@@ -266,11 +266,11 @@ migrationStorage () =
 data UserT f = User
   { user_id              :: C f PrimaryKeyType
   , user_biz_id          :: PrimaryKey BusinessT f
-  , user_first_name           :: C f Text
-  , user_last_name            :: C f Text
-  , user_phone_number         :: C f Text
-  , user_password_hash        :: C f Text --XXX - should this be blob?
-  , user_email_address        :: C f Text }
+  , first_name           :: C f Text
+  , last_name            :: C f Text
+  , phone_number         :: C f Text
+  , password_hash        :: C f Text --XXX - should this be blob?
+  , email_address        :: C f Text }
   deriving Generic
 
 type User = UserT Identity
