@@ -20,6 +20,8 @@
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE UndecidableInstances  #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+-- {-# LANGUAGE DeriveAnyClass        #-}
+-- {-# LANGUAGE GeneralizedNewtypeDeriving  #-}
 {-# OPTIONS_GHC -fno-warn-orphans  #-}
 
 module StorageBeam where
@@ -36,23 +38,23 @@ VSCode shortcut for multi-line cursors: Ctrl+Shift+Up/Down
 import           Control.Lens
 import           Database.Beam as B
 import           Database.Beam.Postgres
--- import           Database.PostgreSQL.Simple
--- import           Database.Beam.Backend
--- import           Database.Beam.Backend.SQL.BeamExtensions
--- import           Database.PostgreSQL.Simple.FromField
--- import           Database.Beam.Backend.SQL
--- import qualified Database.PostgreSQL.Simple.Time as PgT
+
 import           Data.Text (Text)
--- import           Data.Int
 import           Data.Time
 import           Data.ByteString (ByteString)
 -- import qualified Data.GS1.Event as Ev
-import qualified Data.GS1.EPC as E
+import qualified Data.GS1.EPC as EPC
 -- import qualified Data.GS1.DWhat as DWhat
+import           Text.Read (readMaybe)
 import           Data.UUID (UUID)
+import           Database.PostgreSQL.Simple.FromField (FromField,
+                                                      fromField,
+                                                      returnError)
+import           Database.PostgreSQL.Simple.ToField (ToField)
 import           Database.Beam.Postgres.Migrate
 import           Database.Beam.Migrate.SQL.Tables
 import           Database.Beam.Migrate.Types
+import           Database.Beam.Backend.SQL
 import           Data.Swagger ()
 import           Servant ()
 
@@ -69,7 +71,6 @@ type PrimaryKeyType = UUID
 --   parseUrlPiece t = error $ show t ++ " parseUP"
 --   parseQueryParam t = error $ show t ++ " parseQP"
 
-
 maxLen :: Word
 maxLen = 120
 
@@ -80,75 +81,19 @@ maxTzLen = 10
 -- pkSerialType :: DataType PgDataTypeSyntax UUID
 pkSerialType = uuid
 
--- NOTES
--- f is the arg to dropTable... this is on type level... SupplyChainDb constructor is a function
--- 
-
--- problem = can't map dropTable over the SupplyChainDb as it's not a functor, this solves that
---dropIndividualTables :: (Monad m) => SupplyChainDb f -> m ()
--- dropIndividualTables :: (Monad m) => SupplyChainDb f -> m ()
--- dropIndividualTables db = do
---   -- TODO
---   return ()
-
---dropTables :: Migration syntax ()
---dropTables =
-  --(fmap . fmap . fmap . fmap . fmap) dropTable migrationStorage
-  -- return ()
---(fmap . fmap . fmap . fmap) dropTable migrationStorage
-  --dropTable <$> --migrationStorage
-
-  -- SupplyChainDb
-  --   <$> dropTable User
-  --   <*> dropTable Key
-  --   <*> dropTable Business
-  --   <*> dropTable Contact
-  --   <*> dropTable Label
-  --   <*> dropTable Item
-  --   <*> dropTable Transformation
-  --   <*> dropTable Location
-  --   <*> dropTable Event
-  --   <*> dropTable What
-  --   <*> dropTable BizTransaction
-  --   <*> dropTable Why
-  --   <*> dropTable Where
-  --   <*> dropTable When
-  --   <*> dropTable LabelEvent
-  --   <*> dropTable UserEvents
-  --   <*> dropTable Hashes
-  --   <*> dropTable BlockChain
-
-  --   <*> dropTable "keys"
-  --   <*> dropTable "businesses"
-  --   <*> dropTable "contacts"
-  --   <*> dropTable "labels"
-  --   <*> dropTable "items"
-  --   <*> dropTable "transformations"
-  --   <*> dropTable "locations"
-  --   <*> dropTable "events"
-  --   <*> dropTable "whats"
-  --   <*> dropTable "bizTransactions"
-  --   <*> dropTable "whys"
-  --   <*> dropTable "wheres"
-  --   <*> dropTable "whens"
-  --   <*> dropTable "labelEvents"
-  --   <*> dropTable "userEvents"
-  --   <*> dropTable "hashes"
-  --   <*> dropTable "blockchain"
-
-migrationStorage :: Migration PgCommandSyntax (CheckedDatabaseSettings Postgres SupplyChainDb)
-migrationStorage =
+migrationStorage :: () -> Migration PgCommandSyntax (CheckedDatabaseSettings Postgres SupplyChainDb)
+migrationStorage () =
   SupplyChainDb
     <$> createTable "users"
     (
       User
           (field "user_id" pkSerialType)
           (BizId (field "user_biz_id" text))
-          (field "user_first_name" (varchar (Just maxLen)) notNull)
-          (field "user_last_name" (varchar (Just maxLen)) notNull)
-          (field "user_phone_number" (varchar (Just maxLen)) notNull)
-          (field "user_password_hash" (varchar (Just maxLen)) notNull)
-          (field "user_email_address" (varchar (Just maxLen)) uniqueColumn) -- uniqueColumn
+          (field "first_name" (varchar (Just maxLen)) notNull)
+          (field "last_name" (varchar (Just maxLen)) notNull)
+          (field "phone_number" (varchar (Just maxLen)) notNull)
+          (field "password_hash" (varchar (Just maxLen)) notNull)
+          (field "email_address" (varchar (Just maxLen)) unique) -- uniqueColumn
     )
     <*> createTable "keys"
     (
@@ -264,10 +209,9 @@ migrationStorage =
     (
       Where
           (field "where_id" pkSerialType)
-          (LocationId (field "read_point" pkSerialType))
-          (LocationId (field "biz_location" pkSerialType))
-          (field "src_type" text)
-          (field "dest_type" text)
+          (field "where_source_dest_type" (maybeType $ varchar (Just maxLen)) notNull)
+          (LocationId (field "where_location_id" pkSerialType))
+          (field "where_location_field" (varchar (Just maxLen)) notNull)
           (EventId (field "where_event_id" pkSerialType))
     )
     <*> createTable "whens"
@@ -368,13 +312,13 @@ instance Table KeyT where
 -- CBV-Standard-1-2-r-2016-09-29.pdf Page 11
 
 data BusinessT f = Business
-  { biz_gs1CompanyPrefix  :: C f E.GS1CompanyPrefix -- PrimaryKey
-  , biz_name              :: C f Text
-  , biz_function          :: C f Text
-  , biz_siteName          :: C f Text
-  , biz_address           :: C f Text
-  , biz_lat               :: C f Double
-  , biz_long              :: C f Double }
+  { biz_gs1_company_prefix :: C f EPC.GS1CompanyPrefix -- PrimaryKey
+  , biz_name               :: C f Text
+  , biz_function           :: C f Text
+  , biz_siteName           :: C f Text
+  , biz_address            :: C f Text
+  , biz_lat                :: C f Double
+  , biz_long               :: C f Double }
   deriving Generic
 type Business = BusinessT Identity
 type BizId = PrimaryKey BusinessT Identity
@@ -386,9 +330,9 @@ instance Beamable (PrimaryKey BusinessT)
 deriving instance Show (PrimaryKey BusinessT Identity)
 
 instance Table BusinessT where
-  data PrimaryKey BusinessT f = BizId (C f E.GS1CompanyPrefix)
+  data PrimaryKey BusinessT f = BizId (C f EPC.GS1CompanyPrefix)
     deriving Generic
-  primaryKey = BizId . biz_gs1CompanyPrefix
+  primaryKey = BizId . biz_gs1_company_prefix
 
 data ContactT f = Contact
   { contact_id                :: C f PrimaryKeyType
@@ -420,7 +364,7 @@ data LabelT f = Label
   , state                    :: C f Text
   , lot                      :: C f (Maybe Text)
   , quantity_amount          :: C f (Maybe Double)
-  , quantity_uom             :: C f (Maybe E.Uom) -- T.Text
+  , quantity_uom             :: C f (Maybe EPC.Uom) -- T.Text
   }
   deriving Generic
 type Label = LabelT Identity
@@ -500,6 +444,7 @@ instance Table TransformationT where
 data LocationT f = Location
   { location_id                 :: C f PrimaryKeyType
   , location_biz_id             :: PrimaryKey BusinessT f
+  -- this needs to be locationReferenceNum
   , location_lat                :: C f Double
   , location_long               :: C f Double }
   deriving Generic
@@ -542,7 +487,7 @@ instance Table EventT where
 data WhatT f = What
   { what_id                    :: C f PrimaryKeyType
   , what_event_type            :: C f Text -- Ev.EventType
-  , action                     :: C f Text -- E.Action
+  , action                     :: C f Text -- EPC.Action
   , parent                     :: PrimaryKey LabelT f
   -- , input                      :: C f [LabelEPC]
   -- , output                     :: C f [LabelEPC]
@@ -590,8 +535,8 @@ instance Table BizTransactionT where
 
 data WhyT f = Why
   { why_id                      :: C f PrimaryKeyType
-  , biz_step                    :: C f (Maybe Text) -- E.BizStep
-  , disposition                 :: C f (Maybe Text) -- E.Disposition
+  , biz_step                    :: C f (Maybe Text) -- EPC.BizStep
+  , disposition                 :: C f (Maybe Text) -- EPC.Disposition
   , why_event_id                :: PrimaryKey EventT f }
 
   deriving Generic
@@ -608,14 +553,30 @@ instance Table WhyT where
     deriving Generic
   primaryKey = WhyId . why_id
 
+-- | The record fields in Data.GS1.DWhere for the data type DWhere
+data LocationField = Src | Dest | BizLocation | ReadPoint
+                    deriving (Generic, Show, Eq)
+
+instance FromField LocationField -- where
+--   fromField f bs = do x <- readMaybe <$> fromField f bs
+--                       case x of
+--                         Nothing ->
+--                           returnError ConversionFailed
+--                             f "Could not 'read' value for 'SourceDestType'"
+--                         Just x -> pure x
+
+instance FromBackendRow Postgres LocationField
+instance ToField LocationField
+instance HasSqlValueSyntax be String => HasSqlValueSyntax be LocationField where
+  sqlValueSyntax = autoSqlValueSyntax
+
+
 data WhereT f = Where
   { where_id                    :: C f PrimaryKeyType
-  , read_point                  :: PrimaryKey LocationT f
-  , biz_location                :: PrimaryKey LocationT f
-  , src_type                    :: C f Text -- E.SourceDestType
-  , dest_type                   :: C f Text -- E.SourceDestType
+  , where_source_dest_type      :: C f (Maybe Text) -- (Maybe EPC.SourceDestType)
+  , where_location_id           :: PrimaryKey LocationT f
+  , where_location_field        :: C f Text -- LocationField
   , where_event_id              :: PrimaryKey EventT f }
-
   deriving Generic
 
 type Where = WhereT Identity
@@ -637,8 +598,6 @@ data WhenT f = When
   , event_time                   :: C f LocalTime
   , record_time                  :: C f (Maybe LocalTime)
   , time_zone                    :: C f OffsetString -- TimeZone
-  -- call unpack . timeZoneOffsetString on the TimeZone object
-  -- to put it in the db
   , when_event_id                :: PrimaryKey EventT f }
   deriving Generic
 
@@ -864,8 +823,7 @@ supplyChainDb = defaultDbSettings
     , _wheres =
         modifyTable (const "wheres") $
         tableModification {
-          read_point = LocationId (fieldNamed "read_point")
-        , biz_location = LocationId (fieldNamed "biz_location")
+          where_location_id = LocationId (fieldNamed "where_location_id")
         , where_event_id = EventId (fieldNamed "where_event_id")
         }
     , _whens =

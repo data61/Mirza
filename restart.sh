@@ -4,7 +4,7 @@
 # and rerun the server
 # Ideally to be run during testing phase
 
-
+export DBNAME="devsupplychainserver"
 
 echo Recreating the database
 ./manage_db.sh testsupplychainserver
@@ -29,7 +29,7 @@ psql \
     --echo-all \
     --set AUTOCOMMIT=on \
     --set ON_ERROR_STOP=on \
-    testsupplychainserver \
+    $DBNAME \
     << EOF
 INSERT INTO businesses \
     (biz_gs1_company_prefix, biz_name, biz_function, biz_site_name, biz_address, biz_lat, biz_long) \
