@@ -51,8 +51,7 @@ import           Data.UUID (UUID)
 import           Database.PostgreSQL.Simple.FromField (FromField, Field,
                                                       fromField, Conversion,
                                                       returnError)
-import           Database.PostgreSQL.Simple.ToField (ToField, toField,
-                                                     Action(..))
+import           Database.PostgreSQL.Simple.ToField (ToField, toField)
 import           Database.Beam.Postgres.Migrate
 import           Database.Beam.Migrate.SQL.Tables
 import           Database.Beam.Migrate.Types
@@ -232,17 +231,15 @@ migrationStorage () =
           (LabelId (field "label_event_label_id" pkSerialType))
           (EventId (field "label_event_event_id" pkSerialType))
     )
-
-    -- note that all ADDITIONAL TABLES have all fields as NOT NULL
-    <*> createTable "userEvents"
+    <*> createTable "userEvent"
     (
-      UserEvents
+      UserEvent
           (field "user_events_id" pkSerialType)
           (EventId (field "user_events_event_id" pkSerialType notNull))
           (UserId (field "user_events_user_id" pkSerialType notNull))
           (field "user_events_has_signed" boolean notNull)
           (UserId (field "user_events_added_by" pkSerialType notNull))
-          (field "user_events_signedHash" bytea notNull)
+          (field "user_events_signedHash" (maybeType bytea))
     )
     <*> createTable "hashes"
     (
@@ -559,12 +556,12 @@ defaultFromField :: (Typeable b, Read b) => String
                  -> Field
                  -> Maybe ByteString
                  -> Conversion b
-defaultFromField fieldName f bs = do
+defaultFromField fName f bs = do
   x <- readMaybe <$> fromField f bs
   case x of
     Nothing ->
       returnError ConversionFailed
-        f $ "Could not 'read' value for " ++ fieldName
+        f $ "Could not 'read' value for " ++ fName
     Just val -> pure val
 
 -- | The record fields in Data.GS1.DWhere for the data type DWhere
@@ -644,27 +641,27 @@ instance Table LabelEventT where
 
 
 -- ADDITIONAL TABLES
-data UserEventsT f = UserEvents
+data UserEventT f = UserEvent
   { user_events_id         :: C f PrimaryKeyType
   , user_events_event_id   :: PrimaryKey EventT f
   , user_events_user_id    :: PrimaryKey UserT f
   , user_events_has_signed :: C f Bool
   , user_events_added_by   :: PrimaryKey UserT f
-  , user_events_signedHash :: C f ByteString
+  , user_events_signedHash :: C f (Maybe ByteString)
   }
   deriving Generic
 
-type UserEvents = UserEventsT Identity
-type UserEventsId = PrimaryKey UserEventsT Identity
-deriving instance Show UserEvents
-instance Beamable UserEventsT
-instance Beamable (PrimaryKey UserEventsT)
-deriving instance Show (PrimaryKey UserEventsT Identity)
+type UserEvent = UserEventT Identity
+type UserEventId = PrimaryKey UserEventT Identity
+deriving instance Show UserEvent
+instance Beamable UserEventT
+instance Beamable (PrimaryKey UserEventT)
+deriving instance Show (PrimaryKey UserEventT Identity)
 
-instance Table UserEventsT where
-  data PrimaryKey UserEventsT f = UserEventsId (C f PrimaryKeyType)
+instance Table UserEventT where
+  data PrimaryKey UserEventT f = UserEventId (C f PrimaryKeyType)
     deriving Generic
-  primaryKey = UserEventsId . user_events_id
+  primaryKey = UserEventId . user_events_id
 
 {-
     hashTable   =  "CREATE TABLE IF NOT EXISTS Hashes (id INTEGER PRIMARY KEY AUTOINCREMENT, eventID INTEGER NOT NULL, hash BLOB NOT NULL, isSigned INTEGER DEFAULT 0, signedByUserID INTEGER, keyID INTEGER DEFAULT -1,timestamp INTEGER NOT NULL);"
@@ -729,12 +726,12 @@ data SupplyChainDb f = SupplyChainDb
   , _locations       :: f (TableEntity LocationT)
   , _events          :: f (TableEntity EventT)
   , _whats           :: f (TableEntity WhatT)
-  , _bizTransactions :: f (TableEntity BizTransactionT)
+  , _biz_transactions :: f (TableEntity BizTransactionT)
   , _whys            :: f (TableEntity WhyT)
   , _wheres          :: f (TableEntity WhereT)
   , _whens           :: f (TableEntity WhenT)
-  , _labelEvents     :: f (TableEntity LabelEventT)
-  , _userEvents      :: f (TableEntity UserEventsT)
+  , _label_events    :: f (TableEntity LabelEventT)
+  , _user_events     :: f (TableEntity UserEventT)
   , _hashes          :: f (TableEntity HashesT)
   , _blockchain      :: f (TableEntity BlockChainT)
   }
@@ -821,7 +818,7 @@ supplyChainDb = defaultDbSettings
         , what_transformation_id = TransformationId (fieldNamed "what_transformation_id")
         , what_event_id = EventId (fieldNamed "what_event_id")
         }
-    , _bizTransactions =
+    , _biz_transactions =
         modifyTable (const "bizTransactions") $
         tableModification {
           biz_transaction_event_id = EventId (fieldNamed "biz_transaction_event_id")
@@ -841,15 +838,15 @@ supplyChainDb = defaultDbSettings
         tableModification {
           when_event_id = EventId (fieldNamed "when_event_id")
         }
-    , _labelEvents =
+    , _label_events =
         modifyTable (const "labelEvents") $
         tableModification {
           label_event_label_id = LabelId (fieldNamed "label_event_label_id")
         , label_event_event_id = EventId (fieldNamed "label_event_event_id")
         }
     -- all the foreign keys are relevant here
-    , _userEvents =
-        modifyTable (const "userEvents") $
+    , _user_events =
+        modifyTable (const "userEvent") $
         tableModification {
           user_events_event_id = EventId (fieldNamed "user_events_event_id")
         , user_events_user_id = UserId (fieldNamed "user_events_user_id")
