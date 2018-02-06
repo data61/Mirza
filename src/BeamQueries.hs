@@ -346,7 +346,7 @@ eventCreateObject
   whatId <- insertDWhat dwhat eventId
   whenId <- insertDWhen dwhen eventId
   whyId <- insertDWhy dwhy eventId
-  whereId <- insertDWhere dwhere eventId
+  insertDWhere dwhere eventId
 
   -- TODO = combine rows from bizTransactionTable and _eventCreatedBy field in Event table
   -- haven't added UserEvents insertion equivalent since redundant information and no equivalent
