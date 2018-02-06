@@ -312,13 +312,13 @@ instance Table KeyT where
 -- CBV-Standard-1-2-r-2016-09-29.pdf Page 11
 
 data BusinessT f = Business
-  { biz_gs1CompanyPrefix  :: C f EPC.GS1CompanyPrefix -- PrimaryKey
-  , biz_name              :: C f Text
-  , biz_function          :: C f Text
-  , biz_siteName          :: C f Text
-  , biz_address           :: C f Text
-  , biz_lat               :: C f Double
-  , biz_long              :: C f Double }
+  { biz_gs1_company_prefix :: C f EPC.GS1CompanyPrefix -- PrimaryKey
+  , biz_name               :: C f Text
+  , biz_function           :: C f Text
+  , biz_siteName           :: C f Text
+  , biz_address            :: C f Text
+  , biz_lat                :: C f Double
+  , biz_long               :: C f Double }
   deriving Generic
 type Business = BusinessT Identity
 type BizId = PrimaryKey BusinessT Identity
@@ -332,7 +332,7 @@ deriving instance Show (PrimaryKey BusinessT Identity)
 instance Table BusinessT where
   data PrimaryKey BusinessT f = BizId (C f EPC.GS1CompanyPrefix)
     deriving Generic
-  primaryKey = BizId . biz_gs1CompanyPrefix
+  primaryKey = BizId . biz_gs1_company_prefix
 
 data ContactT f = Contact
   { contact_id                :: C f PrimaryKeyType

@@ -349,7 +349,9 @@ insertEvent userId jsonEvent event = do
 -- 1 other problem is state never used... what is it???
 -- epc is a labelEPC
 eventCreateObject :: M.User -> M.NewObject -> AppM SB.EventId
-eventCreateObject  (M.User uid _ _ ) (M.NewObject epc epcisTime timezone (M.EventLocation rp bizL) mEventId) = do
+eventCreateObject
+  (M.User uid _ _ )
+  (M.NewObject epc epcisTime timezone (M.EventLocation rp bizL) mEventId) = do
 
   currentTime <- generateTimeStamp
   let
