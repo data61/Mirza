@@ -24,11 +24,11 @@ Type in `psql` and see that you can open up a psql shell.
 
 After that, to create the database, run
 
-`stack exec supplyChainServer-exe -- -i -c testsupplychainserver`
+`stack exec supplyChainServer-exe -- -i -c devsupplychainserver`
 
 Note that you can change "testsupplychainserver" for any database name you like.
 Not giving it the `-c` flag will result in a database named
-`testsupplychainserver`.
+`devsupplychainserver`.
 
 Finally, to run the server, do:
 
