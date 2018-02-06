@@ -157,7 +157,6 @@ data NewUser = NewUser {
 } deriving (Generic, Eq, Show)
 $(deriveJSON defaultOptions ''NewUser)
 instance ToSchema NewUser
--- instance ToSchema (Auto Int32)
 
 
 data Business = Business {
