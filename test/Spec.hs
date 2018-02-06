@@ -55,7 +55,6 @@ openConnection = do
 
 closeConnection :: (Connection, Env) -> IO ()
 closeConnection (conn, env) = do
-  --dropTables conn
   close conn
 
 withDatabaseConnection :: ((Connection, Env) -> IO ()) -> IO ()

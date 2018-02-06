@@ -27,6 +27,18 @@ import Control.Lens
 
 import qualified Data.Text as T
 
+import Data.Text.Encoding (encodeUtf8)
+import           Crypto.Scrypt
+
+
+-- NOTE in this file, where fromJust is used in the tests, it is because we expect a Just... tis is part of the test
+
+-- note tables dropped after every running of test in an "it"
+user1 = (M.NewUser "000" "fake@gmail.com" "Bob" "Smith" "blah Ltd" "password")
+-- TODO = find a pure function to get hash
+--hashIO = liftIO $ encryptPassIO' (Pass $ encodeUtf8 $ M.password user1)
+hash = EncryptedPass $ encodeUtf8 $ M.password user1
+
 selectUser :: M.UserID -> AppM (Maybe SB.User)
 selectUser uid = do
   r <- runDb $
@@ -40,19 +52,55 @@ selectUser uid = do
 
 testNewUser :: SpecWith (Connection, Env)
 testNewUser = do
-  describe "newUser" $ do
-    it "newUser1" $ \(conn, env) ->
-      let uid_check = (fromJust $ fromString "c2cc10e1-57d6-4b6f-9899-38d972112d8c")
-          user1 = (M.NewUser "000" "fake@gmail.com" "Bob" "Smith" "blah Ltd" "password") in do
-        
-        uid <- fromRight' <$> (runAppM env $ newUser user1)
-        user <- fromRight' <$> (runAppM env $ selectUser uid)
+  -- describe "newUser tests" $ do
+  --   it "newUser test 1" $ \(conn, env) -> do
+  --       uid <- fromRight' <$> (runAppM env $ newUser user1)
+  --       user <- fromRight' <$> (runAppM env $ selectUser uid)
+  --       (fromJust user) `shouldSatisfy` (\u -> (SB.phone_number u) == (M.phoneNumber user1) &&
+  --                                              (SB.email_address u) == (M.emailAddress user1) &&
+  --                                              (SB.first_name u) == (M.firstName user1) &&
+  --                                              (SB.last_name u) == (M.lastName user1) &&
+  --                                              (SB.user_biz_id u) == (SB.BizId (M.company user1)) &&
+  --                                              (SB.password_hash u) == (M.password user1) &&
+  --                                              (SB.user_id u) == uid)
 
-        print $ show user
+  describe "authCheck tests" $ do
+    it "authCheck test 1" $ \(conn, env) -> do
+      hash <- hashIO
+      uid <- fromRight' <$> (runAppM env $ newUser user1)
+      user <- fromRight' <$> (runAppM env $ authCheck (M.emailAddress user1) hash)--(encodeUtf8 $ M.password user1))
+      (fromJust user) `shouldSatisfy` (\u -> (M.userId u) == uid &&
+                                             (M.userFirstName u) == (M.firstName user1) &&
+                                             (M.userLastName u) == (M.lastName user1))
 
-        (fromJust user) `shouldSatisfy` (\u -> (SB.phone_number u) == "000" &&
-                                               (SB.email_address u) == "fake@gmail.com" &&
-                                               (SB.first_name u) == "Bob" &&
-                                               (SB.last_name u) == "Smith" &&
-                                               (SB.user_biz_id u) == (SB.BizId "blah Ltd") &&
-                                               (SB.password_hash u) == "password")
+  -- describe "addPublicKey tests" $ do
+  --   it "addPublicKey test 1" $ \(conn, env) -> do
+  --     1 `shouldBe` 1
+
+  -- describe "getPublicKey tests" $ do
+  --   it "getPublicKey test 1" $ \(conn, env) -> do
+  --     1 `shouldBe` 1
+
+  -- describe "getPublicKeyInfo tests" $ do
+  --   it "getPublicKeyInfo test 1" $ \(conn, env) -> do
+  --     1 `shouldBe` 1
+
+  -- describe "getUser tests" $ do
+  --   it "getUser test 1" $ \(conn, env) -> do
+  --     1 `shouldBe` 1
+
+  -- describe "insertDWhat tests" $ do
+  --   it "insertDWhat test 1" $ \(conn, env) -> do
+  --     1 `shouldBe` 1
+
+  -- describe "insertDWhen tests" $ do
+  --   it "insertDWhen test 1" $ \(conn, env) -> do
+  --     1 `shouldBe` 1
+
+  -- describe "insertDWhy tests" $ do
+  --   it "insertDWhy test 1" $ \(conn, env) -> do
+  --     1 `shouldBe` 1
+
+  -- describe "eventCreateObject tests" $ do
+  --   it "eventCreateObject test 1" $ \(conn, env) -> do
+  --     1 `shouldBe` 1
