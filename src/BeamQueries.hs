@@ -324,11 +324,6 @@ insertDWhere dwhere eventId = do
 toStorageDWhere :: SB.PrimaryKeyType -> DWhere -> SB.PrimaryKeyType -> SB.Where
 toStorageDWhere pKey (DWhere rPoint bizLoc srcT destT) eventId = error "not implemented yet"
 
-
--- extractEventId :: Maybe EvId.EventID -> Maybe SB.PrimaryKeyType
--- extractEventId (Just (EvId.EventID eventId)) = Just eventId
--- extractEventId _ = Nothing
-
 toStorageEvent :: SB.PrimaryKeyType
                -> SB.PrimaryKeyType
                -> T.Text
