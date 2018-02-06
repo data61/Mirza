@@ -30,14 +30,14 @@ import qualified Data.Text as T
 import Data.Text.Encoding (encodeUtf8)
 import           Crypto.Scrypt
 
-
 -- NOTE in this file, where fromJust is used in the tests, it is because we expect a Just... tis is part of the test
+-- NOTE tables dropped after every running of test in an "it"
 
--- note tables dropped after every running of test in an "it"
 user1 = (M.NewUser "000" "fake@gmail.com" "Bob" "Smith" "blah Ltd" "password")
--- TODO = find a pure function to get hash
---hashIO = liftIO $ encryptPassIO' (Pass $ encodeUtf8 $ M.password user1)
-hash = EncryptedPass $ encodeUtf8 $ M.password user1
+
+-- for grabbing the encrypted password from user 1
+hashIO :: MonadIO m => m EncryptedPass
+hashIO = liftIO $ encryptPassIO' (Pass $ encodeUtf8 $ M.password user1)
 
 selectUser :: M.UserID -> AppM (Maybe SB.User)
 selectUser uid = do
@@ -66,13 +66,12 @@ testNewUser = do
 
   describe "authCheck tests" $ do
     it "authCheck test 1" $ \(conn, env) -> do
-      -- hash <- hashIO
+      --hash <- hashIO
       uid <- fromRight' <$> (runAppM env $ newUser user1)
-      -- user <- fromRight' <$> (runAppM env $ authCheck (M.emailAddress user1) hash)--(encodeUtf8 $ M.password user1))
-      -- (fromJust user) `shouldSatisfy` (\u -> (M.userId u) == uid &&
-      --                                        (M.userFirstName u) == (M.firstName user1) &&
-      --                                        (M.userLastName u) == (M.lastName user1))
-      1 `shouldBe` 1
+      user <- fromRight' <$> (runAppM env $ authCheck (M.emailAddress user1) (encodeUtf8 $ M.password user1)) --hash)
+      (fromJust user) `shouldSatisfy` (\u -> (M.userId u) == uid &&
+                                             (M.userFirstName u) == (M.firstName user1) &&
+                                             (M.userLastName u) == (M.lastName user1))
 
   -- describe "addPublicKey tests" $ do
   --   it "addPublicKey test 1" $ \(conn, env) -> do

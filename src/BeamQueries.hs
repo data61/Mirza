@@ -124,7 +124,7 @@ authCheck email password = do
   case r of
     Left e -> throwError $ AppError M.BackendErr
     Right [user] -> do
-        if verifyPass' (Pass password) (EncryptedPass $ SB.password_hash user) --encodeUtf8 $ 
+        if verifyPass' (Pass password) (EncryptedPass $ SB.password_hash user)
           then return $ Just $ userTableToModel user
           else return Nothing
     Right [] -> throwError $ AppError $ M.EmailNotFound email
