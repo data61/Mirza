@@ -331,13 +331,13 @@ insertUserEvent eventId userId addedByUserId signed signedHash = do
 eventCreateObject :: M.User -> M.NewObject -> AppM SB.EventId
 eventCreateObject
   (M.User userId _ _ )
-  (M.NewObject epc epcisTime timezone
+  (M.NewObject labelEpc epcisTime timezone
       (M.EventLocation rp bizL src dest) mEventId) = do
 
   currentTime <- generateTimeStamp
   let
       eventType = ObjectEventT
-      dwhat =  ObjectDWhat Add [epc]
+      dwhat =  ObjectDWhat Add [labelEpc]
       dwhere = DWhere [rp] [bizL] [src] [dest]
       quantity = ItemCount 3 -- useful for label
       dwhy  =  DWhy (Just CreatingClassInstance) (Just Active)
