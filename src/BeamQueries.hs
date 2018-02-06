@@ -321,8 +321,12 @@ insertDWhere dwhere eventId = do
   return pKey
 
 
-toStorageDWhere :: SB.PrimaryKeyType -> DWhere -> SB.PrimaryKeyType -> SB.Where
-toStorageDWhere pKey (DWhere rPoint bizLoc srcT destT) eventId = error "not implemented yet"
+toStorageDWhere :: SB.PrimaryKeyType
+                -> DWhere
+                -> SB.PrimaryKeyType
+                -> SB.Where
+toStorageDWhere pKey (DWhere rPoint bizLoc srcT destT) eventId =
+  error "not implemented yet"
 
 toStorageEvent :: SB.PrimaryKeyType
                -> SB.PrimaryKeyType
@@ -336,7 +340,8 @@ insertEvent :: SB.PrimaryKeyType -> T.Text -> Event -> AppM SB.PrimaryKeyType
 insertEvent userId jsonEvent event = do
   pKey <- generatePk
   r <- runDb $ B.runInsert $ B.insert (SB._events SB.supplyChainDb)
-             $ insertValues [toStorageEvent pKey userId jsonEvent (_eid event)]
+             $ insertValues
+             [toStorageEvent pKey userId jsonEvent (_eid event)]
   return pKey
 
 
