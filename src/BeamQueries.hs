@@ -119,12 +119,12 @@ authCheck email password = do
   r <- runDb $
           runSelectReturningList $ select $ do
           user <- all_ (SB._users SB.supplyChainDb)
-          guard_ (SB.user_email_address user  ==. val_ email)
+          guard_ (SB.email_address user  ==. val_ email)
           pure user
   case r of
     Left e -> throwError $ AppError M.BackendErr
     Right [user] -> do
-        if verifyPass' (Pass password) (EncryptedPass $ encodeUtf8 $ SB.user_password_hash user)
+        if verifyPass' (Pass password) (EncryptedPass $ encodeUtf8 $ SB.password_hash user)
           then return $ Just $ userTableToModel user
           else return Nothing
     Right [] -> throwError $ AppError $ M.EmailNotFound email
@@ -186,7 +186,7 @@ getUser :: M.EmailAddress -> AppM (Maybe M.User)
 getUser  email = do
   r <- runDb $ runSelectReturningList $ select $ do
     allUsers <- all_ (SB._users SB.supplyChainDb)
-    guard_ (SB.user_email_address allUsers ==. val_ email)
+    guard_ (SB.email_address allUsers ==. val_ email)
     pure allUsers
   case r of
     Right [u] -> return $ Just $ userTableToModel u
