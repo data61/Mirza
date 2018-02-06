@@ -183,13 +183,13 @@ getUser  email = do
     _  ->        return Nothing
 
 -- should ``type`` be a maybe?
-epcToStorageLabel :: SB.PrimaryKeyType -> LabelEPC -> SB.Label
-epcToStorageLabel pKey (IL (GIAI cp sn))         = error "not implemented yet" -- SB.Label pKey "GIAI" cp Nothing sn Nothing Nothing
-epcToStorageLabel pKey (IL (SSCC cp sn))         = error "not implemented yet" -- SB.Label pKey "SSCC" cp Nothing sn Nothing Nothing
-epcToStorageLabel pKey (IL (SGTIN cp fv ir sn))  = error "not implemented yet" -- SB.Label pKey "SGTIN" cp ir sn Nothing Nothing
-epcToStorageLabel pKey (IL (GRAI cp at sn))      = error "not implemented yet" -- SB.Label pKey "GRAI" cp Nothing sn Nothing Nothing
-epcToStorageLabel pKey (CL (LGTIN cp ir lot) mQ) = error "not implemented yet" -- SB.Label pKey "LGTIN" cp ir Nothing Nothing lot
-epcToStorageLabel pKey (CL (CSGTIN cp fv ir) mQ) = error "not implemented yet" -- SB.Label pKey "CSGTIN" cp ir Nothing Nothing Nothing
+epcToStorageLabel :: EventType -> SB.PrimaryKeyType -> LabelEPC -> SB.Label
+epcToStorageLabel evT pKey (IL (GIAI cp sn))         = error "not implemented yet" -- SB.Label pKey "GIAI" cp Nothing sn Nothing Nothing
+epcToStorageLabel evT pKey (IL (SSCC cp sn))         = error "not implemented yet" -- SB.Label pKey "SSCC" cp Nothing sn Nothing Nothing
+epcToStorageLabel evT pKey (IL (SGTIN cp fv ir sn))  = error "not implemented yet" -- SB.Label pKey "SGTIN" cp ir sn Nothing Nothing
+epcToStorageLabel evT pKey (IL (GRAI cp at sn))      = error "not implemented yet" -- SB.Label pKey "GRAI" cp Nothing sn Nothing Nothing
+epcToStorageLabel evT pKey (CL (LGTIN cp ir lot) mQ) = error "not implemented yet" -- SB.Label pKey "LGTIN" cp ir Nothing Nothing lot
+epcToStorageLabel evT pKey (CL (CSGTIN cp fv ir) mQ) = error "not implemented yet" -- SB.Label pKey "CSGTIN" cp ir Nothing Nothing Nothing
 
 -- | GS1 DWhat to Storage DWhat
 toStorageDWhat :: SB.PrimaryKeyType
