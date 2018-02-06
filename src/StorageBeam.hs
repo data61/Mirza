@@ -42,6 +42,7 @@ import           Database.Beam.Postgres
 import           Data.Text (Text)
 import           Data.Time
 import           Data.ByteString (ByteString)
+import           Data.ByteString.Char8 (pack)
 -- import qualified Data.GS1.Event as Ev
 import qualified Data.GS1.EPC as EPC
 -- import qualified Data.GS1.DWhat as DWhat
@@ -50,7 +51,8 @@ import           Data.UUID (UUID)
 import           Database.PostgreSQL.Simple.FromField (FromField, Field,
                                                       fromField, Conversion,
                                                       returnError)
-import           Database.PostgreSQL.Simple.ToField (ToField)
+import           Database.PostgreSQL.Simple.ToField (ToField, toField,
+                                                     Action(..))
 import           Database.Beam.Postgres.Migrate
 import           Database.Beam.Migrate.SQL.Tables
 import           Database.Beam.Migrate.Types
@@ -573,7 +575,9 @@ instance FromField LocationField where
   fromField = defaultFromField "LocationField"
 
 instance FromBackendRow Postgres LocationField
-instance ToField LocationField
+instance ToField LocationField where
+  toField = toField . show
+
 instance HasSqlValueSyntax be String => HasSqlValueSyntax be LocationField where
   sqlValueSyntax = autoSqlValueSyntax
 
