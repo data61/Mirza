@@ -47,8 +47,8 @@ import qualified Data.GS1.EPC as EPC
 -- import qualified Data.GS1.DWhat as DWhat
 import           Text.Read (readMaybe)
 import           Data.UUID (UUID)
-import           Database.PostgreSQL.Simple.FromField (FromField,
-                                                      fromField,
+import           Database.PostgreSQL.Simple.FromField (FromField, Field,
+                                                      fromField, Conversion,
                                                       returnError)
 import           Database.PostgreSQL.Simple.ToField (ToField)
 import           Database.Beam.Postgres.Migrate
@@ -553,17 +553,23 @@ instance Table WhyT where
     deriving Generic
   primaryKey = WhyId . why_id
 
+defaultFromField :: (Typeable b, Read b) => Field
+                 -> Maybe ByteString
+                 -> Conversion b
+defaultFromField f bs = do
+  x <- readMaybe <$> fromField f bs
+  case x of
+    Nothing ->
+      returnError ConversionFailed
+        f "Could not 'read' value for 'SourceDestType'"
+    Just val -> pure val
+
 -- | The record fields in Data.GS1.DWhere for the data type DWhere
 data LocationField = Src | Dest | BizLocation | ReadPoint
-                    deriving (Generic, Show, Eq)
+                    deriving (Generic, Show, Eq, Read)
 
-instance FromField LocationField -- where
---   fromField f bs = do x <- readMaybe <$> fromField f bs
---                       case x of
---                         Nothing ->
---                           returnError ConversionFailed
---                             f "Could not 'read' value for 'SourceDestType'"
---                         Just x -> pure x
+instance FromField LocationField where
+  fromField = defaultFromField
 
 instance FromBackendRow Postgres LocationField
 instance ToField LocationField
