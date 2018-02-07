@@ -26,6 +26,7 @@ library
                     , CryptHash
                     , StorageUtils
                     , MigrateUtils
+                    , MigrateScript
   build-depends:      base >= 4.7 && < 5
                     , GS1Combinators
                     , beam-migrate
