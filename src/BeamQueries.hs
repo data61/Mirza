@@ -173,7 +173,6 @@ getPublicKeyInfo keyId = do
     Right _ -> throwError $ AppError $ M.InvalidKeyID keyId
     Left e  -> throwError $ AppError $ M.InvalidKeyID keyId
 
-
 getUser :: M.EmailAddress -> AppM (Maybe M.User)
 getUser  email = do
   r <- runDb $ runSelectReturningList $ select $ do
@@ -194,6 +193,7 @@ epcToStorageLabel evT pKey (CL (LGTIN cp ir lot) mQ) = error "not implemented ye
 epcToStorageLabel evT pKey (CL (CSGTIN cp fv ir) mQ) = error "not implemented yet" -- SB.Label pKey "CSGTIN" cp ir Nothing Nothing Nothing
 
 -- | GS1 DWhat to Storage DWhat
+-- For an object event
 toStorageDWhat :: SB.PrimaryKeyType
                -> DWhat
                -> SB.PrimaryKeyType
