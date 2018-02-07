@@ -472,7 +472,6 @@ instance Table LocationT where
     deriving Generic
   primaryKey = LocationId . location_id
 -- added by Matt
-deriving instance Eq (PrimaryKey LocationT Identity)
 
 data EventT f = Event
   { event_id                    :: C f PrimaryKeyType
