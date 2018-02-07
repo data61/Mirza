@@ -67,7 +67,8 @@ testQueries = do
                                                (SB.first_name u) == (M.firstName user1) &&
                                                (SB.last_name u) == (M.lastName user1) &&
                                                (SB.user_biz_id u) == (SB.BizId (M.company user1)) &&
-                                               --(SB.password_hash u) == hash && --(encodeUtf8 $ M.password user1) &&
+                                               -- note database bytestring includes the salt, this checks password
+                                               (verifyPass' (Pass $ encodeUtf8 $ M.password user1) (EncryptedPass $ SB.password_hash u)) &&
                                                (SB.user_id u) == uid)
 
   describe "authCheck tests" $ do
