@@ -15,14 +15,10 @@ module BeamQueries where
 {-# LANGUAGE MultiParamTypeClasses  #-}
 
 import qualified Model as M
--- import qualified CryptHash as C
--- import qualified Data.List.NonEmpty as NonEmpty
--- import qualified Data.ByteString as ByteString
 import qualified StorageBeam as SB
-
+import           Data.ByteString (ByteString)
 import           Data.UUID.V4 (nextRandom)
-import           Data.UUID (fromString, UUID)
-import           Data.Maybe (fromJust)
+import           Data.UUID (UUID)
 import           Crypto.Scrypt
 import           Data.Text.Encoding
 import           Database.PostgreSQL.Simple
@@ -30,28 +26,22 @@ import           Database.Beam as B
 import           Database.Beam.Backend.SQL.BeamExtensions
 import           AppConfig (AppM, runDb, AppError(..))
 import           Data.Time.Clock (getCurrentTime)
-import           Control.Monad.Except (throwError, MonadError)
-import qualified Control.Exception as ExL
+import           Control.Monad.Except (throwError)
 import qualified Data.Text as T
 import           Data.GS1.EPC
 import           Data.GS1.DWhat (DWhat(..), LabelEPC(..))
 import           Data.GS1.DWhy (DWhy(..))
-import           Data.GS1.DWhere (DWhere(..))
+import           Data.GS1.DWhere (DWhere(..), SrcDestLocation)
 import           Data.GS1.DWhen (DWhen(..))
 import qualified Data.GS1.EventID as EvId
 import           Data.GS1.Event (Event(..), EventType(..))
-import           Data.Time.LocalTime (utc, TimeZone, utcToLocalTime
+import           Data.Time.LocalTime (utc, utcToLocalTime
                                      , LocalTime, localTimeToUTC
                                      , timeZoneOffsetString)
 import           Data.Time (UTCTime)
-import           Data.Aeson.Encode.Pretty
 import           Data.Aeson.Text (encodeToLazyText)
 import qualified Data.Text.Lazy as TxtL
 
--- Until this module compiles, look at:
--- https://github.csiro.au/Blockchain/supplyChainServer/blob/pg-schema-matt/src/BeamQueries.hs
--- to figure out what it was when work was started
--- especially, if some variable is out of scope, look at the import list there
 
 {-
 {
@@ -135,7 +125,7 @@ authCheck email password = do
 -- execute conn "INSERT INTO Users (bizID, firstName, lastName, phoneNumber, passwordHash, emailAddress) VALUES (?, ?, ?, ?, ?, ?);" (biz, first, last, phone, getEncryptedPass hash, email)
 -- execute conn "INSERT INTO Keys (userID, rsa_n, rsa_e, creationTime) values (?, ?, ?, ?);" (uid, n, e, timestamp)
 addPublicKey :: M.User -> M.RSAPublicKey-> AppM M.KeyID
-addPublicKey (M.User uid _ _)  (M.RSAPublicKey n e) = do
+addPublicKey (M.User uid _ _)  (M.RSAPublicKey rsa_n rsa_e) = do
   keyId <- generatePk
   timeStamp <- generateTimeStamp
   r <- runDb $ runInsertReturningList (SB._keys SB.supplyChainDb) $
@@ -143,8 +133,8 @@ addPublicKey (M.User uid _ _)  (M.RSAPublicKey n e) = do
                [
                  (
                    SB.Key keyId (SB.UserId uid)
-                   (T.pack $ show n)
-                   (T.pack $ show e)
+                   (T.pack $ show rsa_n)
+                   (T.pack $ show rsa_e)
                    timeStamp -- 0
                    timeStamp -- revocationTime ?
                  )
@@ -193,13 +183,13 @@ getUser  email = do
     _  ->        return Nothing
 
 -- should ``type`` be a maybe?
-epcToStorageLabel :: SB.PrimaryKeyType -> LabelEPC -> SB.Label
-epcToStorageLabel pKey (IL (GIAI cp sn))         = error "not implemented yet" -- SB.Label pKey "GIAI" cp Nothing sn Nothing Nothing
-epcToStorageLabel pKey (IL (SSCC cp sn))         = error "not implemented yet" -- SB.Label pKey "SSCC" cp Nothing sn Nothing Nothing
-epcToStorageLabel pKey (IL (SGTIN cp fv ir sn))  = error "not implemented yet" -- SB.Label pKey "SGTIN" cp ir sn Nothing Nothing
-epcToStorageLabel pKey (IL (GRAI cp at sn))      = error "not implemented yet" -- SB.Label pKey "GRAI" cp Nothing sn Nothing Nothing
-epcToStorageLabel pKey (CL (LGTIN cp ir lot) mQ) = error "not implemented yet" -- SB.Label pKey "LGTIN" cp ir Nothing Nothing lot
-epcToStorageLabel pKey (CL (CSGTIN cp fv ir) mQ) = error "not implemented yet" -- SB.Label pKey "CSGTIN" cp ir Nothing Nothing Nothing
+epcToStorageLabel :: EventType -> SB.PrimaryKeyType -> LabelEPC -> SB.Label
+epcToStorageLabel evT pKey (IL (GIAI cp sn))         = error "not implemented yet" -- SB.Label pKey "GIAI" cp Nothing sn Nothing Nothing
+epcToStorageLabel evT pKey (IL (SSCC cp sn))         = error "not implemented yet" -- SB.Label pKey "SSCC" cp Nothing sn Nothing Nothing
+epcToStorageLabel evT pKey (IL (SGTIN cp fv ir sn))  = error "not implemented yet" -- SB.Label pKey "SGTIN" cp ir sn Nothing Nothing
+epcToStorageLabel evT pKey (IL (GRAI cp at sn))      = error "not implemented yet" -- SB.Label pKey "GRAI" cp Nothing sn Nothing Nothing
+epcToStorageLabel evT pKey (CL (LGTIN cp ir lot) mQ) = error "not implemented yet" -- SB.Label pKey "LGTIN" cp ir Nothing Nothing lot
+epcToStorageLabel evT pKey (CL (CSGTIN cp fv ir) mQ) = error "not implemented yet" -- SB.Label pKey "CSGTIN" cp ir Nothing Nothing Nothing
 
 -- | GS1 DWhat to Storage DWhat
 toStorageDWhat :: SB.PrimaryKeyType
@@ -249,85 +239,57 @@ insertDWhy dwhy eventId = do
              $ insertValues [toStorageDWhy pKey dwhy eventId]
   return pKey
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-insertDWhere :: DWhere -> SB.PrimaryKeyType -> AppM SB.PrimaryKeyType
-insertDWhere dwhere eventId = do
+toText :: Show a => a -> T.Text
+toText = T.pack . show
+
+insertSrcDestType :: SB.LocationField
+                  -> SB.PrimaryKeyType
+                  -> SrcDestLocation
+                  -> AppM SB.PrimaryKeyType
+insertSrcDestType
+  locField
+  eventId
+  (sdType, SGLN gs1Company (LocationReferenceNum locationRef) ext) = do
   pKey <- generatePk
+  let
+      stWhere = SB.Where pKey
+                (Just . toText $ sdType)
+                locationRef
+                (toText locField)
+                (SB.EventId eventId)
   r <- runDb $ B.runInsert $ B.insert (SB._wheres SB.supplyChainDb)
-             $ insertValues [toStorageDWhere pKey dwhere eventId]
+             $ insertValues [stWhere]
   return pKey
 
+insertLocationEPC :: SB.LocationField
+                  -> SB.PrimaryKeyType
+                  -> LocationEPC
+                  -> AppM SB.PrimaryKeyType
+insertLocationEPC
+  locField
+  eventId
+  (SGLN gs1Company (LocationReferenceNum locationRef) ext) = do
+  pKey <- generatePk
+  let
+      stWhere = SB.Where pKey
+                Nothing
+                locationRef
+                (toText locField)
+                (SB.EventId eventId)
+  r <- runDb $ B.runInsert $ B.insert (SB._wheres SB.supplyChainDb)
+             $ insertValues [stWhere]
+  return pKey
 
-toStorageDWhere :: SB.PrimaryKeyType -> DWhere -> SB.PrimaryKeyType -> SB.Where
-toStorageDWhere pKey (DWhere rPoint bizLoc srcT destT) eventId = error "not implemented yet"
+-- | Maps the relevant insert function for all
+-- ReadPoint, BizLocation, Src, Dest
+insertDWhere :: DWhere -> SB.PrimaryKeyType -> AppM ()
+insertDWhere (DWhere rPoint bizLoc srcT destT) eventId = do
+  return $ insertLocationEPC SB.ReadPoint eventId <$> rPoint
+  return $ insertLocationEPC SB.BizLocation eventId <$> bizLoc
+  return $ insertSrcDestType SB.Src eventId <$> srcT
+  return $ insertSrcDestType SB.Dest eventId <$> destT
+  return ()
 
-
--- extractEventId :: Maybe EvId.EventID -> Maybe SB.PrimaryKeyType
--- extractEventId (Just (EvId.EventID eventId)) = Just eventId
--- extractEventId _ = Nothing
 
 toStorageEvent :: SB.PrimaryKeyType
                -> SB.PrimaryKeyType
@@ -341,23 +303,42 @@ insertEvent :: SB.PrimaryKeyType -> T.Text -> Event -> AppM SB.PrimaryKeyType
 insertEvent userId jsonEvent event = do
   pKey <- generatePk
   r <- runDb $ B.runInsert $ B.insert (SB._events SB.supplyChainDb)
-             $ insertValues [toStorageEvent pKey userId jsonEvent (_eid event)]
+             $ insertValues
+             [toStorageEvent pKey userId jsonEvent (_eid event)]
   return pKey
 
+-- insertUserEvent
+insertUserEvent :: SB.PrimaryKeyType
+                -> SB.PrimaryKeyType
+                -> SB.PrimaryKeyType
+                -> Bool
+                -> (Maybe ByteString)
+                -> AppM ()
+insertUserEvent eventId userId addedByUserId signed signedHash = do
+  pKey <- generatePk
+  runDb $ B.runInsert $ B.insert (SB._user_events SB.supplyChainDb)
+        $ insertValues
+        [
+          SB.UserEvent pKey
+          (SB.EventId eventId)
+          (SB.UserId userId)
+          signed
+          (SB.UserId addedByUserId)
+          signedHash
+        ]
+  return ()
 
--- TODO = fix. 1 problem is nothing is done with filter value or asset type in objectRowID grabbing data insert
--- 1 other problem is state never used... what is it???
--- epc is a labelEPC
 eventCreateObject :: M.User -> M.NewObject -> AppM SB.EventId
 eventCreateObject
-  (M.User uid _ _ )
-  (M.NewObject epc epcisTime timezone (M.EventLocation rp bizL) mEventId) = do
+  (M.User userId _ _ )
+  (M.NewObject labelEpc epcisTime timezone
+      (M.EventLocation rp bizL src dest) mEventId) = do
 
   currentTime <- generateTimeStamp
   let
       eventType = ObjectEventT
-      dwhat =  ObjectDWhat Add [epc]
-      dwhere = DWhere [rp] [bizL] [] []
+      dwhat =  ObjectDWhat Add [labelEpc]
+      dwhere = DWhere [rp] [bizL] [src] [dest]
       quantity = ItemCount 3 -- useful for label
       dwhy  =  DWhy (Just CreatingClassInstance) (Just Active)
       dwhen = DWhen epcisTime (Just $ toEPCISTime currentTime) timezone
@@ -365,13 +346,13 @@ eventCreateObject
       event = Event eventType foreignEventId dwhat dwhen dwhy dwhere
       jsonEvent = encodeEvent event
 
-  eventId <- insertEvent uid jsonEvent event
+  eventId <- insertEvent userId jsonEvent event
   labelId <- generatePk
   whatId <- insertDWhat dwhat eventId
   whenId <- insertDWhen dwhen eventId
   whyId <- insertDWhy dwhy eventId
-  whereId <- insertDWhere dwhere eventId
-
+  insertDWhere dwhere eventId
+  insertUserEvent eventId userId userId False Nothing
   -- TODO = combine rows from bizTransactionTable and _eventCreatedBy field in Event table
   -- haven't added UserEvents insertion equivalent since redundant information and no equivalent
   -- hashes not added yet, but will later for blockchain
