@@ -70,14 +70,14 @@ testQueries = do
                                                --(SB.password_hash u) == hash && --(encodeUtf8 $ M.password user1) &&
                                                (SB.user_id u) == uid)
 
-  -- describe "authCheck tests" $ do
-  --   it "authCheck test 1" $ \(conn, env) -> do
-  --     --hash <- hashIO
-  --     uid <- fromRight' <$> (runAppM env $ newUser user1)
-  --     user <- fromRight' <$> (runAppM env $ authCheck (M.emailAddress user1) (encodeUtf8 $ M.password user1)) --hash)
-  --     (fromJust user) `shouldSatisfy` (\u -> (M.userId u) == uid &&
-  --                                            (M.userFirstName u) == (M.firstName user1) &&
-  --                                            (M.userLastName u) == (M.lastName user1))
+  describe "authCheck tests" $ do
+    it "authCheck test 1" $ \(conn, env) -> do
+      --hash <- hashIO
+      uid <- fromRight' <$> (runAppM env $ newUser user1)
+      user <- fromRight' <$> (runAppM env $ authCheck (M.emailAddress user1) (encodeUtf8 $ M.password user1)) --hash)
+      (fromJust user) `shouldSatisfy` (\u -> (M.userId u) == uid &&
+                                             (M.userFirstName u) == (M.firstName user1) &&
+                                             (M.userLastName u) == (M.lastName user1))
 
 
 
