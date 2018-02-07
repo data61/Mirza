@@ -251,7 +251,7 @@ insertSrcDestType :: SB.LocationField
 insertSrcDestType
   locField
   eventId
-  (sdType, SGLN gs1Company (LocationReferenceNum locationRef) ext) = do
+  (sdType, SGLN gs1Company (LocationReference locationRef) ext) = do
   pKey <- generatePk
   let
       stWhere = SB.Where pKey
@@ -270,7 +270,7 @@ insertLocationEPC :: SB.LocationField
 insertLocationEPC
   locField
   eventId
-  (SGLN gs1Company (LocationReferenceNum locationRef) ext) = do
+  (SGLN gs1Company (LocationReference locationRef) ext) = do
   pKey <- generatePk
   let
       stWhere = SB.Where pKey
