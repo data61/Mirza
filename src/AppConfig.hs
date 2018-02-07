@@ -66,8 +66,8 @@ dbFunc = do
   conn <- getDBConn
   e <- getEnvType
   case e of
-    Prod -> pure $ B.withDatabase conn
-    _    -> pure $ B.withDatabaseDebug putStrLn conn
+    Prod -> pure $ B.withDatabase conn  -- database queries other than migration will be silent
+    _    -> pure $ B.withDatabaseDebug putStrLn conn  -- database queries other than migration will print on screen
 
 -- | Helper function to run db functions
 runDb :: Pg a -> AppM (Either SqlError a)

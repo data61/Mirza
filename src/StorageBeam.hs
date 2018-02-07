@@ -82,8 +82,8 @@ maxTzLen = 10
 -- pkSerialType :: DataType PgDataTypeSyntax UUID
 pkSerialType = uuid
 
-migrationStorage :: () -> Migration PgCommandSyntax (CheckedDatabaseSettings Postgres SupplyChainDb)
-migrationStorage () =
+migrationStorage :: Migration PgCommandSyntax (CheckedDatabaseSettings Postgres SupplyChainDb)
+migrationStorage =
   SupplyChainDb
     <$> createTable "users"
     (
@@ -93,7 +93,7 @@ migrationStorage () =
           (field "first_name" (varchar (Just maxLen)) notNull)
           (field "last_name" (varchar (Just maxLen)) notNull)
           (field "phone_number" (varchar (Just maxLen)) notNull)
-          (field "password_hash" (varchar (Just maxLen)) notNull)
+          (field "password_hash" binaryLargeObject notNull)
           (field "email_address" (varchar (Just maxLen)) unique)
     )
     <*> createTable "keys"
@@ -268,7 +268,7 @@ data UserT f = User
   , first_name           :: C f Text
   , last_name            :: C f Text
   , phone_number         :: C f Text
-  , password_hash        :: C f Text --XXX - should this be blob?
+  , password_hash        :: C f ByteString --XXX - should this be blob?
   , email_address        :: C f Text }
   deriving Generic
 
@@ -285,6 +285,8 @@ instance Table UserT where
   data PrimaryKey UserT f = UserId (C f PrimaryKeyType)
     deriving Generic
   primaryKey = UserId . user_id
+-- added by Matt
+deriving instance Eq (PrimaryKey UserT Identity)
 
 data KeyT f = Key
   { key_id             :: C f PrimaryKeyType
@@ -307,6 +309,8 @@ instance Table KeyT where
   data PrimaryKey KeyT f = KeyId (C f PrimaryKeyType)
     deriving Generic
   primaryKey = KeyId . key_id
+-- added by Matt
+deriving instance Eq (PrimaryKey KeyT Identity)
 
 -- CBV-Standard-1-2-r-2016-09-29.pdf Page 11
 
@@ -332,6 +336,8 @@ instance Table BusinessT where
   data PrimaryKey BusinessT f = BizId (C f EPC.GS1CompanyPrefix)
     deriving Generic
   primaryKey = BizId . biz_gs1_company_prefix
+-- added by Matt
+deriving instance Eq (PrimaryKey BusinessT Identity)
 
 data ContactT f = Contact
   { contact_id                :: C f PrimaryKeyType
@@ -379,6 +385,8 @@ instance Table LabelT where
   data PrimaryKey LabelT f = LabelId (C f PrimaryKeyType)
     deriving Generic
   primaryKey = LabelId . label_id
+-- added by Matt
+deriving instance Eq (PrimaryKey LabelT Identity)
 
 data WhatLabelT f = WhatLabel
   { what_label_id       :: C f PrimaryKeyType
@@ -439,6 +447,8 @@ instance Table TransformationT where
   data PrimaryKey TransformationT f = TransformationId (C f PrimaryKeyType)
     deriving Generic
   primaryKey = TransformationId . transformation_id
+-- added by Matt
+deriving instance Eq (PrimaryKey TransformationT Identity)
 
 data LocationT f = Location
   { location_id                 :: C f Text
@@ -461,6 +471,8 @@ instance Table LocationT where
   data PrimaryKey LocationT f = LocationId (C f Text)
     deriving Generic
   primaryKey = LocationId . location_id
+-- added by Matt
+deriving instance Eq (PrimaryKey LocationT Identity)
 
 data EventT f = Event
   { event_id                    :: C f PrimaryKeyType
@@ -482,6 +494,8 @@ instance Table EventT where
   data PrimaryKey EventT f = EventId (C f PrimaryKeyType)
     deriving Generic
   primaryKey = EventId . event_id
+-- added by Matt
+deriving instance Eq (PrimaryKey EventT Identity)
 
 data WhatT f = What
   { what_id                    :: C f PrimaryKeyType
@@ -508,6 +522,8 @@ instance Table WhatT where
   data PrimaryKey WhatT f = WhatId (C f PrimaryKeyType)
     deriving Generic
   primaryKey = WhatId . what_id
+-- added by Matt
+deriving instance Eq (PrimaryKey WhatT Identity)
 
 
 data BizTransactionT f = BizTransaction
@@ -531,6 +547,8 @@ instance Table BizTransactionT where
   data PrimaryKey BizTransactionT f = BizTransactionId (C f PrimaryKeyType)
     deriving Generic
   primaryKey = BizTransactionId . biz_transaction_id
+-- added by Matt
+deriving instance Eq (PrimaryKey BizTransactionT Identity)
 
 data WhyT f = Why
   { why_id                      :: C f PrimaryKeyType
@@ -712,6 +730,7 @@ instance Table BlockChainT where
   data PrimaryKey BlockChainT f = BlockChainId (C f PrimaryKeyType)
     deriving Generic
   primaryKey = BlockChainId . blockchain_id
+
 -- END OF ADDITIONAL TABLES
 
 data SupplyChainDb f = SupplyChainDb

@@ -19,9 +19,9 @@ import Data.Int
 -- initially get into postgres using: sudo -u postgres psql postgres
 -- from then on use: sudo -u per276 psql testsupplychainserver2
 -- create role per276 with login;
--- create database testsupplychainserver2;
+-- create database testsupplychainserver;
 dbConnStr :: ByteString
-dbConnStr = "dbname=testsupplychainserver2"
+dbConnStr = "dbname=testsupplychainserver"
 
 -- INTERESTING NOTE ON MIGRATION
 -- receive this error if the tables already exist (not in tests anymore since delete them beforehand)
@@ -50,16 +50,15 @@ openConnection = do
   dropTables conn -- drop tables before so if already exist no problems... means tables get overwritten though
   let envT = AC.mkEnvType True
       env  = AC.Env envT conn
-  tryCreateSchema conn
+  tryCreateSchema True conn
   return (conn, env)
 
 closeConnection :: (Connection, Env) -> IO ()
 closeConnection (conn, env) = do
-  dropTables conn
   close conn
 
 withDatabaseConnection :: ((Connection, Env) -> IO ()) -> IO ()
 withDatabaseConnection = bracket openConnection closeConnection
 
 main :: IO ()
-main = hspec $ around withDatabaseConnection testNewUser
+main = hspec $ around withDatabaseConnection testQueries

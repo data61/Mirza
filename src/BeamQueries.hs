@@ -79,13 +79,13 @@ generatePk = liftIO $ nextRandom
 
 -- USE pass!
 insertUser :: EncryptedPass -> M.NewUser -> AppM M.UserID
-insertUser pass (M.NewUser phone email firstName lastName biz password) = do
+insertUser encPass (M.NewUser phone email firstName lastName biz _) = do
   userId <- generatePk
   res <- runDb $
             runInsertReturningList (SB._users SB.supplyChainDb) $
             insertValues ([(SB.User userId
             (SB.BizId  biz)
-            firstName lastName phone password email)])
+            firstName lastName phone (getEncryptedPass encPass) email)])
   case res of
     Left e -> throwError $ AppError $ M.EmailExists email
     Right [r] -> return $ SB.user_id r
@@ -114,7 +114,7 @@ authCheck email password = do
   case r of
     Left e -> throwError $ AppError M.BackendErr
     Right [user] -> do
-        if verifyPass' (Pass password) (EncryptedPass $ encodeUtf8 $ SB.password_hash user)
+        if verifyPass' (Pass password) (EncryptedPass $ SB.password_hash user)
           then return $ Just $ userTableToModel user
           else return Nothing
     Right [] -> throwError $ AppError $ M.EmailNotFound email
