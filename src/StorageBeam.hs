@@ -451,7 +451,7 @@ instance Table TransformationT where
 deriving instance Eq (PrimaryKey TransformationT Identity)
 
 data LocationT f = Location
-  { location_id                 :: C f Text
+  { location_id                 :: C f Text -- EPC.LocationReference
   , location_biz_id             :: PrimaryKey BusinessT f
   -- this needs to be locationReferenceNum
   , location_lat                :: C f Double
