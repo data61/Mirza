@@ -136,7 +136,7 @@ addPublicKey (M.User uid _ _)  (M.RSAPublicKey rsa_n rsa_e) = do
                    (T.pack $ show rsa_n)
                    (T.pack $ show rsa_e)
                    timeStamp -- 0
-                   timeStamp -- revocationTime ?
+                   Nothing -- revocationTime ?
                  )
                ] -- TODO = check if 0 is correct here... NOT SURE
   case r of
@@ -167,7 +167,9 @@ getPublicKeyInfo keyId = do
 
   case r of
     Right [(SB.Key _ (SB.UserId uId) _ _ creationTime revocationTime)] ->
-       return $ M.KeyInfo uId (toEPCISTime creationTime) (toEPCISTime revocationTime)
+       return $ M.KeyInfo uId
+                (toEPCISTime creationTime)
+                (toEPCISTime <$> revocationTime)
     Right _ -> throwError $ AppError $ M.InvalidKeyID keyId
     Left e  -> throwError $ AppError $ M.InvalidKeyID keyId
 

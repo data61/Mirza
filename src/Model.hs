@@ -119,7 +119,7 @@ instance ToSchema RSAPublicKey
 data KeyInfo = KeyInfo {
   userID         :: UserID,
   creationTime   :: EPCISTime,
-  revocationTime :: EPCISTime
+  revocationTime :: Maybe EPCISTime
 }deriving (Generic, Eq, Show)
 $(deriveJSON defaultOptions ''KeyInfo)
 instance ToSchema KeyInfo
