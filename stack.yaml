@@ -13,7 +13,7 @@ packages:
     - beam-postgres
 extra-deps:
 - git: git@github.csiro.au:Blockchain/GS1Combinators.git
-  commit: 558f48418990fe3bd5f2cf4fbc86ed17c66fbac4
+  commit: e2fe26f51e5631650d61cb396a2e34243899d1a2
 - servant-0.10
 - servant-multipart-0.10
 - servant-server-0.10
