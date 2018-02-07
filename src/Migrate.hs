@@ -3,7 +3,7 @@ module Migrate where
 
 import qualified Control.Exception as E
 import           StorageBeam -- the schemas
-import           Database.Beam (withDatabaseDebug)
+import           Database.Beam (withDatabaseDebug, withDatabase)
 import           Database.Beam.Postgres (Connection, Pg)
 import           Database.Beam.Migrate.Types (executeMigration)
 import           Database.Beam.Backend (runNoReturn)
@@ -11,16 +11,17 @@ import           Database.Beam.Backend (runNoReturn)
 import           Database.PostgreSQL.Simple(SqlError ,connectPostgreSQL)
 import           Data.ByteString.Char8 (ByteString)
 
-
-dbFunc :: Connection -> Pg a -> IO a
-dbFunc = withDatabaseDebug putStrLn
+-- boolean is whether to run silently
+dbMigrationFunc :: Bool -> Connection -> Pg a -> IO a
+dbMigrationFunc False = withDatabaseDebug putStrLn
+dbMigrationFunc _ = withDatabase
 
 defConnectionStr :: ByteString
 defConnectionStr = "dbname=devsupplychainserver"
 
-createSchema :: Connection -> IO ()
-createSchema conn = do
-  dbFunc conn $ executeMigration runNoReturn $ migrationStorage
+createSchema :: Bool -> Connection -> IO ()
+createSchema runSilently conn = do
+  dbMigrationFunc runSilently conn $ executeMigration runNoReturn $ migrationStorage
   return ()
 
 -- dropSchema :: Connection -> IO ()
@@ -28,8 +29,8 @@ createSchema conn = do
 --   dbFunc conn $ executeMigration runNoReturn dropTables
 --   return ()
 
-tryCreateSchema :: Connection -> IO ()
-tryCreateSchema conn = E.catch (createSchema conn) handleErr
+tryCreateSchema :: Bool -> Connection -> IO ()
+tryCreateSchema runSilently conn = E.catch (createSchema runSilently conn) handleErr
   where
     handleErr :: SqlError -> IO ()
     handleErr  = print 
@@ -43,7 +44,7 @@ tryCreateSchema conn = E.catch (createSchema conn) handleErr
 migrate :: ByteString -> IO ()
 migrate connStr = do
   conn <- connectPostgreSQL connStr
-  tryCreateSchema conn
+  tryCreateSchema False conn
   print $ "Successfully created table. ConnectionStr was " ++ show connStr
 
 
