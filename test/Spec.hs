@@ -50,7 +50,7 @@ openConnection = do
   dropTables conn -- drop tables before so if already exist no problems... means tables get overwritten though
   let envT = AC.mkEnvType True
       env  = AC.Env envT conn
-  tryCreateSchema conn
+  tryCreateSchema True conn
   return (conn, env)
 
 closeConnection :: (Connection, Env) -> IO ()
