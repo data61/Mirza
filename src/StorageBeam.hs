@@ -192,6 +192,7 @@ deriving instance Show Label
 
 instance Beamable LabelT
 instance Beamable (PrimaryKey LabelT)
+deriving instance Show (PrimaryKey LabelT (Nullable Identity))
 deriving instance Show (PrimaryKey LabelT Identity)
 
 instance Table LabelT where
@@ -255,6 +256,7 @@ deriving instance Show Transformation
 instance Beamable TransformationT
 instance Beamable (PrimaryKey TransformationT)
 deriving instance Show (PrimaryKey TransformationT Identity)
+deriving instance Show (PrimaryKey TransformationT (Nullable Identity))
 
 instance Table TransformationT where
   data PrimaryKey TransformationT f = TransformationId (C f PrimaryKeyType)
@@ -313,11 +315,9 @@ data WhatT f = What
   { what_id                    :: C f PrimaryKeyType
   , what_event_type            :: C f Text -- Ev.EventType
   , action                     :: C f Text -- EPC.Action
-  , parent                     :: PrimaryKey LabelT f
-  -- , input                      :: C f [LabelEPC]
-  -- , output                     :: C f [LabelEPC]
-  , what_biz_transaction_id    :: PrimaryKey BizTransactionT f
-  , what_transformation_id     :: PrimaryKey TransformationT f
+  , parent                     :: PrimaryKey LabelT (Nullable f)
+  , what_biz_transaction_id    :: PrimaryKey BizTransactionT (Nullable f)
+  , what_transformation_id     :: PrimaryKey TransformationT (Nullable f)
   , what_event_id              :: PrimaryKey EventT f }
   deriving Generic
 
@@ -354,6 +354,7 @@ instance Beamable BizTransactionT
 
 instance Beamable (PrimaryKey BizTransactionT)
 deriving instance Show (PrimaryKey BizTransactionT Identity)
+deriving instance Show (PrimaryKey BizTransactionT (Nullable Identity))
 
 instance Table BizTransactionT where
   data PrimaryKey BizTransactionT f = BizTransactionId (C f PrimaryKeyType)
