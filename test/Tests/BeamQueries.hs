@@ -59,9 +59,6 @@ testQueries = do
         uid <- fromRight' <$> (runAppM env $ newUser user1)
         user <- fromRight' <$> (runAppM env $ selectUser uid)
 
-        --print $ show hash
-        --print $ show $ SB.password_hash $ fromJust user
-
         (fromJust user) `shouldSatisfy` (\u -> (SB.phone_number u) == (M.phoneNumber user1) &&
                                                (SB.email_address u) == (M.emailAddress user1) &&
                                                (SB.first_name u) == (M.firstName user1) &&
@@ -73,9 +70,8 @@ testQueries = do
 
   describe "authCheck tests" $ do
     it "authCheck test 1" $ \(conn, env) -> do
-      --hash <- hashIO
       uid <- fromRight' <$> (runAppM env $ newUser user1)
-      user <- fromRight' <$> (runAppM env $ authCheck (M.emailAddress user1) (encodeUtf8 $ M.password user1)) --hash)
+      user <- fromRight' <$> (runAppM env $ authCheck (M.emailAddress user1) (encodeUtf8 $ M.password user1))
       (fromJust user) `shouldSatisfy` (\u -> (M.userId u) == uid &&
                                              (M.userFirstName u) == (M.firstName user1) &&
                                              (M.userLastName u) == (M.lastName user1))
