@@ -146,13 +146,13 @@ getPublicKeyInfo keyId = do
     Left e  -> throwError $ AppError $ M.InvalidKeyID keyId
 
 getUser :: M.EmailAddress -> AppM (Maybe M.User)
-getUser  email = do
+getUser email = do
   r <- runDb $ runSelectReturningList $ select $ do
     allUsers <- all_ (SB._users SB.supplyChainDb)
     guard_ (SB.email_address allUsers ==. val_ email)
     pure allUsers
   case r of
-    Right [u] -> return $ Just $ userTableToModel u
+    Right [u] -> return . Just . userTableToModel $ u
     _  ->        return Nothing
 
 insertDWhat :: DWhat -> SB.PrimaryKeyType -> AppM SB.PrimaryKeyType
