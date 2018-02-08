@@ -25,8 +25,9 @@ import           Data.GS1.DWhy (DWhy(..))
 import           Data.GS1.DWhere (DWhere(..), SrcDestLocation)
 import           Data.GS1.DWhen (DWhen(..))
 import qualified Data.GS1.EventID as EvId
-import           Data.GS1.Event (Event(..), EventType(..))
-
+import           Data.GS1.Event (Event(..), EventType(..),
+                                evTypeToTextLike, dwhatToEventTextLike)
+import           Utils (toText)
 
 
 -- | Reads back the ``LocalTime`` in UTCTime (with an offset of 0)
@@ -60,21 +61,49 @@ encodeEvent :: Event -> T.Text
 encodeEvent event = TxtL.toStrict  (encodeToLazyText event)
 
 -- should ``type`` be a maybe?
-epcToStorageLabel :: EventType -> SB.PrimaryKeyType -> LabelEPC -> SB.Label
-epcToStorageLabel evT pKey (IL (GIAI cp sn))         = error "not implemented yet" -- SB.Label pKey "GIAI" cp Nothing sn Nothing Nothing
-epcToStorageLabel evT pKey (IL (SSCC cp sn))         = error "not implemented yet" -- SB.Label pKey "SSCC" cp Nothing sn Nothing Nothing
-epcToStorageLabel evT pKey (IL (SGTIN cp fv ir sn))  = error "not implemented yet" -- SB.Label pKey "SGTIN" cp ir sn Nothing Nothing
-epcToStorageLabel evT pKey (IL (GRAI cp at sn))      = error "not implemented yet" -- SB.Label pKey "GRAI" cp Nothing sn Nothing Nothing
-epcToStorageLabel evT pKey (CL (LGTIN cp ir lot) mQ) = error "not implemented yet" -- SB.Label pKey "LGTIN" cp ir Nothing Nothing lot
-epcToStorageLabel evT pKey (CL (CSGTIN cp fv ir) mQ) = error "not implemented yet" -- SB.Label pKey "CSGTIN" cp ir Nothing Nothing Nothing
+epcToStorageLabel :: T.Text
+                  -> SB.PrimaryKeyType
+                  -> SB.PrimaryKeyType
+                  -> LabelEPC
+                  -> SB.Label
+epcToStorageLabel labelType whatId pKey (IL (SGTIN gs1Prefix fv ir sn)) =
+  SB.Label pKey labelType (SB.WhatId whatId)
+           gs1Prefix (Just ir)
+           (Just sn) Nothing Nothing Nothing Nothing
+
+epcToStorageLabel labelType whatId pKey (IL (GIAI gs1Prefix sn)) =
+  SB.Label pKey labelType (SB.WhatId whatId)
+           gs1Prefix Nothing (Just sn) Nothing Nothing Nothing Nothing
+
+-- epcToStorageLabel evT pKey (IL (SSCC cp sn))         = error "not implemented yet" -- SB.Label pKey "SSCC" cp Nothing sn Nothing Nothing
+
+-- epcToStorageLabel evT pKey (IL (GRAI cp at sn))      = error "not implemented yet" -- SB.Label pKey "GRAI" cp Nothing sn Nothing Nothing
+-- epcToStorageLabel evT pKey (CL (LGTIN cp ir lot) mQ) = error "not implemented yet" -- SB.Label pKey "LGTIN" cp ir Nothing Nothing lot
+-- epcToStorageLabel evT pKey (CL (CSGTIN cp fv ir) mQ) = error "not implemented yet" -- SB.Label pKey "CSGTIN" cp ir Nothing Nothing Nothing
 
 -- | GS1 DWhat to Storage DWhat
 -- For an object event
 toStorageDWhat :: SB.PrimaryKeyType
-               -> DWhat
+               -> Maybe SB.PrimaryKeyType
+               -> Maybe SB.PrimaryKeyType
+               -> Maybe SB.PrimaryKeyType
                -> SB.PrimaryKeyType
+               -> DWhat
                -> SB.What
-toStorageDWhat pKey (ObjectDWhat act epcs) = error "not implemented yet"
+toStorageDWhat pKey mParentId mBizTranId mTranId eventId dwhat
+   = SB.What pKey
+            (Just $ dwhatToEventTextLike dwhat)
+            (toText <$> getAction dwhat)
+            (SB.LabelId mParentId)
+            (SB.BizTransactionId mBizTranId)
+            (SB.TransformationId mTranId)
+            (SB.EventId eventId)
+
+getAction :: DWhat -> Maybe Action
+getAction (TransformationDWhat _ _ _) = Nothing
+getAction (ObjectDWhat act _) = Just act
+getAction (TransactionDWhat act _ _ _) = Just act
+getAction (AggregationDWhat act _ _) = Just act
 
 
 toStorageDWhen :: SB.PrimaryKeyType
