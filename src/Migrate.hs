@@ -2,7 +2,7 @@
 module Migrate where
 
 import qualified Control.Exception as E
-import           StorageBeam -- the schemas
+import           MigrateScript (migrationStorage)
 import           Database.Beam (withDatabaseDebug, withDatabase)
 import           Database.Beam.Postgres (Connection, Pg)
 import           Database.Beam.Migrate.Types (executeMigration)

@@ -41,7 +41,8 @@ import           Data.Time.LocalTime (utc, utcToLocalTime
 import           Data.Time (UTCTime)
 import           Data.Aeson.Text (encodeToLazyText)
 import qualified Data.Text.Lazy as TxtL
-
+import           Utils (debugLog, toText)
+import           StorageUtils
 
 {-
 {
@@ -54,30 +55,6 @@ import qualified Data.Text.Lazy as TxtL
 }
  -}
 
--- Following are a bunch of utility functions to do household stuff like
--- generating primary keys, timestamps - stuff that almost every function
--- below would need to do anyway
-
--- | Reads back the ``LocalTime`` in UTCTime (with an offset of 0)
-toEPCISTime :: LocalTime -> UTCTime
-toEPCISTime = localTimeToUTC utc
-
--- | Shorthand for type-casting UTCTime to LocalTime before storing them in DB
-toLocalTime :: UTCTime -> LocalTime
-toLocalTime = utcToLocalTime utc
-
--- | Generates a timestamp in LocalTime + 0:00 offset
--- which is a UTCTime
-generateTimeStamp :: AppM LocalTime
-generateTimeStamp = do
-  utcTime <- liftIO getCurrentTime
-  return $ utcToLocalTime utc utcTime
-
--- | shorthand for wrapping ``UUID.nextRandom`` in ``AppM``
-generatePk :: AppM UUID
-generatePk = liftIO $ nextRandom
-
--- USE pass!
 insertUser :: EncryptedPass -> M.NewUser -> AppM M.UserID
 insertUser encPass (M.NewUser phone email firstName lastName biz _) = do
   userId <- generatePk
@@ -97,11 +74,6 @@ newUser userInfo@(M.NewUser _ _ _ _ _ password) = do
     -- liftIO $ print "blah"
     hash <- liftIO $ encryptPassIO' (Pass $ encodeUtf8 password)
     insertUser hash userInfo
-
--- | Converts a DB representation of ``User`` to a Model representation
--- SB.User = SB.User uid bizId fName lName phNum passHash email
-userTableToModel :: SB.User -> M.User
-userTableToModel (SB.User uid _ fName lName _ _ _) = M.User uid fName lName
 
 -- Basic Auth check using Scrypt hashes.
 authCheck :: M.EmailAddress -> M.Password -> AppM (Maybe M.User)
@@ -173,7 +145,6 @@ getPublicKeyInfo keyId = do
     Right _ -> throwError $ AppError $ M.InvalidKeyID keyId
     Left e  -> throwError $ AppError $ M.InvalidKeyID keyId
 
-
 getUser :: M.EmailAddress -> AppM (Maybe M.User)
 getUser  email = do
   r <- runDb $ runSelectReturningList $ select $ do
@@ -184,40 +155,12 @@ getUser  email = do
     Right [u] -> return $ Just $ userTableToModel u
     _  ->        return Nothing
 
--- should ``type`` be a maybe?
-epcToStorageLabel :: EventType -> SB.PrimaryKeyType -> LabelEPC -> SB.Label
-epcToStorageLabel evT pKey (IL (GIAI cp sn))         = error "not implemented yet" -- SB.Label pKey "GIAI" cp Nothing sn Nothing Nothing
-epcToStorageLabel evT pKey (IL (SSCC cp sn))         = error "not implemented yet" -- SB.Label pKey "SSCC" cp Nothing sn Nothing Nothing
-epcToStorageLabel evT pKey (IL (SGTIN cp fv ir sn))  = error "not implemented yet" -- SB.Label pKey "SGTIN" cp ir sn Nothing Nothing
-epcToStorageLabel evT pKey (IL (GRAI cp at sn))      = error "not implemented yet" -- SB.Label pKey "GRAI" cp Nothing sn Nothing Nothing
-epcToStorageLabel evT pKey (CL (LGTIN cp ir lot) mQ) = error "not implemented yet" -- SB.Label pKey "LGTIN" cp ir Nothing Nothing lot
-epcToStorageLabel evT pKey (CL (CSGTIN cp fv ir) mQ) = error "not implemented yet" -- SB.Label pKey "CSGTIN" cp ir Nothing Nothing Nothing
-
--- | GS1 DWhat to Storage DWhat
-toStorageDWhat :: SB.PrimaryKeyType
-               -> DWhat
-               -> SB.PrimaryKeyType
-               -> SB.What
-toStorageDWhat pKey (ObjectDWhat act epcs) = error "not implemented yet"
-
 insertDWhat :: DWhat -> SB.PrimaryKeyType -> AppM SB.PrimaryKeyType
 insertDWhat dwhat eventId = do
   pKey <- generatePk
   r <- runDb $ B.runInsert $ B.insert (SB._whats SB.supplyChainDb)
              $ insertValues [toStorageDWhat pKey dwhat eventId]
   return pKey
-
-
-toStorageDWhen :: SB.PrimaryKeyType
-               -> DWhen
-               -> SB.PrimaryKeyType
-               -> SB.When
-toStorageDWhen pKey (DWhen eventTime mRecordTime tZone) eventId =
-  SB.When pKey
-    (toLocalTime eventTime)
-    (toLocalTime <$> mRecordTime)
-    (T.pack . timeZoneOffsetString $ tZone)
-    (SB.EventId eventId)
 
 insertDWhen :: DWhen -> SB.PrimaryKeyType -> AppM SB.PrimaryKeyType
 insertDWhen dwhen eventId =  do
@@ -227,22 +170,12 @@ insertDWhen dwhen eventId =  do
   return pKey
 
 
-toStorageDWhy :: SB.PrimaryKeyType -> DWhy -> SB.PrimaryKeyType -> SB.Why
-toStorageDWhy pKey (DWhy mBiz mDisp) eventId =
-  SB.Why pKey
-    (printURI <$> mBiz)
-    (printURI <$> mDisp)
-    (SB.EventId eventId)
-
 insertDWhy :: DWhy -> SB.PrimaryKeyType -> AppM SB.PrimaryKeyType
 insertDWhy dwhy eventId = do
   pKey <- generatePk
   r <- runDb $ B.runInsert $ B.insert (SB._whys SB.supplyChainDb)
              $ insertValues [toStorageDWhy pKey dwhy eventId]
   return pKey
-
-toText :: Show a => a -> T.Text
-toText = T.pack . show
 
 insertSrcDestType :: SB.LocationField
                   -> SB.PrimaryKeyType
@@ -291,15 +224,6 @@ insertDWhere (DWhere rPoint bizLoc srcT destT) eventId = do
   return $ insertSrcDestType SB.Src eventId <$> srcT
   return $ insertSrcDestType SB.Dest eventId <$> destT
   return ()
-
-
-toStorageEvent :: SB.PrimaryKeyType
-               -> SB.PrimaryKeyType
-               -> T.Text
-               -> Maybe EvId.EventID
-               -> SB.Event
-toStorageEvent pKey userId jsonEvent mEventId =
-  SB.Event pKey (EvId.getEventId <$> mEventId) (SB.UserId userId) jsonEvent
 
 insertEvent :: SB.PrimaryKeyType -> T.Text -> Event -> AppM SB.PrimaryKeyType
 insertEvent userId jsonEvent event = do
@@ -360,12 +284,6 @@ eventCreateObject
   -- hashes not added yet, but will later for blockchain
 
   return (SB.EventId eventId)
-
--- | Json encode the event
--- currently do it automagically, but might what to be
--- more systematic about it so it's easier to replicated. Maybe.
-encodeEvent :: Event -> T.Text
-encodeEvent event = TxtL.toStrict  (encodeToLazyText event)
 
 -- -- TODO = fix... what is definition of hasSigned?
 -- eventUserList :: M.User -> EvId.EventID -> AppM [(M.User, Bool)]

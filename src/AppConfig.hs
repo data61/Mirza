@@ -2,16 +2,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings          #-}
 
-module AppConfig (
-  AppM (..)
-  , dbFunc
-  , runDb
-  , mkEnvType
-  , Env(..)
-  , AppError(..)
-  , runAppM
-)
-where
+module AppConfig where
 
 import           Control.Exception.Lifted (try)
 import           Database.PostgreSQL.Simple (Connection, SqlError(..))
@@ -21,17 +12,17 @@ import           Database.Beam.Postgres (Pg)
 import           Control.Monad.IO.Class (MonadIO)
 import           Control.Monad.Reader   (MonadReader, ReaderT, runReaderT,
                                          asks, liftIO)
--- import           GHC.Word               (Word16)
 import           Servant.Server (Handler, ServantErr)
 import           Control.Monad.Except (MonadError, ExceptT(..), runExceptT)
 import qualified Model as M
 import qualified Control.Exception as Exc
 
 data EnvType = Prod | Dev
+  deriving (Show, Eq, Read)
 
 mkEnvType :: Bool -> EnvType
 mkEnvType False = Prod
-mkEnvType _ = Dev
+mkEnvType _     = Dev
 
 data Env = Env
   { envType :: EnvType
