@@ -159,7 +159,7 @@ insertDWhat :: DWhat -> SB.PrimaryKeyType -> AppM SB.PrimaryKeyType
 insertDWhat dwhat eventId = do
   pKey <- generatePk
   r <- runDb $ B.runInsert $ B.insert (SB._whats SB.supplyChainDb)
-             $ insertValues [toStorageDWhat pKey dwhat eventId]
+             $ insertValues [{- toStorageDWhat pKey dwhat eventId -}]
   return pKey
 
 insertDWhen :: DWhen -> SB.PrimaryKeyType -> AppM SB.PrimaryKeyType
