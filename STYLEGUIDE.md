@@ -24,7 +24,7 @@ If you notice the field definitions (eg., `column_one`), it is in snake_case
 as opposed to camelCase, which is unanimously conventional in Haskell.
 
 The reason for that is that Beam looks at how you defined your columns (fields)
-and makes [modifies](https://tathougies.github.io/beam/user-guide/models/#defaults)
+and [modifies](https://tathougies.github.io/beam/user-guide/models/#defaults)
 the field name in the generated SQL query. At the time of writing, this
 behaviour was found to be inconsistent and not well documented, and it was
 discovered that `naming_variables_like_this_keeps_things_intact`.
