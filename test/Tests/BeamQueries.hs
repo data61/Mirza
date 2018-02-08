@@ -30,15 +30,21 @@ import qualified Data.Text as T
 import Data.Text.Encoding (encodeUtf8)
 import           Crypto.Scrypt
 import Data.ByteString
+import Data.Time.Clock (getCurrentTime)
+import Data.Time.LocalTime (utc, utcToLocalTime, LocalTime)
 
 -- NOTE in this file, where fromJust is used in the tests, it is because we expect a Just... tis is part of the test
 -- NOTE tables dropped after every running of test in an "it"
 
 user1 = (M.NewUser "000" "fake@gmail.com" "Bob" "Smith" "blah Ltd" "password")
+rsaKey1 = (M.RSAPublicKey 3 5)
 
 -- for grabbing the encrypted password from user 1
 hashIO :: MonadIO m => m ByteString
 hashIO = getEncryptedPass <$> (liftIO $ encryptPassIO' (Pass $ encodeUtf8 $ M.password user1))
+
+timeStampIO :: MonadIO m => m LocalTime
+timeStampIO = liftIO $ (utcToLocalTime utc) <$> getCurrentTime
 
 selectUser :: M.UserID -> AppM (Maybe SB.User)
 selectUser uid = do
@@ -49,6 +55,17 @@ selectUser uid = do
           pure user
   case r of
     Right [user] -> return $ Just user
+    _ -> return Nothing
+
+selectKey :: M.KeyID -> AppM (Maybe SB.Key)
+selectKey keyId = do
+  r <- runDb $
+          runSelectReturningList $ select $ do
+          key <- all_ (SB._keys SB.supplyChainDb)
+          guard_ (SB.key_id key ==. val_ keyId)
+          pure key
+  case r of
+    Right [key] -> return $ Just key
     _ -> return Nothing
 
 testQueries :: SpecWith (Connection, Env)
@@ -76,13 +93,21 @@ testQueries = do
                                              (M.userFirstName u) == (M.firstName user1) &&
                                              (M.userLastName u) == (M.lastName user1))
 
+  describe "addPublicKey tests" $ do
+    it "addPublicKey test 1" $ \(conn, env) -> do
+      tStart <- timeStampIO
+      uid <- fromRight' <$> (runAppM env $ newUser user1)
+      user <- fromRight' <$> (runAppM env $ authCheck (M.emailAddress user1) (encodeUtf8 $ M.password user1))
+      keyId <- fromRight' <$> (runAppM env $ addPublicKey (fromJust user) rsaKey1)
+      key <- fromRight' <$> (runAppM env $ selectKey keyId)
+      tEnd <- timeStampIO
 
-
-
-
-  -- describe "addPublicKey tests" $ do
-  --   it "addPublicKey test 1" $ \(conn, env) -> do
-  --     1 `shouldBe` 1
+      (fromJust key) `shouldSatisfy` (\k -> (SB.rsa_n k) == (M.rsa_public_n rsaKey1) &&
+                                            (SB.rsa_e k) == (M.rsa_public_e rsaKey1) &&
+                                            (SB.key_id k) == keyId &&
+                                            (SB.key_user_id k) == (SB.UserId uid) &&
+                                            (SB.creationTime k) > tStart && (SB.creationTime k) < tEnd &&
+                                            isNothing (SB.revocationTime k))
 
   -- describe "getPublicKey tests" $ do
   --   it "getPublicKey test 1" $ \(conn, env) -> do

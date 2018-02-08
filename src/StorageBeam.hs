@@ -101,8 +101,8 @@ migrationStorage =
       Key
           (field "key_id" pkSerialType)
           (UserId (field "key_user_id" pkSerialType))
-          (field "rsa_n" text)
-          (field "rsa_e" text)
+          (field "rsa_n" binaryLargeObject)
+          (field "rsa_e" binaryLargeObject)
           (field "creation_time" timestamptz)
           (field "revocation_time" (maybeType timestamptz))
     )
@@ -291,8 +291,8 @@ deriving instance Eq (PrimaryKey UserT Identity)
 data KeyT f = Key
   { key_id             :: C f PrimaryKeyType
   , key_user_id        :: PrimaryKey UserT f
-  , rsa_n              :: C f Text --XXX should this be Int64?
-  , rsa_e              :: C f Text -- as above
+  , rsa_n              :: C f ByteString -- should be PKCS8 encoding
+  , rsa_e              :: C f ByteString -- should be PKCS8 encoding
   , creationTime       :: C f LocalTime -- UTCTime
   , revocationTime     :: C f (Maybe LocalTime) -- UTCTime
   }
