@@ -36,11 +36,10 @@ import           API
 import           Service
 import           GHC.Word        (Word16)
 
-
-startApp :: ByteString -> Bool -> Word16 -> UIFlavour-> IO ()
-startApp dbConnStr isDebug port uiFlavour = do
+startApp :: ByteString -> AC.EnvType -> Word16 -> UIFlavour-> IO ()
+startApp dbConnStr envT port uiFlavour = do
     conn <- connectPostgreSQL dbConnStr
-    let envT = AC.mkEnvType isDebug
+    let
         env  = AC.Env envT conn
         app = return $ webApp env uiFlavour
     putStrLn $ "http://localhost:" ++ show port ++ "/" ++ "swagger-ui/"
@@ -48,7 +47,7 @@ startApp dbConnStr isDebug port uiFlavour = do
 
 -- easily start the app in ghci, no command line arguments required.
 startApp_nomain :: ByteString -> IO ()
-startApp_nomain dbConnStr = startApp dbConnStr True 8000 Original
+startApp_nomain dbConnStr = startApp dbConnStr AC.Dev 8000 Original
 
 -- Application = Request -> (Response -> IO ResponseReceived) -> IO ResponseReceived
 webApp :: AC.Env -> UIFlavour -> Application

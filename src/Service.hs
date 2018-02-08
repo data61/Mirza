@@ -36,7 +36,8 @@ import qualified Data.ByteString as ByteString
 import qualified Data.ByteString.Lazy.Char8 as LBSC8
 import qualified Data.HashMap.Strict.InsOrd as IOrd
 import qualified Network.Wai.Handler.Warp as Warp
-import           Control.Monad.Reader   (runReaderT,
+import           Control.Monad (when)
+import           Control.Monad.Reader   (runReaderT, MonadIO,
                                          asks, ask, liftIO)
 import           Control.Lens       hiding ((.=))
 import           Control.Monad.Except (runExceptT)
@@ -50,6 +51,7 @@ import qualified AppConfig as AC
 import           Control.Monad.Reader   (MonadReader, ReaderT, runReaderT,
                                          asks, ask, liftIO)
 import           Control.Monad.Trans.Either (EitherT(..))
+import           Utils (debugLog, debugLogGeneral)
 
 instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub) where
   toSwagger _ =
@@ -75,19 +77,19 @@ authCheck = error "Storage module not implemented"
   --          (Just user) -> return (Authorized user)
   -- in BasicAuthCheck check
 
-
 appMToHandler :: forall x. AC.Env -> AC.AppM x -> Handler x
 appMToHandler env act = do
   res <- liftIO $ runExceptT $ runReaderT (AC.unAppM act) env
-  liftIO $ print "We are in appMToHandler"
+  let envT = AC.envType env
+  debugLogGeneral envT "We are in appMToHandler"
   case res of
     Left (AC.AppError (M.EmailExists em)) -> do
-      liftIO $ print "We are in Left"
+      debugLogGeneral envT  "We are in Left"
       throwError $ err400
           { errBody = LBSC8.fromChunks $
                       ["User email ", encodeUtf8 em, " exists"]}
     Right a  -> do
-      liftIO $ print "We are in Right"
+      debugLogGeneral envT "We are in Right"
       return a
 
 privateServer :: User -> ServerT PrivateAPI AC.AppM

@@ -48,3 +48,6 @@ INSERT INTO businesses \
 EOF
 
 echo "Done"
+echo "Starting the server in 3s. Feed me a SIGINT (CTRL+C) to stop."
+sleep 3
+stack exec supplyChainServer-exe -- -e Dev # running in Dev
