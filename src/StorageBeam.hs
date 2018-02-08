@@ -176,10 +176,10 @@ data LabelT f = Label
   { label_id                 :: C f PrimaryKeyType
   , label_type               :: C f Text -- input/output/parent
   , label_what_id            :: PrimaryKey WhatT f
-  , label_gs1_company_prefix :: C f Text --should this be bizId instead?
+  , label_gs1_company_prefix :: C f EPC.GS1CompanyPrefix --should this be bizId instead?
   , item_reference           :: C f (Maybe Text)
   , serial_number            :: C f (Maybe Text)
-  , state                    :: C f Text
+  , state                    :: C f (Maybe Text)
   , lot                      :: C f (Maybe Text)
   , quantity_amount          :: C f (Maybe Double)
   , quantity_uom             :: C f (Maybe EPC.Uom) -- T.Text
@@ -313,8 +313,8 @@ deriving instance Eq (PrimaryKey EventT Identity)
 
 data WhatT f = What
   { what_id                    :: C f PrimaryKeyType
-  , what_event_type            :: C f Text -- Ev.EventType
-  , action                     :: C f Text -- EPC.Action
+  , what_event_type            :: C f (Maybe Text) -- Ev.EventType
+  , action                     :: C f (Maybe Text) -- EPC.Action
   , parent                     :: PrimaryKey LabelT (Nullable f)
   , what_biz_transaction_id    :: PrimaryKey BizTransactionT (Nullable f)
   , what_transformation_id     :: PrimaryKey TransformationT (Nullable f)

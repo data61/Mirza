@@ -68,7 +68,7 @@ migrationStorage =
           (field "label_gs1_company_prefix" (varchar (Just maxLen)) notNull)
           (field "item_reference" (maybeType $ varchar (Just maxLen)) notNull)
           (field "serial_number" (maybeType $ varchar (Just maxLen)) notNull)
-          (field "state" (varchar (Just maxLen)))
+          (field "state" (maybeType $ varchar (Just maxLen)))
           (field "lot" (maybeType $ varchar (Just maxLen)))
           (field "quantity_amount" (maybeType double))
           (field "quantity_uom" (maybeType $ varchar (Just maxLen)))
@@ -116,11 +116,9 @@ migrationStorage =
     (
       What
           (field "what_id" pkSerialType)
-          (field "what_event_type" text)
-          (field "action" text)
+          (field "what_event_type" (maybeType text))
+          (field "action" (maybeType text))
           (LabelId (field "parent" (maybeType pkSerialType)))
-          -- (field "input" bigserial)
-          -- (field "output" bigserial)
           (BizTransactionId (field "what_biz_transaction_id" (maybeType pkSerialType)))
           (TransformationId (field "what_transformation_id" (maybeType pkSerialType)))
           (EventId (field "what_event_id" pkSerialType))
