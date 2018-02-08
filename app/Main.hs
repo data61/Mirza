@@ -7,9 +7,10 @@ import Data.ByteString
 import Migrate (defConnectionStr)
 import Options.Applicative
 import Data.Semigroup ((<>))
+import AppConfig (EnvType(..))
 
 data ServerOptions = ServerOptions
-  { verbose       :: Bool
+  { env           :: EnvType
   , initDB        :: Bool
 --  , clearDB       :: Bool
   , connectionStr :: ByteString
@@ -19,10 +20,12 @@ data ServerOptions = ServerOptions
 
 serverOptions :: Parser ServerOptions
 serverOptions = ServerOptions
-      <$> switch
-          ( long "verbose"
-         <> short 'v'
-         <> help "Print Databse Debug Messages" )
+      <$> option auto
+          ( long "env"
+         <> short 'e'
+         <> help "Environment, Dev | Prod"
+         <> showDefault
+         <> value Dev )
       <*> switch
           ( long "init-db"
          <> short 'i'
@@ -66,6 +69,6 @@ main = runProgram =<< execParser opts
 --     startApp connStr isDebug (fromIntegral portNum) flavour
 -- runProgram _ = migrate defConnectionStr
 runProgram :: ServerOptions -> IO ()
-runProgram (ServerOptions isDebug False connStr portNum flavour) =
-    startApp connStr isDebug (fromIntegral portNum) flavour
+runProgram (ServerOptions envT False connStr portNum flavour) =
+    startApp connStr envT (fromIntegral portNum) flavour
 runProgram _ = migrate defConnectionStr
