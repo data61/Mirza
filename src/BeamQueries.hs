@@ -55,8 +55,6 @@ import           StorageUtils
 }
  -}
 
-
--- USE pass!
 insertUser :: EncryptedPass -> M.NewUser -> AppM M.UserID
 insertUser encPass (M.NewUser phone email firstName lastName biz _) = do
   userId <- generatePk
