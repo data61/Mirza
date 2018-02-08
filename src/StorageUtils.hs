@@ -109,11 +109,13 @@ getAction (AggregationDWhat act _ _) = Just act
 getParentId :: DWhat -> AppM (Maybe SB.PrimaryKeyType)
 -- because ObjectDWhat has no parent
 getParentId (ObjectDWhat _ _) = return Nothing
--- tentative, check specs if Transformation is mneant to have parent
 getParentId (TransformationDWhat tId inp out) = return Nothing
 -- do it for the rest of them
-getParentId (TransactionDWhat act mP btList epcs) = error "not implemented yet"
-getParentId (AggregationDWhat act mP epcs) = error "not implemented yet"
+getParentId (TransactionDWhat act Nothing btList epcs) = return Nothing
+getParentId (TransactionDWhat act (Just p) btList epcs) = error "not implemented yet"
+
+getParentId (AggregationDWhat act Nothing epcs) = return Nothing
+getParentId (AggregationDWhat act (Just p) epcs) = error "not implemented yet"
 
 toStorageDWhen :: SB.PrimaryKeyType
                -> DWhen
