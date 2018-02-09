@@ -5,7 +5,6 @@ module BeamQueries where
 import qualified Model as M
 import qualified StorageBeam as SB
 import           Data.ByteString (ByteString)
-import           Data.ByteString.Char8 (pack)
 import           Data.UUID.V4 (nextRandom)
 import           Data.UUID (UUID)
 import           Crypto.Scrypt
@@ -45,8 +44,7 @@ import           QueryUtils
  -}
 
 uniqueConstraintFailed :: ByteString
-uniqueConstraintFailed = pack "23505"
-
+uniqueConstraintFailed = "23505"
 
 insertUser :: EncryptedPass -> M.NewUser -> AppM M.UserID
 insertUser encPass (M.NewUser phone email firstName lastName biz _) = do
