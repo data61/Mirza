@@ -114,8 +114,7 @@ deriving instance Eq (PrimaryKey UserT Identity)
 data KeyT f = Key
   { key_id             :: C f PrimaryKeyType
   , key_user_id        :: PrimaryKey UserT f
-  , rsa_n              :: C f ByteString -- should be PKCS8 encoding
-  , rsa_e              :: C f ByteString -- should be PKCS8 encoding
+  , rsa_public_pkcs8   :: C f ByteString -- should be PKCS8 encoding
   , creationTime       :: C f LocalTime -- UTCTime
   , revocationTime     :: C f (Maybe LocalTime) -- UTCTime
   }
