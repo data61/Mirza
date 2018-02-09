@@ -31,7 +31,6 @@ import           Data.GS1.Event (Event(..), EventType(..),
 import           Utils (toText)
 import           Errors (ServiceError(..))
 
-
 -- | Reads back the ``LocalTime`` in UTCTime (with an offset of 0)
 toEPCISTime :: LocalTime -> UTCTime
 toEPCISTime = localTimeToUTC utc
