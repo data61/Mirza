@@ -17,6 +17,7 @@ module BeamQueries where
 import qualified Model as M
 import qualified StorageBeam as SB
 import           Data.ByteString (ByteString)
+import           Data.ByteString.Char8 (pack)
 import           Data.UUID.V4 (nextRandom)
 import           Data.UUID (UUID)
 import           Crypto.Scrypt
@@ -55,6 +56,10 @@ import           QueryUtils
 }
  -}
 
+uniqueConstraintFailed :: ByteString
+uniqueConstraintFailed = pack "23505"
+
+
 insertUser :: EncryptedPass -> M.NewUser -> AppM M.UserID
 insertUser encPass (M.NewUser phone email firstName lastName biz _) = do
   userId <- generatePk
@@ -64,9 +69,12 @@ insertUser encPass (M.NewUser phone email firstName lastName biz _) = do
             (SB.BizId  biz)
             firstName lastName phone (getEncryptedPass encPass) email)])
   case res of
-    Left e -> throwError $ AppError $ M.EmailExists email
     Right [r] -> return $ SB.user_id r
-    _ -> error "unhandled as of yet"
+    Right []  -> throwError $ AppError $ M.EmailNotFound email
+    Left (SqlError state status msg detail hint)
+        | state == uniqueConstraintFailed -> throwError $ AppError $ M.EmailExists email
+        | otherwise -> throwError $ AppError $ M.InsertionFail $ email
+    _         -> throwError $ AppError $ M.InsertionFail $ email
 
 -- |
 newUser :: M.NewUser -> AppM M.UserID
@@ -84,13 +92,13 @@ authCheck email password = do
           guard_ (SB.email_address user  ==. val_ email)
           pure user
   case r of
-    Left e -> throwError $ AppError M.BackendErr
+    Left e -> throwError $ AppError $ M.BackendErr $ toText e
     Right [user] -> do
         if verifyPass' (Pass password) (EncryptedPass $ SB.password_hash user)
           then return $ Just $ userTableToModel user
           else return Nothing
     Right [] -> throwError $ AppError $ M.EmailNotFound email
-    _  -> return Nothing -- null list or multiple elements
+    _  -> return Nothing -- multiple elements
 
 
 -- BELOW = Beam versions of SQL versions from Storage.hs
@@ -114,7 +122,7 @@ addPublicKey (M.User uid _ _)  (M.RSAPublicKey rsa_n rsa_e) = do
   case r of
     Right [rowId] -> return (SB.key_id rowId)
     Right _       -> throwError $ AppError $ M.InvalidKeyID keyId
-    Left  e       -> throwError $ AppError $ M.InvalidKeyID keyId
+    Left e        -> throwError $ AppError $ M.BackendErr $ toText e
 
 getPublicKey :: M.KeyID -> AppM M.RSAPublicKey
 getPublicKey keyId = do
