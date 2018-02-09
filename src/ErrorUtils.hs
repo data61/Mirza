@@ -14,7 +14,7 @@ appErrToHttpErr :: ServiceError -> Handler a
 appErrToHttpErr (EmailExists email) =
   throwError $ err400 {
     errBody = LBSC8.fromChunks $ ["User email ", encodeUtf8 email, " exists"]}
-appErrToHttpErr _ = throwError err500 {errBody "The server did not understand this request."}
+appErrToHttpErr _ = throwError err500 {errBody = "The server did not understand this request."}
 
 -- | Shorthand for throwing a Backend error
 throwBackendError :: (Show e) => e -> AppM a
