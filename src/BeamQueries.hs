@@ -31,7 +31,7 @@ import           Data.Aeson.Text (encodeToLazyText)
 import qualified Data.Text.Lazy as TxtL
 import           Utils (debugLog, toText)
 import           QueryUtils
-
+import           Errors (ServiceError(..))
 {-
 {
   "phoneNumber": "0412",

@@ -28,6 +28,7 @@ import qualified Data.GS1.EventID as EvId
 import           Data.GS1.Event (Event(..), EventType(..),
                                 evTypeToTextLike, dwhatToEventTextLike)
 import           Utils (toText)
+import           Errors (ServiceError(..))
 
 
 -- | Reads back the ``LocalTime`` in UTCTime (with an offset of 0)
