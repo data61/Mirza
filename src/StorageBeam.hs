@@ -73,7 +73,17 @@ type PrimaryKeyType = UUID
 --   parseUrlPiece t = error $ show t ++ " parseUP"
 --   parseQueryParam t = error $ show t ++ " parseQP"
 
-
+defaultFromField :: (Typeable b, Read b) => String
+                 -> Field
+                 -> Maybe ByteString
+                 -> Conversion b
+defaultFromField fName f bs = do
+  x <- readMaybe <$> fromField f bs
+  case x of
+    Nothing ->
+      returnError ConversionFailed
+        f $ "Could not 'read' value for " ++ fName
+    Just val -> pure val
 
 data UserT f = User
   { user_id              :: C f PrimaryKeyType
