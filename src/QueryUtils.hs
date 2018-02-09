@@ -142,16 +142,3 @@ toStorageEvent :: SB.PrimaryKeyType
                -> SB.Event
 toStorageEvent pKey userId jsonEvent mEventId =
   SB.Event pKey (EvId.getEventId <$> mEventId) (SB.UserId userId) jsonEvent
-
-
-defaultFromField :: (Typeable b, Read b) => String
-                 -> Field
-                 -> Maybe ByteString
-                 -> Conversion b
-defaultFromField fName f bs = do
-  x <- readMaybe <$> fromField f bs
-  case x of
-    Nothing ->
-      returnError ConversionFailed
-        f $ "Could not 'read' value for " ++ fName
-    Just val -> pure val
