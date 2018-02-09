@@ -107,8 +107,13 @@ getAction (ObjectDWhat act _) = Just act
 getAction (TransactionDWhat act _ _ _) = Just act
 getAction (AggregationDWhat act _ _) = Just act
 
-grabLabelId :: GS1CompanyPrefix -> SerialNumber -> Maybe SGTINFilterValue -> Maybe ItemReference -> Maybe AssetType -> AppM (Maybe SB.PrimaryKeyType)
-grabLabelId cp sn msfv mir mat = do
+grabInstLabelId :: GS1CompanyPrefix
+                -> SerialNumber
+                -> Maybe SGTINFilterValue
+                -> Maybe ItemReference
+                -> Maybe AssetType
+                -> AppM (Maybe SB.PrimaryKeyType)
+grabInstLabelId cp sn msfv mir mat = do
   r <- runDb $ runSelectReturningList $ select $ do
     labels <- all_ (SB._labels SB.supplyChainDb)
     guard_ (SB.label_gs1_company_prefix labels ==. val_ cp &&.
@@ -124,10 +129,10 @@ grabLabelId cp sn msfv mir mat = do
 -- | SELECT * from labels where company = companyPrefix && serial = serial --> that's for GIAI
 findLabelId :: InstanceLabelEPC -> AppM (Maybe SB.PrimaryKeyType)
 -- pattern match on 4 instancelabelepc types, quantity_amount and quantity_uom not important
-findLabelId (GIAI cp sn) = grabLabelId cp sn Nothing Nothing Nothing
-findLabelId (SSCC cp sn) = grabLabelId cp sn Nothing Nothing Nothing
-findLabelId (SGTIN cp msfv ir sn) = grabLabelId cp sn msfv (Just ir) Nothing
-findLabelId (GRAI cp at sn) = grabLabelId cp sn Nothing Nothing (Just at)
+findLabelId (GIAI cp sn) = grabInstLabelId cp sn Nothing Nothing Nothing
+findLabelId (SSCC cp sn) = grabInstLabelId cp sn Nothing Nothing Nothing
+findLabelId (SGTIN cp msfv ir sn) = grabInstLabelId cp sn msfv (Just ir) Nothing
+findLabelId (GRAI cp at sn) = grabInstLabelId cp sn Nothing Nothing (Just at)
 
 -- look into Data.GS1.DWhat source code
 getParentId :: DWhat -> AppM (Maybe SB.PrimaryKeyType)
