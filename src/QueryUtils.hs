@@ -134,17 +134,14 @@ findLabelId (SSCC cp sn) = grabInstLabelId cp sn Nothing Nothing Nothing
 findLabelId (SGTIN cp msfv ir sn) = grabInstLabelId cp sn msfv (Just ir) Nothing
 findLabelId (GRAI cp at sn) = grabInstLabelId cp sn Nothing Nothing (Just at)
 
--- look into Data.GS1.DWhat source code
 getParentId :: DWhat -> AppM (Maybe SB.PrimaryKeyType)
 -- because ObjectDWhat has no parent
-getParentId (ObjectDWhat _ _) = return Nothing
-getParentId (TransformationDWhat tId inp out) = return Nothing
--- do it for the rest of them
-getParentId (TransactionDWhat act Nothing btList epcs) = return Nothing
 getParentId (TransactionDWhat act (Just p) btList epcs) = findLabelId p
-
-getParentId (AggregationDWhat act Nothing epcs) = return Nothing
 getParentId (AggregationDWhat act (Just p) epcs) = findLabelId p
+getParentId _                                    = return Nothing
+-- getParentId (TransformationDWhat tId inp out) = return Nothing
+-- getParentId (TransactionDWhat act Nothing btList epcs) = return Nothing
+-- getParentId (AggregationDWhat act Nothing epcs) = return Nothing
 
 toStorageDWhen :: SB.PrimaryKeyType
                -> DWhen
