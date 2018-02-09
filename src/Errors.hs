@@ -62,5 +62,3 @@ were merged into ``ServiceError``
 
 -- instance AppServantError DBError where
 --   toServantErr e = err500 {errBody = LBSC8.pack $ show e}
-
-
