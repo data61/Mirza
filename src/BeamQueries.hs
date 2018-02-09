@@ -47,11 +47,12 @@ insertUser encPass (M.NewUser phone email firstName lastName biz _) = do
             firstName lastName phone (getEncryptedPass encPass) email)])
   case res of
     Right [r] -> return $ SB.user_id r
-    Right []  -> throwError $ AppError $ M.EmailNotFound email
+    Right []  -> throwAppError $ EmailNotFound email
     Left (SqlError state status msg detail hint)
-        | state == uniqueConstraintFailed -> throwError $ AppError $ M.EmailExists email
-        | otherwise -> throwError $ AppError $ M.InsertionFail $ email
-    _         -> throwError $ AppError $ M.InsertionFail $ email
+        | state == uniqueConstraintFailed
+                    -> throwAppError $ EmailExists email
+        | otherwise -> throwAppError $ InsertionFail $ email
+    _         -> throwAppError $ InsertionFail $ email
 
 -- |
 newUser :: M.NewUser -> AppM M.UserID
@@ -69,12 +70,12 @@ authCheck email password = do
           guard_ (SB.email_address user  ==. val_ email)
           pure user
   case r of
-    Left e -> throwError $ AppError $ M.BackendErr $ toText e
+    Left e -> throwAppError $ UnexpectedDBResponse $ toText e
     Right [user] -> do
         if verifyPass' (Pass password) (EncryptedPass $ SB.password_hash user)
           then return $ Just $ userTableToModel user
-          else return Nothing
-    Right [] -> throwError $ AppError $ M.EmailNotFound email
+          else throwAppError $ AuthFailed email
+    Right [] -> throwAppError $ EmailNotFound email
     _  -> return Nothing -- multiple elements
 
 
@@ -98,8 +99,8 @@ addPublicKey (M.User uid _ _)  (M.RSAPublicKey rsa_n rsa_e) = do
                ] -- TODO = check if 0 is correct here... NOT SURE
   case r of
     Right [rowId] -> return (SB.key_id rowId)
-    Right _       -> throwError $ AppError $ M.InvalidKeyID keyId
-    Left e        -> throwError $ AppError $ M.BackendErr $ toText e
+    Right _       -> throwAppError $ InvalidKeyID keyId
+    Left e        -> throwBackendError e
 
 getPublicKey :: M.KeyID -> AppM M.RSAPublicKey
 getPublicKey keyId = do
@@ -111,9 +112,10 @@ getPublicKey keyId = do
   case r of
     -- Right [(keyId, uid, rsa_n, rsa_e, creationTime, revocationTime)] ->
     Right [k] ->
-        return $ M.RSAPublicKey (read $ T.unpack $ SB.rsa_n k) (read $ T.unpack $ SB.rsa_e k)
-    Right _ -> throwError $ AppError $ M.InvalidKeyID keyId
-    Left e  -> throwError $ AppError $ M.InvalidKeyID keyId
+        return $ M.RSAPublicKey
+          (read $ T.unpack $ SB.rsa_n k) (read $ T.unpack $ SB.rsa_e k)
+    Right _ -> throwAppError $ InvalidKeyID keyId
+    Left e  -> throwBackendError e
 
 getPublicKeyInfo :: M.KeyID -> AppM M.KeyInfo
 getPublicKeyInfo keyId = do
@@ -127,8 +129,8 @@ getPublicKeyInfo keyId = do
        return $ M.KeyInfo uId
                 (toEPCISTime creationTime)
                 (toEPCISTime <$> revocationTime)
-    Right _ -> throwError $ AppError $ M.InvalidKeyID keyId
-    Left e  -> throwError $ AppError $ M.InvalidKeyID keyId
+    Right _ -> throwAppError $ InvalidKeyID keyId
+    Left e  -> throwBackendError e
 
 getUser :: M.EmailAddress -> AppM (Maybe M.User)
 getUser email = do
@@ -138,7 +140,9 @@ getUser email = do
     pure allUsers
   case r of
     Right [u] -> return . Just . userTableToModel $ u
-    _  ->        return Nothing
+    Right []  -> throwError . AppError . UserNotFound $ email
+    Left e    -> throwBackendError e
+    _         -> return Nothing
 
 insertDWhat :: Maybe SB.PrimaryKeyType
             -> Maybe SB.PrimaryKeyType
