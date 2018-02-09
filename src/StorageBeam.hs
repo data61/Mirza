@@ -191,6 +191,8 @@ data LabelT f = Label
   , serial_number            :: C f (Maybe Text)
   , state                    :: C f (Maybe Text)
   , lot                      :: C f (Maybe Text)
+  , sgtin_filter_value       :: C f (Maybe Text)
+  , asset_type               :: C f (Maybe Text)
   , quantity_amount          :: C f (Maybe Double)
   , quantity_uom             :: C f (Maybe EPC.Uom) -- T.Text
   }
