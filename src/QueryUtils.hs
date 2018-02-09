@@ -135,13 +135,9 @@ findLabelId (SGTIN cp msfv ir sn) = grabInstLabelId cp sn msfv (Just ir) Nothing
 findLabelId (GRAI cp at sn) = grabInstLabelId cp sn Nothing Nothing (Just at)
 
 getParentId :: DWhat -> AppM (Maybe SB.PrimaryKeyType)
--- because ObjectDWhat has no parent
 getParentId (TransactionDWhat act (Just p) btList epcs) = findLabelId p
-getParentId (AggregationDWhat act (Just p) epcs) = findLabelId p
-getParentId _                                    = return Nothing
--- getParentId (TransformationDWhat tId inp out) = return Nothing
--- getParentId (TransactionDWhat act Nothing btList epcs) = return Nothing
--- getParentId (AggregationDWhat act Nothing epcs) = return Nothing
+getParentId (AggregationDWhat act (Just p) epcs)        = findLabelId p
+getParentId _                                           = return Nothing
 
 toStorageDWhen :: SB.PrimaryKeyType
                -> DWhen
