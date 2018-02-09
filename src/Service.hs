@@ -53,6 +53,7 @@ import           Control.Monad.Reader   (MonadReader, ReaderT, runReaderT,
 import           Control.Monad.Trans.Either (EitherT(..))
 import           Utils (debugLog, debugLogGeneral)
 import           Errors (ServiceError(..))
+import           ErrorUtils (appErrToHttpErr)
 
 instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub) where
   toSwagger _ =
@@ -83,11 +84,11 @@ appMToHandler env act = do
   res <- liftIO $ runExceptT $ runReaderT (AC.unAppM act) env
   let envT = AC.envType env
   case res of
-    Left (AC.AppError (EmailExists em)) -> do
-      debugLogGeneral envT  "We are in Left"
-      throwError $ err400
-          { errBody = LBSC8.fromChunks $
-                      ["User email ", encodeUtf8 em, " exists"]}
+    Left (AC.AppError e) -> appErrToHttpErr e
+      -- debugLogGeneral envT  "We are in Left"
+      -- throwError $ err400
+      --     { errBody = LBSC8.fromChunks $
+      --                 ["User email ", encodeUtf8 em, " exists"]}
     Right a  -> do
       debugLogGeneral envT "We are in Right"
       return a
