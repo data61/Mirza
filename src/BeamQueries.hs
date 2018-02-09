@@ -1,5 +1,3 @@
-module BeamQueries where
-
 {-# LANGUAGE OverloadedStrings      #-}
 {-# LANGUAGE ScopedTypeVariables    #-}
 {-# LANGUAGE DeriveGeneric          #-}
@@ -14,6 +12,7 @@ module BeamQueries where
 {-# LANGUAGE UndecidableInstances   #-}
 {-# LANGUAGE MultiParamTypeClasses  #-}
 
+module BeamQueries where
 import qualified Model as M
 import qualified StorageBeam as SB
 import           CryptHash (getCryptoPublicKey)
@@ -106,18 +105,23 @@ addPublicKey :: M.User -> M.RSAPublicKey-> AppM M.KeyID
 addPublicKey (M.User uid _ _)  pubKey = do
   keyId <- generatePk
   timeStamp <- generateTimeStamp
+  debugLog "The program did not crash yet"
   r <- runDb $ runInsertReturningList (SB._keys SB.supplyChainDb) $
                insertValues
                [
                  (
                    SB.Key keyId (SB.UserId uid)
                    (toStrict $ encode $ getCryptoPublicKey $ pubKey) --(runPut $ put $ getCryptoPublicKey pubKey)
+                   --"some byte string"
                    timeStamp -- 0
                    Nothing -- revocationTime ?
                  )
                ] -- TODO = check if 0 is correct here... NOT SURE
+  debugLog "Done with the query"
   case r of
-    Right [rowId] -> return (SB.key_id rowId)
+    Right [rowId] -> do
+      debugLog "Got a rowId!"
+      return (SB.key_id rowId)
     Right _       -> throwError $ AppError $ M.InvalidKeyID keyId
     Left  e       -> throwError $ AppError $ M.InvalidKeyID keyId
 
