@@ -9,7 +9,7 @@ import           Data.Time.LocalTime (utc, utcToLocalTime
                                      , LocalTime, localTimeToUTC
                                      , timeZoneOffsetString)
 import           Data.Time (UTCTime)
-import           AppConfig (AppM(..), AppError(..))
+import           AppConfig (AppM(..), AppError(..), runDb)
 import qualified StorageBeam as SB
 import           Data.UUID.V4 (nextRandom)
 import           Data.Time.Clock (getCurrentTime)
@@ -30,6 +30,9 @@ import           Data.GS1.Event (Event(..), EventType(..),
                                 evTypeToTextLike, dwhatToEventTextLike)
 import           Utils (toText)
 import           Errors (ServiceError(..))
+import           Database.PostgreSQL.Simple
+import           Database.Beam.Backend.SQL.BeamExtensions
+import           Database.Beam as B
 
 -- | Reads back the ``LocalTime`` in UTCTime (with an offset of 0)
 toEPCISTime :: LocalTime -> UTCTime
@@ -70,11 +73,11 @@ epcToStorageLabel :: T.Text
 epcToStorageLabel labelType whatId pKey (IL (SGTIN gs1Prefix fv ir sn)) =
   SB.Label pKey labelType (SB.WhatId whatId)
            gs1Prefix (Just ir)
-           (Just sn) Nothing Nothing Nothing Nothing
+           (Just sn) Nothing Nothing Nothing Nothing Nothing Nothing
 
 epcToStorageLabel labelType whatId pKey (IL (GIAI gs1Prefix sn)) =
   SB.Label pKey labelType (SB.WhatId whatId)
-           gs1Prefix Nothing (Just sn) Nothing Nothing Nothing Nothing
+           gs1Prefix Nothing (Just sn) Nothing Nothing Nothing Nothing Nothing Nothing
 
 -- epcToStorageLabel evT pKey (IL (SSCC gs1Prefix sn))         = error "not implemented yet" -- SB.Label pKey "SSCC" gs1Prefix Nothing sn Nothing Nothing
 
@@ -106,17 +109,37 @@ getAction (ObjectDWhat act _) = Just act
 getAction (TransactionDWhat act _ _ _) = Just act
 getAction (AggregationDWhat act _ _) = Just act
 
--- look into Data.GS1.DWhat source code
-getParentId :: DWhat -> AppM (Maybe SB.PrimaryKeyType)
--- because ObjectDWhat has no parent
-getParentId (ObjectDWhat _ _) = return Nothing
-getParentId (TransformationDWhat tId inp out) = return Nothing
--- do it for the rest of them
-getParentId (TransactionDWhat act Nothing btList epcs) = return Nothing
-getParentId (TransactionDWhat act (Just p) btList epcs) = error "not implemented yet"
+grabInstLabelId :: GS1CompanyPrefix
+                -> SerialNumber
+                -> Maybe SGTINFilterValue
+                -> Maybe ItemReference
+                -> Maybe AssetType
+                -> AppM (Maybe SB.PrimaryKeyType)
+grabInstLabelId cp sn msfv mir mat = do
+  r <- runDb $ runSelectReturningList $ select $ do
+    labels <- all_ (SB._labels SB.supplyChainDb)
+    guard_ (SB.label_gs1_company_prefix labels ==. val_ cp &&.
+            SB.serial_number labels ==. (val_ $ Just sn) &&.
+            (SB.sgtin_filter_value labels) ==. (val_ $ T.pack . show <$> msfv) &&.
+            SB.asset_type labels ==. val_ mat &&.
+            SB.item_reference labels ==. val_ mir)
+    pure labels
+  case r of
+    Right [l] -> return $ Just (SB.label_id l)
+    _         -> return Nothing
 
-getParentId (AggregationDWhat act Nothing epcs) = return Nothing
-getParentId (AggregationDWhat act (Just p) epcs) = error "not implemented yet"
+-- | SELECT * from labels where company = companyPrefix && serial = serial --> that's for GIAI
+findLabelId :: InstanceLabelEPC -> AppM (Maybe SB.PrimaryKeyType)
+-- pattern match on 4 instancelabelepc types, quantity_amount and quantity_uom not important
+findLabelId (GIAI cp sn) = grabInstLabelId cp sn Nothing Nothing Nothing
+findLabelId (SSCC cp sn) = grabInstLabelId cp sn Nothing Nothing Nothing
+findLabelId (SGTIN cp msfv ir sn) = grabInstLabelId cp sn msfv (Just ir) Nothing
+findLabelId (GRAI cp at sn) = grabInstLabelId cp sn Nothing Nothing (Just at)
+
+getParentId :: DWhat -> AppM (Maybe SB.PrimaryKeyType)
+getParentId (TransactionDWhat act (Just p) btList epcs) = findLabelId p
+getParentId (AggregationDWhat act (Just p) epcs)        = findLabelId p
+getParentId _                                           = return Nothing
 
 toStorageDWhen :: SB.PrimaryKeyType
                -> DWhen
