@@ -23,6 +23,8 @@ import           Data.GS1.Event (Event(..), EventType(..))
 import           Utils (debugLog, toText)
 import           QueryUtils
 import           Errors (ServiceError(..))
+import           ErrorUtils (throwBackendError, throwAppError)
+
 {-
 {
   "phoneNumber": "0412",

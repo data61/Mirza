@@ -144,12 +144,3 @@ toStorageEvent :: SB.PrimaryKeyType
                -> SB.Event
 toStorageEvent pKey userId jsonEvent mEventId =
   SB.Event pKey (EvId.getEventId <$> mEventId) (SB.UserId userId) jsonEvent
-
--- | Shorthand for throwing a Backend error
-throwBackendError :: (Show e) => e -> AppM a
-throwBackendError = throwAppError . BackendErr . toText
-
--- | Shorthand for throwing AppErrors
--- Added because we were doing a lot of it
-throwAppError :: ServiceError -> AppM a
-throwAppError = throwError . AppError

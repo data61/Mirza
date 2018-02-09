@@ -29,6 +29,7 @@ library
                     , MigrateScript
                     , Utils
                     , Errors
+                    , ErrorUtils
   build-depends:      base >= 4.7 && < 5
                     , GS1Combinators
                     , beam-migrate
