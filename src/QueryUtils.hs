@@ -9,14 +9,13 @@ import           Data.Time.LocalTime (utc, utcToLocalTime
                                      , LocalTime, localTimeToUTC
                                      , timeZoneOffsetString)
 import           Data.Time (UTCTime)
-import           AppConfig (AppM(..), AppError(..), runDb)
+import           AppConfig (AppM(..), runDb)
 import qualified StorageBeam as SB
 import           Data.UUID.V4 (nextRandom)
 import           Data.Time.Clock (getCurrentTime)
 import           Control.Monad.Reader (liftIO)
 import           Data.GS1.Event (Event(..))
 import           Data.Aeson.Text (encodeToLazyText)
-import           Control.Monad.Except (throwError)
 import qualified Data.Text.Lazy as TxtL
 import qualified Data.Text as T
 import qualified Model as M
@@ -29,9 +28,6 @@ import qualified Data.GS1.EventID as EvId
 import           Data.GS1.Event (Event(..), EventType(..),
                                 evTypeToTextLike, dwhatToEventTextLike)
 import           Utils (toText)
-import           Errors (ServiceError(..))
-import           Database.PostgreSQL.Simple
-import           Database.Beam.Backend.SQL.BeamExtensions
 import           Database.Beam as B
 
 -- | Reads back the ``LocalTime`` in UTCTime (with an offset of 0)
@@ -73,7 +69,9 @@ epcToStorageLabel :: T.Text
 epcToStorageLabel labelType whatId pKey (IL (SGTIN gs1Prefix fv ir sn)) =
   SB.Label pKey labelType (SB.WhatId whatId)
            gs1Prefix (Just ir)
-           (Just sn) Nothing Nothing Nothing Nothing Nothing Nothing
+           (Just sn) Nothing Nothing
+           (toText <$> fv)
+           Nothing Nothing Nothing
 
 epcToStorageLabel labelType whatId pKey (IL (GIAI gs1Prefix sn)) =
   SB.Label pKey labelType (SB.WhatId whatId)
@@ -128,9 +126,7 @@ grabInstLabelId cp sn msfv mir mat = do
     Right [l] -> return $ Just (SB.label_id l)
     _         -> return Nothing
 
--- | SELECT * from labels where company = companyPrefix && serial = serial --> that's for GIAI
 findLabelId :: InstanceLabelEPC -> AppM (Maybe SB.PrimaryKeyType)
--- pattern match on 4 instancelabelepc types, quantity_amount and quantity_uom not important
 findLabelId (GIAI cp sn) = grabInstLabelId cp sn Nothing Nothing Nothing
 findLabelId (SSCC cp sn) = grabInstLabelId cp sn Nothing Nothing Nothing
 findLabelId (SGTIN cp msfv ir sn) = grabInstLabelId cp sn msfv (Just ir) Nothing
