@@ -70,6 +70,8 @@ migrationStorage =
           (field "serial_number" (maybeType $ varchar (Just maxLen)) notNull)
           (field "state" (maybeType $ varchar (Just maxLen)))
           (field "lot" (maybeType $ varchar (Just maxLen)))
+          (field "sgtin_filter_value" (maybeType $ varchar (Just maxLen)))
+          (field "asset_type" (maybeType $ varchar (Just maxLen)))
           (field "quantity_amount" (maybeType double))
           (field "quantity_uom" (maybeType $ varchar (Just maxLen)))
     )
