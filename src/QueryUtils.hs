@@ -9,13 +9,14 @@ import           Data.Time.LocalTime (utc, utcToLocalTime
                                      , LocalTime, localTimeToUTC
                                      , timeZoneOffsetString)
 import           Data.Time (UTCTime)
-import           AppConfig (AppM(..))
+import           AppConfig (AppM(..), AppError(..))
 import qualified StorageBeam as SB
 import           Data.UUID.V4 (nextRandom)
 import           Data.Time.Clock (getCurrentTime)
 import           Control.Monad.Reader (liftIO)
 import           Data.GS1.Event (Event(..))
 import           Data.Aeson.Text (encodeToLazyText)
+import           Control.Monad.Except (throwError)
 import qualified Data.Text.Lazy as TxtL
 import qualified Data.Text as T
 import qualified Model as M
