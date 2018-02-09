@@ -383,18 +383,6 @@ instance Table WhyT where
     deriving Generic
   primaryKey = WhyId . why_id
 
-defaultFromField :: (Typeable b, Read b) => String
-                 -> Field
-                 -> Maybe ByteString
-                 -> Conversion b
-defaultFromField fName f bs = do
-  x <- readMaybe <$> fromField f bs
-  case x of
-    Nothing ->
-      returnError ConversionFailed
-        f $ "Could not 'read' value for " ++ fName
-    Just val -> pure val
-
 -- | The record fields in Data.GS1.DWhere for the data type DWhere
 data LocationField = Src | Dest | BizLocation | ReadPoint
                     deriving (Generic, Show, Eq, Read)
