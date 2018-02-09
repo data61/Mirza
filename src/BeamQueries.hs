@@ -42,7 +42,7 @@ import           Data.Time (UTCTime)
 import           Data.Aeson.Text (encodeToLazyText)
 import qualified Data.Text.Lazy as TxtL
 import           Utils (debugLog, toText)
-import           StorageUtils
+import           QueryUtils
 
 {-
 {
@@ -146,20 +146,26 @@ getPublicKeyInfo keyId = do
     Left e  -> throwError $ AppError $ M.InvalidKeyID keyId
 
 getUser :: M.EmailAddress -> AppM (Maybe M.User)
-getUser  email = do
+getUser email = do
   r <- runDb $ runSelectReturningList $ select $ do
     allUsers <- all_ (SB._users SB.supplyChainDb)
     guard_ (SB.email_address allUsers ==. val_ email)
     pure allUsers
   case r of
-    Right [u] -> return $ Just $ userTableToModel u
+    Right [u] -> return . Just . userTableToModel $ u
     _  ->        return Nothing
 
-insertDWhat :: DWhat -> SB.PrimaryKeyType -> AppM SB.PrimaryKeyType
-insertDWhat dwhat eventId = do
+insertDWhat :: Maybe SB.PrimaryKeyType
+            -> Maybe SB.PrimaryKeyType
+            -> DWhat
+            -> SB.PrimaryKeyType
+            -> AppM SB.PrimaryKeyType
+insertDWhat mBizTranId mTranId dwhat eventId = do
   pKey <- generatePk
+  mParentId <- getParentId dwhat
   r <- runDb $ B.runInsert $ B.insert (SB._whats SB.supplyChainDb)
-             $ insertValues [toStorageDWhat pKey dwhat eventId]
+             $ insertValues
+             [toStorageDWhat pKey mParentId mBizTranId mTranId eventId dwhat]
   return pKey
 
 insertDWhen :: DWhen -> SB.PrimaryKeyType -> AppM SB.PrimaryKeyType
@@ -274,7 +280,7 @@ eventCreateObject
 
   eventId <- insertEvent userId jsonEvent event
   labelId <- generatePk
-  whatId <- insertDWhat dwhat eventId
+  whatId <- insertDWhat Nothing Nothing dwhat eventId
   whenId <- insertDWhen dwhen eventId
   whyId <- insertDWhy dwhy eventId
   insertDWhere dwhere eventId
