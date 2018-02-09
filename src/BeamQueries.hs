@@ -260,6 +260,21 @@ insertUserEvent eventId userId addedByUserId signed signedHash = do
         ]
   return ()
 
+insertWhatLabel :: SB.PrimaryKeyType
+                -> SB.PrimaryKeyType
+                -> AppM SB.PrimaryKeyType
+insertWhatLabel whatId labelId = do
+  pKey <- generatePk
+  runDb $ B.runInsert $ B.insert (SB._what_labels SB.supplyChainDb)
+        $ insertValues
+        [
+          SB.WhatLabel pKey
+          (SB.WhatId whatId)
+          (SB.LabelId labelId)
+        ]
+  return pKey
+
+
 eventCreateObject :: M.User -> M.NewObject -> AppM SB.EventId
 eventCreateObject
   (M.User userId _ _ )
@@ -285,6 +300,7 @@ eventCreateObject
   whyId <- insertDWhy dwhy eventId
   insertDWhere dwhere eventId
   insertUserEvent eventId userId userId False Nothing
+  insertWhatLabel whatId labelId
   -- TODO = combine rows from bizTransactionTable and _eventCreatedBy field in Event table
   -- haven't added UserEvents insertion equivalent since redundant information and no equivalent
   -- hashes not added yet, but will later for blockchain
