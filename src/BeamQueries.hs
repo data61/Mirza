@@ -50,7 +50,7 @@ insertUser encPass (M.NewUser phone email firstName lastName biz _) = do
   case res of
     Right [r] -> return $ SB.user_id r
     Right []  -> throwAppError $ EmailNotFound email
-    Left (SqlError state status msg detail hint)
+    Left e@(SqlError state status msg detail hint)
         | state == uniqueConstraintFailed
                     -> throwAppError $ EmailExists email
         | otherwise -> throwAppError $ InsertionFail $ email
@@ -142,7 +142,7 @@ getUser email = do
     pure allUsers
   case r of
     Right [u] -> return . Just . userTableToModel $ u
-    Right []  -> throwError . AppError . UserNotFound $ email
+    Right []  -> throwAppError . UserNotFound $ email
     Left e    -> throwBackendError e
     _         -> return Nothing
 
@@ -157,7 +157,9 @@ insertDWhat mBizTranId mTranId dwhat eventId = do
   r <- runDb $ B.runInsert $ B.insert (SB._whats SB.supplyChainDb)
              $ insertValues
              [toStorageDWhat pKey mParentId mBizTranId mTranId eventId dwhat]
-  return pKey
+  case r of
+    Left  e -> throwBackendError e
+    Right _ -> return pKey
 
 insertDWhen :: DWhen -> SB.PrimaryKeyType -> AppM SB.PrimaryKeyType
 insertDWhen dwhen eventId =  do
