@@ -5,30 +5,21 @@ module BeamQueries where
 import qualified Model as M
 import qualified StorageBeam as SB
 import           Data.ByteString (ByteString)
-import           Data.UUID.V4 (nextRandom)
-import           Data.UUID (UUID)
 import           Crypto.Scrypt
 import           Data.Text.Encoding
 import           Database.PostgreSQL.Simple
 import           Database.Beam as B
 import           Database.Beam.Backend.SQL.BeamExtensions
 import           AppConfig (AppM, runDb, AppError(..))
-import           Data.Time.Clock (getCurrentTime)
 import           Control.Monad.Except (throwError)
 import qualified Data.Text as T
 import           Data.GS1.EPC
-import           Data.GS1.DWhat (DWhat(..), LabelEPC(..))
+import           Data.GS1.DWhat (DWhat(..))
 import           Data.GS1.DWhy (DWhy(..))
 import           Data.GS1.DWhere (DWhere(..), SrcDestLocation)
 import           Data.GS1.DWhen (DWhen(..))
 import qualified Data.GS1.EventID as EvId
 import           Data.GS1.Event (Event(..), EventType(..))
-import           Data.Time.LocalTime (utc, utcToLocalTime
-                                     , LocalTime, localTimeToUTC
-                                     , timeZoneOffsetString)
-import           Data.Time (UTCTime)
-import           Data.Aeson.Text (encodeToLazyText)
-import qualified Data.Text.Lazy as TxtL
 import           Utils (debugLog, toText)
 import           QueryUtils
 import           Errors (ServiceError(..))
@@ -41,7 +32,7 @@ import           Errors (ServiceError(..))
   "company": "4000001",
   "password": "password"
 }
- -}
+-}
 
 uniqueConstraintFailed :: ByteString
 uniqueConstraintFailed = "23505"

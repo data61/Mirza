@@ -4,7 +4,6 @@
 
 module AppConfig where
 
-import           Control.Exception.Lifted (try)
 import           Database.PostgreSQL.Simple (Connection, SqlError(..))
 import qualified Database.Beam as B
 import           Database.Beam.Postgres (Pg)
