@@ -16,6 +16,7 @@ module BeamQueries where
 
 import qualified Model as M
 import qualified StorageBeam as SB
+import           CryptHash (getCryptoPublicKey)
 import           Data.ByteString (ByteString)
 import           Data.UUID.V4 (nextRandom)
 import           Data.UUID (UUID)
@@ -43,6 +44,11 @@ import           Data.Aeson.Text (encodeToLazyText)
 import qualified Data.Text.Lazy as TxtL
 import           Utils (debugLog, toText)
 import           QueryUtils
+import           Codec.Crypto.RSA (PublicKey (..))
+--import           Codec.Crypto.RSA.Pure (PublicKey (..))
+--import           Data.Binary.Binary (PublicKey (..))
+import           Data.Binary
+import           Data.ByteString.Lazy (toStrict, fromStrict)
 
 {-
 {
@@ -97,7 +103,7 @@ authCheck email password = do
 -- execute conn "INSERT INTO Users (bizID, firstName, lastName, phoneNumber, passwordHash, emailAddress) VALUES (?, ?, ?, ?, ?, ?);" (biz, first, last, phone, getEncryptedPass hash, email)
 -- execute conn "INSERT INTO Keys (userID, rsa_n, rsa_e, creationTime) values (?, ?, ?, ?);" (uid, n, e, timestamp)
 addPublicKey :: M.User -> M.RSAPublicKey-> AppM M.KeyID
-addPublicKey (M.User uid _ _)  (M.RSAPublicKey rsa_n rsa_e) = do
+addPublicKey (M.User uid _ _)  pubKey = do
   keyId <- generatePk
   timeStamp <- generateTimeStamp
   r <- runDb $ runInsertReturningList (SB._keys SB.supplyChainDb) $
@@ -105,8 +111,7 @@ addPublicKey (M.User uid _ _)  (M.RSAPublicKey rsa_n rsa_e) = do
                [
                  (
                    SB.Key keyId (SB.UserId uid)
-                   (T.pack $ show rsa_n)
-                   (T.pack $ show rsa_e)
+                   (toStrict $ encode $ getCryptoPublicKey $ pubKey) --(runPut $ put $ getCryptoPublicKey pubKey)
                    timeStamp -- 0
                    Nothing -- revocationTime ?
                  )
@@ -125,8 +130,10 @@ getPublicKey keyId = do
 
   case r of
     -- Right [(keyId, uid, rsa_n, rsa_e, creationTime, revocationTime)] ->
-    Right [k] ->
-        return $ M.RSAPublicKey (read $ T.unpack $ SB.rsa_n k) (read $ T.unpack $ SB.rsa_e k)
+    Right [k] -> do
+        pubKey <- return $ ((decode $ fromStrict $ SB.rsa_public_pkcs8 k) :: PublicKey) -- $ SB.rsa_public_pkcs8 k
+        --return $ M.RSAPublicKey (read $ T.unpack $ SB.rsa_n k) (read $ T.unpack $ SB.rsa_e k)
+        return $ M.RSAPublicKey (public_n pubKey) (public_e pubKey)
     Right _ -> throwError $ AppError $ M.InvalidKeyID keyId
     Left e  -> throwError $ AppError $ M.InvalidKeyID keyId
 
@@ -138,7 +145,7 @@ getPublicKeyInfo keyId = do
     pure allKeys
 
   case r of
-    Right [(SB.Key _ (SB.UserId uId) _ _ creationTime revocationTime)] ->
+    Right [(SB.Key _ (SB.UserId uId) _ creationTime revocationTime)] ->
        return $ M.KeyInfo uId
                 (toEPCISTime creationTime)
                 (toEPCISTime <$> revocationTime)
