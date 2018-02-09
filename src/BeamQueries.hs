@@ -155,12 +155,17 @@ getUser email = do
     Right [u] -> return . Just . userTableToModel $ u
     _  ->        return Nothing
 
-insertDWhat :: DWhat -> SB.PrimaryKeyType -> AppM SB.PrimaryKeyType
-insertDWhat dwhat eventId = do
+insertDWhat :: Maybe SB.PrimaryKeyType
+            -> Maybe SB.PrimaryKeyType
+            -> DWhat
+            -> SB.PrimaryKeyType
+            -> AppM SB.PrimaryKeyType
+insertDWhat mBizTranId mTranId dwhat eventId = do
   pKey <- generatePk
   mParentId <- getParentId dwhat
   r <- runDb $ B.runInsert $ B.insert (SB._whats SB.supplyChainDb)
-             $ insertValues [{- toStorageDWhat pKey dwhat eventId -}]
+             $ insertValues
+             [toStorageDWhat pKey mParentId mBizTranId mTranId eventId dwhat]
   return pKey
 
 insertDWhen :: DWhen -> SB.PrimaryKeyType -> AppM SB.PrimaryKeyType
@@ -275,7 +280,7 @@ eventCreateObject
 
   eventId <- insertEvent userId jsonEvent event
   labelId <- generatePk
-  whatId <- insertDWhat dwhat eventId
+  whatId <- insertDWhat Nothing Nothing dwhat eventId
   whenId <- insertDWhen dwhen eventId
   whyId <- insertDWhy dwhy eventId
   insertDWhere dwhere eventId
