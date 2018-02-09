@@ -258,17 +258,20 @@ data HashedEvent = HashedEvent {
 $(deriveJSON defaultOptions ''HashedEvent)
 instance ToSchema HashedEvent
 
+type ErrorText = T.Text
+
 -- | A sum type of errors that may occur in the Service layer
 data ServiceError = NeedMoreSignatures T.Text
                   | InvalidSignature BS.ByteString
-                  | BlockchainSendFailed
+                  | BlockchainSendFailed ErrorText
                   | InvalidEventID Int
                   | InvalidKeyID KeyID
                   | InvalidUserID UserID
-                  | InsertionFail
+                  | InsertionFail T.Text
                   | EmailExists Email
                   | EmailNotFound Email
-                  | BackendErr
+                  | BackendErr ErrorText
+                  | UnexpectedDBResponse
                   deriving (Show, Read, Generic)
 
 {-
