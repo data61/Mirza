@@ -260,6 +260,9 @@ instance ToSchema HashedEvent
 
 type ErrorText = T.Text
 
+-- type ErrorCode = Int
+-- data ServerError = ServerError (Maybe ErrorCode) ErrorText
+
 -- | A sum type of errors that may occur in the Service layer
 data ServiceError = NeedMoreSignatures T.Text
                   | InvalidSignature BS.ByteString
