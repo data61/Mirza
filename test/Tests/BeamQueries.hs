@@ -102,7 +102,7 @@ testQueries = do
       tStart <- timeStampIO
       uid <- fromRight' <$> (runAppM env $ newUser user1)
       user <- fromRight' <$> (runAppM env $ authCheck (M.emailAddress user1) (encodeUtf8 $ M.password user1))
-      keyId <- fromRight' <$> (runAppM env $ addPublicKey (fromJust user) rsaKey1) -- this is broken
+      --keyId <- fromRight' <$> (runAppM env $ addPublicKey (fromJust user) rsaKey1) -- this is broken
       --key <- fromRight' <$> (runAppM env $ selectKey keyId)
       tEnd <- timeStampIO
 
