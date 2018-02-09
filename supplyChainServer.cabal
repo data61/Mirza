@@ -24,7 +24,7 @@ library
   other-modules:      API
                     , Service
                     , CryptHash
-                    , StorageUtils
+                    , QueryUtils
                     , MigrateUtils
                     , MigrateScript
                     , Utils

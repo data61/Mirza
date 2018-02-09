@@ -42,7 +42,7 @@ import           Data.Time (UTCTime)
 import           Data.Aeson.Text (encodeToLazyText)
 import qualified Data.Text.Lazy as TxtL
 import           Utils (debugLog, toText)
-import           StorageUtils
+import           QueryUtils
 
 {-
 {
