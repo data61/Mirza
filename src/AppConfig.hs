@@ -12,10 +12,10 @@ import           Database.Beam.Postgres (Pg)
 import           Control.Monad.IO.Class (MonadIO)
 import           Control.Monad.Reader   (MonadReader, ReaderT, runReaderT,
                                          asks, liftIO)
-import           Servant.Server (Handler, ServantErr)
 import           Control.Monad.Except (MonadError, ExceptT(..), runExceptT)
 import qualified Model as M
 import qualified Control.Exception as Exc
+import           Errors (ServiceError(..))
 
 data EnvType = Prod | Dev
   deriving (Show, Eq, Read)
@@ -30,7 +30,7 @@ data Env = Env
   -- , port    :: Word16
   }
 
-data AppError = AppError M.ServiceError
+data AppError = AppError ServiceError
 
 -- runReaderT :: r -> m a
 -- ReaderT r m a
