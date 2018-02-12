@@ -40,9 +40,6 @@ import           Database.PostgreSQL.Simple.Errors (ConstraintViolation(..)
 }
 -}
 
-uniqueConstraintFailed :: ByteString
-uniqueConstraintFailed = "23505"
-
 insertUser :: EncryptedPass -> M.NewUser -> AppM M.UserID
 insertUser encPass (M.NewUser phone email firstName lastName biz _) = do
   userId <- generatePk
@@ -64,7 +61,6 @@ insertUser encPass (M.NewUser phone email firstName lastName biz _) = do
 -- |
 newUser :: M.NewUser -> AppM M.UserID
 newUser userInfo@(M.NewUser _ _ _ _ _ password) = do
-    -- liftIO $ print "blah"
     hash <- liftIO $ encryptPassIO' (Pass $ encodeUtf8 password)
     insertUser hash userInfo
 
@@ -324,7 +320,7 @@ eventCreateObject
 -- -- NOT currently relevant since events not currently hashed
 -- -- eventHashed :: DBFunc -> M.User -> EventID -> IO (Maybe M.HashedEvent)
 -- -- eventHashed  dbFunc _ eventID = do
--- --   r <- 
+-- --   r <-
 
 -- eventSign :: (MonadError M.SigError m, MonadIO m) => M.User -> M.SignedEvent -> m ()
 -- eventSign  (M.User uid _ _ ) (M.SignedEvent eventID keyId (M.Signature signature)) = do
@@ -333,7 +329,7 @@ eventCreateObject
 --     allKeys <- all_ (_keys supplyChainDb)
 --     guard_ (_keyId allKeys ==. keyId)
 --     pure allKeys
-    
+
 --   r <- zip ((\e -> _rsa_n e) <$> rFull) ((\e -> _rsa_e e) <$> rFull)
 
 --   pubkey <- if length r == 0
