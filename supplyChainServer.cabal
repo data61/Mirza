@@ -22,9 +22,10 @@ library
                     , StorageBeam
                     , AppConfig
                     , CryptHash
+                    , QueryUtils
   other-modules:      API
                     , Service
-                    , QueryUtils
+                    --, QueryUtils
                     , MigrateUtils
                     , MigrateScript
                     , Utils
