@@ -167,7 +167,9 @@ insertDWhen dwhen eventId =  do
   pKey <- generatePk
   r <- runDb $ B.runInsert $ B.insert (SB._whens SB.supplyChainDb)
              $ insertValues [toStorageDWhen pKey dwhen eventId]
-  return pKey
+  case r of
+    Left  e -> throwUnexpectedDBError $ sqlToServerError e
+    Right _ -> return pKey
 
 
 insertDWhy :: DWhy -> SB.PrimaryKeyType -> AppM SB.PrimaryKeyType
@@ -175,7 +177,9 @@ insertDWhy dwhy eventId = do
   pKey <- generatePk
   r <- runDb $ B.runInsert $ B.insert (SB._whys SB.supplyChainDb)
              $ insertValues [toStorageDWhy pKey dwhy eventId]
-  return pKey
+  case r of
+    Left  e -> throwUnexpectedDBError $ sqlToServerError e
+    Right _ -> return pKey
 
 insertSrcDestType :: SB.LocationField
                   -> SB.PrimaryKeyType
@@ -194,7 +198,9 @@ insertSrcDestType
                 (SB.EventId eventId)
   r <- runDb $ B.runInsert $ B.insert (SB._wheres SB.supplyChainDb)
              $ insertValues [stWhere]
-  return pKey
+  case r of
+    Left  e -> throwUnexpectedDBError $ sqlToServerError e
+    Right _ -> return pKey
 
 insertLocationEPC :: SB.LocationField
                   -> SB.PrimaryKeyType
@@ -213,7 +219,9 @@ insertLocationEPC
                 (SB.EventId eventId)
   r <- runDb $ B.runInsert $ B.insert (SB._wheres SB.supplyChainDb)
              $ insertValues [stWhere]
-  return pKey
+  case r of
+    Left  e -> throwUnexpectedDBError $ sqlToServerError e
+    Right _ -> return pKey
 
 -- | Maps the relevant insert function for all
 -- ReadPoint, BizLocation, Src, Dest
@@ -231,7 +239,9 @@ insertEvent userId jsonEvent event = do
   r <- runDb $ B.runInsert $ B.insert (SB._events SB.supplyChainDb)
              $ insertValues
              [toStorageEvent pKey userId jsonEvent (_eid event)]
-  return pKey
+  case r of
+    Left  e -> throwUnexpectedDBError $ sqlToServerError e
+    Right _ -> return pKey
 
 -- insertUserEvent
 insertUserEvent :: SB.PrimaryKeyType
