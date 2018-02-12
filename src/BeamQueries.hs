@@ -112,7 +112,6 @@ addPublicKey (M.User uid _ _)  pubKey = do
                  (
                    SB.Key keyId (SB.UserId uid)
                    (toStrict $ encode $ getCryptoPublicKey $ pubKey) --(runPut $ put $ getCryptoPublicKey pubKey)
-                   --"some byte string"
                    timeStamp -- 0
                    Nothing -- revocationTime ?
                  )
@@ -123,7 +122,10 @@ addPublicKey (M.User uid _ _)  pubKey = do
       debugLog "Got a rowId!"
       return (SB.key_id rowId)
     Right _       -> throwError $ AppError $ M.InvalidKeyID keyId
-    Left  e       -> throwError $ AppError $ M.InvalidKeyID keyId
+    Left  e       -> do
+      debugLog "GOT AN ERROR"
+      debugLog $ show e
+      throwError $ AppError $ M.InvalidKeyID keyId
 
 getPublicKey :: M.KeyID -> AppM M.RSAPublicKey
 getPublicKey keyId = do
