@@ -73,13 +73,13 @@ authCheck email password = do
           guard_ (SB.email_address user  ==. val_ email)
           pure user
   case r of
-    Left e -> throwAppError $ UnexpectedDBResponse $ toText e
+    Left e -> throwUnexpectedDBError $ sqlToServerError e
     Right [user] -> do
         if verifyPass' (Pass password) (EncryptedPass $ SB.password_hash user)
           then return $ Just $ userTableToModel user
           else throwAppError $ AuthFailed email
     Right [] -> throwAppError $ EmailNotFound email
-    _  -> return Nothing -- multiple elements
+    _  -> throwBackendError -- multiple elements
 
 
 -- BELOW = Beam versions of SQL versions from Storage.hs
@@ -103,7 +103,7 @@ addPublicKey (M.User uid _ _)  (M.RSAPublicKey rsa_n rsa_e) = do
   case r of
     Right [rowId] -> return (SB.key_id rowId)
     Right _       -> throwAppError $ InvalidKeyID keyId
-    Left e        -> throwBackendError e
+    Left e        -> throwUnexpectedDBError $ sqlToServerError e
 
 getPublicKey :: M.KeyID -> AppM M.RSAPublicKey
 getPublicKey keyId = do
@@ -118,7 +118,7 @@ getPublicKey keyId = do
         return $ M.RSAPublicKey
           (read $ T.unpack $ SB.rsa_n k) (read $ T.unpack $ SB.rsa_e k)
     Right _ -> throwAppError $ InvalidKeyID keyId
-    Left e  -> throwBackendError e
+    Left e  -> throwUnexpectedDBError $ sqlToServerError e
 
 getPublicKeyInfo :: M.KeyID -> AppM M.KeyInfo
 getPublicKeyInfo keyId = do
@@ -133,7 +133,7 @@ getPublicKeyInfo keyId = do
                 (toEPCISTime creationTime)
                 (toEPCISTime <$> revocationTime)
     Right _ -> throwAppError $ InvalidKeyID keyId
-    Left e  -> throwBackendError e
+    Left e  -> throwUnexpectedDBError $ sqlToServerError e
 
 getUser :: M.EmailAddress -> AppM (Maybe M.User)
 getUser email = do
@@ -144,8 +144,8 @@ getUser email = do
   case r of
     Right [u] -> return . Just . userTableToModel $ u
     Right []  -> throwAppError . UserNotFound $ email
-    Left e    -> throwBackendError e
-    _         -> return Nothing
+    Left e    -> throwUnexpectedDBError $ sqlToServerError e
+    _         -> throwBackendError
 
 insertDWhat :: Maybe SB.PrimaryKeyType
             -> Maybe SB.PrimaryKeyType
@@ -159,7 +159,7 @@ insertDWhat mBizTranId mTranId dwhat eventId = do
              $ insertValues
              [toStorageDWhat pKey mParentId mBizTranId mTranId eventId dwhat]
   case r of
-    Left  e -> throwBackendError e
+    Left  e -> throwUnexpectedDBError $ sqlToServerError e
     Right _ -> return pKey
 
 insertDWhen :: DWhen -> SB.PrimaryKeyType -> AppM SB.PrimaryKeyType
