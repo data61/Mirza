@@ -7,7 +7,7 @@ import qualified StorageBeam as SB
 import           Data.ByteString (ByteString)
 import           Crypto.Scrypt
 import           Data.Text.Encoding
-import           Database.PostgreSQL.Simple
+import           Database.PostgreSQL.Simple.Internal (SqlError(..))
 import           Database.Beam as B
 import           Database.Beam.Backend.SQL.BeamExtensions
 import           AppConfig (AppM, runDb, AppError(..))
@@ -22,8 +22,12 @@ import qualified Data.GS1.EventID as EvId
 import           Data.GS1.Event (Event(..), EventType(..))
 import           Utils (debugLog, toText)
 import           QueryUtils
-import           Errors (ServiceError(..))
-import           ErrorUtils (throwBackendError, throwAppError)
+import           Errors (ServiceError(..), ServerError(..))
+import           ErrorUtils (throwBackendError, throwAppError, toServerError
+                            , defaultToServerError, sqlToServerError
+                            , throwUnexpectedDBError)
+import           Database.PostgreSQL.Simple.Errors (ConstraintViolation(..)
+                                                   , constraintViolation)
 
 {-
 {
@@ -49,12 +53,13 @@ insertUser encPass (M.NewUser phone email firstName lastName biz _) = do
             firstName lastName phone (getEncryptedPass encPass) email)])
   case res of
     Right [r] -> return $ SB.user_id r
-    Right []  -> throwAppError $ EmailNotFound email
-    Left e@(SqlError state status msg detail hint)
-        | state == uniqueConstraintFailed
-                    -> throwAppError $ EmailExists email
-        | otherwise -> throwAppError $ InsertionFail $ email
-    _         -> throwAppError $ InsertionFail $ email
+    Left e ->
+      case constraintViolation e of
+        Just (UniqueViolation "email_address")
+            -> throwAppError $
+                EmailExists (sqlToServerError e) email
+        _   -> throwAppError $ InsertionFail (toServerError (Just . sqlState) e) email
+    _         -> throwBackendError
 
 -- |
 newUser :: M.NewUser -> AppM M.UserID
