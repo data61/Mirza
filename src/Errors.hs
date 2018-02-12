@@ -9,23 +9,25 @@ import qualified Data.Text as T
 import qualified Data.ByteString as BS
 
 type ErrorText = T.Text
--- type ErrorCode = Int
--- data ServerError = ServerError (Maybe ErrorCode) ErrorText
+type ErrorCode = BS.ByteString
+
+data ServerError = ServerError (Maybe ErrorCode) ErrorText
+                   deriving (Show, Read)
 
 -- | A sum type of errors that may occur in the Service layer
-data ServiceError = NeedMoreSignatures T.Text
-                  | InvalidSignature BS.ByteString
-                  | BlockchainSendFailed ErrorText
-                  | InvalidEventID Int
+data ServiceError = NeedMoreSignatures ServerError T.Text
+                  | InvalidSignature ServerError BS.ByteString
+                  | BlockchainSendFailed ServerError
+                  | InvalidEventID ServerError Int
                   | InvalidKeyID M.KeyID
                   | InvalidUserID M.UserID
-                  | InsertionFail ErrorText
-                  | EmailExists M.Email
+                  | InsertionFail ServerError T.Text
+                  | EmailExists ServerError M.Email
                   | EmailNotFound M.Email
-                  | BackendErr ErrorText
-                  | UnexpectedDBResponse ErrorText
-                  | AuthFailed M.Email
+                  | UnexpectedDBResponse ServerError
+                  | AuthFailed  M.Email
                   | UserNotFound M.Email
+                  | BackendErr -- fallback
                   deriving (Show, Read, Generic)
 
 {-
