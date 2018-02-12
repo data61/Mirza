@@ -12,7 +12,6 @@ import           Control.Monad.IO.Class (MonadIO)
 import           Control.Monad.Reader   (MonadReader, ReaderT, runReaderT,
                                          asks, liftIO)
 import           Control.Monad.Except (MonadError, ExceptT(..), runExceptT)
-import qualified Model as M
 import qualified Control.Exception as Exc
 import           Errors (ServiceError(..))
 
