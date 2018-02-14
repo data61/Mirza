@@ -184,7 +184,7 @@ instance Table ContactT where
 
 data LabelT f = Label
   { label_id                 :: C f PrimaryKeyType
-  , label_type               :: C f Text -- input/output/parent
+  , label_type               :: C f (Maybe Text) -- input/output/parent
   , label_what_id            :: PrimaryKey WhatT f
   , label_gs1_company_prefix :: C f EPC.GS1CompanyPrefix --should this be bizId instead?
   , item_reference           :: C f (Maybe Text)
