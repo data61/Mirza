@@ -1,13 +1,23 @@
 {-# LANGUAGE OverloadedStrings     #-}
 module Main where
 
-import Lib
-import Migrate
-import Data.ByteString
-import Migrate (defConnectionStr)
-import Options.Applicative
-import Data.Semigroup ((<>))
-import AppConfig (EnvType(..))
+import           Lib
+import           Migrate
+import           Data.ByteString (ByteString)
+import           Migrate (defConnectionStr)
+import           Options.Applicative
+import           Data.Semigroup ((<>))
+import           AppConfig (EnvType(..))
+import           Data.GS1.Parser.Parser
+import           Data.Aeson.Encode.Pretty
+import           Data.GS1.Event
+import           Data.Either
+import           Text.XML
+import           Text.XML.Cursor
+import qualified Data.Text.Lazy.IO as TL
+import qualified Data.Text.Lazy.Encoding as TLE
+import           System.Environment
+
 
 data ServerOptions = ServerOptions
   { env           :: EnvType
@@ -71,4 +81,25 @@ main = runProgram =<< execParser opts
 runProgram :: ServerOptions -> IO ()
 runProgram (ServerOptions envT False connStr portNum flavour) =
     startApp connStr envT (fromIntegral portNum) flavour
-runProgram _ = migrate defConnectionStr
+runProgram _ = runMonkeyPatch
+-- runProgram _ = migrate defConnectionStr
+
+fileToParse :: FilePath
+fileToParse = "../GS1Combinators/test/test-xml/ObjectEvent.xml"
+
+runMonkeyPatch = do
+  doc <- Text.XML.readFile def fileToParse
+  let mainCursor = fromDocument doc
+  -- scope for optimization: only call parseEventByType on existent EventTypes
+      allParsedEvents =
+        filter (not . null) $ concat $
+        parseEventByType mainCursor <$> allEventTypes
+      objEvent = head allParsedEvents
+
+  print objEvent
+  -- mapM_ (TL.putStrLn . TLE.decodeUtf8 . encodePretty) (rights allParsedEvents)
+
+
+-- eventToNewObject :: Event -> M.NewObject
+
+
