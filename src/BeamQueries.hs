@@ -14,7 +14,7 @@ import           AppConfig (AppM, runDb, AppError(..))
 import           Control.Monad.Except (throwError)
 import qualified Data.Text as T
 import           Data.GS1.EPC
-import           Data.GS1.DWhat (DWhat(..))
+import           Data.GS1.DWhat (DWhat(..), LabelEPC(..))
 import           Data.GS1.DWhy (DWhy(..))
 import           Data.GS1.DWhere (DWhere(..), SrcDestLocation)
 import           Data.GS1.DWhen (DWhen(..))
@@ -278,6 +278,16 @@ insertWhatLabel whatId labelId = do
         ]
   return pKey
 
+insertLabel :: LabelEPC
+            -> Maybe T.Text
+            -> SB.PrimaryKeyType
+            -> AppM SB.PrimaryKeyType
+insertLabel labelEpc labelType whatId = do
+  pKey <- generatePk
+  runDb $ B.runInsert $ B.insert (SB._labels SB.supplyChainDb)
+        $ insertValues
+        [ epcToStorageLabel labelType whatId pKey labelEpc ]
+  return pKey
 
 eventCreateObject :: M.User -> M.NewObject -> AppM SB.PrimaryKeyType
 eventCreateObject
@@ -290,7 +300,6 @@ eventCreateObject
       eventType = ObjectEventT
       dwhat =  ObjectDWhat Add [labelEpc]
       dwhere = DWhere [rp] [bizL] [src] [dest]
-      quantity = ItemCount 3 -- useful for label
       dwhy  =  DWhy (Just CreatingClassInstance) (Just Active)
       dwhen = DWhen epcisTime (Just $ toEPCISTime currentTime) timezone
       foreignEventId = mEventId
@@ -298,8 +307,8 @@ eventCreateObject
       jsonEvent = encodeEvent event
 
   eventId <- insertEvent userId jsonEvent event
-  labelId <- generatePk
   whatId <- insertDWhat Nothing Nothing dwhat eventId
+  labelId <- insertLabel labelEpc Nothing whatId
   whenId <- insertDWhen dwhen eventId
   whyId <- insertDWhy dwhy eventId
   insertDWhere dwhere eventId
@@ -309,7 +318,7 @@ eventCreateObject
   -- haven't added UserEvents insertion equivalent since redundant information and no equivalent
   -- hashes not added yet, but will later for blockchain
 
-  return (SB.EventId eventId)
+  return eventId
 
 -- -- TODO = fix... what is definition of hasSigned?
 -- eventUserList :: M.User -> EvId.EventID -> AppM [(M.User, Bool)]
