@@ -279,7 +279,7 @@ insertWhatLabel whatId labelId = do
   return pKey
 
 
-eventCreateObject :: M.User -> M.NewObject -> AppM SB.EventId
+eventCreateObject :: M.User -> M.NewObject -> AppM SB.PrimaryKeyType
 eventCreateObject
   (M.User userId _ _ )
   (M.NewObject labelEpc epcisTime timezone
