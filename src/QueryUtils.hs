@@ -19,7 +19,7 @@ import           Data.Aeson.Text (encodeToLazyText)
 import qualified Data.Text.Lazy as TxtL
 import qualified Data.Text as T
 import qualified Model as M
-import           Data.GS1.EPC
+import           Data.GS1.EPC as EPC
 import           Data.GS1.DWhat (DWhat(..), LabelEPC(..))
 import           Data.GS1.DWhy (DWhy(..))
 import           Data.GS1.DWhere (DWhere(..), SrcDestLocation)
@@ -60,8 +60,17 @@ userTableToModel (SB.User uid _ fName lName _ _ _) = M.User uid fName lName
 encodeEvent :: Event -> T.Text
 encodeEvent event = TxtL.toStrict  (encodeToLazyText event)
 
--- should ``type`` be a maybe?
-epcToStorageLabel :: T.Text
+getQuantityAmount :: Maybe Quantity -> Maybe Double
+getQuantityAmount Nothing = Nothing
+getQuantityAmount (Just (MeasuredQuantity a _)) = Just $ realToFrac a
+getQuantityAmount (Just (ItemCount c)) = Just $ realToFrac c
+
+getQuantityUom :: Maybe Quantity -> Maybe EPC.Uom
+getQuantityUom Nothing = Nothing
+getQuantityUom (Just (MeasuredQuantity _ u)) = Just u
+getQuantityUom (Just (ItemCount _)) = Nothing
+
+epcToStorageLabel :: Maybe T.Text
                   -> SB.PrimaryKeyType
                   -> SB.PrimaryKeyType
                   -> LabelEPC
@@ -75,13 +84,30 @@ epcToStorageLabel labelType whatId pKey (IL (SGTIN gs1Prefix fv ir sn)) =
 
 epcToStorageLabel labelType whatId pKey (IL (GIAI gs1Prefix sn)) =
   SB.Label pKey labelType (SB.WhatId whatId)
-           gs1Prefix Nothing (Just sn) Nothing Nothing Nothing Nothing Nothing Nothing
+           gs1Prefix Nothing (Just sn)
+           Nothing Nothing Nothing Nothing Nothing Nothing
 
--- epcToStorageLabel evT pKey (IL (SSCC gs1Prefix sn))         = error "not implemented yet" -- SB.Label pKey "SSCC" gs1Prefix Nothing sn Nothing Nothing
+epcToStorageLabel labelType whatId pKey (IL (SSCC gs1Prefix sn)) =
+  SB.Label pKey labelType (SB.WhatId whatId)
+           gs1Prefix Nothing (Just sn)
+           Nothing Nothing Nothing Nothing Nothing Nothing
 
--- epcToStorageLabel evT pKey (IL (GRAI gs1Prefix at sn))      = error "not implemented yet" -- SB.Label pKey "GRAI" gs1Prefix Nothing sn Nothing Nothing
--- epcToStorageLabel evT pKey (CL (LGTIN gs1Prefix ir lot) mQ) = error "not implemented yet" -- SB.Label pKey "LGTIN" gs1Prefix ir Nothing Nothing lot
--- epcToStorageLabel evT pKey (CL (CSGTIN gs1Prefix fv ir) mQ) = error "not implemented yet" -- SB.Label pKey "CSGTIN" gs1Prefix ir Nothing Nothing Nothing
+epcToStorageLabel labelType whatId pKey (IL (GRAI gs1Prefix at sn)) =
+  SB.Label pKey labelType (SB.WhatId whatId)
+           gs1Prefix Nothing (Just sn)
+           Nothing Nothing Nothing (Just at) Nothing Nothing
+
+epcToStorageLabel labelType whatId pKey (CL (LGTIN gs1Prefix ir lot) mQ) =
+  SB.Label pKey labelType (SB.WhatId whatId)
+           gs1Prefix (Just ir) Nothing
+           Nothing (Just lot) Nothing Nothing
+           (getQuantityAmount mQ) (getQuantityUom mQ)
+
+epcToStorageLabel labelType whatId pKey (CL (CSGTIN gs1Prefix fv ir) mQ) =
+  SB.Label pKey labelType (SB.WhatId whatId)
+           gs1Prefix (Just ir) Nothing
+           Nothing Nothing (toText <$> fv) Nothing
+           (getQuantityAmount mQ) (getQuantityUom mQ)
 
 -- | GS1 DWhat to Storage DWhat
 -- For an object event
