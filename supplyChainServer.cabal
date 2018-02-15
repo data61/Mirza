@@ -86,6 +86,7 @@ executable supplyChainServer-exe
                      , xml-conduit
                      , xml-types
                      , text
+                     , uuid
                      , aeson-pretty
   default-language:    Haskell2010
   default-language:    Haskell2010

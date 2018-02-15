@@ -112,7 +112,7 @@ migrationStorage =
           (field "foreign_event_id" (maybeType pkSerialType))
           -- (BizId (field "event_label_id" text))
           (UserId (field "event_created_by" pkSerialType))
-          (field "json_event" (varchar (Just maxLen)) notNull)
+          (field "json_event" text notNull)
     )
     <*> createTable "whats"
     (
