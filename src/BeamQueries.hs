@@ -220,7 +220,9 @@ insertSrcDestType
   r <- runDb $ B.runInsert $ B.insert (SB._wheres SB.supplyChainDb)
              $ insertValues [stWhere]
   case r of
-    Left  e -> throwUnexpectedDBError $ sqlToServerError e
+    Left  e -> do
+      debugLog "Woah"
+      throwUnexpectedDBError $ sqlToServerError e
     Right _ -> return pKey
 
 insertLocationEPC :: SB.LocationField
