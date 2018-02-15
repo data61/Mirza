@@ -28,8 +28,8 @@ sqlToServerError :: SqlError -> ServerError
 sqlToServerError = toServerError getSqlErrorCode
 
 -- | Shorthand for throwing a Backend error
-throwBackendError :: AppM a
-throwBackendError = throwError $ AppError BackendErr
+throwBackendError :: (Show a) => a -> AppM b
+throwBackendError er = throwError $ AppError $ BackendErr $ toText er
 
 -- | Shorthand for throwing AppErrors
 -- Added because we were doing a lot of it

@@ -56,7 +56,7 @@ insertUser encPass (M.NewUser phone email firstName lastName biz _) = do
             -> throwAppError $
                 EmailExists (sqlToServerError e) email
         _   -> throwAppError $ InsertionFail (toServerError (Just . sqlState) e) email
-    _         -> throwBackendError
+    _         -> throwBackendError res
 
 -- |
 newUser :: M.NewUser -> AppM M.UserID
@@ -79,7 +79,7 @@ authCheck email password = do
           then return $ Just $ userTableToModel user
           else throwAppError $ AuthFailed email
     Right [] -> throwAppError $ EmailNotFound email
-    _  -> throwBackendError -- multiple elements
+    _  -> throwBackendError r -- multiple elements
 
 
 -- BELOW = Beam versions of SQL versions from Storage.hs
@@ -145,7 +145,7 @@ getUser email = do
     Right [u] -> return . Just . userTableToModel $ u
     Right []  -> throwAppError . UserNotFound $ email
     Left e    -> throwUnexpectedDBError $ sqlToServerError e
-    _         -> throwBackendError
+    _         -> throwBackendError r
 
 insertDWhat :: Maybe SB.PrimaryKeyType
             -> Maybe SB.PrimaryKeyType

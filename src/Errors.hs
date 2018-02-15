@@ -27,7 +27,7 @@ data ServiceError = NeedMoreSignatures ServerError T.Text
                   | UnexpectedDBResponse ServerError
                   | AuthFailed  M.Email
                   | UserNotFound M.Email
-                  | BackendErr -- fallback
+                  | BackendErr ErrorText -- fallback
                   deriving (Show, Read, Generic)
 
 {-
