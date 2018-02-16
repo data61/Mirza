@@ -31,9 +31,6 @@ import           Data.GS1.DWhat
 import           Data.GS1.DWhy
 import           Data.GS1.Parser.Parser
 import           Data.Either.Combinators
-import           Data.Text.Encoding (encodeUtf8)
-import qualified Data.ByteString as ByteString
-import qualified Data.ByteString.Lazy.Char8 as LBSC8
 import qualified Data.HashMap.Strict.InsOrd as IOrd
 import qualified Network.Wai.Handler.Warp as Warp
 import           Control.Monad (when)
@@ -43,16 +40,13 @@ import           Control.Lens       hiding ((.=))
 import           Control.Monad.Except (runExceptT)
 import qualified Control.Exception.Lifted as ExL
 import           Control.Monad.Trans.Except
--- remove me eventually
 import qualified Model as M
 import           Data.UUID.V4
 import qualified BeamQueries as BQ
 import qualified AppConfig as AC
 import           Control.Monad.Reader   (MonadReader, ReaderT, runReaderT,
                                          asks, ask, liftIO)
-import           Control.Monad.Trans.Either (EitherT(..))
 import           Utils (debugLog, debugLogGeneral)
-import           Errors (ServiceError(..))
 import           ErrorUtils (appErrToHttpErr)
 import qualified StorageBeam as SB
 
@@ -144,27 +138,15 @@ basicAuthServerContext = authCheck :. EmptyContext
 
 addPublicKey :: User -> RSAPublicKey -> AC.AppM KeyID
 addPublicKey = BQ.addPublicKey
-  -- liftIO (Storage.addPublicKey user sig)
 
 newUser :: NewUser -> AC.AppM UserID
 newUser = BQ.newUser
 
 getPublicKey :: KeyID -> AC.AppM RSAPublicKey
 getPublicKey = BQ.getPublicKey
-  -- do
-  --   result <- liftIO $ runExceptT $ Storage.getPublicKey keyID
-  --   case result of
-  --     Left e -> throwError err400 { errBody = LBSC8.pack $ show e}
-  --     Right key -> return key
-
 
 getPublicKeyInfo :: KeyID -> AC.AppM KeyInfo
-getPublicKeyInfo = BQ.getPublicKeyInfo -- error "Storage module not implemented"
--- getPublicKeyInfo keyID = do
---   result <- liftIO $ runExceptT $ Storage.getPublicKeyInfo keyID
---   case result of
---     Left e -> throwError err404 { errBody = LBSC8.pack $ show e }
---     Right keyInfo -> return keyInfo
+getPublicKeyInfo = BQ.getPublicKeyInfo
 
 -- PSUEDO:
 -- In BeamQueries, implement a function getLabelIDState :: EPCUrn -> IO (_labelID, State)
