@@ -11,6 +11,9 @@
 {-# LANGUAGE PolyKinds                  #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# OPTIONS_GHC -fno-warn-orphans       #-}
+
+-- | Endpoint definitions go here. Most of the endpoint definitions are
+-- light wrappers around functions in BeamQueries
 module Service where
 
 import           Model
@@ -80,10 +83,6 @@ appMToHandler env act = do
   let envT = AC.envType env
   case res of
     Left (AC.AppError e) -> appErrToHttpErr e
-      -- debugLogGeneral envT  "We are in Left"
-      -- throwError $ err400
-      --     { errBody = LBSC8.fromChunks $
-      --                 ["User email ", encodeUtf8 em, " exists"]}
     Right a  -> do
       debugLogGeneral envT "We are in Right"
       return a

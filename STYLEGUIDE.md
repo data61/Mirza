@@ -32,6 +32,14 @@ discovered that `naming_variables_like_this_keeps_things_intact`.
 Since we want our column names to be consistent with the columnn names we
 put in the migration function, this seemed like the way to go.
 
+## Naming tables in migration
+In the module `MigrateScript`, please make sure the tables names are
+`snake_case` as opposed to any variant of `camelCase`.
+
+This is because in SQL queries, all captials are converted to small case, so
+even if you name a table `myTable`, subsequent queries involving the table will
+call your table `mytable`.
+
 # Making Style Tweaks
 
 If you want to make style tweaks to some modules

@@ -1,5 +1,7 @@
 {-# LANGUAGE OverloadedStrings      #-}
 
+-- | This module is incomplete as of yet.
+-- Functions in the `service` module use the database functions defined here
 module BeamQueries where
 
 import           Data.GS1.Parser.Parser
@@ -59,7 +61,7 @@ insertUser encPass (M.NewUser phone email firstName lastName biz _) = do
         _   -> throwAppError $ InsertionFail (toServerError (Just . sqlState) e) email
     _         -> throwBackendError res
 
--- |
+-- | Hashes the password of the NewUser and inserts the user into the database
 newUser :: M.NewUser -> AppM M.UserID
 newUser userInfo@(M.NewUser _ _ _ _ _ password) = do
     hash <- liftIO $ encryptPassIO' (Pass $ encodeUtf8 password)
@@ -114,7 +116,6 @@ getPublicKey keyId = do
     pure allKeys
 
   case r of
-    -- Right [(keyId, uid, rsa_n, rsa_e, creationTime, revocationTime)] ->
     Right [k] ->
         return $ M.RSAPublicKey
           (read $ T.unpack $ SB.rsa_n k) (read $ T.unpack $ SB.rsa_e k)

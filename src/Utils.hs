@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings      #-}
 
+-- | General utility functions used throughout the codebase
 module Utils where
 
 import           AppConfig (AppM(..), getEnvType, EnvType(..))

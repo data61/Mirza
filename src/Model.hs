@@ -4,6 +4,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# OPTIONS_GHC -fno-warn-orphans       #-}
 
+-- | This module is a WIP. Changes will be made to the models very frequently
 module Model where
 
 import qualified Data.ByteString as BS
