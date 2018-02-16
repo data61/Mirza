@@ -1,21 +1,11 @@
-{-# LANGUAGE DataKinds                  #-}
 {-# LANGUAGE TemplateHaskell            #-}
 {-# LANGUAGE DeriveGeneric              #-}
-{-# LANGUAGE FlexibleContexts           #-}
-{-# LANGUAGE FlexibleInstances          #-}
-{-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE OverloadedStrings          #-}
-{-# LANGUAGE ScopedTypeVariables        #-}
-{-# LANGUAGE TypeFamilies               #-}
-{-# LANGUAGE TypeOperators              #-}
-{-# LANGUAGE CPP                        #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE UndecidableInstances       #-}
 {-# OPTIONS_GHC -fno-warn-orphans       #-}
 
 module Model where
 
--- import qualified Data.ByteString.Lazy.Char8 as LBSC8
 import qualified Data.ByteString as BS
 import           Data.Text as T
 
@@ -23,13 +13,7 @@ import           Servant
 import           Servant.Server.Experimental.Auth()
 import           Data.Swagger
 
-import           Prelude        ()
-import           Prelude.Compat
 import           GHC.Generics (Generic)
-
--- import           Control.Monad.Except (throwError, MonadError, Except)
--- import           Control.Monad.Error.Class (Error)
--- import           Control.Exception (IOException)
 
 import           Data.Aeson
 import           Data.Aeson.TH
@@ -44,17 +28,10 @@ import           StorageBeam (PrimaryKeyType)
 
 type UserID = PrimaryKeyType
 
--- instance ToSchema UserID
--- instance ToParamSchema UserID where
---   toParamSchema _ = error "not implemented yet"
--- instance FromHttpApiData UserID
--- type UserID = Integer
-
 type EmailAddress = T.Text
 type KeyID = PrimaryKeyType
 type Password = BS.ByteString
 type EPCUrn = String
-
 
 newtype BinaryBlob = BinaryBlob BS.ByteString
   deriving (MimeUnrender OctetStream, MimeRender OctetStream, Generic)
@@ -68,7 +45,6 @@ instance ToSchema BinaryBlob where
 
 -- instance Sql.FromRow BinaryBlob where
 --   fromRow = BinaryBlob <$> field
-
 
 newtype EventHash = EventHash String
   deriving (Generic, Show, Read, Eq)
@@ -131,8 +107,6 @@ data User = User {
 } deriving (Generic, Eq, Show)
 $(deriveJSON defaultOptions ''User)
 instance ToSchema User
-
-
 
 data EPCState = New | InProgress | AwaitingDeploymentToBC | Customer | Finalised
   deriving (Generic, Eq, Show)
@@ -234,7 +208,7 @@ instance ToSchema TransformationInfo
 data TransactionInfo = TransactionInfo {
   transaction_userIDs :: [UserID],
   transaction_objectIDs :: [LabelEPC],
-  transaction_parentID :: Maybe ParentID,
+  transaction_parentLabel :: Maybe ParentLabel,
   transaction_bizTransaction :: [BizTransaction]
 } deriving (Show, Generic)
 $(deriveJSON defaultOptions ''TransactionInfo)
@@ -257,52 +231,3 @@ data HashedEvent = HashedEvent {
 } deriving (Generic)
 $(deriveJSON defaultOptions ''HashedEvent)
 instance ToSchema HashedEvent
-
--- | A sum type of errors that may occur in the Service layer
-data ServiceError = NeedMoreSignatures T.Text
-                  | InvalidSignature BS.ByteString
-                  | BlockchainSendFailed
-                  | InvalidEventID Int
-                  | InvalidKeyID KeyID
-                  | InvalidUserID UserID
-                  | InsertionFail
-                  | EmailExists Email
-                  | EmailNotFound Email
-                  | BackendErr
-                  deriving (Show, Read, Generic)
-
-{-
-Do not remove the following commented out code until explicitly asked to
-They serve as reference to what the errors used to be before they
-were merged into ``ServiceError``
--}
--- -- Interface for converting custom errors to ServantErr
--- class AppServantError err where
---   toServantErr :: err -> ServantErr
-
--- data SigError = SE_NeedMoreSignatures T.Text
---               | SE_InvalidSignature BS.ByteString
---               | SE_InvalidUser T.Text
---               | SE_BlockchainSendFailed
---               | SE_InvalidEventID Int
---               | SE_InvalidKeyID
---               deriving (Show, Read, Generic)
-
--- instance AppServantError SigError where
---   toServantErr e = err500 {errBody = LBSC8.pack $ show e}
-
-
--- data GetPropertyError = KE_InvalidKeyID
---                       | KE_InvalidUserID
---                       deriving (Show, Read, Generic)
-
--- instance AppServantError GetPropertyError where
---   toServantErr e = err500 {errBody = LBSC8.pack $ show e}
-
--- data DBError = DBE_InsertionFail
---              | DBE_EmailExists
---              deriving (Show, Read, Generic)
-
--- instance AppServantError DBError where
---   toServantErr e = err500 {errBody = LBSC8.pack $ show e}
-

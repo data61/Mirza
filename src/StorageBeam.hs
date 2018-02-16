@@ -183,7 +183,7 @@ instance Table ContactT where
 
 data LabelT f = Label
   { label_id                 :: C f PrimaryKeyType
-  , label_type               :: C f Text -- input/output/parent
+  , label_type               :: C f (Maybe Text) -- input/output/parent
   , label_what_id            :: PrimaryKey WhatT f
   , label_gs1_company_prefix :: C f EPC.GS1CompanyPrefix --should this be bizId instead?
   , item_reference           :: C f (Maybe Text)
@@ -597,11 +597,11 @@ supplyChainDb = defaultDbSettings
          contact_user1_id = UserId (fieldNamed "contact_user1_id")
         , contact_user2_id = UserId (fieldNamed "contact_user2_id")
         }
-    -- , _labels =
-    --     modifyTable (const "labels") $
-    --     tableModification {
-    --       someField = Id (fieldNamed "short_name")
-    --     }
+    , _labels =
+        modifyTable (const "labels") $
+        tableModification {
+          label_what_id = WhatId (fieldNamed "label_what_id")
+        }
     , _what_labels =
         modifyTable (const "what_labels") $
         tableModification {
@@ -638,7 +638,7 @@ supplyChainDb = defaultDbSettings
         , what_event_id = EventId (fieldNamed "what_event_id")
         }
     , _biz_transactions =
-        modifyTable (const "bizTransactions") $
+        modifyTable (const "biz_transactions") $
         tableModification {
           biz_transaction_event_id = EventId (fieldNamed "biz_transaction_event_id")
         }
@@ -658,14 +658,14 @@ supplyChainDb = defaultDbSettings
           when_event_id = EventId (fieldNamed "when_event_id")
         }
     , _label_events =
-        modifyTable (const "labelEvents") $
+        modifyTable (const "label_events") $
         tableModification {
           label_event_label_id = LabelId (fieldNamed "label_event_label_id")
         , label_event_event_id = EventId (fieldNamed "label_event_event_id")
         }
     -- all the foreign keys are relevant here
     , _user_events =
-        modifyTable (const "userEvent") $
+        modifyTable (const "user_event") $
         tableModification {
           user_events_event_id = EventId (fieldNamed "user_events_event_id")
         , user_events_user_id = UserId (fieldNamed "user_events_user_id")

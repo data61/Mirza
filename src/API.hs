@@ -5,10 +5,10 @@
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
-{-# LANGUAGE CPP                        #-}
-{-# LANGUAGE UndecidableInstances       #-}
-{-# OPTIONS_GHC -fno-warn-orphans #-}
-{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE CPP                   #-}
+{-# LANGUAGE UndecidableInstances  #-}
+{-# OPTIONS_GHC -fno-warn-orphans  #-}
+{-# LANGUAGE DataKinds             #-}
 
 module API where
 
@@ -21,7 +21,7 @@ import Data.Swagger
 import Data.GS1.Event
 import Data.GS1.EventID
 import Model
-import StorageBeam (PrimaryKeyType)
+import StorageBeam (PrimaryKeyType, EventId)
 
 type PrivateAPI =
                  "epc" :>  Capture "urn" String:> "info" :> Get '[JSON] EPCState
@@ -35,7 +35,7 @@ type PrivateAPI =
             :<|> "event" :> "listUsers" :> Capture "eventID" EventID :> Get '[JSON] [(User, Bool)]
             :<|> "event" :> "sign" :> ReqBody '[JSON] SignedEvent :> Post '[JSON] Bool
             :<|> "event" :> "getHash" :> ReqBody '[JSON] EventID :> Post '[JSON] HashedEvent
-            :<|> "event" :> "createObject" :> ReqBody '[JSON] NewObject :> Post '[JSON] Event
+            :<|> "event" :> "createObject" :> ReqBody '[JSON] NewObject :> Post '[JSON] PrimaryKeyType
             :<|> "event" :> "aggregateObjects" :> ReqBody '[JSON] AggregatedObject :> Post '[JSON] Event
             :<|> "event" :> "disAggregateObjects" :> ReqBody '[JSON] DisaggregatedObject :> Post '[JSON] Event
             :<|> "event" :> "start-transaction" :> ReqBody '[JSON] TransactionInfo :> Post '[JSON] Event

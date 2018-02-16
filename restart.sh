@@ -48,6 +48,7 @@ INSERT INTO businesses \
 EOF
 
 echo "Done"
-echo "Starting the server in 3s. Feed me a SIGINT (CTRL+C) to stop."
+echo "Starting the server in 3s. Feed me a SIGINT (CTRL+C or equivalent) to stop."
 sleep 3
+google-chrome "http://localhost:8000/swagger-ui/#/default/post_newUser"
 stack exec supplyChainServer-exe -- -e Dev # running in Dev
