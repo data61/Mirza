@@ -30,24 +30,6 @@ import           ErrorUtils (throwBackendError, throwAppError, toServerError
 import           Database.PostgreSQL.Simple.Errors (ConstraintViolation(..)
                                                    , constraintViolation)
 
-import           Data.GS1.Event
-import           Data.Either
-import           Text.XML
-import           Text.XML.Cursor
-import qualified Data.Text.Lazy.IO as TL
-import qualified Data.Text.Lazy.Encoding as TLE
-
-
-
-import           Data.GS1.DWhat
-import           Data.GS1.DWhen
-import           Data.GS1.DWhy
-import           Data.GS1.DWhere
-import           Data.GS1.EPC
-import           Data.UUID (nil)
-
-
-
 {-
 {
   "phoneNumber": "0412",
@@ -67,8 +49,6 @@ insertUser encPass (M.NewUser phone email firstName lastName biz _) = do
             insertValues ([(SB.User userId
             (SB.BizId  biz)
             firstName lastName phone (getEncryptedPass encPass) email)])
-  debugLog "Hold up! We are now taking a detour and running a monkey patch"
-  runMonkeyPatch
   case res of
     Right [r] -> return $ SB.user_id r
     Left e ->
@@ -342,62 +322,6 @@ eventCreateObject
   -- hashes not added yet, but will later for blockchain
 
   return eventId
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
--- monkey patches
-fileToParse :: FilePath
-fileToParse = "../GS1Combinators/test/test-xml/ObjectEvent.xml"
-
-dummyUser :: M.User
-dummyUser = M.User nil "Sajid" "Anower"
-
-runMonkeyPatch :: AppM ()
-runMonkeyPatch = do
-  doc <- liftIO $ Text.XML.readFile def fileToParse
-  let mainCursor = fromDocument doc
-  -- scope for optimization: only call parseEventByType on existent EventTypes
-      allParsedEvents =
-        filter (not . null) $ concat $
-        parseEventByType mainCursor <$> allEventTypes
-      (Right objEvent) = head allParsedEvents
-      newObj = eventToNewObject objEvent
-  eventId <- eventCreateObject dummyUser newObj
-  liftIO $ print eventId
-  -- liftIO $ print objEvent
-
-  -- mapM_ (TL.putStrLn . TLE.decodeUtf8 . encodePretty) (rights allParsedEvents)
-
-
-eventToNewObject :: Event -> M.NewObject
-eventToNewObject
-  (Event evType mEid
-    (ObjectDWhat act epcs)
-    (DWhen tStamp _ tZone)
-    dwhy
-    dwhere) = do
-  let
-      labelEpc = head epcs
-      rPoint = head . _readPoint $ dwhere
-      eLocation = M.EventLocation rPoint rPoint (SDOwningParty, rPoint) (SDOwningParty, rPoint)
-      newObj = M.NewObject labelEpc tStamp tZone eLocation mEid
-  newObj
-
-
-
-
 
 -- -- TODO = fix... what is definition of hasSigned?
 -- eventUserList :: M.User -> EvId.EventID -> AppM [(M.User, Bool)]
