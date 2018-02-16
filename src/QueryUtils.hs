@@ -19,7 +19,7 @@ import           Data.Aeson.Text (encodeToLazyText)
 import qualified Data.Text.Lazy as TxtL
 import qualified Data.Text as T
 import qualified Model as M
-import           Data.GS1.EPC
+import           Data.GS1.EPC as EPC
 import           Data.GS1.DWhat (DWhat(..), LabelEPC(..))
 import           Data.GS1.DWhy (DWhy(..))
 import           Data.GS1.DWhere (DWhere(..), SrcDestLocation)
@@ -28,8 +28,6 @@ import qualified Data.GS1.EventID as EvId
 import           Data.GS1.Event (Event(..), EventType(..),
                                 evTypeToTextLike, dwhatToEventTextLike)
 import           Utils (toText)
-import           Database.PostgreSQL.Simple
-import           Database.Beam.Backend.SQL.BeamExtensions
 import           Database.Beam as B
 
 -- | Reads back the ``LocalTime`` in UTCTime (with an offset of 0)
@@ -62,8 +60,17 @@ userTableToModel (SB.User uid _ fName lName _ _ _) = M.User uid fName lName
 encodeEvent :: Event -> T.Text
 encodeEvent event = TxtL.toStrict  (encodeToLazyText event)
 
--- should ``type`` be a maybe?
-epcToStorageLabel :: T.Text
+getQuantityAmount :: Maybe Quantity -> Maybe Double
+getQuantityAmount Nothing = Nothing
+getQuantityAmount (Just (MeasuredQuantity a _)) = Just $ realToFrac a
+getQuantityAmount (Just (ItemCount c)) = Just $ realToFrac c
+
+getQuantityUom :: Maybe Quantity -> Maybe EPC.Uom
+getQuantityUom Nothing = Nothing
+getQuantityUom (Just (MeasuredQuantity _ u)) = Just u
+getQuantityUom (Just (ItemCount _)) = Nothing
+
+epcToStorageLabel :: Maybe T.Text
                   -> SB.PrimaryKeyType
                   -> SB.PrimaryKeyType
                   -> LabelEPC
@@ -71,17 +78,36 @@ epcToStorageLabel :: T.Text
 epcToStorageLabel labelType whatId pKey (IL (SGTIN gs1Prefix fv ir sn)) =
   SB.Label pKey labelType (SB.WhatId whatId)
            gs1Prefix (Just ir)
-           (Just sn) Nothing Nothing Nothing Nothing Nothing Nothing
+           (Just sn) Nothing Nothing
+           (toText <$> fv)
+           Nothing Nothing Nothing
 
 epcToStorageLabel labelType whatId pKey (IL (GIAI gs1Prefix sn)) =
   SB.Label pKey labelType (SB.WhatId whatId)
-           gs1Prefix Nothing (Just sn) Nothing Nothing Nothing Nothing Nothing Nothing
+           gs1Prefix Nothing (Just sn)
+           Nothing Nothing Nothing Nothing Nothing Nothing
 
--- epcToStorageLabel evT pKey (IL (SSCC gs1Prefix sn))         = error "not implemented yet" -- SB.Label pKey "SSCC" gs1Prefix Nothing sn Nothing Nothing
+epcToStorageLabel labelType whatId pKey (IL (SSCC gs1Prefix sn)) =
+  SB.Label pKey labelType (SB.WhatId whatId)
+           gs1Prefix Nothing (Just sn)
+           Nothing Nothing Nothing Nothing Nothing Nothing
 
--- epcToStorageLabel evT pKey (IL (GRAI gs1Prefix at sn))      = error "not implemented yet" -- SB.Label pKey "GRAI" gs1Prefix Nothing sn Nothing Nothing
--- epcToStorageLabel evT pKey (CL (LGTIN gs1Prefix ir lot) mQ) = error "not implemented yet" -- SB.Label pKey "LGTIN" gs1Prefix ir Nothing Nothing lot
--- epcToStorageLabel evT pKey (CL (CSGTIN gs1Prefix fv ir) mQ) = error "not implemented yet" -- SB.Label pKey "CSGTIN" gs1Prefix ir Nothing Nothing Nothing
+epcToStorageLabel labelType whatId pKey (IL (GRAI gs1Prefix at sn)) =
+  SB.Label pKey labelType (SB.WhatId whatId)
+           gs1Prefix Nothing (Just sn)
+           Nothing Nothing Nothing (Just at) Nothing Nothing
+
+epcToStorageLabel labelType whatId pKey (CL (LGTIN gs1Prefix ir lot) mQ) =
+  SB.Label pKey labelType (SB.WhatId whatId)
+           gs1Prefix (Just ir) Nothing
+           Nothing (Just lot) Nothing Nothing
+           (getQuantityAmount mQ) (getQuantityUom mQ)
+
+epcToStorageLabel labelType whatId pKey (CL (CSGTIN gs1Prefix fv ir) mQ) =
+  SB.Label pKey labelType (SB.WhatId whatId)
+           gs1Prefix (Just ir) Nothing
+           Nothing Nothing (toText <$> fv) Nothing
+           (getQuantityAmount mQ) (getQuantityUom mQ)
 
 -- | GS1 DWhat to Storage DWhat
 -- For an object event
@@ -107,8 +133,13 @@ getAction (ObjectDWhat act _) = Just act
 getAction (TransactionDWhat act _ _ _) = Just act
 getAction (AggregationDWhat act _ _) = Just act
 
-grabLabelId :: GS1CompanyPrefix -> SerialNumber -> Maybe SGTINFilterValue -> Maybe ItemReference -> Maybe AssetType -> AppM (Maybe SB.PrimaryKeyType)
-grabLabelId cp sn msfv mir mat = do
+grabInstLabelId :: GS1CompanyPrefix
+                -> SerialNumber
+                -> Maybe SGTINFilterValue
+                -> Maybe ItemReference
+                -> Maybe AssetType
+                -> AppM (Maybe SB.PrimaryKeyType)
+grabInstLabelId cp sn msfv mir mat = do
   r <- runDb $ runSelectReturningList $ select $ do
     labels <- all_ (SB._labels SB.supplyChainDb)
     guard_ (SB.label_gs1_company_prefix labels ==. val_ cp &&.
@@ -121,25 +152,16 @@ grabLabelId cp sn msfv mir mat = do
     Right [l] -> return $ Just (SB.label_id l)
     _         -> return Nothing
 
--- | SELECT * from labels where company = companyPrefix && serial = serial --> that's for GIAI
 findLabelId :: InstanceLabelEPC -> AppM (Maybe SB.PrimaryKeyType)
--- pattern match on 4 instancelabelepc types, quantity_amount and quantity_uom not important
-findLabelId (GIAI cp sn) = grabLabelId cp sn Nothing Nothing Nothing
-findLabelId (SSCC cp sn) = grabLabelId cp sn Nothing Nothing Nothing
-findLabelId (SGTIN cp msfv ir sn) = grabLabelId cp sn msfv (Just ir) Nothing
-findLabelId (GRAI cp at sn) = grabLabelId cp sn Nothing Nothing (Just at)
+findLabelId (GIAI cp sn) = grabInstLabelId cp sn Nothing Nothing Nothing
+findLabelId (SSCC cp sn) = grabInstLabelId cp sn Nothing Nothing Nothing
+findLabelId (SGTIN cp msfv ir sn) = grabInstLabelId cp sn msfv (Just ir) Nothing
+findLabelId (GRAI cp at sn) = grabInstLabelId cp sn Nothing Nothing (Just at)
 
--- look into Data.GS1.DWhat source code
 getParentId :: DWhat -> AppM (Maybe SB.PrimaryKeyType)
--- because ObjectDWhat has no parent
-getParentId (ObjectDWhat _ _) = return Nothing
-getParentId (TransformationDWhat tId inp out) = return Nothing
--- do it for the rest of them
-getParentId (TransactionDWhat act Nothing btList epcs) = return Nothing
-getParentId (TransactionDWhat act (Just p) btList epcs) = findLabelId p
-
-getParentId (AggregationDWhat act Nothing epcs) = return Nothing
-getParentId (AggregationDWhat act (Just p) epcs) = findLabelId p
+getParentId (TransactionDWhat _ (Just p) _ _) = findLabelId p
+getParentId (AggregationDWhat _ (Just p) _)   = findLabelId p
+getParentId _                                 = return Nothing
 
 toStorageDWhen :: SB.PrimaryKeyType
                -> DWhen

@@ -52,6 +52,9 @@ import           Control.Monad.Reader   (MonadReader, ReaderT, runReaderT,
                                          asks, ask, liftIO)
 import           Control.Monad.Trans.Either (EitherT(..))
 import           Utils (debugLog, debugLogGeneral)
+import           Errors (ServiceError(..))
+import           ErrorUtils (appErrToHttpErr)
+import qualified StorageBeam as SB
 
 instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub) where
   toSwagger _ =
@@ -81,13 +84,12 @@ appMToHandler :: forall x. AC.Env -> AC.AppM x -> Handler x
 appMToHandler env act = do
   res <- liftIO $ runExceptT $ runReaderT (AC.unAppM act) env
   let envT = AC.envType env
-  debugLogGeneral envT "We are in appMToHandler"
   case res of
-    Left (AC.AppError (M.EmailExists em)) -> do
-      debugLogGeneral envT  "We are in Left"
-      throwError $ err400
-          { errBody = LBSC8.fromChunks $
-                      ["User email ", encodeUtf8 em, " exists"]}
+    Left (AC.AppError e) -> appErrToHttpErr e
+      -- debugLogGeneral envT  "We are in Left"
+      -- throwError $ err400
+      --     { errBody = LBSC8.fromChunks $
+      --                 ["User email ", encodeUtf8 em, " exists"]}
     Right a  -> do
       debugLogGeneral envT "We are in Right"
       return a
@@ -148,7 +150,7 @@ newUser :: NewUser -> AC.AppM UserID
 newUser = BQ.newUser
 
 getPublicKey :: KeyID -> AC.AppM RSAPublicKey
-getPublicKey keyID = error "Storage module not implemented"
+getPublicKey = BQ.getPublicKey
   -- do
   --   result <- liftIO $ runExceptT $ Storage.getPublicKey keyID
   --   case result of
@@ -157,7 +159,7 @@ getPublicKey keyID = error "Storage module not implemented"
 
 
 getPublicKeyInfo :: KeyID -> AC.AppM KeyInfo
-getPublicKeyInfo keyID = error "Storage module not implemented"
+getPublicKeyInfo = BQ.getPublicKeyInfo -- error "Storage module not implemented"
 -- getPublicKeyInfo keyID = do
 --   result <- liftIO $ runExceptT $ Storage.getPublicKeyInfo keyID
 --   case result of
@@ -255,8 +257,8 @@ eventHashed user eventID = do
     -}
 
 -- Return the json encoded copy of the event
-eventCreateObject :: User -> NewObject -> AC.AppM Event
-eventCreateObject user newObject = error "Storage module not implemented"
+eventCreateObject :: User -> NewObject -> AC.AppM SB.PrimaryKeyType
+eventCreateObject = BQ.eventCreateObject --error "Storage module not implemented"
   -- liftIO (Storage.eventCreateObject user newObject)
 
 eventAggregateObjects :: User -> AggregatedObject -> AC.AppM Event

@@ -62,11 +62,11 @@ migrationStorage =
     (
       Label
           (field "label_id" pkSerialType)
-          (field "label_type" (varchar (Just maxLen)) notNull)
+          (field "label_type" (maybeType $ varchar (Just maxLen)))
           (WhatId (field "label_what_id" pkSerialType))
           (field "label_gs1_company_prefix" (varchar (Just maxLen)) notNull)
-          (field "item_reference" (maybeType $ varchar (Just maxLen)) notNull)
-          (field "serial_number" (maybeType $ varchar (Just maxLen)) notNull)
+          (field "item_reference" (maybeType $ varchar (Just maxLen)))
+          (field "serial_number" (maybeType $ varchar (Just maxLen)))
           (field "state" (maybeType $ varchar (Just maxLen)))
           (field "lot" (maybeType $ varchar (Just maxLen)))
           (field "sgtin_filter_value" (maybeType $ varchar (Just maxLen)))
@@ -111,7 +111,7 @@ migrationStorage =
           (field "foreign_event_id" (maybeType pkSerialType))
           -- (BizId (field "event_label_id" text))
           (UserId (field "event_created_by" pkSerialType))
-          (field "json_event" (varchar (Just maxLen)) notNull)
+          (field "json_event" text notNull)
     )
     <*> createTable "whats"
     (
@@ -124,7 +124,7 @@ migrationStorage =
           (TransformationId (field "what_transformation_id" (maybeType pkSerialType)))
           (EventId (field "what_event_id" pkSerialType))
     )
-    <*> createTable "bizTransactions"
+    <*> createTable "biz_transactions"
     (
       BizTransaction
           (field "biz_transaction_id" pkSerialType)
@@ -158,14 +158,14 @@ migrationStorage =
           (field "time_zone" (varchar (Just maxTzLen)) notNull)
           (EventId (field "when_event_id" pkSerialType))
     )
-    <*> createTable "labelEvents"
+    <*> createTable "label_events"
     (
       LabelEvent
           (field "label_event_id" pkSerialType)
           (LabelId (field "label_event_label_id" pkSerialType))
           (EventId (field "label_event_event_id" pkSerialType))
     )
-    <*> createTable "userEvent"
+    <*> createTable "user_event"
     (
       UserEvent
           (field "user_events_id" pkSerialType)
