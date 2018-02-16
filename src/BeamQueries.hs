@@ -97,10 +97,10 @@ addPublicKey (M.User uid _ _)  (M.RSAPublicKey rsa_n rsa_e) = do
                    SB.Key keyId (SB.UserId uid)
                    (T.pack $ show rsa_n)
                    (T.pack $ show rsa_e)
-                   timeStamp -- 0
-                   Nothing -- revocationTime ?
+                   timeStamp
+                   Nothing
                  )
-               ] -- TODO = check if 0 is correct here... NOT SURE
+               ]
   case r of
     Right [rowId] -> return (SB.key_id rowId)
     Right _       -> throwAppError $ InvalidKeyID keyId
