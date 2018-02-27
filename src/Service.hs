@@ -11,6 +11,9 @@
 {-# LANGUAGE PolyKinds                  #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# OPTIONS_GHC -fno-warn-orphans       #-}
+
+-- | Endpoint definitions go here. Most of the endpoint definitions are
+-- light wrappers around functions in BeamQueries
 module Service where
 
 import           Model
