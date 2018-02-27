@@ -1,62 +1,40 @@
-{-# LANGUAGE DataKinds                  #-}
 {-# LANGUAGE TemplateHaskell            #-}
 {-# LANGUAGE DeriveGeneric              #-}
-{-# LANGUAGE FlexibleContexts           #-}
-{-# LANGUAGE FlexibleInstances          #-}
-{-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE OverloadedStrings          #-}
-{-# LANGUAGE ScopedTypeVariables        #-}
-{-# LANGUAGE TypeFamilies               #-}
-{-# LANGUAGE TypeOperators              #-}
-{-# LANGUAGE CPP                        #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE UndecidableInstances       #-}
 {-# OPTIONS_GHC -fno-warn-orphans       #-}
 
+-- | This module is a WIP. Changes will be made to the models very frequently
 module Model where
 
-import Servant
-import Servant.Server.Experimental.Auth()
+import qualified Data.ByteString as BS
+import           Data.Text as T
 
-import Prelude        ()
-import Prelude.Compat
+import           Servant
+import           Servant.Server.Experimental.Auth()
+import           Data.Swagger
 
-import GHC.Generics (Generic)
+import           GHC.Generics (Generic)
 
-import Data.Aeson
-import Data.Aeson.TH
-import Data.Swagger
-import Data.Time
+import           Data.Aeson
+import           Data.Aeson.TH
+import           Data.Time
 
-import Data.GS1.EventID
-import Data.GS1.EPC
-import Data.GS1.DWhere
-import Data.GS1.DWhat
-import Data.Text as T
-
-import qualified Data.ByteString as ByteString
-import Data.UUID (UUID)
-import StorageBeam (PrimaryKeyType)
-
-import Data.UUID
-import           Control.Monad.Except (throwError, MonadError)
-import Control.Exception (IOException)
+import           Data.GS1.EventID
+import           Data.GS1.EPC
+import           Data.GS1.DWhere
+import           Data.GS1.DWhat
+import           Data.UUID (UUID)
+import           StorageBeam (PrimaryKeyType)
 
 type UserID = PrimaryKeyType
 
--- instance ToSchema UserID
--- instance ToParamSchema UserID where
---   toParamSchema _ = error "not implemented yet"
--- instance FromHttpApiData UserID
--- type UserID = Integer
-
 type EmailAddress = T.Text
-type KeyID = Integer
-type Password = ByteString.ByteString
+type KeyID = PrimaryKeyType
+type Password = BS.ByteString
 type EPCUrn = String
 
-
-newtype BinaryBlob = BinaryBlob ByteString.ByteString
+newtype BinaryBlob = BinaryBlob BS.ByteString
   deriving (MimeUnrender OctetStream, MimeRender OctetStream, Generic)
 
 
@@ -68,7 +46,6 @@ instance ToSchema BinaryBlob where
 
 -- instance Sql.FromRow BinaryBlob where
 --   fromRow = BinaryBlob <$> field
-
 
 newtype EventHash = EventHash String
   deriving (Generic, Show, Read, Eq)
@@ -118,21 +95,19 @@ instance ToSchema RSAPublicKey
 
 data KeyInfo = KeyInfo {
   userID         :: UserID,
-  creationTime   :: Integer,
-  revocationTime :: Integer
+  creationTime   :: EPCISTime,
+  revocationTime :: Maybe EPCISTime
 }deriving (Generic, Eq, Show)
 $(deriveJSON defaultOptions ''KeyInfo)
 instance ToSchema KeyInfo
 
 data User = User {
-    userId        :: UserID
-  , userFirstName :: T.Text
-  , userLastName  :: T.Text
+    userId        :: UserID,
+    userFirstName :: T.Text,
+    userLastName  :: T.Text
 } deriving (Generic, Eq, Show)
 $(deriveJSON defaultOptions ''User)
 instance ToSchema User
-
-
 
 data EPCState = New | InProgress | AwaitingDeploymentToBC | Customer | Finalised
   deriving (Generic, Eq, Show)
@@ -146,10 +121,10 @@ data EPCInfo = EPCInfo {
 $(deriveJSON defaultOptions ''EPCInfo)
 instance ToSchema EPCInfo
 
-
+type Email = T.Text
 data NewUser = NewUser {
   phoneNumber :: T.Text,
-  emailAddress :: T.Text,
+  emailAddress :: Email,
   firstName :: T.Text,
   lastName :: T.Text,
   company :: T.Text,
@@ -157,7 +132,6 @@ data NewUser = NewUser {
 } deriving (Generic, Eq, Show)
 $(deriveJSON defaultOptions ''NewUser)
 instance ToSchema NewUser
--- instance ToSchema (Auto Int32)
 
 
 data Business = Business {
@@ -174,8 +148,10 @@ $(deriveJSON defaultOptions ''Business)
 instance ToSchema Business
 
 data EventLocation = EventLocation {
-  readPoint :: ReadPointLocation,
-  bizLocation :: BizLocation
+  readPoint    :: ReadPointLocation,
+  bizLocation  :: BizLocation,
+  srcType      :: SrcDestLocation,
+  destType     :: SrcDestLocation
 } deriving (Show, Generic)
 $(deriveJSON defaultOptions ''EventLocation)
 instance ToSchema EventLocation
@@ -185,7 +161,8 @@ data NewObject = NewObject {
   object_epcs :: LabelEPC,
   object_timestamp :: EPCISTime,
   object_timezone:: TimeZone,
-  object_location :: EventLocation
+  object_location :: EventLocation,
+  object_foreign_event_id :: Maybe EventID
 } deriving (Show, Generic)
 $(deriveJSON defaultOptions ''NewObject)
 instance ToSchema NewObject
@@ -194,10 +171,11 @@ data AggregatedObject = AggregatedObject {
   aggObject_objectIDs :: [LabelEPC],
   aggObject_containerID :: LabelEPC,
   aggObject_timestamp :: EPCISTime,
-  aggOject_timezone:: TimeZone,
+  aggObject_timezone:: TimeZone,
   aggObject_location :: EventLocation,
   aggObject_bizStep :: BizStep,
-  aggObject_disposition :: Disposition
+  aggObject_disposition :: Disposition,
+  aggObject_foreign_event_id :: Maybe EventID
 } deriving (Show, Generic)
 $(deriveJSON defaultOptions ''AggregatedObject)
 instance ToSchema AggregatedObject
@@ -206,15 +184,14 @@ data DisaggregatedObject = DisaggregatedObject {
   daggObject_objectIDs :: [LabelEPC],
   daggObject_containerID :: LabelEPC,
   daggObject_timestamp :: EPCISTime,
-  daggOject_timezone:: TimeZone,
+  daggObject_timezone:: TimeZone,
   daggObject_location :: EventLocation,
   daggObject_bizStep :: BizStep,
-  daggObject_disposition :: Disposition
+  daggObject_disposition :: Disposition,
+  daggObject_foreign_event_id :: Maybe EventID
 } deriving (Show, Generic)
 $(deriveJSON defaultOptions ''DisaggregatedObject)
 instance ToSchema DisaggregatedObject
-
-
 
 data TransformationInfo = TransformationInfo {
   transObject_objectIDs :: [LabelEPC],
@@ -223,7 +200,8 @@ data TransformationInfo = TransformationInfo {
   transObject_location :: EventLocation,
   transObject_inputQuantity :: [Quantity],
   transObject_outputObjectID :: [LabelEPC],
-  transObject_outputQuantity :: [Quantity]
+  transObject_outputQuantity :: [Quantity],
+  transObject_foreign_event_id :: Maybe EventID
 } deriving (Show, Generic)
 $(deriveJSON defaultOptions ''TransformationInfo)
 instance ToSchema TransformationInfo
@@ -231,7 +209,7 @@ instance ToSchema TransformationInfo
 data TransactionInfo = TransactionInfo {
   transaction_userIDs :: [UserID],
   transaction_objectIDs :: [LabelEPC],
-  transaction_parentID :: Maybe ParentID,
+  transaction_parentLabel :: Maybe ParentLabel,
   transaction_bizTransaction :: [BizTransaction]
 } deriving (Show, Generic)
 $(deriveJSON defaultOptions ''TransactionInfo)
@@ -254,21 +232,3 @@ data HashedEvent = HashedEvent {
 } deriving (Generic)
 $(deriveJSON defaultOptions ''HashedEvent)
 instance ToSchema HashedEvent
-
-data SigError =  SE_NeedMoreSignatures
-               | SE_InvalidSignature
-               | SE_InvalidUser
-               | SE_BlockchainSendFailed
-               | SE_InvalidEventID
-               | SE_InvalidKeyID
-               | SE_SEND_TO_BLOCKCHAIN_FAILED
-               deriving (Show, Read, Generic)
---instance Except SigError
-
-data GetPropertyError = KE_InvalidKeyID
-                      | KE_InvalidUserID
-                      deriving (Show, Read, Generic)
-
-data DBError = DBE_InsertionFail
-               deriving (Show, Read, Generic)
---instance Except GetPropertyError
