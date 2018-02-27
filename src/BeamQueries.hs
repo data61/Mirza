@@ -53,9 +53,8 @@ insertUser encPass (M.NewUser phone email firstName lastName biz _) = do
     Right [r] -> return $ SB.user_id r
     Left e ->
       case constraintViolation e of
-        Just (UniqueViolation "email_address")
-            -> throwAppError $
-                EmailExists (sqlToServerError e) email
+        Just (UniqueViolation "users_email_address_key")
+            -> throwAppError $ EmailExists (sqlToServerError e) email
         _   -> throwAppError $ InsertionFail (toServerError (Just . sqlState) e) email
     _         -> throwBackendError res
 
