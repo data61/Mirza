@@ -83,9 +83,7 @@ appMToHandler env act = do
   let envT = AC.envType env
   case res of
     Left (AC.AppError e) -> appErrToHttpErr e
-    Right a  -> do
-      debugLogGeneral envT "We are in Right"
-      return a
+    Right a              -> return a
 
 privateServer :: User -> ServerT PrivateAPI AC.AppM
 privateServer user =
