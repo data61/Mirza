@@ -1,4 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
+
+-- | Module containing functions to run the migration function
 module Migrate where
 
 import qualified Control.Exception as E

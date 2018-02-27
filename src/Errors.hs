@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveGeneric     #-}
 
+-- | Contains definition(s) of some error types
 module Errors where
 
 import qualified Model as M

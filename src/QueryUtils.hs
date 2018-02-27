@@ -3,6 +3,9 @@
 -- | Following are a bunch of utility functions to do household stuff like
 -- generating primary keys, timestamps - stuff that almost every function
 -- below would need to do anyway
+-- functions that start with `insert` does some database operation
+-- functions that start with `to` converts between
+-- Model type and its Storage equivalent
 module QueryUtils where
 
 import           Data.Time.LocalTime (utc, utcToLocalTime
@@ -193,8 +196,6 @@ toStorageEvent :: SB.PrimaryKeyType
 toStorageEvent pKey userId jsonEvent mEventId =
   SB.Event pKey (EvId.getEventId <$> mEventId) (SB.UserId userId) jsonEvent
 
-
-
 insertDWhat :: Maybe SB.PrimaryKeyType
             -> Maybe SB.PrimaryKeyType
             -> DWhat
@@ -293,7 +294,6 @@ insertEvent userId jsonEvent event = do
     Left  e -> throwUnexpectedDBError $ sqlToServerError e
     Right _ -> return pKey
 
--- insertUserEvent
 insertUserEvent :: SB.PrimaryKeyType
                 -> SB.PrimaryKeyType
                 -> SB.PrimaryKeyType
@@ -338,6 +338,3 @@ insertLabel labelEpc labelType whatId = do
         $ insertValues
         [ epcToStorageLabel labelType whatId pKey labelEpc ]
   return pKey
-
-
-
