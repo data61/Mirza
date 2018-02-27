@@ -1,45 +1,38 @@
+{-# LANGUAGE OverloadedStrings      #-}
+
+-- | This module is incomplete as of yet.
+-- Functions in the `service` module use the database functions defined here
 module BeamQueries where
 
-{-# LANGUAGE OverloadedStrings      #-}
-{-# LANGUAGE ScopedTypeVariables    #-}
-{-# LANGUAGE DeriveGeneric          #-}
-{-# LANGUAGE TemplateHaskell, GADTs #-}
-{-# LANGUAGE FlexibleContexts       #-}
-{-# LANGUAGE FlexibleInstances      #-}
-{-# LANGUAGE TypeFamilies           #-}
-{-# LANGUAGE TypeApplications       #-}
-{-# LANGUAGE StandaloneDeriving     #-}
-{-# LANGUAGE TypeSynonymInstances   #-}
-{-# LANGUAGE PartialTypeSignatures  #-}
-{-# LANGUAGE UndecidableInstances   #-}
-{-# LANGUAGE MultiParamTypeClasses  #-}
-
+import           Data.GS1.Parser.Parser
 import qualified Model as M
--- import qualified CryptHash as C
--- import qualified Data.List.NonEmpty as NonEmpty
--- import qualified Data.ByteString as ByteString
 import qualified StorageBeam as SB
-
-import           Data.UUID.V4 (nextRandom)
-import           Data.UUID (fromString)
-import           Data.Maybe (fromJust)
+import           Data.ByteString (ByteString)
 import           Crypto.Scrypt
 import           Data.Text.Encoding
-import           Database.PostgreSQL.Simple
+import           Database.PostgreSQL.Simple.Internal (SqlError(..))
 import           Database.Beam as B
 import           Database.Beam.Backend.SQL.BeamExtensions
-import           AppConfig (AppM, runDb)
+import           AppConfig (AppM, runDb, AppError(..))
+import           Control.Monad.Except (throwError)
+import qualified Data.Text as T
 import           Data.GS1.EPC
-import           Data.GS1.DWhat
-import           Data.Time.Clock (getCurrentTime)
-import           Control.Monad.Except (throwError, MonadError)
+import           Data.GS1.DWhat (DWhat(..), LabelEPC(..))
+import           Data.GS1.DWhy (DWhy(..))
+import           Data.GS1.DWhere (DWhere(..), SrcDestLocation)
+import           Data.GS1.DWhen (DWhen(..))
+import qualified Data.GS1.EventID as EvId
+import           Data.GS1.Event (Event(..), EventType(..))
+import           Utils (debugLog, toText)
+import           QueryUtils
+import           Errors (ServiceError(..), ServerError(..))
+import           ErrorUtils (throwBackendError, throwAppError, toServerError
+                            , defaultToServerError, sqlToServerError
+                            , throwUnexpectedDBError)
+import           Database.PostgreSQL.Simple.Errors (ConstraintViolation(..)
+                                                   , constraintViolation)
 
--- Until this module compiles, look at:
--- https://github.csiro.au/Blockchain/supplyChainServer/blob/pg-schema-matt/src/BeamQueries.hs
--- to figure out what it was when work was started
--- especially, if some variable is out of scope, look at the import list there
-
-{- 
+{-
 {
   "phoneNumber": "0412",
   "emailAddress": "abc@gmail.com",
@@ -48,138 +41,146 @@ import           Control.Monad.Except (throwError, MonadError)
   "company": "4000001",
   "password": "password"
 }
- -}
+-}
 
--- USE pass!
 insertUser :: EncryptedPass -> M.NewUser -> AppM M.UserID
-insertUser pass (M.NewUser phone email firstName lastName biz password) = do
-  userId <- liftIO $ nextRandom
-  -- liftIO $ print "newUser:BQ"
-  insertedUserList <- runDb $ runInsertReturningList (SB._users SB.supplyChainDb) $
-                    insertValues ([(SB.User userId
-                    (SB.BizId  biz)
-                    firstName lastName phone password email)])-- ::[SB.User])
-  -- liftIO $ print insertedUserList
-  return $ SB.user_id $ last insertedUserList
+insertUser encPass (M.NewUser phone email firstName lastName biz _) = do
+  userId <- generatePk
+  res <- runDb $
+            runInsertReturningList (SB._users SB.supplyChainDb) $
+            insertValues ([(SB.User userId
+            (SB.BizId  biz)
+            firstName lastName phone (getEncryptedPass encPass) email)])
+  case res of
+    Right [r] -> return $ SB.user_id r
+    Left e ->
+      case constraintViolation e of
+        Just (UniqueViolation "users_email_address_key")
+            -> throwAppError $ EmailExists (sqlToServerError e) email
+        _   -> throwAppError $ InsertionFail (toServerError (Just . sqlState) e) email
+    _         -> throwBackendError res
 
--- |
+-- | Hashes the password of the NewUser and inserts the user into the database
 newUser :: M.NewUser -> AppM M.UserID
 newUser userInfo@(M.NewUser _ _ _ _ _ password) = do
-    -- liftIO $ print "blah"
     hash <- liftIO $ encryptPassIO' (Pass $ encodeUtf8 password)
     insertUser hash userInfo
-
--- | Converts a DB representation of ``User`` to a Model representation
--- SB.User = SB.User uid bizId fName lName phNum passHash email
-userTableToModel :: SB.User -> M.User
-userTableToModel (SB.User uid _ fName lName _ _ _) = M.User uid fName lName
 
 -- Basic Auth check using Scrypt hashes.
 authCheck :: M.EmailAddress -> M.Password -> AppM (Maybe M.User)
 authCheck email password = do
-  r <- runDb $ runSelectReturningList $ select $ do
-        user <- all_ (SB._users SB.supplyChainDb)
-        guard_ (SB.email_address user  ==. val_ email)
-        pure user
+  r <- runDb $
+          runSelectReturningList $ select $ do
+          user <- all_ (SB._users SB.supplyChainDb)
+          guard_ (SB.email_address user  ==. val_ email)
+          pure user
   case r of
-    [user] -> do
-        if verifyPass' (Pass password) (EncryptedPass $ encodeUtf8 $ SB.password_hash user)
+    Left e -> throwUnexpectedDBError $ sqlToServerError e
+    Right [user] -> do
+        if verifyPass' (Pass password) (EncryptedPass $ SB.password_hash user)
           then return $ Just $ userTableToModel user
-          else return Nothing
-    _ -> return Nothing -- null list or multiple elements
+          else throwAppError $ AuthFailed email
+    Right [] -> throwAppError $ EmailNotFound email
+    _  -> throwBackendError r -- multiple elements
 
--- insertCompany
 
 -- BELOW = Beam versions of SQL versions from Storage.hs
 -- execute conn "INSERT INTO Users (bizID, firstName, lastName, phoneNumber, passwordHash, emailAddress) VALUES (?, ?, ?, ?, ?, ?);" (biz, first, last, phone, getEncryptedPass hash, email)
 -- execute conn "INSERT INTO Keys (userID, rsa_n, rsa_e, creationTime) values (?, ?, ?, ?);" (uid, n, e, timestamp)
--- addPublicKey :: M.User -> M.RSAPublicKey-> AppM M.KeyID
--- addPublicKey (M.User uid _ _)  (M.RSAPublicKey n e) = do
---   timestamp <- liftIO getCurrentTime
---   [rowID] <- runDb $ runInsertReturningList (SB._keys SB.supplyChainDb) $
---              insertValues [(SB.Key (Auto Nothing) (SB.UserId uid) n e timestamp 0)] -- TODO = check if 0 is correct here... NOT SURE
---   return (SB.key_id rowID)
+addPublicKey :: M.User -> M.RSAPublicKey-> AppM M.KeyID
+addPublicKey (M.User uid _ _)  (M.RSAPublicKey rsa_n rsa_e) = do
+  keyId <- generatePk
+  timeStamp <- generateTimeStamp
+  r <- runDb $ runInsertReturningList (SB._keys SB.supplyChainDb) $
+               insertValues
+               [
+                 (
+                   SB.Key keyId (SB.UserId uid)
+                   (T.pack $ show rsa_n)
+                   (T.pack $ show rsa_e)
+                   timeStamp
+                   Nothing
+                 )
+               ]
+  case r of
+    Right [rowId] -> return (SB.key_id rowId)
+    Right _       -> throwAppError $ InvalidKeyID keyId
+    Left e        -> throwUnexpectedDBError $ sqlToServerError e
 
--- getPublicKey :: (MonadError M.GetPropertyError m, MonadIO m) => M.KeyID -> m M.RSAPublicKey
--- getPublicKey keyID = do
---   r <- runDb $ runSelectReturningList $ select $ do
---     allKeys <- all_ (_keys supplyChainDb)
---     guard_ (_keyId allKeys ==. keyID)
---     pure allKeys
---   if length r == 0
---      then throwError M.KE_InvalidKeyID
---      else do
---        let (keyId, uid, rsa_n, rsa_e, creationTime, revocationTime) = head r
---        return $ M.RSAPublicKey rsa_n rsa_e
+getPublicKey :: M.KeyID -> AppM M.RSAPublicKey
+getPublicKey keyId = do
+  r <- runDb $ runSelectReturningList $ select $ do
+    allKeys <- all_ (SB._keys SB.supplyChainDb)
+    guard_ (SB.key_id allKeys ==. val_ keyId)
+    pure allKeys
 
--- getPublicKeyInfo :: (MonadError M.GetPropertyError m, MonadIO m) => M.KeyID -> m M.KeyInfo
--- getPublicKeyInfo keyID = do
---   r <- runDb $ runSelectReturningList $ select $ do
---     allKeys <- all_ (_keys supplyChainDb)
---     guard_ (_keyId allKeys ==. keyID)
---     pure allKeys
---   if length r == 0
---      then throwError M.KE_InvalidKeyID
---      else do
---        let (keyId, uid, rsa_n, rsa_e, creationTime, revocationTime) = head r
---        return $ M.KeyInfo uid creationTime revocationTime
+  case r of
+    Right [k] ->
+        return $ M.RSAPublicKey
+          (read $ T.unpack $ SB.rsa_n k) (read $ T.unpack $ SB.rsa_e k)
+    Right _ -> throwAppError $ InvalidKeyID keyId
+    Left e  -> throwUnexpectedDBError $ sqlToServerError e
 
--- getUser :: M.EmailAddress -> AppM (Maybe M.User)
--- getUser  email = do
---   r <- runDb $ runSelectReturningList $ select $ do
---     allUsers <- all_ (_users supplyChainDb)
---     guard_ (_emailAddress allUsers ==. email)
---     pure allUsers
---   case length r of
---     0 -> return Nothing
---     _ -> let
---       (uid, bizID, firstName, lastName, phone, hash, emailAddress) = head r
---       in
---         return $ Just (M.User uid firstName lastName)
+getPublicKeyInfo :: M.KeyID -> AppM M.KeyInfo
+getPublicKeyInfo keyId = do
+  r <- runDb $ runSelectReturningList $ select $ do
+    allKeys <- all_ (SB._keys SB.supplyChainDb)
+    guard_ (SB.key_id allKeys ==. val_ keyId)
+    pure allKeys
 
+  case r of
+    Right [(SB.Key _ (SB.UserId uId) _ _ creationTime revocationTime)] ->
+       return $ M.KeyInfo uId
+                (toEPCISTime creationTime)
+                (toEPCISTime <$> revocationTime)
+    Right _ -> throwAppError $ InvalidKeyID keyId
+    Left e  -> throwUnexpectedDBError $ sqlToServerError e
 
--- -- TODO = fix. 1 problem is nothing is done with filter value or asset type in objectRowID grabbing data insert
--- -- 1 other problem is state never used... what is it???
--- -- epc is a labelEPC
--- eventCreateObject :: M.User -> M.NewObject -> AppM Event
--- eventCreateObject  (M.User uid _ _ ) (M.NewObject epc epcisTime timezone location) = do
---   objectRowID <- runDb $ B.runInsert $ (_labels supplyChainDb) $
---                    (case epc of
---                      IL il   -> (case il of
---                                  GIAI cp sn        -> insertValues [Label (Auto Nothing) cp Nothing sn Nothing "GIAI" Nothing]
---                                  SSCC cp sn        -> insertValues [Label (Auto Nothing) cp Nothing sn Nothing "SSCC" Nothing]
---                                  SGTIN cp fv ir sn -> insertValues [Label (Auto Nothing) cp ir sn Nothing "SGTIN" Nothing]
---                                  GRAI cp at sn     -> insertValues [Label (Auto Nothing) cp Nothing sn Nothing "GRAI" Nothing])
---                      CL cl q -> (case cl of
---                                  LGTIN cp ir lot   -> insertValues [Label (Auto Nothing) cp ir Nothing Nothing "LGTIN" lot]
---                                  CSGTIN cp fv ir   -> insertValues [Label (Auto Nothing) cp ir Nothing Nothing "CSGTIN" Nothing]))
+getUser :: M.EmailAddress -> AppM (Maybe M.User)
+getUser email = do
+  r <- runDb $ runSelectReturningList $ select $ do
+    allUsers <- all_ (SB._users SB.supplyChainDb)
+    guard_ (SB.email_address allUsers ==. val_ email)
+    pure allUsers
+  case r of
+    Right [u] -> return . Just . userTableToModel $ u
+    Right []  -> throwAppError . UserNotFound $ email
+    Left e    -> throwUnexpectedDBError $ sqlToServerError e
+    _         -> throwBackendError r
 
---   currentTime <- liftIO getCurrentTime
---   uuid <- nextRandom
---   let
---       quantity = ItemCount 3
---       what =  ObjectDWhat Add [epc]
---       why  =  DWhy (Just CreatingClassInstance) (Just Active)
---       when = DWhen epcisTime (Just currentTime) timezone
---       eventID = Just $ EventID uuid
---       (M.EventLocation readPt bizLoc) = location
---       dwhere = DWhere [readPt] [bizLoc] [] []
---       event = Event ObjectEventT eventID what when why dwhere
---       jsonEvent = encodeEvent event
+eventCreateObject :: M.User -> M.NewObject -> AppM SB.PrimaryKeyType
+eventCreateObject
+  (M.User userId _ _ )
+  (M.NewObject labelEpc epcisTime timezone
+      (M.EventLocation rp bizL src dest) mEventId) = do
 
---   runDb $ B.runInsert $
---     B.insert (_events supplyChainDb) $
---       insertValues [ Event (Auto Nothing) eventID epc what why dwhere epcisTime timezone ObjectEventT uid jsonEvent]
+  currentTime <- generateTimeStamp
+  let
+      eventType = ObjectEventT
+      dwhat =  ObjectDWhat Add [labelEpc]
+      dwhere = DWhere [rp] [bizL] [src] [dest]
+      dwhy  =  DWhy (Just CreatingClassInstance) (Just Active)
+      dwhen = DWhen epcisTime (Just $ toEPCISTime currentTime) timezone
+      foreignEventId = mEventId
+      event = Event eventType foreignEventId dwhat dwhen dwhy dwhere
+      jsonEvent = encodeEvent event
 
---   -- TODO = combine rows from bizTransactionTable and _eventCreatedBy field in Event table
---   -- haven't added UserEvents insertion equivalent since redundant information and no equivalent
---   -- hashes not added yet, but will later for blockchain
+  eventId <- insertEvent userId jsonEvent event
+  whatId <- insertDWhat Nothing Nothing dwhat eventId
+  labelId <- insertLabel labelEpc Nothing whatId
+  whenId <- insertDWhen dwhen eventId
+  whyId <- insertDWhy dwhy eventId
+  insertDWhere dwhere eventId
+  insertUserEvent eventId userId userId False Nothing
+  insertWhatLabel whatId labelId
+  -- TODO = combine rows from bizTransactionTable and _eventCreatedBy field in Event table
+  -- haven't added UserEvents insertion equivalent since redundant information and no equivalent
+  -- hashes not added yet, but will later for blockchain
 
---   return event
+  return eventId
 
--- -- TODO = use EventId or EventID ???
 -- -- TODO = fix... what is definition of hasSigned?
--- eventUserList :: M.User -> EventId -> AppM [(M.User, Bool)]
+-- eventUserList :: M.User -> EvId.EventID -> AppM [(M.User, Bool)]
 -- eventUserList  (M.User uid _ _ ) eventID = do
 --   r <- runDb $ runSelectReturningList $ select $ do
 --     allUsers <- all_ (_users supplyChainDb)
@@ -190,22 +191,23 @@ authCheck email password = do
 --   -- return TODO
 --   error "TODO"
 
--- -- toUserBool :: (Integer, String, String, Integer) -> (M.User, Bool)
--- -- toUserBool (userID, firstName, lastName, hasSigned) = (M.User userID firstName lastName, hasSigned /= 0)
+-- toUserBool :: (SB.PrimaryKeyType, T.Text, T.Text, Integer) -> (M.User, Bool)
+-- toUserBool (userID, firstName, lastName, hasSigned) =
+--   (M.User userID firstName lastName, hasSigned /= 0)
 
 -- -- NOT currently relevant since events not currently hashed
 -- -- eventHashed :: DBFunc -> M.User -> EventID -> IO (Maybe M.HashedEvent)
 -- -- eventHashed  dbFunc _ eventID = do
--- --   r <- 
+-- --   r <-
 
 -- eventSign :: (MonadError M.SigError m, MonadIO m) => M.User -> M.SignedEvent -> m ()
--- eventSign  (M.User uid _ _ ) (M.SignedEvent eventID keyID (M.Signature signature)) = do
+-- eventSign  (M.User uid _ _ ) (M.SignedEvent eventID keyId (M.Signature signature)) = do
 --   timestamp <- liftIO getCurrentTime
 --   rFull <- runDb $ runSelectReturningList $ select $ do
 --     allKeys <- all_ (_keys supplyChainDb)
---     guard_ (_keyId allKeys ==. keyID)
+--     guard_ (_keyId allKeys ==. keyId)
 --     pure allKeys
-    
+
 --   r <- zip ((\e -> _rsa_n e) <$> rFull) ((\e -> _rsa_e e) <$> rFull)
 
 --   pubkey <- if length r == 0

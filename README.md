@@ -14,7 +14,7 @@ To build the server, run:
 
 Before you run the server, make sure you have PostgreSQL 10 or higher installed.
 
-To install, you can follow the instructions <a href="http://yallalabs.com/linux/how-to-install-and-use-postgresql-10-on-ubuntu-16-04/" target="_blank"> here. </a>
+To install, you can follow the instructions [here]( http://yallalabs.com/linux/how-to-install-and-use-postgresql-10-on-ubuntu-16-04/)
 Note that you may need to run the commands as a super user.
 
 Create a Postgres account.
@@ -24,11 +24,11 @@ Type in `psql` and see that you can open up a psql shell.
 
 After that, to create the database, run
 
-`stack exec supplyChainServer-exe -- -i -c testsupplychainserver`
+`stack exec supplyChainServer-exe -- -i -c devsupplychainserver`
 
 Note that you can change "testsupplychainserver" for any database name you like.
 Not giving it the `-c` flag will result in a database named
-`testsupplychainserver`.
+`devsupplychainserver`.
 
 Finally, to run the server, do:
 
@@ -49,13 +49,15 @@ to create all the relevant tables.
 
 To do a clean build instead, do `./restart.sh --clean`.
 
+### Useful Tools
+- [GS1 Company Database](https://www.gs1us.org/tools/gs1-company-database-gepir) - You can search for GLN (Global Location Number) of GS1 Companies here
 
 Things to do before next release:
 - [x] Integrate ReaderT Monad
 - [ ] Add tests for all the endpoints
 - [ ] Finish backend implementation (queries) for all endpoints
-- [ ] Decide on a `PrimaryKeyType`
+- [x] Decide on a `PrimaryKeyType`
 - [x] Define instances for selected `PrimaryKeyType`
 - [x] Add remaining tables (`EventHash`, etc)
 - [ ] (Unlikely) Write a `setup.sh` for new developers coming in
-- [ ] Add exception handling using ExceptT
+- [x] Add exception handling using ExceptT

@@ -1,16 +1,35 @@
 {-# LANGUAGE OverloadedStrings     #-}
 module Main where
 
-import Lib
-import Migrate
-import Data.ByteString
-
-import Options.Applicative
-import Data.Semigroup ((<>))
+import           Lib
+import           Migrate
+import           Data.ByteString (ByteString)
+import           Migrate (defConnectionStr)
+import           Options.Applicative
+import           Data.Semigroup ((<>))
+import           AppConfig (EnvType(..))
+import           Data.GS1.Parser.Parser
+import           Data.Aeson.Encode.Pretty
+import           Data.GS1.Event
+import           Data.Either
+import           Text.XML
+import           Text.XML.Cursor
+import qualified Data.Text.Lazy.IO as TL
+import qualified Data.Text.Lazy.Encoding as TLE
+import           System.Environment
+import           Model as M
+import           Data.UUID (nil)
+import           BeamQueries as BQ
+import           Data.GS1.DWhat
+import           Data.GS1.DWhen
+import           Data.GS1.DWhy
+import           Data.GS1.DWhere
+import           Data.GS1.EPC
 
 data ServerOptions = ServerOptions
-  { verbose       :: Bool
+  { env           :: EnvType
   , initDB        :: Bool
+--  , clearDB       :: Bool
   , connectionStr :: ByteString
   , port          :: Int
   , uiFlavour     :: UIFlavour
@@ -18,14 +37,20 @@ data ServerOptions = ServerOptions
 
 serverOptions :: Parser ServerOptions
 serverOptions = ServerOptions
-      <$> switch
-          ( long "verbose"
-         <> short 'v'
-         <> help "Print Databse Debug Messages" )
+      <$> option auto
+          ( long "env"
+         <> short 'e'
+         <> help "Environment, Dev | Prod"
+         <> showDefault
+         <> value Dev )
       <*> switch
           ( long "init-db"
          <> short 'i'
          <> help "Put empty tables into a fresh database" )
+    --   <*> switch
+    --       ( long "clear-db"
+    --      <> short 'e'
+    --      <> help "Erase the database - DROP ALL TABLES" )
       <*> option auto
           ( long "conn"
          <> short 'c'
@@ -41,7 +66,7 @@ serverOptions = ServerOptions
           ( long "uiFlavour"
          <> help "Use jensoleg or Original UI Flavour for the Swagger API"
          <> showDefault
-         <> value JensOleG)
+         <> value Original)
 
 
 main :: IO ()
@@ -53,10 +78,14 @@ main = runProgram =<< execParser opts
       <> header "SupplyChainServer - A server for capturing GS1 events and recording them on a blockchain")
 
 
+-- Sara's
+-- runProgram :: ServerOptions -> IO ()
+-- runProgram (ServerOptions isDebug False _connStr portNum flavour) =
+--     startApp connStr isDebug (fromIntegral portNum) flavour
+-- runProgram (ServerOptions _ _ True connStr portNum flavour) =
+--     startApp connStr isDebug (fromIntegral portNum) flavour
+-- runProgram _ = migrate defConnectionStr
 runProgram :: ServerOptions -> IO ()
-runProgram (ServerOptions isDebug False connStr portNum flavour) =
-    startApp connStr isDebug (fromIntegral portNum) flavour
+runProgram (ServerOptions envT False connStr portNum flavour) =
+    startApp connStr envT (fromIntegral portNum) flavour
 runProgram _ = migrate defConnectionStr
-
-defConnectionStr :: ByteString
-defConnectionStr = "dbname=testsupplychainserver"

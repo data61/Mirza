@@ -3,8 +3,9 @@ extra-package-dbs: []
 packages:
 - '.'
 - location:
-    git: https://github.com/sajidanower23/beam.git
-    commit: 23768de6031914b7115b67b85a8fd86386a0dec6
+    # git: https://github.com/sajidanower23/beam.git
+    git: https://github.com/tathougies/beam.git
+    commit: 9b9f72debc7e6e4883eacfa433dcb813c6e58b12
   extra-dep: true
   subdirs:
     - beam-core
@@ -12,7 +13,7 @@ packages:
     - beam-postgres
 extra-deps:
 - git: git@github.csiro.au:Blockchain/GS1Combinators.git
-  commit: 0514a70af90b7d8317eadc8a579734cda235f84e
+  commit: 3c590559ad709aad7f790d2229788330473b1fb5
 - servant-0.10
 - servant-multipart-0.10
 - servant-server-0.10
