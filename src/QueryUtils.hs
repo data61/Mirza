@@ -19,7 +19,7 @@ import           Data.Aeson.Text (encodeToLazyText)
 import qualified Data.Text.Lazy as TxtL
 import qualified Data.Text as T
 import qualified Model as M
-import           Data.GS1.EPC
+import           Data.GS1.EPC as EPC
 import           Data.GS1.DWhat (DWhat(..), LabelEPC(..))
 import           Data.GS1.DWhy (DWhy(..))
 import           Data.GS1.DWhere (DWhere(..), SrcDestLocation)
@@ -27,10 +27,12 @@ import           Data.GS1.DWhen (DWhen(..))
 import qualified Data.GS1.EventID as EvId
 import           Data.GS1.Event (Event(..), EventType(..),
                                 evTypeToTextLike, dwhatToEventTextLike)
-import           Utils (toText)
-import           Database.PostgreSQL.Simple
-import           Database.Beam.Backend.SQL.BeamExtensions
+import           Utils (toText, debugLog)
 import           Database.Beam as B
+import           Data.ByteString (ByteString)
+import           ErrorUtils (throwBackendError, throwAppError, toServerError
+                            , defaultToServerError, sqlToServerError
+                            , throwUnexpectedDBError)
 
 -- | Reads back the ``LocalTime`` in UTCTime (with an offset of 0)
 toEPCISTime :: LocalTime -> UTCTime
@@ -62,8 +64,17 @@ userTableToModel (SB.User uid _ fName lName _ _ _) = M.User uid fName lName
 encodeEvent :: Event -> T.Text
 encodeEvent event = TxtL.toStrict  (encodeToLazyText event)
 
--- should ``type`` be a maybe?
-epcToStorageLabel :: T.Text
+getQuantityAmount :: Maybe Quantity -> Maybe Double
+getQuantityAmount Nothing = Nothing
+getQuantityAmount (Just (MeasuredQuantity a _)) = Just $ realToFrac a
+getQuantityAmount (Just (ItemCount c)) = Just $ realToFrac c
+
+getQuantityUom :: Maybe Quantity -> Maybe EPC.Uom
+getQuantityUom Nothing = Nothing
+getQuantityUom (Just (MeasuredQuantity _ u)) = Just u
+getQuantityUom (Just (ItemCount _)) = Nothing
+
+epcToStorageLabel :: Maybe T.Text
                   -> SB.PrimaryKeyType
                   -> SB.PrimaryKeyType
                   -> LabelEPC
@@ -71,17 +82,36 @@ epcToStorageLabel :: T.Text
 epcToStorageLabel labelType whatId pKey (IL (SGTIN gs1Prefix fv ir sn)) =
   SB.Label pKey labelType (SB.WhatId whatId)
            gs1Prefix (Just ir)
-           (Just sn) Nothing Nothing Nothing Nothing Nothing Nothing
+           (Just sn) Nothing Nothing
+           (toText <$> fv)
+           Nothing Nothing Nothing
 
 epcToStorageLabel labelType whatId pKey (IL (GIAI gs1Prefix sn)) =
   SB.Label pKey labelType (SB.WhatId whatId)
-           gs1Prefix Nothing (Just sn) Nothing Nothing Nothing Nothing Nothing Nothing
+           gs1Prefix Nothing (Just sn)
+           Nothing Nothing Nothing Nothing Nothing Nothing
 
--- epcToStorageLabel evT pKey (IL (SSCC gs1Prefix sn))         = error "not implemented yet" -- SB.Label pKey "SSCC" gs1Prefix Nothing sn Nothing Nothing
+epcToStorageLabel labelType whatId pKey (IL (SSCC gs1Prefix sn)) =
+  SB.Label pKey labelType (SB.WhatId whatId)
+           gs1Prefix Nothing (Just sn)
+           Nothing Nothing Nothing Nothing Nothing Nothing
 
--- epcToStorageLabel evT pKey (IL (GRAI gs1Prefix at sn))      = error "not implemented yet" -- SB.Label pKey "GRAI" gs1Prefix Nothing sn Nothing Nothing
--- epcToStorageLabel evT pKey (CL (LGTIN gs1Prefix ir lot) mQ) = error "not implemented yet" -- SB.Label pKey "LGTIN" gs1Prefix ir Nothing Nothing lot
--- epcToStorageLabel evT pKey (CL (CSGTIN gs1Prefix fv ir) mQ) = error "not implemented yet" -- SB.Label pKey "CSGTIN" gs1Prefix ir Nothing Nothing Nothing
+epcToStorageLabel labelType whatId pKey (IL (GRAI gs1Prefix at sn)) =
+  SB.Label pKey labelType (SB.WhatId whatId)
+           gs1Prefix Nothing (Just sn)
+           Nothing Nothing Nothing (Just at) Nothing Nothing
+
+epcToStorageLabel labelType whatId pKey (CL (LGTIN gs1Prefix ir lot) mQ) =
+  SB.Label pKey labelType (SB.WhatId whatId)
+           gs1Prefix (Just ir) Nothing
+           Nothing (Just lot) Nothing Nothing
+           (getQuantityAmount mQ) (getQuantityUom mQ)
+
+epcToStorageLabel labelType whatId pKey (CL (CSGTIN gs1Prefix fv ir) mQ) =
+  SB.Label pKey labelType (SB.WhatId whatId)
+           gs1Prefix (Just ir) Nothing
+           Nothing Nothing (toText <$> fv) Nothing
+           (getQuantityAmount mQ) (getQuantityUom mQ)
 
 -- | GS1 DWhat to Storage DWhat
 -- For an object event
@@ -126,18 +156,16 @@ grabInstLabelId cp sn msfv mir mat = do
     Right [l] -> return $ Just (SB.label_id l)
     _         -> return Nothing
 
--- | SELECT * from labels where company = companyPrefix && serial = serial --> that's for GIAI
 findLabelId :: InstanceLabelEPC -> AppM (Maybe SB.PrimaryKeyType)
--- pattern match on 4 instancelabelepc types, quantity_amount and quantity_uom not important
 findLabelId (GIAI cp sn) = grabInstLabelId cp sn Nothing Nothing Nothing
 findLabelId (SSCC cp sn) = grabInstLabelId cp sn Nothing Nothing Nothing
 findLabelId (SGTIN cp msfv ir sn) = grabInstLabelId cp sn msfv (Just ir) Nothing
 findLabelId (GRAI cp at sn) = grabInstLabelId cp sn Nothing Nothing (Just at)
 
 getParentId :: DWhat -> AppM (Maybe SB.PrimaryKeyType)
-getParentId (TransactionDWhat act (Just p) btList epcs) = findLabelId p
-getParentId (AggregationDWhat act (Just p) epcs)        = findLabelId p
-getParentId _                                           = return Nothing
+getParentId (TransactionDWhat _ (Just p) _ _) = findLabelId p
+getParentId (AggregationDWhat _ (Just p) _)   = findLabelId p
+getParentId _                                 = return Nothing
 
 toStorageDWhen :: SB.PrimaryKeyType
                -> DWhen
@@ -164,3 +192,152 @@ toStorageEvent :: SB.PrimaryKeyType
                -> SB.Event
 toStorageEvent pKey userId jsonEvent mEventId =
   SB.Event pKey (EvId.getEventId <$> mEventId) (SB.UserId userId) jsonEvent
+
+
+
+insertDWhat :: Maybe SB.PrimaryKeyType
+            -> Maybe SB.PrimaryKeyType
+            -> DWhat
+            -> SB.PrimaryKeyType
+            -> AppM SB.PrimaryKeyType
+insertDWhat mBizTranId mTranId dwhat eventId = do
+  pKey <- generatePk
+  mParentId <- getParentId dwhat
+  r <- runDb $ B.runInsert $ B.insert (SB._whats SB.supplyChainDb)
+             $ insertValues
+             [toStorageDWhat pKey mParentId mBizTranId mTranId eventId dwhat]
+  case r of
+    Left  e -> throwUnexpectedDBError $ sqlToServerError e
+    Right _ -> return pKey
+
+insertDWhen :: DWhen -> SB.PrimaryKeyType -> AppM SB.PrimaryKeyType
+insertDWhen dwhen eventId =  do
+  pKey <- generatePk
+  r <- runDb $ B.runInsert $ B.insert (SB._whens SB.supplyChainDb)
+             $ insertValues [toStorageDWhen pKey dwhen eventId]
+  case r of
+    Left  e -> throwUnexpectedDBError $ sqlToServerError e
+    Right _ -> return pKey
+
+
+insertDWhy :: DWhy -> SB.PrimaryKeyType -> AppM SB.PrimaryKeyType
+insertDWhy dwhy eventId = do
+  pKey <- generatePk
+  r <- runDb $ B.runInsert $ B.insert (SB._whys SB.supplyChainDb)
+             $ insertValues [toStorageDWhy pKey dwhy eventId]
+  case r of
+    Left  e -> throwUnexpectedDBError $ sqlToServerError e
+    Right _ -> return pKey
+
+insertSrcDestType :: SB.LocationField
+                  -> SB.PrimaryKeyType
+                  -> SrcDestLocation
+                  -> AppM SB.PrimaryKeyType
+insertSrcDestType
+  locField
+  eventId
+  (sdType, SGLN gs1Company (LocationReference locationRef) ext) = do
+  pKey <- generatePk
+  let
+      stWhere = SB.Where pKey
+                (Just . toText $ sdType)
+                locationRef
+                (toText locField)
+                (SB.EventId eventId)
+  r <- runDb $ B.runInsert $ B.insert (SB._wheres SB.supplyChainDb)
+             $ insertValues [stWhere]
+  case r of
+    Left  e -> do
+      debugLog "Woah"
+      throwUnexpectedDBError $ sqlToServerError e
+    Right _ -> return pKey
+
+insertLocationEPC :: SB.LocationField
+                  -> SB.PrimaryKeyType
+                  -> LocationEPC
+                  -> AppM SB.PrimaryKeyType
+insertLocationEPC
+  locField
+  eventId
+  (SGLN gs1Company (LocationReference locationRef) ext) = do
+  pKey <- generatePk
+  let
+      stWhere = SB.Where pKey
+                Nothing
+                locationRef
+                (toText locField)
+                (SB.EventId eventId)
+  r <- runDb $ B.runInsert $ B.insert (SB._wheres SB.supplyChainDb)
+             $ insertValues [stWhere]
+  case r of
+    Left  e -> throwUnexpectedDBError $ sqlToServerError e
+    Right _ -> return pKey
+
+-- | Maps the relevant insert function for all
+-- ReadPoint, BizLocation, Src, Dest
+insertDWhere :: DWhere -> SB.PrimaryKeyType -> AppM ()
+insertDWhere (DWhere rPoint bizLoc srcT destT) eventId = do
+  return $ insertLocationEPC SB.ReadPoint eventId <$> rPoint
+  return $ insertLocationEPC SB.BizLocation eventId <$> bizLoc
+  return $ insertSrcDestType SB.Src eventId <$> srcT
+  return $ insertSrcDestType SB.Dest eventId <$> destT
+  return ()
+
+insertEvent :: SB.PrimaryKeyType -> T.Text -> Event -> AppM SB.PrimaryKeyType
+insertEvent userId jsonEvent event = do
+  pKey <- generatePk
+  r <- runDb $ B.runInsert $ B.insert (SB._events SB.supplyChainDb)
+             $ insertValues
+             [toStorageEvent pKey userId jsonEvent (_eid event)]
+  case r of
+    Left  e -> throwUnexpectedDBError $ sqlToServerError e
+    Right _ -> return pKey
+
+-- insertUserEvent
+insertUserEvent :: SB.PrimaryKeyType
+                -> SB.PrimaryKeyType
+                -> SB.PrimaryKeyType
+                -> Bool
+                -> (Maybe ByteString)
+                -> AppM ()
+insertUserEvent eventId userId addedByUserId signed signedHash = do
+  pKey <- generatePk
+  runDb $ B.runInsert $ B.insert (SB._user_events SB.supplyChainDb)
+        $ insertValues
+        [
+          SB.UserEvent pKey
+          (SB.EventId eventId)
+          (SB.UserId userId)
+          signed
+          (SB.UserId addedByUserId)
+          signedHash
+        ]
+  return ()
+
+insertWhatLabel :: SB.PrimaryKeyType
+                -> SB.PrimaryKeyType
+                -> AppM SB.PrimaryKeyType
+insertWhatLabel whatId labelId = do
+  pKey <- generatePk
+  runDb $ B.runInsert $ B.insert (SB._what_labels SB.supplyChainDb)
+        $ insertValues
+        [
+          SB.WhatLabel pKey
+          (SB.WhatId whatId)
+          (SB.LabelId labelId)
+        ]
+  return pKey
+
+insertLabel :: LabelEPC
+            -> Maybe T.Text
+            -> SB.PrimaryKeyType
+            -> AppM SB.PrimaryKeyType
+insertLabel labelEpc labelType whatId = do
+  pKey <- generatePk
+  runDb $ B.runInsert $ B.insert (SB._labels SB.supplyChainDb)
+        $ insertValues
+        [ epcToStorageLabel labelType whatId pKey labelEpc ]
+  return pKey
+
+
+
