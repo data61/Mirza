@@ -165,6 +165,8 @@ eventCreateObject
       event = Event eventType foreignEventId dwhat dwhen dwhy dwhere
       jsonEvent = encodeEvent event
 
+  startTransaction
+
   eventId <- insertEvent userId jsonEvent event
   whatId <- insertDWhat Nothing Nothing dwhat eventId
   labelId <- insertLabel labelEpc Nothing whatId
@@ -173,6 +175,9 @@ eventCreateObject
   insertDWhere dwhere eventId
   insertUserEvent eventId userId userId False Nothing
   insertWhatLabel whatId labelId
+
+  endTransaction
+
   -- TODO = combine rows from bizTransactionTable and _eventCreatedBy field in Event table
   -- haven't added UserEvents insertion equivalent since redundant information and no equivalent
   -- hashes not added yet, but will later for blockchain
