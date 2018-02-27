@@ -12,7 +12,7 @@ import           Data.Time.LocalTime (utc, utcToLocalTime
                                      , LocalTime, localTimeToUTC
                                      , timeZoneOffsetString)
 import           Data.Time (UTCTime)
-import           AppConfig (AppM(..), runDb)
+import           AppConfig (AppM(..), runDb, getDBConn)
 import qualified StorageBeam as SB
 import           Data.UUID.V4 (nextRandom)
 import           Data.Time.Clock (getCurrentTime)
@@ -36,6 +36,7 @@ import           Data.ByteString (ByteString)
 import           ErrorUtils (throwBackendError, throwAppError, toServerError
                             , defaultToServerError, sqlToServerError
                             , throwUnexpectedDBError)
+import           Database.PostgreSQL.Simple
 
 -- | Reads back the ``LocalTime`` in UTCTime (with an offset of 0)
 toEPCISTime :: LocalTime -> UTCTime
@@ -338,3 +339,13 @@ insertLabel labelEpc labelType whatId = do
         $ insertValues
         [ epcToStorageLabel labelType whatId pKey labelEpc ]
   return pKey
+
+startTransaction :: AppM ()
+startTransaction = do
+  conn <- getDBConn
+  liftIO $ begin conn
+
+endTransaction :: AppM ()
+endTransaction = do
+  conn <- getDBConn
+  liftIO $ execute_ conn "end transaction;" >> return ()
