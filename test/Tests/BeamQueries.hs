@@ -4,34 +4,29 @@
 module Tests.BeamQueries where
 
 import           Test.Hspec
-import           Database.PostgreSQL.Simple
 
 import           BeamQueries
+import           Database.PostgreSQL.Simple
+import           Database.Beam.Backend.Types (Auto (..))
+import           Database.Beam.Backend.SQL.BeamExtensions
+import           Database.Beam
+import           Control.Lens
+
+import           Data.UUID (fromString)
+import           Data.Maybe (fromJust)
+import           Control.Monad.IO.Class
+import           Data.Either.Combinators
+import           Crypto.Scrypt
+
+import           Data.ByteString
+import qualified Data.Text as T
+import           Data.Text.Encoding (encodeUtf8)
+
+import           AppConfig (runAppM, Env, AppM, runDb)
+import qualified StorageBeam as SB
 import qualified Model as M
 
-import Data.UUID (fromString)
-import Data.Maybe (fromJust)
-
-import Database.Beam.Backend.Types (Auto (..))
-
-import Control.Monad.IO.Class
-import Data.Maybe
-import AppConfig (runAppM, Env, AppM, runDb)
-import Data.Either.Combinators
-
-import qualified StorageBeam as SB
-
-import           Database.Beam.Backend.SQL.BeamExtensions
-import Database.Beam
-import Control.Lens
-
-import qualified Data.Text as T
-
-import Data.Text.Encoding (encodeUtf8)
-import           Crypto.Scrypt
-import Data.ByteString
-
--- NOTE in this file, where fromJust is used in the tests, it is because we expect a Just... tis is part of the test
+-- NOTE in this file, where fromJust is used in the tests, it is because we expect a Just... this is part of the test
 -- NOTE tables dropped after every running of test in an "it"
 
 user1 = (M.NewUser "000" "fake@gmail.com" "Bob" "Smith" "blah Ltd" "password")
