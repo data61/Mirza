@@ -33,10 +33,12 @@ import           Data.GS1.Event (Event(..), EventType(..),
 import           Utils (toText, debugLog)
 import           Database.Beam as B
 import           Data.ByteString (ByteString)
+import qualified Model as M
 import           ErrorUtils (throwBackendError, throwAppError, toServerError
                             , defaultToServerError, sqlToServerError
                             , throwUnexpectedDBError)
 import           Database.PostgreSQL.Simple
+
 
 -- | Reads back the ``LocalTime`` in UTCTime (with an offset of 0)
 toEPCISTime :: LocalTime -> UTCTime
@@ -249,9 +251,7 @@ insertSrcDestType
   r <- runDb $ B.runInsert $ B.insert (SB._wheres SB.supplyChainDb)
              $ insertValues [stWhere]
   case r of
-    Left  e -> do
-      debugLog "Woah"
-      throwUnexpectedDBError $ sqlToServerError e
+    Left  e -> throwUnexpectedDBError $ sqlToServerError e
     Right _ -> return pKey
 
 insertLocationEPC :: SB.LocationField
