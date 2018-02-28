@@ -14,6 +14,7 @@ import           Data.Time.LocalTime (utc, utcToLocalTime
 import           Data.Time (UTCTime)
 import           AppConfig (AppM(..), runDb, getDBConn)
 import qualified StorageBeam as SB
+import           Data.UUID (nil)
 import           Data.UUID.V4 (nextRandom)
 import           Data.Time.Clock (getCurrentTime)
 import           Control.Monad.Reader (liftIO)
@@ -21,7 +22,6 @@ import           Data.GS1.Event (Event(..))
 import           Data.Aeson.Text (encodeToLazyText)
 import qualified Data.Text.Lazy as TxtL
 import qualified Data.Text as T
-import qualified Model as M
 import           Data.GS1.EPC as EPC
 import           Data.GS1.DWhat (DWhat(..), LabelEPC(..))
 import           Data.GS1.DWhy (DWhy(..))
@@ -349,3 +349,14 @@ endTransaction :: AppM ()
 endTransaction = do
   conn <- getDBConn
   liftIO $ execute_ conn "end transaction;" >> return ()
+
+selectUser :: M.UserID -> AppM (Maybe SB.User)
+selectUser uid = do
+  r <- runDb $
+          runSelectReturningList $ select $ do
+          user <- all_ (SB._users SB.supplyChainDb)
+          guard_ (SB.user_id user ==. val_ uid)
+          pure user
+  case r of
+    Right [user] -> return $ Just user
+    _            -> return Nothing
