@@ -49,8 +49,8 @@ dummyDWhere = DWhere
 dummyDWhy :: DWhy
 dummyDWhy = DWhy (Just Receiving) (Just InProgress)
 
-dummyObjectEvent :: Ev.Event
-dummyObjectEvent =
+dummyEvent :: Ev.Event
+dummyEvent =
   Ev.Event
     Ev.ObjectEventT
     Nothing
@@ -58,3 +58,7 @@ dummyObjectEvent =
     dummyDWhen
     dummyDWhy
     dummyDWhere
+
+dummyObjectEvent :: M.ObjectEvent
+dummyObjectEvent = M.mkObjectEvent dummyEvent
+

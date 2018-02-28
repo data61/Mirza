@@ -6,68 +6,43 @@ module Tests.BeamQueries where
 import           Test.Hspec
 
 import           BeamQueries
+import           QueryUtils
+import           Dummies
 import           Database.PostgreSQL.Simple
 import           Database.Beam.Backend.Types (Auto (..))
 import           Database.Beam.Backend.SQL.BeamExtensions
 import           Database.Beam
 import           Control.Lens
 
-import           Data.UUID (fromString)
+import           Data.UUID (fromString, nil)
 import           Data.Maybe (fromJust)
 import           Control.Monad.IO.Class
 import           Data.Either.Combinators
 import           Crypto.Scrypt
 
-import           Data.ByteString
+import           Data.ByteString (ByteString)
 import qualified Data.Text as T
 import           Data.Text.Encoding (encodeUtf8)
+import           Text.XML
+import           Text.XML.Cursor
+import           Data.GS1.Parser.Parser (parseEventByType)
+import           Data.GS1.Event (allEventTypes)
+import           Data.Either
+import           Data.GS1.EPC
 
+import           Utils
 import           AppConfig (runAppM, Env, AppM, runDb)
 import qualified StorageBeam as SB
 import qualified Model as M
 
+
+
 -- NOTE in this file, where fromJust is used in the tests, it is because we expect a Just... this is part of the test
 -- NOTE tables dropped after every running of test in an "it"
-
-dummyNewUser :: M.NewUser
-dummyNewUser = M.NewUser "000" "fake@gmail.com" "Bob" "Smith" "blah Ltd" "password"
-
-sampleObjectFile :: FilePath
-sampleObjectFile = "../GS1Combinators/test/test-xml/ObjectEvent.xml"
-
-dummyUser :: M.User
-dummyUser = M.User nil "Sajid" "Anower"
-
-runEventCreateObject :: FilePath -> AppM ()
-runEventCreateObject xmlFile = do
-  doc <- liftIO $ Text.XML.readFile def xmlFile
-  let mainCursor = fromDocument doc
-  -- scope for optimization: only call parseEventByType on existent EventTypes
-      allParsedEvents =
-        filter (not . null) $ concat $
-        parseEventByType mainCursor <$> allEventTypes
-      (Right objEvent) = head allParsedEvents
-      newObj = M.mkObjectEvent objEvent
-  eventId <- eventCreateObject dummyUser newObj
-  liftIO $ print eventId
-  -- liftIO $ print objEvent
-  -- mapM_ (TL.putStrLn . TLE.decodeUtf8 . encodePretty) (rights allParsedEvents)
 
 -- for grabbing the encrypted password from user 1
 hashIO :: MonadIO m => m ByteString
 hashIO = getEncryptedPass <$> (liftIO $ encryptPassIO' (Pass $ encodeUtf8 $ M.password dummyNewUser))
-
-selectUser :: M.UserID -> AppM (Maybe SB.User)
-selectUser uid = do
-  r <- runDb $
-          runSelectReturningList $ select $ do
-          user <- all_ (SB._users SB.supplyChainDb)
-          guard_ (SB.user_id user ==. val_ uid)
-          pure user
-  case r of
-    Right [user] -> return $ Just user
-    _            -> return Nothing
-
 
 testQueries :: SpecWith (Connection, Env)
 testQueries = do
@@ -101,11 +76,28 @@ testQueries = do
                (M.userFirstName u) == (M.firstName dummyNewUser) &&
                (M.userLastName u) == (M.lastName dummyNewUser))
 
-  -- describe "Object Event" $ do
-  --   it "eventCreateObject" $ \(conn, env) -> do
-  --     runEventCreateObject sampleObjectFile
-  --     1 `shouldBe` 1
+  describe "Object Event" $ do
+    it "eventCreateObject" $ \(conn, env) -> do
+      eventId <- insertObjectEvent dummyUser Add dummyObjectEvent
 
+      debugLog "aaaa"
+      -- 1 `shouldBe` 1
+
+
+
+runEventCreateObject :: FilePath -> AppM ()
+runEventCreateObject xmlFile = do
+  doc <- liftIO $ Text.XML.readFile def xmlFile
+  let mainCursor = fromDocument doc
+      allParsedEvents =
+        filter (not . null) $ concat $
+        parseEventByType mainCursor <$> allEventTypes
+      (Right objEvent) = head allParsedEvents
+      newObj = M.mkObjectEvent objEvent
+  eventId <- insertObjectEvent dummyUser Add newObj
+  liftIO $ print eventId
+  -- liftIO $ print objEvent
+  -- mapM_ (TL.putStrLn . TLE.decodeUtf8 . encodePretty) (rights allParsedEvents)
 
 
   -- describe "getPublicKey tests" $ do
