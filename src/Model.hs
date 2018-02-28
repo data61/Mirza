@@ -9,22 +9,24 @@ module Model where
 
 import qualified Data.ByteString as BS
 import           Data.Text as T
+import           Data.Aeson
+import           Data.Aeson.TH
 
 import           Servant
 import           Servant.Server.Experimental.Auth()
 import           Data.Swagger
 
 import           GHC.Generics (Generic)
-
-import           Data.Aeson
-import           Data.Aeson.TH
 import           Data.Time
+import           Data.UUID (UUID)
 
 import           Data.GS1.EventID
+import qualified Data.GS1.Event as Ev
 import           Data.GS1.EPC
 import           Data.GS1.DWhere
 import           Data.GS1.DWhat
-import           Data.UUID (UUID)
+import           Data.GS1.DWhen
+import           Data.GS1.DWhy
 import           StorageBeam (PrimaryKeyType)
 
 type UserID = PrimaryKeyType
@@ -147,32 +149,31 @@ data Business = Business {
 $(deriveJSON defaultOptions ''Business)
 instance ToSchema Business
 
-data EventLocation = EventLocation {
-  readPoint    :: ReadPointLocation,
-  bizLocation  :: BizLocation,
-  srcType      :: SrcDestLocation,
-  destType     :: SrcDestLocation
-} deriving (Show, Generic)
-$(deriveJSON defaultOptions ''EventLocation)
-instance ToSchema EventLocation
+mkObjectEvent :: Ev.Event -> ObjectEvent
+mkObjectEvent
+  (Ev.Event Ev.ObjectEventT
+    mEid
+    (ObjectDWhat act epcList)
+    dwhen dwhy dwhere
+  ) = ObjectEvent mEid epcList dwhen dwhy dwhere
+mkObjectEvent e = error $ "Cannot make event from supplied Event:\n" ++ (show e)
 
-
-data NewObject = NewObject {
-  object_epcs :: LabelEPC,
-  object_timestamp :: EPCISTime,
-  object_timezone:: TimeZone,
-  object_location :: EventLocation,
-  object_foreign_event_id :: Maybe EventID
+data ObjectEvent = ObjectEvent {
+  object_foreign_event_id :: Maybe EventID,
+  obj_epc_list :: [LabelEPC],
+  obj_when :: DWhen,
+  obj_why :: DWhy,
+  obj_where :: DWhere
 } deriving (Show, Generic)
-$(deriveJSON defaultOptions ''NewObject)
-instance ToSchema NewObject
+$(deriveJSON defaultOptions ''ObjectEvent)
+instance ToSchema ObjectEvent
 
 data AggregatedObject = AggregatedObject {
   aggObject_objectIDs :: [LabelEPC],
   aggObject_containerID :: LabelEPC,
   aggObject_timestamp :: EPCISTime,
   aggObject_timezone:: TimeZone,
-  aggObject_location :: EventLocation,
+  aggObject_location :: DWhere,
   aggObject_bizStep :: BizStep,
   aggObject_disposition :: Disposition,
   aggObject_foreign_event_id :: Maybe EventID
@@ -185,7 +186,7 @@ data DisaggregatedObject = DisaggregatedObject {
   daggObject_containerID :: LabelEPC,
   daggObject_timestamp :: EPCISTime,
   daggObject_timezone:: TimeZone,
-  daggObject_location :: EventLocation,
+  daggObject_location :: DWhere,
   daggObject_bizStep :: BizStep,
   daggObject_disposition :: Disposition,
   daggObject_foreign_event_id :: Maybe EventID
@@ -197,7 +198,7 @@ data TransformationInfo = TransformationInfo {
   transObject_objectIDs :: [LabelEPC],
   transObject_timestamp :: EPCISTime,
   transObject_timezone:: TimeZone,
-  transObject_location :: EventLocation,
+  transObject_location :: DWhere,
   transObject_inputQuantity :: [Quantity],
   transObject_outputObjectID :: [LabelEPC],
   transObject_outputQuantity :: [Quantity],

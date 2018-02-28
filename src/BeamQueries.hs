@@ -148,19 +148,23 @@ getUser email = do
     Left e    -> throwUnexpectedDBError $ sqlToServerError e
     _         -> throwBackendError r
 
-eventCreateObject :: M.User -> M.NewObject -> AppM SB.PrimaryKeyType
-eventCreateObject
+insertObjectEvent :: M.User -> Action -> M.ObjectEvent -> AppM SB.PrimaryKeyType
+insertObjectEvent
   (M.User userId _ _ )
-  (M.NewObject labelEpc epcisTime timezone
-      (M.EventLocation rp bizL src dest) mEventId) = do
+  act
+  (M.ObjectEvent
+    mEventId
+    labelEpcs
+    dwhen dwhy dwhere
+  ) = do
 
   currentTime <- generateTimeStamp
   let
       eventType = ObjectEventT
-      dwhat =  ObjectDWhat Add [labelEpc]
-      dwhere = DWhere [rp] [bizL] [src] [dest]
-      dwhy  =  DWhy (Just CreatingClassInstance) (Just Active)
-      dwhen = DWhen epcisTime (Just $ toEPCISTime currentTime) timezone
+      dwhat =  ObjectDWhat act labelEpcs
+      -- -- dwhere = DWhere [rp] [bizL] [src] [dest]
+      -- dwhy  =  DWhy (Just CreatingClassInstance) (Just Active)
+      -- dwhen = DWhen epcisTime (Just $ toEPCISTime currentTime) timezone
       foreignEventId = mEventId
       event = Event eventType foreignEventId dwhat dwhen dwhy dwhere
       jsonEvent = encodeEvent event
@@ -169,12 +173,12 @@ eventCreateObject
 
   eventId <- insertEvent userId jsonEvent event
   whatId <- insertDWhat Nothing Nothing dwhat eventId
-  labelId <- insertLabel labelEpc Nothing whatId
+  labelIds <- mapM (insertLabel Nothing whatId) labelEpcs
   whenId <- insertDWhen dwhen eventId
   whyId <- insertDWhy dwhy eventId
   insertDWhere dwhere eventId
   insertUserEvent eventId userId userId False Nothing
-  insertWhatLabel whatId labelId
+  mapM (insertWhatLabel whatId) labelIds
 
   endTransaction
 
