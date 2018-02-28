@@ -329,15 +329,15 @@ insertWhatLabel whatId labelId = do
         ]
   return pKey
 
-insertLabel :: LabelEPC
-            -> Maybe T.Text
+insertLabel :: Maybe T.Text
             -> SB.PrimaryKeyType
+            -> LabelEPC
             -> AppM SB.PrimaryKeyType
-insertLabel labelEpc labelType whatId = do
+insertLabel labelType whatId labelEpc = do
   pKey <- generatePk
   runDb $ B.runInsert $ B.insert (SB._labels SB.supplyChainDb)
         $ insertValues
-        [ epcToStorageLabel labelType whatId pKey labelEpc ]
+        [ epcToStorageLabel labelType whatId pKey labelEpc]
   return pKey
 
 startTransaction :: AppM ()

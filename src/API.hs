@@ -18,6 +18,7 @@ import Servant
 import Servant.Server.Experimental.Auth()
 import Servant.Swagger.UI
 import Data.Swagger
+import Data.GS1.EPC
 import Data.GS1.Event
 import Data.GS1.EventID
 import Model
@@ -35,7 +36,7 @@ type PrivateAPI =
             :<|> "event" :> "listUsers" :> Capture "eventID" EventID :> Get '[JSON] [(User, Bool)]
             :<|> "event" :> "sign" :> ReqBody '[JSON] SignedEvent :> Post '[JSON] Bool
             :<|> "event" :> "getHash" :> ReqBody '[JSON] EventID :> Post '[JSON] HashedEvent
-            :<|> "event" :> "createObject" :> ReqBody '[JSON] NewObject :> Post '[JSON] PrimaryKeyType
+            :<|> "event" :> "objectEvent" :> Capture "action" Action :> ReqBody '[JSON] ObjectEvent :> Post '[JSON] PrimaryKeyType
             :<|> "event" :> "aggregateObjects" :> ReqBody '[JSON] AggregatedObject :> Post '[JSON] Event
             :<|> "event" :> "disAggregateObjects" :> ReqBody '[JSON] DisaggregatedObject :> Post '[JSON] Event
             :<|> "event" :> "start-transaction" :> ReqBody '[JSON] TransactionInfo :> Post '[JSON] Event
