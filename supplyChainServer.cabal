@@ -30,6 +30,7 @@ library
                     , Utils
                     , Errors
                     , ErrorUtils
+                    , Dummies
   build-depends:      base >= 4.7 && < 5
                     , GS1Combinators
                     , beam-migrate
