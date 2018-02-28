@@ -153,7 +153,7 @@ insertObjectEvent
   (M.User userId _ _ )
   act
   (M.ObjectEvent
-    mEventId
+    foreignEventId
     labelEpcs
     dwhen dwhy dwhere
   ) = do
@@ -162,10 +162,9 @@ insertObjectEvent
   let
       eventType = ObjectEventT
       dwhat =  ObjectDWhat act labelEpcs
-      -- -- dwhere = DWhere [rp] [bizL] [src] [dest]
+      -- dwhere = DWhere [rp] [bizL] [src] [dest]
       -- dwhy  =  DWhy (Just CreatingClassInstance) (Just Active)
       -- dwhen = DWhen epcisTime (Just $ toEPCISTime currentTime) timezone
-      foreignEventId = mEventId
       event = Event eventType foreignEventId dwhat dwhen dwhy dwhere
       jsonEvent = encodeEvent event
 
