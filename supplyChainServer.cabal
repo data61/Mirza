@@ -62,6 +62,7 @@ library
                     , beam-postgres
                     , time
                     , beam-migrate
+                    , hspec
                     , optparse-applicative
                     , base >=4.7 && <4.11
                     , http-types == 0.9.*
