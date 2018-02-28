@@ -99,7 +99,7 @@ privateServer user =
         :<|> eventUserList user
         :<|> eventSign user
         :<|> eventHashed user
-        :<|> eventCreateObject user
+        :<|> objectEvent user
         :<|> eventAggregateObjects user
         :<|> eventDisaggregateObjects user
         :<|> eventStartTransaction user
@@ -236,9 +236,8 @@ eventHashed user eventID = do
     -}
 
 -- Return the json encoded copy of the event
-eventCreateObject :: User -> NewObject -> AC.AppM SB.PrimaryKeyType
-eventCreateObject = BQ.eventCreateObject --error "Storage module not implemented"
-  -- liftIO (Storage.eventCreateObject user newObject)
+objectEvent :: User -> Action -> ObjectEvent -> AC.AppM SB.PrimaryKeyType
+objectEvent = BQ.insertObjectEvent
 
 eventAggregateObjects :: User -> AggregatedObject -> AC.AppM Event
 eventAggregateObjects user aggObject = liftIO sampleEvent
