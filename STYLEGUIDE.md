@@ -46,6 +46,21 @@ If you want to make style tweaks to some modules
 1. Ask if anyone else in the team is working on the module(s) in question
 1. If not, make all the style tweaks within one commit.
 
+# Qualified imports
+
+It is imperative that you make imports as explicit as possible.
+With this end in view,
+we make a somewhat liberal use of `qualified` imports.
+
+Some conventions:
+1. `AppConfig as AC`
+1. `StorageBeam as SB`
+1. `Model as M`
+1. `BeamQueries as BQ`
+1. `Data.Text as T`
+1. `Data.GS1.EPC as EPC`
+1. `Data.GS1.Event as Ev`
+
 # Notes
 If you are unsure about a style tweak, please ask. If people cannot agree on
 a style decision, please go with what the majority of the team find
