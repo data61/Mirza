@@ -44,7 +44,7 @@ selectUser uid = do
           pure user
   case r of
     Right [user] -> return $ Just user
-    _ -> return Nothing
+    _            -> return Nothing
 
 testQueries :: SpecWith (Connection, Env)
 testQueries = do
@@ -57,31 +57,32 @@ testQueries = do
         --print $ show hash
         --print $ show $ SB.password_hash $ fromJust user
 
-        (fromJust user) `shouldSatisfy` (\u -> (SB.phone_number u) == (M.phoneNumber user1) &&
-                                               (SB.email_address u) == (M.emailAddress user1) &&
-                                               (SB.first_name u) == (M.firstName user1) &&
-                                               (SB.last_name u) == (M.lastName user1) &&
-                                               (SB.user_biz_id u) == (SB.BizId (M.company user1)) &&
-                                               -- note database bytestring includes the salt, this checks password
-                                               (verifyPass' (Pass $ encodeUtf8 $ M.password user1) (EncryptedPass $ SB.password_hash u)) &&
-                                               (SB.user_id u) == uid)
+        (fromJust user) `shouldSatisfy`
+            (\u ->
+              (SB.phone_number u) == (M.phoneNumber user1) &&
+              (SB.email_address u) == (M.emailAddress user1) &&
+              (SB.first_name u) == (M.firstName user1) &&
+              (SB.last_name u) == (M.lastName user1) &&
+              (SB.user_biz_id u) == (SB.BizId (M.company user1)) &&
+              -- note database bytestring includes the salt, this checks password
+              (verifyPass' (Pass $ encodeUtf8 $ M.password user1) (EncryptedPass $ SB.password_hash u)) &&
+              (SB.user_id u) == uid)
 
   describe "authCheck tests" $ do
     it "authCheck test 1" $ \(conn, env) -> do
       --hash <- hashIO
       uid <- fromRight' <$> (runAppM env $ newUser user1)
       user <- fromRight' <$> (runAppM env $ authCheck (M.emailAddress user1) (encodeUtf8 $ M.password user1)) --hash)
-      (fromJust user) `shouldSatisfy` (\u -> (M.userId u) == uid &&
-                                             (M.userFirstName u) == (M.firstName user1) &&
-                                             (M.userLastName u) == (M.lastName user1))
+      (fromJust user) `shouldSatisfy`
+        (\u -> (M.userId u) == uid &&
+               (M.userFirstName u) == (M.firstName user1) &&
+               (M.userLastName u) == (M.lastName user1))
+
+  describe "Object Event" $ do
+    it "eventCreateObject" $ \(conn, env) -> do
+      1 `shouldBe` 1
 
 
-
-
-
-  -- describe "addPublicKey tests" $ do
-  --   it "addPublicKey test 1" $ \(conn, env) -> do
-  --     1 `shouldBe` 1
 
   -- describe "getPublicKey tests" $ do
   --   it "getPublicKey test 1" $ \(conn, env) -> do
