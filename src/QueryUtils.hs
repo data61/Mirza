@@ -70,16 +70,6 @@ userTableToModel (SB.User uid _ fName lName _ _ _) = M.User uid fName lName
 encodeEvent :: Event -> T.Text
 encodeEvent event = TxtL.toStrict  (encodeToLazyText event)
 
-getQuantityAmount :: Maybe Quantity -> Maybe Double
-getQuantityAmount Nothing = Nothing
-getQuantityAmount (Just (MeasuredQuantity a _)) = Just $ realToFrac a
-getQuantityAmount (Just (ItemCount c)) = Just $ realToFrac c
-
-getQuantityUom :: Maybe Quantity -> Maybe EPC.Uom
-getQuantityUom Nothing = Nothing
-getQuantityUom (Just (MeasuredQuantity _ u)) = Just u
-getQuantityUom (Just (ItemCount _)) = Nothing
-
 epcToStorageLabel :: Maybe T.Text
                   -> SB.PrimaryKeyType
                   -> SB.PrimaryKeyType
@@ -118,6 +108,17 @@ epcToStorageLabel labelType whatId pKey (CL (CSGTIN gs1Prefix fv ir) mQ) =
            gs1Prefix (Just ir) Nothing
            Nothing Nothing (toText <$> fv) Nothing
            (getQuantityAmount mQ) (getQuantityUom mQ)
+
+getQuantityAmount :: Maybe Quantity -> Maybe Double
+getQuantityAmount Nothing = Nothing
+getQuantityAmount (Just (MeasuredQuantity a _)) = Just $ realToFrac a
+getQuantityAmount (Just (ItemCount c)) = Just $ realToFrac c
+
+getQuantityUom :: Maybe Quantity -> Maybe EPC.Uom
+getQuantityUom Nothing = Nothing
+getQuantityUom (Just (MeasuredQuantity _ u)) = Just u
+getQuantityUom (Just (ItemCount _)) = Nothing
+
 
 -- | GS1 DWhat to Storage DWhat
 -- For an object event
