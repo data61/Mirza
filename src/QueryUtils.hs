@@ -144,6 +144,13 @@ getAction (ObjectDWhat act _) = Just act
 getAction (TransactionDWhat act _ _ _) = Just act
 getAction (AggregationDWhat act _ _) = Just act
 
+
+findInstLabelId :: InstanceLabelEPC -> AppM (Maybe SB.PrimaryKeyType)
+findInstLabelId (GIAI cp sn) = grabInstLabelId cp sn Nothing Nothing Nothing
+findInstLabelId (SSCC cp sn) = grabInstLabelId cp sn Nothing Nothing Nothing
+findInstLabelId (SGTIN cp msfv ir sn) = grabInstLabelId cp sn msfv (Just ir) Nothing
+findInstLabelId (GRAI cp at sn) = grabInstLabelId cp sn Nothing Nothing (Just at)
+
 grabInstLabelId :: GS1CompanyPrefix
                 -> SerialNumber
                 -> Maybe SGTINFilterValue
@@ -163,15 +170,38 @@ grabInstLabelId cp sn msfv mir mat = do
     Right [l] -> return $ Just (SB.label_id l)
     _         -> return Nothing
 
-findLabelId :: InstanceLabelEPC -> AppM (Maybe SB.PrimaryKeyType)
-findLabelId (GIAI cp sn) = grabInstLabelId cp sn Nothing Nothing Nothing
-findLabelId (SSCC cp sn) = grabInstLabelId cp sn Nothing Nothing Nothing
-findLabelId (SGTIN cp msfv ir sn) = grabInstLabelId cp sn msfv (Just ir) Nothing
-findLabelId (GRAI cp at sn) = grabInstLabelId cp sn Nothing Nothing (Just at)
+
+findClassLabelId :: ClassLabelEPC -> AppM (Maybe SB.PrimaryKeyType)
+findClassLabelId (LGTIN cp ir lot)  = grabClassLabelId cp Nothing ir (Just lot)
+findClassLabelId (CSGTIN cp msfv ir) = grabClassLabelId cp msfv ir Nothing
+
+grabClassLabelId :: GS1CompanyPrefix
+                 -> Maybe SGTINFilterValue
+                 -> ItemReference
+                 -> Maybe Lot
+                 -> AppM (Maybe SB.PrimaryKeyType)
+grabClassLabelId cp msfv ir lot = do
+  r <- runDb $ runSelectReturningList $ select $ do
+    labels <- all_ (SB._labels SB.supplyChainDb)
+    guard_ (
+             SB.label_gs1_company_prefix labels ==. val_ cp &&.
+             (SB.sgtin_filter_value labels) ==. (val_ $ T.pack . show <$> msfv) &&.
+             SB.lot labels ==. (val_ lot) &&.
+             SB.item_reference labels ==. (val_ . Just $ ir)
+           )
+    pure labels
+  case r of
+    Right [l] -> return $ Just (SB.label_id l)
+    _         -> return Nothing
+
+
+findLabelId :: LabelEPC -> AppM (Maybe SB.PrimaryKeyType)
+findLabelId (IL l) = findInstLabelId l
+findLabelId (CL c _) = findClassLabelId c
 
 getParentId :: DWhat -> AppM (Maybe SB.PrimaryKeyType)
-getParentId (TransactionDWhat _ (Just p) _ _) = findLabelId p
-getParentId (AggregationDWhat _ (Just p) _)   = findLabelId p
+getParentId (TransactionDWhat _ (Just p) _ _) = findInstLabelId p
+getParentId (AggregationDWhat _ (Just p) _)   = findInstLabelId p
 getParentId _                                 = return Nothing
 
 toStorageDWhen :: SB.PrimaryKeyType
