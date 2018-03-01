@@ -146,13 +146,13 @@ getPublicKeyInfo :: KeyID -> AC.AppM KeyInfo
 getPublicKeyInfo = BQ.getPublicKeyInfo
 
 -- PSUEDO:
--- In BeamQueries, implement a function getLabelIDState :: EPCUrn -> IO (_labelID, State)
+-- In BeamQueries, implement a function getLabelIDState :: LabelEPCUrn -> IO (_labelID, State)
 -- use readLabelEPC in EPC.hs to do it.
 -- SELECT * FROM Labels WHERE _labelGs1CompanyPrefix=gs1CompanyPrefix AND _labelType=type AND ...
 
 -- PSUEDO:
 -- Use getLabelIDState
-epcState :: User ->  EPCUrn -> AC.AppM EPCState
+epcState :: User ->  M.LabelEPCUrn -> AC.AppM EPCState
 epcState user str = return New
 
 -- This takes an EPC urn,
@@ -162,7 +162,7 @@ epcState user str = return New
 -- (labelID, _) <- getLabelIDState
 -- wholeEvents <- select * from events, dwhats, dwhy, dwhen where _whatItemID=labelID AND _eventID=_whatEventID AND _eventID=_whenEventID AND _eventID=_whyEventID ORDER BY _eventTime;
 -- return map constructEvent wholeEvents
-listEvents :: User ->  EPCUrn -> AC.AppM [Event]
+listEvents :: User ->  M.LabelEPCUrn -> AC.AppM [Event]
 listEvents user urn = return []
 
 
