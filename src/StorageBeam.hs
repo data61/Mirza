@@ -303,6 +303,10 @@ instance Beamable EventT
 instance Beamable (PrimaryKey EventT)
 deriving instance Show (PrimaryKey EventT Identity)
 
+-- unEventId 
+unEventId :: PrimaryKey EventT f -> C f PrimaryKeyType
+unEventId (EventId eventId) = eventId
+
 instance Table EventT where
   data PrimaryKey EventT f = EventId (C f PrimaryKeyType)
     deriving Generic

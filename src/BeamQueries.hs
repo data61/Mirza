@@ -181,6 +181,7 @@ insertObjectEvent
   insertUserEvent eventId userId userId False Nothing
   mapM (insertWhatLabel whatId) labelIds
   mapM (insertLabelEvent eventId) labelIds
+
   endTransaction
 
   -- TODO = combine rows from bizTransactionTable and _eventCreatedBy field in Event table
@@ -189,6 +190,14 @@ insertObjectEvent
 
   return eventId
 
+listEvents :: LabelEPC -> AppM [Event]
+listEvents labelEpc = do
+  labelId <- findLabelId labelEpc
+  case getEventList <$> labelId of
+    Nothing     -> return []
+    Just evList -> evList
+
+  -- error "not implemented yet"
 -- -- TODO = fix... what is definition of hasSigned?
 -- eventUserList :: M.User -> EvId.EventID -> AppM [(M.User, Bool)]
 -- eventUserList  (M.User uid _ _ ) eventID = do
