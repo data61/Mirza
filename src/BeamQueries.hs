@@ -148,12 +148,14 @@ getUser email = do
     Left e    -> throwUnexpectedDBError $ sqlToServerError e
     _         -> throwBackendError r
 
-insertObjectEvent :: M.User -> Action -> M.ObjectEvent -> AppM SB.PrimaryKeyType
+insertObjectEvent :: M.User
+                  -> M.ObjectEvent
+                  -> AppM SB.PrimaryKeyType
 insertObjectEvent
   (M.User userId _ _ )
-  act
   (M.ObjectEvent
     foreignEventId
+    act
     labelEpcs
     dwhen dwhy dwhere
   ) = do
