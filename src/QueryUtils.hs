@@ -341,6 +341,20 @@ insertLabel labelType whatId labelEpc = do
         [ epcToStorageLabel labelType whatId pKey labelEpc]
   return pKey
 
+insertLabelEvent :: SB.PrimaryKeyType
+                 -> SB.PrimaryKeyType
+                 -> AppM SB.PrimaryKeyType
+insertLabelEvent eventId labelId = do
+  pKey <- generatePk
+  runDb $ B.runInsert $ B.insert (SB._label_events SB.supplyChainDb)
+        $ insertValues
+        [
+          SB.LabelEvent pKey
+          (SB.LabelId labelId)
+          (SB.EventId eventId)
+        ]
+  return pKey
+
 startTransaction :: AppM ()
 startTransaction = do
   conn <- getDBConn
