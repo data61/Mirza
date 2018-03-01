@@ -34,7 +34,7 @@ type UserID = PrimaryKeyType
 type EmailAddress = T.Text
 type KeyID = PrimaryKeyType
 type Password = BS.ByteString
-type EPCUrn = String
+type LabelEPCUrn = String
 
 newtype BinaryBlob = BinaryBlob BS.ByteString
   deriving (MimeUnrender OctetStream, MimeRender OctetStream, Generic)
@@ -135,7 +135,6 @@ data NewUser = NewUser {
 $(deriveJSON defaultOptions ''NewUser)
 instance ToSchema NewUser
 
-
 data Business = Business {
   bizID :: UUID,
   bizName :: T.Text,
@@ -155,16 +154,26 @@ mkObjectEvent
     mEid
     (ObjectDWhat act epcList)
     dwhen dwhy dwhere
-  ) = ObjectEvent mEid epcList dwhen dwhy dwhere
-mkObjectEvent e = error $ "Cannot make event from supplied Event:\n" ++ (show e)
+  ) = ObjectEvent mEid act epcList dwhen dwhy dwhere
+mkObjectEvent ev = error $
+                   "Cannot make event from supplied Event:\n" ++ (show ev)
+
+fromObjectEvent :: ObjectEvent ->  Ev.Event
+fromObjectEvent (ObjectEvent mEid act epcList dwhen dwhy dwhere) =
+  Ev.Event
+    Ev.ObjectEventT
+    mEid
+    (ObjectDWhat act epcList)
+    dwhen dwhy dwhere
 
 data ObjectEvent = ObjectEvent {
   object_foreign_event_id :: Maybe EventID,
+  obj_act :: Action,
   obj_epc_list :: [LabelEPC],
   obj_when :: DWhen,
   obj_why :: DWhy,
   obj_where :: DWhere
-} deriving (Show, Generic)
+} deriving (Show, Generic, Eq)
 $(deriveJSON defaultOptions ''ObjectEvent)
 instance ToSchema ObjectEvent
 

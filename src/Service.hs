@@ -236,7 +236,7 @@ eventHashed user eventID = do
     -}
 
 -- Return the json encoded copy of the event
-objectEvent :: User -> Action -> ObjectEvent -> AC.AppM SB.PrimaryKeyType
+objectEvent :: User -> ObjectEvent -> AC.AppM SB.PrimaryKeyType
 objectEvent = BQ.insertObjectEvent
 
 eventAggregateObjects :: User -> AggregatedObject -> AC.AppM Event
