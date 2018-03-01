@@ -16,7 +16,7 @@ import           Database.Beam.Backend.SQL.BeamExtensions
 import           AppConfig (AppM, runDb, AppError(..))
 import           Control.Monad.Except (throwError)
 import qualified Data.Text as T
-import           Data.GS1.EPC
+import qualified Data.GS1.EPC as EPC
 import           Data.GS1.DWhat (DWhat(..), LabelEPC(..))
 import           Data.GS1.DWhy (DWhy(..))
 import           Data.GS1.DWhere (DWhere(..), SrcDestLocation)

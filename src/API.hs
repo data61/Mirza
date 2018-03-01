@@ -12,17 +12,16 @@
 
 module API where
 
-import Prelude        ()
-import Prelude.Compat
-import Servant
-import Servant.Server.Experimental.Auth()
-import Servant.Swagger.UI
-import Data.Swagger
-import Data.GS1.EPC
-import Data.GS1.Event
-import Data.GS1.EventID
-import Model
-import StorageBeam (PrimaryKeyType, EventId)
+-- import           Prelude        ()
+-- import           Prelude.Compat
+import           Servant
+-- import           Servant.Server.Experimental.Auth()
+import           Servant.Swagger.UI
+import           Data.Swagger
+import           Data.GS1.Event
+import           Data.GS1.EventID
+import           Model as M
+import           StorageBeam (PrimaryKeyType)
 
 type PrivateAPI =
                  "epc" :>  Capture "urn" String:> "info" :> Get '[JSON] EPCState
