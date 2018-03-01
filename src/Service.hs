@@ -16,8 +16,6 @@
 -- light wrappers around functions in BeamQueries
 module Service where
 
-import           Model
-import           API
 
 import           GHC.TypeLits (KnownSymbol)
 
@@ -43,14 +41,18 @@ import           Control.Lens       hiding ((.=))
 import           Control.Monad.Except (runExceptT)
 import qualified Control.Exception.Lifted as ExL
 import           Control.Monad.Trans.Except
-import qualified Model as M
 import           Data.UUID.V4
-import qualified BeamQueries as BQ
-import qualified AppConfig as AC
+import           Data.Text (pack)
 import           Control.Monad.Reader   (MonadReader, ReaderT, runReaderT,
                                          asks, ask, liftIO)
+
+-- import qualified Model as M
+import qualified AppConfig as AC
+import qualified BeamQueries as BQ
 import           Utils (debugLog, debugLogGeneral)
-import           ErrorUtils (appErrToHttpErr)
+import           ErrorUtils (appErrToHttpErr, throwParseError)
+import           Model as M
+import           API
 import qualified StorageBeam as SB
 
 instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub) where
@@ -163,7 +165,10 @@ epcState user str = return New
 -- wholeEvents <- select * from events, dwhats, dwhy, dwhen where _whatItemID=labelID AND _eventID=_whatEventID AND _eventID=_whenEventID AND _eventID=_whyEventID ORDER BY _eventTime;
 -- return map constructEvent wholeEvents
 listEvents :: User ->  M.LabelEPCUrn -> AC.AppM [Event]
-listEvents user urn = return []
+listEvents user urn =
+  case (urn2LabelEPC . pack $ urn) of
+    Left e -> throwParseError e
+    Right labelEpc -> BQ.listEvents labelEpc
 
 
 -- given an event ID, list all the users associated with that event

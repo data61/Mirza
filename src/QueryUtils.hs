@@ -18,8 +18,10 @@ import           Data.UUID (nil)
 import           Data.UUID.V4 (nextRandom)
 import           Data.Time.Clock (getCurrentTime)
 import           Control.Monad.Reader (liftIO)
+import           Data.Maybe (catMaybes)
 import           Data.GS1.Event (Event(..))
 import           Data.Aeson.Text (encodeToLazyText)
+import           Data.Aeson (decode)
 import qualified Data.Text.Lazy as TxtL
 import qualified Data.Text as T
 import           Data.GS1.EPC as EPC
@@ -28,8 +30,7 @@ import           Data.GS1.DWhy (DWhy(..))
 import           Data.GS1.DWhere (DWhere(..), SrcDestLocation)
 import           Data.GS1.DWhen (DWhen(..))
 import qualified Data.GS1.EventID as EvId
-import           Data.GS1.Event (Event(..), EventType(..),
-                                evTypeToTextLike, dwhatToEventTextLike)
+import qualified Data.GS1.Event as Ev
 import           Utils (toText, debugLog)
 import           Database.Beam as B
 import           Data.ByteString (ByteString)
@@ -38,7 +39,7 @@ import           ErrorUtils (throwBackendError, throwAppError, toServerError
                             , defaultToServerError, sqlToServerError
                             , throwUnexpectedDBError)
 import           Database.PostgreSQL.Simple
-
+import           Data.Text.Lazy.Encoding (encodeUtf8)
 
 -- | Reads back the ``LocalTime`` in UTCTime (with an offset of 0)
 toEPCISTime :: LocalTime -> UTCTime
@@ -69,6 +70,9 @@ userTableToModel (SB.User uid _ fName lName _ _ _) = M.User uid fName lName
 -- more systematic about it so it's easier to replicated. Maybe.
 encodeEvent :: Event -> T.Text
 encodeEvent event = TxtL.toStrict  (encodeToLazyText event)
+
+decodeEvent :: T.Text -> Maybe Ev.Event
+decodeEvent jsonEvent = decode . encodeUtf8 . TxtL.fromStrict $ jsonEvent
 
 epcToStorageLabel :: Maybe T.Text
                   -> SB.PrimaryKeyType
@@ -131,7 +135,7 @@ toStorageDWhat :: SB.PrimaryKeyType
                -> SB.What
 toStorageDWhat pKey mParentId mBizTranId mTranId eventId dwhat
    = SB.What pKey
-            (Just $ dwhatToEventTextLike dwhat)
+            (Just $ Ev.dwhatToEventTextLike dwhat)
             (toText <$> getAction dwhat)
             (SB.LabelId mParentId)
             (SB.BizTransactionId mBizTranId)
@@ -405,3 +409,35 @@ selectUser uid = do
   case r of
     Right [user] -> return $ Just user
     _            -> return Nothing
+
+getEventList :: SB.PrimaryKeyType -> AppM [Ev.Event]
+getEventList labelId = do
+  r <- runDb $ 
+        runSelectReturningList $ select $ do
+        labelEvent <- all_ (SB._label_events SB.supplyChainDb)
+        guard_ (SB.label_event_label_id labelEvent ==. (val_ $ SB.LabelId labelId))
+        pure labelEvent
+  case r of
+    Left e -> throwUnexpectedDBError $ sqlToServerError e
+  -- extract eventIds out
+    Right labelEvents -> do
+      let
+        eventIds = (SB.unEventId . SB.label_event_event_id) <$> labelEvents
+        allEvents = sequence $ findEvent <$> eventIds
+        in
+          catMaybes <$> allEvents
+
+findEvent :: SB.PrimaryKeyType -> AppM (Maybe Ev.Event)
+findEvent eventId = do
+  r <- runDb $ 
+        runSelectReturningList $ select $ do
+        event <- all_ (SB._events SB.supplyChainDb)
+        guard_ (SB.event_id event ==. (val_ eventId))
+        pure event
+  case r of
+    Right [event] -> return $ storageToModelEvent event
+    Left  e       -> throwUnexpectedDBError $ sqlToServerError e
+    _             -> throwBackendError r
+
+storageToModelEvent :: SB.Event -> Maybe Ev.Event
+storageToModelEvent = decodeEvent . SB.json_event 
