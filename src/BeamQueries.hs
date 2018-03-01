@@ -178,7 +178,7 @@ insertObjectEvent
   insertDWhere dwhere eventId
   insertUserEvent eventId userId userId False Nothing
   mapM (insertWhatLabel whatId) labelIds
-
+  mapM (insertLabelEvent eventId) labelIds
   endTransaction
 
   -- TODO = combine rows from bizTransactionTable and _eventCreatedBy field in Event table
