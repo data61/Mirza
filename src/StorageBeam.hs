@@ -153,7 +153,7 @@ instance Table BusinessT where
 deriving instance Eq (PrimaryKey BusinessT Identity)
 
 data ContactT f = Contact
-  { contact_id                :: C f PrimaryKeyType
+  { contact_id                 :: C f PrimaryKeyType
   , contact_user1_id           :: PrimaryKey UserT f
   , contact_user2_id           :: PrimaryKey UserT f }
   deriving Generic
