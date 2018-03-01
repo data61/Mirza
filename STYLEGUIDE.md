@@ -1,8 +1,32 @@
 # General
 
-In general, you would want to prioritize being consistent with the rest of the module.
+1. In general, you would want to prioritize being consistent with the rest of the module.
 
-In any record/data definition, the commas go on the Left Hand Side of the field.
+1. In any record/data definition, the commas go on the Left Hand Side of the field.
+
+1. Unless it's necessary(it would look hideous if we don't),
+we do not go over 80 characters in a line.
+In your editor, make sure there is some sort of mechanism to tell you
+whether or not you have crossed the 80 character limit
+Most good editors should allow you to have a ruler at the 81st character.
+
+# Helper functions
+
+A top-down approach to writing functions is preferred.
+What that means is, helper functions
+tend to go underneath the higher level function.
+
+At the moment, this is restricted to function definitions,
+not the function body. So, the use of `let` and `where`
+is simply a matter of choice/consistency and
+is not governed by this style rule.
+
+If a helper function is being called by multiple higher-level functions,
+then consider putting it in a relevant Utils module. Some examples of
+Utils modules in this codebase are `QueryUtils`, `StorageUtils`, `Utils`.
+
+If three or more of these helper functions pop up which you feel like need
+a new module of their own, make one and name it `<Description>Utils.hs`.
 
 # Database
 
@@ -32,7 +56,7 @@ discovered that `naming_variables_like_this_keeps_things_intact`.
 Since we want our column names to be consistent with the columnn names we
 put in the migration function, this seemed like the way to go.
 
-## Naming tables in migration
+# Naming tables in migration
 In the module `MigrateScript`, please make sure the tables names are
 `snake_case` as opposed to any variant of `camelCase`.
 
@@ -65,4 +89,3 @@ Some conventions:
 If you are unsure about a style tweak, please ask. If people cannot agree on
 a style decision, please go with what the majority of the team find
 comfortable and add it to this guide.
-
