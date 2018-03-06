@@ -420,7 +420,7 @@ getEventList labelId = do
   case r of
     Left e -> throwUnexpectedDBError $ sqlToServerError e
   -- extract eventIds out
-    Right labelEvents -> do
+    Right labelEvents ->
       let
         eventIds = (SB.unEventId . SB.label_event_event_id) <$> labelEvents
         allEvents = sequence $ findEvent <$> eventIds
