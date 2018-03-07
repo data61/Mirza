@@ -152,7 +152,7 @@ instance Table BusinessT where
 deriving instance Eq (PrimaryKey BusinessT Identity)
 
 data ContactT f = Contact
-  { contact_id                :: C f PrimaryKeyType
+  { contact_id                 :: C f PrimaryKeyType
   , contact_user1_id           :: PrimaryKey UserT f
   , contact_user2_id           :: PrimaryKey UserT f }
   deriving Generic
@@ -301,6 +301,10 @@ deriving instance Show Event
 instance Beamable EventT
 instance Beamable (PrimaryKey EventT)
 deriving instance Show (PrimaryKey EventT Identity)
+
+-- unEventId 
+unEventId :: PrimaryKey EventT f -> C f PrimaryKeyType
+unEventId (EventId eventId) = eventId
 
 instance Table EventT where
   data PrimaryKey EventT f = EventId (C f PrimaryKeyType)
