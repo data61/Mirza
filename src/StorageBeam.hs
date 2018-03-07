@@ -106,8 +106,7 @@ deriving instance Eq (PrimaryKey UserT Identity)
 data KeyT f = Key
   { key_id             :: C f PrimaryKeyType
   , key_user_id        :: PrimaryKey UserT f
-  , rsa_n              :: C f Text --XXX should this be Int64?
-  , rsa_e              :: C f Text -- as above
+  , pem_str            :: C f Text
   , creationTime       :: C f LocalTime -- UTCTime
   , revocationTime     :: C f (Maybe LocalTime) -- UTCTime
   }

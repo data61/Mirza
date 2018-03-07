@@ -111,7 +111,7 @@ publicServer =     Service.newUser
               :<|> Service.getPublicKey
               :<|> Service.getPublicKeyInfo
               :<|> Service.listBusinesses
-              
+
 appHandlers = privateServer :<|> publicServer
 
 serverAPI :: Proxy ServerAPI
@@ -135,6 +135,28 @@ basicAuthServerContext = authCheck :. EmptyContext
 
 addPublicKey :: User -> RSAPublicKey -> AC.AppM KeyID
 addPublicKey = BQ.addPublicKey
+
+type PEMString = String
+minPubKeySize = 1536 --FIXME or 2048
+
+addPublicKey :: User -> PEMString -> AC.AppM (Maybe KeyID)
+addPublicKey user pemKey = do
+  somePubKey <- readPublicKey pemKey
+  let maybeKey = checkPubKey somePubKey
+  if isJust $ maybeKey
+     then BQ.addPublicKey user (fromJust maybeKey)
+  else throwAppError $ InvalidRSAKey pemKey
+
+
+checkPubKey :: SomePublicKey -> Maybe RSAPubKey
+checkPubKey spKey =
+  |isNothing mPKey = Nothing
+  |rsaSize pubKey < minPubKeySize = Nothing
+  |otherwise = mPKey
+  where
+    mPKey::(Maybe RSAPubKey) = toPublicKey spKey
+    pubKey = fromJust mPKey
+
 
 newUser :: NewUser -> AC.AppM UserID
 newUser = BQ.newUser
@@ -214,8 +236,42 @@ listBusinesses = error "Implement me"
 eventList :: User -> UserID -> AC.AppM [Event]
 eventList user uID = return []
 
+makeDigest :: M.Digest -> OpenSSL.Digest
+makeDigest = error
+
+
+{-
+   The default padding is PKCS1-1.5, which is deprecated
+   for new applications. We should be using PSS instead.
+
+   In the OpenSSL wrapper, the verify function in generic,
+   and does not allow you to specify a padding type, as this
+   is an RSA specific property.
+
+   I propose we modify OpenSSL to add a function called
+   verifyBSRSA :: Digest -> BS -> key -> BS -> PaddingType -> IO VerifyStatus
+
+   We'll need to use the foreign function interface to call:
+   EVP_PKEY_CTX_set_rsa_padding in libSSL.
+
+   Lets do this after we have everything compiling.
+-}
+
 eventSign :: User -> SignedEvent -> AC.AppM Bool
-eventSign user signedEvent = error "Storage module not implemented"
+eventSign user (eventID keyID sig digest) = do
+  event <- BQ.getEventJSON eventID
+  keyStr <- BQ.getPublicKey keyID
+  sKey <- readPublicKey keyStr
+  let pubKey = fromJust $ toPublicKey $ sKey
+  let sDigest = makeDigest digest
+  verifyStatus <- verifyBS sDigest sig pubKey event
+  if verifyStatus == VerifySuccess
+     then BQ.insertSignature eventID keyID sig digest
+     else throwAppError $ InvalidSignature sig
+
+
+
+-- eventSign user signedEvent = error "Storage module not implemented"
 -- eventSign user signedEvent = do
 --   result <- liftIO $ runExceptT $ Storage.eventSign user signedEvent
 --   case result of

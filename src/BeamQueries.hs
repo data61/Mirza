@@ -87,17 +87,18 @@ authCheck email password = do
 -- BELOW = Beam versions of SQL versions from Storage.hs
 -- execute conn "INSERT INTO Users (bizID, firstName, lastName, phoneNumber, passwordHash, emailAddress) VALUES (?, ?, ?, ?, ?, ?);" (biz, first, last, phone, getEncryptedPass hash, email)
 -- execute conn "INSERT INTO Keys (userID, rsa_n, rsa_e, creationTime) values (?, ?, ?, ?);" (uid, n, e, timestamp)
-addPublicKey :: M.User -> M.RSAPublicKey-> AppM M.KeyID
-addPublicKey (M.User uid _ _)  (M.RSAPublicKey rsa_n rsa_e) = do
+addPublicKey :: M.User -> RSAPubKey-> AppM M.KeyID
+addPublicKey (M.User uid _ _)  rsaPubKey = do
   keyId <- generatePk
   timeStamp <- generateTimeStamp
+  keyStr <- writePublicKey rsaPubKey
   r <- runDb $ runInsertReturningList (SB._keys SB.supplyChainDb) $
                insertValues
                [
                  (
-                   SB.Key keyId (SB.UserId uid)
-                   (T.pack $ show rsa_n)
-                   (T.pack $ show rsa_e)
+                   SB.Key keyId
+                   (SB.UserId uid)
+                   (T.pack $ keyStr)
                    timeStamp
                    Nothing
                  )
@@ -107,17 +108,16 @@ addPublicKey (M.User uid _ _)  (M.RSAPublicKey rsa_n rsa_e) = do
     Right _       -> throwAppError $ InvalidKeyID keyId
     Left e        -> throwUnexpectedDBError $ sqlToServerError e
 
-getPublicKey :: M.KeyID -> AppM M.RSAPublicKey
+getPublicKey :: M.KeyID -> AppM Text
 getPublicKey keyId = do
   r <- runDb $ runSelectReturningList $ select $ do
     allKeys <- all_ (SB._keys SB.supplyChainDb)
     guard_ (SB.key_id allKeys ==. val_ keyId)
-    pure allKeys
-
+    pure (pem_str allKeys)
   case r of
     Right [k] ->
         return $ M.RSAPublicKey
-          (read $ T.unpack $ SB.rsa_n k) (read $ T.unpack $ SB.rsa_e k)
+          (read $ T.unpack $ SB.pubkey k) (read $ T.unpack $ SB.digest d)
     Right _ -> throwAppError $ InvalidKeyID keyId
     Left e  -> throwUnexpectedDBError $ sqlToServerError e
 
@@ -135,6 +135,18 @@ getPublicKeyInfo keyId = do
                 (toEPCISTime <$> revocationTime)
     Right _ -> throwAppError $ InvalidKeyID keyId
     Left e  -> throwUnexpectedDBError $ sqlToServerError e
+
+getEventJSON :: EvID -> AppM Text
+getEventJSON eventID = do
+  r <- runDB $ runSelectReturningList $ select $ do
+    allEvents <- all_ (SB._events SB.supplyChainDb)
+    guard_ (SB.event_id ==. val_ eventID)
+    pure (json_event allEvents)
+  case r of
+    Right [jsonEvent] -> return jsonEvent
+    Right _           -> throwAppError $ InvalidEventID eventID
+    Left e            -> throwUnexpectedDBError $ sqlToServerError e
+
 
 getUser :: M.EmailAddress -> AppM (Maybe M.User)
 getUser email = do
