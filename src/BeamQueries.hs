@@ -1,5 +1,7 @@
 {-# LANGUAGE OverloadedStrings      #-}
 
+-- | This module is incomplete as of yet.
+-- Functions in the `service` module use the database functions defined here
 module BeamQueries where
 
 import           Data.GS1.Parser.Parser
@@ -36,24 +38,6 @@ import           ErrorUtils (throwBackendError, throwAppError, toServerError
 import           Database.PostgreSQL.Simple.Errors (ConstraintViolation(..)
                                                    , constraintViolation)
 
-import           Data.GS1.Event
-import           Data.Either
-import           Text.XML
-import           Text.XML.Cursor
-import qualified Data.Text.Lazy.IO as TL
-import qualified Data.Text.Lazy.Encoding as TLE
-
-
-
-import           Data.GS1.DWhat
-import           Data.GS1.DWhen
-import           Data.GS1.DWhy
-import           Data.GS1.DWhere
-import           Data.GS1.EPC
-import           Data.UUID (nil)
-
-
-
 {-
 {
   "phoneNumber": "0412",
@@ -73,19 +57,16 @@ insertUser encPass (M.NewUser phone email firstName lastName biz _) = do
             insertValues ([(SB.User userId
             (SB.BizId  biz)
             firstName lastName phone (getEncryptedPass encPass) email)])
-  debugLog "Hold up! We are now taking a detour and running a monkey patch"
-  runMonkeyPatch
   case res of
     Right [r] -> return $ SB.user_id r
     Left e ->
       case constraintViolation e of
-        Just (UniqueViolation "email_address")
-            -> throwAppError $
-                EmailExists (sqlToServerError e) email
+        Just (UniqueViolation "users_email_address_key")
+            -> throwAppError $ EmailExists (sqlToServerError e) email
         _   -> throwAppError $ InsertionFail (toServerError (Just . sqlState) e) email
     _         -> throwBackendError res
 
--- |
+-- | Hashes the password of the NewUser and inserts the user into the database
 newUser :: M.NewUser -> AppM M.UserID
 newUser userInfo@(M.NewUser _ _ _ _ _ password) = do
     hash <- liftIO $ encryptPassIO' (Pass $ encodeUtf8 password)
@@ -126,7 +107,7 @@ addPublicKey (M.User uid _ _)  pubKey = do
                    timeStamp -- 0
                    Nothing -- revocationTime ?
                  )
-               ] -- TODO = check if 0 is correct here... NOT SURE
+               ]
   debugLog "Done with the query"
   case r of
     Right [rowId] -> return (SB.key_id rowId)
@@ -176,150 +157,6 @@ getUser email = do
     Left e    -> throwUnexpectedDBError $ sqlToServerError e
     _         -> throwBackendError r
 
-insertDWhat :: Maybe SB.PrimaryKeyType
-            -> Maybe SB.PrimaryKeyType
-            -> DWhat
-            -> SB.PrimaryKeyType
-            -> AppM SB.PrimaryKeyType
-insertDWhat mBizTranId mTranId dwhat eventId = do
-  pKey <- generatePk
-  mParentId <- getParentId dwhat
-  r <- runDb $ B.runInsert $ B.insert (SB._whats SB.supplyChainDb)
-             $ insertValues
-             [toStorageDWhat pKey mParentId mBizTranId mTranId eventId dwhat]
-  case r of
-    Left  e -> throwUnexpectedDBError $ sqlToServerError e
-    Right _ -> return pKey
-
-insertDWhen :: DWhen -> SB.PrimaryKeyType -> AppM SB.PrimaryKeyType
-insertDWhen dwhen eventId =  do
-  pKey <- generatePk
-  r <- runDb $ B.runInsert $ B.insert (SB._whens SB.supplyChainDb)
-             $ insertValues [toStorageDWhen pKey dwhen eventId]
-  case r of
-    Left  e -> throwUnexpectedDBError $ sqlToServerError e
-    Right _ -> return pKey
-
-
-insertDWhy :: DWhy -> SB.PrimaryKeyType -> AppM SB.PrimaryKeyType
-insertDWhy dwhy eventId = do
-  pKey <- generatePk
-  r <- runDb $ B.runInsert $ B.insert (SB._whys SB.supplyChainDb)
-             $ insertValues [toStorageDWhy pKey dwhy eventId]
-  case r of
-    Left  e -> throwUnexpectedDBError $ sqlToServerError e
-    Right _ -> return pKey
-
-insertSrcDestType :: SB.LocationField
-                  -> SB.PrimaryKeyType
-                  -> SrcDestLocation
-                  -> AppM SB.PrimaryKeyType
-insertSrcDestType
-  locField
-  eventId
-  (sdType, SGLN gs1Company (LocationReference locationRef) ext) = do
-  pKey <- generatePk
-  let
-      stWhere = SB.Where pKey
-                (Just . toText $ sdType)
-                locationRef
-                (toText locField)
-                (SB.EventId eventId)
-  r <- runDb $ B.runInsert $ B.insert (SB._wheres SB.supplyChainDb)
-             $ insertValues [stWhere]
-  case r of
-    Left  e -> do
-      debugLog "Woah"
-      throwUnexpectedDBError $ sqlToServerError e
-    Right _ -> return pKey
-
-insertLocationEPC :: SB.LocationField
-                  -> SB.PrimaryKeyType
-                  -> LocationEPC
-                  -> AppM SB.PrimaryKeyType
-insertLocationEPC
-  locField
-  eventId
-  (SGLN gs1Company (LocationReference locationRef) ext) = do
-  pKey <- generatePk
-  let
-      stWhere = SB.Where pKey
-                Nothing
-                locationRef
-                (toText locField)
-                (SB.EventId eventId)
-  r <- runDb $ B.runInsert $ B.insert (SB._wheres SB.supplyChainDb)
-             $ insertValues [stWhere]
-  case r of
-    Left  e -> throwUnexpectedDBError $ sqlToServerError e
-    Right _ -> return pKey
-
--- | Maps the relevant insert function for all
--- ReadPoint, BizLocation, Src, Dest
-insertDWhere :: DWhere -> SB.PrimaryKeyType -> AppM ()
-insertDWhere (DWhere rPoint bizLoc srcT destT) eventId = do
-  return $ insertLocationEPC SB.ReadPoint eventId <$> rPoint
-  return $ insertLocationEPC SB.BizLocation eventId <$> bizLoc
-  return $ insertSrcDestType SB.Src eventId <$> srcT
-  return $ insertSrcDestType SB.Dest eventId <$> destT
-  return ()
-
-insertEvent :: SB.PrimaryKeyType -> T.Text -> Event -> AppM SB.PrimaryKeyType
-insertEvent userId jsonEvent event = do
-  pKey <- generatePk
-  r <- runDb $ B.runInsert $ B.insert (SB._events SB.supplyChainDb)
-             $ insertValues
-             [toStorageEvent pKey userId jsonEvent (_eid event)]
-  case r of
-    Left  e -> throwUnexpectedDBError $ sqlToServerError e
-    Right _ -> return pKey
-
--- insertUserEvent
-insertUserEvent :: SB.PrimaryKeyType
-                -> SB.PrimaryKeyType
-                -> SB.PrimaryKeyType
-                -> Bool
-                -> (Maybe ByteString)
-                -> AppM ()
-insertUserEvent eventId userId addedByUserId signed signedHash = do
-  pKey <- generatePk
-  runDb $ B.runInsert $ B.insert (SB._user_events SB.supplyChainDb)
-        $ insertValues
-        [
-          SB.UserEvent pKey
-          (SB.EventId eventId)
-          (SB.UserId userId)
-          signed
-          (SB.UserId addedByUserId)
-          signedHash
-        ]
-  return ()
-
-insertWhatLabel :: SB.PrimaryKeyType
-                -> SB.PrimaryKeyType
-                -> AppM SB.PrimaryKeyType
-insertWhatLabel whatId labelId = do
-  pKey <- generatePk
-  runDb $ B.runInsert $ B.insert (SB._what_labels SB.supplyChainDb)
-        $ insertValues
-        [
-          SB.WhatLabel pKey
-          (SB.WhatId whatId)
-          (SB.LabelId labelId)
-        ]
-  return pKey
-
-insertLabel :: LabelEPC
-            -> Maybe T.Text
-            -> SB.PrimaryKeyType
-            -> AppM SB.PrimaryKeyType
-insertLabel labelEpc labelType whatId = do
-  pKey <- generatePk
-  runDb $ B.runInsert $ B.insert (SB._labels SB.supplyChainDb)
-        $ insertValues
-        [ epcToStorageLabel labelType whatId pKey labelEpc ]
-  return pKey
-
 eventCreateObject :: M.User -> M.NewObject -> AppM SB.PrimaryKeyType
 eventCreateObject
   (M.User userId _ _ )
@@ -350,62 +187,6 @@ eventCreateObject
   -- hashes not added yet, but will later for blockchain
 
   return eventId
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
--- monkey patches
-fileToParse :: FilePath
-fileToParse = "../GS1Combinators/test/test-xml/ObjectEvent.xml"
-
-dummyUser :: M.User
-dummyUser = M.User nil "Sajid" "Anower"
-
-runMonkeyPatch :: AppM ()
-runMonkeyPatch = do
-  doc <- liftIO $ Text.XML.readFile def fileToParse
-  let mainCursor = fromDocument doc
-  -- scope for optimization: only call parseEventByType on existent EventTypes
-      allParsedEvents =
-        filter (not . null) $ concat $
-        parseEventByType mainCursor <$> allEventTypes
-      (Right objEvent) = head allParsedEvents
-      newObj = eventToNewObject objEvent
-  eventId <- eventCreateObject dummyUser newObj
-  liftIO $ print eventId
-  -- liftIO $ print objEvent
-
-  -- mapM_ (TL.putStrLn . TLE.decodeUtf8 . encodePretty) (rights allParsedEvents)
-
-
-eventToNewObject :: Event -> M.NewObject
-eventToNewObject
-  (Event evType mEid
-    (ObjectDWhat act epcs)
-    (DWhen tStamp _ tZone)
-    dwhy
-    dwhere) = do
-  let
-      labelEpc = head epcs
-      rPoint = head . _readPoint $ dwhere
-      eLocation = M.EventLocation rPoint rPoint (SDOwningParty, rPoint) (SDOwningParty, rPoint)
-      newObj = M.NewObject labelEpc tStamp tZone eLocation mEid
-  newObj
-
-
-
-
 
 -- -- TODO = fix... what is definition of hasSigned?
 -- eventUserList :: M.User -> EvId.EventID -> AppM [(M.User, Bool)]

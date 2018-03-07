@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
+-- | This module contains the helper functions that are used in error handling
 module ErrorUtils where
 
 import           AppConfig (AppM(..), AppError(..))
@@ -10,8 +11,9 @@ import           Control.Monad.Except (throwError, MonadError(..))
 import           Servant.Server
 import           Utils (toText)
 import           Database.PostgreSQL.Simple.Internal (SqlError(..))
-import           Data.ByteString (ByteString(..))
+import           Data.ByteString (ByteString)
 
+-- | Takes in a ServiceError and converts it to an HTTP error (eg. err400)
 appErrToHttpErr :: ServiceError -> Handler a
 appErrToHttpErr (EmailExists _ email) =
   throwError $ err400 {
@@ -39,22 +41,26 @@ appErrToHttpErr (InsertionFail _ email) =
   }
 appErrToHttpErr (InvalidKeyID _) =
   throwError $ err400 {
-    errBody = LBSC8.fromChunks $ ["Invalid Key ID entered."]
+    errBody = "Invalid Key ID entered."
   }
 
 appErrToHttpErr _ = throwError err500 {errBody = "The server did not understand this request."}
 
-
+-- | Takes in a function that can extract errorcode out of an error, the error
+-- itself and constructs a ``ServerError`` with it
 toServerError :: Show a => (a -> Maybe ErrorCode) -> a -> ServerError
 toServerError f e = ServerError (f e) (toText e)
 
+-- | Shorthand for ``toServerError``.
+-- Use if you can't think of a function to extract the error code
 defaultToServerError :: Show a => a -> ServerError
 defaultToServerError = toServerError (const Nothing)
 
+-- | Shorthand for only SqlError types
 sqlToServerError :: SqlError -> ServerError
 sqlToServerError = toServerError getSqlErrorCode
 
--- | Shorthand for throwing a Backend error
+-- | Shorthand for throwing a Generic Backend error
 throwBackendError :: (Show a) => a -> AppM b
 throwBackendError er = throwError $ AppError $ BackendErr $ toText er
 
@@ -63,9 +69,10 @@ throwBackendError er = throwError $ AppError $ BackendErr $ toText er
 throwAppError :: ServiceError -> AppM a
 throwAppError = throwError . AppError
 
+-- | Extracts error code from an ``SqlError``
 getSqlErrorCode :: SqlError -> Maybe ByteString
 getSqlErrorCode e@(SqlError _ _ _ _ _) = Just $ sqlState e
 
-
+-- | Shorthand for throwing ``UnexpectedDBError``
 throwUnexpectedDBError :: ServerError -> AppM a
 throwUnexpectedDBError = throwAppError . UnexpectedDBResponse

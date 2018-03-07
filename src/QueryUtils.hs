@@ -3,6 +3,9 @@
 -- | Following are a bunch of utility functions to do household stuff like
 -- generating primary keys, timestamps - stuff that almost every function
 -- below would need to do anyway
+-- functions that start with `insert` does some database operation
+-- functions that start with `to` converts between
+-- Model type and its Storage equivalent
 module QueryUtils where
 
 import           Data.Time.LocalTime (utc, utcToLocalTime
@@ -27,8 +30,12 @@ import           Data.GS1.DWhen (DWhen(..))
 import qualified Data.GS1.EventID as EvId
 import           Data.GS1.Event (Event(..), EventType(..),
                                 evTypeToTextLike, dwhatToEventTextLike)
-import           Utils (toText)
+import           Utils (toText, debugLog)
 import           Database.Beam as B
+import           Data.ByteString (ByteString)
+import           ErrorUtils (throwBackendError, throwAppError, toServerError
+                            , defaultToServerError, sqlToServerError
+                            , throwUnexpectedDBError)
 
 -- | Reads back the ``LocalTime`` in UTCTime (with an offset of 0)
 toEPCISTime :: LocalTime -> UTCTime
@@ -188,3 +195,146 @@ toStorageEvent :: SB.PrimaryKeyType
                -> SB.Event
 toStorageEvent pKey userId jsonEvent mEventId =
   SB.Event pKey (EvId.getEventId <$> mEventId) (SB.UserId userId) jsonEvent
+
+insertDWhat :: Maybe SB.PrimaryKeyType
+            -> Maybe SB.PrimaryKeyType
+            -> DWhat
+            -> SB.PrimaryKeyType
+            -> AppM SB.PrimaryKeyType
+insertDWhat mBizTranId mTranId dwhat eventId = do
+  pKey <- generatePk
+  mParentId <- getParentId dwhat
+  r <- runDb $ B.runInsert $ B.insert (SB._whats SB.supplyChainDb)
+             $ insertValues
+             [toStorageDWhat pKey mParentId mBizTranId mTranId eventId dwhat]
+  case r of
+    Left  e -> throwUnexpectedDBError $ sqlToServerError e
+    Right _ -> return pKey
+
+insertDWhen :: DWhen -> SB.PrimaryKeyType -> AppM SB.PrimaryKeyType
+insertDWhen dwhen eventId =  do
+  pKey <- generatePk
+  r <- runDb $ B.runInsert $ B.insert (SB._whens SB.supplyChainDb)
+             $ insertValues [toStorageDWhen pKey dwhen eventId]
+  case r of
+    Left  e -> throwUnexpectedDBError $ sqlToServerError e
+    Right _ -> return pKey
+
+
+insertDWhy :: DWhy -> SB.PrimaryKeyType -> AppM SB.PrimaryKeyType
+insertDWhy dwhy eventId = do
+  pKey <- generatePk
+  r <- runDb $ B.runInsert $ B.insert (SB._whys SB.supplyChainDb)
+             $ insertValues [toStorageDWhy pKey dwhy eventId]
+  case r of
+    Left  e -> throwUnexpectedDBError $ sqlToServerError e
+    Right _ -> return pKey
+
+insertSrcDestType :: SB.LocationField
+                  -> SB.PrimaryKeyType
+                  -> SrcDestLocation
+                  -> AppM SB.PrimaryKeyType
+insertSrcDestType
+  locField
+  eventId
+  (sdType, SGLN gs1Company (LocationReference locationRef) ext) = do
+  pKey <- generatePk
+  let
+      stWhere = SB.Where pKey
+                (Just . toText $ sdType)
+                locationRef
+                (toText locField)
+                (SB.EventId eventId)
+  r <- runDb $ B.runInsert $ B.insert (SB._wheres SB.supplyChainDb)
+             $ insertValues [stWhere]
+  case r of
+    Left  e -> do
+      debugLog "Woah"
+      throwUnexpectedDBError $ sqlToServerError e
+    Right _ -> return pKey
+
+insertLocationEPC :: SB.LocationField
+                  -> SB.PrimaryKeyType
+                  -> LocationEPC
+                  -> AppM SB.PrimaryKeyType
+insertLocationEPC
+  locField
+  eventId
+  (SGLN gs1Company (LocationReference locationRef) ext) = do
+  pKey <- generatePk
+  let
+      stWhere = SB.Where pKey
+                Nothing
+                locationRef
+                (toText locField)
+                (SB.EventId eventId)
+  r <- runDb $ B.runInsert $ B.insert (SB._wheres SB.supplyChainDb)
+             $ insertValues [stWhere]
+  case r of
+    Left  e -> throwUnexpectedDBError $ sqlToServerError e
+    Right _ -> return pKey
+
+-- | Maps the relevant insert function for all
+-- ReadPoint, BizLocation, Src, Dest
+insertDWhere :: DWhere -> SB.PrimaryKeyType -> AppM ()
+insertDWhere (DWhere rPoint bizLoc srcT destT) eventId = do
+  return $ insertLocationEPC SB.ReadPoint eventId <$> rPoint
+  return $ insertLocationEPC SB.BizLocation eventId <$> bizLoc
+  return $ insertSrcDestType SB.Src eventId <$> srcT
+  return $ insertSrcDestType SB.Dest eventId <$> destT
+  return ()
+
+insertEvent :: SB.PrimaryKeyType -> T.Text -> Event -> AppM SB.PrimaryKeyType
+insertEvent userId jsonEvent event = do
+  pKey <- generatePk
+  r <- runDb $ B.runInsert $ B.insert (SB._events SB.supplyChainDb)
+             $ insertValues
+             [toStorageEvent pKey userId jsonEvent (_eid event)]
+  case r of
+    Left  e -> throwUnexpectedDBError $ sqlToServerError e
+    Right _ -> return pKey
+
+insertUserEvent :: SB.PrimaryKeyType
+                -> SB.PrimaryKeyType
+                -> SB.PrimaryKeyType
+                -> Bool
+                -> (Maybe ByteString)
+                -> AppM ()
+insertUserEvent eventId userId addedByUserId signed signedHash = do
+  pKey <- generatePk
+  runDb $ B.runInsert $ B.insert (SB._user_events SB.supplyChainDb)
+        $ insertValues
+        [
+          SB.UserEvent pKey
+          (SB.EventId eventId)
+          (SB.UserId userId)
+          signed
+          (SB.UserId addedByUserId)
+          signedHash
+        ]
+  return ()
+
+insertWhatLabel :: SB.PrimaryKeyType
+                -> SB.PrimaryKeyType
+                -> AppM SB.PrimaryKeyType
+insertWhatLabel whatId labelId = do
+  pKey <- generatePk
+  runDb $ B.runInsert $ B.insert (SB._what_labels SB.supplyChainDb)
+        $ insertValues
+        [
+          SB.WhatLabel pKey
+          (SB.WhatId whatId)
+          (SB.LabelId labelId)
+        ]
+  return pKey
+
+insertLabel :: LabelEPC
+            -> Maybe T.Text
+            -> SB.PrimaryKeyType
+            -> AppM SB.PrimaryKeyType
+insertLabel labelEpc labelType whatId = do
+  pKey <- generatePk
+  runDb $ B.runInsert $ B.insert (SB._labels SB.supplyChainDb)
+        $ insertValues
+        [ epcToStorageLabel labelType whatId pKey labelEpc ]
+  return pKey
