@@ -95,7 +95,7 @@ runEventCreateObject xmlFile = do
         parseEventByType mainCursor <$> allEventTypes
       (Right objEvent) = head allParsedEvents
       newObj = M.mkObjectEvent objEvent
-  eventId <- insertObjectEvent dummyUser Add newObj
+  eventId <- insertObjectEvent dummyUser newObj
   liftIO $ print eventId
   -- liftIO $ print objEvent
   -- mapM_ (TL.putStrLn . TLE.decodeUtf8 . encodePretty) (rights allParsedEvents)
