@@ -9,27 +9,22 @@ import           BeamQueries
 import           QueryUtils
 import           Dummies
 import           Database.PostgreSQL.Simple
-import           Database.Beam.Backend.Types (Auto (..))
-import           Database.Beam.Backend.SQL.BeamExtensions
 import           Database.Beam
-import           Control.Lens
 
-import           Data.UUID (fromString, nil)
 import           Data.Maybe (fromJust, isNothing)
-import           Control.Monad.IO.Class
 import           Data.Either.Combinators
 import           Crypto.Scrypt
 
+-- import           Data.Text.Encoding (encodeUtf8)
 import           Data.ByteString (ByteString)
-import qualified Data.Text as T
+import           Data.ByteString.Lazy (toStrict)
 import           Data.Text.Encoding (encodeUtf8)
 import           Text.XML
 import           Text.XML.Cursor
 import           Data.GS1.Parser.Parser (parseEventByType)
 import           Data.GS1.Event (allEventTypes)
-import           Data.Either
 import           Data.GS1.EPC
-import qualified Data.GS1.Event as Ev
+-- import qualified Data.GS1.Event as Ev
 
 import           Utils
 import           AppConfig (runAppM, Env, AppM, runDb)
@@ -37,17 +32,12 @@ import qualified StorageBeam as SB
 import qualified Model as M
 
 
-import           Data.Text.Encoding (encodeUtf8)
-import           Crypto.Scrypt
-import           Data.Time.Clock (getCurrentTime, UTCTime (..), secondsToDiffTime)
-import           Data.Time.LocalTime (utc, utcToLocalTime, LocalTime, localTimeToUTC)
+-- import           Crypto.Scrypt
+import           Data.Time.Clock (getCurrentTime, UTCTime(..))
+import           Data.Time.LocalTime (utc, utcToLocalTime, LocalTime)
 import           CryptHash (getCryptoPublicKey)
 import           Data.Binary
-import           Data.ByteString.Lazy (toStrict)
 
-import           Data.GS1.EPC
-import           Data.GS1.DWhat
-import           Data.Time.Calendar (Day (..))
 
 -- NOTE in this file, where fromJust is used in the tests, it is because we expect a Just... this is part of the test
 -- NOTE tables dropped after every running of test in an "it"
