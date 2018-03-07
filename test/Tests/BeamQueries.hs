@@ -78,13 +78,17 @@ testQueries = do
                (M.userLastName u) == (M.lastName dummyNewUser))
 
   describe "Object Event" $ do
-    it "eventCreateObject" $ \(conn, env) -> do
-      eventId <- insertObjectEvent dummyUser Add dummyObjectEvent
+    it "Insert Object Event" $ \(conn, env) -> do
+      eventId <- fromRight' <$> (runAppM env $ insertObjectEvent dummyUser dummyObjectEvent)
+      insertedEvent <- fromRight' <$> (runAppM env $ findEvent eventId)
+      (fromJust insertedEvent) `shouldSatisfy`
+        (\ev -> ev == dummyEvent)
 
-      debugLog "aaaa"
-      -- 1 `shouldBe` 1
-
-
+    it "List event" $ \(conn, env) -> do
+      eventId <- fromRight' <$> (runAppM env $ insertObjectEvent dummyUser dummyObjectEvent)
+      insertedEvent <- fromRight' <$> (runAppM env $ findEvent eventId)
+      eventList <- fromRight' <$> (runAppM env $ listEvents dummyLabelEpc)
+      eventList `shouldBe` [fromJust insertedEvent]
 
 runEventCreateObject :: FilePath -> AppM ()
 runEventCreateObject xmlFile = do
