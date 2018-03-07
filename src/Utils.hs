@@ -22,5 +22,14 @@ debugLogGeneral :: (Show a, MonadIO f) => EnvType -> a -> f ()
 debugLogGeneral envT strLike = do
   when (envT == Dev) $ liftIO $ putStrLn$ show strLike
 
+bun :: String
+bun = "========================"
+
+sandwichLog :: Show a => a -> AppM ()
+sandwichLog patty = do
+  debugLog bun
+  debugLog patty
+  debugLog bun
+
 toText :: Show a => a -> T.Text
 toText = T.pack . show
