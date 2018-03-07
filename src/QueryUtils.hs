@@ -170,6 +170,7 @@ grabInstLabelId cp sn msfv mir mat = do
             SB.asset_type labels ==. val_ mat &&.
             SB.item_reference labels ==. val_ mir)
     pure labels
+  sandwichLog r
   case r of
     Right [l] -> return $ Just (SB.label_id l)
     _         -> return Nothing
