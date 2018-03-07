@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 
--- | Contains sample objects
+-- | Sample data types. Serves as a good example of the types defined
+-- in GS1Combinators
 module Dummies where
 
 import           Data.UUID (nil)
@@ -28,9 +29,14 @@ dummyObjectDWhat =
   ObjectDWhat
     Add
     [
-      IL (SGTIN "0614141" Nothing "107346" "2017"),
+      dummyLabelEpc,
       IL (SGTIN "0614141" Nothing "107346" "2018")
     ]
+
+-- add function to generate and take dummyLabelEpc
+
+dummyLabelEpc :: LabelEPC
+dummyLabelEpc = IL (SGTIN "0614141" Nothing "107346" "2017")
 
 dummyDWhen :: DWhen
 dummyDWhen = DWhen
