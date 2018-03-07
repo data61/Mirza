@@ -8,6 +8,7 @@ import qualified Model as M
 import           GHC.Generics (Generic)
 import qualified Data.Text as T
 import qualified Data.ByteString as BS
+import           Data.GS1.EventID
 
 type ErrorText = T.Text
 type ErrorCode = BS.ByteString
@@ -19,7 +20,7 @@ data ServerError = ServerError (Maybe ErrorCode) ErrorText
 data ServiceError = NeedMoreSignatures ServerError T.Text
                   | InvalidSignature ServerError BS.ByteString
                   | BlockchainSendFailed ServerError
-                  | InvalidEventID ServerError Int
+                  | InvalidEventID EventID
                   | InvalidKeyID M.KeyID
                   | InvalidUserID M.UserID
                   | InsertionFail ServerError T.Text

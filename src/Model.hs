@@ -26,6 +26,8 @@ import           Data.GS1.DWhere
 import           Data.GS1.DWhat
 import           Data.UUID (UUID)
 import           StorageBeam (PrimaryKeyType)
+import           OpenSSL.RSA (RSAPubKey)
+import           OpenSSL.EVP.Digest (Digest)
 
 type UserID = PrimaryKeyType
 
@@ -61,7 +63,7 @@ type JSONTxt = T.Text
 -- A signature is an EventHash that's been
 -- signed by one of the parties involved in the
 -- event.
-newtype Signature = Signature String
+newtype Signature = Signature ByteString
   deriving (Generic, Show, Read, Eq)
 $(deriveJSON defaultOptions ''Signature)
 instance ToSchema Signature
@@ -72,10 +74,14 @@ instance ToSchema Signature
 -- instance Sql.ToRow Signature where
 --   toRow (Signature s) = toRow $ Only s
 
+
+-- XXX check this
+type PEMString = String
+
 data RSAPublicKey = RSAPublicKey
   {
-    rsa_public_n :: Integer,
-    rsa_public_e :: Integer
+    rsaPubKey :: PEMString,
+    digest :: Digest
   }
   deriving (Show, Read, Eq, Generic)
 -- These are orphaned instances
@@ -216,10 +222,17 @@ $(deriveJSON defaultOptions ''TransactionInfo)
 instance ToSchema TransactionInfo
 
 
+data Digest = SHA256 | SHA384 | SHA512
+  deriving (Show, Generic)
+$(deriveJSON defaultOptions ''Digest)
+instance ToSchema Digest
+
+
 data SignedEvent = SignedEvent {
   signed_eventID :: EventID,
-  signed_keyID :: Integer,
-  signed_signature :: Signature
+  signed_keyID :: KeyID,
+  signed_signature :: Signature,
+  signed_digest :: Digest
 } deriving (Generic)
 $(deriveJSON defaultOptions ''SignedEvent)
 instance ToSchema SignedEvent
