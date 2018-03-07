@@ -31,7 +31,7 @@ import           Data.GS1.DWhere (DWhere(..), SrcDestLocation)
 import           Data.GS1.DWhen (DWhen(..))
 import qualified Data.GS1.EventID as EvId
 import qualified Data.GS1.Event as Ev
-import           Utils (toText, debugLog)
+import           Utils
 import           Database.Beam as B
 import           Data.ByteString (ByteString)
 import qualified Model as M
