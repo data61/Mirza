@@ -23,7 +23,7 @@ import           Data.GS1.DWhere (DWhere(..), SrcDestLocation)
 import           Data.GS1.DWhen (DWhen(..))
 import qualified Data.GS1.EventID as EvId
 import           Data.GS1.Event (Event(..), EventType(..))
-import           Utils (debugLog, toText)
+import           Utils
 import           QueryUtils
 import           Errors (ServiceError(..), ServerError(..))
 import           ErrorUtils (throwBackendError, throwAppError, toServerError
