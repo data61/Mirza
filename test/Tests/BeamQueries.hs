@@ -29,6 +29,7 @@ import           Data.GS1.Parser.Parser (parseEventByType)
 import           Data.GS1.Event (allEventTypes)
 import           Data.Either
 import           Data.GS1.EPC
+import qualified Data.GS1.Event as Ev
 
 import           Utils
 import           AppConfig (runAppM, Env, AppM, runDb)
