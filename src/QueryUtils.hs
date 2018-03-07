@@ -155,6 +155,10 @@ findInstLabelId (SSCC cp sn) = grabInstLabelId cp sn Nothing Nothing Nothing
 findInstLabelId (SGTIN cp msfv ir sn) = grabInstLabelId cp sn msfv (Just ir) Nothing
 findInstLabelId (GRAI cp at sn) = grabInstLabelId cp sn Nothing Nothing (Just at)
 
+
+-- | FIXME
+-- (==.) generates a query that includes filter_value = null
+-- which should be filter_value is NULL
 grabInstLabelId :: GS1CompanyPrefix
                 -> SerialNumber
                 -> Maybe SGTINFilterValue
