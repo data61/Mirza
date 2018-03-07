@@ -28,17 +28,6 @@
 -- in MigrateScript
 module StorageBeam where
 
--- @todo: Write a set of instructions to follow when changing anything in a
--- table definition
-{-
-1. convert all table definitions to under_score case
-2. make the schema definitions consistent with the table definitions
-3. for each primaryKey = .+Id \. .* (this is a regex), make the relevant change (eg. _itemId becomes item_id)
-4. For each foreign key, make changes that appear similar to the changes made to UserT table
-5. Do it for each of the tables
-VSCode shortcut for multi-line cursors: Ctrl+Shift+Up/Down
--}
-
 import           Control.Lens
 import           Database.Beam as B
 import           Database.Beam.Postgres
@@ -73,6 +62,10 @@ type PrimaryKeyType = UUID
 --   parseUrlPiece t = error $ show t ++ " parseUP"
 --   parseQueryParam t = error $ show t ++ " parseQP"
 
+-- | The generic implementation of fromField
+-- If it's a fromField used for ``SomeCustomType``, sample usage would be
+-- instance FromField SomeCustomType where
+--   fromField = defaultFromField "SomeCustomType"
 defaultFromField :: (Typeable b, Read b) => String
                  -> Field
                  -> Maybe ByteString
@@ -108,7 +101,6 @@ instance Table UserT where
   data PrimaryKey UserT f = UserId (C f PrimaryKeyType)
     deriving Generic
   primaryKey = UserId . user_id
--- added by Matt
 deriving instance Eq (PrimaryKey UserT Identity)
 
 data KeyT f = Key
@@ -131,7 +123,6 @@ instance Table KeyT where
   data PrimaryKey KeyT f = KeyId (C f PrimaryKeyType)
     deriving Generic
   primaryKey = KeyId . key_id
--- added by Matt
 deriving instance Eq (PrimaryKey KeyT Identity)
 
 -- CBV-Standard-1-2-r-2016-09-29.pdf Page 11
@@ -158,7 +149,6 @@ instance Table BusinessT where
   data PrimaryKey BusinessT f = BizId (C f EPC.GS1CompanyPrefix)
     deriving Generic
   primaryKey = BizId . biz_gs1_company_prefix
--- added by Matt
 deriving instance Eq (PrimaryKey BusinessT Identity)
 
 data ContactT f = Contact
@@ -210,7 +200,6 @@ instance Table LabelT where
   data PrimaryKey LabelT f = LabelId (C f PrimaryKeyType)
     deriving Generic
   primaryKey = LabelId . label_id
--- added by Matt
 deriving instance Eq (PrimaryKey LabelT Identity)
 
 data WhatLabelT f = WhatLabel
@@ -273,7 +262,6 @@ instance Table TransformationT where
   data PrimaryKey TransformationT f = TransformationId (C f PrimaryKeyType)
     deriving Generic
   primaryKey = TransformationId . transformation_id
--- added by Matt
 deriving instance Eq (PrimaryKey TransformationT Identity)
 
 data LocationT f = Location
@@ -297,7 +285,6 @@ instance Table LocationT where
   data PrimaryKey LocationT f = LocationId (C f Text)
     deriving Generic
   primaryKey = LocationId . location_id
--- added by Matt
 
 data EventT f = Event
   { event_id                    :: C f PrimaryKeyType
@@ -319,7 +306,6 @@ instance Table EventT where
   data PrimaryKey EventT f = EventId (C f PrimaryKeyType)
     deriving Generic
   primaryKey = EventId . event_id
--- added by Matt
 deriving instance Eq (PrimaryKey EventT Identity)
 
 data WhatT f = What
@@ -345,7 +331,6 @@ instance Table WhatT where
   data PrimaryKey WhatT f = WhatId (C f PrimaryKeyType)
     deriving Generic
   primaryKey = WhatId . what_id
--- added by Matt
 deriving instance Eq (PrimaryKey WhatT Identity)
 
 
@@ -371,7 +356,6 @@ instance Table BizTransactionT where
   data PrimaryKey BizTransactionT f = BizTransactionId (C f PrimaryKeyType)
     deriving Generic
   primaryKey = BizTransactionId . biz_transaction_id
--- added by Matt
 deriving instance Eq (PrimaryKey BizTransactionT Identity)
 
 data WhyT f = Why
@@ -470,7 +454,6 @@ instance Table LabelEventT where
   primaryKey = LabelEventId . label_event_id
 
 
--- ADDITIONAL TABLES
 data UserEventT f = UserEvent
   { user_events_id         :: C f PrimaryKeyType
   , user_events_event_id   :: PrimaryKey EventT f
@@ -543,7 +526,6 @@ instance Table BlockChainT where
     deriving Generic
   primaryKey = BlockChainId . blockchain_id
 
--- END OF ADDITIONAL TABLES
 
 data SupplyChainDb f = SupplyChainDb
   { _users           :: f (TableEntity UserT)
@@ -569,6 +551,8 @@ data SupplyChainDb f = SupplyChainDb
   deriving Generic
 instance Database SupplyChainDb
 
+-- | Everything that comes after ``withDbModification`` is primarily
+-- foreign keys that have been forced to retain their own names
 supplyChainDb :: DatabaseSettings be SupplyChainDb
 supplyChainDb = defaultDbSettings
   `withDbModification`
