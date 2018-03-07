@@ -21,14 +21,14 @@ library
                     , Model
                     , StorageBeam
                     , AppConfig
-                    , CryptHash
+                    , Dummies
                     , QueryUtils
+                    , Utils
+                    , CryptHash
   other-modules:      API
                     , Service
-                    --, QueryUtils
                     , MigrateUtils
                     , MigrateScript
-                    , Utils
                     , Errors
                     , ErrorUtils
   build-depends:      base >= 4.7 && < 5
@@ -62,6 +62,8 @@ library
                     , beam-core
                     , beam-postgres
                     , time
+                    , beam-migrate
+                    , hspec
                     , optparse-applicative
                     , base >=4.7 && <4.11
                     , http-types == 0.9.*
@@ -109,6 +111,7 @@ test-suite supplyChainServer-test
                      , bytestring
                      , hspec-wai
                      , hspec-wai-json
+                     , xml-conduit
                      , aeson
                      , servant-server
                      , servant-swagger
