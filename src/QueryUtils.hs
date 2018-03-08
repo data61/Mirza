@@ -28,8 +28,7 @@ import           Data.GS1.DWhy (DWhy(..))
 import           Data.GS1.DWhere (DWhere(..), SrcDestLocation)
 import           Data.GS1.DWhen (DWhen(..))
 import qualified Data.GS1.EventID as EvId
-import           Data.GS1.Event (Event(..), EventType(..),
-                                evTypeToTextLike, dwhatToEventTextLike)
+import           Data.GS1.Event (Event(..), EventType(..), getEventType)
 import           Utils (toText, debugLog)
 import           Database.Beam as B
 import           Data.ByteString (ByteString)
@@ -128,7 +127,7 @@ toStorageDWhat :: SB.PrimaryKeyType
                -> SB.What
 toStorageDWhat pKey mParentId mBizTranId mTranId eventId dwhat
    = SB.What pKey
-            (Just $ dwhatToEventTextLike dwhat)
+            (Just $ getEventType dwhat)
             (toText <$> getAction dwhat)
             (SB.LabelId mParentId)
             (SB.BizTransactionId mBizTranId)
