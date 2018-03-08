@@ -31,7 +31,6 @@ import           AppConfig (runAppM, Env, AppM, runDb)
 import qualified StorageBeam as SB
 import qualified Model as M
 
-
 -- import           Crypto.Scrypt
 import           Data.Time.Clock (getCurrentTime, UTCTime(..))
 import           Data.Time.LocalTime (utc, utcToLocalTime, LocalTime)
@@ -66,6 +65,12 @@ selectKey keyId = do
 
 testQueries :: SpecWith (Connection, Env)
 testQueries = do
+  -- describe "Minimal example of dealing with time in Beam" $ do
+  --   it "Inserting and Returning time" $ \(conn, env) -> do
+  --     val <- fromRight' <$> (runAppM env $ insertTime)
+  --     val `shouldSatisfy` (\_ -> True)
+  --     val `shouldBe` ()
+
   describe "newUser tests" $ do
     it "newUser test 1" $ \(conn, env) -> do
       hash <- hashIO
