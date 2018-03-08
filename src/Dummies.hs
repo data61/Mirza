@@ -11,9 +11,15 @@ import           Data.GS1.DWhy
 import           Data.GS1.DWhere
 import           Data.GS1.DWhen
 import           Data.GS1.EPC
+import           AppConfig (AppM(..))
 import qualified Data.GS1.Event as Ev
 import           Data.Time.LocalTime
 import           Data.Time
+import           Text.XML
+import           Text.XML.Cursor
+import           Data.GS1.Parser.Parser (parseEventByType)
+import           Control.Monad.Reader (liftIO)
+import qualified BeamQueries as BQ
 
 dummyNewUser :: M.NewUser
 dummyNewUser = M.NewUser "000" "fake@gmail.com" "Bob" "Smith" "blah Ltd" "password"
@@ -71,7 +77,17 @@ dummyEvent =
 dummyObjectEvent :: M.ObjectEvent
 dummyObjectEvent = M.mkObjectEvent dummyEvent
 
-
 dummyRsaPubKey :: M.RSAPublicKey
 dummyRsaPubKey = M.RSAPublicKey 3 5
 
+runEventCreateObject :: FilePath -> AppM ()
+runEventCreateObject xmlFile = do
+  doc <- liftIO $ Text.XML.readFile def xmlFile
+  let mainCursor = fromDocument doc
+      allParsedEvents =
+        filter (not . null) $ concat $
+        parseEventByType mainCursor <$> Ev.allEventTypes
+      (Right objEvent) = head allParsedEvents
+      newObj = M.mkObjectEvent objEvent
+  eventId <- BQ.insertObjectEvent dummyUser newObj
+  liftIO $ print eventId

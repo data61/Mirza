@@ -19,9 +19,6 @@ import           Crypto.Scrypt
 import           Data.ByteString (ByteString)
 import           Data.ByteString.Lazy (toStrict)
 import           Data.Text.Encoding (encodeUtf8)
-import           Text.XML
-import           Text.XML.Cursor
-import           Data.GS1.Parser.Parser (parseEventByType)
 import           Data.GS1.Event (allEventTypes)
 import           Data.GS1.EPC
 -- import qualified Data.GS1.Event as Ev
@@ -162,7 +159,6 @@ testQueries = do
       eventList `shouldBe` [fromJust insertedEvent]
 
 
-
   describe "getUser tests" $ do
     it "getUser test 1" $ \(conn, env) -> do
       uid <- fromRight' <$> (runAppM env $ newUser dummyNewUser)
@@ -203,18 +199,3 @@ testQueries = do
   -- describe "insertUserEvent tests" $ do
   --   it "insertUserEvent test 1" $ \(conn, env) -> do
   --     1 `shouldBe` 1
-
-runEventCreateObject :: FilePath -> AppM ()
-runEventCreateObject xmlFile = do
-  doc <- liftIO $ Text.XML.readFile def xmlFile
-  let mainCursor = fromDocument doc
-      allParsedEvents =
-        filter (not . null) $ concat $
-        parseEventByType mainCursor <$> allEventTypes
-      (Right objEvent) = head allParsedEvents
-      newObj = M.mkObjectEvent objEvent
-  eventId <- insertObjectEvent dummyUser newObj
-  liftIO $ print eventId
-  -- liftIO $ print objEvent
-  -- mapM_ (TL.putStrLn . TLE.decodeUtf8 . encodePretty) (rights allParsedEvents)
-

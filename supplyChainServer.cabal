@@ -111,7 +111,6 @@ test-suite supplyChainServer-test
                      , bytestring
                      , hspec-wai
                      , hspec-wai-json
-                     , xml-conduit
                      , aeson
                      , servant-server
                      , servant-swagger
