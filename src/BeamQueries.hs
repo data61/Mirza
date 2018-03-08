@@ -238,24 +238,26 @@ eventCreateObject
 --   package <- createBlockchainPackage eventID
 --   liftIO $ sendToBlockchain package
 
--- addContacts :: M.User -> M.UserID -> IO Bool
--- addContacts  (M.User uid1 _ _) uid2 = do
---   [rowID] <- runDb $ runInsertReturningList $
---              (_contacts supplyChainDb) $
---                insertValues [(Contact (Auto Nothing) uid1 uid2)]
---   return (fromIntegral (_contactId rowID) > 0)
+addContacts :: M.User -> M.UserID -> AppM Bool
+addContacts  (M.User uid1 _ _) uid2 = do
+  pKey <- generatePk
+  r <- runDb $ runInsertReturningList (SB._contacts SB.supplyChainDb) $
+               insertValues [SB.Contact pKey (SB.UserId uid1) (SB.UserId uid2)]
+  case r of
+    Right [_] -> return True
+    Left  _   -> return False
 
--- -- don't return whether success/failure anymore since no Beam function to help
--- removeContacts :: M.User -> M.UserID -> IO ()
--- removeContacts  (M.User uid1 _ _) uid2 = do
---   runDb $
---     runDelete $
---     delete (_contacts supplyChainDb)
---            (\contact -> _contactUser1Id contact ==. uid1 &&.
---                         _contactUser2Id contact ==. uid2)
---   return ()
-
-
+removeContacts :: M.User -> M.UserID -> AppM Bool
+removeContacts  (M.User uid1 _ _) uid2 = do
+  r <- runDb $
+    runDelete $
+    delete (SB._contacts SB.supplyChainDb)
+           (\contact ->
+             SB.contact_user1_id contact ==. (val_ $ SB.UserId uid1) &&.
+             SB.contact_user2_id contact ==. (val_ $ SB.UserId uid2))
+  case r of
+    Right _ -> return True
+    Left e  -> return False -- log ``e``
 
 -- -- TODO - convert these below functions, and others in original file Storage.hs
 

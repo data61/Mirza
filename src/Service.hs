@@ -183,14 +183,10 @@ contactsInfo user = error "Storage module not implemented"
 
 
 contactsAdd :: User -> UserID -> AC.AppM Bool
--- contactsAdd user userId = liftIO (Storage.addContacts user userId)
-contactsAdd user userId = error "Storage module not implemented"
-
+contactsAdd = BQ.addContacts
 
 contactsRemove :: User -> UserID -> AC.AppM Bool
--- contactsRemove user userId = liftIO (Storage.removeContacts user userId)
-contactsRemove user userId = error "Storage module not implemented"
-
+contactsRemove = BQ.removeContacts
 
 -- Given a search term, search the users contacts for a user matching
 -- that term
