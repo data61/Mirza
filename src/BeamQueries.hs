@@ -7,6 +7,7 @@ module BeamQueries where
 import           Data.GS1.Parser.Parser
 import qualified Model as M
 import qualified StorageBeam as SB
+import           CryptHash (getCryptoPublicKey)
 import           Data.ByteString (ByteString)
 import           Crypto.Scrypt
 import           Data.Text.Encoding
@@ -16,15 +17,20 @@ import           Database.Beam.Backend.SQL.BeamExtensions
 import           AppConfig (AppM, runDb, AppError(..))
 import           Control.Monad.Except (throwError)
 import qualified Data.Text as T
-import           Data.GS1.EPC
+import qualified Data.GS1.EPC as EPC
 import           Data.GS1.DWhat (DWhat(..), LabelEPC(..))
 import           Data.GS1.DWhy (DWhy(..))
 import           Data.GS1.DWhere (DWhere(..), SrcDestLocation)
 import           Data.GS1.DWhen (DWhen(..))
 import qualified Data.GS1.EventID as EvId
 import           Data.GS1.Event (Event(..), EventType(..))
-import           Utils (debugLog, toText)
+import           Utils
 import           QueryUtils
+import           Codec.Crypto.RSA (PublicKey (..))
+--import           Codec.Crypto.RSA.Pure (PublicKey (..))
+--import           Data.Binary.Binary (PublicKey (..))
+import           Data.Binary
+import           Data.ByteString.Lazy (toStrict, fromStrict)
 import           Errors (ServiceError(..), ServerError(..))
 import           ErrorUtils (throwBackendError, throwAppError, toServerError
                             , defaultToServerError, sqlToServerError
@@ -88,20 +94,21 @@ authCheck email password = do
 -- execute conn "INSERT INTO Users (bizID, firstName, lastName, phoneNumber, passwordHash, emailAddress) VALUES (?, ?, ?, ?, ?, ?);" (biz, first, last, phone, getEncryptedPass hash, email)
 -- execute conn "INSERT INTO Keys (userID, rsa_n, rsa_e, creationTime) values (?, ?, ?, ?);" (uid, n, e, timestamp)
 addPublicKey :: M.User -> M.RSAPublicKey-> AppM M.KeyID
-addPublicKey (M.User uid _ _)  (M.RSAPublicKey rsa_n rsa_e) = do
+addPublicKey (M.User uid _ _) pubKey = do
   keyId <- generatePk
   timeStamp <- generateTimeStamp
+  debugLog "The program did not crash yet"
   r <- runDb $ runInsertReturningList (SB._keys SB.supplyChainDb) $
                insertValues
                [
-                 (
-                   SB.Key keyId (SB.UserId uid)
-                   (T.pack $ show rsa_n)
-                   (T.pack $ show rsa_e)
+                 SB.Key
+                   keyId
+                   (SB.UserId uid)
+                   (toStrict . encode . getCryptoPublicKey $ pubKey) --(runPut $ put $ getCryptoPublicKey pubKey)
                    timeStamp
                    Nothing
-                 )
                ]
+  debugLog "Done with the query"
   case r of
     Right [rowId] -> return (SB.key_id rowId)
     Right _       -> throwAppError $ InvalidKeyID keyId
@@ -115,9 +122,11 @@ getPublicKey keyId = do
     pure allKeys
 
   case r of
-    Right [k] ->
-        return $ M.RSAPublicKey
-          (read $ T.unpack $ SB.rsa_n k) (read $ T.unpack $ SB.rsa_e k)
+    -- Right [(keyId, uid, rsa_n, rsa_e, creationTime, revocationTime)] ->
+    Right [k] -> do
+        pubKey <- return $ ((decode $ fromStrict $ SB.rsa_public_pkcs8 k) :: PublicKey) -- $ SB.rsa_public_pkcs8 k
+        --return $ M.RSAPublicKey (read $ T.unpack $ SB.rsa_n k) (read $ T.unpack $ SB.rsa_e k)
+        return $ M.RSAPublicKey (public_n pubKey) (public_e pubKey)
     Right _ -> throwAppError $ InvalidKeyID keyId
     Left e  -> throwUnexpectedDBError $ sqlToServerError e
 
@@ -129,7 +138,7 @@ getPublicKeyInfo keyId = do
     pure allKeys
 
   case r of
-    Right [(SB.Key _ (SB.UserId uId) _ _ creationTime revocationTime)] ->
+    Right [(SB.Key _ (SB.UserId uId) _ creationTime revocationTime)] ->
        return $ M.KeyInfo uId
                 (toEPCISTime creationTime)
                 (toEPCISTime <$> revocationTime)
@@ -148,20 +157,25 @@ getUser email = do
     Left e    -> throwUnexpectedDBError $ sqlToServerError e
     _         -> throwBackendError r
 
-eventCreateObject :: M.User -> M.NewObject -> AppM SB.PrimaryKeyType
-eventCreateObject
+insertObjectEvent :: M.User
+                  -> M.ObjectEvent
+                  -> AppM SB.PrimaryKeyType
+insertObjectEvent
   (M.User userId _ _ )
-  (M.NewObject labelEpc epcisTime timezone
-      (M.EventLocation rp bizL src dest) mEventId) = do
+  (M.ObjectEvent
+    foreignEventId
+    act
+    labelEpcs
+    dwhen dwhy dwhere
+  ) = do
 
   currentTime <- generateTimeStamp
   let
       eventType = ObjectEventT
-      dwhat =  ObjectDWhat Add [labelEpc]
-      dwhere = DWhere [rp] [bizL] [src] [dest]
-      dwhy  =  DWhy (Just CreatingClassInstance) (Just Active)
-      dwhen = DWhen epcisTime (Just $ toEPCISTime currentTime) timezone
-      foreignEventId = mEventId
+      dwhat =  ObjectDWhat act labelEpcs
+      -- dwhere = DWhere [rp] [bizL] [src] [dest]
+      -- dwhy  =  DWhy (Just CreatingClassInstance) (Just Active)
+      -- dwhen = DWhen epcisTime (Just $ toEPCISTime currentTime) timezone
       event = Event eventType foreignEventId dwhat dwhen dwhy dwhere
       jsonEvent = encodeEvent event
 
@@ -169,12 +183,13 @@ eventCreateObject
 
   eventId <- insertEvent userId jsonEvent event
   whatId <- insertDWhat Nothing Nothing dwhat eventId
-  labelId <- insertLabel labelEpc Nothing whatId
+  labelIds <- mapM (insertLabel Nothing whatId) labelEpcs
   whenId <- insertDWhen dwhen eventId
   whyId <- insertDWhy dwhy eventId
   insertDWhere dwhere eventId
   insertUserEvent eventId userId userId False Nothing
-  insertWhatLabel whatId labelId
+  mapM (insertWhatLabel whatId) labelIds
+  mapM (insertLabelEvent eventId) labelIds
 
   endTransaction
 
@@ -184,6 +199,14 @@ eventCreateObject
 
   return eventId
 
+listEvents :: LabelEPC -> AppM [Event]
+listEvents labelEpc = do
+  labelId <- findLabelId labelEpc
+  case getEventList <$> labelId of
+    Nothing     -> return []
+    Just evList -> evList
+
+  -- error "not implemented yet"
 -- -- TODO = fix... what is definition of hasSigned?
 -- eventUserList :: M.User -> EvId.EventID -> AppM [(M.User, Bool)]
 -- eventUserList  (M.User uid _ _ ) eventID = do

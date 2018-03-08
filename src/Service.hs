@@ -16,8 +16,6 @@
 -- light wrappers around functions in BeamQueries
 module Service where
 
-import           Model
-import           API
 
 import           GHC.TypeLits (KnownSymbol)
 
@@ -43,14 +41,18 @@ import           Control.Lens       hiding ((.=))
 import           Control.Monad.Except (runExceptT)
 import qualified Control.Exception.Lifted as ExL
 import           Control.Monad.Trans.Except
-import qualified Model as M
 import           Data.UUID.V4
-import qualified BeamQueries as BQ
-import qualified AppConfig as AC
+import           Data.Text (pack)
 import           Control.Monad.Reader   (MonadReader, ReaderT, runReaderT,
                                          asks, ask, liftIO)
+
+-- import qualified Model as M
+import qualified AppConfig as AC
+import qualified BeamQueries as BQ
 import           Utils (debugLog, debugLogGeneral)
-import           ErrorUtils (appErrToHttpErr)
+import           ErrorUtils (appErrToHttpErr, throwParseError)
+import           Model as M
+import           API
 import qualified StorageBeam as SB
 
 instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub) where
@@ -99,7 +101,7 @@ privateServer user =
         :<|> eventUserList user
         :<|> eventSign user
         :<|> eventHashed user
-        :<|> eventCreateObject user
+        :<|> objectEvent user
         :<|> eventAggregateObjects user
         :<|> eventDisaggregateObjects user
         :<|> eventStartTransaction user
@@ -146,13 +148,13 @@ getPublicKeyInfo :: KeyID -> AC.AppM KeyInfo
 getPublicKeyInfo = BQ.getPublicKeyInfo
 
 -- PSUEDO:
--- In BeamQueries, implement a function getLabelIDState :: EPCUrn -> IO (_labelID, State)
+-- In BeamQueries, implement a function getLabelIDState :: LabelEPCUrn -> IO (_labelID, State)
 -- use readLabelEPC in EPC.hs to do it.
 -- SELECT * FROM Labels WHERE _labelGs1CompanyPrefix=gs1CompanyPrefix AND _labelType=type AND ...
 
 -- PSUEDO:
 -- Use getLabelIDState
-epcState :: User ->  EPCUrn -> AC.AppM EPCState
+epcState :: User ->  M.LabelEPCUrn -> AC.AppM EPCState
 epcState user str = return New
 
 -- This takes an EPC urn,
@@ -162,8 +164,11 @@ epcState user str = return New
 -- (labelID, _) <- getLabelIDState
 -- wholeEvents <- select * from events, dwhats, dwhy, dwhen where _whatItemID=labelID AND _eventID=_whatEventID AND _eventID=_whenEventID AND _eventID=_whyEventID ORDER BY _eventTime;
 -- return map constructEvent wholeEvents
-listEvents :: User ->  EPCUrn -> AC.AppM [Event]
-listEvents user urn = return []
+listEvents :: User ->  M.LabelEPCUrn -> AC.AppM [Event]
+listEvents user urn =
+  case (urn2LabelEPC . pack $ urn) of
+    Left e -> throwParseError e
+    Right labelEpc -> BQ.listEvents labelEpc
 
 
 -- given an event ID, list all the users associated with that event
@@ -232,9 +237,8 @@ eventHashed user eventID = do
     -}
 
 -- Return the json encoded copy of the event
-eventCreateObject :: User -> NewObject -> AC.AppM SB.PrimaryKeyType
-eventCreateObject = BQ.eventCreateObject --error "Storage module not implemented"
-  -- liftIO (Storage.eventCreateObject user newObject)
+objectEvent :: User -> ObjectEvent -> AC.AppM SB.PrimaryKeyType
+objectEvent = BQ.insertObjectEvent
 
 eventAggregateObjects :: User -> AggregatedObject -> AC.AppM Event
 eventAggregateObjects user aggObject = liftIO sampleEvent
