@@ -449,20 +449,20 @@ storageToModelEvent = decodeEvent . SB.json_event
 
 
 -- | This is a test util to check that BEAM can insert and return time
-insertTime :: AppM ()
-insertTime = do
-  timeId <- generatePk
-  timeStamp <- generateTimeStamp
-  sandwichLog timeStamp
-  debugLog ("The program did not crash yet" )
-  r <- runDb $
-        runInsertReturningList (SB._my_time SB.supplyChainDb) $
-               insertValues
-               [
-                 SB.MyTime
-                 timeId
-                 timeStamp
-               ]
-  debugLog "Done with the query"
-  sandwichLog r
+-- insertTime :: AppM ()
+-- insertTime = do
+--   timeId <- generatePk
+--   timeStamp <- generateTimeStamp
+--   sandwichLog timeStamp
+--   debugLog ("The program did not crash yet" )
+--   r <- runDb $
+--         runInsertReturningList (SB._my_time SB.supplyChainDb) $
+--                insertValues
+--                [
+--                  SB.MyTime
+--                  timeId
+--                  timeStamp
+--                ]
+--   debugLog "Done with the query"
+--   sandwichLog r
 
