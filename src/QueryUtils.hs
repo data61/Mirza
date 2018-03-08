@@ -150,22 +150,22 @@ getAction (AggregationDWhat act _ _) = Just act
 
 
 findInstLabelId :: InstanceLabelEPC -> AppM (Maybe SB.PrimaryKeyType)
-findInstLabelId (GIAI cp sn) = grabInstLabelId cp sn Nothing Nothing Nothing
-findInstLabelId (SSCC cp sn) = grabInstLabelId cp sn Nothing Nothing Nothing
-findInstLabelId (SGTIN cp msfv ir sn) = grabInstLabelId cp sn msfv (Just ir) Nothing
-findInstLabelId (GRAI cp at sn) = grabInstLabelId cp sn Nothing Nothing (Just at)
+findInstLabelId (GIAI cp sn) = findInstLabelId' cp sn Nothing Nothing Nothing
+findInstLabelId (SSCC cp sn) = findInstLabelId' cp sn Nothing Nothing Nothing
+findInstLabelId (SGTIN cp msfv ir sn) = findInstLabelId' cp sn msfv (Just ir) Nothing
+findInstLabelId (GRAI cp at sn) = findInstLabelId' cp sn Nothing Nothing (Just at)
 
 
 -- | FIXME
 -- (==.) generates a query that includes filter_value = null
 -- which should be filter_value is NULL
-grabInstLabelId :: GS1CompanyPrefix
+findInstLabelId' :: GS1CompanyPrefix
                 -> SerialNumber
                 -> Maybe SGTINFilterValue
                 -> Maybe ItemReference
                 -> Maybe AssetType
                 -> AppM (Maybe SB.PrimaryKeyType)
-grabInstLabelId cp sn msfv mir mat = do
+findInstLabelId' cp sn msfv mir mat = do
   r <- runDb $ runSelectReturningList $ select $ do
     labels <- all_ (SB._labels SB.supplyChainDb)
     guard_ (SB.label_gs1_company_prefix labels ==. val_ cp &&.
@@ -181,15 +181,15 @@ grabInstLabelId cp sn msfv mir mat = do
 
 
 findClassLabelId :: ClassLabelEPC -> AppM (Maybe SB.PrimaryKeyType)
-findClassLabelId (LGTIN cp ir lot)  = grabClassLabelId cp Nothing ir (Just lot)
-findClassLabelId (CSGTIN cp msfv ir) = grabClassLabelId cp msfv ir Nothing
+findClassLabelId (LGTIN cp ir lot)  = findClassLabelId' cp Nothing ir (Just lot)
+findClassLabelId (CSGTIN cp msfv ir) = findClassLabelId' cp msfv ir Nothing
 
-grabClassLabelId :: GS1CompanyPrefix
+findClassLabelId' :: GS1CompanyPrefix
                  -> Maybe SGTINFilterValue
                  -> ItemReference
                  -> Maybe Lot
                  -> AppM (Maybe SB.PrimaryKeyType)
-grabClassLabelId cp msfv ir lot = do
+findClassLabelId' cp msfv ir lot = do
   r <- runDb $ runSelectReturningList $ select $ do
     labels <- all_ (SB._labels SB.supplyChainDb)
     guard_ (
