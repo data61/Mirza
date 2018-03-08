@@ -369,6 +369,8 @@ insertWhatLabel whatId labelId = do
         ]
   return pKey
 
+-- | Given the necessary information,
+-- converts a ``LabelEPC`` to SB.Label and writes it to the database
 insertLabel :: Maybe T.Text
             -> SB.PrimaryKeyType
             -> LabelEPC
@@ -380,6 +382,7 @@ insertLabel labelType whatId labelEpc = do
         [ epcToStorageLabel labelType whatId pKey labelEpc]
   return pKey
 
+-- | Ties up a label and an event entry in the database
 insertLabelEvent :: SB.PrimaryKeyType
                  -> SB.PrimaryKeyType
                  -> AppM SB.PrimaryKeyType
