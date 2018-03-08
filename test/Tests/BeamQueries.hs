@@ -106,8 +106,9 @@ testQueries = do
     it "addPublicKey test 1" $ \(conn, env) -> do
       tStart <- timeStampIO
       uid <- fromRight' <$> (runAppM env $ newUser dummyNewUser)
-      user <- fromRight' <$> (runAppM env $ authCheck (M.emailAddress dummyNewUser) (encodeUtf8 $ M.password dummyNewUser))
-      keyId <- fromRight' <$> (runAppM env $ addPublicKey (fromJust user) dummyRsaPubKey) -- this is broken
+      storageUser <- fromRight' <$> (runAppM env $ selectUser uid)
+      let user = userTableToModel . fromJust $ storageUser
+      keyId <- fromRight' <$> (runAppM env $ addPublicKey user dummyRsaPubKey) -- this is broken
 
       key <- fromRight' <$> (runAppM env $ selectKey keyId)
       tEnd <- timeStampIO
@@ -117,6 +118,7 @@ testQueries = do
                                             (SB.key_user_id k) == (SB.UserId uid) &&
                                             (SB.creation_time k) > tStart && (SB.creation_time k) < tEnd &&
                                             isNothing (SB.revocation_time k))
+
 
   -- this test seems not to work because of inability by beam to parse time
   describe "getPublicKey tests" $ do
