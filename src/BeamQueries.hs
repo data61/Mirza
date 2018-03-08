@@ -317,21 +317,26 @@ removeContacts  (M.User uid1 _ _) uid2 = do
 --     [Only 0] -> pure ()
 --     _ -> throwError M.SE_NeedMoreSignatures
 
--- -- note that use of complex from Data.List.Unique is not efficient
--- -- no union, so we process making unique in haskell
--- listContacts :: M.User -> IO [M.User]
--- listContacts  (M.User uid _ _) = do
---   r_toGrabUser2 <- runDb $ runSelectReturningList $ select $ do
---     allUsers <- all_ (_users supplyChainDb)
---     allContacts <- all_ (_contacts supplyChainDb)
---     guard_ (_contactUser1Id allContacts ==. uid &&. _userId allUsers ==. _contactUser2Id allContacts)
---     pure allUsers
---   r_toGrabUser1 <- runDb $ runSelectReturningList $ select $ do
---     allUsers <- all_ (_users supplyChainDb)
---     allContacts <- all_ (_contacts supplyChainDb)
---     guard_ (_contactUser2Id allContacts ==. uid &&. _userId allUsers ==. _contactUser1Id allContacts)
---     pure allUsers
---   return $ (\l -> (complex l) ^. _1) $ contactUserToUser <$> (r_toGrabUser1 ++ r_toGrabUser2)
+-- note that use of complex from Data.List.Unique is not efficient
+-- no union, so we process making unique in haskell
+listContacts :: M.User -> AppM [M.User]
+listContacts  (M.User uid _ _) = do
+  r <- runDb $ runSelectReturningList $ select $ do
+    user <- all_ (SB._users SB.supplyChainDb)
+    contact <- all_ (SB._contacts SB.supplyChainDb)
+    guard_ (SB.contact_user1_id contact `references_` user)
+    pure user
+  case r of
+    Right userList -> return $ userTableToModel <$> userList
+    Left e         -> throwUnexpectedDBError $ sqlToServerError e
+
+
+  -- r_toGrabUser1 <- runDb $ runSelectReturningList $ select $ do
+  --   allUsers <- all_ (SB._users SB.supplyChainDb)
+  --   allContacts <- all_ (SB._contacts SB.supplyChainDb)
+  --   guard_ (_contactUser2Id allContacts ==. uid &&. _userId allUsers ==. _contactUser1Id allContacts)
+  --   pure allUsers
+  -- return $ (\l -> (complex l) ^. _1) $ contactUserToUser <$> (r_toGrabUser1 ++ r_toGrabUser2)
 
 -- -- TODO = how to do like, also '%||?||%'
 -- -- below is wrong!
