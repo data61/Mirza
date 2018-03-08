@@ -7,6 +7,7 @@ module BeamQueries where
 import           Data.GS1.Parser.Parser
 import qualified Model as M
 import qualified StorageBeam as SB
+import           CryptHash (getCryptoPublicKey)
 import           Data.ByteString (ByteString)
 import           Crypto.Scrypt
 import           Data.Text.Encoding
@@ -25,6 +26,11 @@ import qualified Data.GS1.EventID as EvId
 import           Data.GS1.Event (Event(..), EventType(..))
 import           Utils
 import           QueryUtils
+import           Codec.Crypto.RSA (PublicKey (..))
+--import           Codec.Crypto.RSA.Pure (PublicKey (..))
+--import           Data.Binary.Binary (PublicKey (..))
+import           Data.Binary
+import           Data.ByteString.Lazy (toStrict, fromStrict)
 import           Errors (ServiceError(..), ServerError(..))
 import           ErrorUtils (throwBackendError, throwAppError, toServerError
                             , defaultToServerError, sqlToServerError
@@ -88,20 +94,21 @@ authCheck email password = do
 -- execute conn "INSERT INTO Users (bizID, firstName, lastName, phoneNumber, passwordHash, emailAddress) VALUES (?, ?, ?, ?, ?, ?);" (biz, first, last, phone, getEncryptedPass hash, email)
 -- execute conn "INSERT INTO Keys (userID, rsa_n, rsa_e, creationTime) values (?, ?, ?, ?);" (uid, n, e, timestamp)
 addPublicKey :: M.User -> M.RSAPublicKey-> AppM M.KeyID
-addPublicKey (M.User uid _ _)  (M.RSAPublicKey rsa_n rsa_e) = do
+addPublicKey (M.User uid _ _) pubKey = do
   keyId <- generatePk
   timeStamp <- generateTimeStamp
+  debugLog "The program did not crash yet"
   r <- runDb $ runInsertReturningList (SB._keys SB.supplyChainDb) $
                insertValues
                [
-                 (
-                   SB.Key keyId (SB.UserId uid)
-                   (T.pack $ show rsa_n)
-                   (T.pack $ show rsa_e)
+                 SB.Key
+                   keyId
+                   (SB.UserId uid)
+                   (toStrict . encode . getCryptoPublicKey $ pubKey) --(runPut $ put $ getCryptoPublicKey pubKey)
                    timeStamp
                    Nothing
-                 )
                ]
+  debugLog "Done with the query"
   case r of
     Right [rowId] -> return (SB.key_id rowId)
     Right _       -> throwAppError $ InvalidKeyID keyId
@@ -115,9 +122,11 @@ getPublicKey keyId = do
     pure allKeys
 
   case r of
-    Right [k] ->
-        return $ M.RSAPublicKey
-          (read $ T.unpack $ SB.rsa_n k) (read $ T.unpack $ SB.rsa_e k)
+    -- Right [(keyId, uid, rsa_n, rsa_e, creationTime, revocationTime)] ->
+    Right [k] -> do
+        pubKey <- return $ ((decode $ fromStrict $ SB.rsa_public_pkcs8 k) :: PublicKey) -- $ SB.rsa_public_pkcs8 k
+        --return $ M.RSAPublicKey (read $ T.unpack $ SB.rsa_n k) (read $ T.unpack $ SB.rsa_e k)
+        return $ M.RSAPublicKey (public_n pubKey) (public_e pubKey)
     Right _ -> throwAppError $ InvalidKeyID keyId
     Left e  -> throwUnexpectedDBError $ sqlToServerError e
 
@@ -129,7 +138,7 @@ getPublicKeyInfo keyId = do
     pure allKeys
 
   case r of
-    Right [(SB.Key _ (SB.UserId uId) _ _ creationTime revocationTime)] ->
+    Right [(SB.Key _ (SB.UserId uId) _ creationTime revocationTime)] ->
        return $ M.KeyInfo uId
                 (toEPCISTime creationTime)
                 (toEPCISTime <$> revocationTime)

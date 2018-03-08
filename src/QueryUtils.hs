@@ -14,7 +14,6 @@ import           Data.Time.LocalTime (utc, utcToLocalTime
 import           Data.Time (UTCTime)
 import           AppConfig (AppM(..), runDb, getDBConn)
 import qualified StorageBeam as SB
-import           Data.UUID (nil)
 import           Data.UUID.V4 (nextRandom)
 import           Data.Time.Clock (getCurrentTime)
 import           Control.Monad.Reader (liftIO)
@@ -33,6 +32,7 @@ import qualified Data.GS1.EventID as EvId
 import qualified Data.GS1.Event as Ev
 import           Utils
 import           Database.Beam as B
+import           Database.Beam.Backend.SQL.BeamExtensions (runInsertReturningList)
 import           Data.ByteString (ByteString)
 import qualified Model as M
 import           ErrorUtils (throwBackendError, throwAppError, toServerError
@@ -446,3 +446,23 @@ findEvent eventId = do
 
 storageToModelEvent :: SB.Event -> Maybe Ev.Event
 storageToModelEvent = decodeEvent . SB.json_event 
+
+
+-- | This is a test util to check that BEAM can insert and return time
+-- insertTime :: AppM ()
+-- insertTime = do
+--   timeId <- generatePk
+--   timeStamp <- generateTimeStamp
+--   sandwichLog timeStamp
+--   debugLog ("The program did not crash yet" )
+--   r <- runDb $
+--         runInsertReturningList (SB._my_time SB.supplyChainDb) $
+--                insertValues
+--                [
+--                  SB.MyTime
+--                  timeId
+--                  timeStamp
+--                ]
+--   debugLog "Done with the query"
+--   sandwichLog r
+

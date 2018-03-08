@@ -24,6 +24,9 @@ import qualified BeamQueries as BQ
 dummyNewUser :: M.NewUser
 dummyNewUser = M.NewUser "000" "fake@gmail.com" "Bob" "Smith" "blah Ltd" "password"
 
+dummyLocation :: LocationEPC
+dummyLocation = SGLN "blah Ltd" (LocationReference "11111") Nothing
+
 sampleObjectFile :: FilePath
 sampleObjectFile = "../GS1Combinators/test/test-xml/ObjectEvent.xml"
 
@@ -74,6 +77,8 @@ dummyEvent =
 dummyObjectEvent :: M.ObjectEvent
 dummyObjectEvent = M.mkObjectEvent dummyEvent
 
+dummyRsaPubKey :: M.RSAPublicKey
+dummyRsaPubKey = M.RSAPublicKey 3 5
 
 runEventCreateObject :: FilePath -> AppM ()
 runEventCreateObject xmlFile = do
