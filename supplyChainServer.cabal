@@ -24,9 +24,9 @@ library
                     , Dummies
                     , QueryUtils
                     , Utils
+                    , CryptHash
   other-modules:      API
                     , Service
-                    , CryptHash
                     , MigrateUtils
                     , MigrateScript
                     , Errors
@@ -71,6 +71,9 @@ library
                     , semigroups >= 0.18
                     , transformers >= 0.4
                     , lifted-base
+                    , RSA
+                    , binary
+                    --, RSA == 1.0.3
                     , xml-conduit
   default-language:   Haskell2010
   default-extensions: FlexibleContexts
@@ -128,6 +131,7 @@ test-suite supplyChainServer-test
                      , beam-postgres
                      , postgresql-simple
                      , beam-core
+                     , binary
   default-language:    Haskell2010
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
   default-language:    Haskell2010

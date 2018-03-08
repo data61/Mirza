@@ -24,10 +24,14 @@ import Data.List.NonEmpty(NonEmpty(..))
 import GHC.Generics       (Generic)
 import qualified Data.List.NonEmpty as NonEmpty
 import Crypto.Hash
-import Crypto.PubKey.RSA
+--import Crypto.PubKey.RSA
 import qualified Data.ByteString as ByteString
+import qualified Data.ByteString.Lazy.Char8 as LChar8
 import qualified Data.ByteString.Char8 as Char8
-import qualified Crypto.PubKey.RSA.PSS as PSS
+--import qualified Crypto.PubKey.RSA.PSS as PSS
+import           Codec.Crypto.RSA (PublicKey (..), verify)
+import           Data.ByteString.Lazy (fromStrict)
+
 
 --import Crypto.Hash.SHA256
 
@@ -49,10 +53,11 @@ hashJsonTxt json = hexSha2_256 (Txt.unpack $ json)
 sha256 :: Char8.ByteString -> Digest SHA256
 sha256 = hash
 
+getCryptoPublicKey :: RSAPublicKey -> PublicKey
+getCryptoPublicKey (RSAPublicKey n e) = PublicKey 128 n e -- FIXME
+
 verifySignature :: RSAPublicKey -> ByteString.ByteString -> M.Signature -> Bool
-verifySignature (RSAPublicKey n e) event (Signature signature) =
-    PSS.verify (PSS.defaultPSSParams SHA256) pubKey event (Char8.pack signature)
-    where
-      pubKey = PublicKey 128 n e --FIXME
-
-
+verifySignature pubKey event (Signature signature) =
+    --PSS.verify (PSS.defaultPSSParams SHA256) (getCryptoPublicKey pubKey) event (Char8.pack signature)
+    -- note verify in this version uses SHA256
+    verify (getCryptoPublicKey pubKey) (fromStrict event) (LChar8.pack signature)
