@@ -166,6 +166,17 @@ testQueries = do
       (fromJust user) `shouldSatisfy` (\u -> (M.userId u == uid) &&
                                              (M.userFirstName u == M.firstName dummyNewUser) &&
                                              (M.userLastName u == M.lastName dummyNewUser))
+
+  describe "Contacts" $ do
+    describe "Add contact" $ do
+      it "addContact simple" $ \(conn, env) -> do
+        uid <- fromRight' <$> (runAppM env $ newUser dummyNewUser)
+        user <- fromRight' <$> (runAppM env $ getUser $ M.emailAddress dummyNewUser)
+        let myContact = makeDummyUser "first@gmail.com"
+        myContactUid <- fromRight' <$> (runAppM env $ newUser myContact)
+        hasBeenAdded <- fromRight' <$> (runAppM env $ addContacts (fromJust user) myContactUid)
+        hasBeenAdded `shouldBe` True
+
   -- describe "insertDWhat tests" $ do
   --   it "insertDWhat test 1" $ \(conn, env) -> do
   --     1 `shouldBe` 1
