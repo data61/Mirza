@@ -22,7 +22,11 @@ import           Control.Monad.Reader (liftIO)
 import qualified BeamQueries as BQ
 
 dummyNewUser :: M.NewUser
-dummyNewUser = M.NewUser "000" "fake@gmail.com" "Bob" "Smith" "blah Ltd" "password"
+dummyNewUser = M.NewUser "000" "fake@gmail.com" "New" "User" "Lomondo" "thi$i5fake"
+
+-- | Utility function to make many users on the fly
+makeDummyUser :: M.Email -> M.NewUser
+makeDummyUser emailAddress = M.NewUser "000" emailAddress "Bob" "Smith" "blah Ltd" "password"
 
 dummyLocation :: LocationEPC
 dummyLocation = SGLN "blah Ltd" (LocationReference "11111") Nothing
