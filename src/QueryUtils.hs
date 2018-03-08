@@ -135,7 +135,7 @@ toStorageDWhat :: SB.PrimaryKeyType
                -> SB.What
 toStorageDWhat pKey mParentId mBizTranId mTranId eventId dwhat
    = SB.What pKey
-            (Just $ Ev.dwhatToEventTextLike dwhat)
+            (Just . Ev.stringify . Ev.getEventType $ dwhat)
             (toText <$> getAction dwhat)
             (SB.LabelId mParentId)
             (SB.BizTransactionId mBizTranId)
