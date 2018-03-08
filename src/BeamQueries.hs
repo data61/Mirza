@@ -94,19 +94,19 @@ authCheck email password = do
 -- execute conn "INSERT INTO Users (bizID, firstName, lastName, phoneNumber, passwordHash, emailAddress) VALUES (?, ?, ?, ?, ?, ?);" (biz, first, last, phone, getEncryptedPass hash, email)
 -- execute conn "INSERT INTO Keys (userID, rsa_n, rsa_e, creationTime) values (?, ?, ?, ?);" (uid, n, e, timestamp)
 addPublicKey :: M.User -> M.RSAPublicKey-> AppM M.KeyID
-addPublicKey (M.User uid _ _)  pubKey = do
+addPublicKey (M.User uid _ _) pubKey = do
   keyId <- generatePk
   timeStamp <- generateTimeStamp
   debugLog "The program did not crash yet"
   r <- runDb $ runInsertReturningList (SB._keys SB.supplyChainDb) $
                insertValues
                [
-                 (
-                   SB.Key keyId (SB.UserId uid)
-                   (toStrict $ encode $ getCryptoPublicKey $ pubKey) --(runPut $ put $ getCryptoPublicKey pubKey)
-                   timeStamp -- 0
-                   Nothing -- revocationTime ?
-                 )
+                 SB.Key
+                   keyId
+                   (SB.UserId uid)
+                   (toStrict . encode . getCryptoPublicKey $ pubKey) --(runPut $ put $ getCryptoPublicKey pubKey)
+                   timeStamp
+                   Nothing
                ]
   debugLog "Done with the query"
   case r of
