@@ -23,9 +23,6 @@ import           Crypto.Scrypt
 import           Data.ByteString (ByteString)
 import qualified Data.Text as T
 import           Data.Text.Encoding (encodeUtf8)
-import           Text.XML
-import           Text.XML.Cursor
-import           Data.GS1.Parser.Parser (parseEventByType)
 import           Data.GS1.Event (allEventTypes)
 import           Data.Either
 import           Data.GS1.EPC
@@ -90,17 +87,6 @@ testQueries = do
       eventList <- fromRight' <$> (runAppM env $ listEvents dummyLabelEpc)
       eventList `shouldBe` [fromJust insertedEvent]
 
-runEventCreateObject :: FilePath -> AppM ()
-runEventCreateObject xmlFile = do
-  doc <- liftIO $ Text.XML.readFile def xmlFile
-  let mainCursor = fromDocument doc
-      allParsedEvents =
-        filter (not . null) $ concat $
-        parseEventByType mainCursor <$> allEventTypes
-      (Right objEvent) = head allParsedEvents
-      newObj = M.mkObjectEvent objEvent
-  eventId <- insertObjectEvent dummyUser newObj
-  liftIO $ print eventId
   -- liftIO $ print objEvent
   -- mapM_ (TL.putStrLn . TLE.decodeUtf8 . encodePretty) (rights allParsedEvents)
 
