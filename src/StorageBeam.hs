@@ -106,10 +106,9 @@ deriving instance Eq (PrimaryKey UserT Identity)
 data KeyT f = Key
   { key_id             :: C f PrimaryKeyType
   , key_user_id        :: PrimaryKey UserT f
-  , rsa_n              :: C f Text --XXX should this be Int64?
-  , rsa_e              :: C f Text -- as above
-  , creationTime       :: C f LocalTime -- UTCTime
-  , revocationTime     :: C f (Maybe LocalTime) -- UTCTime
+  , rsa_public_pkcs8   :: C f ByteString -- should be PKCS8 encoding
+  , creation_time       :: C f LocalTime -- UTCTime
+  , revocation_time     :: C f (Maybe LocalTime) -- UTCTime
   }
   deriving Generic
 type Key = KeyT Identity
@@ -153,7 +152,7 @@ instance Table BusinessT where
 deriving instance Eq (PrimaryKey BusinessT Identity)
 
 data ContactT f = Contact
-  { contact_id                :: C f PrimaryKeyType
+  { contact_id                 :: C f PrimaryKeyType
   , contact_user1_id           :: PrimaryKey UserT f
   , contact_user2_id           :: PrimaryKey UserT f }
   deriving Generic
@@ -302,6 +301,10 @@ deriving instance Show Event
 instance Beamable EventT
 instance Beamable (PrimaryKey EventT)
 deriving instance Show (PrimaryKey EventT Identity)
+
+-- unEventId 
+unEventId :: PrimaryKey EventT f -> C f PrimaryKeyType
+unEventId (EventId eventId) = eventId
 
 instance Table EventT where
   data PrimaryKey EventT f = EventId (C f PrimaryKeyType)
