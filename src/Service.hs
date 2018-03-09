@@ -188,10 +188,10 @@ contactsInfo user = error "Storage module not implemented"
 
 
 contactsAdd :: User -> UserID -> AC.AppM Bool
-contactsAdd = BQ.addContacts
+contactsAdd = BQ.addContact
 
 contactsRemove :: User -> UserID -> AC.AppM Bool
-contactsRemove = BQ.removeContacts
+contactsRemove = BQ.removeContact
 
 -- Given a search term, search the users contacts for a user matching
 -- that term
