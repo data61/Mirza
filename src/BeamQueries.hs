@@ -261,17 +261,15 @@ listEvents labelEpc = do
 --   package <- createBlockchainPackage eventID
 --   liftIO $ sendToBlockchain package
 
-addContacts :: M.User -> M.UserID -> AppM Bool
-addContacts  (M.User uid1 _ _) uid2 = do
+addContact :: M.User -> M.UserID -> AppM Bool
+addContact (M.User uid1 _ _) uid2 = do
   pKey <- generatePk
   r <- runDb $ runInsertReturningList (SB._contacts SB.supplyChainDb) $
                insertValues [SB.Contact pKey (SB.UserId uid1) (SB.UserId uid2)]
-  case r of
-    Right [_] -> return True
-    Left  _   -> return False
+  verifyInsertion r uid1 uid2
 
-removeContacts :: M.User -> M.UserID -> AppM Bool
-removeContacts  (M.User uid1 _ _) uid2 = do
+removeContact :: M.User -> M.UserID -> AppM Bool
+removeContact (M.User uid1 _ _) uid2 = do
   r <- runDb $
     runDelete $
     delete (SB._contacts SB.supplyChainDb)
@@ -279,8 +277,31 @@ removeContacts  (M.User uid1 _ _) uid2 = do
              SB.contact_user1_id contact ==. (val_ $ SB.UserId uid1) &&.
              SB.contact_user2_id contact ==. (val_ $ SB.UserId uid2))
   case r of
-    Right _ -> return True
+    Right _ -> not <$> isExistingContact uid1 uid2
     Left e  -> return False -- log ``e``
+
+-- | Checks if a pair of userIds are recorded as a contact
+isExistingContact :: M.UserID -> M.UserID -> AppM Bool
+isExistingContact uid1 uid2 = do
+  r <- runDb $ runSelectReturningList $ select $ do
+        contact <- all_ (SB._contacts SB.supplyChainDb)
+        guard_ (SB.contact_user1_id contact  ==. (val_ . SB.UserId $ uid1) &&.
+                SB.contact_user2_id contact  ==. (val_ . SB.UserId $ uid2))
+        pure contact
+  verifyInsertion r uid1 uid2
+
+-- | Verifies that the contact that has been inserted has been inserted 
+-- as was intended
+verifyInsertion :: (Eq (PrimaryKey SB.UserT f), Monad m) =>
+                   Either e [SB.ContactT f] ->
+                   C f SB.PrimaryKeyType ->
+                   C f SB.PrimaryKeyType ->
+                   m Bool
+verifyInsertion (Right [insertedContact]) uid1 uid2 = return $
+                  (SB.contact_user1_id insertedContact == (SB.UserId uid1)) &&
+                  (SB.contact_user2_id insertedContact == (SB.UserId uid2))
+verifyInsertion _ _ _ = return False
+
 
 -- -- TODO - convert these below functions, and others in original file Storage.hs
 
@@ -319,6 +340,8 @@ removeContacts  (M.User uid1 _ _) uid2 = do
 
 -- note that use of complex from Data.List.Unique is not efficient
 -- no union, so we process making unique in haskell
+
+-- | Lists all the contacts associated with the given user
 listContacts :: M.User -> AppM [M.User]
 listContacts  (M.User uid _ _) = do
   r <- runDb $ runSelectReturningList $ select $ do
@@ -337,6 +360,7 @@ listContacts  (M.User uid _ _) = do
   --   guard_ (_contactUser2Id allContacts ==. uid &&. _userId allUsers ==. _contactUser1Id allContacts)
   --   pure allUsers
   -- return $ (\l -> (complex l) ^. _1) $ contactUserToUser <$> (r_toGrabUser1 ++ r_toGrabUser2)
+
 
 -- -- TODO = how to do like, also '%||?||%'
 -- -- below is wrong!
