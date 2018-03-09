@@ -36,7 +36,7 @@ dropTables conn =
 
 openConnection :: IO (Connection, Env)
 openConnection = do
-  conn <- connectPostgreSQL dbConnStr                                                                                  
+  conn <- connectPostgreSQL testDbConnStr
   dropTables conn -- drop tables before so if already exist no problems... means tables get overwritten though
   let envT = AC.mkEnvType True
       env  = AC.Env envT conn
