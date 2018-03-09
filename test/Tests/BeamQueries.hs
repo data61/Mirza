@@ -21,19 +21,21 @@ import           Data.ByteString.Lazy (toStrict)
 import           Data.Text.Encoding (encodeUtf8)
 import           Data.GS1.Event (allEventTypes)
 import           Data.GS1.EPC
+import           Data.UUID (nil)
 -- import qualified Data.GS1.Event as Ev
 
 import           Utils
-import           AppConfig (runAppM, Env, AppM, runDb)
+import           AppConfig (runAppM, Env(..), AppM, runDb, EnvType(..))
 import qualified StorageBeam as SB
 import qualified Model as M
+import           Migrate (testDbConnStr)
 
 -- import           Crypto.Scrypt
 import           Data.Time.Clock (getCurrentTime, UTCTime(..))
 import           Data.Time.LocalTime (utc, utcToLocalTime, LocalTime)
 import           CryptHash (getCryptoPublicKey)
 import           Data.Binary
-
+import           Database.PostgreSQL.Simple (execute_)
 
 -- NOTE in this file, where fromJust is used in the tests, it is because we expect a Just... this is part of the test
 -- NOTE tables dropped after every running of test in an "it"
@@ -167,15 +169,77 @@ testQueries = do
                                              (M.userFirstName u == M.firstName dummyNewUser) &&
                                              (M.userLastName u == M.lastName dummyNewUser))
 
-  describe "Contacts" $ do
+  (after_ clearContact) . describe "Contacts" $ do
     describe "Add contact" $ do
       it "addContact simple" $ \(conn, env) -> do
         uid <- fromRight' <$> (runAppM env $ newUser dummyNewUser)
         user <- fromRight' <$> (runAppM env $ getUser $ M.emailAddress dummyNewUser)
-        let myContact = makeDummyUser "first@gmail.com"
+        let myContact = makeDummyNewUser "first@gmail.com"
         myContactUid <- fromRight' <$> (runAppM env $ newUser myContact)
-        hasBeenAdded <- fromRight' <$> (runAppM env $ addContacts (fromJust user) myContactUid)
+        hasBeenAdded <- fromRight' <$> (runAppM env $ addContact (fromJust user) myContactUid)
         hasBeenAdded `shouldBe` True
+        isContact <- fromRight' <$> (runAppM env $ isExistingContact uid myContactUid)
+        isContact `shouldBe` True
+
+    describe "Remove contact" $ do
+      it "Simple remove one" $ \(conn, env) -> do
+
+        -- Adding the contact first
+        uid <- fromRight' <$> (runAppM env $ newUser dummyNewUser)
+        mUser <- fromRight' <$> (runAppM env $ getUser $ M.emailAddress dummyNewUser)
+        let myContact = makeDummyNewUser "first@gmail.com"
+            user = fromJust mUser
+        myContactUid <- fromRight' <$> (runAppM env $ newUser myContact)
+        hasBeenAdded <- fromRight' <$> (runAppM env $ addContact user myContactUid)
+        hasBeenAdded `shouldBe` True
+
+        -- removing the contact now
+        hasBeenRemoved <- fromRight' <$> (runAppM env $ removeContact user myContactUid)
+        hasBeenRemoved `shouldBe` True
+      it "Remove wrong contact" $ \(conn, env) -> do
+
+        -- Adding the contact first
+        uid <- fromRight' <$> (runAppM env $ newUser dummyNewUser)
+        otherUserId <- fromRight' <$> (runAppM env $ newUser $ makeDummyNewUser "other@gmail.com")
+        mUser <- fromRight' <$> (runAppM env $ getUser $ M.emailAddress dummyNewUser)
+        let myContact = makeDummyNewUser "first@gmail.com"
+            user = fromJust mUser
+        myContactUid <- fromRight' <$> (runAppM env $ newUser myContact)
+        hasBeenAdded <- fromRight' <$> (runAppM env $ addContact user myContactUid)
+        hasBeenAdded `shouldBe` True
+
+        -- Add a new user who is NOT a contact
+        -- removing the contact now
+        print "===================================================="
+        runAppM env $ print <$> isExistingContact uid otherUserId
+        print "===================================================="
+
+        hasBeenRemoved <- fromRight' <$> (runAppM env $ removeContact user otherUserId)
+        hasBeenRemoved `shouldBe` False
+
+        -- removing a wrong contact
+        -- remove correct contact
+
+clearContact :: IO ()
+clearContact = do
+  conn <- connectPostgreSQL testDbConnStr
+  execute_ conn "DELETE FROM contacts;" >> return ()
+
+-- | Utility function that can be used in the ``before_`` hook
+populateContact :: IO Env -> IO ()
+populateContact ioEnv = do
+    env <- ioEnv
+    uid <- fromRight' <$> (runAppM env $ newUser dummyNewUser)
+    user <- fromRight' <$> (runAppM env $ getUser $ M.emailAddress dummyNewUser)
+    let myContact = makeDummyNewUser "first@gmail.com"
+    myContactUid <- fromRight' <$> (runAppM env $ newUser myContact)
+    hasBeenAdded <- fromRight' <$> (runAppM env $ addContact (fromJust user) myContactUid)
+    hasBeenAdded `shouldBe` True
+
+defaultEnv :: IO Env
+defaultEnv = do
+  conn <- connectPostgreSQL testDbConnStr
+  return $ Env Dev conn
 
   -- describe "insertDWhat tests" $ do
   --   it "insertDWhat test 1" $ \(conn, env) -> do
