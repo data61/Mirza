@@ -13,13 +13,22 @@ import           Database.Beam.Backend (runNoReturn)
 import           Database.PostgreSQL.Simple(SqlError ,connectPostgreSQL)
 import           Data.ByteString.Char8 (ByteString)
 
--- boolean is whether to run silently
+-- | Whether or not to run silently
 dbMigrationFunc :: Bool -> Connection -> Pg a -> IO a
 dbMigrationFunc False = withDatabaseDebug putStrLn
 dbMigrationFunc _ = withDatabase
 
+-- | Default connection string
 defConnectionStr :: ByteString
 defConnectionStr = "dbname=devsupplychainserver"
+
+-- in following notes, replace per276 with your username
+-- initially get into postgres using: sudo -u postgres psql postgres
+-- from then on use: sudo -u per276 psql testsupplychainserver2
+-- create role per276 with login;
+-- create database testsupplychainserver;
+testDbConnStr :: ByteString
+testDbConnStr = "dbname=testsupplychainserver"
 
 createSchema :: Bool -> Connection -> IO ()
 createSchema runSilently conn = do
