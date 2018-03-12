@@ -8,23 +8,6 @@ import           Migrate (defConnectionStr)
 import           Options.Applicative
 import           Data.Semigroup ((<>))
 import           AppConfig (EnvType(..))
-import           Data.GS1.Parser.Parser
-import           Data.Aeson.Encode.Pretty
-import           Data.GS1.Event
-import           Data.Either
-import           Text.XML
-import           Text.XML.Cursor
-import qualified Data.Text.Lazy.IO as TL
-import qualified Data.Text.Lazy.Encoding as TLE
-import           System.Environment
-import           Model as M
-import           Data.UUID (nil)
-import           BeamQueries as BQ
-import           Data.GS1.DWhat
-import           Data.GS1.DWhen
-import           Data.GS1.DWhy
-import           Data.GS1.DWhere
-import           Data.GS1.EPC
 
 data ServerOptions = ServerOptions
   { env           :: EnvType
