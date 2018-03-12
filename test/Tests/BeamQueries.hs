@@ -4,102 +4,168 @@
 module Tests.BeamQueries where
 
 import           Test.Hspec
-import           Database.PostgreSQL.Simple
 
 import           BeamQueries
+import           QueryUtils
+import           Dummies
+import           Database.PostgreSQL.Simple
+import           Database.Beam
+
+import           Data.Maybe (fromJust, isNothing)
+import           Data.Either.Combinators
+import           Crypto.Scrypt
+
+-- import           Data.Text.Encoding (encodeUtf8)
+import           Data.ByteString (ByteString)
+import           Data.ByteString.Lazy (toStrict)
+import           Data.Text.Encoding (encodeUtf8)
+import           Data.GS1.Event (allEventTypes)
+import           Data.GS1.EPC
+-- import qualified Data.GS1.Event as Ev
+
+import           Utils
+import           AppConfig (runAppM, Env, AppM, runDb)
+import qualified StorageBeam as SB
 import qualified Model as M
 
-import Data.UUID (fromString)
-import Data.Maybe (fromJust)
+-- import           Crypto.Scrypt
+import           Data.Time.Clock (getCurrentTime, UTCTime(..))
+import           Data.Time.LocalTime (utc, utcToLocalTime, LocalTime)
+import           CryptHash (getCryptoPublicKey)
+import           Data.Binary
 
-import Database.Beam.Backend.Types (Auto (..))
 
-import Control.Monad.IO.Class
-import Data.Maybe
-import AppConfig (runAppM, Env, AppM, runDb)
-import Data.Either.Combinators
-
-import qualified StorageBeam as SB
-
-import           Database.Beam.Backend.SQL.BeamExtensions
-import Database.Beam
-import Control.Lens
-
-import qualified Data.Text as T
-
-import Data.Text.Encoding (encodeUtf8)
-import           Crypto.Scrypt
-import Data.ByteString
-
--- NOTE in this file, where fromJust is used in the tests, it is because we expect a Just... tis is part of the test
+-- NOTE in this file, where fromJust is used in the tests, it is because we expect a Just... this is part of the test
 -- NOTE tables dropped after every running of test in an "it"
-
-user1 = (M.NewUser "000" "fake@gmail.com" "Bob" "Smith" "blah Ltd" "password")
 
 -- for grabbing the encrypted password from user 1
 hashIO :: MonadIO m => m ByteString
-hashIO = getEncryptedPass <$> (liftIO $ encryptPassIO' (Pass $ encodeUtf8 $ M.password user1))
+hashIO = getEncryptedPass <$> (liftIO $ encryptPassIO' (Pass $ encodeUtf8 $ M.password dummyNewUser))
 
-selectUser :: M.UserID -> AppM (Maybe SB.User)
-selectUser uid = do
+timeStampIO :: MonadIO m => m LocalTime
+timeStampIO = liftIO $ (utcToLocalTime utc) <$> getCurrentTime
+
+timeStampIOEPCIS :: MonadIO m => m EPCISTime
+timeStampIOEPCIS = liftIO $ getCurrentTime
+
+
+selectKey :: M.KeyID -> AppM (Maybe SB.Key)
+selectKey keyId = do
   r <- runDb $
           runSelectReturningList $ select $ do
-          user <- all_ (SB._users SB.supplyChainDb)
-          guard_ (SB.user_id user ==. val_ uid)
-          pure user
+          key <- all_ (SB._keys SB.supplyChainDb)
+          guard_ (SB.key_id key ==. val_ keyId)
+          pure key
   case r of
-    Right [user] -> return $ Just user
+    Right [key] -> return $ Just key
     _ -> return Nothing
 
 testQueries :: SpecWith (Connection, Env)
 testQueries = do
+  -- describe "Minimal example of dealing with time in Beam" $ do
+  --   it "Inserting and Returning time" $ \(conn, env) -> do
+  --     val <- fromRight' <$> (runAppM env $ insertTime)
+  --     val `shouldSatisfy` (\_ -> True)
+  --     val `shouldBe` ()
+
   describe "newUser tests" $ do
     it "newUser test 1" $ \(conn, env) -> do
-        hash <- hashIO
-        uid <- fromRight' <$> (runAppM env $ newUser user1)
-        user <- fromRight' <$> (runAppM env $ selectUser uid)
+      hash <- hashIO
+      uid <- fromRight' <$> (runAppM env $ newUser dummyNewUser)
+      user <- fromRight' <$> (runAppM env $ selectUser uid)
 
-        --print $ show hash
-        --print $ show $ SB.password_hash $ fromJust user
+      --print $ show hash
+      --print $ show $ SB.password_hash $ fromJust user
 
-        (fromJust user) `shouldSatisfy` (\u -> (SB.phone_number u) == (M.phoneNumber user1) &&
-                                               (SB.email_address u) == (M.emailAddress user1) &&
-                                               (SB.first_name u) == (M.firstName user1) &&
-                                               (SB.last_name u) == (M.lastName user1) &&
-                                               (SB.user_biz_id u) == (SB.BizId (M.company user1)) &&
-                                               -- note database bytestring includes the salt, this checks password
-                                               (verifyPass' (Pass $ encodeUtf8 $ M.password user1) (EncryptedPass $ SB.password_hash u)) &&
-                                               (SB.user_id u) == uid)
+      (fromJust user) `shouldSatisfy`
+          (\u ->
+            (SB.phone_number u) == (M.phoneNumber dummyNewUser) &&
+            (SB.email_address u) == (M.emailAddress dummyNewUser) &&
+            (SB.first_name u) == (M.firstName dummyNewUser) &&
+            (SB.last_name u) == (M.lastName dummyNewUser) &&
+            (SB.user_biz_id u) == (SB.BizId (M.company dummyNewUser)) &&
+            -- note database bytestring includes the salt, this checks password
+            (verifyPass' (Pass $ encodeUtf8 $ M.password dummyNewUser) (EncryptedPass $ SB.password_hash u)) &&
+            (SB.user_id u) == uid)
 
   describe "authCheck tests" $ do
     it "authCheck test 1" $ \(conn, env) -> do
       --hash <- hashIO
-      uid <- fromRight' <$> (runAppM env $ newUser user1)
-      user <- fromRight' <$> (runAppM env $ authCheck (M.emailAddress user1) (encodeUtf8 $ M.password user1)) --hash)
-      (fromJust user) `shouldSatisfy` (\u -> (M.userId u) == uid &&
-                                             (M.userFirstName u) == (M.firstName user1) &&
-                                             (M.userLastName u) == (M.lastName user1))
+      uid <- fromRight' <$> (runAppM env $ newUser dummyNewUser)
+      user <- fromRight' <$> (runAppM env $ authCheck (M.emailAddress dummyNewUser) (encodeUtf8 $ M.password dummyNewUser)) --hash)
+      (fromJust user) `shouldSatisfy`
+        (\u -> (M.userId u) == uid &&
+               (M.userFirstName u) == (M.firstName dummyNewUser) &&
+               (M.userLastName u) == (M.lastName dummyNewUser))
+
+  -- this test seems not to work because of inability by beam to parse time
+  describe "addPublicKey tests" $ do
+    it "addPublicKey test 1" $ \(conn, env) -> do
+      tStart <- timeStampIO
+      uid <- fromRight' <$> (runAppM env $ newUser dummyNewUser)
+      storageUser <- fromRight' <$> (runAppM env $ selectUser uid)
+      let user = userTableToModel . fromJust $ storageUser
+      keyId <- fromRight' <$> (runAppM env $ addPublicKey user dummyRsaPubKey) -- this is broken
+
+      key <- fromRight' <$> (runAppM env $ selectKey keyId)
+      tEnd <- timeStampIO
+
+      (fromJust key) `shouldSatisfy` (\k -> (SB.rsa_public_pkcs8 k) == (toStrict $ encode $ getCryptoPublicKey dummyRsaPubKey) &&
+                                            (SB.key_id k) == keyId &&
+                                            (SB.key_user_id k) == (SB.UserId uid) &&
+                                            (SB.creation_time k) > tStart && (SB.creation_time k) < tEnd &&
+                                            isNothing (SB.revocation_time k))
 
 
+  -- this test seems not to work because of inability by beam to parse time
+  describe "getPublicKey tests" $ do
+    it "getPublicKey test 1" $ \(conn, env) -> do
+      fromRight' <$> (runAppM env $ newUser dummyNewUser)
+      user <- fromRight' <$> (runAppM env $ authCheck (M.emailAddress dummyNewUser) (encodeUtf8 $ M.password dummyNewUser))
+      keyId <- fromRight' <$> (runAppM env $ addPublicKey (fromJust user) dummyRsaPubKey) -- this is broken
+      key <- fromRight' <$> (runAppM env $ getPublicKey keyId)
+      key `shouldBe` dummyRsaPubKey
+
+  -- this test seems not to work because of inability by beam to parse time
+  describe "getPublicKeyInfo tests" $ do
+    it "getPublicKeyInfo test 1" $ \(conn, env) -> do
+      tStart <- timeStampIOEPCIS
+      uid <- fromRight' <$> (runAppM env $ newUser dummyNewUser)
+      user <- fromRight' <$> (runAppM env $ authCheck (M.emailAddress dummyNewUser) (encodeUtf8 $ M.password dummyNewUser))
+      keyId <- fromRight' <$> (runAppM env $ addPublicKey (fromJust user) dummyRsaPubKey) -- this is broken
+      keyInfo <- fromRight' <$> (runAppM env $ getPublicKeyInfo keyId)
+      tEnd <- timeStampIOEPCIS
+
+      -- keyInfo `shouldSatisfy` (\k -> (SB.rsa_public_pkcs8 k) == (toStrict $ encode $ getCryptoPublicKey dummyRsaPubKey) &&
+      --                                       (SB.key_id k) == keyId &&
+      --                                       (SB.key_user_id k) == (SB.UserId uid) &&
+      --                                       (SB.creation_time k) > tStart && (SB.creation_time k) < tEnd &&
+      --                                       isNothing (SB.revocation_time k))
+      keyInfo `shouldSatisfy` (\ki -> (M.userID ki == uid) &&
+                                      (M.creationTime ki > tStart && M.creationTime ki < tEnd) &&
+                                      isNothing (M.revocationTime ki))
+
+  describe "Object Event" $ do
+    it "Insert Object Event" $ \(conn, env) -> do
+      eventId <- fromRight' <$> (runAppM env $ insertObjectEvent dummyUser dummyObjectEvent)
+      insertedEvent <- fromRight' <$> (runAppM env $ findEvent eventId)
+      (fromJust insertedEvent) `shouldSatisfy`
+        (\ev -> ev == dummyEvent)
+
+    it "List event" $ \(conn, env) -> do
+      eventId <- fromRight' <$> (runAppM env $ insertObjectEvent dummyUser dummyObjectEvent)
+      insertedEvent <- fromRight' <$> (runAppM env $ findEvent eventId)
+      eventList <- fromRight' <$> (runAppM env $ listEvents dummyLabelEpc)
+      eventList `shouldBe` [fromJust insertedEvent]
 
 
-
-  -- describe "addPublicKey tests" $ do
-  --   it "addPublicKey test 1" $ \(conn, env) -> do
-  --     1 `shouldBe` 1
-
-  -- describe "getPublicKey tests" $ do
-  --   it "getPublicKey test 1" $ \(conn, env) -> do
-  --     1 `shouldBe` 1
-
-  -- describe "getPublicKeyInfo tests" $ do
-  --   it "getPublicKeyInfo test 1" $ \(conn, env) -> do
-  --     1 `shouldBe` 1
-
-  -- describe "getUser tests" $ do
-  --   it "getUser test 1" $ \(conn, env) -> do
-  --     1 `shouldBe` 1
-
+  describe "getUser tests" $ do
+    it "getUser test 1" $ \(conn, env) -> do
+      uid <- fromRight' <$> (runAppM env $ newUser dummyNewUser)
+      user <- fromRight' <$> (runAppM env $ getUser $ M.emailAddress dummyNewUser)
+      (fromJust user) `shouldSatisfy` (\u -> (M.userId u == uid) &&
+                                             (M.userFirstName u == M.firstName dummyNewUser) &&
+                                             (M.userLastName u == M.lastName dummyNewUser))
   -- describe "insertDWhat tests" $ do
   --   it "insertDWhat test 1" $ \(conn, env) -> do
   --     1 `shouldBe` 1
@@ -110,8 +176,26 @@ testQueries = do
 
   -- describe "insertDWhy tests" $ do
   --   it "insertDWhy test 1" $ \(conn, env) -> do
+  -- describe "getPublicKey tests" $ do
+  --   it "getPublicKey test 1" $ \(conn, env) -> do
   --     1 `shouldBe` 1
 
-  -- describe "eventCreateObject tests" $ do
-  --   it "eventCreateObject test 1" $ \(conn, env) -> do
+  -- describe "insertSrcDestType tests" $ do
+  --   it "insertSrcDestType test 1" $ \(conn, env) -> do
+  --     1 `shouldBe` 1
+
+  -- describe "insertLocationEPC tests" $ do
+  --   it "insertLocationEPC test 1" $ \(conn, env) -> do
+  --     1 `shouldBe` 1
+
+  -- describe "insertDWhere tests" $ do
+  --   it "insertDWhere test 1" $ \(conn, env) -> do
+  --     1 `shouldBe` 1
+
+  -- describe "insertEvent tests" $ do
+  --   it "insertEvent test 1" $ \(conn, env) -> do
+  --     1 `shouldBe` 1
+
+  -- describe "insertUserEvent tests" $ do
+  --   it "insertUserEvent test 1" $ \(conn, env) -> do
   --     1 `shouldBe` 1

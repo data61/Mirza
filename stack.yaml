@@ -5,7 +5,7 @@ packages:
 - location:
     # git: https://github.com/sajidanower23/beam.git
     git: https://github.com/tathougies/beam.git
-    commit: 9b9f72debc7e6e4883eacfa433dcb813c6e58b12
+    commit: 1673f0762f9beca04923518bca1ba5c519fd56a3
   extra-dep: true
   subdirs:
     - beam-core
@@ -13,13 +13,14 @@ packages:
     - beam-postgres
 extra-deps:
 - git: git@github.csiro.au:Blockchain/GS1Combinators.git
-  commit: 3c590559ad709aad7f790d2229788330473b1fb5
+  commit: 09ea90d4fec187beafc6e3ae05a77373d47eb169
 - servant-0.10
 - servant-multipart-0.10
 - servant-server-0.10
 - servant-swagger-1.1.2.1
 - vector-0.12.0.1
 - storable-tuple-0.0.3.3
+#- RSA-1.0.3
 # - beam-migrate-0.2.0.0
 resolver: lts-9.21
 # allow-newer: true
