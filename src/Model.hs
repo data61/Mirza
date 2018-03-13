@@ -27,7 +27,6 @@ import           Data.GS1.DWhat
 import           Data.UUID (UUID)
 import           StorageBeam (PrimaryKeyType)
 import           OpenSSL.RSA (RSAPubKey)
-import           OpenSSL.EVP.Digest (Digest)
 
 type UserID = PrimaryKeyType
 
@@ -38,6 +37,12 @@ type EPCUrn = String
 
 newtype BinaryBlob = BinaryBlob BS.ByteString
   deriving (MimeUnrender OctetStream, MimeRender OctetStream, Generic)
+
+data Digest = SHA256 | SHA384 | SHA512
+  deriving (Show, Generic, Eq, Read)
+$(deriveJSON defaultOptions ''Digest)
+instance ToSchema Digest
+
 
 
 instance ToParamSchema BinaryBlob where
@@ -63,10 +68,13 @@ type JSONTxt = T.Text
 -- A signature is an EventHash that's been
 -- signed by one of the parties involved in the
 -- event.
-newtype Signature = Signature ByteString
+
+type Base64Text = Text
+newtype Signature = Signature Base64Text
   deriving (Generic, Show, Read, Eq)
 $(deriveJSON defaultOptions ''Signature)
 instance ToSchema Signature
+
 
 -- instance Sql.FromRow Signature where
 --   fromRow = Signature <$> field
@@ -138,6 +146,16 @@ data NewUser = NewUser {
 } deriving (Generic, Eq, Show)
 $(deriveJSON defaultOptions ''NewUser)
 instance ToSchema NewUser
+
+
+data SearchFields = SearchFields {
+  sUser :: User,
+  sbizName :: Maybe T.Text,
+  sBizId :: Maybe UUID,
+  sGS1CompanyPrefix :: Maybe T.Text,
+  sFunction :: Maybe T.Text,
+  sAddress :: Maybe T.Text
+}
 
 
 data Business = Business {
@@ -221,11 +239,6 @@ data TransactionInfo = TransactionInfo {
 $(deriveJSON defaultOptions ''TransactionInfo)
 instance ToSchema TransactionInfo
 
-
-data Digest = SHA256 | SHA384 | SHA512
-  deriving (Show, Generic)
-$(deriveJSON defaultOptions ''Digest)
-instance ToSchema Digest
 
 
 data SignedEvent = SignedEvent {

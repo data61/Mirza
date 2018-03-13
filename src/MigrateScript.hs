@@ -38,8 +38,7 @@ migrationStorage =
       Key
           (field "key_id" pkSerialType)
           (UserId (field "key_user_id" pkSerialType))
-          (field "rsa_n" text)
-          (field "rsa_e" text)
+          (field "pem_str" text)
           (field "creation_time" timestamptz)
           (field "revocation_time" (maybeType timestamptz))
     )

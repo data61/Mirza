@@ -40,7 +40,7 @@ type PrivateAPI =
             :<|> "event" :> "disAggregateObjects" :> ReqBody '[JSON] DisaggregatedObject :> Post '[JSON] Event
             :<|> "event" :> "start-transaction" :> ReqBody '[JSON] TransactionInfo :> Post '[JSON] Event
             :<|> "event" :> "transformObject" :> ReqBody '[JSON] TransformationInfo :> Post '[JSON] Event
-            :<|> "key" :> "add" :>  ReqBody '[JSON] PEMString :> Post '[JSON] KeyID
+            :<|> "key" :> "add" :>  ReqBody '[PlainText] PEMString :> Post '[JSON] KeyID
 
 
 type PublicAPI =   "newUser" :> ReqBody '[JSON] NewUser :> Post '[JSON] UserID
