@@ -41,8 +41,6 @@ dropTables conn =
                \         EXECUTE 'DROP TABLE IF EXISTS ' || quote_ident(r.tablename) || ' CASCADE';         \
                \     END LOOP;                                                                              \
                \ END $$;                                                                                    "
--- following is single line version in case want to for style, or want to copy into terminal... is same query
--- execute_ conn "DO $$ DECLARE r RECORD; BEGIN FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = current_schema()) LOOP EXECUTE 'DROP TABLE IF EXISTS ' || quote_ident(r.tablename) || ' CASCADE'; END LOOP; END $$;"
 
 openConnection :: IO (Connection, Env)
 openConnection = do

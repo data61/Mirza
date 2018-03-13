@@ -7,11 +7,14 @@ import           AppConfig (AppM(..), AppError(..))
 import           Errors (ServiceError(..), ServerError(..), ErrorCode)
 import           Data.Text.Encoding (encodeUtf8)
 import qualified Data.ByteString.Lazy.Char8 as LBSC8
+import           Data.Text (pack)
 import           Control.Monad.Except (throwError, MonadError(..))
 import           Servant.Server
 import           Utils (toText)
 import           Database.PostgreSQL.Simple.Internal (SqlError(..))
 import           Data.ByteString (ByteString)
+import           Data.GS1.EPC
+
 
 -- | Takes in a ServiceError and converts it to an HTTP error (eg. err400)
 appErrToHttpErr :: ServiceError -> Handler a
@@ -76,3 +79,7 @@ getSqlErrorCode e@(SqlError _ _ _ _ _) = Just $ sqlState e
 -- | Shorthand for throwing ``UnexpectedDBError``
 throwUnexpectedDBError :: ServerError -> AppM a
 throwUnexpectedDBError = throwAppError . UnexpectedDBResponse
+
+throwParseError :: ParseFailure -> AppM a
+throwParseError = throwAppError . ParseError . toText
+
