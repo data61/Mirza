@@ -7,6 +7,7 @@ module BeamQueries where
 import           Data.GS1.Parser.Parser
 import qualified Model as M
 import qualified StorageBeam as SB
+import           CryptHash (getCryptoPublicKey)
 import           Data.ByteString (ByteString)
 import           Crypto.Scrypt
 import           Data.Text.Encoding
@@ -16,15 +17,20 @@ import           Database.Beam.Backend.SQL.BeamExtensions
 import           AppConfig (AppM, runDb, AppError(..))
 import           Control.Monad.Except (throwError)
 import qualified Data.Text as T
-import           Data.GS1.EPC
+import qualified Data.GS1.EPC as EPC
 import           Data.GS1.DWhat (DWhat(..), LabelEPC(..))
 import           Data.GS1.DWhy (DWhy(..))
 import           Data.GS1.DWhere (DWhere(..), SrcDestLocation)
 import           Data.GS1.DWhen (DWhen(..))
 import qualified Data.GS1.EventID as EvId
 import           Data.GS1.Event (Event(..), EventType(..))
-import           Utils (debugLog, toText)
+import           Utils
 import           QueryUtils
+import           Codec.Crypto.RSA (PublicKey (..))
+--import           Codec.Crypto.RSA.Pure (PublicKey (..))
+--import           Data.Binary.Binary (PublicKey (..))
+import           Data.Binary
+import           Data.ByteString.Lazy (toStrict, fromStrict)
 import           Errors (ServiceError(..), ServerError(..))
 import           ErrorUtils (throwBackendError, throwAppError, toServerError
                             , defaultToServerError, sqlToServerError
@@ -87,6 +93,7 @@ authCheck email password = do
 -- BELOW = Beam versions of SQL versions from Storage.hs
 -- execute conn "INSERT INTO Users (bizID, firstName, lastName, phoneNumber, passwordHash, emailAddress) VALUES (?, ?, ?, ?, ?, ?);" (biz, first, last, phone, getEncryptedPass hash, email)
 -- execute conn "INSERT INTO Keys (userID, rsa_n, rsa_e, creationTime) values (?, ?, ?, ?);" (uid, n, e, timestamp)
+
 addPublicKey :: M.User -> RSAPubKey-> AppM M.KeyID
 addPublicKey (M.User uid _ _)  rsaPubKey = do
   keyId <- generatePk
@@ -136,6 +143,7 @@ getPublicKeyInfo keyId = do
     Right _ -> throwAppError $ InvalidKeyID keyId
     Left e  -> throwUnexpectedDBError $ sqlToServerError e
 
+
 getEventJSON :: EvID -> AppM Text
 getEventJSON eventID = do
   r <- runDB $ runSelectReturningList $ select $ do
@@ -160,37 +168,56 @@ getUser email = do
     Left e    -> throwUnexpectedDBError $ sqlToServerError e
     _         -> throwBackendError r
 
-eventCreateObject :: M.User -> M.NewObject -> AppM SB.PrimaryKeyType
-eventCreateObject
+insertObjectEvent :: M.User
+                  -> M.ObjectEvent
+                  -> AppM SB.PrimaryKeyType
+insertObjectEvent
   (M.User userId _ _ )
-  (M.NewObject labelEpc epcisTime timezone
-      (M.EventLocation rp bizL src dest) mEventId) = do
+  (M.ObjectEvent
+    foreignEventId
+    act
+    labelEpcs
+    dwhen dwhy dwhere
+  ) = do
 
   currentTime <- generateTimeStamp
   let
       eventType = ObjectEventT
-      dwhat =  ObjectDWhat Add [labelEpc]
-      dwhere = DWhere [rp] [bizL] [src] [dest]
-      dwhy  =  DWhy (Just CreatingClassInstance) (Just Active)
-      dwhen = DWhen epcisTime (Just $ toEPCISTime currentTime) timezone
-      foreignEventId = mEventId
+      dwhat =  ObjectDWhat act labelEpcs
+      -- dwhere = DWhere [rp] [bizL] [src] [dest]
+      -- dwhy  =  DWhy (Just CreatingClassInstance) (Just Active)
+      -- dwhen = DWhen epcisTime (Just $ toEPCISTime currentTime) timezone
       event = Event eventType foreignEventId dwhat dwhen dwhy dwhere
       jsonEvent = encodeEvent event
 
+  startTransaction
+
   eventId <- insertEvent userId jsonEvent event
   whatId <- insertDWhat Nothing Nothing dwhat eventId
-  labelId <- insertLabel labelEpc Nothing whatId
+  labelIds <- mapM (insertLabel Nothing whatId) labelEpcs
   whenId <- insertDWhen dwhen eventId
   whyId <- insertDWhy dwhy eventId
   insertDWhere dwhere eventId
   insertUserEvent eventId userId userId False Nothing
-  insertWhatLabel whatId labelId
+  mapM (insertWhatLabel whatId) labelIds
+  mapM (insertLabelEvent eventId) labelIds
+
+  endTransaction
+
   -- TODO = combine rows from bizTransactionTable and _eventCreatedBy field in Event table
   -- haven't added UserEvents insertion equivalent since redundant information and no equivalent
   -- hashes not added yet, but will later for blockchain
 
   return eventId
 
+listEvents :: LabelEPC -> AppM [Event]
+listEvents labelEpc = do
+  labelId <- findLabelId labelEpc
+  case getEventList <$> labelId of
+    Nothing     -> return []
+    Just evList -> evList
+
+  -- error "not implemented yet"
 -- -- TODO = fix... what is definition of hasSigned?
 -- eventUserList :: M.User -> EvId.EventID -> AppM [(M.User, Bool)]
 -- eventUserList  (M.User uid _ _ ) eventID = do

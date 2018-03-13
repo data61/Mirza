@@ -9,6 +9,7 @@ import           GHC.Generics (Generic)
 import qualified Data.Text as T
 import qualified Data.ByteString as BS
 import           Data.GS1.EventID
+import qualified Data.GS1.EPC as EPC
 
 type ErrorText = T.Text
 type ErrorCode = BS.ByteString
@@ -29,6 +30,7 @@ data ServiceError = NeedMoreSignatures ServerError T.Text
                   | UnexpectedDBResponse ServerError
                   | AuthFailed  M.Email
                   | UserNotFound M.Email
+                  | ParseError ErrorText -- EPC.ParseFailure
                   | BackendErr ErrorText -- fallback
                   deriving (Show, Read, Generic)
 
