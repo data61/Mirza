@@ -176,31 +176,32 @@ data ObjectEvent = ObjectEvent {
 $(deriveJSON defaultOptions ''ObjectEvent)
 instance ToSchema ObjectEvent
 
-data AggregatedObject = AggregatedObject {
-  aggObject_objectIDs :: [LabelEPC],
-  aggObject_containerID :: LabelEPC,
-  aggObject_timestamp :: EPCISTime,
-  aggObject_timezone:: TimeZone,
-  aggObject_location :: DWhere,
-  aggObject_bizStep :: BizStep,
-  aggObject_disposition :: Disposition,
-  aggObject_foreign_event_id :: Maybe EventID
+  -- XXX is it guaranteed to not have a ``recordTime``?
+data AggregationEvent = AggregationEvent {
+  agg_foreign_event_id :: Maybe EventID,
+  agg_act              :: Action,
+  agg_parent_label     :: LabelEPC,
+  agg_child_epc_list   :: [LabelEPC],
+  agg_when             :: DWhen,
+  -- agg_timestamp     :: EPCISTime,
+  -- agg_timezone      :: TimeZone,
+  agg_where            :: DWhere,
+  agg_why              :: DWhy
 } deriving (Show, Generic)
-$(deriveJSON defaultOptions ''AggregatedObject)
-instance ToSchema AggregatedObject
+$(deriveJSON defaultOptions ''AggregationEvent)
+instance ToSchema AggregationEvent
 
-data DisaggregatedObject = DisaggregatedObject {
-  daggObject_objectIDs :: [LabelEPC],
-  daggObject_containerID :: LabelEPC,
-  daggObject_timestamp :: EPCISTime,
-  daggObject_timezone:: TimeZone,
-  daggObject_location :: DWhere,
-  daggObject_bizStep :: BizStep,
-  daggObject_disposition :: Disposition,
-  daggObject_foreign_event_id :: Maybe EventID
+data DisaggregationEvent = DisaggregationEvent {
+  disagg_foreign_event_id :: Maybe EventID,
+  disagg_act              :: Action,
+  disagg_parent_label     :: LabelEPC,
+  disagg_child_epc_list   :: [LabelEPC],
+  disagg_when             :: DWhen,
+  disagg_where            :: DWhere,
+  disagg_why              :: DWhy
 } deriving (Show, Generic)
-$(deriveJSON defaultOptions ''DisaggregatedObject)
-instance ToSchema DisaggregatedObject
+$(deriveJSON defaultOptions ''DisaggregationEvent)
+instance ToSchema DisaggregationEvent
 
 data TransformationInfo = TransformationInfo {
   transObject_objectIDs :: [LabelEPC],
