@@ -166,12 +166,12 @@ fromObjectEvent (ObjectEvent mEid act epcList dwhen dwhy dwhere) =
     dwhen dwhy dwhere
 
 data ObjectEvent = ObjectEvent {
-  object_foreign_event_id :: Maybe EventID,
-  obj_act :: Action,
-  obj_epc_list :: [LabelEPC],
-  obj_when :: DWhen,
-  obj_why :: DWhy,
-  obj_where :: DWhere
+  obj_foreign_event_id :: Maybe EventID,
+  obj_act              :: Action,
+  obj_epc_list         :: [LabelEPC],
+  obj_when             :: DWhen,
+  obj_why              :: DWhy,
+  obj_where            :: DWhere
 } deriving (Show, Generic, Eq)
 $(deriveJSON defaultOptions ''ObjectEvent)
 instance ToSchema ObjectEvent
