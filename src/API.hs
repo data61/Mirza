@@ -36,10 +36,10 @@ type PrivateAPI =
             :<|> "event" :> "sign" :> ReqBody '[JSON] SignedEvent :> Post '[JSON] Bool
             :<|> "event" :> "getHash" :> ReqBody '[JSON] EventID :> Post '[JSON] HashedEvent
             :<|> "event" :> "objectEvent" :> ReqBody '[JSON] ObjectEvent :> Post '[JSON] PrimaryKeyType
-            :<|> "event" :> "aggregateObjects" :> ReqBody '[JSON] AggregatedObject :> Post '[JSON] Event
-            :<|> "event" :> "disAggregateObjects" :> ReqBody '[JSON] DisaggregatedObject :> Post '[JSON] Event
-            :<|> "event" :> "start-transaction" :> ReqBody '[JSON] TransactionInfo :> Post '[JSON] Event
-            :<|> "event" :> "transformObject" :> ReqBody '[JSON] TransformationInfo :> Post '[JSON] Event
+            :<|> "event" :> "aggregateObjects" :> ReqBody '[JSON] AggregationEvent :> Post '[JSON] Event
+            :<|> "event" :> "disAggregateObjects" :> ReqBody '[JSON] DisaggregationEvent :> Post '[JSON] Event
+            :<|> "event" :> "start-transaction" :> ReqBody '[JSON] TransactionEvent :> Post '[JSON] Event
+            :<|> "event" :> "transformObject" :> ReqBody '[JSON] TransformationEvent :> Post '[JSON] Event
             :<|> "key" :> "add" :>  ReqBody '[JSON] RSAPublicKey :> Post '[JSON] KeyID
 
 type PublicAPI =   "newUser" :> ReqBody '[JSON] NewUser :> Post '[JSON] UserID

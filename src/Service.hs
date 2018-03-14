@@ -240,16 +240,16 @@ eventHashed user eventID = do
 objectEvent :: User -> ObjectEvent -> AC.AppM SB.PrimaryKeyType
 objectEvent = BQ.insertObjectEvent
 
-eventAggregateObjects :: User -> AggregatedObject -> AC.AppM Event
+eventAggregateObjects :: User -> AggregationEvent -> AC.AppM Event
 eventAggregateObjects user aggObject = liftIO sampleEvent
 
-eventDisaggregateObjects :: User -> DisaggregatedObject -> AC.AppM Event
+eventDisaggregateObjects :: User -> DisaggregationEvent -> AC.AppM Event
 eventDisaggregateObjects user aggObject = liftIO sampleEvent
 
-eventStartTransaction :: User -> TransactionInfo -> AC.AppM Event
+eventStartTransaction :: User -> TransactionEvent -> AC.AppM Event
 eventStartTransaction user aggObject = liftIO sampleEvent
 
-eventTransformObject :: User -> TransformationInfo -> AC.AppM Event
+eventTransformObject :: User -> TransformationEvent -> AC.AppM Event
 eventTransformObject user aggObject = liftIO sampleEvent
 
 sampleEvent:: IO Event
