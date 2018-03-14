@@ -169,13 +169,9 @@ insertObjectEvent
     dwhen dwhy dwhere
   ) = do
 
-  currentTime <- generateTimeStamp
   let
       eventType = ObjectEventT
       dwhat =  ObjectDWhat act labelEpcs
-      -- dwhere = DWhere [rp] [bizL] [src] [dest]
-      -- dwhy  =  DWhy (Just CreatingClassInstance) (Just Active)
-      -- dwhen = DWhen epcisTime (Just $ toEPCISTime currentTime) timezone
       event = Event eventType foreignEventId dwhat dwhen dwhy dwhere
       jsonEvent = encodeEvent event
 
@@ -193,9 +189,6 @@ insertObjectEvent
 
   endTransaction
 
-  -- TODO = combine rows from bizTransactionTable and _eventCreatedBy field in Event table
-  -- haven't added UserEvents insertion equivalent since redundant information and no equivalent
-  -- hashes not added yet, but will later for blockchain
 
   return eventId
 
