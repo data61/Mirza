@@ -180,13 +180,13 @@ instance ToSchema ObjectEvent
 data AggregationEvent = AggregationEvent {
   agg_foreign_event_id :: Maybe EventID,
   agg_act              :: Action,
-  agg_parent_label     :: LabelEPC,
+  agg_parent_label     :: Maybe ParentLabel,
   agg_child_epc_list   :: [LabelEPC],
   agg_when             :: DWhen,
   -- agg_timestamp     :: EPCISTime,
   -- agg_timezone      :: TimeZone,
-  agg_where            :: DWhere,
-  agg_why              :: DWhy
+  agg_why              :: DWhy,
+  agg_where            :: DWhere
 } deriving (Show, Generic)
 $(deriveJSON defaultOptions ''AggregationEvent)
 instance ToSchema AggregationEvent
@@ -194,11 +194,11 @@ instance ToSchema AggregationEvent
 data DisaggregationEvent = DisaggregationEvent {
   disagg_foreign_event_id :: Maybe EventID,
   disagg_act              :: Action,
-  disagg_parent_label     :: LabelEPC,
+  disagg_parent_label     :: Maybe ParentLabel,
   disagg_child_epc_list   :: [LabelEPC],
   disagg_when             :: DWhen,
-  disagg_where            :: DWhere,
-  disagg_why              :: DWhy
+  disagg_why              :: DWhy,
+  disagg_where            :: DWhere
 } deriving (Show, Generic)
 $(deriveJSON defaultOptions ''DisaggregationEvent)
 instance ToSchema DisaggregationEvent
@@ -208,8 +208,8 @@ data TransformationEvent = TransformationEvent {
   transf_input_list       :: [LabelEPC],
   transf_output_list      :: [LabelEPC],
   transf_when             :: DWhen,
-  transf_where            :: DWhere,
-  transf_why              :: DWhy
+  transf_why              :: DWhy,
+  transf_where            :: DWhere
 } deriving (Show, Generic)
 $(deriveJSON defaultOptions ''TransformationEvent)
 instance ToSchema TransformationEvent
@@ -221,8 +221,8 @@ data TransactionEvent = TransactionEvent {
   transaction_epc_list             :: [LabelEPC],
   transaction_user_ids             :: [UserID],
   transaction_when                 :: DWhen,
-  transaction_where                :: DWhere,
-  transaction_why                  :: DWhy
+  transaction_why                  :: DWhy,
+  transaction_where                :: DWhere
 } deriving (Show, Generic)
 $(deriveJSON defaultOptions ''TransactionEvent)
 instance ToSchema TransactionEvent
