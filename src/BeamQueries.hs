@@ -242,14 +242,15 @@ insertDisaggEvent
     labelEpcs
     dwhen dwhy dwhere
   ) =
-    insertAggEvent user
-    (M.AggregationEvent
-      foreignEventId
-      act
-      mParentLabel
-      labelEpcs
-      dwhen dwhy dwhere
-    )
+    insertAggEvent
+      user
+      (M.AggregationEvent
+        foreignEventId
+        act
+        mParentLabel
+        labelEpcs
+        dwhen dwhy dwhere
+      )
 
 
 insertTranfEvent :: M.User
