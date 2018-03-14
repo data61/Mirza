@@ -64,11 +64,6 @@ selectKey keyId = do
 
 testQueries :: SpecWith (Connection, Env)
 testQueries = do
-  -- describe "Minimal example of dealing with time in Beam" $ do
-  --   it "Inserting and Returning time" $ \(conn, env) -> do
-  --     val <- fromRight' <$> (runAppM env $ insertTime)
-  --     val `shouldSatisfy` (\_ -> True)
-  --     val `shouldBe` ()
 
   describe "newUser tests" $ do
     it "newUser test 1" $ \(conn, env) -> do
@@ -198,27 +193,22 @@ testQueries = do
         hasBeenRemoved `shouldBe` True
       it "Remove wrong contact" $ \(conn, env) -> do
 
-        -- Adding the contact first
+        -- Adding the user first
         uid <- fromRight' <$> (runAppM env $ newUser dummyNewUser)
-        otherUserId <- fromRight' <$> (runAppM env $ newUser $ makeDummyNewUser "other@gmail.com")
+        -- retrieving the user
         mUser <- fromRight' <$> (runAppM env $ getUser $ M.emailAddress dummyNewUser)
-        let myContact = makeDummyNewUser "first@gmail.com"
+
+        -- Add a new user who is NOT a contact
+        otherUserId <- fromRight' <$> (runAppM env $ newUser $ makeDummyNewUser "other@gmail.com")
+        let myContactUser = makeDummyNewUser "first@gmail.com"
             user = fromJust mUser
-        myContactUid <- fromRight' <$> (runAppM env $ newUser myContact)
+        myContactUid <- fromRight' <$> (runAppM env $ newUser myContactUser)
         hasBeenAdded <- fromRight' <$> (runAppM env $ addContact user myContactUid)
         hasBeenAdded `shouldBe` True
 
-        -- Add a new user who is NOT a contact
-        -- removing the contact now
-        print "===================================================="
-        runAppM env $ print <$> isExistingContact uid otherUserId
-        print "===================================================="
-
+        -- removing a wrong contact
         hasBeenRemoved <- fromRight' <$> (runAppM env $ removeContact user otherUserId)
         hasBeenRemoved `shouldBe` False
-
-        -- removing a wrong contact
-        -- remove correct contact
 
 clearContact :: IO ()
 clearContact = do

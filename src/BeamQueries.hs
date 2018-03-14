@@ -268,17 +268,26 @@ addContact (M.User uid1 _ _) uid2 = do
                insertValues [SB.Contact pKey (SB.UserId uid1) (SB.UserId uid2)]
   verifyInsertion r uid1 uid2
 
+-- | The current behaviour is, if the users were not contacts in the first
+-- place, then the function returns false
+-- otherwise, removes the user. Checks that the user has been removed,
+-- and returns (not. userExists)
+-- @todo Make ContactErrors = NotAContact | DoesntExist | ..
 removeContact :: M.User -> M.UserID -> AppM Bool
 removeContact (M.User uid1 _ _) uid2 = do
-  r <- runDb $
-    runDelete $
-    delete (SB._contacts SB.supplyChainDb)
-           (\contact ->
-             SB.contact_user1_id contact ==. (val_ $ SB.UserId uid1) &&.
-             SB.contact_user2_id contact ==. (val_ $ SB.UserId uid2))
-  case r of
-    Right _ -> not <$> isExistingContact uid1 uid2
-    Left e  -> return False -- log ``e``
+  contactExists <- isExistingContact uid1 uid2
+  case contactExists of
+    False -> return False
+    True  -> do
+      r <- runDb $
+        runDelete $
+        delete (SB._contacts SB.supplyChainDb)
+              (\contact ->
+                SB.contact_user1_id contact ==. (val_ $ SB.UserId uid1) &&.
+                SB.contact_user2_id contact ==. (val_ $ SB.UserId uid2))
+      case r of
+        Right _ -> not <$> isExistingContact uid1 uid2
+        Left e  -> return False -- log ``e``
 
 -- | Checks if a pair of userIds are recorded as a contact
 isExistingContact :: M.UserID -> M.UserID -> AppM Bool
