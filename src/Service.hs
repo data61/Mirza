@@ -240,17 +240,17 @@ eventHashed user eventID = do
 objectEvent :: User -> ObjectEvent -> AC.AppM SB.PrimaryKeyType
 objectEvent = BQ.insertObjectEvent
 
-eventAggregateObjects :: User -> AggregationEvent -> AC.AppM Event
-eventAggregateObjects user aggObject = liftIO sampleEvent
+eventAggregateObjects :: User -> AggregationEvent -> AC.AppM SB.PrimaryKeyType
+eventAggregateObjects user aggObject = error "not implemented yet"
 
-eventDisaggregateObjects :: User -> DisaggregationEvent -> AC.AppM Event
-eventDisaggregateObjects user aggObject = liftIO sampleEvent
+eventDisaggregateObjects :: User -> DisaggregationEvent -> AC.AppM SB.PrimaryKeyType
+eventDisaggregateObjects user aggObject = error "not implemented yet"
 
-eventStartTransaction :: User -> TransactionEvent -> AC.AppM Event
-eventStartTransaction user aggObject = liftIO sampleEvent
+eventStartTransaction :: User -> TransactionEvent -> AC.AppM SB.PrimaryKeyType
+eventStartTransaction user aggObject = error "not implemented yet"
 
-eventTransformObject :: User -> TransformationEvent -> AC.AppM Event
-eventTransformObject user aggObject = liftIO sampleEvent
+eventTransformObject :: User -> TransformationEvent -> AC.AppM SB.PrimaryKeyType
+eventTransformObject user aggObject = error "not implemented yet"
 
 sampleEvent:: IO Event
 sampleEvent=  do
