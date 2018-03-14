@@ -133,13 +133,13 @@ toStorageDWhat :: SB.PrimaryKeyType
                -> SB.PrimaryKeyType
                -> DWhat
                -> SB.What
-toStorageDWhat pKey mParentId mBizTranId mTranId eventId dwhat
+toStorageDWhat pKey mParentId mBizTranId mTranfId eventId dwhat
    = SB.What pKey
             (Just . Ev.stringify . Ev.getEventType $ dwhat)
             (toText <$> getAction dwhat)
             (SB.LabelId mParentId)
             (SB.BizTransactionId mBizTranId)
-            (SB.TransformationId mTranId)
+            (SB.TransformationId mTranfId)
             (SB.EventId eventId)
 
 getAction :: DWhat -> Maybe Action
@@ -244,12 +244,12 @@ insertDWhat :: Maybe SB.PrimaryKeyType
             -> DWhat
             -> SB.PrimaryKeyType
             -> AppM SB.PrimaryKeyType
-insertDWhat mBizTranId mTranId dwhat eventId = do
+insertDWhat mBizTranId mTranfId dwhat eventId = do
   pKey <- generatePk
   mParentId <- getParentId dwhat
   r <- runDb $ B.runInsert $ B.insert (SB._whats SB.supplyChainDb)
              $ insertValues
-             [toStorageDWhat pKey mParentId mBizTranId mTranId eventId dwhat]
+             [toStorageDWhat pKey mParentId mBizTranId mTranfId eventId dwhat]
   case r of
     Left  e -> throwUnexpectedDBError $ sqlToServerError e
     Right _ -> return pKey
