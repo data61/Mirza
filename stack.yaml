@@ -3,9 +3,9 @@ extra-package-dbs: []
 packages:
 - '.'
 - location:
-    # git: https://github.com/sajidanower23/beam.git
-    git: https://github.com/tathougies/beam.git
-    commit: c4deeddcbf0e8504ed625a22f7ffe3316de5c209
+    git: https://github.com/sajidanower23/beam.git
+    # git: https://github.com/tathougies/beam.git
+    commit: 2dc63e318a126aab0d465b6e2c64132cec2fb792
   extra-dep: true
   subdirs:
     - beam-core

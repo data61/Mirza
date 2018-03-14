@@ -7,6 +7,7 @@ import           Database.Beam.Postgres.Migrate
 import           Database.Beam.Migrate.SQL.Tables
 import           Database.Beam.Migrate.Types
 import           Database.Beam.Postgres
+import           Database.Beam.Migrate.Simple (verifySchema)
 import           StorageBeam
 
 maxLen :: Word
@@ -196,3 +197,5 @@ migrationStorage =
           (field "blockchain_address" text notNull)
           (field "blockchain_foreign_id" int notNull)
     )
+
+-- myVer = verifySchema migrationStorage
