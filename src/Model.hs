@@ -203,28 +203,29 @@ data DisaggregationEvent = DisaggregationEvent {
 $(deriveJSON defaultOptions ''DisaggregationEvent)
 instance ToSchema DisaggregationEvent
 
-data TransformationInfo = TransformationInfo {
-  transObject_objectIDs :: [LabelEPC],
-  transObject_timestamp :: EPCISTime,
-  transObject_timezone:: TimeZone,
-  transObject_location :: DWhere,
-  transObject_inputQuantity :: [Quantity],
-  transObject_outputObjectID :: [LabelEPC],
-  transObject_outputQuantity :: [Quantity],
-  transObject_foreign_event_id :: Maybe EventID
+data TransformationEvent = TransformationEvent {
+  transf_foreign_event_id :: Maybe EventID,
+  transf_input_list       :: [LabelEPC],
+  transf_output_list      :: [LabelEPC],
+  transf_when             :: DWhen,
+  transf_where            :: DWhere,
+  transf_why              :: DWhy
 } deriving (Show, Generic)
-$(deriveJSON defaultOptions ''TransformationInfo)
-instance ToSchema TransformationInfo
+$(deriveJSON defaultOptions ''TransformationEvent)
+instance ToSchema TransformationEvent
 
-data TransactionInfo = TransactionInfo {
-  transaction_userIDs :: [UserID],
-  transaction_objectIDs :: [LabelEPC],
-  transaction_parentLabel :: Maybe ParentLabel,
-  transaction_bizTransaction :: [BizTransaction]
+data TransactionEvent = TransactionEvent {
+  transaction_act                  :: Action,
+  transaction_parent_label         :: Maybe ParentLabel,
+  transaction_biz_transaction_list :: [BizTransaction],
+  transaction_epc_list             :: [LabelEPC],
+  transaction_user_ids             :: [UserID],
+  transaction_when                 :: DWhen,
+  transaction_where                :: DWhere,
+  transaction_why                  :: DWhy
 } deriving (Show, Generic)
-$(deriveJSON defaultOptions ''TransactionInfo)
-instance ToSchema TransactionInfo
-
+$(deriveJSON defaultOptions ''TransactionEvent)
+instance ToSchema TransactionEvent
 
 data SignedEvent = SignedEvent {
   signed_eventID :: EventID,
