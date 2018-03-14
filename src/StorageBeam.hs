@@ -107,8 +107,8 @@ data KeyT f = Key
   { key_id             :: C f PrimaryKeyType
   , key_user_id        :: PrimaryKey UserT f
   , rsa_public_pkcs8   :: C f ByteString -- should be PKCS8 encoding
-  , creation_time       :: C f LocalTime -- UTCTime
-  , revocation_time     :: C f (Maybe LocalTime) -- UTCTime
+  , creation_time       :: C f ZonedTime -- UTCTime
+  , revocation_time     :: C f (Maybe ZonedTime) -- UTCTime
   }
   deriving Generic
 type Key = KeyT Identity
@@ -421,8 +421,8 @@ type TzOffsetString = Text
 
 data WhenT f = When
   { when_id                      :: C f PrimaryKeyType
-  , event_time                   :: C f LocalTime
-  , record_time                  :: C f (Maybe LocalTime)
+  , event_time                   :: C f ZonedTime
+  , record_time                  :: C f (Maybe ZonedTime)
   , time_zone                    :: C f TzOffsetString -- TimeZone
   , when_event_id                :: PrimaryKey EventT f }
   deriving Generic
