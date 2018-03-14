@@ -5,7 +5,7 @@ packages:
 - location:
     # git: https://github.com/sajidanower23/beam.git
     git: https://github.com/tathougies/beam.git
-    commit: 1673f0762f9beca04923518bca1ba5c519fd56a3
+    commit: c4deeddcbf0e8504ed625a22f7ffe3316de5c209
   extra-dep: true
   subdirs:
     - beam-core
