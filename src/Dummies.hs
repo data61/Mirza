@@ -5,7 +5,7 @@
 module Dummies where
 
 import           Data.UUID (nil)
-import qualified Model as M
+import           Data.Maybe (fromJust)
 import           Data.GS1.DWhat
 import           Data.GS1.DWhy
 import           Data.GS1.DWhere
@@ -19,6 +19,7 @@ import           Text.XML
 import           Text.XML.Cursor
 import           Data.GS1.Parser.Parser (parseEventByType)
 import           Control.Monad.Reader (liftIO)
+import qualified Model as M
 import qualified BeamQueries as BQ
 
 dummyNewUser :: M.NewUser
@@ -79,7 +80,7 @@ dummyEvent =
     dummyDWhere
 
 dummyObjectEvent :: M.ObjectEvent
-dummyObjectEvent = M.mkObjectEvent dummyEvent
+dummyObjectEvent = fromJust $ M.mkObjectEvent dummyEvent
 
 dummyRsaPubKey :: M.RSAPublicKey
 dummyRsaPubKey = M.RSAPublicKey 3 5
@@ -92,6 +93,5 @@ runEventCreateObject xmlFile = do
         filter (not . null) $ concat $
         parseEventByType mainCursor <$> Ev.allEventTypes
       (Right objEvent) = head allParsedEvents
-      newObj = M.mkObjectEvent objEvent
-  eventId <- BQ.insertObjectEvent dummyUser newObj
+  eventId <- BQ.insertObjectEvent dummyUser dummyObjectEvent
   liftIO $ print eventId

@@ -148,15 +148,14 @@ data Business = Business {
 $(deriveJSON defaultOptions ''Business)
 instance ToSchema Business
 
-mkObjectEvent :: Ev.Event -> ObjectEvent
+mkObjectEvent :: Ev.Event -> Maybe ObjectEvent
 mkObjectEvent
   (Ev.Event Ev.ObjectEventT
     mEid
     (ObjectDWhat act epcList)
     dwhen dwhy dwhere
-  ) = ObjectEvent mEid act epcList dwhen dwhy dwhere
-mkObjectEvent ev = error $
-                   "Cannot make event from supplied Event:\n" ++ (show ev)
+  ) = Just $ ObjectEvent mEid act epcList dwhen dwhy dwhere
+mkObjectEvent _ = Nothing
 
 fromObjectEvent :: ObjectEvent ->  Ev.Event
 fromObjectEvent (ObjectEvent mEid act epcList dwhen dwhy dwhere) =
