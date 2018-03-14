@@ -189,6 +189,41 @@ insertObjectEvent
 
   endTransaction
 
+  return eventId
+
+insertAggEvent :: M.User
+               -> M.AggregationEvent
+               -> AppM SB.PrimaryKeyType
+insertAggEvent
+  (M.User userId _ _ )
+  (M.AggregationEvent
+    foreignEventId
+    act
+    mParentLabel
+    labelEpcs
+    dwhen dwhy dwhere
+  ) = do
+  let
+      eventType = AggregationEventT
+      dwhat =  AggregationDWhat act mParentLabel labelEpcs
+      event = Event eventType foreignEventId dwhat dwhen dwhy dwhere
+      jsonEvent = encodeEvent event
+
+  startTransaction
+
+  eventId <- insertEvent userId jsonEvent event
+  whatId <- insertDWhat Nothing Nothing dwhat eventId
+  labelIds <- mapM (insertLabel Nothing whatId) labelEpcs
+  -- Make labelType a datatype?
+  let mParentId = insertLabel (Just "parent") whatId <$> (IL <$> mParentLabel)
+  whenId <- insertDWhen dwhen eventId
+  whyId <- insertDWhy dwhy eventId
+  insertDWhere dwhere eventId
+  insertUserEvent eventId userId userId False Nothing
+  mapM (insertWhatLabel whatId) labelIds
+  mapM (insertLabelEvent eventId) labelIds
+
+  endTransaction
 
   return eventId
 
