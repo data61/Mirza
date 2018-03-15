@@ -178,7 +178,7 @@ insertObjectEvent
   startTransaction
 
   eventId <- insertEvent userId jsonEvent event
-  whatId <- insertDWhat Nothing Nothing dwhat eventId
+  whatId <- insertDWhat Nothing dwhat eventId
   labelIds <- mapM (insertLabel Nothing whatId) labelEpcs
   whenId <- insertDWhen dwhen eventId
   whyId <- insertDWhy dwhy eventId
@@ -212,7 +212,7 @@ insertAggEvent
   startTransaction
 
   eventId <- insertEvent userId jsonEvent event
-  whatId <- insertDWhat Nothing Nothing dwhat eventId
+  whatId <- insertDWhat Nothing dwhat eventId
   labelIds <- mapM (insertLabel Nothing whatId) labelEpcs
   -- Make labelType a datatype?
   let mParentId = insertLabel (Just "parent") whatId <$> (IL <$> mParentLabel)
