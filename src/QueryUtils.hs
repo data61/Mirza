@@ -165,9 +165,6 @@ findInstLabelId (SGTIN cp msfv ir sn) = findInstLabelId' cp sn msfv (Just ir) No
 findInstLabelId (GRAI cp at sn) = findInstLabelId' cp sn Nothing Nothing (Just at)
 
 
--- | FIXME
--- (==.) generates a query that includes filter_value = null
--- which should be filter_value is NULL
 findInstLabelId' :: GS1CompanyPrefix
                 -> SerialNumber
                 -> Maybe SGTINFilterValue
