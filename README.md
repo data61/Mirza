@@ -1,12 +1,4 @@
-Make sure you have the latest copy of GS1Combinators in the parent directory.
-
-If you made a directory and called it `project`, then your directory tree
-should look like this:
-```console
-├── project
-│   ├── GS1Combinators
-│   ├── supplyChainServer
-```
+# GS1Combinators
 
 If you do not have the latest version of stack, please remove whatever version of stack you have:
 
