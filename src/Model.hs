@@ -209,19 +209,6 @@ fromAggEvent (AggregationEvent mEid act mParentLabel epcList dwhen dwhy dwhere) 
     (AggregationDWhat act mParentLabel epcList)
     dwhen dwhy dwhere
 
-
-data DisaggregationEvent = DisaggregationEvent {
-  disagg_foreign_event_id :: Maybe EventID,
-  disagg_act              :: Action,
-  disagg_parent_label     :: Maybe ParentLabel,
-  disagg_child_epc_list   :: [LabelEPC],
-  disagg_when             :: DWhen,
-  disagg_why              :: DWhy,
-  disagg_where            :: DWhere
-} deriving (Show, Generic)
-$(deriveJSON defaultOptions ''DisaggregationEvent)
-instance ToSchema DisaggregationEvent
-
 data TransformationEvent = TransformationEvent {
   transf_foreign_event_id  :: Maybe EventID,
   transf_transformation_id :: Maybe TransformationID,

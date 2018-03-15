@@ -151,7 +151,7 @@ testQueries = do
         (\ev -> ev == dummyObjEvent)
       eventList `shouldBe` [fromJust insertedEvent]
 
-  describe "Dis/Aggregation Event" $ do
+  describe "Aggregation Event" $ do
     it "Insert Aggregation Event" $ \(conn, env) -> do
       eventId <- fromRight' <$> (runAppM env $ insertAggEvent dummyUser dummyAggregation)
       insertedEvent <- fromRight' <$> (runAppM env $ findEvent eventId)
