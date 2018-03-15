@@ -107,13 +107,15 @@ testQueries = do
 
       key <- fromRight' <$> (runAppM env $ selectKey keyId)
       tEnd <- timeStampIO
-
-      (fromJust key) `shouldSatisfy` (\k -> (SB.rsa_public_pkcs8 k) == (toStrict $ encode $ getCryptoPublicKey dummyRsaPubKey) &&
-                                            (SB.key_id k) == keyId &&
-                                            (SB.key_user_id k) == (SB.UserId uid) &&
-                                            -- (SB.creation_time k) > tStart && (SB.creation_time k) < tEnd &&
-                                            isNothing (SB.revocation_time k))
-
+      (fromJust key)
+        `shouldSatisfy`
+          (\k ->
+            (SB.rsa_public_pkcs8 k) == (toStrict $ encode $ getCryptoPublicKey dummyRsaPubKey) &&
+            (SB.key_id k) == keyId &&
+            (SB.key_user_id k) == (SB.UserId uid) &&
+            -- (SB.creation_time k) > tStart && (SB.creation_time k) < tEnd &&
+            isNothing (SB.revocation_time k)
+          )
 
   -- this test seems not to work because of inability by beam to parse time
   describe "getPublicKey tests" $ do
