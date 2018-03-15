@@ -236,7 +236,7 @@ instance ToSchema TransformationInfo
 data TransactionInfo = TransactionInfo {
   transaction_userIDs :: [UserID],
   transaction_objectIDs :: [LabelEPC],
-  transaction_parentLabel :: Maybe LabelEPC,
+  transaction_parentLabel :: Maybe ParentLabel,
   transaction_bizTransaction :: [BizTransaction]
 } deriving (Show, Generic)
 $(deriveJSON defaultOptions ''TransactionInfo)
