@@ -129,18 +129,22 @@ getQuantityUom (Just (ItemCount _)) = Nothing
 toStorageDWhat :: SB.PrimaryKeyType
                -> Maybe SB.PrimaryKeyType
                -> Maybe SB.PrimaryKeyType
-               -> Maybe SB.PrimaryKeyType
                -> SB.PrimaryKeyType
                -> DWhat
                -> SB.What
-toStorageDWhat pKey mParentId mBizTranId mTranfId eventId dwhat
+toStorageDWhat pKey mParentId mBizTranId eventId dwhat
    = SB.What pKey
             (Just . Ev.stringify . Ev.getEventType $ dwhat)
             (toText <$> getAction dwhat)
             (SB.LabelId mParentId)
             (SB.BizTransactionId mBizTranId)
-            (SB.TransformationId mTranfId)
+            (SB.TransformationId $ getTransformationId dwhat)
             (SB.EventId eventId)
+
+getTransformationId :: DWhat -> Maybe TransformationID
+getTransformationId t@(TransformationDWhat _ _ _) = _TransformationId t
+getTransformationId _ = Nothing
+
 
 getAction :: DWhat -> Maybe Action
 getAction (TransformationDWhat _ _ _) = Nothing
@@ -240,16 +244,15 @@ toStorageEvent pKey userId jsonEvent mEventId =
   SB.Event pKey (EvId.getEventId <$> mEventId) (SB.UserId userId) jsonEvent
 
 insertDWhat :: Maybe SB.PrimaryKeyType
-            -> Maybe SB.PrimaryKeyType
             -> DWhat
             -> SB.PrimaryKeyType
             -> AppM SB.PrimaryKeyType
-insertDWhat mBizTranId mTranfId dwhat eventId = do
+insertDWhat mBizTranId dwhat eventId = do
   pKey <- generatePk
   mParentId <- getParentId dwhat
   r <- runDb $ B.runInsert $ B.insert (SB._whats SB.supplyChainDb)
              $ insertValues
-             [toStorageDWhat pKey mParentId mBizTranId mTranfId eventId dwhat]
+             [toStorageDWhat pKey mParentId mBizTranId eventId dwhat]
   case r of
     Left  e -> throwUnexpectedDBError $ sqlToServerError e
     Right _ -> return pKey
