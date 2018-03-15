@@ -22,6 +22,9 @@ import           Control.Monad.Reader (liftIO)
 import qualified Model as M
 import qualified BeamQueries as BQ
 
+-- add function to generate and take dummyLabelEpc
+
+-- General Utils
 dummyNewUser :: M.NewUser
 dummyNewUser = M.NewUser "000" "fake@gmail.com" "New" "User" "Lomondo" "thi$i5fake"
 
@@ -38,6 +41,22 @@ sampleObjectFile = "../GS1Combinators/test/test-xml/ObjectEvent.xml"
 dummyUser :: M.User
 dummyUser = M.User nil "Sajid" "Anower"
 
+dummyRsaPubKey :: M.RSAPublicKey
+dummyRsaPubKey = M.RSAPublicKey 3 5
+
+-- Events
+
+-- Object Events
+dummyObjEvent :: Ev.Event
+dummyObjEvent =
+  Ev.Event
+    Ev.ObjectEventT
+    Nothing
+    dummyObjectDWhat
+    dummyDWhen
+    dummyDWhy
+    dummyDWhere
+
 dummyObjectDWhat :: DWhat
 dummyObjectDWhat =
   ObjectDWhat
@@ -47,7 +66,43 @@ dummyObjectDWhat =
       IL (SGTIN "0614141" Nothing "107346" "2018")
     ]
 
--- add function to generate and take dummyLabelEpc
+dummyObject :: M.ObjectEvent
+dummyObject = fromJust $ M.mkObjectEvent dummyObjEvent
+
+
+-- Aggregation Events
+dummyAggDWhat :: DWhat
+dummyAggDWhat =
+  AggregationDWhat
+    Delete
+    dummyParentLabel
+    [
+      dummyLabelEpc,
+      IL (SGTIN "0614141" Nothing "107346" "2018")
+    ]
+
+dummyAggEvent :: Ev.Event
+dummyAggEvent =
+  Ev.Event
+    Ev.AggregationEventT
+    Nothing
+    dummyAggDWhat
+    dummyDWhen
+    dummyDWhy
+    dummyDWhere
+
+dummyAggregation :: M.AggregationEvent
+dummyAggregation = fromJust $ M.mkAggEvent dummyAggEvent
+
+-- Transaction Events
+
+-- Transformation Events
+
+
+-- Dimensions
+
+dummyParentLabel :: Maybe ParentLabel
+dummyParentLabel = Just (SSCC "0614141" "1234567890")
 
 dummyLabelEpc :: LabelEPC
 dummyLabelEpc = IL (SGTIN "0614141" Nothing "107346" "2017")
@@ -69,22 +124,8 @@ dummyDWhere = DWhere
 dummyDWhy :: DWhy
 dummyDWhy = DWhy (Just Receiving) (Just InProgress)
 
-dummyEvent :: Ev.Event
-dummyEvent =
-  Ev.Event
-    Ev.ObjectEventT
-    Nothing
-    dummyObjectDWhat
-    dummyDWhen
-    dummyDWhy
-    dummyDWhere
 
-dummyObjectEvent :: M.ObjectEvent
-dummyObjectEvent = fromJust $ M.mkObjectEvent dummyEvent
-
-dummyRsaPubKey :: M.RSAPublicKey
-dummyRsaPubKey = M.RSAPublicKey 3 5
-
+-- | @INCOMPLETE@ Utility function to read an XML and write that to database
 runEventCreateObject :: FilePath -> AppM ()
 runEventCreateObject xmlFile = do
   doc <- liftIO $ Text.XML.readFile def xmlFile
@@ -93,5 +134,5 @@ runEventCreateObject xmlFile = do
         filter (not . null) $ concat $
         parseEventByType mainCursor <$> Ev.allEventTypes
       (Right objEvent) = head allParsedEvents
-  eventId <- BQ.insertObjectEvent dummyUser dummyObjectEvent
+  eventId <- BQ.insertObjectEvent dummyUser dummyObject
   liftIO $ print eventId

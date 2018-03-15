@@ -192,6 +192,24 @@ data AggregationEvent = AggregationEvent {
 $(deriveJSON defaultOptions ''AggregationEvent)
 instance ToSchema AggregationEvent
 
+mkAggEvent :: Ev.Event -> Maybe AggregationEvent
+mkAggEvent
+  (Ev.Event Ev.AggregationEventT
+    mEid
+    (AggregationDWhat act mParentLabel epcList)
+    dwhen dwhy dwhere
+  ) = Just $ AggregationEvent mEid act mParentLabel epcList dwhen dwhy dwhere
+mkAggEvent _ = Nothing
+
+fromAggEvent :: AggregationEvent ->  Ev.Event
+fromAggEvent (AggregationEvent mEid act mParentLabel epcList dwhen dwhy dwhere) =
+  Ev.Event
+    Ev.AggregationEventT
+    mEid
+    (AggregationDWhat act mParentLabel epcList)
+    dwhen dwhy dwhere
+
+
 data DisaggregationEvent = DisaggregationEvent {
   disagg_foreign_event_id :: Maybe EventID,
   disagg_act              :: Action,
