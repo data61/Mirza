@@ -1,4 +1,4 @@
-Make sure you have the latest copy of GS1Combinators in the parent directory.
+# GS1Combinators
 
 If you do not have the latest version of stack, please remove whatever version of stack you have:
 
@@ -14,19 +14,19 @@ To build the server, run:
 
 Before you run the server, make sure you have PostgreSQL 10 or higher installed.
 
-To install, you can follow the instructions [here]( http://yallalabs.com/linux/how-to-install-and-use-postgresql-10-on-ubuntu-16-04/)
+To install, you can follow the instructions [here]( http://yallalabs.com/linux/how-to-install-and-use-postgresql-10-on-ubuntu-16-04/).
 Note that you may need to run the commands as a super user.
 
 Create a Postgres account.
 There are good instructions <a href="https://www.digitalocean.com/community/tutorials/how-to-install-and-use-postgresql-on-ubuntu-16-04" target="_blank"> here. </a>
 
-Type in `psql` and see that you can open up a psql shell.
+Type in `psql` and see that you can open up a `psql` shell.
 
 After that, to create the database, run
 
 `stack exec supplyChainServer-exe -- -i -c devsupplychainserver`
 
-Note that you can change "testsupplychainserver" for any database name you like.
+Note that you can change `devsupplychainserver` for any database name you like.
 Not giving it the `-c` flag will result in a database named
 `devsupplychainserver`.
 
@@ -44,7 +44,7 @@ To use ghci interactively, run
 
 If you find yourself deleting and recreating the database frequently, run
 `./restart.sh`. It will build your code, drop the database 
-`testsupplychainserver`, create it anew and run the migration script
+`devsupplychainserver`, create it anew and run the migration script
 to create all the relevant tables.
 
 To do a clean build instead, do `./restart.sh --clean`.
