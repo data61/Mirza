@@ -288,7 +288,7 @@ addContact (M.User uid1 _ _) uid2 = do
   pKey <- generatePk
   r <- runDb $ runInsertReturningList (SB._contacts SB.supplyChainDb) $
                insertValues [SB.Contact pKey (SB.UserId uid1) (SB.UserId uid2)]
-  verifyInsertion r uid1 uid2
+  verifyContact r uid1 uid2
 
 -- | The current behaviour is, if the users were not contacts in the first
 -- place, then the function returns false
@@ -319,19 +319,19 @@ isExistingContact uid1 uid2 = do
         guard_ (SB.contact_user1_id contact  ==. (val_ . SB.UserId $ uid1) &&.
                 SB.contact_user2_id contact  ==. (val_ . SB.UserId $ uid2))
         pure contact
-  verifyInsertion r uid1 uid2
+  verifyContact r uid1 uid2
 
--- | Verifies that the contact that has been inserted has been inserted 
--- as was intended
-verifyInsertion :: (Eq (PrimaryKey SB.UserT f), Monad m) =>
+-- | Simple utility function to check that the users are part of the contact
+-- typically used with the result of a query
+verifyContact :: (Eq (PrimaryKey SB.UserT f), Monad m) =>
                    Either e [SB.ContactT f] ->
                    C f SB.PrimaryKeyType ->
                    C f SB.PrimaryKeyType ->
                    m Bool
-verifyInsertion (Right [insertedContact]) uid1 uid2 = return $
+verifyContact (Right [insertedContact]) uid1 uid2 = return $
                   (SB.contact_user1_id insertedContact == (SB.UserId uid1)) &&
                   (SB.contact_user2_id insertedContact == (SB.UserId uid2))
-verifyInsertion _ _ _ = return False
+verifyContact _ _ _ = return False
 
 
 -- -- TODO - convert these below functions, and others in original file Storage.hs
