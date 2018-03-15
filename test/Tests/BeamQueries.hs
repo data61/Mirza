@@ -35,7 +35,6 @@ import           Data.Time.Clock (getCurrentTime, UTCTime(..))
 import           Data.Time (ZonedTime(..), utcToZonedTime
                            , zonedTimeToUTC)
 import           Data.Time.LocalTime (utc, utcToLocalTime, LocalTime)
-import           CryptHash (getCryptoPublicKey)
 import           Data.Binary
 import           Database.PostgreSQL.Simple (execute_)
 
