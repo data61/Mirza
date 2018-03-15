@@ -98,6 +98,29 @@ dummyAggregation = fromJust $ M.mkAggEvent dummyAggEvent
 
 -- Transformation Events
 
+dummyTransfDWhat :: DWhat
+dummyTransfDWhat =
+  (TransformationDWhat
+    Nothing
+    [
+      dummyLabelEpc,
+      IL (SGTIN "0614141" Nothing "107346" "2018")
+    ]
+    [CL (CSGTIN "4012345" Nothing "098765") Nothing]
+  )
+
+dummyTransfEvent :: Ev.Event
+dummyTransfEvent =
+  Ev.Event
+    Ev.AggregationEventT
+    Nothing
+    dummyAggDWhat
+    dummyDWhen
+    dummyDWhy
+    dummyDWhere
+
+dummyTransformation :: M.TransformationEvent
+dummyTransformation = fromJust $ M.mkTransfEvent dummyTransfEvent
 
 -- Dimensions
 

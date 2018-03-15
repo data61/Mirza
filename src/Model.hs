@@ -234,6 +234,24 @@ data TransformationEvent = TransformationEvent {
 $(deriveJSON defaultOptions ''TransformationEvent)
 instance ToSchema TransformationEvent
 
+mkTransfEvent :: Ev.Event -> Maybe TransformationEvent
+mkTransfEvent
+  (Ev.Event Ev.TransformationEventT
+    mEid
+    (TransformationDWhat mTransfId inputs outputs)
+    dwhen dwhy dwhere
+  ) = Just $ TransformationEvent mEid mTransfId inputs outputs dwhen dwhy dwhere
+mkTransfEvent _ = Nothing
+
+fromTransfEvent :: TransformationEvent ->  Ev.Event
+fromTransfEvent (TransformationEvent mEid mTransfId inputs outputs dwhen dwhy dwhere) =
+  Ev.Event
+    Ev.TransformationEventT
+    mEid
+    (TransformationDWhat mTransfId inputs outputs)
+    dwhen dwhy dwhere
+
+
 data TransactionEvent = TransactionEvent {
   transaction_foreign_event_id     :: Maybe EventID,
   transaction_act                  :: Action,
