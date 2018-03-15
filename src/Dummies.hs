@@ -11,16 +11,10 @@ import           Data.GS1.DWhy
 import           Data.GS1.DWhere
 import           Data.GS1.DWhen
 import           Data.GS1.EPC
-import           AppConfig (AppM(..))
 import qualified Data.GS1.Event as Ev
 import           Data.Time.LocalTime
 import           Data.Time
-import           Text.XML
-import           Text.XML.Cursor
-import           Data.GS1.Parser.Parser (parseEventByType)
-import           Control.Monad.Reader (liftIO)
 import qualified Model as M
-import qualified BeamQueries as BQ
 
 -- add function to generate and take dummyLabelEpc
 

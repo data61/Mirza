@@ -19,9 +19,7 @@ import           Crypto.Scrypt
 import           Data.ByteString (ByteString)
 import           Data.ByteString.Lazy (toStrict)
 import           Data.Text.Encoding (encodeUtf8)
-import           Data.GS1.Event (allEventTypes)
 import           Data.GS1.EPC
-import           Data.UUID (nil)
 -- import qualified Data.GS1.Event as Ev
 
 import           Utils
@@ -30,11 +28,9 @@ import qualified StorageBeam as SB
 import qualified Model as M
 import           Migrate (testDbConnStr)
 
--- import           Crypto.Scrypt
-import           Data.Time.Clock (getCurrentTime, UTCTime(..))
-import           Data.Time (ZonedTime(..), utcToZonedTime
-                           , zonedTimeToUTC)
-import           Data.Time.LocalTime (utc, utcToLocalTime, LocalTime)
+import           Data.Time.Clock (getCurrentTime)
+import           Data.Time (ZonedTime(..), utcToZonedTime)
+import           Data.Time.LocalTime (utc)
 import           CryptHash (getCryptoPublicKey)
 import           Data.Binary
 import           Database.PostgreSQL.Simple (execute_)
