@@ -37,7 +37,6 @@ type PrivateAPI =
   :<|> "event" :> "getHash" :> ReqBody '[JSON] EventID :> Post '[JSON] HashedEvent
   :<|> "event" :> "objectEvent" :> ReqBody '[JSON] ObjectEvent :> Post '[JSON] PrimaryKeyType
   :<|> "event" :> "aggregateObjects" :> ReqBody '[JSON] AggregationEvent :> Post '[JSON] PrimaryKeyType
-  :<|> "event" :> "disAggregateObjects" :> ReqBody '[JSON] DisaggregationEvent :> Post '[JSON] PrimaryKeyType
   :<|> "event" :> "start-transaction" :> ReqBody '[JSON] TransactionEvent :> Post '[JSON] PrimaryKeyType
   :<|> "event" :> "transformObject" :> ReqBody '[JSON] TransformationEvent :> Post '[JSON] PrimaryKeyType
   :<|> "key" :> "add" :>  ReqBody '[JSON] RSAPublicKey :> Post '[JSON] KeyID

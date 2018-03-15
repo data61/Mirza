@@ -225,32 +225,6 @@ insertAggEvent
 
   return eventId
 
--- | The implementation is exactly the same as that of aggregation event,
--- which makes me think - do they need to be separate functions, or even
--- separate datatypes altogether?
-insertDisaggEvent :: M.User
-                  -> M.DisaggregationEvent
-                  -> AppM SB.PrimaryKeyType
-insertDisaggEvent
-  user
-  (M.DisaggregationEvent
-    foreignEventId
-    act
-    mParentLabel
-    labelEpcs
-    dwhen dwhy dwhere
-  ) =
-    insertAggEvent
-      user
-      (M.AggregationEvent
-        foreignEventId
-        act
-        mParentLabel
-        labelEpcs
-        dwhen dwhy dwhere
-      )
-
-
 insertTransfEvent :: M.User
                   -> M.TransformationEvent
                   -> AppM SB.PrimaryKeyType

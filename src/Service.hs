@@ -103,7 +103,6 @@ privateServer user =
         :<|> eventHashed user
         :<|> objectEvent user
         :<|> eventAggregateObjects user
-        :<|> eventDisaggregateObjects user
         :<|> eventStartTransaction user
         :<|> eventTransformObject user
         :<|> Service.addPublicKey user
@@ -242,9 +241,6 @@ objectEvent = BQ.insertObjectEvent
 
 eventAggregateObjects :: User -> AggregationEvent -> AC.AppM SB.PrimaryKeyType
 eventAggregateObjects user aggObject = error "not implemented yet"
-
-eventDisaggregateObjects :: User -> DisaggregationEvent -> AC.AppM SB.PrimaryKeyType
-eventDisaggregateObjects user aggObject = error "not implemented yet"
 
 eventStartTransaction :: User -> TransactionEvent -> AC.AppM SB.PrimaryKeyType
 eventStartTransaction user aggObject = error "not implemented yet"
