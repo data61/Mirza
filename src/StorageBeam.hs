@@ -302,7 +302,7 @@ instance Beamable EventT
 instance Beamable (PrimaryKey EventT)
 deriving instance Show (PrimaryKey EventT Identity)
 
--- unEventId 
+-- | Utility function to extract ``eventId``
 unEventId :: PrimaryKey EventT f -> C f PrimaryKeyType
 unEventId (EventId eventId) = eventId
 
