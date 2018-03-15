@@ -204,12 +204,13 @@ $(deriveJSON defaultOptions ''DisaggregationEvent)
 instance ToSchema DisaggregationEvent
 
 data TransformationEvent = TransformationEvent {
-  transf_foreign_event_id :: Maybe EventID,
-  transf_input_list       :: [LabelEPC],
-  transf_output_list      :: [LabelEPC],
-  transf_when             :: DWhen,
-  transf_why              :: DWhy,
-  transf_where            :: DWhere
+  transf_foreign_event_id  :: Maybe EventID,
+  transf_transformation_id :: Maybe TransformationID,
+  transf_input_list        :: [LabelEPC],
+  transf_output_list       :: [LabelEPC],
+  transf_when              :: DWhen,
+  transf_why               :: DWhy,
+  transf_where             :: DWhere
 } deriving (Show, Generic)
 $(deriveJSON defaultOptions ''TransformationEvent)
 instance ToSchema TransformationEvent
