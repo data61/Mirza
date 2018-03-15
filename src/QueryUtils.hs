@@ -11,7 +11,8 @@ module QueryUtils where
 import           Data.Time.LocalTime (utc, utcToLocalTime
                                      , LocalTime, localTimeToUTC
                                      , timeZoneOffsetString)
-import           Data.Time (UTCTime)
+import           Data.Time (UTCTime, ZonedTime(..), utcToZonedTime
+                           , zonedTimeToUTC)
 import           AppConfig (AppM(..), runDb, getDBConn)
 import qualified StorageBeam as SB
 import           Data.UUID.V4 (nextRandom)
@@ -42,19 +43,23 @@ import           Database.PostgreSQL.Simple
 import           Data.Text.Lazy.Encoding (encodeUtf8)
 
 -- | Reads back the ``LocalTime`` in UTCTime (with an offset of 0)
-toEPCISTime :: LocalTime -> UTCTime
-toEPCISTime = localTimeToUTC utc
+toEPCISTime :: ZonedTime -> UTCTime
+toEPCISTime = zonedTimeToUTC
 
 -- | Shorthand for type-casting UTCTime to LocalTime before storing them in DB
 toLocalTime :: UTCTime -> LocalTime
 toLocalTime = utcToLocalTime utc
 
+-- | Shorthand for type-casting UTCTime to LocalTime before storing them in DB
+toZonedTime :: UTCTime -> ZonedTime
+toZonedTime = utcToZonedTime utc
+
 -- | Generates a timestamp in LocalTime + 0:00 offset
 -- which is a UTCTime
-generateTimeStamp :: AppM LocalTime
+generateTimeStamp :: AppM ZonedTime
 generateTimeStamp = do
   utcTime <- liftIO getCurrentTime
-  return $ utcToLocalTime utc utcTime
+  return $ utcToZonedTime utc utcTime
 
 -- | shorthand for wrapping ``UUID.nextRandom`` in ``AppM``
 generatePk :: AppM SB.PrimaryKeyType
@@ -223,8 +228,8 @@ toStorageDWhen :: SB.PrimaryKeyType
                -> SB.When
 toStorageDWhen pKey (DWhen eventTime mRecordTime tZone) eventId =
   SB.When pKey
-    (toLocalTime eventTime)
-    (toLocalTime <$> mRecordTime)
+    (toZonedTime eventTime)
+    (toZonedTime <$> mRecordTime)
     (T.pack . timeZoneOffsetString $ tZone)
     (SB.EventId eventId)
 
