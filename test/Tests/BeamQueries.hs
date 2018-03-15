@@ -65,11 +65,11 @@ testQueries = do
 
   describe "newUser tests" $ do
     it "newUser test 1" $ \(conn, env) -> do
-      hash <- hashIO
       uid <- fromRight' <$> (runAppM env $ newUser dummyNewUser)
       user <- fromRight' <$> (runAppM env $ selectUser uid)
 
-      (fromJust user) `shouldSatisfy`
+      (fromJust user)
+        `shouldSatisfy`
           (\u ->
             (SB.phone_number u) == (M.phoneNumber dummyNewUser) &&
             (SB.email_address u) == (M.emailAddress dummyNewUser) &&
@@ -77,17 +77,22 @@ testQueries = do
             (SB.last_name u) == (M.lastName dummyNewUser) &&
             (SB.user_biz_id u) == (SB.BizId (M.company dummyNewUser)) &&
             -- note database bytestring includes the salt, this checks password
-            (verifyPass' (Pass $ encodeUtf8 $ M.password dummyNewUser) (EncryptedPass $ SB.password_hash u)) &&
-            (SB.user_id u) == uid)
+            (verifyPass'
+              (Pass $ encodeUtf8 $ M.password dummyNewUser)
+              (EncryptedPass $ SB.password_hash u)) &&
+            (SB.user_id u) == uid
+          )
 
   describe "authCheck tests" $ do
     it "authCheck test 1" $ \(conn, env) -> do
       uid <- fromRight' <$> (runAppM env $ newUser dummyNewUser)
       user <- fromRight' <$> (runAppM env $ authCheck (M.emailAddress dummyNewUser) (encodeUtf8 $ M.password dummyNewUser)) --hash)
       (fromJust user) `shouldSatisfy`
-        (\u -> (M.userId u) == uid &&
-               (M.userFirstName u) == (M.firstName dummyNewUser) &&
-               (M.userLastName u) == (M.lastName dummyNewUser))
+        (\u ->
+          (M.userId u) == uid &&
+          (M.userFirstName u) == (M.firstName dummyNewUser) &&
+          (M.userLastName u) == (M.lastName dummyNewUser)
+        )
 
   describe "addPublicKey tests" $ do
     it "addPublicKey test 1" $ \(conn, env) -> do
@@ -123,11 +128,6 @@ testQueries = do
       keyInfo <- fromRight' <$> (runAppM env $ getPublicKeyInfo keyId)
       tEnd <- timeStampIOEPCIS
 
-      -- keyInfo `shouldSatisfy` (\k -> (SB.rsa_public_pkcs8 k) == (toStrict $ encode $ getCryptoPublicKey dummyRsaPubKey) &&
-      --                                       (SB.key_id k) == keyId &&
-      --                                       (SB.key_user_id k) == (SB.UserId uid) &&
-      --                                       (SB.creation_time k) > tStart && (SB.creation_time k) < tEnd &&
-      --                                       isNothing (SB.revocation_time k))
       keyInfo `shouldSatisfy` (\ki -> (M.userID ki == uid) &&
                                       (M.creationTime ki > tStart && M.creationTime ki < tEnd) &&
                                       isNothing (M.revocationTime ki))
@@ -165,7 +165,6 @@ testQueries = do
   describe "Transformation Event" $ do
     it "Insert Transformation Event" $ \(conn, env) -> do
       eventId <- fromRight' <$> (runAppM env $ insertTransfEvent dummyUser dummyTransformation)
-      
       insertedEvent <- fromRight' <$> (runAppM env $ findEvent eventId)
       (fromJust insertedEvent) `shouldSatisfy`
         (\ev -> ev == dummyTransfEvent)
