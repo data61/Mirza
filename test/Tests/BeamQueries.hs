@@ -186,9 +186,13 @@ testQueries = do
     it "getUser test 1" $ \(conn, env) -> do
       uid <- fromRight' <$> (runAppM env $ newUser dummyNewUser)
       user <- fromRight' <$> (runAppM env $ getUser $ M.emailAddress dummyNewUser)
-      (fromJust user) `shouldSatisfy` (\u -> (M.userId u == uid) &&
-                                             (M.userFirstName u == M.firstName dummyNewUser) &&
-                                             (M.userLastName u == M.lastName dummyNewUser))
+      (fromJust user)
+        `shouldSatisfy`
+          (\u ->
+            (M.userId u == uid) &&
+            (M.userFirstName u == M.firstName dummyNewUser) &&
+            (M.userLastName u == M.lastName dummyNewUser)
+          )
 
   (after_ clearContact) . describe "Contacts" $ do
     describe "Add contact" $ do
