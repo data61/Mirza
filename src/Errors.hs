@@ -8,6 +8,7 @@ import qualified Model as M
 import           GHC.Generics (Generic)
 import qualified Data.Text as T
 import qualified Data.ByteString as BS
+import           Data.GS1.EventID
 import qualified Data.GS1.EPC as EPC
 
 type ErrorText = T.Text
@@ -17,12 +18,13 @@ data ServerError = ServerError (Maybe ErrorCode) ErrorText
                    deriving (Show, Read)
 
 -- | A sum type of errors that may occur in the Service layer
-data ServiceError = NeedMoreSignatures ServerError T.Text
-                  | InvalidSignature ServerError BS.ByteString
+data ServiceError = NeedMoreSignatures T.Text
+                  | InvalidSignature String
                   | BlockchainSendFailed ServerError
-                  | InvalidEventID ServerError Int
+                  | InvalidEventID EventID
                   | InvalidKeyID M.KeyID
                   | InvalidUserID M.UserID
+                  | InvalidRSAKey M.RSAPublicKey
                   | InsertionFail ServerError T.Text
                   | EmailExists ServerError M.Email
                   | EmailNotFound M.Email

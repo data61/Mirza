@@ -38,7 +38,7 @@ migrationStorage =
       Key
           (field "key_id" pkSerialType)
           (UserId (field "key_user_id" pkSerialType))
-          (field "rsa_public_pkcs8" binaryLargeObject) -- TODO = remove
+          (field "pem_str" text)
           (field "creation_time" timestamptz)
           (field "revocation_time" (maybeType timestamptz))
     )

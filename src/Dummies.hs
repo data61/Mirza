@@ -78,7 +78,7 @@ dummyObjectEvent :: M.ObjectEvent
 dummyObjectEvent = M.mkObjectEvent dummyEvent
 
 dummyRsaPubKey :: M.RSAPublicKey
-dummyRsaPubKey = M.RSAPublicKey 3 5
+dummyRsaPubKey = M.PEMString "blah"
 
 runEventCreateObject :: FilePath -> AppM ()
 runEventCreateObject xmlFile = do
