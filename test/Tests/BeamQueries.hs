@@ -73,9 +73,6 @@ testQueries = do
       uid <- fromRight' <$> (runAppM env $ newUser dummyNewUser)
       user <- fromRight' <$> (runAppM env $ selectUser uid)
 
-      --print $ show hash
-      --print $ show $ SB.password_hash $ fromJust user
-
       (fromJust user) `shouldSatisfy`
           (\u ->
             (SB.phone_number u) == (M.phoneNumber dummyNewUser) &&
@@ -89,7 +86,6 @@ testQueries = do
 
   describe "authCheck tests" $ do
     it "authCheck test 1" $ \(conn, env) -> do
-      --hash <- hashIO
       uid <- fromRight' <$> (runAppM env $ newUser dummyNewUser)
       user <- fromRight' <$> (runAppM env $ authCheck (M.emailAddress dummyNewUser) (encodeUtf8 $ M.password dummyNewUser)) --hash)
       (fromJust user) `shouldSatisfy`
@@ -97,7 +93,6 @@ testQueries = do
                (M.userFirstName u) == (M.firstName dummyNewUser) &&
                (M.userLastName u) == (M.lastName dummyNewUser))
 
-  -- this test seems not to work because of inability by beam to parse time
   describe "addPublicKey tests" $ do
     it "addPublicKey test 1" $ \(conn, env) -> do
       tStart <- timeStampIO
@@ -115,8 +110,6 @@ testQueries = do
                                             -- (SB.creation_time k) > tStart && (SB.creation_time k) < tEnd &&
                                             isNothing (SB.revocation_time k))
 
-
-  -- this test seems not to work because of inability by beam to parse time
   describe "getPublicKey tests" $ do
     it "getPublicKey test 1" $ \(conn, env) -> do
       fromRight' <$> (runAppM env $ newUser dummyNewUser)
@@ -125,7 +118,6 @@ testQueries = do
       key <- fromRight' <$> (runAppM env $ getPublicKey keyId)
       key `shouldBe` dummyRsaPubKey
 
-  -- this test seems not to work because of inability by beam to parse time
   describe "getPublicKeyInfo tests" $ do
     it "getPublicKeyInfo test 1" $ \(conn, env) -> do
       tStart <- timeStampIOEPCIS
@@ -146,16 +138,30 @@ testQueries = do
 
   describe "Object Event" $ do
     it "Insert Object Event" $ \(conn, env) -> do
-      eventId <- fromRight' <$> (runAppM env $ insertObjectEvent dummyUser dummyObjectEvent)
+      eventId <- fromRight' <$> (runAppM env $ insertObjectEvent dummyUser dummyObject)
       insertedEvent <- fromRight' <$> (runAppM env $ findEvent eventId)
       (fromJust insertedEvent) `shouldSatisfy`
-        (\ev -> ev == dummyEvent)
+        (\ev -> ev == dummyObjEvent)
 
     it "List event" $ \(conn, env) -> do
-      eventId <- fromRight' <$> (runAppM env $ insertObjectEvent dummyUser dummyObjectEvent)
+      eventId <- fromRight' <$> (runAppM env $ insertObjectEvent dummyUser dummyObject)
       insertedEvent <- fromRight' <$> (runAppM env $ findEvent eventId)
       eventList <- fromRight' <$> (runAppM env $ listEvents dummyLabelEpc)
       eventList `shouldBe` [fromJust insertedEvent]
+
+  describe "Dis/Aggregation Event" $ do
+    it "Insert Aggregation Event" $ \(conn, env) -> do
+      eventId <- fromRight' <$> (runAppM env $ insertAggEvent dummyUser dummyAggregation)
+      insertedEvent <- fromRight' <$> (runAppM env $ findEvent eventId)
+      (fromJust insertedEvent) `shouldSatisfy`
+        (\ev -> ev == dummyAggEvent)
+
+    -- it "List event" $ \(conn, env) -> do
+    --   eventId <- fromRight' <$> (runAppM env $ insertObjectEvent dummyUser dummyObject)
+    --   insertedEvent <- fromRight' <$> (runAppM env $ findEvent eventId)
+    --   eventList <- fromRight' <$> (runAppM env $ listEvents dummyLabelEpc)
+    --   eventList `shouldBe` [fromJust insertedEvent]
+
 
 
   describe "getUser tests" $ do
