@@ -140,18 +140,22 @@ getQuantityUom (Just (ItemCount _)) = Nothing
 toStorageDWhat :: SB.PrimaryKeyType
                -> Maybe SB.PrimaryKeyType
                -> Maybe SB.PrimaryKeyType
-               -> Maybe SB.PrimaryKeyType
                -> SB.PrimaryKeyType
                -> DWhat
                -> SB.What
-toStorageDWhat pKey mParentId mBizTranId mTranId eventId dwhat
+toStorageDWhat pKey mParentId mBizTranId eventId dwhat
    = SB.What pKey
             (Just . Ev.stringify . Ev.getEventType $ dwhat)
             (toText <$> getAction dwhat)
             (SB.LabelId mParentId)
             (SB.BizTransactionId mBizTranId)
-            (SB.TransformationId mTranId)
+            (SB.TransformationId $ getTransformationId dwhat)
             (SB.EventId eventId)
+
+getTransformationId :: DWhat -> Maybe TransformationID
+getTransformationId t@(TransformationDWhat _ _ _) = _TransformationId t
+getTransformationId _ = Nothing
+
 
 getAction :: DWhat -> Maybe Action
 getAction (TransformationDWhat _ _ _) = Nothing
@@ -167,9 +171,6 @@ findInstLabelId (SGTIN cp msfv ir sn) = findInstLabelId' cp sn msfv (Just ir) No
 findInstLabelId (GRAI cp at sn) = findInstLabelId' cp sn Nothing Nothing (Just at)
 
 
--- | FIXME
--- (==.) generates a query that includes filter_value = null
--- which should be filter_value is NULL
 findInstLabelId' :: GS1CompanyPrefix
                 -> SerialNumber
                 -> Maybe SGTINFilterValue
@@ -251,16 +252,15 @@ toStorageEvent pKey userId jsonEvent mEventId =
   SB.Event pKey (EvId.getEventId <$> mEventId) (SB.UserId userId) jsonEvent
 
 insertDWhat :: Maybe SB.PrimaryKeyType
-            -> Maybe SB.PrimaryKeyType
             -> DWhat
             -> SB.PrimaryKeyType
             -> AppM SB.PrimaryKeyType
-insertDWhat mBizTranId mTranId dwhat eventId = do
+insertDWhat mBizTranId dwhat eventId = do
   pKey <- generatePk
   mParentId <- getParentId dwhat
   r <- runDb $ B.runInsert $ B.insert (SB._whats SB.supplyChainDb)
              $ insertValues
-             [toStorageDWhat pKey mParentId mBizTranId mTranId eventId dwhat]
+             [toStorageDWhat pKey mParentId mBizTranId eventId dwhat]
   case r of
     Left  e -> throwUnexpectedDBError $ sqlToServerError e
     Right _ -> return pKey

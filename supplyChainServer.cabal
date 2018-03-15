@@ -73,7 +73,6 @@ library
                     , lifted-base
                     , RSA
                     , binary
-                    --, RSA == 1.0.3
                     , xml-conduit
                     , HsOpenSSL
                     , base64-bytestring
