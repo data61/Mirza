@@ -12,9 +12,17 @@ To build the server, run:
 
 `stack build `
 
+On MacOS, you need to `brew install openssl` and then run:
+`stack build --extra-include-dirs=/usr/local/opt/openssl/include --extra-lib-dirs=/usr/local/opt/openssl/lib`
+
+This is because Apple has deprecated the use of OpenSSL in favour of its own SSL and TLS libs.
+
 Before you run the server, make sure you have PostgreSQL 10 or higher installed.
 
 To install, you can follow the instructions [here]( http://yallalabs.com/linux/how-to-install-and-use-postgresql-10-on-ubuntu-16-04/).
+
+To install, you can follow the instructions [here]( http://yallalabs.com/linux/how-to-install-and-use-postgresql-10-on-ubuntu-16-04/)
+
 Note that you may need to run the commands as a super user.
 
 Create a Postgres account.
