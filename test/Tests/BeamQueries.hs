@@ -147,6 +147,8 @@ testQueries = do
       eventId <- fromRight' <$> (runAppM env $ insertObjectEvent dummyUser dummyObject)
       insertedEvent <- fromRight' <$> (runAppM env $ findEvent eventId)
       eventList <- fromRight' <$> (runAppM env $ listEvents dummyLabelEpc)
+      (fromJust insertedEvent) `shouldSatisfy`
+        (\ev -> ev == dummyObjEvent)
       eventList `shouldBe` [fromJust insertedEvent]
 
   describe "Dis/Aggregation Event" $ do
@@ -156,13 +158,29 @@ testQueries = do
       (fromJust insertedEvent) `shouldSatisfy`
         (\ev -> ev == dummyAggEvent)
 
-    -- it "List event" $ \(conn, env) -> do
-    --   eventId <- fromRight' <$> (runAppM env $ insertObjectEvent dummyUser dummyObject)
-    --   insertedEvent <- fromRight' <$> (runAppM env $ findEvent eventId)
-    --   eventList <- fromRight' <$> (runAppM env $ listEvents dummyLabelEpc)
-    --   eventList `shouldBe` [fromJust insertedEvent]
+    it "List event" $ \(conn, env) -> do
+      eventId <- fromRight' <$> (runAppM env $ insertAggEvent dummyUser dummyAggregation)
+      insertedEvent <- fromRight' <$> (runAppM env $ findEvent eventId)
+      (fromJust insertedEvent) `shouldSatisfy`
+        (\ev -> ev == dummyAggEvent)
+      eventList <- fromRight' <$> (runAppM env $ listEvents dummyLabelEpc)
+      eventList `shouldBe` [fromJust insertedEvent]
 
+  describe "Transformation Event" $ do
+    it "Insert Transformation Event" $ \(conn, env) -> do
+      eventId <- fromRight' <$> (runAppM env $ insertTransfEvent dummyUser dummyTransformation)
+      
+      insertedEvent <- fromRight' <$> (runAppM env $ findEvent eventId)
+      (fromJust insertedEvent) `shouldSatisfy`
+        (\ev -> ev == dummyTransfEvent)
 
+    it "List event" $ \(conn, env) -> do
+      eventId <- fromRight' <$> (runAppM env $ insertTransfEvent dummyUser dummyTransformation)
+      insertedEvent <- fromRight' <$> (runAppM env $ findEvent eventId)
+      (fromJust insertedEvent) `shouldSatisfy`
+        (\ev -> ev == dummyTransfEvent)
+      eventList <- fromRight' <$> (runAppM env $ listEvents dummyLabelEpc)
+      eventList `shouldBe` [fromJust insertedEvent]
 
   describe "getUser tests" $ do
     it "getUser test 1" $ \(conn, env) -> do
