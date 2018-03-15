@@ -89,6 +89,7 @@ dummyAggregation :: M.AggregationEvent
 dummyAggregation = fromJust $ M.mkAggEvent dummyAggEvent
 
 -- Transaction Events
+-- Nothing here as of yet
 
 -- Transformation Events
 
@@ -125,31 +126,33 @@ dummyLabelEpc :: LabelEPC
 dummyLabelEpc = IL (SGTIN "0614141" Nothing "107346" "2017")
 
 dummyDWhen :: DWhen
-dummyDWhen = DWhen
-              (read "2013-06-08 14:58:56.591+02:00" :: UTCTime)
-              Nothing
-              (read "+02:00" :: TimeZone)
+dummyDWhen =
+  DWhen
+    (read "2013-06-08 14:58:56.591+02:00" :: UTCTime)
+    Nothing
+    (read "+02:00" :: TimeZone)
 
 dummyDWhere :: DWhere
-dummyDWhere = DWhere
-                [SGLN "0012345" (LocationReference "11111") (Just "400")]
-                -- [ReadPointLocation]
-                [SGLN "0012345" (LocationReference "11111") Nothing]
-                -- [BizLocation]
-                [] []
+dummyDWhere =
+  DWhere
+    [SGLN "0012345" (LocationReference "11111") (Just "400")]
+    -- [ReadPointLocation]
+    [SGLN "0012345" (LocationReference "11111") Nothing]
+    -- [BizLocation]
+    [] []
 
 dummyDWhy :: DWhy
 dummyDWhy = DWhy (Just Receiving) (Just InProgress)
 
 
 -- | @INCOMPLETE@ Utility function to read an XML and write that to database
-runEventCreateObject :: FilePath -> AppM ()
-runEventCreateObject xmlFile = do
-  doc <- liftIO $ Text.XML.readFile def xmlFile
-  let mainCursor = fromDocument doc
-      allParsedEvents =
-        filter (not . null) $ concat $
-        parseEventByType mainCursor <$> Ev.allEventTypes
-      (Right objEvent) = head allParsedEvents
-  eventId <- BQ.insertObjectEvent dummyUser dummyObject
-  liftIO $ print eventId
+-- runEventCreateObject :: FilePath -> AppM ()
+-- runEventCreateObject xmlFile = do
+--   doc <- liftIO $ Text.XML.readFile def xmlFile
+--   let mainCursor = fromDocument doc
+--       allParsedEvents =
+--         filter (not . null) $ concat $
+--         parseEventByType mainCursor <$> Ev.allEventTypes
+--       (Right objEvent) = head allParsedEvents
+--   eventId <- BQ.insertObjectEvent dummyUser dummyObject
+--   liftIO $ print eventId
