@@ -112,9 +112,9 @@ dummyTransfDWhat =
 dummyTransfEvent :: Ev.Event
 dummyTransfEvent =
   Ev.Event
-    Ev.AggregationEventT
+    Ev.TransformationEventT
     Nothing
-    dummyAggDWhat
+    dummyTransfDWhat
     dummyDWhen
     dummyDWhy
     dummyDWhere
