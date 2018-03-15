@@ -5,7 +5,7 @@
 module Dummies where
 
 import           Data.UUID (nil)
-import qualified Model as M
+import           Data.Maybe (fromJust)
 import           Data.GS1.DWhat
 import           Data.GS1.DWhy
 import           Data.GS1.DWhere
@@ -19,8 +19,12 @@ import           Text.XML
 import           Text.XML.Cursor
 import           Data.GS1.Parser.Parser (parseEventByType)
 import           Control.Monad.Reader (liftIO)
+import qualified Model as M
 import qualified BeamQueries as BQ
 
+-- add function to generate and take dummyLabelEpc
+
+-- General Utils
 dummyNewUser :: M.NewUser
 dummyNewUser = M.NewUser "000" "fake@gmail.com" "New" "User" "Lomondo" "thi$i5fake"
 
@@ -37,6 +41,22 @@ sampleObjectFile = "../GS1Combinators/test/test-xml/ObjectEvent.xml"
 dummyUser :: M.User
 dummyUser = M.User nil "Sajid" "Anower"
 
+dummyRsaPubKey :: M.RSAPublicKey
+dummyRsaPubKey = M.PEMString "blah"
+
+-- Events
+
+-- Object Events
+dummyObjEvent :: Ev.Event
+dummyObjEvent =
+  Ev.Event
+    Ev.ObjectEventT
+    Nothing
+    dummyObjectDWhat
+    dummyDWhen
+    dummyDWhy
+    dummyDWhere
+
 dummyObjectDWhat :: DWhat
 dummyObjectDWhat =
   ObjectDWhat
@@ -46,7 +66,66 @@ dummyObjectDWhat =
       IL (SGTIN "0614141" Nothing "107346" "2018")
     ]
 
--- add function to generate and take dummyLabelEpc
+dummyObject :: M.ObjectEvent
+dummyObject = fromJust $ M.mkObjectEvent dummyObjEvent
+
+
+-- Aggregation Events
+dummyAggDWhat :: DWhat
+dummyAggDWhat =
+  AggregationDWhat
+    Delete
+    dummyParentLabel
+    [
+      dummyLabelEpc,
+      IL (SGTIN "0614141" Nothing "107346" "2018")
+    ]
+
+dummyAggEvent :: Ev.Event
+dummyAggEvent =
+  Ev.Event
+    Ev.AggregationEventT
+    Nothing
+    dummyAggDWhat
+    dummyDWhen
+    dummyDWhy
+    dummyDWhere
+
+dummyAggregation :: M.AggregationEvent
+dummyAggregation = fromJust $ M.mkAggEvent dummyAggEvent
+
+-- Transaction Events
+
+-- Transformation Events
+
+dummyTransfDWhat :: DWhat
+dummyTransfDWhat =
+  (TransformationDWhat
+    Nothing
+    [
+      dummyLabelEpc,
+      IL (SGTIN "0614141" Nothing "107346" "2018")
+    ]
+    [CL (CSGTIN "4012345" Nothing "098765") Nothing]
+  )
+
+dummyTransfEvent :: Ev.Event
+dummyTransfEvent =
+  Ev.Event
+    Ev.AggregationEventT
+    Nothing
+    dummyAggDWhat
+    dummyDWhen
+    dummyDWhy
+    dummyDWhere
+
+dummyTransformation :: M.TransformationEvent
+dummyTransformation = fromJust $ M.mkTransfEvent dummyTransfEvent
+
+-- Dimensions
+
+dummyParentLabel :: Maybe ParentLabel
+dummyParentLabel = Just (SSCC "0614141" "1234567890")
 
 dummyLabelEpc :: LabelEPC
 dummyLabelEpc = IL (SGTIN "0614141" Nothing "107346" "2017")
@@ -68,22 +147,8 @@ dummyDWhere = DWhere
 dummyDWhy :: DWhy
 dummyDWhy = DWhy (Just Receiving) (Just InProgress)
 
-dummyEvent :: Ev.Event
-dummyEvent =
-  Ev.Event
-    Ev.ObjectEventT
-    Nothing
-    dummyObjectDWhat
-    dummyDWhen
-    dummyDWhy
-    dummyDWhere
 
-dummyObjectEvent :: M.ObjectEvent
-dummyObjectEvent = M.mkObjectEvent dummyEvent
-
-dummyRsaPubKey :: M.RSAPublicKey
-dummyRsaPubKey = M.PEMString "blah"
-
+-- | @INCOMPLETE@ Utility function to read an XML and write that to database
 runEventCreateObject :: FilePath -> AppM ()
 runEventCreateObject xmlFile = do
   doc <- liftIO $ Text.XML.readFile def xmlFile
@@ -92,6 +157,5 @@ runEventCreateObject xmlFile = do
         filter (not . null) $ concat $
         parseEventByType mainCursor <$> Ev.allEventTypes
       (Right objEvent) = head allParsedEvents
-      newObj = M.mkObjectEvent objEvent
-  eventId <- BQ.insertObjectEvent dummyUser newObj
+  eventId <- BQ.insertObjectEvent dummyUser dummyObject
   liftIO $ print eventId

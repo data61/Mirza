@@ -4,7 +4,6 @@
 -- Functions in the `service` module use the database functions defined here
 module BeamQueries where
 
-import           Data.GS1.Parser.Parser
 import qualified Model as M
 import qualified StorageBeam as SB
 -- import           CryptHash (getCryptoPublicKey)
@@ -14,8 +13,7 @@ import           Data.Text.Encoding
 import           Database.PostgreSQL.Simple.Internal (SqlError(..))
 import           Database.Beam as B
 import           Database.Beam.Backend.SQL.BeamExtensions
-import           AppConfig (AppM, runDb, AppError(..))
-import           Control.Monad.Except (throwError)
+import           AppConfig (AppM, runDb)
 import qualified Data.Text as T
 import qualified Data.GS1.EPC as EPC
 import           Data.GS1.DWhat (DWhat(..), LabelEPC(..))
@@ -187,20 +185,16 @@ insertObjectEvent
     dwhen dwhy dwhere
   ) = do
 
-  currentTime <- generateTimeStamp
   let
       eventType = ObjectEventT
       dwhat =  ObjectDWhat act labelEpcs
-      -- dwhere = DWhere [rp] [bizL] [src] [dest]
-      -- dwhy  =  DWhy (Just CreatingClassInstance) (Just Active)
-      -- dwhen = DWhen epcisTime (Just $ toEPCISTime currentTime) timezone
       event = Event eventType foreignEventId dwhat dwhen dwhy dwhere
       jsonEvent = encodeEvent event
 
   startTransaction
 
   eventId <- insertEvent userId jsonEvent event
-  whatId <- insertDWhat Nothing Nothing dwhat eventId
+  whatId <- insertDWhat Nothing dwhat eventId
   labelIds <- mapM (insertLabel Nothing whatId) labelEpcs
   whenId <- insertDWhen dwhen eventId
   whyId <- insertDWhy dwhy eventId
@@ -211,11 +205,144 @@ insertObjectEvent
 
   endTransaction
 
-  -- TODO = combine rows from bizTransactionTable and _eventCreatedBy field in Event table
-  -- haven't added UserEvents insertion equivalent since redundant information and no equivalent
-  -- hashes not added yet, but will later for blockchain
+  return eventId
+
+insertAggEvent :: M.User
+               -> M.AggregationEvent
+               -> AppM SB.PrimaryKeyType
+insertAggEvent
+  (M.User userId _ _ )
+  (M.AggregationEvent
+    foreignEventId
+    act
+    mParentLabel
+    labelEpcs
+    dwhen dwhy dwhere
+  ) = do
+  let
+      eventType = AggregationEventT
+      dwhat =  AggregationDWhat act mParentLabel labelEpcs
+      event = Event eventType foreignEventId dwhat dwhen dwhy dwhere
+      jsonEvent = encodeEvent event
+
+  startTransaction
+
+  eventId <- insertEvent userId jsonEvent event
+  whatId <- insertDWhat Nothing dwhat eventId
+  labelIds <- mapM (insertLabel Nothing whatId) labelEpcs
+  -- Make labelType a datatype?
+  let mParentId = insertLabel (Just "parent") whatId <$> (IL <$> mParentLabel)
+  whenId <- insertDWhen dwhen eventId
+  whyId <- insertDWhy dwhy eventId
+  insertDWhere dwhere eventId
+  insertUserEvent eventId userId userId False Nothing
+  mapM (insertWhatLabel whatId) labelIds
+  mapM (insertLabelEvent eventId) labelIds
+
+  endTransaction
 
   return eventId
+
+-- | The implementation is exactly the same as that of aggregation event,
+-- which makes me think - do they need to be separate functions, or even
+-- separate datatypes altogether?
+insertDisaggEvent :: M.User
+                  -> M.DisaggregationEvent
+                  -> AppM SB.PrimaryKeyType
+insertDisaggEvent
+  user
+  (M.DisaggregationEvent
+    foreignEventId
+    act
+    mParentLabel
+    labelEpcs
+    dwhen dwhy dwhere
+  ) =
+    insertAggEvent
+      user
+      (M.AggregationEvent
+        foreignEventId
+        act
+        mParentLabel
+        labelEpcs
+        dwhen dwhy dwhere
+      )
+
+
+insertTransfEvent :: M.User
+                  -> M.TransformationEvent
+                  -> AppM SB.PrimaryKeyType
+insertTransfEvent
+  (M.User userId _ _ )
+  (M.TransformationEvent
+    foreignEventId
+    mTransfId
+    inputs
+    outputs
+    dwhen dwhy dwhere
+  ) = do
+  let
+      eventType = TransformationEventT
+      dwhat =  TransformationDWhat mTransfId inputs outputs
+      event = Event eventType foreignEventId dwhat dwhen dwhy dwhere
+      jsonEvent = encodeEvent event
+
+  startTransaction
+
+  eventId <- insertEvent userId jsonEvent event
+  whatId <- insertDWhat Nothing dwhat eventId
+  inputLabelIds <- mapM (insertLabel (Just "input") whatId) inputs
+  outputLabelIds <- mapM (insertLabel (Just "output") whatId) outputs
+  let labelIds = inputLabelIds ++ outputLabelIds
+  whenId <- insertDWhen dwhen eventId
+  whyId <- insertDWhy dwhy eventId
+  insertDWhere dwhere eventId
+  insertUserEvent eventId userId userId False Nothing
+  mapM (insertWhatLabel whatId) labelIds
+  mapM (insertLabelEvent eventId) labelIds
+
+  endTransaction
+
+  return eventId
+
+
+insertTransactionEvent :: M.User
+                       -> M.TransactionEvent
+                       -> AppM SB.PrimaryKeyType
+insertTransactionEvent
+  (M.User userId _ _ )
+  (M.TransactionEvent
+    foreignEventId
+    act
+    mParentLabel
+    bizTransactions
+    labelEpcs
+    users
+    dwhen dwhy dwhere
+  ) = do
+  let
+      eventType = TransactionEventT
+      dwhat =  TransactionDWhat act mParentLabel bizTransactions labelEpcs
+      event = Event eventType foreignEventId dwhat dwhen dwhy dwhere
+      jsonEvent = encodeEvent event
+
+  startTransaction
+
+  eventId <- insertEvent userId jsonEvent event
+  whatId <- insertDWhat Nothing dwhat eventId
+  labelIds <- mapM (insertLabel Nothing whatId) labelEpcs
+  let mParentId = insertLabel (Just "parent") whatId <$> (IL <$> mParentLabel)
+  whenId <- insertDWhen dwhen eventId
+  whyId <- insertDWhy dwhy eventId
+  insertDWhere dwhere eventId
+  insertUserEvent eventId userId userId False Nothing
+  mapM (insertWhatLabel whatId) labelIds
+  mapM (insertLabelEvent eventId) labelIds
+
+  endTransaction
+
+  return eventId
+
 
 listEvents :: LabelEPC -> AppM [Event]
 listEvents labelEpc = do
