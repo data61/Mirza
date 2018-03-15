@@ -288,10 +288,42 @@ insertTransfEvent
   return eventId
 
 
-insertTrasactionEvent :: M.User
-                      -> M.TransactionEvent
-                      -> AppM SB.PrimaryKeyType
-insertTrasactionEvent = error "not implemented yet"
+insertTransactionEvent :: M.User
+                       -> M.TransactionEvent
+                       -> AppM SB.PrimaryKeyType
+insertTransactionEvent
+  (M.User userId _ _ )
+  (M.TransactionEvent
+    foreignEventId
+    act
+    mParentLabel
+    bizTransactions
+    labelEpcs
+    users
+    dwhen dwhy dwhere
+  ) = do
+  let
+      eventType = TransactionEventT
+      dwhat =  TransactionDWhat act mParentLabel bizTransactions labelEpcs
+      event = Event eventType foreignEventId dwhat dwhen dwhy dwhere
+      jsonEvent = encodeEvent event
+
+  startTransaction
+
+  eventId <- insertEvent userId jsonEvent event
+  whatId <- insertDWhat Nothing dwhat eventId
+  labelIds <- mapM (insertLabel Nothing whatId) labelEpcs
+  let mParentId = insertLabel (Just "parent") whatId <$> (IL <$> mParentLabel)
+  whenId <- insertDWhen dwhen eventId
+  whyId <- insertDWhy dwhy eventId
+  insertDWhere dwhere eventId
+  insertUserEvent eventId userId userId False Nothing
+  mapM (insertWhatLabel whatId) labelIds
+  mapM (insertLabelEvent eventId) labelIds
+
+  endTransaction
+
+  return eventId
 
 
 listEvents :: LabelEPC -> AppM [Event]
