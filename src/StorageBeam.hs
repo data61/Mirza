@@ -107,8 +107,8 @@ data KeyT f = Key
   { key_id             :: C f PrimaryKeyType
   , key_user_id        :: PrimaryKey UserT f
   , pem_str            :: C f Text
-  , creationTime       :: C f LocalTime -- UTCTime
-  , revocationTime     :: C f (Maybe LocalTime) -- UTCTime
+  , creation_time      :: C f ZonedTime -- UTCTime
+  , revocation_time    :: C f (Maybe ZonedTime) -- UTCTime
   }
   deriving Generic
 type Key = KeyT Identity
@@ -421,8 +421,8 @@ type TzOffsetString = Text
 
 data WhenT f = When
   { when_id                      :: C f PrimaryKeyType
-  , event_time                   :: C f LocalTime
-  , record_time                  :: C f (Maybe LocalTime)
+  , event_time                   :: C f ZonedTime
+  , record_time                  :: C f (Maybe ZonedTime)
   , time_zone                    :: C f TzOffsetString -- TimeZone
   , when_event_id                :: PrimaryKey EventT f }
   deriving Generic
@@ -532,32 +532,32 @@ instance Table BlockChainT where
 
 
 data SupplyChainDb f = SupplyChainDb
-  { _users           :: f (TableEntity UserT)
-  , _keys            :: f (TableEntity KeyT)
-  , _businesses      :: f (TableEntity BusinessT)
-  , _contacts        :: f (TableEntity ContactT)
-  , _labels          :: f (TableEntity LabelT)
-  , _what_labels     :: f (TableEntity WhatLabelT)
-  , _items           :: f (TableEntity ItemT)
-  , _transformations :: f (TableEntity TransformationT)
-  , _locations       :: f (TableEntity LocationT)
-  , _events          :: f (TableEntity EventT)
-  , _whats           :: f (TableEntity WhatT)
+  { _users            :: f (TableEntity UserT)
+  , _keys             :: f (TableEntity KeyT)
+  , _businesses       :: f (TableEntity BusinessT)
+  , _contacts         :: f (TableEntity ContactT)
+  , _labels           :: f (TableEntity LabelT)
+  , _what_labels      :: f (TableEntity WhatLabelT)
+  , _items            :: f (TableEntity ItemT)
+  , _transformations  :: f (TableEntity TransformationT)
+  , _locations        :: f (TableEntity LocationT)
+  , _events           :: f (TableEntity EventT)
+  , _whats            :: f (TableEntity WhatT)
   , _biz_transactions :: f (TableEntity BizTransactionT)
-  , _whys            :: f (TableEntity WhyT)
-  , _wheres          :: f (TableEntity WhereT)
-  , _whens           :: f (TableEntity WhenT)
-  , _label_events    :: f (TableEntity LabelEventT)
-  , _user_events     :: f (TableEntity UserEventT)
-  , _hashes          :: f (TableEntity HashesT)
-  , _blockchain      :: f (TableEntity BlockChainT)
+  , _whys             :: f (TableEntity WhyT)
+  , _wheres           :: f (TableEntity WhereT)
+  , _whens            :: f (TableEntity WhenT)
+  , _label_events     :: f (TableEntity LabelEventT)
+  , _user_events      :: f (TableEntity UserEventT)
+  , _hashes           :: f (TableEntity HashesT)
+  , _blockchain       :: f (TableEntity BlockChainT)
   }
   deriving Generic
-instance Database SupplyChainDb
+instance Database be SupplyChainDb
 
 -- | Everything that comes after ``withDbModification`` is primarily
 -- foreign keys that have been forced to retain their own names
-supplyChainDb :: DatabaseSettings be SupplyChainDb
+supplyChainDb :: DatabaseSettings Postgres SupplyChainDb
 supplyChainDb = defaultDbSettings
   `withDbModification`
   dbModification
@@ -672,3 +672,4 @@ supplyChainDb = defaultDbSettings
           blockchain_event_id = EventId (fieldNamed "blockchain_event_id")
         }
     }
+
