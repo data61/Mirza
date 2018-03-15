@@ -4,7 +4,6 @@
 -- Functions in the `service` module use the database functions defined here
 module BeamQueries where
 
-import           Data.GS1.Parser.Parser
 import qualified Model as M
 import qualified StorageBeam as SB
 import           CryptHash (getCryptoPublicKey)
@@ -14,8 +13,7 @@ import           Data.Text.Encoding
 import           Database.PostgreSQL.Simple.Internal (SqlError(..))
 import           Database.Beam as B
 import           Database.Beam.Backend.SQL.BeamExtensions
-import           AppConfig (AppM, runDb, AppError(..))
-import           Control.Monad.Except (throwError)
+import           AppConfig (AppM, runDb)
 import qualified Data.Text as T
 import qualified Data.GS1.EPC as EPC
 import           Data.GS1.DWhat (DWhat(..), LabelEPC(..))
@@ -253,10 +251,41 @@ insertDisaggEvent
       )
 
 
-insertTranfEvent :: M.User
-                 -> M.TransformationEvent
-                 -> AppM SB.PrimaryKeyType
-insertTranfEvent = error "not implemented yet"
+insertTransfEvent :: M.User
+                  -> M.TransformationEvent
+                  -> AppM SB.PrimaryKeyType
+insertTransfEvent
+  (M.User userId _ _ )
+  (M.TransformationEvent
+    foreignEventId
+    mTransfId
+    inputs
+    outputs
+    dwhen dwhy dwhere
+  ) = do
+  let
+      eventType = TransformationEventT
+      dwhat =  TransformationDWhat mTransfId inputs outputs
+      event = Event eventType foreignEventId dwhat dwhen dwhy dwhere
+      jsonEvent = encodeEvent event
+
+  startTransaction
+
+  eventId <- insertEvent userId jsonEvent event
+  whatId <- insertDWhat Nothing dwhat eventId
+  inputLabelIds <- mapM (insertLabel (Just "input") whatId) inputs
+  outputLabelIds <- mapM (insertLabel (Just "output") whatId) outputs
+  let labelIds = inputLabelIds ++ outputLabelIds
+  whenId <- insertDWhen dwhen eventId
+  whyId <- insertDWhy dwhy eventId
+  insertDWhere dwhere eventId
+  insertUserEvent eventId userId userId False Nothing
+  mapM (insertWhatLabel whatId) labelIds
+  mapM (insertLabelEvent eventId) labelIds
+
+  endTransaction
+
+  return eventId
 
 
 insertTrasactionEvent :: M.User
