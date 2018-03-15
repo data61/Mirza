@@ -148,6 +148,18 @@ data Business = Business {
 $(deriveJSON defaultOptions ''Business)
 instance ToSchema Business
 
+
+data ObjectEvent = ObjectEvent {
+  obj_foreign_event_id :: Maybe EventID,
+  obj_act              :: Action,
+  obj_epc_list         :: [LabelEPC],
+  obj_when             :: DWhen,
+  obj_why              :: DWhy,
+  obj_where            :: DWhere
+} deriving (Show, Generic, Eq)
+$(deriveJSON defaultOptions ''ObjectEvent)
+instance ToSchema ObjectEvent
+
 mkObjectEvent :: Ev.Event -> Maybe ObjectEvent
 mkObjectEvent
   (Ev.Event Ev.ObjectEventT
@@ -165,18 +177,7 @@ fromObjectEvent (ObjectEvent mEid act epcList dwhen dwhy dwhere) =
     (ObjectDWhat act epcList)
     dwhen dwhy dwhere
 
-data ObjectEvent = ObjectEvent {
-  obj_foreign_event_id :: Maybe EventID,
-  obj_act              :: Action,
-  obj_epc_list         :: [LabelEPC],
-  obj_when             :: DWhen,
-  obj_why              :: DWhy,
-  obj_where            :: DWhere
-} deriving (Show, Generic, Eq)
-$(deriveJSON defaultOptions ''ObjectEvent)
-instance ToSchema ObjectEvent
-
-  -- XXX is it guaranteed to not have a ``recordTime``?
+-- XXX is it guaranteed to not have a ``recordTime``?
 data AggregationEvent = AggregationEvent {
   agg_foreign_event_id :: Maybe EventID,
   agg_act              :: Action,
