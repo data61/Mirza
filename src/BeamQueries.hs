@@ -7,7 +7,7 @@ module BeamQueries where
 import           Data.GS1.Parser.Parser
 import qualified Model as M
 import qualified StorageBeam as SB
-import           CryptHash (getCryptoPublicKey)
+-- import           CryptHash (getCryptoPublicKey)
 import           Data.ByteString (ByteString)
 import           Crypto.Scrypt
 import           Data.Text.Encoding
@@ -38,6 +38,9 @@ import           ErrorUtils (throwBackendError, throwAppError, toServerError
 import           Database.PostgreSQL.Simple.Errors (ConstraintViolation(..)
                                                    , constraintViolation)
 
+import OpenSSL.RSA   (RSAPubKey)
+import OpenSSL.PEM   (writePublicKey)
+import Control.Monad.IO.Class (liftIO)
 {-
 {
   "phoneNumber": "0412",
@@ -54,9 +57,14 @@ insertUser encPass (M.NewUser phone email firstName lastName biz _) = do
   userId <- generatePk
   res <- runDb $
             runInsertReturningList (SB._users SB.supplyChainDb) $
-            insertValues ([(SB.User userId
-            (SB.BizId  biz)
-            firstName lastName phone (getEncryptedPass encPass) email)])
+            insertValues (
+              [
+                (SB.User userId
+                (SB.BizId  biz)
+                firstName lastName phone (getEncryptedPass encPass) email
+                )
+              ]
+                         )
   case res of
     Right [r] -> return $ SB.user_id r
     Left e ->
@@ -94,11 +102,11 @@ authCheck email password = do
 -- execute conn "INSERT INTO Users (bizID, firstName, lastName, phoneNumber, passwordHash, emailAddress) VALUES (?, ?, ?, ?, ?, ?);" (biz, first, last, phone, getEncryptedPass hash, email)
 -- execute conn "INSERT INTO Keys (userID, rsa_n, rsa_e, creationTime) values (?, ?, ?, ?);" (uid, n, e, timestamp)
 
-addPublicKey :: M.User -> RSAPubKey-> AppM M.KeyID
+addPublicKey :: M.User -> RSAPubKey -> AppM M.KeyID
 addPublicKey (M.User uid _ _)  rsaPubKey = do
   keyId <- generatePk
   timeStamp <- generateTimeStamp
-  keyStr <- writePublicKey rsaPubKey
+  keyStr <- liftIO $ writePublicKey rsaPubKey
   r <- runDb $ runInsertReturningList (SB._keys SB.supplyChainDb) $
                insertValues
                [
@@ -115,16 +123,15 @@ addPublicKey (M.User uid _ _)  rsaPubKey = do
     Right _       -> throwAppError $ InvalidKeyID keyId
     Left e        -> throwUnexpectedDBError $ sqlToServerError e
 
-getPublicKey :: M.KeyID -> AppM Text
+
+getPublicKey :: M.KeyID -> AppM M.RSAPublicKey
 getPublicKey keyId = do
   r <- runDb $ runSelectReturningList $ select $ do
     allKeys <- all_ (SB._keys SB.supplyChainDb)
     guard_ (SB.key_id allKeys ==. val_ keyId)
-    pure (pem_str allKeys)
+    pure (SB.pem_str allKeys)
   case r of
-    Right [k] ->
-        return $ M.RSAPublicKey
-          (read $ T.unpack $ SB.pubkey k) (read $ T.unpack $ SB.digest d)
+    Right [k] -> return $ M.PEMString $ T.unpack k
     Right _ -> throwAppError $ InvalidKeyID keyId
     Left e  -> throwUnexpectedDBError $ sqlToServerError e
 
@@ -136,7 +143,7 @@ getPublicKeyInfo keyId = do
     pure allKeys
 
   case r of
-    Right [(SB.Key _ (SB.UserId uId) _ _ creationTime revocationTime)] ->
+    Right [(SB.Key _ (SB.UserId uId) _  creationTime revocationTime)] ->
        return $ M.KeyInfo uId
                 (toEPCISTime creationTime)
                 (toEPCISTime <$> revocationTime)
@@ -144,12 +151,12 @@ getPublicKeyInfo keyId = do
     Left e  -> throwUnexpectedDBError $ sqlToServerError e
 
 
-getEventJSON :: EvID -> AppM Text
+getEventJSON :: EvId.EventID -> AppM T.Text
 getEventJSON eventID = do
-  r <- runDB $ runSelectReturningList $ select $ do
+  r <- runDb $ runSelectReturningList $ select $ do
     allEvents <- all_ (SB._events SB.supplyChainDb)
-    guard_ (SB.event_id ==. val_ eventID)
-    pure (json_event allEvents)
+    guard_ ((SB.event_id allEvents) ==. val_ (EvId.getEventId eventID))
+    pure (SB.json_event allEvents)
   case r of
     Right [jsonEvent] -> return jsonEvent
     Right _           -> throwAppError $ InvalidEventID eventID
@@ -216,6 +223,10 @@ listEvents labelEpc = do
   case getEventList <$> labelId of
     Nothing     -> return []
     Just evList -> evList
+
+insertSignature :: EvId.EventID -> M.KeyID -> M.Signature -> M.Digest -> AppM SB.PrimaryKeyType
+--insertSignature :: EventID -> KeyID -> Signature -> Digest -> AppM SigID
+insertSignature = error "Implement me"
 
   -- error "not implemented yet"
 -- -- TODO = fix... what is definition of hasSigned?

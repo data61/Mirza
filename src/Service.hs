@@ -31,6 +31,7 @@ import           Data.GS1.DWhere
 import           Data.GS1.DWhat
 import           Data.GS1.DWhy
 import           Data.GS1.Parser.Parser
+import           Data.Maybe (isJust, fromJust, isNothing)
 import           Data.Either.Combinators
 import qualified Data.HashMap.Strict.InsOrd as IOrd
 import qualified Network.Wai.Handler.Warp as Warp
@@ -43,6 +44,7 @@ import qualified Control.Exception.Lifted as ExL
 import           Control.Monad.Trans.Except
 import           Data.UUID.V4
 import           Data.Text (pack)
+import           Data.Char (toLower)
 import           Control.Monad.Reader   (MonadReader, ReaderT, runReaderT,
                                          asks, ask, liftIO)
 
@@ -50,10 +52,21 @@ import           Control.Monad.Reader   (MonadReader, ReaderT, runReaderT,
 import qualified AppConfig as AC
 import qualified BeamQueries as BQ
 import           Utils (debugLog, debugLogGeneral)
-import           ErrorUtils (appErrToHttpErr, throwParseError)
+import           ErrorUtils (appErrToHttpErr, throwParseError, throwAppError)
+import           Errors
 import           Model as M
 import           API
 import qualified StorageBeam as SB
+import OpenSSL.PEM   (readPublicKey)
+
+
+import OpenSSL.RSA   (RSAPubKey, rsaSize)
+import OpenSSL.EVP.PKey (PublicKey, SomePublicKey, toPublicKey)
+import qualified OpenSSL.EVP.Digest as EVPDigest
+import OpenSSL.EVP.Verify (verifyBS, VerifyStatus(..))
+import qualified Data.ByteString.Base64 as BS64
+import qualified Data.ByteString.Char8 as BSC
+import qualified QueryUtils as QU
 
 instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub) where
   toSwagger _ =
@@ -135,23 +148,19 @@ basicAuthServerContext :: Servant.Context (BasicAuthCheck User ': '[])
 basicAuthServerContext = authCheck :. EmptyContext
 
 
-addPublicKey :: User -> RSAPublicKey -> AC.AppM KeyID
-addPublicKey = BQ.addPublicKey
-
-type PEMString = String
 minPubKeySize = 1536 --FIXME or 2048
 
-addPublicKey :: User -> PEMString -> AC.AppM (Maybe KeyID)
-addPublicKey user pemKey = do
-  somePubKey <- readPublicKey pemKey
+addPublicKey :: User -> RSAPublicKey -> AC.AppM KeyID
+addPublicKey user (PEMString pemKey) = do
+  somePubKey <- liftIO $ readPublicKey pemKey
   let maybeKey = checkPubKey somePubKey
   if isJust $ maybeKey
      then BQ.addPublicKey user (fromJust maybeKey)
-  else throwAppError $ InvalidRSAKey pemKey
+  else throwAppError $ InvalidRSAKey (PEMString pemKey)
 
 
 checkPubKey :: SomePublicKey -> Maybe RSAPubKey
-checkPubKey spKey =
+checkPubKey spKey
   |isNothing mPKey = Nothing
   |rsaSize pubKey < minPubKeySize = Nothing
   |otherwise = mPKey
@@ -241,8 +250,8 @@ listBusinesses = error "Implement me"
 eventList :: User -> UserID -> AC.AppM [Event]
 eventList user uID = return []
 
-makeDigest :: M.Digest -> OpenSSL.Digest
-makeDigest = error
+makeDigest :: M.Digest -> IO (Maybe EVPDigest.Digest)
+makeDigest d = EVPDigest.getDigestByName $ (map toLower) $ show $ d
 
 
 {-
@@ -262,17 +271,22 @@ makeDigest = error
    Lets do this after we have everything compiling.
 -}
 
-eventSign :: User -> SignedEvent -> AC.AppM Bool
-eventSign user (eventID keyID sig digest) = do
+eventSign :: User -> SignedEvent -> AC.AppM SB.PrimaryKeyType
+eventSign user (SignedEvent eventID keyID (Signature sigStr) digest) = do
   event <- BQ.getEventJSON eventID
-  keyStr <- BQ.getPublicKey keyID
-  sKey <- readPublicKey keyStr
-  let pubKey = fromJust $ toPublicKey $ sKey
-  let sDigest = makeDigest digest
-  verifyStatus <- verifyBS sDigest sig pubKey event
-  if verifyStatus == VerifySuccess
-     then BQ.insertSignature eventID keyID sig digest
-     else throwAppError $ InvalidSignature sig
+  rsaPublicKey <- BQ.getPublicKey keyID
+  let eSigBS = BS64.decode $ BSC.pack $ sigStr
+  case eSigBS of Left s -> throwAppError $ InvalidSignature s
+                 Right sigBS -> do
+                  let (PEMString keyStr) = rsaPublicKey
+                  sKey <- liftIO $ readPublicKey keyStr
+                  let pubKey::RSAPubKey = fromJust $ toPublicKey $ sKey
+                      eventBS = QU.eventTxtToBS event
+                  maybeDigest <- liftIO $  makeDigest digest
+                  verifyStatus <- liftIO $ verifyBS (fromJust maybeDigest) sigBS pubKey eventBS
+                  if verifyStatus == VerifySuccess
+                     then BQ.insertSignature eventID keyID (Signature sigStr) digest
+                     else throwAppError $ InvalidSignature sigStr
 
 
 

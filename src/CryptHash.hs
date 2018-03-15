@@ -50,9 +50,9 @@ hashJsonTxt :: Txt.Text -> M.EventHash
 hashJsonTxt json = hexSha2_256 (Txt.unpack $ json)
 -}
 
+{-
 sha256 :: Char8.ByteString -> Digest SHA256
 sha256 = hash
-{-
 verifySignature :: RSAPublicKey -> ByteString.ByteString -> M.Signature -> Bool
 verifySignature (RSAPublicKey n e) event (Signature signature) =
     PSS.verify (PSS.defaultPSSParams SHA256) pubKey event (Char8.pack signature)

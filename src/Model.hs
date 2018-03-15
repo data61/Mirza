@@ -29,6 +29,8 @@ import           Data.GS1.DWhen
 import           Data.GS1.DWhy
 import           StorageBeam (PrimaryKeyType)
 import           OpenSSL.RSA (RSAPubKey)
+--import           Data.ByteString.Base64.Type (ByteString64)
+
 
 type UserID = PrimaryKeyType
 
@@ -37,24 +39,24 @@ type KeyID = PrimaryKeyType
 type Password = BS.ByteString
 type LabelEPCUrn = String
 
-newtype BinaryBlob = BinaryBlob BS.ByteString
-  deriving (MimeUnrender OctetStream, MimeRender OctetStream, Generic)
-
 data Digest = SHA256 | SHA384 | SHA512
   deriving (Show, Generic, Eq, Read)
 $(deriveJSON defaultOptions ''Digest)
 instance ToSchema Digest
 
+-- XXX - move to the right place
+{-
+instance HasSqlValueSyntax be String => HasSqlValueSyntax be Digest where
+  sqlValueSyntax = autoSqlValueSyntax
+instance (IsSql92ColumnSchemaSyntax be) => HasDefaultSqlDataTypeConstraints be Digest
 
-
-instance ToParamSchema BinaryBlob where
-  toParamSchema _ = binaryParamSchema
-
-instance ToSchema BinaryBlob where
-  declareNamedSchema _ = pure $ NamedSchema (Just "BinaryBlob") binarySchema
-
--- instance Sql.FromRow BinaryBlob where
---   fromRow = BinaryBlob <$> field
+instance FromField Digest where
+  fromField f bs = do
+    mDigest <- readMaybe <$> fromField f bs
+    case mDigest of
+      Nothing -> returnError ConversionFailed f "Could not 'read' value for 'Digest"
+      Just x -> pure x
+-}
 
 newtype EventHash = EventHash String
   deriving (Generic, Show, Read, Eq)
@@ -71,8 +73,7 @@ type JSONTxt = T.Text
 -- signed by one of the parties involved in the
 -- event.
 
-type Base64Text = Text
-newtype Signature = Signature Base64Text
+newtype Signature = Signature String
   deriving (Generic, Show, Read, Eq)
 $(deriveJSON defaultOptions ''Signature)
 instance ToSchema Signature
@@ -85,14 +86,7 @@ instance ToSchema Signature
 --   toRow (Signature s) = toRow $ Only s
 
 
--- XXX check this
-type PEMString = String
-
-data RSAPublicKey = RSAPublicKey
-  {
-    rsaPubKey :: PEMString,
-    digest :: Digest
-  }
+newtype RSAPublicKey = PEMString String
   deriving (Show, Read, Eq, Generic)
 -- These are orphaned instances
 --
@@ -242,7 +236,7 @@ instance ToSchema TransformationInfo
 data TransactionInfo = TransactionInfo {
   transaction_userIDs :: [UserID],
   transaction_objectIDs :: [LabelEPC],
-  transaction_parentLabel :: Maybe ParentLabel,
+  transaction_parentLabel :: Maybe LabelEPC,
   transaction_bizTransaction :: [BizTransaction]
 } deriving (Show, Generic)
 $(deriveJSON defaultOptions ''TransactionInfo)
