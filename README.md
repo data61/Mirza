@@ -44,7 +44,7 @@ To use ghci interactively, run
 
 If you find yourself deleting and recreating the database frequently, run
 `./restart.sh`. It will build your code, drop the database 
-`testsupplychainserver`, create it anew and run the migration script
+`devsupplychainserver`, create it anew and run the migration script
 to create all the relevant tables.
 
 To do a clean build instead, do `./restart.sh --clean`.
