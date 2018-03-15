@@ -106,9 +106,9 @@ deriving instance Eq (PrimaryKey UserT Identity)
 data KeyT f = Key
   { key_id             :: C f PrimaryKeyType
   , key_user_id        :: PrimaryKey UserT f
-  , rsa_public_pkcs8   :: C f ByteString -- should be PKCS8 encoding
-  , creation_time       :: C f ZonedTime -- UTCTime
-  , revocation_time     :: C f (Maybe ZonedTime) -- UTCTime
+  , pem_str            :: C f Text
+  , creation_time      :: C f ZonedTime -- UTCTime
+  , revocation_time    :: C f (Maybe ZonedTime) -- UTCTime
   }
   deriving Generic
 type Key = KeyT Identity
@@ -302,7 +302,7 @@ instance Beamable EventT
 instance Beamable (PrimaryKey EventT)
 deriving instance Show (PrimaryKey EventT Identity)
 
--- unEventId 
+-- unEventId
 unEventId :: PrimaryKey EventT f -> C f PrimaryKeyType
 unEventId (EventId eventId) = eventId
 
