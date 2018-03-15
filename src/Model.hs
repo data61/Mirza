@@ -216,6 +216,7 @@ $(deriveJSON defaultOptions ''TransformationEvent)
 instance ToSchema TransformationEvent
 
 data TransactionEvent = TransactionEvent {
+  transaction_foreign_event_id     :: Maybe EventID,
   transaction_act                  :: Action,
   transaction_parent_label         :: Maybe ParentLabel,
   transaction_biz_transaction_list :: [BizTransaction],
