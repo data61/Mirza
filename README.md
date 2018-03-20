@@ -1,5 +1,7 @@
 # GS1Combinators
 
+## Setting up
+
 If you do not have the latest version of stack, please remove whatever version of stack you have:
 
 `sudo apt remove haskell-stack `
@@ -7,6 +9,8 @@ If you do not have the latest version of stack, please remove whatever version o
 Then get the latest version of stack by running:
 
 `wget -qO- https://get.haskellstack.org/ | sh `
+
+## Building the server
 
 To build the server, run:
 
@@ -17,15 +21,20 @@ On MacOS, you need to `brew install openssl` and then run:
 
 This is because Apple has deprecated the use of OpenSSL in favour of its own SSL and TLS libs.
 
+## Setting up the database
+
 Before you run the server, make sure you have PostgreSQL 10 or higher installed.
 
 To install, you can follow the instructions [here]( http://yallalabs.com/linux/how-to-install-and-use-postgresql-10-on-ubuntu-16-04/).
+
 Note that you may need to run the commands as a super user.
 
 Create a Postgres account.
 There are good instructions <a href="https://www.digitalocean.com/community/tutorials/how-to-install-and-use-postgresql-on-ubuntu-16-04" target="_blank"> here. </a>
 
 Type in `psql` and see that you can open up a `psql` shell.
+
+## Running the server
 
 After that, to create the database, run
 

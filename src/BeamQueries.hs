@@ -62,7 +62,7 @@ insertUser encPass (M.NewUser phone email firstName lastName biz _) = do
                 firstName lastName phone (getEncryptedPass encPass) email
                 )
               ]
-                         )
+            )
   case res of
     Right [r] -> return $ SB.user_id r
     Left e ->
