@@ -153,7 +153,7 @@ toStorageDWhat pKey mParentId mBizTranId eventId dwhat
             (SB.EventId eventId)
 
 getTransformationId :: DWhat -> Maybe TransformationID
-getTransformationId t@(TransformationDWhat _ _ _) = _TransformationId t
+getTransformationId t@(TransformationDWhat _ _ _) = _transformationId t
 getTransformationId _ = Nothing
 
 
