@@ -6,6 +6,7 @@
 {-# LANGUAGE UndecidableInstances  #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE DeriveGeneric         #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 -- | This module contains the
 -- Database.Beam.Postgres.Syntax.DataType definitions
@@ -87,6 +88,37 @@ instance ToField Ev.EventType where
 
 eventType :: DataType PgDataTypeSyntax Ev.EventType
 eventType = textType
+
+
+-- ======= EPC.LocationReference =======
+instance HasSqlValueSyntax be String => HasSqlValueSyntax be EPC.LocationReference where
+  sqlValueSyntax = autoSqlValueSyntax
+instance (IsSql92ColumnSchemaSyntax be) => HasDefaultSqlDataTypeConstraints be EPC.LocationReference
+
+instance (HasSqlValueSyntax (Sql92ExpressionValueSyntax be) Bool,
+          IsSql92ExpressionSyntax be) =>
+          HasSqlEqualityCheck be EPC.LocationReference
+instance (HasSqlValueSyntax (Sql92ExpressionValueSyntax be) Bool,
+          IsSql92ExpressionSyntax be) =>
+          HasSqlQuantifiedEqualityCheck be EPC.LocationReference
+
+instance FromBackendRow Postgres EPC.LocationReference where
+  fromBackendRow = do
+    val <- fromBackendRow
+    case val :: T.Text of
+      "LocationReference" -> pure $ EPC.LocationReference "not implemented yet"
+      -- "SDPossessingParty" -> pure EPC.SDPossessingParty
+      -- "SDLocation" -> pure EPC.SDLocation
+      _ -> fail ("NOT IMPLEMENTED YET EPC.LocationReference: " ++ T.unpack val)
+
+instance FromField EPC.LocationReference where
+  fromField = defaultFromField "EPC.LocationReference"
+
+instance ToField EPC.LocationReference where
+  toField = toField . show
+
+locationRefType :: DataType PgDataTypeSyntax EPC.LocationReference
+locationRefType = textType
 
 -- ======= EPC.SourceDestType =======
 
