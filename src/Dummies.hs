@@ -139,7 +139,11 @@ dummyDWhere =
     -- [ReadPointLocation]
     [SGLN "0012345" (LocationReference "11111") Nothing]
     -- [BizLocation]
-    [] []
+    [(SDOwningParty, SGLN "0012347" (LocationReference "12345") Nothing)]
+    [
+      (SDPossessingParty,
+      SGLN "0012348" (LocationReference "12346") (Just "400"))
+    ]
 
 dummyDWhy :: DWhy
 dummyDWhy = DWhy (Just Receiving) (Just InProgress)
