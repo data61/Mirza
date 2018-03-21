@@ -7,7 +7,6 @@ import           Database.Beam.Postgres.Migrate
 import           Database.Beam.Migrate.SQL.Tables
 import           Database.Beam.Migrate.Types
 import           Database.Beam.Postgres
-import           Database.Beam.Migrate.Simple (verifySchema)
 import           StorageBeam
 import           MigrateUtils
 
@@ -102,7 +101,7 @@ migrationStorage =
     <*> createTable "locations"
     (
       Location
-          (field "location_id" text)
+          (field "location_id" locationRefType)
           (BizId (field "location_biz_id" text))
           -- this needs to be locationReferenceNum
           (field "location_lat" double)

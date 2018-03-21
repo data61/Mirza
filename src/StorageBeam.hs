@@ -250,7 +250,7 @@ instance Table TransformationT where
 deriving instance Eq (PrimaryKey TransformationT Identity)
 
 data LocationT f = Location
-  { location_id                 :: C f Text -- EPC.LocationReference
+  { location_id                 :: C f EPC.LocationReference
   , location_biz_id             :: PrimaryKey BusinessT f
   -- this needs to be locationReferenceNum
   , location_lat                :: C f Double
@@ -267,7 +267,7 @@ instance Beamable (PrimaryKey LocationT)
 deriving instance Show (PrimaryKey LocationT Identity)
 
 instance Table LocationT where
-  data PrimaryKey LocationT f = LocationId (C f Text)
+  data PrimaryKey LocationT f = LocationId (C f EPC.LocationReference)
     deriving Generic
   primaryKey = LocationId . location_id
 
