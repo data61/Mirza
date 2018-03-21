@@ -314,16 +314,16 @@ objectEvent :: User -> ObjectEvent -> AC.AppM Ev.Event -- SB.PrimaryKeyType
 objectEvent = BQ.insertObjectEvent
 
 eventAggregateObjects :: User -> AggregationEvent -> AC.AppM Ev.Event
-eventAggregateObjects user aggObject = error "not implemented yet"
+eventAggregateObjects = BQ.insertAggEvent
 
 eventDisaggregateObjects :: User -> DisaggregationEvent -> AC.AppM Ev.Event
-eventDisaggregateObjects user aggObject = error "not implemented yet"
+eventDisaggregateObjects = BQ.insertDisaggEvent
 
 eventStartTransaction :: User -> TransactionEvent -> AC.AppM Ev.Event
-eventStartTransaction user aggObject = error "not implemented yet"
+eventStartTransaction = BQ.insertTransactionEvent
 
 eventTransformObject :: User -> TransformationEvent -> AC.AppM Ev.Event
-eventTransformObject user aggObject = error "not implemented yet"
+eventTransformObject = BQ.insertTransfEvent
 
 sampleEvent:: IO Ev.Event
 sampleEvent=  do
