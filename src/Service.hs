@@ -119,7 +119,6 @@ privateServer user =
         :<|> eventHashed user
         :<|> objectEvent user
         :<|> eventAggregateObjects user
-        :<|> eventDisaggregateObjects user
         :<|> eventStartTransaction user
         :<|> eventTransformObject user
         :<|> Service.addPublicKey user
@@ -315,9 +314,6 @@ objectEvent = BQ.insertObjectEvent
 
 eventAggregateObjects :: User -> AggregationEvent -> AC.AppM Ev.Event
 eventAggregateObjects = BQ.insertAggEvent
-
-eventDisaggregateObjects :: User -> DisaggregationEvent -> AC.AppM Ev.Event
-eventDisaggregateObjects = BQ.insertDisaggEvent
 
 eventStartTransaction :: User -> TransactionEvent -> AC.AppM Ev.Event
 eventStartTransaction = BQ.insertTransactionEvent
