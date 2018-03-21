@@ -21,7 +21,7 @@ import           Data.GS1.DWhy (DWhy(..))
 import           Data.GS1.DWhere (DWhere(..), SrcDestLocation)
 import           Data.GS1.DWhen (DWhen(..))
 import qualified Data.GS1.EventID as EvId
-import           Data.GS1.Event (Event(..), EventType(..))
+import qualified Data.GS1.Event as Ev
 import           Utils
 import           QueryUtils
 import           Codec.Crypto.RSA (PublicKey (..))
@@ -175,7 +175,7 @@ getUser email = do
 
 insertObjectEvent :: M.User
                   -> M.ObjectEvent
-                  -> AppM SB.PrimaryKeyType
+                  -> AppM Ev.Event
 insertObjectEvent
   (M.User userId _ _ )
   (M.ObjectEvent
@@ -186,9 +186,9 @@ insertObjectEvent
   ) = do
 
   let
-      eventType = ObjectEventT
+      eventType = Ev.ObjectEventT
       dwhat =  ObjectDWhat act labelEpcs
-      event = Event eventType foreignEventId dwhat dwhen dwhy dwhere
+      event = Ev.Event eventType foreignEventId dwhat dwhen dwhy dwhere
       jsonEvent = encodeEvent event
 
   startTransaction
@@ -205,11 +205,11 @@ insertObjectEvent
 
   endTransaction
 
-  return eventId
+  return event
 
 insertAggEvent :: M.User
                -> M.AggregationEvent
-               -> AppM SB.PrimaryKeyType
+               -> AppM Ev.Event
 insertAggEvent
   (M.User userId _ _ )
   (M.AggregationEvent
@@ -220,9 +220,9 @@ insertAggEvent
     dwhen dwhy dwhere
   ) = do
   let
-      eventType = AggregationEventT
+      eventType = Ev.AggregationEventT
       dwhat =  AggregationDWhat act mParentLabel labelEpcs
-      event = Event eventType foreignEventId dwhat dwhen dwhy dwhere
+      event = Ev.Event eventType foreignEventId dwhat dwhen dwhy dwhere
       jsonEvent = encodeEvent event
 
   startTransaction
@@ -241,14 +241,14 @@ insertAggEvent
 
   endTransaction
 
-  return eventId
+  return event
 
 -- | The implementation is exactly the same as that of aggregation event,
 -- which makes me think - do they need to be separate functions, or even
 -- separate datatypes altogether?
 insertDisaggEvent :: M.User
                   -> M.DisaggregationEvent
-                  -> AppM SB.PrimaryKeyType
+                  -> AppM Ev.Event
 insertDisaggEvent
   user
   (M.DisaggregationEvent
@@ -271,7 +271,7 @@ insertDisaggEvent
 
 insertTransfEvent :: M.User
                   -> M.TransformationEvent
-                  -> AppM SB.PrimaryKeyType
+                  -> AppM Ev.Event
 insertTransfEvent
   (M.User userId _ _ )
   (M.TransformationEvent
@@ -282,9 +282,9 @@ insertTransfEvent
     dwhen dwhy dwhere
   ) = do
   let
-      eventType = TransformationEventT
+      eventType = Ev.TransformationEventT
       dwhat =  TransformationDWhat mTransfId inputs outputs
-      event = Event eventType foreignEventId dwhat dwhen dwhy dwhere
+      event = Ev.Event eventType foreignEventId dwhat dwhen dwhy dwhere
       jsonEvent = encodeEvent event
 
   startTransaction
@@ -303,12 +303,12 @@ insertTransfEvent
 
   endTransaction
 
-  return eventId
+  return event
 
 
 insertTransactionEvent :: M.User
                        -> M.TransactionEvent
-                       -> AppM SB.PrimaryKeyType
+                       -> AppM Ev.Event
 insertTransactionEvent
   (M.User userId _ _ )
   (M.TransactionEvent
@@ -321,9 +321,9 @@ insertTransactionEvent
     dwhen dwhy dwhere
   ) = do
   let
-      eventType = TransactionEventT
+      eventType = Ev.TransactionEventT
       dwhat =  TransactionDWhat act mParentLabel bizTransactions labelEpcs
-      event = Event eventType foreignEventId dwhat dwhen dwhy dwhere
+      event = Ev.Event eventType foreignEventId dwhat dwhen dwhy dwhere
       jsonEvent = encodeEvent event
 
   startTransaction
@@ -341,10 +341,10 @@ insertTransactionEvent
 
   endTransaction
 
-  return eventId
+  return event
 
 
-listEvents :: LabelEPC -> AppM [Event]
+listEvents :: LabelEPC -> AppM [Ev.Event]
 listEvents labelEpc = do
   labelId <- findLabelId labelEpc
   case getEventList <$> labelId of
