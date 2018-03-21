@@ -15,6 +15,7 @@ import qualified Data.GS1.Event as Ev
 import           Data.Time.LocalTime
 import           Data.Time
 import qualified Model as M
+import qualified StorageBeam as SB
 
 -- add function to generate and take dummyLabelEpc
 
@@ -37,6 +38,9 @@ dummyUser = M.User nil "Sajid" "Anower"
 
 dummyRsaPubKey :: M.RSAPublicKey
 dummyRsaPubKey = M.PEMString "blah"
+
+dummyId :: SB.PrimaryKeyType
+dummyId = nil
 
 -- Events
 
