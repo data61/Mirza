@@ -57,11 +57,6 @@ textType = DataType pgTextType
 
 -- ======= Event Type =======
 
--- ObjectEventT
--- AggregationEventT
--- TransactionEventT
--- TransformationEventT
-
 instance HasSqlValueSyntax be String => HasSqlValueSyntax be Ev.EventType where
   sqlValueSyntax = autoSqlValueSyntax
 instance (IsSql92ColumnSchemaSyntax be) => HasDefaultSqlDataTypeConstraints be Ev.EventType
