@@ -11,7 +11,8 @@ module QueryUtils where
 import           Data.Time.LocalTime (utc, utcToLocalTime
                                      , LocalTime, localTimeToUTC
                                      , timeZoneOffsetString)
-import           Data.Time (UTCTime)
+import           Data.Time (UTCTime, ZonedTime(..), utcToZonedTime
+                           , zonedTimeToUTC)
 import           AppConfig (AppM(..), runDb, getDBConn)
 import qualified StorageBeam as SB
 import           Data.UUID.V4 (nextRandom)
@@ -43,19 +44,23 @@ import qualified Data.Text.Lazy.Encoding as LEn
 import qualified Data.Text.Encoding as En
 
 -- | Reads back the ``LocalTime`` in UTCTime (with an offset of 0)
-toEPCISTime :: LocalTime -> UTCTime
-toEPCISTime = localTimeToUTC utc
+toEPCISTime :: ZonedTime -> UTCTime
+toEPCISTime = zonedTimeToUTC
 
 -- | Shorthand for type-casting UTCTime to LocalTime before storing them in DB
 toLocalTime :: UTCTime -> LocalTime
 toLocalTime = utcToLocalTime utc
 
+-- | Shorthand for type-casting UTCTime to LocalTime before storing them in DB
+toZonedTime :: UTCTime -> ZonedTime
+toZonedTime = utcToZonedTime utc
+
 -- | Generates a timestamp in LocalTime + 0:00 offset
 -- which is a UTCTime
-generateTimeStamp :: AppM LocalTime
+generateTimeStamp :: AppM ZonedTime
 generateTimeStamp = do
   utcTime <- liftIO getCurrentTime
-  return $ utcToLocalTime utc utcTime
+  return $ utcToZonedTime utc utcTime
 
 -- | shorthand for wrapping ``UUID.nextRandom`` in ``AppM``
 generatePk :: AppM SB.PrimaryKeyType
@@ -135,18 +140,22 @@ getQuantityUom (Just (ItemCount _)) = Nothing
 toStorageDWhat :: SB.PrimaryKeyType
                -> Maybe SB.PrimaryKeyType
                -> Maybe SB.PrimaryKeyType
-               -> Maybe SB.PrimaryKeyType
                -> SB.PrimaryKeyType
                -> DWhat
                -> SB.What
-toStorageDWhat pKey mParentId mBizTranId mTranId eventId dwhat
+toStorageDWhat pKey mParentId mBizTranId eventId dwhat
    = SB.What pKey
             (Just . Ev.stringify . Ev.getEventType $ dwhat)
             (toText <$> getAction dwhat)
             (SB.LabelId mParentId)
             (SB.BizTransactionId mBizTranId)
-            (SB.TransformationId mTranId)
+            (SB.TransformationId $ getTransformationId dwhat)
             (SB.EventId eventId)
+
+getTransformationId :: DWhat -> Maybe TransformationID
+getTransformationId t@(TransformationDWhat _ _ _) = _transformationId t
+getTransformationId _ = Nothing
+
 
 getAction :: DWhat -> Maybe Action
 getAction (TransformationDWhat _ _ _) = Nothing
@@ -162,9 +171,6 @@ findInstLabelId (SGTIN cp msfv ir sn) = findInstLabelId' cp sn msfv (Just ir) No
 findInstLabelId (GRAI cp at sn) = findInstLabelId' cp sn Nothing Nothing (Just at)
 
 
--- | FIXME
--- (==.) generates a query that includes filter_value = null
--- which should be filter_value is NULL
 findInstLabelId' :: GS1CompanyPrefix
                 -> SerialNumber
                 -> Maybe SGTINFilterValue
@@ -225,8 +231,8 @@ toStorageDWhen :: SB.PrimaryKeyType
                -> SB.When
 toStorageDWhen pKey (DWhen eventTime mRecordTime tZone) eventId =
   SB.When pKey
-    (toLocalTime eventTime)
-    (toLocalTime <$> mRecordTime)
+    (toZonedTime eventTime)
+    (toZonedTime <$> mRecordTime)
     (T.pack . timeZoneOffsetString $ tZone)
     (SB.EventId eventId)
 
@@ -246,16 +252,15 @@ toStorageEvent pKey userId jsonEvent mEventId =
   SB.Event pKey (EvId.getEventId <$> mEventId) (SB.UserId userId) jsonEvent
 
 insertDWhat :: Maybe SB.PrimaryKeyType
-            -> Maybe SB.PrimaryKeyType
             -> DWhat
             -> SB.PrimaryKeyType
             -> AppM SB.PrimaryKeyType
-insertDWhat mBizTranId mTranId dwhat eventId = do
+insertDWhat mBizTranId dwhat eventId = do
   pKey <- generatePk
   mParentId <- getParentId dwhat
   r <- runDb $ B.runInsert $ B.insert (SB._whats SB.supplyChainDb)
              $ insertValues
-             [toStorageDWhat pKey mParentId mBizTranId mTranId eventId dwhat]
+             [toStorageDWhat pKey mParentId mBizTranId eventId dwhat]
   case r of
     Left  e -> throwUnexpectedDBError $ sqlToServerError e
     Right _ -> return pKey
