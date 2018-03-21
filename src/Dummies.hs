@@ -72,7 +72,7 @@ dummyAggDWhat =
     dummyParentLabel
     [
       dummyLabelEpc,
-      IL (SGTIN "0614141" Nothing "107346" "2018")
+      IL (SGTIN "0614141" (Just UnitLoad) "107346" "2018")
     ]
 
 dummyAggEvent :: Ev.Event
@@ -123,7 +123,7 @@ dummyParentLabel :: Maybe ParentLabel
 dummyParentLabel = Just (SSCC "0614141" "1234567890")
 
 dummyLabelEpc :: LabelEPC
-dummyLabelEpc = IL (SGTIN "0614141" Nothing "107346" "2017")
+dummyLabelEpc = IL (SGTIN "0614141" (Just UnitLoad) "107346" "2017")
 
 dummyDWhen :: DWhen
 dummyDWhen =
