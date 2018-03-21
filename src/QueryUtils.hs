@@ -40,7 +40,8 @@ import           ErrorUtils (throwBackendError, throwAppError, toServerError
                             , defaultToServerError, sqlToServerError
                             , throwUnexpectedDBError)
 import           Database.PostgreSQL.Simple
-import           Data.Text.Lazy.Encoding (encodeUtf8)
+import qualified Data.Text.Lazy.Encoding as LEn
+import qualified Data.Text.Encoding as En
 
 -- | Reads back the ``LocalTime`` in UTCTime (with an offset of 0)
 toEPCISTime :: LocalTime -> UTCTime
@@ -76,8 +77,13 @@ userTableToModel (SB.User uid _ fName lName _ _ _) = M.User uid fName lName
 encodeEvent :: Event -> T.Text
 encodeEvent event = TxtL.toStrict  (encodeToLazyText event)
 
+-- XXX is this the right encoding to use? It's used for checking signatures
+-- and hashing the json.
+eventTxtToBS :: T.Text -> ByteString
+eventTxtToBS = En.encodeUtf8
+
 decodeEvent :: T.Text -> Maybe Ev.Event
-decodeEvent jsonEvent = decode . encodeUtf8 . TxtL.fromStrict $ jsonEvent
+decodeEvent jsonEvent = decode . LEn.encodeUtf8 . TxtL.fromStrict $ jsonEvent
 
 epcToStorageLabel :: Maybe T.Text
                   -> SB.PrimaryKeyType
@@ -147,7 +153,7 @@ toStorageDWhat pKey mParentId mBizTranId eventId dwhat
             (SB.EventId eventId)
 
 getTransformationId :: DWhat -> Maybe TransformationID
-getTransformationId t@(TransformationDWhat _ _ _) = _TransformationId t
+getTransformationId t@(TransformationDWhat _ _ _) = _transformationId t
 getTransformationId _ = Nothing
 
 
@@ -425,7 +431,7 @@ selectUser uid = do
 
 getEventList :: SB.PrimaryKeyType -> AppM [Ev.Event]
 getEventList labelId = do
-  r <- runDb $ 
+  r <- runDb $
         runSelectReturningList $ select $ do
         labelEvent <- all_ (SB._label_events SB.supplyChainDb)
         guard_ (SB.label_event_label_id labelEvent ==. (val_ $ SB.LabelId labelId))
@@ -442,7 +448,7 @@ getEventList labelId = do
 
 findEvent :: SB.PrimaryKeyType -> AppM (Maybe Ev.Event)
 findEvent eventId = do
-  r <- runDb $ 
+  r <- runDb $
         runSelectReturningList $ select $ do
         event <- all_ (SB._events SB.supplyChainDb)
         guard_ (SB.event_id event ==. (val_ eventId))
@@ -453,7 +459,7 @@ findEvent eventId = do
     _             -> throwBackendError r
 
 storageToModelEvent :: SB.Event -> Maybe Ev.Event
-storageToModelEvent = decodeEvent . SB.json_event 
+storageToModelEvent = decodeEvent . SB.json_event
 
 
 -- | This is a test util to check that BEAM can insert and return time

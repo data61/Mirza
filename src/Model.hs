@@ -28,6 +28,9 @@ import           Data.GS1.DWhat
 import           Data.GS1.DWhen
 import           Data.GS1.DWhy
 import           StorageBeam (PrimaryKeyType)
+import           OpenSSL.RSA (RSAPubKey)
+--import           Data.ByteString.Base64.Type (ByteString64)
+
 
 type UserID = PrimaryKeyType
 
@@ -36,18 +39,24 @@ type KeyID = PrimaryKeyType
 type Password = BS.ByteString
 type LabelEPCUrn = String
 
-newtype BinaryBlob = BinaryBlob BS.ByteString
-  deriving (MimeUnrender OctetStream, MimeRender OctetStream, Generic)
+data Digest = SHA256 | SHA384 | SHA512
+  deriving (Show, Generic, Eq, Read)
+$(deriveJSON defaultOptions ''Digest)
+instance ToSchema Digest
 
+-- XXX - move to the right place
+{-
+instance HasSqlValueSyntax be String => HasSqlValueSyntax be Digest where
+  sqlValueSyntax = autoSqlValueSyntax
+instance (IsSql92ColumnSchemaSyntax be) => HasDefaultSqlDataTypeConstraints be Digest
 
-instance ToParamSchema BinaryBlob where
-  toParamSchema _ = binaryParamSchema
-
-instance ToSchema BinaryBlob where
-  declareNamedSchema _ = pure $ NamedSchema (Just "BinaryBlob") binarySchema
-
--- instance Sql.FromRow BinaryBlob where
---   fromRow = BinaryBlob <$> field
+instance FromField Digest where
+  fromField f bs = do
+    mDigest <- readMaybe <$> fromField f bs
+    case mDigest of
+      Nothing -> returnError ConversionFailed f "Could not 'read' value for 'Digest"
+      Just x -> pure x
+-}
 
 newtype EventHash = EventHash String
   deriving (Generic, Show, Read, Eq)
@@ -63,10 +72,12 @@ type JSONTxt = T.Text
 -- A signature is an EventHash that's been
 -- signed by one of the parties involved in the
 -- event.
+
 newtype Signature = Signature String
   deriving (Generic, Show, Read, Eq)
 $(deriveJSON defaultOptions ''Signature)
 instance ToSchema Signature
+
 
 -- instance Sql.FromRow Signature where
 --   fromRow = Signature <$> field
@@ -74,11 +85,8 @@ instance ToSchema Signature
 -- instance Sql.ToRow Signature where
 --   toRow (Signature s) = toRow $ Only s
 
-data RSAPublicKey = RSAPublicKey
-  {
-    rsa_public_n :: Integer,
-    rsa_public_e :: Integer
-  }
+
+newtype RSAPublicKey = PEMString String
   deriving (Show, Read, Eq, Generic)
 -- These are orphaned instances
 --
@@ -134,6 +142,15 @@ data NewUser = NewUser {
 } deriving (Generic, Eq, Show)
 $(deriveJSON defaultOptions ''NewUser)
 instance ToSchema NewUser
+
+data SearchFields = SearchFields {
+  sUser :: User,
+  sbizName :: Maybe T.Text,
+  sBizId :: Maybe UUID,
+  sGS1CompanyPrefix :: Maybe T.Text,
+  sFunction :: Maybe T.Text,
+  sAddress :: Maybe T.Text
+}
 
 data Business = Business {
   bizID :: UUID,
@@ -253,10 +270,12 @@ data TransactionEvent = TransactionEvent {
 $(deriveJSON defaultOptions ''TransactionEvent)
 instance ToSchema TransactionEvent
 
+
 data SignedEvent = SignedEvent {
   signed_eventID :: EventID,
-  signed_keyID :: Integer,
-  signed_signature :: Signature
+  signed_keyID :: KeyID,
+  signed_signature :: Signature,
+  signed_digest :: Digest
 } deriving (Generic)
 $(deriveJSON defaultOptions ''SignedEvent)
 instance ToSchema SignedEvent

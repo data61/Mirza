@@ -36,7 +36,7 @@ dummyUser :: M.User
 dummyUser = M.User nil "Sajid" "Anower"
 
 dummyRsaPubKey :: M.RSAPublicKey
-dummyRsaPubKey = M.RSAPublicKey 3 5
+dummyRsaPubKey = M.PEMString "blah"
 
 -- Events
 

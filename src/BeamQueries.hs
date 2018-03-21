@@ -6,7 +6,7 @@ module BeamQueries where
 
 import qualified Model as M
 import qualified StorageBeam as SB
-import           CryptHash (getCryptoPublicKey)
+-- import           CryptHash (getCryptoPublicKey)
 import           Data.ByteString (ByteString)
 import           Crypto.Scrypt
 import           Data.Text.Encoding
@@ -21,7 +21,7 @@ import           Data.GS1.DWhy (DWhy(..))
 import           Data.GS1.DWhere (DWhere(..), SrcDestLocation)
 import           Data.GS1.DWhen (DWhen(..))
 import qualified Data.GS1.EventID as EvId
-import           Data.GS1.Event (Event(..), EventType(..))
+import qualified Data.GS1.Event as Ev
 import           Utils
 import           QueryUtils
 import           Codec.Crypto.RSA (PublicKey (..))
@@ -36,6 +36,9 @@ import           ErrorUtils (throwBackendError, throwAppError, toServerError
 import           Database.PostgreSQL.Simple.Errors (ConstraintViolation(..)
                                                    , constraintViolation)
 
+import OpenSSL.RSA   (RSAPubKey)
+import OpenSSL.PEM   (writePublicKey)
+import Control.Monad.IO.Class (liftIO)
 {-
 {
   "phoneNumber": "0412",
@@ -52,9 +55,14 @@ insertUser encPass (M.NewUser phone email firstName lastName biz _) = do
   userId <- generatePk
   res <- runDb $
             runInsertReturningList (SB._users SB.supplyChainDb) $
-            insertValues ([(SB.User userId
-            (SB.BizId  biz)
-            firstName lastName phone (getEncryptedPass encPass) email)])
+            insertValues (
+              [
+                (SB.User userId
+                (SB.BizId  biz)
+                firstName lastName phone (getEncryptedPass encPass) email
+                )
+              ]
+            )
   case res of
     Right [r] -> return $ SB.user_id r
     Left e ->
@@ -91,40 +99,37 @@ authCheck email password = do
 -- BELOW = Beam versions of SQL versions from Storage.hs
 -- execute conn "INSERT INTO Users (bizID, firstName, lastName, phoneNumber, passwordHash, emailAddress) VALUES (?, ?, ?, ?, ?, ?);" (biz, first, last, phone, getEncryptedPass hash, email)
 -- execute conn "INSERT INTO Keys (userID, rsa_n, rsa_e, creationTime) values (?, ?, ?, ?);" (uid, n, e, timestamp)
-addPublicKey :: M.User -> M.RSAPublicKey-> AppM M.KeyID
-addPublicKey (M.User uid _ _) pubKey = do
+
+addPublicKey :: M.User -> RSAPubKey -> AppM M.KeyID
+addPublicKey (M.User uid _ _)  rsaPubKey = do
   keyId <- generatePk
   timeStamp <- generateTimeStamp
-  debugLog "The program did not crash yet"
+  keyStr <- liftIO $ writePublicKey rsaPubKey
   r <- runDb $ runInsertReturningList (SB._keys SB.supplyChainDb) $
                insertValues
                [
-                 SB.Key
-                   keyId
+                 (
+                   SB.Key keyId
                    (SB.UserId uid)
-                   (toStrict . encode . getCryptoPublicKey $ pubKey) --(runPut $ put $ getCryptoPublicKey pubKey)
+                   (T.pack $ keyStr)
                    timeStamp
                    Nothing
+                 )
                ]
-  debugLog "Done with the query"
   case r of
     Right [rowId] -> return (SB.key_id rowId)
     Right _       -> throwAppError $ InvalidKeyID keyId
     Left e        -> throwUnexpectedDBError $ sqlToServerError e
+
 
 getPublicKey :: M.KeyID -> AppM M.RSAPublicKey
 getPublicKey keyId = do
   r <- runDb $ runSelectReturningList $ select $ do
     allKeys <- all_ (SB._keys SB.supplyChainDb)
     guard_ (SB.key_id allKeys ==. val_ keyId)
-    pure allKeys
-
+    pure (SB.pem_str allKeys)
   case r of
-    -- Right [(keyId, uid, rsa_n, rsa_e, creationTime, revocationTime)] ->
-    Right [k] -> do
-        pubKey <- return $ ((decode $ fromStrict $ SB.rsa_public_pkcs8 k) :: PublicKey) -- $ SB.rsa_public_pkcs8 k
-        --return $ M.RSAPublicKey (read $ T.unpack $ SB.rsa_n k) (read $ T.unpack $ SB.rsa_e k)
-        return $ M.RSAPublicKey (public_n pubKey) (public_e pubKey)
+    Right [k] -> return $ M.PEMString $ T.unpack k
     Right _ -> throwAppError $ InvalidKeyID keyId
     Left e  -> throwUnexpectedDBError $ sqlToServerError e
 
@@ -136,12 +141,25 @@ getPublicKeyInfo keyId = do
     pure allKeys
 
   case r of
-    Right [(SB.Key _ (SB.UserId uId) _ creationTime revocationTime)] ->
+    Right [(SB.Key _ (SB.UserId uId) _  creationTime revocationTime)] ->
        return $ M.KeyInfo uId
                 (toEPCISTime creationTime)
                 (toEPCISTime <$> revocationTime)
     Right _ -> throwAppError $ InvalidKeyID keyId
     Left e  -> throwUnexpectedDBError $ sqlToServerError e
+
+
+getEventJSON :: EvId.EventID -> AppM T.Text
+getEventJSON eventID = do
+  r <- runDb $ runSelectReturningList $ select $ do
+    allEvents <- all_ (SB._events SB.supplyChainDb)
+    guard_ ((SB.event_id allEvents) ==. val_ (EvId.getEventId eventID))
+    pure (SB.json_event allEvents)
+  case r of
+    Right [jsonEvent] -> return jsonEvent
+    Right _           -> throwAppError $ InvalidEventID eventID
+    Left e            -> throwUnexpectedDBError $ sqlToServerError e
+
 
 getUser :: M.EmailAddress -> AppM (Maybe M.User)
 getUser email = do
@@ -157,7 +175,7 @@ getUser email = do
 
 insertObjectEvent :: M.User
                   -> M.ObjectEvent
-                  -> AppM SB.PrimaryKeyType
+                  -> AppM Ev.Event
 insertObjectEvent
   (M.User userId _ _ )
   (M.ObjectEvent
@@ -168,9 +186,9 @@ insertObjectEvent
   ) = do
 
   let
-      eventType = ObjectEventT
+      eventType = Ev.ObjectEventT
       dwhat =  ObjectDWhat act labelEpcs
-      event = Event eventType foreignEventId dwhat dwhen dwhy dwhere
+      event = Ev.Event eventType foreignEventId dwhat dwhen dwhy dwhere
       jsonEvent = encodeEvent event
 
   startTransaction
@@ -187,11 +205,11 @@ insertObjectEvent
 
   endTransaction
 
-  return eventId
+  return event
 
 insertAggEvent :: M.User
                -> M.AggregationEvent
-               -> AppM SB.PrimaryKeyType
+               -> AppM Ev.Event
 insertAggEvent
   (M.User userId _ _ )
   (M.AggregationEvent
@@ -202,9 +220,9 @@ insertAggEvent
     dwhen dwhy dwhere
   ) = do
   let
-      eventType = AggregationEventT
+      eventType = Ev.AggregationEventT
       dwhat =  AggregationDWhat act mParentLabel labelEpcs
-      event = Event eventType foreignEventId dwhat dwhen dwhy dwhere
+      event = Ev.Event eventType foreignEventId dwhat dwhen dwhy dwhere
       jsonEvent = encodeEvent event
 
   startTransaction
@@ -223,11 +241,11 @@ insertAggEvent
 
   endTransaction
 
-  return eventId
+  return event
 
 insertTransfEvent :: M.User
                   -> M.TransformationEvent
-                  -> AppM SB.PrimaryKeyType
+                  -> AppM Ev.Event
 insertTransfEvent
   (M.User userId _ _ )
   (M.TransformationEvent
@@ -238,9 +256,9 @@ insertTransfEvent
     dwhen dwhy dwhere
   ) = do
   let
-      eventType = TransformationEventT
+      eventType = Ev.TransformationEventT
       dwhat =  TransformationDWhat mTransfId inputs outputs
-      event = Event eventType foreignEventId dwhat dwhen dwhy dwhere
+      event = Ev.Event eventType foreignEventId dwhat dwhen dwhy dwhere
       jsonEvent = encodeEvent event
 
   startTransaction
@@ -259,12 +277,13 @@ insertTransfEvent
 
   endTransaction
 
-  return eventId
+  return event
 
-
+-- XXX This function is not tested yet.
+-- Needs more specifications for implementation.
 insertTransactionEvent :: M.User
                        -> M.TransactionEvent
-                       -> AppM SB.PrimaryKeyType
+                       -> AppM Ev.Event
 insertTransactionEvent
   (M.User userId _ _ )
   (M.TransactionEvent
@@ -277,9 +296,9 @@ insertTransactionEvent
     dwhen dwhy dwhere
   ) = do
   let
-      eventType = TransactionEventT
+      eventType = Ev.TransactionEventT
       dwhat =  TransactionDWhat act mParentLabel bizTransactions labelEpcs
-      event = Event eventType foreignEventId dwhat dwhen dwhy dwhere
+      event = Ev.Event eventType foreignEventId dwhat dwhen dwhy dwhere
       jsonEvent = encodeEvent event
 
   startTransaction
@@ -297,15 +316,19 @@ insertTransactionEvent
 
   endTransaction
 
-  return eventId
+  return event
 
 
-listEvents :: LabelEPC -> AppM [Event]
+listEvents :: LabelEPC -> AppM [Ev.Event]
 listEvents labelEpc = do
   labelId <- findLabelId labelEpc
   case getEventList <$> labelId of
     Nothing     -> return []
     Just evList -> evList
+
+insertSignature :: EvId.EventID -> M.KeyID -> M.Signature -> M.Digest -> AppM SB.PrimaryKeyType
+--insertSignature :: EventID -> KeyID -> Signature -> Digest -> AppM SigID
+insertSignature = error "Implement me"
 
   -- error "not implemented yet"
 -- -- TODO = fix... what is definition of hasSigned?
@@ -367,7 +390,7 @@ addContact (M.User uid1 _ _) uid2 = do
   pKey <- generatePk
   r <- runDb $ runInsertReturningList (SB._contacts SB.supplyChainDb) $
                insertValues [SB.Contact pKey (SB.UserId uid1) (SB.UserId uid2)]
-  verifyInsertion r uid1 uid2
+  verifyContact r uid1 uid2
 
 -- | The current behaviour is, if the users were not contacts in the first
 -- place, then the function returns false
@@ -398,19 +421,19 @@ isExistingContact uid1 uid2 = do
         guard_ (SB.contact_user1_id contact  ==. (val_ . SB.UserId $ uid1) &&.
                 SB.contact_user2_id contact  ==. (val_ . SB.UserId $ uid2))
         pure contact
-  verifyInsertion r uid1 uid2
+  verifyContact r uid1 uid2
 
--- | Verifies that the contact that has been inserted has been inserted 
--- as was intended
-verifyInsertion :: (Eq (PrimaryKey SB.UserT f), Monad m) =>
+-- | Simple utility function to check that the users are part of the contact
+-- typically used with the result of a query
+verifyContact :: (Eq (PrimaryKey SB.UserT f), Monad m) =>
                    Either e [SB.ContactT f] ->
                    C f SB.PrimaryKeyType ->
                    C f SB.PrimaryKeyType ->
                    m Bool
-verifyInsertion (Right [insertedContact]) uid1 uid2 = return $
+verifyContact (Right [insertedContact]) uid1 uid2 = return $
                   (SB.contact_user1_id insertedContact == (SB.UserId uid1)) &&
                   (SB.contact_user2_id insertedContact == (SB.UserId uid2))
-verifyInsertion _ _ _ = return False
+verifyContact _ _ _ = return False
 
 
 -- -- TODO - convert these below functions, and others in original file Storage.hs

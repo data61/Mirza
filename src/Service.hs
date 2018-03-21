@@ -10,6 +10,7 @@
 {-# LANGUAGE UndecidableInstances       #-}
 {-# LANGUAGE PolyKinds                  #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE StandaloneDeriving         #-}
 {-# OPTIONS_GHC -fno-warn-orphans       #-}
 
 -- | Endpoint definitions go here. Most of the endpoint definitions are
@@ -23,7 +24,7 @@ import           Servant
 import           Servant.Server.Experimental.Auth()
 import           Servant.Swagger
 import           Data.Swagger
-import           Data.GS1.Event
+import qualified Data.GS1.Event as Ev
 import           Data.GS1.EventID
 import           Data.GS1.EPC
 import           Data.GS1.DWhen
@@ -31,6 +32,7 @@ import           Data.GS1.DWhere
 import           Data.GS1.DWhat
 import           Data.GS1.DWhy
 import           Data.GS1.Parser.Parser
+import           Data.Maybe (isJust, fromJust, isNothing)
 import           Data.Either.Combinators
 import qualified Data.HashMap.Strict.InsOrd as IOrd
 import qualified Network.Wai.Handler.Warp as Warp
@@ -43,6 +45,7 @@ import qualified Control.Exception.Lifted as ExL
 import           Control.Monad.Trans.Except
 import           Data.UUID.V4
 import           Data.Text (pack)
+import           Data.Char (toLower)
 import           Control.Monad.Reader   (MonadReader, ReaderT, runReaderT,
                                          asks, ask, liftIO)
 
@@ -50,10 +53,21 @@ import           Control.Monad.Reader   (MonadReader, ReaderT, runReaderT,
 import qualified AppConfig as AC
 import qualified BeamQueries as BQ
 import           Utils (debugLog, debugLogGeneral)
-import           ErrorUtils (appErrToHttpErr, throwParseError)
+import           ErrorUtils (appErrToHttpErr, throwParseError, throwAppError)
+import           Errors
 import           Model as M
 import           API
 import qualified StorageBeam as SB
+import OpenSSL.PEM   (readPublicKey)
+
+
+import OpenSSL.RSA   (RSAPubKey, rsaSize)
+import OpenSSL.EVP.PKey (PublicKey, SomePublicKey, toPublicKey)
+import qualified OpenSSL.EVP.Digest as EVPDigest
+import OpenSSL.EVP.Verify (verifyBS, VerifyStatus(..))
+import qualified Data.ByteString.Base64 as BS64
+import qualified Data.ByteString.Char8 as BSC
+import qualified QueryUtils as QU
 
 instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub) where
   toSwagger _ =
@@ -65,19 +79,21 @@ instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub
       & securityDefinitions .~ authSchemes
       & allOperations . security .~ securityRequirements
 
--- sampleUser :: User
--- -- sampleUser =  User (Auto Nothing) "Sara" "Falamaki"
--- sampleUser =  User 1 "Sara" "Falamaki"
+-- deriving instance Applicative BasicAuthCheck
+-- instance Monad BasicAuthCheck where
+--   (>>=) = error "not implemented yet"
+--   return = error "not implemented yet"
 
 -- 'BasicAuthCheck' holds the handler we'll use to verify a username and password.
 authCheck :: BasicAuthCheck User
-authCheck = error "Storage module not implemented"
-  -- let check (BasicAuthData username password) = do
-  --       maybeUser <- Storage.authCheck username password
+authCheck = error "not implemented yet" -- do
+  -- env <- ask
+  -- let check (BasicAuthData useremail password) = do
+  --       maybeUser <- AC.runAppM env $ BQ.authCheck (decodeUtf8 useremail) password
   --       case maybeUser of
-  --          Nothing -> return Unauthorized
-  --          (Just user) -> return (Authorized user)
-  -- in BasicAuthCheck check
+  --         Right (Just user) -> return (Authorized user)
+  --         _                 -> return Unauthorized
+  -- BasicAuthCheck check
 
 appMToHandler :: forall x. AC.Env -> AC.AppM x -> Handler x
 appMToHandler env act = do
@@ -112,7 +128,7 @@ publicServer =     Service.newUser
               :<|> Service.getPublicKey
               :<|> Service.getPublicKeyInfo
               :<|> Service.listBusinesses
-              
+
 appHandlers = privateServer :<|> publicServer
 
 serverAPI :: Proxy ServerAPI
@@ -134,8 +150,26 @@ basicAuthServerContext :: Servant.Context (BasicAuthCheck User ': '[])
 basicAuthServerContext = authCheck :. EmptyContext
 
 
+minPubKeySize = 1536 --FIXME or 2048
+
 addPublicKey :: User -> RSAPublicKey -> AC.AppM KeyID
-addPublicKey = BQ.addPublicKey
+addPublicKey user (PEMString pemKey) = do
+  somePubKey <- liftIO $ readPublicKey pemKey
+  let maybeKey = checkPubKey somePubKey
+  if isJust $ maybeKey
+     then BQ.addPublicKey user (fromJust maybeKey)
+  else throwAppError $ InvalidRSAKey (PEMString pemKey)
+
+
+checkPubKey :: SomePublicKey -> Maybe RSAPubKey
+checkPubKey spKey
+  |isNothing mPKey = Nothing
+  |rsaSize pubKey < minPubKeySize = Nothing
+  |otherwise = mPKey
+  where
+    mPKey::(Maybe RSAPubKey) = toPublicKey spKey
+    pubKey = fromJust mPKey
+
 
 newUser :: NewUser -> AC.AppM UserID
 newUser = BQ.newUser
@@ -163,7 +197,7 @@ epcState user str = return New
 -- (labelID, _) <- getLabelIDState
 -- wholeEvents <- select * from events, dwhats, dwhy, dwhen where _whatItemID=labelID AND _eventID=_whatEventID AND _eventID=_whenEventID AND _eventID=_whyEventID ORDER BY _eventTime;
 -- return map constructEvent wholeEvents
-listEvents :: User ->  M.LabelEPCUrn -> AC.AppM [Event]
+listEvents :: User ->  M.LabelEPCUrn -> AC.AppM [Ev.Event]
 listEvents user urn =
   case (urn2LabelEPC . pack $ urn) of
     Left e -> throwParseError e
@@ -211,11 +245,50 @@ listBusinesses = error "Implement me"
 
 -- |List events that a particular user was/is involved with
 -- use BizTransactions and events (createdby) tables
-eventList :: User -> UserID -> AC.AppM [Event]
+eventList :: User -> UserID -> AC.AppM [Ev.Event]
 eventList user uID = return []
 
-eventSign :: User -> SignedEvent -> AC.AppM Bool
-eventSign user signedEvent = error "Storage module not implemented"
+makeDigest :: M.Digest -> IO (Maybe EVPDigest.Digest)
+makeDigest d = EVPDigest.getDigestByName $ (map toLower) $ show $ d
+
+
+{-
+   The default padding is PKCS1-1.5, which is deprecated
+   for new applications. We should be using PSS instead.
+
+   In the OpenSSL wrapper, the verify function in generic,
+   and does not allow you to specify a padding type, as this
+   is an RSA specific property.
+
+   I propose we modify OpenSSL to add a function called
+   verifyBSRSA :: Digest -> BS -> key -> BS -> PaddingType -> IO VerifyStatus
+
+   We'll need to use the foreign function interface to call:
+   EVP_PKEY_CTX_set_rsa_padding in libSSL.
+
+   Lets do this after we have everything compiling.
+-}
+
+eventSign :: User -> SignedEvent -> AC.AppM SB.PrimaryKeyType
+eventSign user (SignedEvent eventID keyID (Signature sigStr) digest) = do
+  event <- BQ.getEventJSON eventID
+  rsaPublicKey <- BQ.getPublicKey keyID
+  let eSigBS = BS64.decode $ BSC.pack $ sigStr
+  case eSigBS of Left s -> throwAppError $ InvalidSignature s
+                 Right sigBS -> do
+                  let (PEMString keyStr) = rsaPublicKey
+                  sKey <- liftIO $ readPublicKey keyStr
+                  let pubKey::RSAPubKey = fromJust $ toPublicKey $ sKey
+                      eventBS = QU.eventTxtToBS event
+                  maybeDigest <- liftIO $  makeDigest digest
+                  verifyStatus <- liftIO $ verifyBS (fromJust maybeDigest) sigBS pubKey eventBS
+                  if verifyStatus == VerifySuccess
+                     then BQ.insertSignature eventID keyID (Signature sigStr) digest
+                     else throwAppError $ InvalidSignature sigStr
+
+
+
+-- eventSign user signedEvent = error "Storage module not implemented"
 -- eventSign user signedEvent = do
 --   result <- liftIO $ runExceptT $ Storage.eventSign user signedEvent
 --   case result of
@@ -236,22 +309,22 @@ eventHashed user eventID = do
     -}
 
 -- Return the json encoded copy of the event
-objectEvent :: User -> ObjectEvent -> AC.AppM SB.PrimaryKeyType
+objectEvent :: User -> ObjectEvent -> AC.AppM Ev.Event -- SB.PrimaryKeyType
 objectEvent = BQ.insertObjectEvent
 
-eventAggregateObjects :: User -> AggregationEvent -> AC.AppM SB.PrimaryKeyType
-eventAggregateObjects user aggObject = error "not implemented yet"
+eventAggregateObjects :: User -> AggregationEvent -> AC.AppM Ev.Event
+eventAggregateObjects = BQ.insertAggEvent
 
-eventStartTransaction :: User -> TransactionEvent -> AC.AppM SB.PrimaryKeyType
-eventStartTransaction user aggObject = error "not implemented yet"
+eventStartTransaction :: User -> TransactionEvent -> AC.AppM Ev.Event
+eventStartTransaction = BQ.insertTransactionEvent
 
-eventTransformObject :: User -> TransformationEvent -> AC.AppM SB.PrimaryKeyType
-eventTransformObject user aggObject = error "not implemented yet"
+eventTransformObject :: User -> TransformationEvent -> AC.AppM Ev.Event
+eventTransformObject = BQ.insertTransfEvent
 
-sampleEvent:: IO Event
+sampleEvent:: IO Ev.Event
 sampleEvent=  do
   uuid <- nextRandom
-  return (Event AggregationEventT (Just $ EventID uuid) sampleWhat sampleWhen sampleWhy sampleWhere)
+  return (Ev.Event Ev.AggregationEventT (Just $ EventID uuid) sampleWhat sampleWhen sampleWhy sampleWhere)
 
 
 sampleWhat :: DWhat
@@ -270,7 +343,7 @@ sampleWhen = DWhen pt (Just pt) tz
 sampleWhere :: DWhere
 sampleWhere = DWhere [] [] [] []
 
-eventInfo :: User -> EventID -> AC.AppM Event
+eventInfo :: User -> EventID -> AC.AppM Ev.Event
 eventInfo user eID = liftIO sampleEvent
 
 --eventHash :: EventID -> AC.AppM SignedEvent

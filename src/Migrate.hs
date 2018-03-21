@@ -22,11 +22,7 @@ dbMigrationFunc _ = withDatabase
 defConnectionStr :: ByteString
 defConnectionStr = "dbname=devsupplychainserver"
 
--- in following notes, replace per276 with your username
--- initially get into postgres using: sudo -u postgres psql postgres
--- from then on use: sudo -u per276 psql testsupplychainserver2
--- create role per276 with login;
--- create database testsupplychainserver;
+-- | Connection string used when running tests
 testDbConnStr :: ByteString
 testDbConnStr = "dbname=testsupplychainserver"
 
