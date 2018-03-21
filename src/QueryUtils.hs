@@ -331,11 +331,10 @@ insertLocationEPC
 insertDWhere :: DWhere -> SB.PrimaryKeyType -> AppM ()
 insertDWhere (DWhere rPoint bizLoc srcT destT) eventId = do
   -- These functions are not firing
-  return $ insertLocationEPC MU.ReadPoint eventId <$> rPoint
-  return $ insertLocationEPC MU.BizLocation eventId <$> bizLoc
-  return $ insertSrcDestType MU.Src eventId <$> srcT
-  return $ insertSrcDestType MU.Dest eventId <$> destT
-  sandwichLog "Done inserting DWhere"
+  sequence $ insertLocationEPC MU.ReadPoint eventId <$> rPoint
+  sequence $ insertLocationEPC MU.BizLocation eventId <$> bizLoc
+  sequence $ insertSrcDestType MU.Src eventId <$> srcT
+  sequence $ insertSrcDestType MU.Dest eventId <$> destT
   return ()
 
 insertEvent :: SB.PrimaryKeyType -> T.Text -> Event -> AppM SB.PrimaryKeyType
