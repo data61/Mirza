@@ -176,13 +176,13 @@ data LabelT f = Label
   , label_type               :: C f (Maybe Text) -- input/output/parent
   , label_what_id            :: PrimaryKey WhatT f
   , label_gs1_company_prefix :: C f EPC.GS1CompanyPrefix --should this be bizId instead?
-  , item_reference           :: C f (Maybe Text)
-  , serial_number            :: C f (Maybe Text)
+  , item_reference           :: C f (Maybe EPC.ItemReference)
+  , serial_number            :: C f (Maybe EPC.SerialNumber)
   , state                    :: C f (Maybe Text)
-  , lot                      :: C f (Maybe Text)
-  , sgtin_filter_value       :: C f (Maybe Text)
-  , asset_type               :: C f (Maybe Text)
-  , quantity_amount          :: C f (Maybe Double)
+  , lot                      :: C f (Maybe EPC.Lot)
+  , sgtin_filter_value       :: C f (Maybe EPC.SGTINFilterValue)
+  , asset_type               :: C f (Maybe EPC.AssetType)
+  , quantity_amount          :: C f (Maybe EPC.Amount)
   , quantity_uom             :: C f (Maybe EPC.Uom) -- T.Text
   }
   deriving Generic
