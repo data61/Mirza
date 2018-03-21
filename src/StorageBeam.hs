@@ -369,7 +369,7 @@ instance Table WhyT where
 data WhereT f = Where
   { where_id                    :: C f PrimaryKeyType
   , where_source_dest_type      :: C f (Maybe EPC.SourceDestType)
-  , where_gs1_location_id       :: C f Text -- locationReferenceNum
+  , where_gs1_location_id       :: C f EPC.LocationReference
   , where_location_field        :: C f LocationField
   , where_event_id              :: PrimaryKey EventT f }
   deriving Generic
