@@ -88,6 +88,38 @@ instance ToField Ev.EventType where
 eventType :: DataType PgDataTypeSyntax Ev.EventType
 eventType = textType
 
+-- ======= EPC.SourceDestType =======
+
+instance HasSqlValueSyntax be String => HasSqlValueSyntax be EPC.SourceDestType where
+  sqlValueSyntax = autoSqlValueSyntax
+instance (IsSql92ColumnSchemaSyntax be) => HasDefaultSqlDataTypeConstraints be EPC.SourceDestType
+
+instance (HasSqlValueSyntax (Sql92ExpressionValueSyntax be) Bool,
+          IsSql92ExpressionSyntax be) =>
+          HasSqlEqualityCheck be EPC.SourceDestType
+instance (HasSqlValueSyntax (Sql92ExpressionValueSyntax be) Bool,
+          IsSql92ExpressionSyntax be) =>
+          HasSqlQuantifiedEqualityCheck be EPC.SourceDestType
+
+-- | An explicit definition of ``fromBackendRow`` is required for each custom type
+instance FromBackendRow Postgres EPC.SourceDestType where
+  fromBackendRow = do
+    val <- fromBackendRow
+    case val :: T.Text of
+      "SDOwningParty" -> pure EPC.SDOwningParty
+      "SDPossessingParty" -> pure EPC.SDPossessingParty
+      "SDLocation" -> pure EPC.SDLocation
+      _ -> fail ("Invalid value for EPC.SourceDestType: " ++ T.unpack val)
+
+instance FromField EPC.SourceDestType where
+  fromField = defaultFromField "EPC.SourceDestType"
+
+instance ToField EPC.SourceDestType where
+  toField = toField . show
+
+srcDestType :: DataType PgDataTypeSyntax EPC.SourceDestType
+srcDestType = textType
+
 -- ======= EPC.Action =======
 
 instance HasSqlValueSyntax be String => HasSqlValueSyntax be EPC.Action where

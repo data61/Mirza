@@ -296,7 +296,7 @@ insertSrcDestType
   pKey <- generatePk
   let
       stWhere = SB.Where pKey
-                (Just . toText $ sdType)
+                (Just sdType)
                 locationRef
                 locField
                 (SB.EventId eventId)
