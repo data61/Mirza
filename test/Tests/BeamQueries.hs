@@ -19,9 +19,7 @@ import           Crypto.Scrypt
 import           Data.ByteString (ByteString)
 import           Data.ByteString.Lazy (toStrict)
 import           Data.Text.Encoding (encodeUtf8)
-import           Data.GS1.Event (allEventTypes)
 import           Data.GS1.EPC
-import           Data.UUID (nil)
 -- import qualified Data.GS1.Event as Ev
 
 import           Utils
@@ -68,11 +66,11 @@ testQueries = do
 
   describe "newUser tests" $ do
     it "newUser test 1" $ \(conn, env) -> do
-      hash <- hashIO
       uid <- fromRight' <$> (runAppM env $ newUser dummyNewUser)
       user <- fromRight' <$> (runAppM env $ selectUser uid)
 
-      (fromJust user) `shouldSatisfy`
+      (fromJust user)
+        `shouldSatisfy`
           (\u ->
             (SB.phone_number u) == (M.phoneNumber dummyNewUser) &&
             (SB.email_address u) == (M.emailAddress dummyNewUser) &&
@@ -80,19 +78,24 @@ testQueries = do
             (SB.last_name u) == (M.lastName dummyNewUser) &&
             (SB.user_biz_id u) == (SB.BizId (M.company dummyNewUser)) &&
             -- note database bytestring includes the salt, this checks password
-            (verifyPass' (Pass $ encodeUtf8 $ M.password dummyNewUser) (EncryptedPass $ SB.password_hash u)) &&
-            (SB.user_id u) == uid)
+            (verifyPass'
+              (Pass $ encodeUtf8 $ M.password dummyNewUser)
+              (EncryptedPass $ SB.password_hash u)) &&
+            (SB.user_id u) == uid
+          )
 
   describe "authCheck tests" $ do
     it "authCheck test 1" $ \(conn, env) -> do
       uid <- fromRight' <$> (runAppM env $ newUser dummyNewUser)
       user <- fromRight' <$> (runAppM env $ authCheck (M.emailAddress dummyNewUser) (encodeUtf8 $ M.password dummyNewUser)) --hash)
       (fromJust user) `shouldSatisfy`
-        (\u -> (M.userId u) == uid &&
-               (M.userFirstName u) == (M.firstName dummyNewUser) &&
-               (M.userLastName u) == (M.lastName dummyNewUser))
-{- 
-  describe "addPublicKey tests" $ do
+        (\u ->
+          (M.userId u) == uid &&
+          (M.userFirstName u) == (M.firstName dummyNewUser) &&
+          (M.userLastName u) == (M.lastName dummyNewUser)
+        )
+
+{-   describe "addPublicKey tests" $ do
     it "addPublicKey test 1" $ \(conn, env) -> do
       tStart <- timeStampIO
       uid <- fromRight' <$> (runAppM env $ newUser dummyNewUser)
@@ -136,60 +139,57 @@ testQueries = do
             (M.creationTime ki > tStart && M.creationTime ki < tEnd) &&
             isNothing (M.revocationTime ki)
           )
- -}
+-}
   describe "Object Event" $ do
     it "Insert Object Event" $ \(conn, env) -> do
-      eventId <- fromRight' <$> (runAppM env $ insertObjectEvent dummyUser dummyObject)
-      insertedEvent <- fromRight' <$> (runAppM env $ findEvent eventId)
-      (fromJust insertedEvent) `shouldSatisfy`
+      insertedEvent <- fromRight' <$> (runAppM env $ insertObjectEvent dummyUser dummyObject)
+      insertedEvent `shouldSatisfy`
         (\ev -> ev == dummyObjEvent)
 
     it "List event" $ \(conn, env) -> do
-      eventId <- fromRight' <$> (runAppM env $ insertObjectEvent dummyUser dummyObject)
-      insertedEvent <- fromRight' <$> (runAppM env $ findEvent eventId)
+      insertedEvent <- fromRight' <$> (runAppM env $ insertObjectEvent dummyUser dummyObject)
       eventList <- fromRight' <$> (runAppM env $ listEvents dummyLabelEpc)
-      (fromJust insertedEvent) `shouldSatisfy`
+      insertedEvent `shouldSatisfy`
         (\ev -> ev == dummyObjEvent)
-      eventList `shouldBe` [fromJust insertedEvent]
+      eventList `shouldBe` [insertedEvent]
 
-  describe "Dis/Aggregation Event" $ do
+  describe "Aggregation Event" $ do
     it "Insert Aggregation Event" $ \(conn, env) -> do
-      eventId <- fromRight' <$> (runAppM env $ insertAggEvent dummyUser dummyAggregation)
-      insertedEvent <- fromRight' <$> (runAppM env $ findEvent eventId)
-      (fromJust insertedEvent) `shouldSatisfy`
+      insertedEvent <- fromRight' <$> (runAppM env $ insertAggEvent dummyUser dummyAggregation)
+      insertedEvent `shouldSatisfy`
         (\ev -> ev == dummyAggEvent)
 
     it "List event" $ \(conn, env) -> do
-      eventId <- fromRight' <$> (runAppM env $ insertAggEvent dummyUser dummyAggregation)
-      insertedEvent <- fromRight' <$> (runAppM env $ findEvent eventId)
-      (fromJust insertedEvent) `shouldSatisfy`
+      insertedEvent <- fromRight' <$> (runAppM env $ insertAggEvent dummyUser dummyAggregation)
+      insertedEvent `shouldSatisfy`
         (\ev -> ev == dummyAggEvent)
       eventList <- fromRight' <$> (runAppM env $ listEvents dummyLabelEpc)
-      eventList `shouldBe` [fromJust insertedEvent]
+      eventList `shouldBe` [insertedEvent]
 
   describe "Transformation Event" $ do
     it "Insert Transformation Event" $ \(conn, env) -> do
-      eventId <- fromRight' <$> (runAppM env $ insertTransfEvent dummyUser dummyTransformation)
-      
-      insertedEvent <- fromRight' <$> (runAppM env $ findEvent eventId)
-      (fromJust insertedEvent) `shouldSatisfy`
+      insertedEvent <- fromRight' <$> (runAppM env $ insertTransfEvent dummyUser dummyTransformation)
+      insertedEvent `shouldSatisfy`
         (\ev -> ev == dummyTransfEvent)
 
     it "List event" $ \(conn, env) -> do
-      eventId <- fromRight' <$> (runAppM env $ insertTransfEvent dummyUser dummyTransformation)
-      insertedEvent <- fromRight' <$> (runAppM env $ findEvent eventId)
-      (fromJust insertedEvent) `shouldSatisfy`
+      insertedEvent <- fromRight' <$> (runAppM env $ insertTransfEvent dummyUser dummyTransformation)
+      insertedEvent `shouldSatisfy`
         (\ev -> ev == dummyTransfEvent)
       eventList <- fromRight' <$> (runAppM env $ listEvents dummyLabelEpc)
-      eventList `shouldBe` [fromJust insertedEvent]
+      eventList `shouldBe` [insertedEvent]
 
   describe "getUser tests" $ do
     it "getUser test 1" $ \(conn, env) -> do
       uid <- fromRight' <$> (runAppM env $ newUser dummyNewUser)
       user <- fromRight' <$> (runAppM env $ getUser $ M.emailAddress dummyNewUser)
-      (fromJust user) `shouldSatisfy` (\u -> (M.userId u == uid) &&
-                                             (M.userFirstName u == M.firstName dummyNewUser) &&
-                                             (M.userLastName u == M.lastName dummyNewUser))
+      (fromJust user)
+        `shouldSatisfy`
+          (\u ->
+            (M.userId u == uid) &&
+            (M.userFirstName u == M.firstName dummyNewUser) &&
+            (M.userLastName u == M.lastName dummyNewUser)
+          )
 
   (after_ clearContact) . describe "Contacts" $ do
     describe "Add contact" $ do
