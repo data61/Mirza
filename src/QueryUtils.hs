@@ -315,14 +315,16 @@ insertLocationEPC
   eventId
   (SGLN gs1Company locationRef ext) = do
   pKey <- generatePk
-  let
-      stWhere = SB.Where pKey
+  let stWhere = SB.Where pKey
                 Nothing
                 locationRef
                 locField
                 (SB.EventId eventId)
+  sandwichLog "Still haven't crashed"
+  sandwichLog stWhere
   r <- runDb $ B.runInsert $ B.insert (SB._wheres SB.supplyChainDb)
              $ insertValues [stWhere]
+  sandwichLog r
   case r of
     Left  e -> throwUnexpectedDBError $ sqlToServerError e
     Right _ -> return pKey
@@ -331,10 +333,12 @@ insertLocationEPC
 -- ReadPoint, BizLocation, Src, Dest
 insertDWhere :: DWhere -> SB.PrimaryKeyType -> AppM ()
 insertDWhere (DWhere rPoint bizLoc srcT destT) eventId = do
+  -- These functions are not firing
   return $ insertLocationEPC MU.ReadPoint eventId <$> rPoint
   return $ insertLocationEPC MU.BizLocation eventId <$> bizLoc
   return $ insertSrcDestType MU.Src eventId <$> srcT
   return $ insertSrcDestType MU.Dest eventId <$> destT
+  sandwichLog "Done inserting DWhere"
   return ()
 
 insertEvent :: SB.PrimaryKeyType -> T.Text -> Event -> AppM SB.PrimaryKeyType
