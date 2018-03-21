@@ -44,8 +44,8 @@ import qualified Data.Text.Lazy.Encoding as LEn
 import qualified Data.Text.Encoding as En
 
 -- | Reads back the ``LocalTime`` in UTCTime (with an offset of 0)
-toEPCISTime :: ZonedTime -> UTCTime
-toEPCISTime = zonedTimeToUTC
+toEPCISTime :: LocalTime -> UTCTime
+toEPCISTime = localTimeToUTC utc
 
 -- | Shorthand for type-casting UTCTime to LocalTime before storing them in DB
 toLocalTime :: UTCTime -> LocalTime
@@ -57,10 +57,10 @@ toZonedTime = utcToZonedTime utc
 
 -- | Generates a timestamp in LocalTime + 0:00 offset
 -- which is a UTCTime
-generateTimeStamp :: AppM ZonedTime
+generateTimeStamp :: AppM LocalTime
 generateTimeStamp = do
   utcTime <- liftIO getCurrentTime
-  return $ utcToZonedTime utc utcTime
+  return $ utcToLocalTime utc utcTime
 
 -- | shorthand for wrapping ``UUID.nextRandom`` in ``AppM``
 generatePk :: AppM SB.PrimaryKeyType
@@ -231,8 +231,8 @@ toStorageDWhen :: SB.PrimaryKeyType
                -> SB.When
 toStorageDWhen pKey (DWhen eventTime mRecordTime tZone) eventId =
   SB.When pKey
-    (toZonedTime eventTime)
-    (toZonedTime <$> mRecordTime)
+    (toLocalTime eventTime)
+    (toLocalTime <$> mRecordTime)
     (T.pack . timeZoneOffsetString $ tZone)
     (SB.EventId eventId)
 
