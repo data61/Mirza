@@ -42,6 +42,7 @@ import           ErrorUtils (throwBackendError, throwAppError, toServerError
 import           Database.PostgreSQL.Simple
 import qualified Data.Text.Lazy.Encoding as LEn
 import qualified Data.Text.Encoding as En
+import qualified MigrateUtils as MU
 
 -- | Reads back the ``LocalTime`` in UTCTime (with an offset of 0)
 toEPCISTime :: LocalTime -> UTCTime
@@ -94,7 +95,7 @@ epcToStorageLabel labelType whatId pKey (IL (SGTIN gs1Prefix fv ir sn)) =
   SB.Label pKey labelType (SB.WhatId whatId)
            gs1Prefix (Just ir)
            (Just sn) Nothing Nothing
-           (toText <$> fv)
+           fv
            Nothing Nothing Nothing
 
 epcToStorageLabel labelType whatId pKey (IL (GIAI gs1Prefix sn)) =
@@ -121,7 +122,7 @@ epcToStorageLabel labelType whatId pKey (CL (LGTIN gs1Prefix ir lot) mQ) =
 epcToStorageLabel labelType whatId pKey (CL (CSGTIN gs1Prefix fv ir) mQ) =
   SB.Label pKey labelType (SB.WhatId whatId)
            gs1Prefix (Just ir) Nothing
-           Nothing Nothing (toText <$> fv) Nothing
+           Nothing Nothing fv Nothing
            (getQuantityAmount mQ) (getQuantityUom mQ)
 
 getQuantityAmount :: Maybe Quantity -> Maybe Double
@@ -145,8 +146,8 @@ toStorageDWhat :: SB.PrimaryKeyType
                -> SB.What
 toStorageDWhat pKey mParentId mBizTranId eventId dwhat
    = SB.What pKey
-            (Just . Ev.stringify . Ev.getEventType $ dwhat)
-            (toText <$> getAction dwhat)
+            (Just . Ev.getEventType $ dwhat)
+            (getAction dwhat)
             (SB.LabelId mParentId)
             (SB.BizTransactionId mBizTranId)
             (SB.TransformationId $ getTransformationId dwhat)
@@ -182,7 +183,7 @@ findInstLabelId' cp sn msfv mir mat = do
     labels <- all_ (SB._labels SB.supplyChainDb)
     guard_ (SB.label_gs1_company_prefix labels ==. val_ cp &&.
             SB.serial_number labels ==. (val_ $ Just sn) &&.
-            (SB.sgtin_filter_value labels) ==. (val_ $ T.pack . show <$> msfv) &&.
+            (SB.sgtin_filter_value labels) ==. (val_ msfv) &&.
             SB.asset_type labels ==. val_ mat &&.
             SB.item_reference labels ==. val_ mir)
     pure labels
@@ -206,7 +207,7 @@ findClassLabelId' cp msfv ir lot = do
     labels <- all_ (SB._labels SB.supplyChainDb)
     guard_ (
              SB.label_gs1_company_prefix labels ==. val_ cp &&.
-             (SB.sgtin_filter_value labels) ==. (val_ $ T.pack . show <$> msfv) &&.
+             (SB.sgtin_filter_value labels) ==. (val_ msfv) &&.
              SB.lot labels ==. (val_ lot) &&.
              SB.item_reference labels ==. (val_ . Just $ ir)
            )
@@ -284,7 +285,7 @@ insertDWhy dwhy eventId = do
     Left  e -> throwUnexpectedDBError $ sqlToServerError e
     Right _ -> return pKey
 
-insertSrcDestType :: SB.LocationField
+insertSrcDestType :: MU.LocationField
                   -> SB.PrimaryKeyType
                   -> SrcDestLocation
                   -> AppM SB.PrimaryKeyType
@@ -297,7 +298,7 @@ insertSrcDestType
       stWhere = SB.Where pKey
                 (Just . toText $ sdType)
                 locationRef
-                (toText locField)
+                locField
                 (SB.EventId eventId)
   r <- runDb $ B.runInsert $ B.insert (SB._wheres SB.supplyChainDb)
              $ insertValues [stWhere]
@@ -305,7 +306,7 @@ insertSrcDestType
     Left  e -> throwUnexpectedDBError $ sqlToServerError e
     Right _ -> return pKey
 
-insertLocationEPC :: SB.LocationField
+insertLocationEPC :: MU.LocationField
                   -> SB.PrimaryKeyType
                   -> LocationEPC
                   -> AppM SB.PrimaryKeyType
@@ -318,7 +319,7 @@ insertLocationEPC
       stWhere = SB.Where pKey
                 Nothing
                 locationRef
-                (toText locField)
+                locField
                 (SB.EventId eventId)
   r <- runDb $ B.runInsert $ B.insert (SB._wheres SB.supplyChainDb)
              $ insertValues [stWhere]
@@ -330,10 +331,10 @@ insertLocationEPC
 -- ReadPoint, BizLocation, Src, Dest
 insertDWhere :: DWhere -> SB.PrimaryKeyType -> AppM ()
 insertDWhere (DWhere rPoint bizLoc srcT destT) eventId = do
-  return $ insertLocationEPC SB.ReadPoint eventId <$> rPoint
-  return $ insertLocationEPC SB.BizLocation eventId <$> bizLoc
-  return $ insertSrcDestType SB.Src eventId <$> srcT
-  return $ insertSrcDestType SB.Dest eventId <$> destT
+  return $ insertLocationEPC MU.ReadPoint eventId <$> rPoint
+  return $ insertLocationEPC MU.BizLocation eventId <$> bizLoc
+  return $ insertSrcDestType MU.Src eventId <$> srcT
+  return $ insertSrcDestType MU.Dest eventId <$> destT
   return ()
 
 insertEvent :: SB.PrimaryKeyType -> T.Text -> Event -> AppM SB.PrimaryKeyType

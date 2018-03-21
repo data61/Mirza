@@ -48,6 +48,7 @@ import           Database.Beam.Backend.SQL
 -- import           MigrateUtils (eventType)
 import           Data.Swagger ()
 import           Servant ()
+import           MigrateUtils (LocationField)
 
 type PrimaryKeyType = UUID
 -- IMPLEMENTME - NOT NOW
@@ -61,22 +62,6 @@ type PrimaryKeyType = UUID
 --   -- parseUrlPiece :: Text -> Either Text PrimaryKeyType
 --   parseUrlPiece t = error $ show t ++ " parseUP"
 --   parseQueryParam t = error $ show t ++ " parseQP"
-
--- | The generic implementation of fromField
--- If it's a fromField used for ``SomeCustomType``, sample usage would be
--- instance FromField SomeCustomType where
---   fromField = defaultFromField "SomeCustomType"
-defaultFromField :: (Typeable b, Read b) => String
-                 -> Field
-                 -> Maybe ByteString
-                 -> Conversion b
-defaultFromField fName f bs = do
-  x <- readMaybe <$> fromField f bs
-  case x of
-    Nothing ->
-      returnError ConversionFailed
-        f $ "Could not 'read' value for " ++ fName
-    Just val -> pure val
 
 data UserT f = User
   { user_id              :: C f PrimaryKeyType
@@ -107,8 +92,8 @@ data KeyT f = Key
   { key_id             :: C f PrimaryKeyType
   , key_user_id        :: PrimaryKey UserT f
   , pem_str            :: C f Text
-  , creation_time       :: C f LocalTime -- UTCTime
-  , revocation_time     :: C f (Maybe LocalTime) -- UTCTime
+  , creation_time      :: C f LocalTime -- UTCTime
+  , revocation_time    :: C f (Maybe LocalTime) -- UTCTime
   }
   deriving Generic
 type Key = KeyT Identity
@@ -182,8 +167,8 @@ data LabelT f = Label
   , lot                      :: C f (Maybe EPC.Lot)
   , sgtin_filter_value       :: C f (Maybe EPC.SGTINFilterValue)
   , asset_type               :: C f (Maybe EPC.AssetType)
-  , quantity_amount          :: C f (Maybe EPC.Amount)
-  , quantity_uom             :: C f (Maybe EPC.Uom) -- T.Text
+  , quantity_amount          :: C f (Maybe Double {- EPC.Amount -})
+  , quantity_uom             :: C f (Maybe EPC.Uom)
   }
   deriving Generic
 type Label = LabelT Identity
@@ -289,7 +274,6 @@ instance Table LocationT where
 data EventT f = Event
   { event_id                    :: C f PrimaryKeyType
   , foreign_event_id            :: C f (Maybe PrimaryKeyType) -- Event ID from XML from foreign systems.
-  -- , event_label_id              :: PrimaryKey BusinessT f --the label scanned to generate this event.
   , event_created_by            :: PrimaryKey UserT f
   , json_event                  :: C f Text }
   deriving Generic
@@ -314,8 +298,8 @@ deriving instance Eq (PrimaryKey EventT Identity)
 
 data WhatT f = What
   { what_id                    :: C f PrimaryKeyType
-  , what_event_type            :: C f (Maybe Text) -- Ev.EventType
-  , action                     :: C f (Maybe Text) -- EPC.Action
+  , what_event_type            :: C f (Maybe Ev.EventType)
+  , action                     :: C f (Maybe EPC.Action)
   , parent                     :: PrimaryKey LabelT (Nullable f)
   , what_biz_transaction_id    :: PrimaryKey BizTransactionT (Nullable f)
   , what_transformation_id     :: PrimaryKey TransformationT (Nullable f)
@@ -382,26 +366,11 @@ instance Table WhyT where
     deriving Generic
   primaryKey = WhyId . why_id
 
--- | The record fields in Data.GS1.DWhere for the data type DWhere
-data LocationField = Src | Dest | BizLocation | ReadPoint
-                    deriving (Generic, Show, Eq, Read)
-
-instance FromField LocationField where
-  fromField = defaultFromField "LocationField"
-
-instance FromBackendRow Postgres LocationField
-instance ToField LocationField where
-  toField = toField . show
-
-instance HasSqlValueSyntax be String => HasSqlValueSyntax be LocationField where
-  sqlValueSyntax = autoSqlValueSyntax
-
-
 data WhereT f = Where
   { where_id                    :: C f PrimaryKeyType
   , where_source_dest_type      :: C f (Maybe Text) -- (Maybe EPC.SourceDestType)
   , where_gs1_location_id       :: C f Text -- locationReferenceNum
-  , where_location_field        :: C f Text -- LocationField
+  , where_location_field        :: C f LocationField
   , where_event_id              :: PrimaryKey EventT f }
   deriving Generic
 
