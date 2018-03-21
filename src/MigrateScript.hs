@@ -9,6 +9,7 @@ import           Database.Beam.Migrate.Types
 import           Database.Beam.Postgres
 import           Database.Beam.Migrate.Simple (verifySchema)
 import           StorageBeam
+import           MigrateUtils
 
 maxLen :: Word
 maxLen = 120
@@ -72,7 +73,7 @@ migrationStorage =
           (field "serial_number" (maybeType $ varchar (Just maxLen)))
           (field "state" (maybeType $ varchar (Just maxLen)))
           (field "lot" (maybeType $ varchar (Just maxLen)))
-          (field "sgtin_filter_value" (maybeType $ varchar (Just maxLen)))
+          (field "sgtin_filter_value" (maybeType $ sgtinFilterValue))
           (field "asset_type" (maybeType $ varchar (Just maxLen)))
           (field "quantity_amount" (maybeType double))
           (field "quantity_uom" (maybeType $ varchar (Just maxLen)))
@@ -120,8 +121,8 @@ migrationStorage =
     (
       What
           (field "what_id" pkSerialType)
-          (field "what_event_type" (maybeType text))
-          (field "action" (maybeType text))
+          (field "what_event_type" (maybeType eventType))
+          (field "action" (maybeType actionType))
           (LabelId (field "parent" (maybeType pkSerialType)))
           (BizTransactionId (field "what_biz_transaction_id" (maybeType pkSerialType)))
           (TransformationId (field "what_transformation_id" (maybeType pkSerialType)))
@@ -149,7 +150,7 @@ migrationStorage =
           (field "where_id" pkSerialType)
           (field "where_source_dest_type" (maybeType $ varchar (Just maxLen)) notNull)
           (field "where_gs1_location_id" (varchar (Just maxLen)) notNull)
-          (field "where_location_field" (varchar (Just maxLen)) notNull)
+          (field "where_location_field" locationType notNull)
           (EventId (field "where_event_id" pkSerialType))
     )
     <*> createTable "whens"
@@ -197,5 +198,3 @@ migrationStorage =
           (field "blockchain_address" text notNull)
           (field "blockchain_foreign_id" int notNull)
     )
-
--- myVer = verifySchema migrationStorage
