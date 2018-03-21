@@ -24,23 +24,23 @@ import           Model as M
 import           StorageBeam (PrimaryKeyType)
 
 type PrivateAPI =
-                 "epc" :>  Capture "urn" String:> "info" :> Get '[JSON] EPCState
-            :<|> "epc" :> Capture "urn" String :> "events" :> Get '[JSON] [Event]
-            :<|> "event" :> Capture "eventID" EventID:> "info" :> Get '[JSON] Event
-            :<|> "contacts" :>  Get '[JSON] [User]
-            :<|> "contacts" :> "add" :> Capture "userID" PrimaryKeyType :> Get '[JSON] Bool
-            :<|> "contacts" :> "remove" :> Capture "userID" PrimaryKeyType :> Get '[JSON] Bool
-            :<|> "contacts" :> "search" :> Capture "term" String :> Get '[JSON] [User]
-            :<|> "event" :> "list" :> Capture "userID" PrimaryKeyType :> Get '[JSON] [Event]
-            :<|> "event" :> "listUsers" :> Capture "eventID" EventID :> Get '[JSON] [(User, Bool)]
-            :<|> "event" :> "sign" :> ReqBody '[JSON] SignedEvent :> Post '[JSON] PrimaryKeyType
-            :<|> "event" :> "getHash" :> ReqBody '[JSON] EventID :> Post '[JSON] HashedEvent
-            :<|> "event" :> "objectEvent" :> ReqBody '[JSON] ObjectEvent :> Post '[JSON] PrimaryKeyType
-            :<|> "event" :> "aggregateObjects" :> ReqBody '[JSON] AggregatedObject :> Post '[JSON] Event
-            :<|> "event" :> "disAggregateObjects" :> ReqBody '[JSON] DisaggregatedObject :> Post '[JSON] Event
-            :<|> "event" :> "start-transaction" :> ReqBody '[JSON] TransactionInfo :> Post '[JSON] Event
-            :<|> "event" :> "transformObject" :> ReqBody '[JSON] TransformationInfo :> Post '[JSON] Event
-            :<|> "key" :> "add" :>  ReqBody '[JSON] RSAPublicKey :> Post '[JSON] KeyID
+       "epc" :>  Capture "urn" String:> "info" :> Get '[JSON] EPCState
+  :<|> "epc" :> Capture "urn" String :> "events" :> Get '[JSON] [Event]
+  :<|> "event" :> Capture "eventID" EventID:> "info" :> Get '[JSON] Event
+  :<|> "contacts" :>  Get '[JSON] [User]
+  :<|> "contacts" :> "add" :> Capture "userID" PrimaryKeyType :> Get '[JSON] Bool
+  :<|> "contacts" :> "remove" :> Capture "userID" PrimaryKeyType :> Get '[JSON] Bool
+  :<|> "contacts" :> "search" :> Capture "term" String :> Get '[JSON] [User]
+  :<|> "event" :> "list" :> Capture "userID" PrimaryKeyType :> Get '[JSON] [Event]
+  :<|> "event" :> "listUsers" :> Capture "eventID" EventID :> Get '[JSON] [(User, Bool)]
+  :<|> "event" :> "sign" :> ReqBody '[JSON] SignedEvent :> Post '[JSON] PrimaryKeyType
+  :<|> "event" :> "getHash" :> ReqBody '[JSON] EventID :> Post '[JSON] HashedEvent
+  :<|> "event" :> "objectEvent" :> ReqBody '[JSON] ObjectEvent :> Post '[JSON] Event
+  :<|> "event" :> "aggregateObjects" :> ReqBody '[JSON] AggregationEvent :> Post '[JSON] Event
+  :<|> "event" :> "disAggregateObjects" :> ReqBody '[JSON] DisaggregationEvent :> Post '[JSON] Event
+  :<|> "event" :> "start-transaction" :> ReqBody '[JSON] TransactionEvent :> Post '[JSON] Event
+  :<|> "event" :> "transformObject" :> ReqBody '[JSON] TransformationEvent :> Post '[JSON] Event
+  :<|> "key" :> "add" :>  ReqBody '[JSON] RSAPublicKey :> Post '[JSON] KeyID
 
 type PublicAPI =   "newUser" :> ReqBody '[JSON] NewUser :> Post '[JSON] UserID
             :<|> "key" :> "get" :> Capture "keyID" KeyID :> Get '[JSON] RSAPublicKey

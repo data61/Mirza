@@ -165,15 +165,26 @@ data Business = Business {
 $(deriveJSON defaultOptions ''Business)
 instance ToSchema Business
 
-mkObjectEvent :: Ev.Event -> ObjectEvent
+
+data ObjectEvent = ObjectEvent {
+  obj_foreign_event_id :: Maybe EventID,
+  obj_act              :: Action,
+  obj_epc_list         :: [LabelEPC],
+  obj_when             :: DWhen,
+  obj_why              :: DWhy,
+  obj_where            :: DWhere
+} deriving (Show, Generic, Eq)
+$(deriveJSON defaultOptions ''ObjectEvent)
+instance ToSchema ObjectEvent
+
+mkObjectEvent :: Ev.Event -> Maybe ObjectEvent
 mkObjectEvent
   (Ev.Event Ev.ObjectEventT
     mEid
     (ObjectDWhat act epcList)
     dwhen dwhy dwhere
-  ) = ObjectEvent mEid act epcList dwhen dwhy dwhere
-mkObjectEvent ev = error $
-                   "Cannot make event from supplied Event:\n" ++ (show ev)
+  ) = Just $ ObjectEvent mEid act epcList dwhen dwhy dwhere
+mkObjectEvent _ = Nothing
 
 fromObjectEvent :: ObjectEvent ->  Ev.Event
 fromObjectEvent (ObjectEvent mEid act epcList dwhen dwhy dwhere) =
@@ -183,65 +194,94 @@ fromObjectEvent (ObjectEvent mEid act epcList dwhen dwhy dwhere) =
     (ObjectDWhat act epcList)
     dwhen dwhy dwhere
 
-data ObjectEvent = ObjectEvent {
-  object_foreign_event_id :: Maybe EventID,
-  obj_act :: Action,
-  obj_epc_list :: [LabelEPC],
-  obj_when :: DWhen,
-  obj_why :: DWhy,
-  obj_where :: DWhere
-} deriving (Show, Generic, Eq)
-$(deriveJSON defaultOptions ''ObjectEvent)
-instance ToSchema ObjectEvent
-
-data AggregatedObject = AggregatedObject {
-  aggObject_objectIDs :: [LabelEPC],
-  aggObject_containerID :: LabelEPC,
-  aggObject_timestamp :: EPCISTime,
-  aggObject_timezone:: TimeZone,
-  aggObject_location :: DWhere,
-  aggObject_bizStep :: BizStep,
-  aggObject_disposition :: Disposition,
-  aggObject_foreign_event_id :: Maybe EventID
+-- XXX is it guaranteed to not have a ``recordTime``?
+data AggregationEvent = AggregationEvent {
+  agg_foreign_event_id :: Maybe EventID,
+  agg_act              :: Action,
+  agg_parent_label     :: Maybe ParentLabel,
+  agg_child_epc_list   :: [LabelEPC],
+  agg_when             :: DWhen,
+  -- agg_timestamp     :: EPCISTime,
+  -- agg_timezone      :: TimeZone,
+  agg_why              :: DWhy,
+  agg_where            :: DWhere
 } deriving (Show, Generic)
-$(deriveJSON defaultOptions ''AggregatedObject)
-instance ToSchema AggregatedObject
+$(deriveJSON defaultOptions ''AggregationEvent)
+instance ToSchema AggregationEvent
 
-data DisaggregatedObject = DisaggregatedObject {
-  daggObject_objectIDs :: [LabelEPC],
-  daggObject_containerID :: LabelEPC,
-  daggObject_timestamp :: EPCISTime,
-  daggObject_timezone:: TimeZone,
-  daggObject_location :: DWhere,
-  daggObject_bizStep :: BizStep,
-  daggObject_disposition :: Disposition,
-  daggObject_foreign_event_id :: Maybe EventID
+mkAggEvent :: Ev.Event -> Maybe AggregationEvent
+mkAggEvent
+  (Ev.Event Ev.AggregationEventT
+    mEid
+    (AggregationDWhat act mParentLabel epcList)
+    dwhen dwhy dwhere
+  ) = Just $ AggregationEvent mEid act mParentLabel epcList dwhen dwhy dwhere
+mkAggEvent _ = Nothing
+
+fromAggEvent :: AggregationEvent ->  Ev.Event
+fromAggEvent (AggregationEvent mEid act mParentLabel epcList dwhen dwhy dwhere) =
+  Ev.Event
+    Ev.AggregationEventT
+    mEid
+    (AggregationDWhat act mParentLabel epcList)
+    dwhen dwhy dwhere
+
+
+data DisaggregationEvent = DisaggregationEvent {
+  disagg_foreign_event_id :: Maybe EventID,
+  disagg_act              :: Action,
+  disagg_parent_label     :: Maybe ParentLabel,
+  disagg_child_epc_list   :: [LabelEPC],
+  disagg_when             :: DWhen,
+  disagg_why              :: DWhy,
+  disagg_where            :: DWhere
 } deriving (Show, Generic)
-$(deriveJSON defaultOptions ''DisaggregatedObject)
-instance ToSchema DisaggregatedObject
+$(deriveJSON defaultOptions ''DisaggregationEvent)
+instance ToSchema DisaggregationEvent
 
-data TransformationInfo = TransformationInfo {
-  transObject_objectIDs :: [LabelEPC],
-  transObject_timestamp :: EPCISTime,
-  transObject_timezone:: TimeZone,
-  transObject_location :: DWhere,
-  transObject_inputQuantity :: [Quantity],
-  transObject_outputObjectID :: [LabelEPC],
-  transObject_outputQuantity :: [Quantity],
-  transObject_foreign_event_id :: Maybe EventID
+data TransformationEvent = TransformationEvent {
+  transf_foreign_event_id  :: Maybe EventID,
+  transf_transformation_id :: Maybe TransformationID,
+  transf_input_list        :: [LabelEPC],
+  transf_output_list       :: [LabelEPC],
+  transf_when              :: DWhen,
+  transf_why               :: DWhy,
+  transf_where             :: DWhere
 } deriving (Show, Generic)
-$(deriveJSON defaultOptions ''TransformationInfo)
-instance ToSchema TransformationInfo
+$(deriveJSON defaultOptions ''TransformationEvent)
+instance ToSchema TransformationEvent
 
-data TransactionInfo = TransactionInfo {
-  transaction_userIDs :: [UserID],
-  transaction_objectIDs :: [LabelEPC],
-  transaction_parentLabel :: Maybe ParentLabel,
-  transaction_bizTransaction :: [BizTransaction]
+mkTransfEvent :: Ev.Event -> Maybe TransformationEvent
+mkTransfEvent
+  (Ev.Event Ev.TransformationEventT
+    mEid
+    (TransformationDWhat mTransfId inputs outputs)
+    dwhen dwhy dwhere
+  ) = Just $ TransformationEvent mEid mTransfId inputs outputs dwhen dwhy dwhere
+mkTransfEvent _ = Nothing
+
+fromTransfEvent :: TransformationEvent ->  Ev.Event
+fromTransfEvent (TransformationEvent mEid mTransfId inputs outputs dwhen dwhy dwhere) =
+  Ev.Event
+    Ev.TransformationEventT
+    mEid
+    (TransformationDWhat mTransfId inputs outputs)
+    dwhen dwhy dwhere
+
+
+data TransactionEvent = TransactionEvent {
+  transaction_foreign_event_id     :: Maybe EventID,
+  transaction_act                  :: Action,
+  transaction_parent_label         :: Maybe ParentLabel,
+  transaction_biz_transaction_list :: [BizTransaction],
+  transaction_epc_list             :: [LabelEPC],
+  transaction_user_ids             :: [UserID],
+  transaction_when                 :: DWhen,
+  transaction_why                  :: DWhy,
+  transaction_where                :: DWhere
 } deriving (Show, Generic)
-$(deriveJSON defaultOptions ''TransactionInfo)
-instance ToSchema TransactionInfo
-
+$(deriveJSON defaultOptions ''TransactionEvent)
+instance ToSchema TransactionEvent
 
 
 data SignedEvent = SignedEvent {

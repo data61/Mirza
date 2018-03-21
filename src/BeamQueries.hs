@@ -4,7 +4,6 @@
 -- Functions in the `service` module use the database functions defined here
 module BeamQueries where
 
-import           Data.GS1.Parser.Parser
 import qualified Model as M
 import qualified StorageBeam as SB
 -- import           CryptHash (getCryptoPublicKey)
@@ -14,8 +13,7 @@ import           Data.Text.Encoding
 import           Database.PostgreSQL.Simple.Internal (SqlError(..))
 import           Database.Beam as B
 import           Database.Beam.Backend.SQL.BeamExtensions
-import           AppConfig (AppM, runDb, AppError(..))
-import           Control.Monad.Except (throwError)
+import           AppConfig (AppM, runDb)
 import qualified Data.Text as T
 import qualified Data.GS1.EPC as EPC
 import           Data.GS1.DWhat (DWhat(..), LabelEPC(..))
@@ -23,7 +21,7 @@ import           Data.GS1.DWhy (DWhy(..))
 import           Data.GS1.DWhere (DWhere(..), SrcDestLocation)
 import           Data.GS1.DWhen (DWhen(..))
 import qualified Data.GS1.EventID as EvId
-import           Data.GS1.Event (Event(..), EventType(..))
+import qualified Data.GS1.Event as Ev
 import           Utils
 import           QueryUtils
 import           Codec.Crypto.RSA (PublicKey (..))
@@ -64,7 +62,7 @@ insertUser encPass (M.NewUser phone email firstName lastName biz _) = do
                 firstName lastName phone (getEncryptedPass encPass) email
                 )
               ]
-                         )
+            )
   case res of
     Right [r] -> return $ SB.user_id r
     Left e ->
@@ -177,7 +175,7 @@ getUser email = do
 
 insertObjectEvent :: M.User
                   -> M.ObjectEvent
-                  -> AppM SB.PrimaryKeyType
+                  -> AppM Ev.Event
 insertObjectEvent
   (M.User userId _ _ )
   (M.ObjectEvent
@@ -187,20 +185,16 @@ insertObjectEvent
     dwhen dwhy dwhere
   ) = do
 
-  currentTime <- generateTimeStamp
   let
-      eventType = ObjectEventT
+      eventType = Ev.ObjectEventT
       dwhat =  ObjectDWhat act labelEpcs
-      -- dwhere = DWhere [rp] [bizL] [src] [dest]
-      -- dwhy  =  DWhy (Just CreatingClassInstance) (Just Active)
-      -- dwhen = DWhen epcisTime (Just $ toEPCISTime currentTime) timezone
-      event = Event eventType foreignEventId dwhat dwhen dwhy dwhere
+      event = Ev.Event eventType foreignEventId dwhat dwhen dwhy dwhere
       jsonEvent = encodeEvent event
 
   startTransaction
 
   eventId <- insertEvent userId jsonEvent event
-  whatId <- insertDWhat Nothing Nothing dwhat eventId
+  whatId <- insertDWhat Nothing dwhat eventId
   labelIds <- mapM (insertLabel Nothing whatId) labelEpcs
   whenId <- insertDWhen dwhen eventId
   whyId <- insertDWhy dwhy eventId
@@ -211,13 +205,147 @@ insertObjectEvent
 
   endTransaction
 
-  -- TODO = combine rows from bizTransactionTable and _eventCreatedBy field in Event table
-  -- haven't added UserEvents insertion equivalent since redundant information and no equivalent
-  -- hashes not added yet, but will later for blockchain
+  return event
 
-  return eventId
+insertAggEvent :: M.User
+               -> M.AggregationEvent
+               -> AppM Ev.Event
+insertAggEvent
+  (M.User userId _ _ )
+  (M.AggregationEvent
+    foreignEventId
+    act
+    mParentLabel
+    labelEpcs
+    dwhen dwhy dwhere
+  ) = do
+  let
+      eventType = Ev.AggregationEventT
+      dwhat =  AggregationDWhat act mParentLabel labelEpcs
+      event = Ev.Event eventType foreignEventId dwhat dwhen dwhy dwhere
+      jsonEvent = encodeEvent event
 
-listEvents :: LabelEPC -> AppM [Event]
+  startTransaction
+
+  eventId <- insertEvent userId jsonEvent event
+  whatId <- insertDWhat Nothing dwhat eventId
+  labelIds <- mapM (insertLabel Nothing whatId) labelEpcs
+  -- Make labelType a datatype?
+  let mParentId = insertLabel (Just "parent") whatId <$> (IL <$> mParentLabel)
+  whenId <- insertDWhen dwhen eventId
+  whyId <- insertDWhy dwhy eventId
+  insertDWhere dwhere eventId
+  insertUserEvent eventId userId userId False Nothing
+  mapM (insertWhatLabel whatId) labelIds
+  mapM (insertLabelEvent eventId) labelIds
+
+  endTransaction
+
+  return event
+
+-- | The implementation is exactly the same as that of aggregation event,
+-- which makes me think - do they need to be separate functions, or even
+-- separate datatypes altogether?
+insertDisaggEvent :: M.User
+                  -> M.DisaggregationEvent
+                  -> AppM Ev.Event
+insertDisaggEvent
+  user
+  (M.DisaggregationEvent
+    foreignEventId
+    act
+    mParentLabel
+    labelEpcs
+    dwhen dwhy dwhere
+  ) =
+    insertAggEvent
+      user
+      (M.AggregationEvent
+        foreignEventId
+        act
+        mParentLabel
+        labelEpcs
+        dwhen dwhy dwhere
+      )
+
+
+insertTransfEvent :: M.User
+                  -> M.TransformationEvent
+                  -> AppM Ev.Event
+insertTransfEvent
+  (M.User userId _ _ )
+  (M.TransformationEvent
+    foreignEventId
+    mTransfId
+    inputs
+    outputs
+    dwhen dwhy dwhere
+  ) = do
+  let
+      eventType = Ev.TransformationEventT
+      dwhat =  TransformationDWhat mTransfId inputs outputs
+      event = Ev.Event eventType foreignEventId dwhat dwhen dwhy dwhere
+      jsonEvent = encodeEvent event
+
+  startTransaction
+
+  eventId <- insertEvent userId jsonEvent event
+  whatId <- insertDWhat Nothing dwhat eventId
+  inputLabelIds <- mapM (insertLabel (Just "input") whatId) inputs
+  outputLabelIds <- mapM (insertLabel (Just "output") whatId) outputs
+  let labelIds = inputLabelIds ++ outputLabelIds
+  whenId <- insertDWhen dwhen eventId
+  whyId <- insertDWhy dwhy eventId
+  insertDWhere dwhere eventId
+  insertUserEvent eventId userId userId False Nothing
+  mapM (insertWhatLabel whatId) labelIds
+  mapM (insertLabelEvent eventId) labelIds
+
+  endTransaction
+
+  return event
+
+-- XXX This function is not tested yet.
+-- Needs more specifications for implementation.
+insertTransactionEvent :: M.User
+                       -> M.TransactionEvent
+                       -> AppM Ev.Event
+insertTransactionEvent
+  (M.User userId _ _ )
+  (M.TransactionEvent
+    foreignEventId
+    act
+    mParentLabel
+    bizTransactions
+    labelEpcs
+    users
+    dwhen dwhy dwhere
+  ) = do
+  let
+      eventType = Ev.TransactionEventT
+      dwhat =  TransactionDWhat act mParentLabel bizTransactions labelEpcs
+      event = Ev.Event eventType foreignEventId dwhat dwhen dwhy dwhere
+      jsonEvent = encodeEvent event
+
+  startTransaction
+
+  eventId <- insertEvent userId jsonEvent event
+  whatId <- insertDWhat Nothing dwhat eventId
+  labelIds <- mapM (insertLabel Nothing whatId) labelEpcs
+  let mParentId = insertLabel (Just "parent") whatId <$> (IL <$> mParentLabel)
+  whenId <- insertDWhen dwhen eventId
+  whyId <- insertDWhy dwhy eventId
+  insertDWhere dwhere eventId
+  insertUserEvent eventId userId userId False Nothing
+  mapM (insertWhatLabel whatId) labelIds
+  mapM (insertLabelEvent eventId) labelIds
+
+  endTransaction
+
+  return event
+
+
+listEvents :: LabelEPC -> AppM [Ev.Event]
 listEvents labelEpc = do
   labelId <- findLabelId labelEpc
   case getEventList <$> labelId of
@@ -283,23 +411,55 @@ insertSignature = error "Implement me"
 --   package <- createBlockchainPackage eventID
 --   liftIO $ sendToBlockchain package
 
--- addContacts :: M.User -> M.UserID -> IO Bool
--- addContacts  (M.User uid1 _ _) uid2 = do
---   [rowID] <- runDb $ runInsertReturningList $
---              (_contacts supplyChainDb) $
---                insertValues [(Contact (Auto Nothing) uid1 uid2)]
---   return (fromIntegral (_contactId rowID) > 0)
+addContact :: M.User -> M.UserID -> AppM Bool
+addContact (M.User uid1 _ _) uid2 = do
+  pKey <- generatePk
+  r <- runDb $ runInsertReturningList (SB._contacts SB.supplyChainDb) $
+               insertValues [SB.Contact pKey (SB.UserId uid1) (SB.UserId uid2)]
+  verifyContact r uid1 uid2
 
--- -- don't return whether success/failure anymore since no Beam function to help
--- removeContacts :: M.User -> M.UserID -> IO ()
--- removeContacts  (M.User uid1 _ _) uid2 = do
---   runDb $
---     runDelete $
---     delete (_contacts supplyChainDb)
---            (\contact -> _contactUser1Id contact ==. uid1 &&.
---                         _contactUser2Id contact ==. uid2)
---   return ()
+-- | The current behaviour is, if the users were not contacts in the first
+-- place, then the function returns false
+-- otherwise, removes the user. Checks that the user has been removed,
+-- and returns (not. userExists)
+-- @todo Make ContactErrors = NotAContact | DoesntExist | ..
+removeContact :: M.User -> M.UserID -> AppM Bool
+removeContact (M.User uid1 _ _) uid2 = do
+  contactExists <- isExistingContact uid1 uid2
+  case contactExists of
+    False -> return False
+    True  -> do
+      r <- runDb $
+        runDelete $
+        delete (SB._contacts SB.supplyChainDb)
+              (\contact ->
+                SB.contact_user1_id contact ==. (val_ $ SB.UserId uid1) &&.
+                SB.contact_user2_id contact ==. (val_ $ SB.UserId uid2))
+      case r of
+        Right _ -> not <$> isExistingContact uid1 uid2
+        Left e  -> return False -- log ``e``
 
+-- | Checks if a pair of userIds are recorded as a contact
+isExistingContact :: M.UserID -> M.UserID -> AppM Bool
+isExistingContact uid1 uid2 = do
+  r <- runDb $ runSelectReturningList $ select $ do
+        contact <- all_ (SB._contacts SB.supplyChainDb)
+        guard_ (SB.contact_user1_id contact  ==. (val_ . SB.UserId $ uid1) &&.
+                SB.contact_user2_id contact  ==. (val_ . SB.UserId $ uid2))
+        pure contact
+  verifyContact r uid1 uid2
+
+-- | Simple utility function to check that the users are part of the contact
+-- typically used with the result of a query
+verifyContact :: (Eq (PrimaryKey SB.UserT f), Monad m) =>
+                   Either e [SB.ContactT f] ->
+                   C f SB.PrimaryKeyType ->
+                   C f SB.PrimaryKeyType ->
+                   m Bool
+verifyContact (Right [insertedContact]) uid1 uid2 = return $
+                  (SB.contact_user1_id insertedContact == (SB.UserId uid1)) &&
+                  (SB.contact_user2_id insertedContact == (SB.UserId uid2))
+verifyContact _ _ _ = return False
 
 
 -- -- TODO - convert these below functions, and others in original file Storage.hs
@@ -337,21 +497,29 @@ insertSignature = error "Implement me"
 --     [Only 0] -> pure ()
 --     _ -> throwError M.SE_NeedMoreSignatures
 
--- -- note that use of complex from Data.List.Unique is not efficient
--- -- no union, so we process making unique in haskell
--- listContacts :: M.User -> IO [M.User]
--- listContacts  (M.User uid _ _) = do
---   r_toGrabUser2 <- runDb $ runSelectReturningList $ select $ do
---     allUsers <- all_ (_users supplyChainDb)
---     allContacts <- all_ (_contacts supplyChainDb)
---     guard_ (_contactUser1Id allContacts ==. uid &&. _userId allUsers ==. _contactUser2Id allContacts)
---     pure allUsers
---   r_toGrabUser1 <- runDb $ runSelectReturningList $ select $ do
---     allUsers <- all_ (_users supplyChainDb)
---     allContacts <- all_ (_contacts supplyChainDb)
---     guard_ (_contactUser2Id allContacts ==. uid &&. _userId allUsers ==. _contactUser1Id allContacts)
---     pure allUsers
---   return $ (\l -> (complex l) ^. _1) $ contactUserToUser <$> (r_toGrabUser1 ++ r_toGrabUser2)
+-- note that use of complex from Data.List.Unique is not efficient
+-- no union, so we process making unique in haskell
+
+-- | Lists all the contacts associated with the given user
+listContacts :: M.User -> AppM [M.User]
+listContacts  (M.User uid _ _) = do
+  r <- runDb $ runSelectReturningList $ select $ do
+    user <- all_ (SB._users SB.supplyChainDb)
+    contact <- all_ (SB._contacts SB.supplyChainDb)
+    guard_ (SB.contact_user1_id contact `references_` user)
+    pure user
+  case r of
+    Right userList -> return $ userTableToModel <$> userList
+    Left e         -> throwUnexpectedDBError $ sqlToServerError e
+
+
+  -- r_toGrabUser1 <- runDb $ runSelectReturningList $ select $ do
+  --   allUsers <- all_ (SB._users SB.supplyChainDb)
+  --   allContacts <- all_ (SB._contacts SB.supplyChainDb)
+  --   guard_ (_contactUser2Id allContacts ==. uid &&. _userId allUsers ==. _contactUser1Id allContacts)
+  --   pure allUsers
+  -- return $ (\l -> (complex l) ^. _1) $ contactUserToUser <$> (r_toGrabUser1 ++ r_toGrabUser2)
+
 
 -- -- TODO = how to do like, also '%||?||%'
 -- -- below is wrong!

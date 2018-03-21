@@ -13,13 +13,18 @@ import           Database.Beam.Backend (runNoReturn)
 import           Database.PostgreSQL.Simple(SqlError ,connectPostgreSQL)
 import           Data.ByteString.Char8 (ByteString)
 
--- boolean is whether to run silently
+-- | Whether or not to run silently
 dbMigrationFunc :: Bool -> Connection -> Pg a -> IO a
 dbMigrationFunc False = withDatabaseDebug putStrLn
 dbMigrationFunc _ = withDatabase
 
+-- | Default connection string
 defConnectionStr :: ByteString
 defConnectionStr = "dbname=devsupplychainserver"
+
+-- | Connection string used when running tests
+testDbConnStr :: ByteString
+testDbConnStr = "dbname=testsupplychainserver"
 
 createSchema :: Bool -> Connection -> IO ()
 createSchema runSilently conn = do

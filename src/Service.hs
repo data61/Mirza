@@ -10,6 +10,7 @@
 {-# LANGUAGE UndecidableInstances       #-}
 {-# LANGUAGE PolyKinds                  #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE StandaloneDeriving         #-}
 {-# OPTIONS_GHC -fno-warn-orphans       #-}
 
 -- | Endpoint definitions go here. Most of the endpoint definitions are
@@ -23,7 +24,7 @@ import           Servant
 import           Servant.Server.Experimental.Auth()
 import           Servant.Swagger
 import           Data.Swagger
-import           Data.GS1.Event
+import qualified Data.GS1.Event as Ev
 import           Data.GS1.EventID
 import           Data.GS1.EPC
 import           Data.GS1.DWhen
@@ -78,19 +79,21 @@ instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub
       & securityDefinitions .~ authSchemes
       & allOperations . security .~ securityRequirements
 
--- sampleUser :: User
--- -- sampleUser =  User (Auto Nothing) "Sara" "Falamaki"
--- sampleUser =  User 1 "Sara" "Falamaki"
+-- deriving instance Applicative BasicAuthCheck
+-- instance Monad BasicAuthCheck where
+--   (>>=) = error "not implemented yet"
+--   return = error "not implemented yet"
 
 -- 'BasicAuthCheck' holds the handler we'll use to verify a username and password.
 authCheck :: BasicAuthCheck User
-authCheck = error "Storage module not implemented"
-  -- let check (BasicAuthData username password) = do
-  --       maybeUser <- Storage.authCheck username password
+authCheck = error "not implemented yet" -- do
+  -- env <- ask
+  -- let check (BasicAuthData useremail password) = do
+  --       maybeUser <- AC.runAppM env $ BQ.authCheck (decodeUtf8 useremail) password
   --       case maybeUser of
-  --          Nothing -> return Unauthorized
-  --          (Just user) -> return (Authorized user)
-  -- in BasicAuthCheck check
+  --         Right (Just user) -> return (Authorized user)
+  --         _                 -> return Unauthorized
+  -- BasicAuthCheck check
 
 appMToHandler :: forall x. AC.Env -> AC.AppM x -> Handler x
 appMToHandler env act = do
@@ -195,7 +198,7 @@ epcState user str = return New
 -- (labelID, _) <- getLabelIDState
 -- wholeEvents <- select * from events, dwhats, dwhy, dwhen where _whatItemID=labelID AND _eventID=_whatEventID AND _eventID=_whenEventID AND _eventID=_whyEventID ORDER BY _eventTime;
 -- return map constructEvent wholeEvents
-listEvents :: User ->  M.LabelEPCUrn -> AC.AppM [Event]
+listEvents :: User ->  M.LabelEPCUrn -> AC.AppM [Ev.Event]
 listEvents user urn =
   case (urn2LabelEPC . pack $ urn) of
     Left e -> throwParseError e
@@ -219,14 +222,10 @@ contactsInfo user = error "Storage module not implemented"
 
 
 contactsAdd :: User -> UserID -> AC.AppM Bool
--- contactsAdd user userId = liftIO (Storage.addContacts user userId)
-contactsAdd user userId = error "Storage module not implemented"
-
+contactsAdd = BQ.addContact
 
 contactsRemove :: User -> UserID -> AC.AppM Bool
--- contactsRemove user userId = liftIO (Storage.removeContacts user userId)
-contactsRemove user userId = error "Storage module not implemented"
-
+contactsRemove = BQ.removeContact
 
 -- Given a search term, search the users contacts for a user matching
 -- that term
@@ -247,7 +246,7 @@ listBusinesses = error "Implement me"
 
 -- |List events that a particular user was/is involved with
 -- use BizTransactions and events (createdby) tables
-eventList :: User -> UserID -> AC.AppM [Event]
+eventList :: User -> UserID -> AC.AppM [Ev.Event]
 eventList user uID = return []
 
 makeDigest :: M.Digest -> IO (Maybe EVPDigest.Digest)
@@ -311,25 +310,25 @@ eventHashed user eventID = do
     -}
 
 -- Return the json encoded copy of the event
-objectEvent :: User -> ObjectEvent -> AC.AppM SB.PrimaryKeyType
+objectEvent :: User -> ObjectEvent -> AC.AppM Ev.Event -- SB.PrimaryKeyType
 objectEvent = BQ.insertObjectEvent
 
-eventAggregateObjects :: User -> AggregatedObject -> AC.AppM Event
-eventAggregateObjects user aggObject = liftIO sampleEvent
+eventAggregateObjects :: User -> AggregationEvent -> AC.AppM Ev.Event
+eventAggregateObjects = BQ.insertAggEvent
 
-eventDisaggregateObjects :: User -> DisaggregatedObject -> AC.AppM Event
-eventDisaggregateObjects user aggObject = liftIO sampleEvent
+eventDisaggregateObjects :: User -> DisaggregationEvent -> AC.AppM Ev.Event
+eventDisaggregateObjects = BQ.insertDisaggEvent
 
-eventStartTransaction :: User -> TransactionInfo -> AC.AppM Event
-eventStartTransaction user aggObject = liftIO sampleEvent
+eventStartTransaction :: User -> TransactionEvent -> AC.AppM Ev.Event
+eventStartTransaction = BQ.insertTransactionEvent
 
-eventTransformObject :: User -> TransformationInfo -> AC.AppM Event
-eventTransformObject user aggObject = liftIO sampleEvent
+eventTransformObject :: User -> TransformationEvent -> AC.AppM Ev.Event
+eventTransformObject = BQ.insertTransfEvent
 
-sampleEvent:: IO Event
+sampleEvent:: IO Ev.Event
 sampleEvent=  do
   uuid <- nextRandom
-  return (Event AggregationEventT (Just $ EventID uuid) sampleWhat sampleWhen sampleWhy sampleWhere)
+  return (Ev.Event Ev.AggregationEventT (Just $ EventID uuid) sampleWhat sampleWhen sampleWhy sampleWhere)
 
 
 sampleWhat :: DWhat
@@ -348,7 +347,7 @@ sampleWhen = DWhen pt (Just pt) tz
 sampleWhere :: DWhere
 sampleWhere = DWhere [] [] [] []
 
-eventInfo :: User -> EventID -> AC.AppM Event
+eventInfo :: User -> EventID -> AC.AppM Ev.Event
 eventInfo user eID = liftIO sampleEvent
 
 --eventHash :: EventID -> AC.AppM SignedEvent
