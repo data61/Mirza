@@ -314,20 +314,17 @@ insertLocationEPC
   locField
   eventId
   (SGLN gs1Company locationRef ext) = do
-  pKey <- generatePk
-  let stWhere = SB.Where pKey
-                Nothing
-                locationRef
-                locField
-                (SB.EventId eventId)
-  sandwichLog "Still haven't crashed"
-  sandwichLog stWhere
-  r <- runDb $ B.runInsert $ B.insert (SB._wheres SB.supplyChainDb)
-             $ insertValues [stWhere]
-  sandwichLog r
-  case r of
-    Left  e -> throwUnexpectedDBError $ sqlToServerError e
-    Right _ -> return pKey
+    pKey <- generatePk
+    let stWhere = SB.Where pKey
+                  Nothing
+                  locationRef
+                  locField
+                  (SB.EventId eventId)
+    r <- runDb $ B.runInsert $ B.insert (SB._wheres SB.supplyChainDb)
+                $ insertValues [stWhere]
+    case r of
+      Left  e -> throwUnexpectedDBError $ sqlToServerError e
+      Right _ -> return pKey
 
 -- | Maps the relevant insert function for all
 -- ReadPoint, BizLocation, Src, Dest
