@@ -35,11 +35,11 @@ type PrivateAPI =
   :<|> "event" :> "listUsers" :> Capture "eventID" EventID :> Get '[JSON] [(User, Bool)]
   :<|> "event" :> "sign" :> ReqBody '[JSON] SignedEvent :> Post '[JSON] PrimaryKeyType
   :<|> "event" :> "getHash" :> ReqBody '[JSON] EventID :> Post '[JSON] HashedEvent
-  :<|> "event" :> "objectEvent" :> ReqBody '[JSON] ObjectEvent :> Post '[JSON] PrimaryKeyType
-  :<|> "event" :> "aggregateObjects" :> ReqBody '[JSON] AggregationEvent :> Post '[JSON] PrimaryKeyType
-  :<|> "event" :> "disAggregateObjects" :> ReqBody '[JSON] DisaggregationEvent :> Post '[JSON] PrimaryKeyType
-  :<|> "event" :> "start-transaction" :> ReqBody '[JSON] TransactionEvent :> Post '[JSON] PrimaryKeyType
-  :<|> "event" :> "transformObject" :> ReqBody '[JSON] TransformationEvent :> Post '[JSON] PrimaryKeyType
+  :<|> "event" :> "objectEvent" :> ReqBody '[JSON] ObjectEvent :> Post '[JSON] Event
+  :<|> "event" :> "aggregateObjects" :> ReqBody '[JSON] AggregationEvent :> Post '[JSON] Event
+  :<|> "event" :> "disAggregateObjects" :> ReqBody '[JSON] DisaggregationEvent :> Post '[JSON] Event
+  :<|> "event" :> "start-transaction" :> ReqBody '[JSON] TransactionEvent :> Post '[JSON] Event
+  :<|> "event" :> "transformObject" :> ReqBody '[JSON] TransformationEvent :> Post '[JSON] Event
   :<|> "key" :> "add" :>  ReqBody '[JSON] RSAPublicKey :> Post '[JSON] KeyID
 
 type PublicAPI =   "newUser" :> ReqBody '[JSON] NewUser :> Post '[JSON] UserID
