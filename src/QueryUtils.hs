@@ -337,6 +337,9 @@ insertDWhere (DWhere rPoint bizLoc srcT destT) eventId = do
   sequence $ insertSrcDestType MU.Dest eventId <$> destT
   return ()
 
+findDWhere :: DWhere -> SB.PrimaryKeyType
+findDWhere = error "not implemented yet"
+
 insertEvent :: SB.PrimaryKeyType -> T.Text -> Event -> AppM SB.PrimaryKeyType
 insertEvent userId jsonEvent event = do
   pKey <- generatePk
