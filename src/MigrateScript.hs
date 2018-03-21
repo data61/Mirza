@@ -147,7 +147,7 @@ migrationStorage =
     (
       Where
           (field "where_id" pkSerialType)
-          (field "where_source_dest_type" (maybeType $ srcDestType) notNull)
+          (field "where_source_dest_type" (maybeType $ srcDestType))
           (field "where_gs1_location_id" (locationRefType) notNull)
           (field "where_location_field" locationType notNull)
           (EventId (field "where_event_id" pkSerialType))
