@@ -305,7 +305,8 @@ insertTransfEvent
 
   return event
 
-
+-- XXX This function is not tested yet.
+-- Needs more specifications for implementation.
 insertTransactionEvent :: M.User
                        -> M.TransactionEvent
                        -> AppM Ev.Event
