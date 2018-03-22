@@ -56,41 +56,10 @@ selectKey keyId = do
           pure key
   case r of
     Right [key] -> return $ Just key
-    _ -> return Nothing
+    _           -> return Nothing
 
 testQueries :: SpecWith (Connection, Env)
 testQueries = do
-
-  describe "newUser tests" $ do
-    it "newUser test 1" $ \(conn, env) -> do
-      uid <- fromRight' <$> (runAppM env $ newUser dummyNewUser)
-      user <- fromRight' <$> (runAppM env $ selectUser uid)
-
-      (fromJust user)
-        `shouldSatisfy`
-          (\u ->
-            (SB.phone_number u) == (M.phoneNumber dummyNewUser) &&
-            (SB.email_address u) == (M.emailAddress dummyNewUser) &&
-            (SB.first_name u) == (M.firstName dummyNewUser) &&
-            (SB.last_name u) == (M.lastName dummyNewUser) &&
-            (SB.user_biz_id u) == (SB.BizId (M.company dummyNewUser)) &&
-            -- note database bytestring includes the salt, this checks password
-            (verifyPass'
-              (Pass $ encodeUtf8 $ M.password dummyNewUser)
-              (EncryptedPass $ SB.password_hash u)) &&
-            (SB.user_id u) == uid
-          )
-
-  describe "authCheck tests" $ do
-    it "authCheck test 1" $ \(conn, env) -> do
-      uid <- fromRight' <$> (runAppM env $ newUser dummyNewUser)
-      user <- fromRight' <$> (runAppM env $ authCheck (M.emailAddress dummyNewUser) (encodeUtf8 $ M.password dummyNewUser)) --hash)
-      (fromJust user) `shouldSatisfy`
-        (\u ->
-          (M.userId u) == uid &&
-          (M.userFirstName u) == (M.firstName dummyNewUser) &&
-          (M.userLastName u) == (M.lastName dummyNewUser)
-        )
 
 {-   describe "addPublicKey tests" $ do
     it "addPublicKey test 1" $ \(conn, env) -> do
@@ -137,6 +106,38 @@ testQueries = do
             isNothing (M.revocationTime ki)
           )
 -}
+
+  describe "newUser tests" $ do
+    it "newUser test 1" $ \(conn, env) -> do
+      uid <- fromRight' <$> (runAppM env $ newUser dummyNewUser)
+      user <- fromRight' <$> (runAppM env $ selectUser uid)
+
+      (fromJust user)
+        `shouldSatisfy`
+          (\u ->
+            (SB.phone_number u) == (M.phoneNumber dummyNewUser) &&
+            (SB.email_address u) == (M.emailAddress dummyNewUser) &&
+            (SB.first_name u) == (M.firstName dummyNewUser) &&
+            (SB.last_name u) == (M.lastName dummyNewUser) &&
+            (SB.user_biz_id u) == (SB.BizId (M.company dummyNewUser)) &&
+            -- note database bytestring includes the salt, this checks password
+            (verifyPass'
+              (Pass $ encodeUtf8 $ M.password dummyNewUser)
+              (EncryptedPass $ SB.password_hash u)) &&
+            (SB.user_id u) == uid
+          )
+
+  describe "authCheck tests" $ do
+    it "authCheck test 1" $ \(conn, env) -> do
+      uid <- fromRight' <$> (runAppM env $ newUser dummyNewUser)
+      user <- fromRight' <$> (runAppM env $ authCheck (M.emailAddress dummyNewUser) (encodeUtf8 $ M.password dummyNewUser)) --hash)
+      (fromJust user) `shouldSatisfy`
+        (\u ->
+          (M.userId u) == uid &&
+          (M.userFirstName u) == (M.firstName dummyNewUser) &&
+          (M.userLastName u) == (M.lastName dummyNewUser)
+        )
+
   describe "Object Event" $ do
     it "Insert Object Event" $ \(conn, env) -> do
       insertedEvent <- fromRight' <$> (runAppM env $ insertObjectEvent dummyUser dummyObject)
@@ -234,6 +235,12 @@ testQueries = do
         hasBeenRemoved <- fromRight' <$> (runAppM env $ removeContact user otherUserId)
         hasBeenRemoved `shouldBe` False
 
+  describe "DWhere" $ do
+    it "Insert DWhere" $ \(conn, env) -> do
+      let eventId = dummyId
+      insertedDWhere <- fromRight' <$> (runAppM env $ insertDWhere dummyDWhere eventId)
+      1 `shouldBe` 1
+
 clearContact :: IO ()
 clearContact = do
   conn <- connectPostgreSQL testDbConnStr
@@ -254,37 +261,3 @@ defaultEnv :: IO Env
 defaultEnv = do
   conn <- connectPostgreSQL testDbConnStr
   return $ Env Dev conn
-
-  -- describe "insertDWhat tests" $ do
-  --   it "insertDWhat test 1" $ \(conn, env) -> do
-  --     1 `shouldBe` 1
-
-  -- describe "insertDWhen tests" $ do
-  --   it "insertDWhen test 1" $ \(conn, env) -> do
-  --     1 `shouldBe` 1
-
-  -- describe "insertDWhy tests" $ do
-  --   it "insertDWhy test 1" $ \(conn, env) -> do
-  -- describe "getPublicKey tests" $ do
-  --   it "getPublicKey test 1" $ \(conn, env) -> do
-  --     1 `shouldBe` 1
-
-  -- describe "insertSrcDestType tests" $ do
-  --   it "insertSrcDestType test 1" $ \(conn, env) -> do
-  --     1 `shouldBe` 1
-
-  -- describe "insertLocationEPC tests" $ do
-  --   it "insertLocationEPC test 1" $ \(conn, env) -> do
-  --     1 `shouldBe` 1
-
-  -- describe "insertDWhere tests" $ do
-  --   it "insertDWhere test 1" $ \(conn, env) -> do
-  --     1 `shouldBe` 1
-
-  -- describe "insertEvent tests" $ do
-  --   it "insertEvent test 1" $ \(conn, env) -> do
-  --     1 `shouldBe` 1
-
-  -- describe "insertUserEvent tests" $ do
-  --   it "insertUserEvent test 1" $ \(conn, env) -> do
-  --     1 `shouldBe` 1
