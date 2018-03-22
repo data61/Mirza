@@ -1,4 +1,4 @@
-{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DataKinds         #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Tests.BeamQueries where
@@ -6,35 +6,32 @@ module Tests.BeamQueries where
 import           Test.Hspec
 
 import           BeamQueries
-import           QueryUtils
-import           Dummies
-import           Database.PostgreSQL.Simple
 import           Database.Beam
+import           Database.PostgreSQL.Simple
+import           Dummies
+import           QueryUtils
 
-import           Data.Maybe (fromJust, isNothing)
-import           Data.Either.Combinators
 import           Crypto.Scrypt
+import           Data.Either.Combinators
+import           Data.Maybe                 (fromJust, isNothing)
 
--- import           Data.Text.Encoding (encodeUtf8)
-import           Data.ByteString (ByteString)
-import           Data.ByteString.Lazy (toStrict)
-import           Data.Text.Encoding (encodeUtf8)
+import           Data.ByteString            (ByteString)
+import           Data.ByteString.Lazy       (toStrict)
 import           Data.GS1.EPC
--- import qualified Data.GS1.Event as Ev
+import           Data.Text.Encoding         (encodeUtf8)
 
-import           Utils
-import           AppConfig (runAppM, Env(..), AppM, runDb, EnvType(..))
-import qualified StorageBeam as SB
-import qualified Model as M
-import           Migrate (testDbConnStr)
-
--- import           Crypto.Scrypt
-import           Data.Time.Clock (getCurrentTime, UTCTime(..))
-import           Data.Time (ZonedTime(..), utcToZonedTime
-                           , zonedTimeToUTC)
-import           Data.Time.LocalTime (utc, utcToLocalTime, LocalTime)
+import           AppConfig                  (AppM, Env (..), EnvType (..),
+                                             runAppM, runDb)
 import           Data.Binary
+import           Data.Time                  (ZonedTime (..), utcToZonedTime,
+                                             zonedTimeToUTC)
+import           Data.Time.Clock            (UTCTime (..), getCurrentTime)
+import           Data.Time.LocalTime        (LocalTime, utc, utcToLocalTime)
 import           Database.PostgreSQL.Simple (execute_)
+import           Migrate                    (testDbConnStr)
+import qualified Model                      as M
+import qualified StorageBeam                as SB
+import           Utils
 
 -- NOTE in this file, where fromJust is used in the tests, it is because we expect a Just... this is part of the test
 -- NOTE tables dropped after every running of test in an "it"
