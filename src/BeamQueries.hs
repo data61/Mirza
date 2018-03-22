@@ -65,11 +65,12 @@ insertUser encPass (M.NewUser phone email firstName lastName biz _) = do
             )
   case res of
     Right [r] -> return $ SB.user_id r
-    Left e ->
+    Left e    ->
       case constraintViolation e of
         Just (UniqueViolation "users_email_address_key")
-            -> throwAppError $ EmailExists (sqlToServerError e) email
-        _   -> throwAppError $ InsertionFail (toServerError (Just . sqlState) e) email
+          -> throwAppError $ EmailExists (sqlToServerError e) email
+        _ -> throwAppError $ InsertionFail (toServerError (Just . sqlState) e) email
+        -- ^ Generic insertion error
     _         -> throwBackendError res
 
 -- | Hashes the password of the NewUser and inserts the user into the database
