@@ -48,7 +48,20 @@ INSERT INTO businesses \
 EOF
 
 echo "Done"
-echo "Starting the server in 3s. Feed me a SIGINT (CTRL+C or equivalent) to stop."
-sleep 3
-google-chrome "http://localhost:8000/swagger-ui/#/default/post_newUser"
+
+export START_IN=2
+echo "Starting the server in $START_IN s. Feed me a SIGINT (CTRL+C or equivalent) to stop."
+
+sleep $START_IN
+google-chrome "http://localhost:8000/swagger-ui/"
+
+# The sleep here is to queue this process so that it fires AFTER
+# the supplyChainServer-exe executable is run
+(sleep 1 && \
+echo "Inserting a user. Username: abc@gmail.com, Password: password"
+curl -X POST "http://localhost:8000/newUser" \
+    -H "accept: application/json;charset=utf-8"\
+    -H "Content-Type: application/json;charset=utf-8"\
+    -d "{ \"phoneNumber\": \"0412\", \"emailAddress\": \"abc@gmail.com\", \"firstName\": \"sajid\", \"lastName\": \"anower\", \"company\": \"4000001\", \"password\": \"password\"}")&
+
 stack exec supplyChainServer-exe -- -e Dev # running in Dev

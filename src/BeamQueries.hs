@@ -6,7 +6,6 @@ module BeamQueries where
 
 import qualified Model as M
 import qualified StorageBeam as SB
--- import           CryptHash (getCryptoPublicKey)
 import           Data.ByteString (ByteString)
 import           Crypto.Scrypt
 import           Data.Text.Encoding
@@ -25,8 +24,6 @@ import qualified Data.GS1.Event as Ev
 import           Utils
 import           QueryUtils
 import           Codec.Crypto.RSA (PublicKey (..))
---import           Codec.Crypto.RSA.Pure (PublicKey (..))
---import           Data.Binary.Binary (PublicKey (..))
 import           Data.Binary
 import           Data.ByteString.Lazy (toStrict, fromStrict)
 import           Errors (ServiceError(..), ServerError(..))
@@ -36,10 +33,12 @@ import           ErrorUtils (throwBackendError, throwAppError, toServerError
 import           Database.PostgreSQL.Simple.Errors (ConstraintViolation(..)
                                                    , constraintViolation)
 
-import OpenSSL.RSA   (RSAPubKey)
-import OpenSSL.PEM   (writePublicKey)
-import Control.Monad.IO.Class (liftIO)
+import           OpenSSL.RSA   (RSAPubKey)
+import           OpenSSL.PEM   (writePublicKey)
+import           Control.Monad.IO.Class (liftIO)
+
 {-
+-- Sample NewUser JSON
 {
   "phoneNumber": "0412",
   "emailAddress": "abc@gmail.com",

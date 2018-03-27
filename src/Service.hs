@@ -44,29 +44,26 @@ import           Control.Monad.Except (runExceptT)
 import qualified Control.Exception.Lifted as ExL
 import           Control.Monad.Trans.Except
 import           Data.UUID.V4
-import           Data.Text (pack)
+import qualified Data.ByteString as BS
+import qualified Data.Text as T
+import           Data.Text.Encoding (decodeUtf8)
+import qualified Data.ByteString.Char8 as BSCh
 import           Data.Char (toLower)
-import           Control.Monad.Reader   (MonadReader, ReaderT, runReaderT,
-                                         asks, ask, liftIO)
-
--- import qualified Model as M
 import qualified AppConfig as AC
 import qualified BeamQueries as BQ
-import           Utils (debugLog, debugLogGeneral)
+import           Utils
 import           ErrorUtils (appErrToHttpErr, throwParseError, throwAppError)
 import           Errors
 import           Model as M
 import           API
 import qualified StorageBeam as SB
-import OpenSSL.PEM   (readPublicKey)
 
-
-import OpenSSL.RSA   (RSAPubKey, rsaSize)
-import OpenSSL.EVP.PKey (PublicKey, SomePublicKey, toPublicKey)
+import           OpenSSL.PEM   (readPublicKey)
+import           OpenSSL.RSA   (RSAPubKey, rsaSize)
+import           OpenSSL.EVP.PKey (PublicKey, SomePublicKey, toPublicKey)
 import qualified OpenSSL.EVP.Digest as EVPDigest
-import OpenSSL.EVP.Verify (verifyBS, VerifyStatus(..))
+import           OpenSSL.EVP.Verify (verifyBS, VerifyStatus(..))
 import qualified Data.ByteString.Base64 as BS64
-import qualified Data.ByteString.Char8 as BSC
 import qualified QueryUtils as QU
 
 instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub) where
@@ -79,26 +76,19 @@ instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub
       & securityDefinitions .~ authSchemes
       & allOperations . security .~ securityRequirements
 
--- deriving instance Applicative BasicAuthCheck
--- instance Monad BasicAuthCheck where
---   (>>=) = error "not implemented yet"
---   return = error "not implemented yet"
-
 -- 'BasicAuthCheck' holds the handler we'll use to verify a username and password.
-authCheck :: BasicAuthCheck User
-authCheck = error "not implemented yet" -- do
-  -- env <- ask
-  -- let check (BasicAuthData useremail password) = do
-  --       maybeUser <- AC.runAppM env $ BQ.authCheck (decodeUtf8 useremail) password
-  --       case maybeUser of
-  --         Right (Just user) -> return (Authorized user)
-  --         _                 -> return Unauthorized
-  -- BasicAuthCheck check
+authCheck :: AC.Env -> BasicAuthCheck User
+authCheck env = do
+  let check (BasicAuthData useremail pass) = do
+        eitherUser <- AC.runAppM env $ BQ.authCheck (decodeUtf8 useremail) pass
+        case eitherUser of
+          Right (Just user) -> return (Authorized user)
+          Left  _           -> return Unauthorized
+    in BasicAuthCheck check
 
 appMToHandler :: forall x. AC.Env -> AC.AppM x -> Handler x
 appMToHandler env act = do
   res <- liftIO $ runExceptT $ runReaderT (AC.unAppM act) env
-  let envT = AC.envType env
   case res of
     Left (AC.AppError e) -> appErrToHttpErr e
     Right a              -> return a
@@ -140,17 +130,17 @@ serveSwaggerAPI = toSwagger serverAPI
   & info.title   .~ "Supplychain Server API"
   & info.version .~ "1.0"
   & info.description ?~ "This is an API that tests swagger integration"
-  & info.license ?~ ("MIT" & url ?~ URL "http://mit.com")
+  & info.license ?~ ("MIT" & url ?~ URL "https://opensource.org/licenses/MIT")
 
 -- | We need to supply our handlers with the right Context. In this case,
 -- Basic Authentication requires a Context Entry with the 'BasicAuthCheck' value
 -- tagged with "foo-tag" This context is then supplied to 'server' and threaded
 -- to the BasicAuth HasServer handlers.
-basicAuthServerContext :: Servant.Context (BasicAuthCheck User ': '[])
-basicAuthServerContext = authCheck :. EmptyContext
+basicAuthServerContext :: AC.Env -> Servant.Context ((BasicAuthCheck User) ': '[])
+basicAuthServerContext env = (authCheck env) :. EmptyContext
 
 
-minPubKeySize = 1536 --FIXME or 2048
+minPubKeySize = 2048
 
 addPublicKey :: User -> RSAPublicKey -> AC.AppM KeyID
 addPublicKey user (PEMString pemKey) = do
@@ -199,7 +189,7 @@ epcState user str = return New
 -- return map constructEvent wholeEvents
 listEvents :: User ->  M.LabelEPCUrn -> AC.AppM [Ev.Event]
 listEvents user urn =
-  case (urn2LabelEPC . pack $ urn) of
+  case (urn2LabelEPC . T.pack $ urn) of
     Left e -> throwParseError e
     Right labelEpc -> BQ.listEvents labelEpc
 
@@ -273,7 +263,7 @@ eventSign :: User -> SignedEvent -> AC.AppM SB.PrimaryKeyType
 eventSign user (SignedEvent eventID keyID (Signature sigStr) digest) = do
   event <- BQ.getEventJSON eventID
   rsaPublicKey <- BQ.getPublicKey keyID
-  let eSigBS = BS64.decode $ BSC.pack $ sigStr
+  let eSigBS = BS64.decode $ BSCh.pack $ sigStr
   case eSigBS of Left s -> throwAppError $ InvalidSignature s
                  Right sigBS -> do
                   let (PEMString keyStr) = rsaPublicKey
