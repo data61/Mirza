@@ -13,8 +13,8 @@ eof
     exit 1
 fi
 
-
-DB_NAME=$1
+# FIXME: DB_NAME or DBNAME?
+DBNAME=$1
 
 psql \
     --echo-all \
