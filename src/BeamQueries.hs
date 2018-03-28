@@ -43,6 +43,7 @@ import           Utils
 import           Control.Monad.IO.Class                   (liftIO)
 import           OpenSSL.PEM                              (writePublicKey)
 import           OpenSSL.RSA                              (RSAPubKey)
+
 {-
 -- Sample NewUser JSON
 {

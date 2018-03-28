@@ -196,7 +196,6 @@ findInstLabelId' cp sn msfv mir mat = do
             SB.asset_type labels ==. val_ mat &&.
             SB.item_reference labels ==. val_ mir)
     pure labels
-  sandwichLog r
   case r of
     Right [l] -> return $ Just (SB.label_id l)
     _         -> return Nothing
@@ -301,13 +300,15 @@ insertSrcDestType :: MU.LocationField
 insertSrcDestType
   locField
   eventId
-  (sdType, SGLN gs1Company locationRef ext) = do
+  (sdType, SGLN pfix locationRef ext) = do
   pKey <- generatePk
   let
       stWhere = SB.Where pKey
+                pfix
                 (Just sdType)
                 locationRef
                 locField
+                ext
                 (SB.EventId eventId)
   r <- runDb $ B.runInsert $ B.insert (SB._wheres SB.supplyChainDb)
              $ insertValues [stWhere]
@@ -322,12 +323,14 @@ insertLocationEPC :: MU.LocationField
 insertLocationEPC
   locField
   eventId
-  (SGLN gs1Company locationRef ext) = do
+  (SGLN pfix locationRef ext) = do
     pKey <- generatePk
     let stWhere = SB.Where pKey
+                  pfix
                   Nothing
                   locationRef
                   locField
+                  ext
                   (SB.EventId eventId)
     r <- runDb $ B.runInsert $ B.insert (SB._wheres SB.supplyChainDb)
                 $ insertValues [stWhere]
