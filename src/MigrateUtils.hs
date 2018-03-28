@@ -53,6 +53,10 @@ defaultFromField fName f bs = do
 textType :: DataType PgDataTypeSyntax a
 textType = DataType pgTextType
 
+handleReadColumn :: Monad f => Maybe a -> String -> String -> f a
+handleReadColumn (Just a) _ _= pure a
+handleReadColumn Nothing colName val = fail ("Invalid value for " ++ colName ++ ": " ++ val)
+
 
 -- Type definitions
 
@@ -105,11 +109,10 @@ instance (HasSqlValueSyntax (Sql92ExpressionValueSyntax be) Bool,
 instance FromBackendRow Postgres EPC.LocationReference where
   fromBackendRow = do
     val <- fromBackendRow
-    case val :: T.Text of
-      "LocationReference" -> pure $ EPC.LocationReference "not implemented yet"
-      -- "SDPossessingParty" -> pure EPC.SDPossessingParty
-      -- "SDLocation" -> pure EPC.SDLocation
-      _ -> fail ("NOT IMPLEMENTED YET EPC.LocationReference: " ++ T.unpack val)
+    let valStr = T.unpack val
+    case readMaybe valStr :: Maybe EPC.LocationReference of
+      Just locRef -> pure locRef
+      Nothing     -> fail ("Invalid value for EPC.LocationReference: " ++ valStr)
 
 instance FromField EPC.LocationReference where
   fromField = defaultFromField "EPC.LocationReference"
@@ -169,11 +172,8 @@ instance (HasSqlValueSyntax (Sql92ExpressionValueSyntax be) Bool,
 instance FromBackendRow Postgres EPC.Action where
   fromBackendRow = do
     val <- fromBackendRow
-    case val :: T.Text of
-      "Add"     -> pure EPC.Add
-      "Observe" -> pure EPC.Observe
-      "Delete"  -> pure EPC.Delete
-      _         -> fail ("Invalid value for EPC.Action: " ++ T.unpack val)
+    let valStr = T.unpack val
+    handleReadColumn (readMaybe valStr) "EPC.Action" valStr
 
 instance FromField EPC.Action where
   fromField = defaultFromField "EPC.Action"
