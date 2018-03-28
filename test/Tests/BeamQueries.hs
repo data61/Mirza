@@ -23,6 +23,7 @@ import           Data.Text.Encoding         (encodeUtf8)
 import           AppConfig                  (AppM, Env (..), EnvType (..),
                                              runAppM, runDb)
 import           Data.Binary
+import qualified Data.Text                  as T
 import           Data.Time                  (ZonedTime (..), utcToZonedTime,
                                              zonedTimeToUTC)
 import           Data.Time.Clock            (UTCTime (..), getCurrentTime)
@@ -30,9 +31,9 @@ import           Data.Time.LocalTime        (LocalTime, utc, utcToLocalTime)
 import           Database.PostgreSQL.Simple (execute_)
 import           Migrate                    (testDbConnStr)
 import qualified Model                      as M
+import qualified Service                    as S
 import qualified StorageBeam                as SB
 import           Utils
-
 -- NOTE in this file, where fromJust is used in the tests, it is because we expect a Just... this is part of the test
 -- NOTE tables dropped after every running of test in an "it"
 
@@ -79,13 +80,16 @@ testQueries = do
       tEnd <- timeStampIO
       keyDB <- fromRight' <$> (runAppM env $ getPublicKey keyId)
       key <- fromRight' <$> (runAppM env $ selectKey keyId)
-      (fromJust key) `shouldSatisfy` (\k -> T.unpack (SB.pem_str k) == keyStr &&
-                                            (SB.key_id k) == keyId &&
-                                            (SB.key_user_id k) == (SB.UserId uid) &&
-                                            (SB.creation_time k) > tStart &&
-                                            (SB.creation_time k) < tEnd &&
-                                            isNothing (SB.revocation_time k)
-                                       )
+      (fromJust key)
+        `shouldSatisfy`
+          (\k ->
+            T.unpack (SB.pem_str k) == keyStr &&
+            (SB.key_id k) == keyId &&
+            (SB.key_user_id k) == (SB.UserId uid) &&
+            (SB.creation_time k) > tStart &&
+            (SB.creation_time k) < tEnd &&
+            isNothing (SB.revocation_time k)
+          )
   describe "getPublicKeyInfo tests" $ do
     it "getPublicKeyInfo test 1" $ \(conn, env) -> do
       tStart <- timeStampIOEPCIS
@@ -96,9 +100,13 @@ testQueries = do
       keyId <- fromRight' <$> (runAppM env $ S.addPublicKey user pubKey)
       keyInfo <- fromRight' <$> (runAppM env $ getPublicKeyInfo keyId)
       tEnd <- timeStampIOEPCIS
-      keyInfo `shouldSatisfy` (\ki -> (M.userID ki == uid) &&
-                                      (M.creationTime ki > tStart && M.creationTime ki < tEnd) &&
-                                      isNothing (M.revocationTime ki))
+      keyInfo
+        `shouldSatisfy`
+          (\ki ->
+            (M.userID ki == uid) &&
+            (M.creationTime ki > tStart && M.creationTime ki < tEnd) &&
+            isNothing (M.revocationTime ki)
+          )
 
   describe "newUser tests" $ do
     it "newUser test 1" $ \(conn, env) -> do
@@ -125,9 +133,11 @@ testQueries = do
       uid <- fromRight' <$> (runAppM env $ newUser dummyNewUser)
       user <- fromRight' <$> (runAppM env $ authCheck (M.emailAddress dummyNewUser) (encodeUtf8 $ M.password dummyNewUser)) --hash)
       (fromJust user) `shouldSatisfy`
-        (\u -> (M.userId u) == uid &&
-               (M.userFirstName u) == (M.firstName dummyNewUser) &&
-               (M.userLastName u) == (M.lastName dummyNewUser))
+        ( \u ->
+          (M.userId u) == uid &&
+          (M.userFirstName u) == (M.firstName dummyNewUser) &&
+          (M.userLastName u) == (M.lastName dummyNewUser)
+        )
 
   describe "Object Event" $ do
     it "Insert Object Event" $ \(conn, env) -> do
@@ -226,6 +236,7 @@ testQueries = do
         hasBeenRemoved <- fromRight' <$> (runAppM env $ removeContact user otherUserId)
         hasBeenRemoved `shouldBe` False
 
+  -- TODO Complete this
   describe "DWhere" $ do
     it "Insert DWhere" $ \(conn, env) -> do
       let eventId = dummyId
