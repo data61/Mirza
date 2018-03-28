@@ -31,8 +31,6 @@ import qualified Data.GS1.Event                       as Ev
 import           Database.Beam.Postgres.Syntax        (PgDataTypeSyntax,
                                                        pgTextType)
 import           Database.PostgreSQL.Simple.ToField   (ToField, toField)
-
-
 -- | The generic implementation of fromField
 -- If it's a fromField used for ``SomeCustomType``, sample usage would be
 -- instance FromField SomeCustomType where
@@ -57,6 +55,13 @@ handleReadColumn :: Monad f => Maybe a -> String -> String -> f a
 handleReadColumn (Just a) _ _= pure a
 handleReadColumn Nothing colName val = fail ("Invalid value for " ++ colName ++ ": " ++ val)
 
+-- defaultFromBackendRow :: String
+--                       -> F (FromBackendRowF be) b
+-- | Wrapper that calls read and fail appropriately
+defaultFromBackendRow colName = do
+  val <- fromBackendRow
+  let valStr = T.unpack val
+  handleReadColumn (readMaybe valStr) colName valStr
 
 -- Type definitions
 
@@ -75,14 +80,7 @@ instance (HasSqlValueSyntax (Sql92ExpressionValueSyntax be) Bool,
 
 -- | An explicit definition of ``fromBackendRow`` is required for each custom type
 instance FromBackendRow Postgres Ev.EventType where
-  fromBackendRow = do
-    val <- fromBackendRow
-    case val :: T.Text of
-      "ObjectEventT" -> pure Ev.ObjectEventT
-      "AggregationEventT" -> pure Ev.AggregationEventT
-      "TransactionEventT" -> pure Ev.TransactionEventT
-      "TransformationEventT" -> pure Ev.TransformationEventT
-      _ -> fail ("Invalid value for Ev.EventType: " ++ T.unpack val)
+  fromBackendRow = defaultFromBackendRow "Ev.EventType"
 
 instance FromField Ev.EventType where
   fromField = defaultFromField "Ev.EventType"
@@ -107,12 +105,7 @@ instance (HasSqlValueSyntax (Sql92ExpressionValueSyntax be) Bool,
           HasSqlQuantifiedEqualityCheck be EPC.LocationReference
 
 instance FromBackendRow Postgres EPC.LocationReference where
-  fromBackendRow = do
-    val <- fromBackendRow
-    let valStr = T.unpack val
-    case readMaybe valStr :: Maybe EPC.LocationReference of
-      Just locRef -> pure locRef
-      Nothing     -> fail ("Invalid value for EPC.LocationReference: " ++ valStr)
+  fromBackendRow = defaultFromBackendRow "EPC.LocationReference"
 
 instance FromField EPC.LocationReference where
   fromField = defaultFromField "EPC.LocationReference"
@@ -138,13 +131,7 @@ instance (HasSqlValueSyntax (Sql92ExpressionValueSyntax be) Bool,
 
 -- | An explicit definition of ``fromBackendRow`` is required for each custom type
 instance FromBackendRow Postgres EPC.SourceDestType where
-  fromBackendRow = do
-    val <- fromBackendRow
-    case val :: T.Text of
-      "SDOwningParty" -> pure EPC.SDOwningParty
-      "SDPossessingParty" -> pure EPC.SDPossessingParty
-      "SDLocation" -> pure EPC.SDLocation
-      _ -> fail ("Invalid value for EPC.SourceDestType: " ++ T.unpack val)
+  fromBackendRow = defaultFromBackendRow "EPC.SourceDestType"
 
 instance FromField EPC.SourceDestType where
   fromField = defaultFromField "EPC.SourceDestType"
@@ -170,10 +157,7 @@ instance (HasSqlValueSyntax (Sql92ExpressionValueSyntax be) Bool,
 
 -- | An explicit definition of ``fromBackendRow`` is required for each custom type
 instance FromBackendRow Postgres EPC.Action where
-  fromBackendRow = do
-    val <- fromBackendRow
-    let valStr = T.unpack val
-    handleReadColumn (readMaybe valStr) "EPC.Action" valStr
+  fromBackendRow = defaultFromBackendRow "EPC.Action"
 
 instance FromField EPC.Action where
   fromField = defaultFromField "EPC.Action"
@@ -202,20 +186,7 @@ instance (HasSqlValueSyntax (Sql92ExpressionValueSyntax be) Bool,
 
 -- | An explicit definition of ``fromBackendRow`` is required for each custom type
 instance FromBackendRow Postgres EPC.SGTINFilterValue where
-  fromBackendRow = do
-    val <- fromBackendRow
-    case val :: T.Text of
-      "AllOthers" -> pure EPC.AllOthers
-      "POSTradeItem" -> pure EPC.POSTradeItem
-      "FullCaseForTransport" -> pure EPC.FullCaseForTransport
-      "Reserved1" -> pure EPC.Reserved1
-      "InnerPackTradeItemGroupingForHandling" ->
-          pure EPC.InnerPackTradeItemGroupingForHandling
-      "Reserved2" -> pure EPC.Reserved2
-      "UnitLoad" -> pure EPC.UnitLoad
-      "UnitInsideTradeItemOrComponentInsideAProductNotIntendedForIndividualSale" ->
-          pure EPC.UnitInsideTradeItemOrComponentInsideAProductNotIntendedForIndividualSale
-      _ -> fail ("Invalid value for EPC.SGTINFilterValue: " ++ T.unpack val)
+  fromBackendRow = defaultFromBackendRow "EPC.SGTINFilterValue"
 
 sgtinFilterValue :: DataType PgDataTypeSyntax EPC.SGTINFilterValue
 sgtinFilterValue = textType
@@ -242,14 +213,7 @@ instance (HasSqlValueSyntax (Sql92ExpressionValueSyntax be) Bool,
 
 -- | An explicit definition of ``fromBackendRow`` is required for each custom type
 instance FromBackendRow Postgres LocationField where
-  fromBackendRow = do
-    val <- fromBackendRow
-    case val :: T.Text of
-      "Src" -> pure Src
-      "Dest" -> pure Dest
-      "BizLocation" -> pure BizLocation
-      "ReadPoint" -> pure ReadPoint
-      _ -> fail ("Invalid value for LocationField: " ++ T.unpack val)
+  fromBackendRow = defaultFromBackendRow "LocationField"
 
 instance FromField LocationField where
   fromField = defaultFromField "LocationField"
