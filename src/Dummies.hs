@@ -4,18 +4,18 @@
 -- in GS1Combinators
 module Dummies where
 
-import           Data.UUID (nil)
-import           Data.Maybe (fromJust)
 import           Data.GS1.DWhat
-import           Data.GS1.DWhy
-import           Data.GS1.DWhere
 import           Data.GS1.DWhen
+import           Data.GS1.DWhere
+import           Data.GS1.DWhy
 import           Data.GS1.EPC
-import qualified Data.GS1.Event as Ev
-import           Data.Time.LocalTime
+import qualified Data.GS1.Event      as Ev
+import           Data.Maybe          (fromJust)
 import           Data.Time
-import qualified Model as M
-import qualified StorageBeam as SB
+import           Data.Time.LocalTime
+import           Data.UUID           (nil)
+import qualified Model               as M
+import qualified StorageBeam         as SB
 
 -- add function to generate and take dummyLabelEpc
 

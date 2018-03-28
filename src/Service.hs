@@ -1,73 +1,75 @@
+{-# LANGUAGE CPP                        #-}
 {-# LANGUAGE DataKinds                  #-}
 {-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE FlexibleInstances          #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE OverloadedStrings          #-}
+{-# LANGUAGE PolyKinds                  #-}
 {-# LANGUAGE ScopedTypeVariables        #-}
+{-# LANGUAGE StandaloneDeriving         #-}
 {-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE TypeOperators              #-}
-{-# LANGUAGE CPP                        #-}
 {-# LANGUAGE UndecidableInstances       #-}
-{-# LANGUAGE PolyKinds                  #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE StandaloneDeriving         #-}
 {-# OPTIONS_GHC -fno-warn-orphans       #-}
 
 -- | Endpoint definitions go here. Most of the endpoint definitions are
 -- light wrappers around functions in BeamQueries
 module Service where
 
+import           GHC.TypeLits                     (KnownSymbol)
 
-import           GHC.TypeLits (KnownSymbol)
-
-import           Servant
-import           Servant.Server.Experimental.Auth()
-import           Servant.Swagger
-import           Data.Swagger
-import qualified Data.GS1.Event as Ev
-import           Data.GS1.EventID
-import           Data.GS1.EPC
+import qualified Control.Exception.Lifted         as ExL
+import           Control.Lens                     hiding ((.=))
+import           Control.Monad                    (when)
+import           Control.Monad.Except             (runExceptT)
+import           Control.Monad.Reader             (MonadIO, ask, asks, liftIO,
+                                                   runReaderT)
+import           Control.Monad.Reader             (MonadReader, ReaderT, ask,
+                                                   asks, liftIO, runReaderT)
+import           Control.Monad.Trans.Except
+import           Data.Char                        (toLower)
+import           Data.Either.Combinators
+import           Data.GS1.DWhat
 import           Data.GS1.DWhen
 import           Data.GS1.DWhere
-import           Data.GS1.DWhat
 import           Data.GS1.DWhy
+import           Data.GS1.EPC
+import qualified Data.GS1.Event                   as Ev
+import           Data.GS1.EventID
 import           Data.GS1.Parser.Parser
-import           Data.Maybe (isJust, fromJust, isNothing)
-import           Data.Either.Combinators
-import qualified Data.HashMap.Strict.InsOrd as IOrd
-import qualified Network.Wai.Handler.Warp as Warp
-import           Control.Monad (when)
-import           Control.Monad.Reader   (runReaderT, MonadIO,
-                                         asks, ask, liftIO)
-import           Control.Lens       hiding ((.=))
-import           Control.Monad.Except (runExceptT)
-import qualified Control.Exception.Lifted as ExL
-import           Control.Monad.Trans.Except
+import qualified Data.HashMap.Strict.InsOrd       as IOrd
+import           Data.Maybe                       (fromJust, isJust, isNothing)
+import           Data.Swagger
+import           Data.Text                        (pack)
 import           Data.UUID.V4
-import           Data.Text (pack)
-import           Data.Char (toLower)
-import           Control.Monad.Reader   (MonadReader, ReaderT, runReaderT,
-                                         asks, ask, liftIO)
+import qualified Network.Wai.Handler.Warp         as Warp
+import           Servant
+import           Servant.Server.Experimental.Auth ()
+import           Servant.Swagger
 
 -- import qualified Model as M
-import qualified AppConfig as AC
-import qualified BeamQueries as BQ
-import           Utils (debugLog, debugLogGeneral)
-import           ErrorUtils (appErrToHttpErr, throwParseError, throwAppError)
-import           Errors
-import           Model as M
 import           API
-import qualified StorageBeam as SB
-import OpenSSL.PEM   (readPublicKey)
+import qualified AppConfig                        as AC
+import qualified BeamQueries                      as BQ
+import           Errors
+import           ErrorUtils                       (appErrToHttpErr,
+                                                   throwAppError,
+                                                   throwParseError)
+import           Model                            as M
+import           OpenSSL.PEM                      (readPublicKey)
+import qualified StorageBeam                      as SB
+import           Utils                            (debugLog, debugLogGeneral)
 
 
-import OpenSSL.RSA   (RSAPubKey, rsaSize)
-import OpenSSL.EVP.PKey (PublicKey, SomePublicKey, toPublicKey)
-import qualified OpenSSL.EVP.Digest as EVPDigest
-import OpenSSL.EVP.Verify (verifyBS, VerifyStatus(..))
-import qualified Data.ByteString.Base64 as BS64
-import qualified Data.ByteString.Char8 as BSC
-import qualified QueryUtils as QU
+import qualified Data.ByteString.Base64           as BS64
+import qualified Data.ByteString.Char8            as BSC
+import qualified OpenSSL.EVP.Digest               as EVPDigest
+import           OpenSSL.EVP.PKey                 (PublicKey, SomePublicKey,
+                                                   toPublicKey)
+import           OpenSSL.EVP.Verify               (VerifyStatus (..), verifyBS)
+import           OpenSSL.RSA                      (RSAPubKey, rsaSize)
+import qualified QueryUtils                       as QU
 
 instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub) where
   toSwagger _ =
@@ -200,7 +202,7 @@ epcState user str = return New
 listEvents :: User ->  M.LabelEPCUrn -> AC.AppM [Ev.Event]
 listEvents user urn =
   case (urn2LabelEPC . pack $ urn) of
-    Left e -> throwParseError e
+    Left e         -> throwParseError e
     Right labelEpc -> BQ.listEvents labelEpc
 
 
