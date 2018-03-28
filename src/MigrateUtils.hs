@@ -1,12 +1,13 @@
-{-# LANGUAGE OverloadedStrings     #-}
-{-# LANGUAGE StandaloneDeriving    #-}
 {-# LANGUAGE DeriveAnyClass        #-}
-{-# LANGUAGE RecordWildCards       #-}
-{-# LANGUAGE PartialTypeSignatures #-}
-{-# LANGUAGE UndecidableInstances  #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE DeriveGeneric         #-}
-{-# OPTIONS_GHC -fno-warn-orphans #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE PartialTypeSignatures #-}
+{-# LANGUAGE RecordWildCards       #-}
+{-# LANGUAGE StandaloneDeriving    #-}
+{-# LANGUAGE UndecidableInstances  #-}
+{-# OPTIONS_GHC -fno-warn-orphans  #-}
 
 -- | This module contains the
 -- Database.Beam.Postgres.Syntax.DataType definitions
@@ -15,23 +16,22 @@
 module MigrateUtils where
 
 import           Database.Beam
-import           Database.Beam.Postgres
-import           Database.Beam.Migrate
-import           Database.Beam.Postgres.Migrate
 import           Database.Beam.Backend.SQL
+import           Database.Beam.Migrate
+import           Database.Beam.Postgres
+import           Database.Beam.Postgres.Migrate
 
-import           Data.ByteString (ByteString)
-import qualified Data.Text as T
+import           Data.ByteString                      (ByteString)
+import qualified Data.Text                            as T
 import           Database.PostgreSQL.Simple.FromField
 import           Text.Read
 
-import           Database.Beam.Postgres.Syntax (PgDataTypeSyntax, pgTextType)
-import qualified Data.GS1.Event as Ev
-import qualified Data.GS1.EPC as EPC
-import           Database.PostgreSQL.Simple.ToField (ToField, toField)
+import qualified Data.GS1.EPC                         as EPC
+import qualified Data.GS1.Event                       as Ev
+import           Database.Beam.Postgres.Syntax        (PgDataTypeSyntax,
+                                                       pgTextType)
+import           Database.PostgreSQL.Simple.ToField   (ToField, toField)
 
-
--- Utils
 
 -- | The generic implementation of fromField
 -- If it's a fromField used for ``SomeCustomType``, sample usage would be
@@ -170,10 +170,10 @@ instance FromBackendRow Postgres EPC.Action where
   fromBackendRow = do
     val <- fromBackendRow
     case val :: T.Text of
-      "Add" -> pure EPC.Add
+      "Add"     -> pure EPC.Add
       "Observe" -> pure EPC.Observe
-      "Delete" -> pure EPC.Delete
-      _ -> fail ("Invalid value for EPC.Action: " ++ T.unpack val)
+      "Delete"  -> pure EPC.Delete
+      _         -> fail ("Invalid value for EPC.Action: " ++ T.unpack val)
 
 instance FromField EPC.Action where
   fromField = defaultFromField "EPC.Action"

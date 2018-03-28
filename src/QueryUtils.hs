@@ -8,41 +8,50 @@
 -- Model type and its Storage equivalent
 module QueryUtils where
 
-import           Data.Time.LocalTime (utc, utcToLocalTime
-                                     , LocalTime, localTimeToUTC
-                                     , timeZoneOffsetString)
-import           Data.Time (UTCTime, ZonedTime(..), utcToZonedTime
-                           , zonedTimeToUTC)
-import           AppConfig (AppM(..), runDb, getDBConn)
-import qualified StorageBeam as SB
-import           Data.UUID.V4 (nextRandom)
-import           Data.Time.Clock (getCurrentTime)
-import           Control.Monad.Reader (liftIO)
-import           Data.Maybe (catMaybes)
-import           Data.GS1.Event (Event(..))
-import           Data.Aeson.Text (encodeToLazyText)
-import           Data.Aeson (decode)
-import qualified Data.Text.Lazy as TxtL
-import qualified Data.Text as T
-import           Data.GS1.EPC as EPC
-import           Data.GS1.DWhat (DWhat(..), LabelEPC(..))
-import           Data.GS1.DWhy (DWhy(..))
-import           Data.GS1.DWhere (DWhere(..), SrcDestLocation)
-import           Data.GS1.DWhen (DWhen(..))
-import qualified Data.GS1.EventID as EvId
-import qualified Data.GS1.Event as Ev
-import           Utils
-import           Database.Beam as B
+import           AppConfig                                (AppM (..), getDBConn,
+                                                           runDb)
+import           Control.Monad.Reader                     (liftIO)
+import           Data.Aeson                               (decode)
+import           Data.Aeson.Text                          (encodeToLazyText)
+import           Data.ByteString                          (ByteString)
+import           Data.GS1.DWhat                           (DWhat (..),
+                                                           LabelEPC (..))
+import           Data.GS1.DWhen                           (DWhen (..))
+import           Data.GS1.DWhere                          (DWhere (..),
+                                                           SrcDestLocation)
+import           Data.GS1.DWhy                            (DWhy (..))
+import           Data.GS1.EPC                             as EPC
+import           Data.GS1.Event                           (Event (..))
+import qualified Data.GS1.Event                           as Ev
+import qualified Data.GS1.EventID                         as EvId
+import           Data.Maybe                               (catMaybes)
+import qualified Data.Text                                as T
+import qualified Data.Text.Encoding                       as En
+import qualified Data.Text.Lazy                           as TxtL
+import qualified Data.Text.Lazy.Encoding                  as LEn
+import           Data.Time                                (UTCTime,
+                                                           ZonedTime (..),
+                                                           utcToZonedTime,
+                                                           zonedTimeToUTC)
+import           Data.Time.Clock                          (getCurrentTime)
+import           Data.Time.LocalTime                      (LocalTime,
+                                                           localTimeToUTC,
+                                                           timeZoneOffsetString,
+                                                           utc, utcToLocalTime)
+import           Data.UUID.V4                             (nextRandom)
+import           Database.Beam                            as B
 import           Database.Beam.Backend.SQL.BeamExtensions (runInsertReturningList)
-import           Data.ByteString (ByteString)
-import qualified Model as M
-import           ErrorUtils (throwBackendError, throwAppError, toServerError
-                            , defaultToServerError, sqlToServerError
-                            , throwUnexpectedDBError)
 import           Database.PostgreSQL.Simple
-import qualified Data.Text.Lazy.Encoding as LEn
-import qualified Data.Text.Encoding as En
-import qualified MigrateUtils as MU
+import           ErrorUtils                               (defaultToServerError,
+                                                           sqlToServerError,
+                                                           throwAppError,
+                                                           throwBackendError,
+                                                           throwUnexpectedDBError,
+                                                           toServerError)
+import qualified MigrateUtils                             as MU
+import qualified Model                                    as M
+import qualified StorageBeam                              as SB
+import           Utils
 
 -- | Reads back the ``LocalTime`` in UTCTime (with an offset of 0)
 toEPCISTime :: LocalTime -> UTCTime
@@ -126,14 +135,14 @@ epcToStorageLabel labelType whatId pKey (CL (CSGTIN gs1Prefix fv ir) mQ) =
            (getQuantityAmount mQ) (getQuantityUom mQ)
 
 getQuantityAmount :: Maybe Quantity -> Maybe Double
-getQuantityAmount Nothing = Nothing
+getQuantityAmount Nothing                       = Nothing
 getQuantityAmount (Just (MeasuredQuantity a _)) = Just $ realToFrac a
-getQuantityAmount (Just (ItemCount c)) = Just $ realToFrac c
+getQuantityAmount (Just (ItemCount c))          = Just $ realToFrac c
 
 getQuantityUom :: Maybe Quantity -> Maybe EPC.Uom
-getQuantityUom Nothing = Nothing
+getQuantityUom Nothing                       = Nothing
 getQuantityUom (Just (MeasuredQuantity _ u)) = Just u
-getQuantityUom (Just (ItemCount _)) = Nothing
+getQuantityUom (Just (ItemCount _))          = Nothing
 
 
 -- | GS1 DWhat to Storage DWhat
@@ -155,14 +164,14 @@ toStorageDWhat pKey mParentId mBizTranId eventId dwhat
 
 getTransformationId :: DWhat -> Maybe TransformationID
 getTransformationId t@(TransformationDWhat _ _ _) = _transformationId t
-getTransformationId _ = Nothing
+getTransformationId _                             = Nothing
 
 
 getAction :: DWhat -> Maybe Action
-getAction (TransformationDWhat _ _ _) = Nothing
-getAction (ObjectDWhat act _) = Just act
+getAction (TransformationDWhat _ _ _)  = Nothing
+getAction (ObjectDWhat act _)          = Just act
 getAction (TransactionDWhat act _ _ _) = Just act
-getAction (AggregationDWhat act _ _) = Just act
+getAction (AggregationDWhat act _ _)   = Just act
 
 
 findInstLabelId :: InstanceLabelEPC -> AppM (Maybe SB.PrimaryKeyType)
@@ -218,7 +227,7 @@ findClassLabelId' cp msfv ir lot = do
 
 
 findLabelId :: LabelEPC -> AppM (Maybe SB.PrimaryKeyType)
-findLabelId (IL l) = findInstLabelId l
+findLabelId (IL l)   = findInstLabelId l
 findLabelId (CL c _) = findClassLabelId c
 
 getParentId :: DWhat -> AppM (Maybe SB.PrimaryKeyType)
