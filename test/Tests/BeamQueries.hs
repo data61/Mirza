@@ -238,11 +238,11 @@ testQueries = do
 
   -- TODO Complete this
   describe "DWhere" $ do
-    it "Insert DWhere" $ \(conn, env) -> do
+    it "Insert and find DWhere" $ \(conn, env) -> do
       let eventId = dummyId
       r <- fromRight' <$> (runAppM env $ insertDWhere dummyDWhere eventId)
       insertedDWhere <- fromRight' <$> (runAppM env $ findDWhere eventId)
-      1 `shouldBe` 1
+      insertedDWhere `shouldBe` dummyDWhere
 
 clearContact :: IO ()
 clearContact = do
