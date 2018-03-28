@@ -17,59 +17,55 @@
 -- light wrappers around functions in BeamQueries
 module Service where
 
-import           GHC.TypeLits                     (KnownSymbol)
+import           GHC.TypeLits               (KnownSymbol)
 
-import qualified Control.Exception.Lifted         as ExL
-import           Control.Lens                     hiding ((.=))
-import           Control.Monad                    (when)
-import           Control.Monad.Except             (runExceptT)
-import           Control.Monad.Reader             (MonadIO, ask, asks, liftIO,
-                                                   runReaderT)
-import           Control.Monad.Reader             (MonadReader, ReaderT, ask,
-                                                   asks, liftIO, runReaderT)
+import           API
+import qualified AppConfig                  as AC
+import qualified BeamQueries                as BQ
+import qualified Control.Exception.Lifted   as ExL
+import           Control.Lens               hiding ((.=))
+import           Control.Monad              (when)
+import           Control.Monad.Except       (runExceptT)
+import           Control.Monad.Reader       (MonadIO, ask, asks, liftIO,
+                                             runReaderT)
+import           Control.Monad.Reader       (MonadReader, ReaderT, ask, asks,
+                                             liftIO, runReaderT)
 import           Control.Monad.Trans.Except
-import           Data.Char                        (toLower)
+import qualified Data.ByteString            as BS
+import qualified Data.ByteString.Char8      as BSCh
+import           Data.Char                  (toLower)
+import           Data.Char                  (toLower)
 import           Data.Either.Combinators
 import           Data.GS1.DWhat
 import           Data.GS1.DWhen
 import           Data.GS1.DWhere
 import           Data.GS1.DWhy
 import           Data.GS1.EPC
-import qualified Data.GS1.Event                   as Ev
+import qualified Data.GS1.Event             as Ev
 import           Data.GS1.EventID
 import           Data.GS1.Parser.Parser
-import qualified Data.HashMap.Strict.InsOrd       as IOrd
-import           Data.Maybe                       (fromJust, isJust, isNothing)
+import qualified Data.HashMap.Strict.InsOrd as IOrd
+import           Data.Maybe                 (fromJust, isJust, isNothing)
 import           Data.Swagger
-import           Data.Text                        (pack)
+import           Data.Text                  (pack)
+import qualified Data.Text                  as T
+import           Data.Text.Encoding         (decodeUtf8)
 import           Data.UUID.V4
-import qualified Network.Wai.Handler.Warp         as Warp
-import           Servant
-import           Servant.Server.Experimental.Auth ()
-import           Servant.Swagger
-
--- import qualified Model as M
-import           API
-import qualified AppConfig                        as AC
-import qualified BeamQueries                      as BQ
 import           Errors
-import           ErrorUtils                       (appErrToHttpErr,
-                                                   throwAppError,
-                                                   throwParseError)
-import           Model                            as M
-import           OpenSSL.PEM                      (readPublicKey)
-import qualified StorageBeam                      as SB
-import           Utils                            (debugLog, debugLogGeneral)
+import           ErrorUtils                 (appErrToHttpErr, throwAppError,
+                                             throwParseError)
+import           Model                      as M
+import qualified StorageBeam                as SB
+import           Utils
 
-
-import qualified Data.ByteString.Base64           as BS64
-import qualified Data.ByteString.Char8            as BSC
-import qualified OpenSSL.EVP.Digest               as EVPDigest
-import           OpenSSL.EVP.PKey                 (PublicKey, SomePublicKey,
-                                                   toPublicKey)
-import           OpenSSL.EVP.Verify               (VerifyStatus (..), verifyBS)
-import           OpenSSL.RSA                      (RSAPubKey, rsaSize)
-import qualified QueryUtils                       as QU
+import qualified Data.ByteString.Base64     as BS64
+import qualified OpenSSL.EVP.Digest         as EVPDigest
+import           OpenSSL.EVP.PKey           (PublicKey, SomePublicKey,
+                                             toPublicKey)
+import           OpenSSL.EVP.Verify         (VerifyStatus (..), verifyBS)
+import           OpenSSL.PEM                (readPublicKey)
+import           OpenSSL.RSA                (RSAPubKey, rsaSize)
+import qualified QueryUtils                 as QU
 
 instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub) where
   toSwagger _ =
@@ -81,26 +77,19 @@ instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub
       & securityDefinitions .~ authSchemes
       & allOperations . security .~ securityRequirements
 
--- deriving instance Applicative BasicAuthCheck
--- instance Monad BasicAuthCheck where
---   (>>=) = error "not implemented yet"
---   return = error "not implemented yet"
-
 -- 'BasicAuthCheck' holds the handler we'll use to verify a username and password.
-authCheck :: BasicAuthCheck User
-authCheck = error "not implemented yet" -- do
-  -- env <- ask
-  -- let check (BasicAuthData useremail password) = do
-  --       maybeUser <- AC.runAppM env $ BQ.authCheck (decodeUtf8 useremail) password
-  --       case maybeUser of
-  --         Right (Just user) -> return (Authorized user)
-  --         _                 -> return Unauthorized
-  -- BasicAuthCheck check
+authCheck :: AC.Env -> BasicAuthCheck User
+authCheck env = do
+  let check (BasicAuthData useremail pass) = do
+        eitherUser <- AC.runAppM env $ BQ.authCheck (decodeUtf8 useremail) pass
+        case eitherUser of
+          Right (Just user) -> return (Authorized user)
+          Left  _           -> return Unauthorized
+    in BasicAuthCheck check
 
 appMToHandler :: forall x. AC.Env -> AC.AppM x -> Handler x
 appMToHandler env act = do
   res <- liftIO $ runExceptT $ runReaderT (AC.unAppM act) env
-  let envT = AC.envType env
   case res of
     Left (AC.AppError e) -> appErrToHttpErr e
     Right a              -> return a
@@ -142,17 +131,17 @@ serveSwaggerAPI = toSwagger serverAPI
   & info.title   .~ "Supplychain Server API"
   & info.version .~ "1.0"
   & info.description ?~ "This is an API that tests swagger integration"
-  & info.license ?~ ("MIT" & url ?~ URL "http://mit.com")
+  & info.license ?~ ("MIT" & url ?~ URL "https://opensource.org/licenses/MIT")
 
 -- | We need to supply our handlers with the right Context. In this case,
 -- Basic Authentication requires a Context Entry with the 'BasicAuthCheck' value
 -- tagged with "foo-tag" This context is then supplied to 'server' and threaded
 -- to the BasicAuth HasServer handlers.
-basicAuthServerContext :: Servant.Context (BasicAuthCheck User ': '[])
-basicAuthServerContext = authCheck :. EmptyContext
+basicAuthServerContext :: AC.Env -> Servant.Context ((BasicAuthCheck User) ': '[])
+basicAuthServerContext env = (authCheck env) :. EmptyContext
 
 
-minPubKeySize = 1536 --FIXME or 2048
+minPubKeySize = 2048
 
 addPublicKey :: User -> RSAPublicKey -> AC.AppM KeyID
 addPublicKey user (PEMString pemKey) = do
@@ -201,7 +190,7 @@ epcState user str = return New
 -- return map constructEvent wholeEvents
 listEvents :: User ->  M.LabelEPCUrn -> AC.AppM [Ev.Event]
 listEvents user urn =
-  case (urn2LabelEPC . pack $ urn) of
+  case (urn2LabelEPC . T.pack $ urn) of
     Left e         -> throwParseError e
     Right labelEpc -> BQ.listEvents labelEpc
 
@@ -275,7 +264,7 @@ eventSign :: User -> SignedEvent -> AC.AppM SB.PrimaryKeyType
 eventSign user (SignedEvent eventID keyID (Signature sigStr) digest) = do
   event <- BQ.getEventJSON eventID
   rsaPublicKey <- BQ.getPublicKey keyID
-  let eSigBS = BS64.decode $ BSC.pack $ sigStr
+  let eSigBS = BS64.decode $ BSCh.pack $ sigStr
   case eSigBS of Left s -> throwAppError $ InvalidSignature s
                  Right sigBS -> do
                   let (PEMString keyStr) = rsaPublicKey

@@ -25,8 +25,8 @@ library
                     , QueryUtils
                     , Utils
                     , CryptHash
-  other-modules:      API
                     , Service
+  other-modules:      API
                     , MigrateUtils
                     , MigrateScript
                     , Errors
