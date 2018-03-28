@@ -17,14 +17,15 @@ import           Data.ByteString                          (ByteString)
 import           Data.GS1.DWhat                           (DWhat (..),
                                                            LabelEPC (..))
 import           Data.GS1.DWhen                           (DWhen (..))
-import           Data.GS1.DWhere                          (DWhere (..),
+import           Data.GS1.DWhere                          (BizLocation,
+                                                           DWhere (..),
                                                            SrcDestLocation)
 import           Data.GS1.DWhy                            (DWhy (..))
 import           Data.GS1.EPC                             as EPC
 import           Data.GS1.Event                           (Event (..))
 import qualified Data.GS1.Event                           as Ev
 import qualified Data.GS1.EventID                         as EvId
-import           Data.Maybe                               (catMaybes)
+import           Data.Maybe                               (catMaybes, fromJust)
 import qualified Data.Text                                as T
 import qualified Data.Text.Encoding                       as En
 import qualified Data.Text.Lazy                           as TxtL
@@ -359,7 +360,6 @@ findDWhere eventId = do
   destTs <- findDWhereByLocationField MU.Dest eventId
   return $ mergeSBWheres [rPoints, bizLocs, srcTs, destTs]
 
-
 findDWhereByLocationField :: MU.LocationField -> SB.PrimaryKeyType -> AppM [SB.WhereT Identity]
 findDWhereByLocationField locField eventId = do
   r <- runDb $ runSelectReturningList $ select $ do
@@ -376,8 +376,35 @@ findDWhereByLocationField locField eventId = do
 -- | Merge a list of SB.Wheres into one Data.GS1.DWhere
 -- mergeSBWheres :: [SB.WhereT Identity] -> DWhere
 mergeSBWheres :: [[SB.WhereT Identity]] -> DWhere
-mergeSBWheres [rPoints, bizLocs, srcTs, destTs] = error "not implemented yet"
+mergeSBWheres [[], [], [], []]                  = DWhere [] [] [] []
+mergeSBWheres whereT@[rPointsW, bizLocsW, srcTsW, destTsW] = do
+  -- At least one of them is guaranteed to be non-empty
+  let pfix = SB.where_gs1_company_prefix $ head $ fromJust $ findFirstNonEmpty whereT
+      rPoints = constructLocation <$> rPointsW
+      bizLocs = constructLocation <$> bizLocsW
+      srcTs = constructSrcDestLocation <$> srcTsW
+      destTs = constructSrcDestLocation <$> destTsW
+      in
+        DWhere rPoints bizLocs srcTs destTs
 mergeSBWheres _                                 = error "Invalid argument(s)"
+
+-- | This relies on the user calling this function in the appropriate WhereT
+constructSrcDestLocation :: SB.WhereT Identity -> SrcDestLocation
+constructSrcDestLocation whereT =
+  let sdType = fromJust . SB.where_source_dest_type $ whereT
+      locationEpc = constructLocation whereT
+      in
+        (sdType, locationEpc)
+
+-- | This relies on the user calling this function in the appropriate WhereT
+constructLocation :: SB.WhereT Identity -> LocationEPC
+constructLocation whereT =
+  EPC.SGLN
+    (SB.where_gs1_company_prefix whereT)
+    (SB.where_gs1_location_id whereT)
+    (SB.where_sgln_ext whereT)
+
+
 
 insertEvent :: SB.PrimaryKeyType -> T.Text -> Event -> AppM SB.PrimaryKeyType
 insertEvent userId jsonEvent event = do
