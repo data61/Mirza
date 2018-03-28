@@ -376,17 +376,14 @@ findDWhereByLocationField locField eventId = do
 -- | Merges a list of SB.Wheres into one Data.GS1.DWhere
 -- mergeSBWheres :: [SB.WhereT Identity] -> DWhere
 mergeSBWheres :: [[SB.WhereT Identity]] -> DWhere
-mergeSBWheres [[], [], [], []]                  = DWhere [] [] [] []
-mergeSBWheres whereT@[rPointsW, bizLocsW, srcTsW, destTsW] = do
-  -- At least one of them is guaranteed to be non-empty
-  let pfix = SB.where_gs1_company_prefix $ head $ fromJust $ findFirstNonEmpty whereT
-      rPoints = constructLocation <$> rPointsW
+mergeSBWheres [rPointsW, bizLocsW, srcTsW, destTsW] = do
+  let rPoints = constructLocation <$> rPointsW
       bizLocs = constructLocation <$> bizLocsW
       srcTs = constructSrcDestLocation <$> srcTsW
       destTs = constructSrcDestLocation <$> destTsW
       in
         DWhere rPoints bizLocs srcTs destTs
-mergeSBWheres _                                 = error "Invalid argument(s)"
+mergeSBWheres _                                     = error "Invalid arguments"
 
 -- | This relies on the user calling this function in the appropriate WhereT
 constructSrcDestLocation :: SB.WhereT Identity -> SrcDestLocation
