@@ -36,6 +36,7 @@ import           Data.ByteString                      (ByteString)
 import           Data.ByteString.Char8                (pack)
 import qualified Data.GS1.EPC                         as EPC
 import qualified Data.GS1.Event                       as Ev
+import           Data.Swagger                         ()
 import           Data.Text                            (Text)
 import           Data.Time
 import           Data.UUID                            (UUID)
@@ -44,11 +45,9 @@ import           Database.PostgreSQL.Simple.FromField (Conversion, Field,
                                                        FromField, fromField,
                                                        returnError)
 import           Database.PostgreSQL.Simple.ToField   (ToField, toField)
-import           Text.Read                            (readMaybe)
--- import           MigrateUtils (eventType)
-import           Data.Swagger                         ()
-import           MigrateUtils                         (LocationField)
+import qualified MigrateUtils                         as MU
 import           Servant                              ()
+import           Text.Read                            (readMaybe)
 
 type PrimaryKeyType = UUID
 -- IMPLEMENTME - NOT NOW
@@ -367,11 +366,13 @@ instance Table WhyT where
   primaryKey = WhyId . why_id
 
 data WhereT f = Where
-  { where_id               :: C f PrimaryKeyType
-  , where_source_dest_type :: C f (Maybe EPC.SourceDestType)
-  , where_gs1_location_id  :: C f EPC.LocationReference
-  , where_location_field   :: C f LocationField
-  , where_event_id         :: PrimaryKey EventT f }
+  { where_id                 :: C f PrimaryKeyType
+  , where_gs1_company_prefix :: C f EPC.GS1CompanyPrefix
+  , where_source_dest_type   :: C f (Maybe EPC.SourceDestType)
+  , where_gs1_location_id    :: C f EPC.LocationReference
+  , where_location_field     :: C f MU.LocationField
+  , where_sgln_ext           :: C f (Maybe EPC.SGLNExtension)
+  , where_event_id           :: PrimaryKey EventT f }
   deriving Generic
 
 type Where = WhereT Identity
