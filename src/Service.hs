@@ -17,55 +17,57 @@
 -- light wrappers around functions in BeamQueries
 module Service where
 
-import           GHC.TypeLits               (KnownSymbol)
+import           GHC.TypeLits                     (KnownSymbol)
 
 import           API
-import qualified AppConfig                  as AC
-import qualified BeamQueries                as BQ
-import qualified Control.Exception.Lifted   as ExL
-import           Control.Lens               hiding ((.=))
-import           Control.Monad              (when)
-import           Control.Monad.Except       (runExceptT)
-import           Control.Monad.Reader       (MonadIO, ask, asks, liftIO,
-                                             runReaderT)
-import           Control.Monad.Reader       (MonadReader, ReaderT, ask, asks,
-                                             liftIO, runReaderT)
+import qualified AppConfig                        as AC
+import qualified BeamQueries                      as BQ
+import qualified Control.Exception.Lifted         as ExL
+import           Control.Lens                     hiding ((.=))
+import           Control.Monad                    (when)
+import           Control.Monad.Except             (runExceptT)
+import           Control.Monad.Reader             (MonadIO, ask, asks, liftIO,
+                                                   runReaderT)
 import           Control.Monad.Trans.Except
-import qualified Data.ByteString            as BS
-import qualified Data.ByteString.Char8      as BSCh
-import           Data.Char                  (toLower)
-import           Data.Char                  (toLower)
+import qualified Data.ByteString                  as BS
+import qualified Data.ByteString.Char8            as BSCh
+import           Data.Char                        (toLower)
 import           Data.Either.Combinators
 import           Data.GS1.DWhat
 import           Data.GS1.DWhen
 import           Data.GS1.DWhere
 import           Data.GS1.DWhy
 import           Data.GS1.EPC
-import qualified Data.GS1.Event             as Ev
+import qualified Data.GS1.Event                   as Ev
 import           Data.GS1.EventID
 import           Data.GS1.Parser.Parser
-import qualified Data.HashMap.Strict.InsOrd as IOrd
-import           Data.Maybe                 (fromJust, isJust, isNothing)
+import qualified Data.HashMap.Strict.InsOrd       as IOrd
+import           Data.Maybe                       (fromJust, isJust, isNothing)
 import           Data.Swagger
-import           Data.Text                  (pack)
-import qualified Data.Text                  as T
-import           Data.Text.Encoding         (decodeUtf8)
+import qualified Data.Text                        as T
+import           Data.Text.Encoding               (decodeUtf8)
 import           Data.UUID.V4
 import           Errors
-import           ErrorUtils                 (appErrToHttpErr, throwAppError,
-                                             throwParseError)
-import           Model                      as M
-import qualified StorageBeam                as SB
+import           ErrorUtils                       (appErrToHttpErr,
+                                                   throwAppError,
+                                                   throwParseError)
+import           Model                            as M
+import qualified Network.Wai.Handler.Warp         as Warp
+import           Servant
+import           Servant.Server.Experimental.Auth ()
+import           Servant.Swagger
+import qualified StorageBeam                      as SB
 import           Utils
 
-import qualified Data.ByteString.Base64     as BS64
-import qualified OpenSSL.EVP.Digest         as EVPDigest
-import           OpenSSL.EVP.PKey           (PublicKey, SomePublicKey,
-                                             toPublicKey)
-import           OpenSSL.EVP.Verify         (VerifyStatus (..), verifyBS)
-import           OpenSSL.PEM                (readPublicKey)
-import           OpenSSL.RSA                (RSAPubKey, rsaSize)
-import qualified QueryUtils                 as QU
+import qualified Data.ByteString.Base64           as BS64
+import qualified OpenSSL.EVP.Digest               as EVPDigest
+import           OpenSSL.EVP.PKey                 (PublicKey, SomePublicKey,
+                                                   toPublicKey)
+import           OpenSSL.EVP.Verify               (VerifyStatus (..), verifyBS)
+import           OpenSSL.PEM                      (readPublicKey)
+import           OpenSSL.RSA                      (RSAPubKey, rsaSize)
+import qualified QueryUtils                       as QU
+
 
 instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub) where
   toSwagger _ =
