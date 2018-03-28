@@ -1,12 +1,12 @@
-{-# LANGUAGE OverloadedStrings      #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 -- | General utility functions used throughout the codebase
 module Utils where
 
-import           AppConfig (AppM(..), getEnvType, EnvType(..))
-import           Control.Monad (when)
-import           Control.Monad.Reader (liftIO, MonadIO)
-import qualified Data.Text as T
+import           AppConfig            (AppM (..), EnvType (..), getEnvType)
+import           Control.Monad        (when)
+import           Control.Monad.Reader (MonadIO, liftIO)
+import qualified Data.Text            as T
 
 -- | Given a stringLike, prints it only if the application is in Dev mode
 -- otherwise, does a nop.
@@ -31,5 +31,11 @@ sandwichLog patty = do
   debugLog patty
   debugLog bun
 
+-- | Converts anything to a ``Text``
 toText :: Show a => a -> T.Text
 toText = T.pack . show
+
+findFirstNonEmpty :: [[a]] -> Maybe [a]
+findFirstNonEmpty []      = Nothing
+findFirstNonEmpty ([]:xs) = findFirstNonEmpty xs
+findFirstNonEmpty (x:_)   = Just x
