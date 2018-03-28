@@ -8,7 +8,7 @@ import           Control.Monad        (when)
 import           Control.Monad.Reader (MonadIO, liftIO)
 import qualified Data.Text            as T
 
--- | Given a stringLike, prints it only if the application is in Dev mode
+-- | Given a stringLike, prints it only if the application is in Dev
 -- otherwise, does a nop.
 -- Only works in AppM monad
 debugLog :: Show a => a -> AppM ()
@@ -20,7 +20,7 @@ debugLog strLike = do
 -- It doesn't require that the function is being run in AppM
 debugLogGeneral :: (Show a, MonadIO f) => EnvType -> a -> f ()
 debugLogGeneral envT strLike = do
-  when (envT == Dev) $ liftIO $ putStrLn$ show strLike
+  when (envT == Dev) $ liftIO $ putStrLn $ show strLike
 
 bun :: String
 bun = "========================"
@@ -35,7 +35,7 @@ sandwichLog patty = do
 toText :: Show a => a -> T.Text
 toText = T.pack . show
 
-findFirstNonEmpty :: [[a]] -> Maybe [a]
-findFirstNonEmpty []      = Nothing
-findFirstNonEmpty ([]:xs) = findFirstNonEmpty xs
-findFirstNonEmpty (x:_)   = Just x
+-- findFirstNonEmpty :: [[a]] -> Maybe [a]
+-- findFirstNonEmpty []      = Nothing
+-- findFirstNonEmpty ([]:xs) = findFirstNonEmpty xs
+-- findFirstNonEmpty (x:_)   = Just x
