@@ -115,7 +115,7 @@ data BusinessT f = Business
   { biz_gs1_company_prefix :: C f EPC.GS1CompanyPrefix -- PrimaryKey
   , biz_name               :: C f Text
   , biz_function           :: C f Text
-  , biz_siteName           :: C f Text
+  , biz_site_name          :: C f Text
   , biz_address            :: C f Text
   , biz_lat                :: C f Double
   , biz_long               :: C f Double }
@@ -642,4 +642,3 @@ supplyChainDb = defaultDbSettings
           blockchain_event_id = EventId (fieldNamed "blockchain_event_id")
         }
     }
-
