@@ -5,9 +5,6 @@
 -- Functions in the `service` module use the database functions defined here
 module BeamQueries where
 
-import qualified Model                                    as M
-import qualified StorageBeam                              as SB
--- import           CryptHash (getCryptoPublicKey)
 import           AppConfig                                (AppM, runDb)
 import           Codec.Crypto.RSA                         (PublicKey (..))
 import           Crypto.Scrypt
@@ -38,13 +35,16 @@ import           ErrorUtils                               (defaultToServerError,
                                                            throwBackendError,
                                                            throwUnexpectedDBError,
                                                            toServerError)
+import qualified Model                                    as M
 import           QueryUtils
+import qualified StorageBeam                              as SB
 import           Utils
 
 import           Control.Monad.IO.Class                   (liftIO)
 import           OpenSSL.PEM                              (writePublicKey)
 import           OpenSSL.RSA                              (RSAPubKey)
 {-
+-- Sample NewUser JSON
 {
   "phoneNumber": "0412",
   "emailAddress": "abc@gmail.com",
