@@ -341,16 +341,43 @@ insertLocationEPC
 -- | Maps the relevant insert function for all
 -- ReadPoint, BizLocation, Src, Dest
 insertDWhere :: DWhere -> SB.PrimaryKeyType -> AppM ()
-insertDWhere (DWhere rPoint bizLoc srcT destT) eventId = do
+insertDWhere (DWhere rPoints bizLocs srcTs destTs) eventId = do
   -- These functions are not firing
-  sequence $ insertLocationEPC MU.ReadPoint eventId <$> rPoint
-  sequence $ insertLocationEPC MU.BizLocation eventId <$> bizLoc
-  sequence $ insertSrcDestType MU.Src eventId <$> srcT
-  sequence $ insertSrcDestType MU.Dest eventId <$> destT
+  sequence $ insertLocationEPC MU.ReadPoint eventId <$> rPoints
+  sequence $ insertLocationEPC MU.BizLocation eventId <$> bizLocs
+  sequence $ insertSrcDestType MU.Src eventId <$> srcTs
+  sequence $ insertSrcDestType MU.Dest eventId <$> destTs
   return ()
 
-findDWhere :: DWhere -> SB.PrimaryKeyType
-findDWhere = error "not implemented yet"
+-- | Given a DWhere, looks for all the insertions associated with the DWHere
+-- Think of this as the inverse of ``insertDWhere``
+findDWhere :: SB.PrimaryKeyType -> AppM DWhere
+findDWhere eventId = do
+  rPoints <- findDWhereByLocationField MU.ReadPoint eventId
+  bizLocs <- findDWhereByLocationField MU.BizLocation eventId
+  srcTs <- findDWhereByLocationField MU.Src eventId
+  destTs <- findDWhereByLocationField MU.Dest eventId
+  return $ mergeSBWheres [rPoints, bizLocs, srcTs, destTs]
+
+
+findDWhereByLocationField :: MU.LocationField -> SB.PrimaryKeyType -> AppM [SB.WhereT Identity]
+findDWhereByLocationField locField eventId = do
+  r <- runDb $ runSelectReturningList $ select $ do
+    wheres <- all_ (SB._wheres SB.supplyChainDb)
+    guard_ (
+      SB.where_event_id wheres ==. (val_ $ SB.EventId eventId) &&.
+      SB.where_location_field wheres ==. val_ locField)
+    pure wheres
+  case r of
+    Left  e -> throwUnexpectedDBError $ sqlToServerError e
+    Right w -> return w
+
+
+-- | Merge a list of SB.Wheres into one Data.GS1.DWhere
+-- mergeSBWheres :: [SB.WhereT Identity] -> DWhere
+mergeSBWheres :: [[SB.WhereT Identity]] -> DWhere
+mergeSBWheres [rPoints, bizLocs, srcTs, destTs] = error "not implemented yet"
+mergeSBWheres _                                 = error "Invalid argument(s)"
 
 insertEvent :: SB.PrimaryKeyType -> T.Text -> Event -> AppM SB.PrimaryKeyType
 insertEvent userId jsonEvent event = do
