@@ -373,7 +373,7 @@ findDWhereByLocationField locField eventId = do
     Right w -> return w
 
 
--- | Merge a list of SB.Wheres into one Data.GS1.DWhere
+-- | Merges a list of SB.Wheres into one Data.GS1.DWhere
 -- mergeSBWheres :: [SB.WhereT Identity] -> DWhere
 mergeSBWheres :: [[SB.WhereT Identity]] -> DWhere
 mergeSBWheres [[], [], [], []]                  = DWhere [] [] [] []
