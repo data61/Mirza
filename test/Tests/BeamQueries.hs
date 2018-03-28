@@ -240,7 +240,8 @@ testQueries = do
   describe "DWhere" $ do
     it "Insert DWhere" $ \(conn, env) -> do
       let eventId = dummyId
-      insertedDWhere <- fromRight' <$> (runAppM env $ insertDWhere dummyDWhere eventId)
+      r <- fromRight' <$> (runAppM env $ insertDWhere dummyDWhere eventId)
+      insertedDWhere <- fromRight' <$> (runAppM env $ findDWhere eventId)
       1 `shouldBe` 1
 
 clearContact :: IO ()
