@@ -34,8 +34,3 @@ sandwichLog patty = do
 -- | Converts anything to a ``Text``
 toText :: Show a => a -> T.Text
 toText = T.pack . show
-
--- findFirstNonEmpty :: [[a]] -> Maybe [a]
--- findFirstNonEmpty []      = Nothing
--- findFirstNonEmpty ([]:xs) = findFirstNonEmpty xs
--- findFirstNonEmpty (x:_)   = Just x
