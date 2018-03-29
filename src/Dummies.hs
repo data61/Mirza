@@ -93,7 +93,33 @@ dummyAggregation :: M.AggregationEvent
 dummyAggregation = fromJust $ M.mkAggEvent dummyAggEvent
 
 -- Transaction Events
--- Nothing here as of yet
+
+dummyTransactDWhat :: DWhat
+dummyTransactDWhat =
+  (TransactionDWhat
+    Add
+    dummyParentLabel
+    [BizTransaction{_btid="12345", _bt=Bol}]
+    [
+      IL (SGTIN "0614141" Nothing "107346" "2017"),
+      IL (SGTIN "0614141" Nothing "107346" "2018"),
+      dummyLabelEpc
+    ]
+  )
+
+dummyTransactEvent :: Ev.Event
+dummyTransactEvent =
+  Ev.Event
+    Ev.TransactionEventT
+    Nothing
+    dummyTransactDWhat
+    dummyDWhen
+    dummyDWhy
+    dummyDWhere
+
+dummyTransaction :: M.TransactionEvent
+dummyTransaction = fromJust $ M.mkTransactEvent dummyTransactEvent
+
 
 -- Transformation Events
 
