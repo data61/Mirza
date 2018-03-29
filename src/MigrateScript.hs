@@ -3,11 +3,11 @@
 -- | Contains the migration function of ``supplyChainDb``
 module MigrateScript (migrationStorage) where
 
-import           Database.Beam.Postgres.Migrate
 import           Database.Beam.Migrate.SQL.Tables
 import           Database.Beam.Migrate.Types
 import           Database.Beam.Postgres
-import           Database.Beam.Migrate.Simple (verifySchema)
+import           Database.Beam.Postgres.Migrate
+import           MigrateUtils
 import           StorageBeam
 
 maxLen :: Word
@@ -72,7 +72,7 @@ migrationStorage =
           (field "serial_number" (maybeType $ varchar (Just maxLen)))
           (field "state" (maybeType $ varchar (Just maxLen)))
           (field "lot" (maybeType $ varchar (Just maxLen)))
-          (field "sgtin_filter_value" (maybeType $ varchar (Just maxLen)))
+          (field "sgtin_filter_value" (maybeType $ sgtinFilterValue))
           (field "asset_type" (maybeType $ varchar (Just maxLen)))
           (field "quantity_amount" (maybeType double))
           (field "quantity_uom" (maybeType $ varchar (Just maxLen)))
@@ -101,7 +101,7 @@ migrationStorage =
     <*> createTable "locations"
     (
       Location
-          (field "location_id" text)
+          (field "location_id" locationRefType)
           (BizId (field "location_biz_id" text))
           -- this needs to be locationReferenceNum
           (field "location_lat" double)
@@ -120,8 +120,8 @@ migrationStorage =
     (
       What
           (field "what_id" pkSerialType)
-          (field "what_event_type" (maybeType text))
-          (field "action" (maybeType text))
+          (field "what_event_type" (maybeType eventType))
+          (field "action" (maybeType actionType))
           (LabelId (field "parent" (maybeType pkSerialType)))
           (BizTransactionId (field "what_biz_transaction_id" (maybeType pkSerialType)))
           (TransformationId (field "what_transformation_id" (maybeType pkSerialType)))
@@ -147,9 +147,11 @@ migrationStorage =
     (
       Where
           (field "where_id" pkSerialType)
-          (field "where_source_dest_type" (maybeType $ varchar (Just maxLen)) notNull)
-          (field "where_gs1_location_id" (varchar (Just maxLen)) notNull)
-          (field "where_location_field" (varchar (Just maxLen)) notNull)
+          (field "where_gs1_company_prefix" (varchar (Just maxLen)) notNull)
+          (field "where_source_dest_type" (maybeType $ srcDestType))
+          (field "where_gs1_location_id" (locationRefType) notNull)
+          (field "where_location_field" locationType notNull)
+          (field "where_sgln_ext" (maybeType $ varchar (Just maxLen)))
           (EventId (field "where_event_id" pkSerialType))
     )
     <*> createTable "whens"
@@ -197,5 +199,3 @@ migrationStorage =
           (field "blockchain_address" text notNull)
           (field "blockchain_foreign_id" int notNull)
     )
-
--- myVer = verifySchema migrationStorage
