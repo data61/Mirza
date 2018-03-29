@@ -236,7 +236,6 @@ testQueries = do
         hasBeenRemoved <- fromRight' <$> (runAppM env $ removeContact user otherUserId)
         hasBeenRemoved `shouldBe` False
 
-  -- TODO Complete this
   describe "DWhere" $ do
     it "Insert and find DWhere" $ \(conn, env) -> do
       let eventId = dummyId
