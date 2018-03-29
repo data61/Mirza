@@ -64,6 +64,7 @@ dummyLabelEpc = IL dummyInstanceLabel
 dummyParentLabel :: Maybe ParentLabel
 dummyParentLabel = Just (SSCC "0614141" "1234567890")
 
+dummyBizTransaction = BizTransaction{_btid="12345", _bt=Bol}
 -- Events
 
 -- Object Events
@@ -115,7 +116,7 @@ dummyTransactDWhat =
   (TransactionDWhat
     Add
     dummyParentLabel
-    [BizTransaction{_btid="12345", _bt=Bol}]
+    [dummyBizTransaction]
     dummyEpcList
   )
 
