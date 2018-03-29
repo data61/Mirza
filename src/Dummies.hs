@@ -4,17 +4,18 @@
 -- in GS1Combinators
 module Dummies where
 
-import           Data.UUID (nil)
-import           Data.Maybe (fromJust)
 import           Data.GS1.DWhat
-import           Data.GS1.DWhy
-import           Data.GS1.DWhere
 import           Data.GS1.DWhen
+import           Data.GS1.DWhere
+import           Data.GS1.DWhy
 import           Data.GS1.EPC
-import qualified Data.GS1.Event as Ev
-import           Data.Time.LocalTime
+import qualified Data.GS1.Event      as Ev
+import           Data.Maybe          (fromJust)
 import           Data.Time
-import qualified Model as M
+import           Data.Time.LocalTime
+import           Data.UUID           (nil)
+import qualified Model               as M
+import qualified StorageBeam         as SB
 
 -- add function to generate and take dummyLabelEpc
 
@@ -37,6 +38,9 @@ dummyUser = M.User nil "Sajid" "Anower"
 
 dummyRsaPubKey :: M.RSAPublicKey
 dummyRsaPubKey = M.PEMString "blah"
+
+dummyId :: SB.PrimaryKeyType
+dummyId = nil
 
 -- Events
 
@@ -72,7 +76,7 @@ dummyAggDWhat =
     dummyParentLabel
     [
       dummyLabelEpc,
-      IL (SGTIN "0614141" Nothing "107346" "2018")
+      IL (SGTIN "0614141" (Just UnitLoad) "107346" "2018")
     ]
 
 dummyAggEvent :: Ev.Event
@@ -123,7 +127,7 @@ dummyParentLabel :: Maybe ParentLabel
 dummyParentLabel = Just (SSCC "0614141" "1234567890")
 
 dummyLabelEpc :: LabelEPC
-dummyLabelEpc = IL (SGTIN "0614141" Nothing "107346" "2017")
+dummyLabelEpc = IL (SGTIN "0614141" (Just UnitLoad) "107346" "2017")
 
 dummyDWhen :: DWhen
 dummyDWhen =
@@ -139,7 +143,11 @@ dummyDWhere =
     -- [ReadPointLocation]
     [SGLN "0012345" (LocationReference "11111") Nothing]
     -- [BizLocation]
-    [] []
+    [(SDOwningParty, SGLN "0012347" (LocationReference "12345") Nothing)]
+    [
+      (SDPossessingParty,
+      SGLN "0012348" (LocationReference "12346") (Just "400"))
+    ]
 
 dummyDWhy :: DWhy
 dummyDWhy = DWhy (Just Receiving) (Just InProgress)

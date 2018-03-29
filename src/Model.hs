@@ -1,34 +1,34 @@
-{-# LANGUAGE TemplateHaskell            #-}
 {-# LANGUAGE DeriveGeneric              #-}
-{-# LANGUAGE OverloadedStrings          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE OverloadedStrings          #-}
+{-# LANGUAGE TemplateHaskell            #-}
 {-# OPTIONS_GHC -fno-warn-orphans       #-}
 
 -- | This module is a WIP. Changes will be made to the models very frequently
 module Model where
 
-import qualified Data.ByteString as BS
-import           Data.Text as T
 import           Data.Aeson
 import           Data.Aeson.TH
+import qualified Data.ByteString                  as BS
+import           Data.Text                        as T
 
-import           Servant
-import           Servant.Server.Experimental.Auth()
 import           Data.Swagger
+import           Servant
+import           Servant.Server.Experimental.Auth ()
 
-import           GHC.Generics (Generic)
 import           Data.Time
-import           Data.UUID (UUID)
+import           Data.UUID                        (UUID)
+import           GHC.Generics                     (Generic)
 
-import           Data.GS1.EventID
-import qualified Data.GS1.Event as Ev
-import           Data.GS1.EPC
-import           Data.GS1.DWhere
 import           Data.GS1.DWhat
 import           Data.GS1.DWhen
+import           Data.GS1.DWhere
 import           Data.GS1.DWhy
-import           StorageBeam (PrimaryKeyType)
-import           OpenSSL.RSA (RSAPubKey)
+import           Data.GS1.EPC
+import qualified Data.GS1.Event                   as Ev
+import           Data.GS1.EventID
+import           OpenSSL.RSA                      (RSAPubKey)
+import           StorageBeam                      (PrimaryKeyType)
 --import           Data.ByteString.Base64.Type (ByteString64)
 
 
@@ -133,34 +133,34 @@ instance ToSchema EPCInfo
 
 type Email = T.Text
 data NewUser = NewUser {
-  phoneNumber :: T.Text,
+  phoneNumber  :: T.Text,
   emailAddress :: Email,
-  firstName :: T.Text,
-  lastName :: T.Text,
-  company :: T.Text,
-  password :: T.Text
+  firstName    :: T.Text,
+  lastName     :: T.Text,
+  company      :: T.Text,
+  password     :: T.Text
 } deriving (Generic, Eq, Show)
 $(deriveJSON defaultOptions ''NewUser)
 instance ToSchema NewUser
 
 data SearchFields = SearchFields {
-  sUser :: User,
-  sbizName :: Maybe T.Text,
-  sBizId :: Maybe UUID,
+  sUser             :: User,
+  sbizName          :: Maybe T.Text,
+  sBizId            :: Maybe UUID,
   sGS1CompanyPrefix :: Maybe T.Text,
-  sFunction :: Maybe T.Text,
-  sAddress :: Maybe T.Text
+  sFunction         :: Maybe T.Text,
+  sAddress          :: Maybe T.Text
 }
 
 data Business = Business {
-  bizID :: UUID,
-  bizName :: T.Text,
+  bizID            :: UUID,
+  bizName          :: T.Text,
   gs1CompanyPrefix :: GS1CompanyPrefix,
-  function :: T.Text,
-  siteName :: T.Text,
-  address :: T.Text,
-  lat :: Float,
-  lng :: Float
+  function         :: T.Text,
+  siteName         :: T.Text,
+  address          :: T.Text,
+  lat              :: Float,
+  lng              :: Float
 } deriving (Generic, Eq, Show)
 $(deriveJSON defaultOptions ''Business)
 instance ToSchema Business
@@ -272,10 +272,10 @@ instance ToSchema TransactionEvent
 
 
 data SignedEvent = SignedEvent {
-  signed_eventID :: EventID,
-  signed_keyID :: KeyID,
+  signed_eventID   :: EventID,
+  signed_keyID     :: KeyID,
   signed_signature :: Signature,
-  signed_digest :: Digest
+  signed_digest    :: Digest
 } deriving (Generic)
 $(deriveJSON defaultOptions ''SignedEvent)
 instance ToSchema SignedEvent
@@ -284,7 +284,7 @@ instance ToSchema SignedEvent
 
 data HashedEvent = HashedEvent {
   hashed_eventID :: EventID,
-  hashed_event :: EventHash
+  hashed_event   :: EventHash
 } deriving (Generic)
 $(deriveJSON defaultOptions ''HashedEvent)
 instance ToSchema HashedEvent

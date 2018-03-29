@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP                   #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
@@ -5,23 +6,19 @@
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
-{-# LANGUAGE CPP                   #-}
 {-# LANGUAGE UndecidableInstances  #-}
 {-# OPTIONS_GHC -fno-warn-orphans  #-}
 {-# LANGUAGE DataKinds             #-}
 
 module API where
 
--- import           Prelude        ()
--- import           Prelude.Compat
-import           Servant
--- import           Servant.Server.Experimental.Auth()
-import           Servant.Swagger.UI
-import           Data.Swagger
-import qualified Data.GS1.Event as Ev
+import qualified Data.GS1.Event     as Ev
 import           Data.GS1.EventID
-import           Model as M
-import           StorageBeam (PrimaryKeyType)
+import           Data.Swagger
+import           Model              as M
+import           Servant
+import           Servant.Swagger.UI
+import           StorageBeam        (PrimaryKeyType)
 
 type PrivateAPI =
        "epc" :>  Capture "urn" String:> "info" :> Get '[JSON] EPCState

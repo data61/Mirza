@@ -1,41 +1,48 @@
-{-# LANGUAGE OverloadedStrings      #-}
+{-# LANGUAGE FlexibleContexts  #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 -- | This module is incomplete as of yet.
 -- Functions in the `service` module use the database functions defined here
 module BeamQueries where
 
-import qualified Model as M
-import qualified StorageBeam as SB
-import           Data.ByteString (ByteString)
+import           AppConfig                                (AppM, runDb)
+import           Codec.Crypto.RSA                         (PublicKey (..))
 import           Crypto.Scrypt
-import           Data.Text.Encoding
-import           Database.PostgreSQL.Simple.Internal (SqlError(..))
-import           Database.Beam as B
-import           Database.Beam.Backend.SQL.BeamExtensions
-import           AppConfig (AppM, runDb)
-import qualified Data.Text as T
-import qualified Data.GS1.EPC as EPC
-import           Data.GS1.DWhat (DWhat(..), LabelEPC(..))
-import           Data.GS1.DWhy (DWhy(..))
-import           Data.GS1.DWhere (DWhere(..), SrcDestLocation)
-import           Data.GS1.DWhen (DWhen(..))
-import qualified Data.GS1.EventID as EvId
-import qualified Data.GS1.Event as Ev
-import           Utils
-import           QueryUtils
-import           Codec.Crypto.RSA (PublicKey (..))
 import           Data.Binary
-import           Data.ByteString.Lazy (toStrict, fromStrict)
-import           Errors (ServiceError(..), ServerError(..))
-import           ErrorUtils (throwBackendError, throwAppError, toServerError
-                            , defaultToServerError, sqlToServerError
-                            , throwUnexpectedDBError)
-import           Database.PostgreSQL.Simple.Errors (ConstraintViolation(..)
-                                                   , constraintViolation)
+import           Data.ByteString                          (ByteString)
+import           Data.ByteString.Lazy                     (fromStrict, toStrict)
+import           Data.GS1.DWhat                           (DWhat (..),
+                                                           LabelEPC (..))
+import           Data.GS1.DWhen                           (DWhen (..))
+import           Data.GS1.DWhere                          (DWhere (..),
+                                                           SrcDestLocation)
+import           Data.GS1.DWhy                            (DWhy (..))
+import qualified Data.GS1.EPC                             as EPC
+import qualified Data.GS1.Event                           as Ev
+import qualified Data.GS1.EventID                         as EvId
+import qualified Data.Text                                as T
+import           Data.Text.Encoding
+import           Database.Beam                            as B
+import           Database.Beam.Backend.SQL.BeamExtensions
+import           Database.PostgreSQL.Simple.Errors        (ConstraintViolation (..),
+                                                           constraintViolation)
+import           Database.PostgreSQL.Simple.Internal      (SqlError (..))
+import           Errors                                   (ServerError (..),
+                                                           ServiceError (..))
+import           ErrorUtils                               (defaultToServerError,
+                                                           sqlToServerError,
+                                                           throwAppError,
+                                                           throwBackendError,
+                                                           throwUnexpectedDBError,
+                                                           toServerError)
+import qualified Model                                    as M
+import           QueryUtils
+import qualified StorageBeam                              as SB
+import           Utils
 
-import           OpenSSL.RSA   (RSAPubKey)
-import           OpenSSL.PEM   (writePublicKey)
-import           Control.Monad.IO.Class (liftIO)
+import           Control.Monad.IO.Class                   (liftIO)
+import           OpenSSL.PEM                              (writePublicKey)
+import           OpenSSL.RSA                              (RSAPubKey)
 
 {-
 -- Sample NewUser JSON
@@ -64,11 +71,12 @@ insertUser encPass (M.NewUser phone email firstName lastName biz _) = do
             )
   case res of
     Right [r] -> return $ SB.user_id r
-    Left e ->
+    Left e    ->
       case constraintViolation e of
         Just (UniqueViolation "users_email_address_key")
-            -> throwAppError $ EmailExists (sqlToServerError e) email
-        _   -> throwAppError $ InsertionFail (toServerError (Just . sqlState) e) email
+          -> throwAppError $ EmailExists (sqlToServerError e) email
+        _ -> throwAppError $ InsertionFail (toServerError (Just . sqlState) e) email
+        -- ^ Generic insertion error
     _         -> throwBackendError res
 
 -- | Hashes the password of the NewUser and inserts the user into the database
@@ -129,8 +137,8 @@ getPublicKey keyId = do
     pure (SB.pem_str allKeys)
   case r of
     Right [k] -> return $ M.PEMString $ T.unpack k
-    Right _ -> throwAppError $ InvalidKeyID keyId
-    Left e  -> throwUnexpectedDBError $ sqlToServerError e
+    Right _   -> throwAppError $ InvalidKeyID keyId
+    Left e    -> throwUnexpectedDBError $ sqlToServerError e
 
 getPublicKeyInfo :: M.KeyID -> AppM M.KeyInfo
 getPublicKeyInfo keyId = do

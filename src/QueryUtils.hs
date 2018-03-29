@@ -8,40 +8,51 @@
 -- Model type and its Storage equivalent
 module QueryUtils where
 
-import           Data.Time.LocalTime (utc, utcToLocalTime
-                                     , LocalTime, localTimeToUTC
-                                     , timeZoneOffsetString)
-import           Data.Time (UTCTime, ZonedTime(..), utcToZonedTime
-                           , zonedTimeToUTC)
-import           AppConfig (AppM(..), runDb, getDBConn)
-import qualified StorageBeam as SB
-import           Data.UUID.V4 (nextRandom)
-import           Data.Time.Clock (getCurrentTime)
-import           Control.Monad.Reader (liftIO)
-import           Data.Maybe (catMaybes)
-import           Data.GS1.Event (Event(..))
-import           Data.Aeson.Text (encodeToLazyText)
-import           Data.Aeson (decode)
-import qualified Data.Text.Lazy as TxtL
-import qualified Data.Text as T
-import           Data.GS1.EPC as EPC
-import           Data.GS1.DWhat (DWhat(..), LabelEPC(..))
-import           Data.GS1.DWhy (DWhy(..))
-import           Data.GS1.DWhere (DWhere(..), SrcDestLocation)
-import           Data.GS1.DWhen (DWhen(..))
-import qualified Data.GS1.EventID as EvId
-import qualified Data.GS1.Event as Ev
-import           Utils
-import           Database.Beam as B
+import           AppConfig                                (AppM (..), getDBConn,
+                                                           runDb)
+import           Control.Monad.Reader                     (liftIO)
+import           Data.Aeson                               (decode)
+import           Data.Aeson.Text                          (encodeToLazyText)
+import           Data.ByteString                          (ByteString)
+import           Data.GS1.DWhat                           (DWhat (..),
+                                                           LabelEPC (..))
+import           Data.GS1.DWhen                           (DWhen (..))
+import           Data.GS1.DWhere                          (BizLocation,
+                                                           DWhere (..),
+                                                           SrcDestLocation)
+import           Data.GS1.DWhy                            (DWhy (..))
+import           Data.GS1.EPC                             as EPC
+import           Data.GS1.Event                           (Event (..))
+import qualified Data.GS1.Event                           as Ev
+import qualified Data.GS1.EventID                         as EvId
+import           Data.Maybe                               (catMaybes, fromJust)
+import qualified Data.Text                                as T
+import qualified Data.Text.Encoding                       as En
+import qualified Data.Text.Lazy                           as TxtL
+import qualified Data.Text.Lazy.Encoding                  as LEn
+import           Data.Time                                (UTCTime,
+                                                           ZonedTime (..),
+                                                           utcToZonedTime,
+                                                           zonedTimeToUTC)
+import           Data.Time.Clock                          (getCurrentTime)
+import           Data.Time.LocalTime                      (LocalTime,
+                                                           localTimeToUTC,
+                                                           timeZoneOffsetString,
+                                                           utc, utcToLocalTime)
+import           Data.UUID.V4                             (nextRandom)
+import           Database.Beam                            as B
 import           Database.Beam.Backend.SQL.BeamExtensions (runInsertReturningList)
-import           Data.ByteString (ByteString)
-import qualified Model as M
-import           ErrorUtils (throwBackendError, throwAppError, toServerError
-                            , defaultToServerError, sqlToServerError
-                            , throwUnexpectedDBError)
 import           Database.PostgreSQL.Simple
-import qualified Data.Text.Lazy.Encoding as LEn
-import qualified Data.Text.Encoding as En
+import           ErrorUtils                               (defaultToServerError,
+                                                           sqlToServerError,
+                                                           throwAppError,
+                                                           throwBackendError,
+                                                           throwUnexpectedDBError,
+                                                           toServerError)
+import qualified MigrateUtils                             as MU
+import qualified Model                                    as M
+import qualified StorageBeam                              as SB
+import           Utils
 
 -- | Reads back the ``LocalTime`` in UTCTime (with an offset of 0)
 toEPCISTime :: LocalTime -> UTCTime
@@ -94,7 +105,7 @@ epcToStorageLabel labelType whatId pKey (IL (SGTIN gs1Prefix fv ir sn)) =
   SB.Label pKey labelType (SB.WhatId whatId)
            gs1Prefix (Just ir)
            (Just sn) Nothing Nothing
-           (toText <$> fv)
+           fv
            Nothing Nothing Nothing
 
 epcToStorageLabel labelType whatId pKey (IL (GIAI gs1Prefix sn)) =
@@ -121,18 +132,18 @@ epcToStorageLabel labelType whatId pKey (CL (LGTIN gs1Prefix ir lot) mQ) =
 epcToStorageLabel labelType whatId pKey (CL (CSGTIN gs1Prefix fv ir) mQ) =
   SB.Label pKey labelType (SB.WhatId whatId)
            gs1Prefix (Just ir) Nothing
-           Nothing Nothing (toText <$> fv) Nothing
+           Nothing Nothing fv Nothing
            (getQuantityAmount mQ) (getQuantityUom mQ)
 
 getQuantityAmount :: Maybe Quantity -> Maybe Double
-getQuantityAmount Nothing = Nothing
+getQuantityAmount Nothing                       = Nothing
 getQuantityAmount (Just (MeasuredQuantity a _)) = Just $ realToFrac a
-getQuantityAmount (Just (ItemCount c)) = Just $ realToFrac c
+getQuantityAmount (Just (ItemCount c))          = Just $ realToFrac c
 
 getQuantityUom :: Maybe Quantity -> Maybe EPC.Uom
-getQuantityUom Nothing = Nothing
+getQuantityUom Nothing                       = Nothing
 getQuantityUom (Just (MeasuredQuantity _ u)) = Just u
-getQuantityUom (Just (ItemCount _)) = Nothing
+getQuantityUom (Just (ItemCount _))          = Nothing
 
 
 -- | GS1 DWhat to Storage DWhat
@@ -145,23 +156,23 @@ toStorageDWhat :: SB.PrimaryKeyType
                -> SB.What
 toStorageDWhat pKey mParentId mBizTranId eventId dwhat
    = SB.What pKey
-            (Just . Ev.stringify . Ev.getEventType $ dwhat)
-            (toText <$> getAction dwhat)
-            (SB.LabelId mParentId)
-            (SB.BizTransactionId mBizTranId)
-            (SB.TransformationId $ getTransformationId dwhat)
-            (SB.EventId eventId)
+        (Just . Ev.getEventType $ dwhat)
+        (getAction dwhat)
+        (SB.LabelId mParentId)
+        (SB.BizTransactionId mBizTranId)
+        (SB.TransformationId $ getTransformationId dwhat)
+        (SB.EventId eventId)
 
 getTransformationId :: DWhat -> Maybe TransformationID
 getTransformationId t@(TransformationDWhat _ _ _) = _transformationId t
-getTransformationId _ = Nothing
+getTransformationId _                             = Nothing
 
 
 getAction :: DWhat -> Maybe Action
-getAction (TransformationDWhat _ _ _) = Nothing
-getAction (ObjectDWhat act _) = Just act
+getAction (TransformationDWhat _ _ _)  = Nothing
+getAction (ObjectDWhat act _)          = Just act
 getAction (TransactionDWhat act _ _ _) = Just act
-getAction (AggregationDWhat act _ _) = Just act
+getAction (AggregationDWhat act _ _)   = Just act
 
 
 findInstLabelId :: InstanceLabelEPC -> AppM (Maybe SB.PrimaryKeyType)
@@ -182,11 +193,10 @@ findInstLabelId' cp sn msfv mir mat = do
     labels <- all_ (SB._labels SB.supplyChainDb)
     guard_ (SB.label_gs1_company_prefix labels ==. val_ cp &&.
             SB.serial_number labels ==. (val_ $ Just sn) &&.
-            (SB.sgtin_filter_value labels) ==. (val_ $ T.pack . show <$> msfv) &&.
+            (SB.sgtin_filter_value labels) ==. (val_ msfv) &&.
             SB.asset_type labels ==. val_ mat &&.
             SB.item_reference labels ==. val_ mir)
     pure labels
-  sandwichLog r
   case r of
     Right [l] -> return $ Just (SB.label_id l)
     _         -> return Nothing
@@ -206,7 +216,7 @@ findClassLabelId' cp msfv ir lot = do
     labels <- all_ (SB._labels SB.supplyChainDb)
     guard_ (
              SB.label_gs1_company_prefix labels ==. val_ cp &&.
-             (SB.sgtin_filter_value labels) ==. (val_ $ T.pack . show <$> msfv) &&.
+             (SB.sgtin_filter_value labels) ==. (val_ msfv) &&.
              SB.lot labels ==. (val_ lot) &&.
              SB.item_reference labels ==. (val_ . Just $ ir)
            )
@@ -217,7 +227,7 @@ findClassLabelId' cp msfv ir lot = do
 
 
 findLabelId :: LabelEPC -> AppM (Maybe SB.PrimaryKeyType)
-findLabelId (IL l) = findInstLabelId l
+findLabelId (IL l)   = findInstLabelId l
 findLabelId (CL c _) = findClassLabelId c
 
 getParentId :: DWhat -> AppM (Maybe SB.PrimaryKeyType)
@@ -284,20 +294,22 @@ insertDWhy dwhy eventId = do
     Left  e -> throwUnexpectedDBError $ sqlToServerError e
     Right _ -> return pKey
 
-insertSrcDestType :: SB.LocationField
+insertSrcDestType :: MU.LocationField
                   -> SB.PrimaryKeyType
                   -> SrcDestLocation
                   -> AppM SB.PrimaryKeyType
 insertSrcDestType
   locField
   eventId
-  (sdType, SGLN gs1Company (LocationReference locationRef) ext) = do
+  (sdType, SGLN pfix locationRef ext) = do
   pKey <- generatePk
   let
       stWhere = SB.Where pKey
-                (Just . toText $ sdType)
+                pfix
+                (Just sdType)
                 locationRef
-                (toText locField)
+                locField
+                ext
                 (SB.EventId eventId)
   r <- runDb $ B.runInsert $ B.insert (SB._wheres SB.supplyChainDb)
              $ insertValues [stWhere]
@@ -305,36 +317,91 @@ insertSrcDestType
     Left  e -> throwUnexpectedDBError $ sqlToServerError e
     Right _ -> return pKey
 
-insertLocationEPC :: SB.LocationField
+insertLocationEPC :: MU.LocationField
                   -> SB.PrimaryKeyType
                   -> LocationEPC
                   -> AppM SB.PrimaryKeyType
 insertLocationEPC
   locField
   eventId
-  (SGLN gs1Company (LocationReference locationRef) ext) = do
-  pKey <- generatePk
-  let
-      stWhere = SB.Where pKey
-                Nothing
-                locationRef
-                (toText locField)
-                (SB.EventId eventId)
-  r <- runDb $ B.runInsert $ B.insert (SB._wheres SB.supplyChainDb)
-             $ insertValues [stWhere]
-  case r of
-    Left  e -> throwUnexpectedDBError $ sqlToServerError e
-    Right _ -> return pKey
+  (SGLN pfix locationRef ext) = do
+    pKey <- generatePk
+    let stWhere = SB.Where pKey
+                  pfix
+                  Nothing
+                  locationRef
+                  locField
+                  ext
+                  (SB.EventId eventId)
+    r <- runDb $ B.runInsert $ B.insert (SB._wheres SB.supplyChainDb)
+                $ insertValues [stWhere]
+    case r of
+      Left  e -> throwUnexpectedDBError $ sqlToServerError e
+      Right _ -> return pKey
 
 -- | Maps the relevant insert function for all
 -- ReadPoint, BizLocation, Src, Dest
 insertDWhere :: DWhere -> SB.PrimaryKeyType -> AppM ()
-insertDWhere (DWhere rPoint bizLoc srcT destT) eventId = do
-  return $ insertLocationEPC SB.ReadPoint eventId <$> rPoint
-  return $ insertLocationEPC SB.BizLocation eventId <$> bizLoc
-  return $ insertSrcDestType SB.Src eventId <$> srcT
-  return $ insertSrcDestType SB.Dest eventId <$> destT
+insertDWhere (DWhere rPoints bizLocs srcTs destTs) eventId = do
+  -- These functions are not firing
+  sequence $ insertLocationEPC MU.ReadPoint eventId <$> rPoints
+  sequence $ insertLocationEPC MU.BizLocation eventId <$> bizLocs
+  sequence $ insertSrcDestType MU.Src eventId <$> srcTs
+  sequence $ insertSrcDestType MU.Dest eventId <$> destTs
   return ()
+
+-- | Given a DWhere, looks for all the insertions associated with the DWHere
+-- Think of this as the inverse of ``insertDWhere``
+findDWhere :: SB.PrimaryKeyType -> AppM DWhere
+findDWhere eventId = do
+  rPoints <- findDWhereByLocationField MU.ReadPoint eventId
+  bizLocs <- findDWhereByLocationField MU.BizLocation eventId
+  srcTs <- findDWhereByLocationField MU.Src eventId
+  destTs <- findDWhereByLocationField MU.Dest eventId
+  return $ mergeSBWheres [rPoints, bizLocs, srcTs, destTs]
+
+findDWhereByLocationField :: MU.LocationField -> SB.PrimaryKeyType -> AppM [SB.WhereT Identity]
+findDWhereByLocationField locField eventId = do
+  r <- runDb $ runSelectReturningList $ select $ do
+    wheres <- all_ (SB._wheres SB.supplyChainDb)
+    guard_ (
+      SB.where_event_id wheres ==. (val_ $ SB.EventId eventId) &&.
+      SB.where_location_field wheres ==. val_ locField)
+    pure wheres
+  case r of
+    Left  e -> throwUnexpectedDBError $ sqlToServerError e
+    Right w -> return w
+
+
+-- | Merges a list of SB.Wheres into one Data.GS1.DWhere
+-- mergeSBWheres :: [SB.WhereT Identity] -> DWhere
+mergeSBWheres :: [[SB.WhereT Identity]] -> DWhere
+mergeSBWheres [rPointsW, bizLocsW, srcTsW, destTsW] = do
+  let rPoints = constructLocation <$> rPointsW
+      bizLocs = constructLocation <$> bizLocsW
+      srcTs = constructSrcDestLocation <$> srcTsW
+      destTs = constructSrcDestLocation <$> destTsW
+      in
+        DWhere rPoints bizLocs srcTs destTs
+mergeSBWheres _                                     = error "Invalid arguments"
+
+-- | This relies on the user calling this function in the appropriate WhereT
+constructSrcDestLocation :: SB.WhereT Identity -> SrcDestLocation
+constructSrcDestLocation whereT =
+  let sdType = fromJust . SB.where_source_dest_type $ whereT
+      locationEpc = constructLocation whereT
+      in
+        (sdType, locationEpc)
+
+-- | This relies on the user calling this function in the appropriate WhereT
+constructLocation :: SB.WhereT Identity -> LocationEPC
+constructLocation whereT =
+  EPC.SGLN
+    (SB.where_gs1_company_prefix whereT)
+    (SB.where_gs1_location_id whereT)
+    (SB.where_sgln_ext whereT)
+
+
 
 insertEvent :: SB.PrimaryKeyType -> T.Text -> Event -> AppM SB.PrimaryKeyType
 insertEvent userId jsonEvent event = do
@@ -460,23 +527,3 @@ findEvent eventId = do
 
 storageToModelEvent :: SB.Event -> Maybe Ev.Event
 storageToModelEvent = decodeEvent . SB.json_event
-
-
--- | This is a test util to check that BEAM can insert and return time
--- insertTime :: AppM ()
--- insertTime = do
---   timeId <- generatePk
---   timeStamp <- generateTimeStamp
---   sandwichLog timeStamp
---   debugLog ("The program did not crash yet" )
---   r <- runDb $
---         runInsertReturningList (SB._my_time SB.supplyChainDb) $
---                insertValues
---                [
---                  SB.MyTime
---                  timeId
---                  timeStamp
---                ]
---   debugLog "Done with the query"
---   sandwichLog r
-

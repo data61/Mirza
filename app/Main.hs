@@ -1,13 +1,13 @@
-{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE OverloadedStrings #-}
 module Main where
 
+import           AppConfig           (EnvType (..))
+import           Data.ByteString     (ByteString)
+import           Data.Semigroup      ((<>))
 import           Lib
 import           Migrate
-import           Data.ByteString (ByteString)
-import           Migrate (defConnectionStr)
+import           Migrate             (defConnectionStr)
 import           Options.Applicative
-import           Data.Semigroup ((<>))
-import           AppConfig (EnvType(..))
 
 data ServerOptions = ServerOptions
   { env           :: EnvType

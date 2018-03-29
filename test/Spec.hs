@@ -1,17 +1,17 @@
-{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Main where
 
+import           Test.Hspec                 (around, hspec)
 import           Tests.BeamQueries
-import           Test.Hspec   (hspec, around)
 
-import Database.Beam.Postgres
-import Database.PostgreSQL.Simple
-import Data.ByteString
-import Control.Exception (bracket)
-import Migrate
-import AppConfig as AC
-import Data.Int
+import           AppConfig                  as AC
+import           Control.Exception          (bracket)
+import           Data.ByteString
+import           Data.Int
+import           Database.Beam.Postgres
+import           Database.PostgreSQL.Simple
+import           Migrate
 
 -- dbFunc = withDatabaseDebug putStrLn
 
@@ -24,7 +24,7 @@ import Data.Int
 -- drop all tables created by migration. Equivalent to, at the time of writing;
 -- execute_ conn "DROP TABLE IF EXISTS users, keys, businesses, contacts, labels, what_labels, items, transformations, locations, events, whats, \"bizTransactions\", whys, wheres, whens, \"labelEvents\", \"userEvents\", hashes, blockchain;"
 dropTables :: Connection -> IO Int64
-dropTables conn = 
+dropTables conn =
   --https://stackoverflow.com/questions/3327312/drop-all-tables-in-postgresql
   execute_ conn "DO $$ DECLARE                                                                              \
                \     r RECORD;                                                                              \
