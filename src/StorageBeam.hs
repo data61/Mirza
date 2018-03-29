@@ -36,7 +36,7 @@ import           Data.ByteString                      (ByteString)
 import           Data.ByteString.Char8                (pack)
 import qualified Data.GS1.EPC                         as EPC
 import qualified Data.GS1.Event                       as Ev
-import           Data.Swagger                         ()
+-- import           Data.Swagger                         ()
 import           Data.Text                            (Text)
 import           Data.Time
 import           Data.UUID                            (UUID)
@@ -44,10 +44,8 @@ import           Database.Beam.Backend.SQL
 import           Database.PostgreSQL.Simple.FromField (Conversion, Field,
                                                        FromField, fromField,
                                                        returnError)
-import           Database.PostgreSQL.Simple.ToField   (ToField, toField)
 import qualified MigrateUtils                         as MU
 import           Servant                              ()
-import           Text.Read                            (readMaybe)
 
 type PrimaryKeyType = UUID
 -- IMPLEMENTME - NOT NOW
