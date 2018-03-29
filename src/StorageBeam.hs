@@ -29,23 +29,17 @@
 module StorageBeam where
 
 import           Control.Lens
-import           Database.Beam                        as B
+import           Database.Beam          as B
 import           Database.Beam.Postgres
 
-import           Data.ByteString                      (ByteString)
-import           Data.ByteString.Char8                (pack)
-import qualified Data.GS1.EPC                         as EPC
-import qualified Data.GS1.Event                       as Ev
--- import           Data.Swagger                         ()
-import           Data.Text                            (Text)
+import           Data.ByteString        (ByteString)
+import qualified Data.GS1.EPC           as EPC
+import qualified Data.GS1.Event         as Ev
+import           Data.Text              (Text)
 import           Data.Time
-import           Data.UUID                            (UUID)
-import           Database.Beam.Backend.SQL
-import           Database.PostgreSQL.Simple.FromField (Conversion, Field,
-                                                       FromField, fromField,
-                                                       returnError)
-import qualified MigrateUtils                         as MU
-import           Servant                              ()
+import           Data.UUID              (UUID)
+import qualified MigrateUtils           as MU
+import           Servant                ()
 
 type PrimaryKeyType = UUID
 -- IMPLEMENTME - NOT NOW
