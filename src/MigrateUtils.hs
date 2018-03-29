@@ -52,6 +52,8 @@ defaultFromField fName f bs = do
 textType :: BMigrate.DataType PgDataTypeSyntax a
 textType = BMigrate.DataType pgTextType
 
+-- | Helper function to manage the returnValue of ``readMaybe`` or gracefully
+-- fail
 handleReadColumn :: Monad f => Maybe a -> String -> String -> f a
 handleReadColumn (Just a) _ _= pure a
 handleReadColumn Nothing colName val =
