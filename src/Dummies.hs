@@ -137,7 +137,7 @@ dummyTransaction = fromJust $ M.mkTransactEvent dummyTransactEvent
 
 -- Transformation Events
 
-dummyBizTransactiondummyTransfDWhat :: DWhat
+dummyTransfDWhat :: DWhat
 dummyTransfDWhat =
   (TransformationDWhat
     Nothing
