@@ -270,6 +270,25 @@ data TransactionEvent = TransactionEvent {
 $(deriveJSON defaultOptions ''TransactionEvent)
 instance ToSchema TransactionEvent
 
+mkTransactEvent :: Ev.Event -> Maybe TransactionEvent
+mkTransactEvent
+  (Ev.Event Ev.TransactionEventT
+    mEid
+    (TransactionDWhat act mParentLabel bizTransactions epcList)
+    dwhen dwhy dwhere
+  ) = Just $
+      TransactionEvent
+        mEid act mParentLabel bizTransactions epcList []
+        dwhen dwhy dwhere
+mkTransactEvent _ = Nothing
+
+fromTransactEvent :: TransformationEvent ->  Ev.Event
+fromTransactEvent (TransformationEvent mEid mTransfId inputs outputs dwhen dwhy dwhere) =
+  Ev.Event
+    Ev.TransformationEventT
+    mEid
+    (TransformationDWhat mTransfId inputs outputs)
+    dwhen dwhy dwhere
 
 data SignedEvent = SignedEvent {
   signed_eventID   :: EventID,

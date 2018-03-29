@@ -9,23 +9,23 @@ import           Data.GS1.DWhen
 import           Data.GS1.DWhere
 import           Data.GS1.DWhy
 import           Data.GS1.EPC
-import qualified Data.GS1.Event      as Ev
-import           Data.Maybe          (fromJust)
+import qualified Data.GS1.Event  as Ev
+import           Data.Maybe      (fromJust)
 import           Data.Time
-import           Data.Time.LocalTime
-import           Data.UUID           (nil)
-import qualified Model               as M
-import qualified StorageBeam         as SB
+import           Data.UUID       (nil)
+import qualified Model           as M
+import qualified StorageBeam     as SB
 
 -- add function to generate and take dummyLabelEpc
 
 -- General Utils
 dummyNewUser :: M.NewUser
-dummyNewUser = M.NewUser "000" "fake@gmail.com" "New" "User" "Lomondo" "thi$i5fake"
+dummyNewUser = makeDummyNewUser "fake@gmail.com"
 
 -- | Utility function to make many users on the fly
 makeDummyNewUser :: M.Email -> M.NewUser
-makeDummyNewUser emailAddress = M.NewUser "000" emailAddress "Bob" "Smith" "blah Ltd" "password"
+makeDummyNewUser emailAddress =
+    M.NewUser "000" emailAddress "Bob" "Smith" "blah Ltd" "password"
 
 dummyLocation :: LocationEPC
 dummyLocation = SGLN "blah Ltd" (LocationReference "11111") Nothing
@@ -42,6 +42,30 @@ dummyRsaPubKey = M.PEMString "blah"
 dummyId :: SB.PrimaryKeyType
 dummyId = nil
 
+dummyEpcList :: [LabelEPC]
+dummyEpcList =
+  [
+    dummyLabelEpc,
+    IL (SGTIN "0614141" Nothing "107346" "2018"), -- an extra label
+    dummyClassLabel
+  ]
+
+dummyInstanceLabel :: InstanceLabelEPC
+dummyInstanceLabel = SGTIN "0614141" (Just UnitLoad) "107346" "2017"
+
+
+dummyClassLabel :: LabelEPC
+dummyClassLabel = CL (CSGTIN "4012345" Nothing "098765") Nothing
+
+
+dummyLabelEpc :: LabelEPC
+dummyLabelEpc = IL dummyInstanceLabel
+
+dummyParentLabel :: Maybe ParentLabel
+dummyParentLabel = Just (SSCC "0614141" "1234567890")
+
+dummyBizTransaction :: BizTransaction
+dummyBizTransaction = BizTransaction{_btid="12345", _bt=Bol}
 -- Events
 
 -- Object Events
@@ -59,10 +83,7 @@ dummyObjectDWhat :: DWhat
 dummyObjectDWhat =
   ObjectDWhat
     Add
-    [
-      dummyLabelEpc,
-      IL (SGTIN "0614141" Nothing "107346" "2018")
-    ]
+    dummyEpcList
 
 dummyObject :: M.ObjectEvent
 dummyObject = fromJust $ M.mkObjectEvent dummyObjEvent
@@ -74,10 +95,7 @@ dummyAggDWhat =
   AggregationDWhat
     Delete
     dummyParentLabel
-    [
-      dummyLabelEpc,
-      IL (SGTIN "0614141" (Just UnitLoad) "107346" "2018")
-    ]
+    dummyEpcList
 
 dummyAggEvent :: Ev.Event
 dummyAggEvent =
@@ -93,7 +111,29 @@ dummyAggregation :: M.AggregationEvent
 dummyAggregation = fromJust $ M.mkAggEvent dummyAggEvent
 
 -- Transaction Events
--- Nothing here as of yet
+
+dummyTransactDWhat :: DWhat
+dummyTransactDWhat =
+  (TransactionDWhat
+    Add
+    dummyParentLabel
+    [dummyBizTransaction]
+    dummyEpcList
+  )
+
+dummyTransactEvent :: Ev.Event
+dummyTransactEvent =
+  Ev.Event
+    Ev.TransactionEventT
+    Nothing
+    dummyTransactDWhat
+    dummyDWhen
+    dummyDWhy
+    dummyDWhere
+
+dummyTransaction :: M.TransactionEvent
+dummyTransaction = fromJust $ M.mkTransactEvent dummyTransactEvent
+
 
 -- Transformation Events
 
@@ -101,11 +141,9 @@ dummyTransfDWhat :: DWhat
 dummyTransfDWhat =
   (TransformationDWhat
     Nothing
-    [
-      dummyLabelEpc,
-      IL (SGTIN "0614141" Nothing "107346" "2018")
-    ]
-    [CL (CSGTIN "4012345" Nothing "098765") Nothing]
+    dummyEpcList
+    [CL (CSGTIN "4012345" Nothing "098769") Nothing]
+    -- ^ adding a slightly different class for variety
   )
 
 dummyTransfEvent :: Ev.Event
@@ -123,12 +161,6 @@ dummyTransformation = fromJust $ M.mkTransfEvent dummyTransfEvent
 
 -- Dimensions
 
-dummyParentLabel :: Maybe ParentLabel
-dummyParentLabel = Just (SSCC "0614141" "1234567890")
-
-dummyLabelEpc :: LabelEPC
-dummyLabelEpc = IL (SGTIN "0614141" (Just UnitLoad) "107346" "2017")
-
 dummyDWhen :: DWhen
 dummyDWhen =
   DWhen
@@ -143,7 +175,10 @@ dummyDWhere =
     -- [ReadPointLocation]
     [SGLN "0012345" (LocationReference "11111") Nothing]
     -- [BizLocation]
-    [(SDOwningParty, SGLN "0012347" (LocationReference "12345") Nothing)]
+    [
+      (SDOwningParty,
+      SGLN "0012347" (LocationReference "12345") Nothing)
+    ]
     [
       (SDPossessingParty,
       SGLN "0012348" (LocationReference "12346") (Just "400"))
