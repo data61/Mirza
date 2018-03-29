@@ -64,6 +64,7 @@ dummyLabelEpc = IL dummyInstanceLabel
 dummyParentLabel :: Maybe ParentLabel
 dummyParentLabel = Just (SSCC "0614141" "1234567890")
 
+dummyBizTransaction :: BizTransaction
 dummyBizTransaction = BizTransaction{_btid="12345", _bt=Bol}
 -- Events
 
@@ -136,7 +137,7 @@ dummyTransaction = fromJust $ M.mkTransactEvent dummyTransactEvent
 
 -- Transformation Events
 
-dummyTransfDWhat :: DWhat
+dummyBizTransactiondummyTransfDWhat :: DWhat
 dummyTransfDWhat =
   (TransformationDWhat
     Nothing
