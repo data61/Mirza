@@ -178,6 +178,19 @@ testQueries = do
       eventList <- fromRight' <$> (runAppM env $ listEvents dummyLabelEpc)
       eventList `shouldBe` [insertedEvent]
 
+  describe "Transaction Event" $ do
+    it "Insert Transaction Event" $ \(conn, env) -> do
+      insertedEvent <- fromRight' <$> (runAppM env $ insertTransactEvent dummyUser dummyTransaction)
+      insertedEvent `shouldSatisfy`
+        (\ev -> ev == dummyTransactEvent)
+
+    it "List event" $ \(conn, env) -> do
+      insertedEvent <- fromRight' <$> (runAppM env $ insertTransactEvent dummyUser dummyTransaction)
+      insertedEvent `shouldSatisfy`
+        (\ev -> ev == dummyTransactEvent)
+      eventList <- fromRight' <$> (runAppM env $ listEvents dummyLabelEpc)
+      eventList `shouldBe` [insertedEvent]
+
   describe "getUser tests" $ do
     it "getUser test 1" $ \(conn, env) -> do
       uid <- fromRight' <$> (runAppM env $ newUser dummyNewUser)

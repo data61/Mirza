@@ -288,10 +288,10 @@ insertTransfEvent
 
 -- XXX This function is not tested yet.
 -- Needs more specifications for implementation.
-insertTransactionEvent :: M.User
+insertTransactEvent :: M.User
                        -> M.TransactionEvent
                        -> AppM Ev.Event
-insertTransactionEvent
+insertTransactEvent
   (M.User userId _ _ )
   (M.TransactionEvent
     foreignEventId

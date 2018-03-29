@@ -309,7 +309,7 @@ eventAggregateObjects :: User -> AggregationEvent -> AC.AppM Ev.Event
 eventAggregateObjects = BQ.insertAggEvent
 
 eventStartTransaction :: User -> TransactionEvent -> AC.AppM Ev.Event
-eventStartTransaction = BQ.insertTransactionEvent
+eventStartTransaction = BQ.insertTransactEvent
 
 eventTransformObject :: User -> TransformationEvent -> AC.AppM Ev.Event
 eventTransformObject = BQ.insertTransfEvent
