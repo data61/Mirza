@@ -235,3 +235,76 @@ instance ToField LocationField where
 
 locationType :: BMigrate.DataType PgDataTypeSyntax LocationField
 locationType = textType
+
+
+-- ======= EPC.GS1CompanyPrefix =======
+
+instance BSQL.HasSqlValueSyntax be String =>
+  BSQL.HasSqlValueSyntax be EPC.GS1CompanyPrefix where
+    sqlValueSyntax = BSQL.autoSqlValueSyntax
+instance (BMigrate.IsSql92ColumnSchemaSyntax be) =>
+  BMigrate.HasDefaultSqlDataTypeConstraints be EPC.GS1CompanyPrefix
+
+instance (BSQL.HasSqlValueSyntax (BSQL.Sql92ExpressionValueSyntax be) Bool,
+          BSQL.IsSql92ExpressionSyntax be) =>
+          B.HasSqlEqualityCheck be EPC.GS1CompanyPrefix
+instance (BSQL.HasSqlValueSyntax (BSQL.Sql92ExpressionValueSyntax be) Bool,
+          BSQL.IsSql92ExpressionSyntax be) =>
+          B.HasSqlQuantifiedEqualityCheck be EPC.GS1CompanyPrefix
+
+instance BSQL.FromBackendRow BPostgres.Postgres EPC.GS1CompanyPrefix where
+  fromBackendRow = defaultFromBackendRow "EPC.GS1CompanyPrefix"
+
+instance FromField EPC.GS1CompanyPrefix where
+  fromField = defaultFromField "EPC.GS1CompanyPrefix"
+
+instance ToField EPC.GS1CompanyPrefix where
+  toField = toField . show
+
+gs1CompanyPrefixType :: BMigrate.DataType PgDataTypeSyntax EPC.GS1CompanyPrefix
+gs1CompanyPrefixType = textType
+
+-- TO BE IMPLEMENTED
+
+sglnExtType = error "not implemented yet"
+uomType = error "not implemented yet"
+amountType = error "not implemented yet" -- float
+assetType = error "not implemented yet"
+lotType = error "not implemented yet"
+serialNumType = error "not implemented yet"
+itemRefType = error "not implemented yet"
+
+{-
+
+-- DUMMY instance. For ease of copying and pasting
+
+-- ======= EPC.DUMMY =======
+
+instance BSQL.HasSqlValueSyntax be String =>
+  BSQL.HasSqlValueSyntax be EPC.DUMMY where
+    sqlValueSyntax = BSQL.autoSqlValueSyntax
+instance (BMigrate.IsSql92ColumnSchemaSyntax be) =>
+  BMigrate.HasDefaultSqlDataTypeConstraints be EPC.DUMMY
+
+instance (BSQL.HasSqlValueSyntax (BSQL.Sql92ExpressionValueSyntax be) Bool,
+          BSQL.IsSql92ExpressionSyntax be) =>
+          B.HasSqlEqualityCheck be EPC.DUMMY
+instance (BSQL.HasSqlValueSyntax (BSQL.Sql92ExpressionValueSyntax be) Bool,
+          BSQL.IsSql92ExpressionSyntax be) =>
+          B.HasSqlQuantifiedEqualityCheck be EPC.DUMMY
+
+instance BSQL.FromBackendRow BPostgres.Postgres EPC.DUMMY where
+  fromBackendRow = defaultFromBackendRow "EPC.DUMMY"
+
+instance FromField EPC.DUMMY where
+  fromField = defaultFromField "EPC.DUMMY"
+
+instance ToField EPC.DUMMY where
+  toField = toField . show
+
+srcDestType :: BMigrate.DataType PgDataTypeSyntax EPC.DUMMY
+srcDestType = textType
+
+-}
+
+
