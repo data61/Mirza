@@ -27,7 +27,7 @@ migrationStorage =
     (
       User
           (field "user_id" pkSerialType)
-          (BizId (field "user_biz_id" text))
+          (BizId (field "user_biz_id" gs1CompanyPrefixType))
           (field "first_name" (varchar (Just maxLen)) notNull)
           (field "last_name" (varchar (Just maxLen)) notNull)
           (field "phone_number" (varchar (Just maxLen)) notNull)
@@ -46,7 +46,7 @@ migrationStorage =
     <*> createTable "businesses"
     (
       Business
-          (field "biz_gs1_company_prefix" text) -- note is primary key
+          (field "biz_gs1_company_prefix" gs1CompanyPrefixType) -- note is primary key
           (field "biz_name" (varchar (Just maxLen)) notNull)
           (field "biz_function" (varchar (Just maxLen)) notNull)
           (field "biz_site_name" (varchar (Just maxLen)) notNull)
@@ -67,15 +67,15 @@ migrationStorage =
           (field "label_id" pkSerialType)
           (field "label_type" (maybeType $ varchar (Just maxLen)))
           (WhatId (field "label_what_id" pkSerialType))
-          (field "label_gs1_company_prefix" (varchar (Just maxLen)) notNull)
-          (field "item_reference" (maybeType $ varchar (Just maxLen)))
-          (field "serial_number" (maybeType $ varchar (Just maxLen)))
+          (field "label_gs1_company_prefix" gs1CompanyPrefixType notNull)
+          (field "item_reference" (maybeType itemRefType))
+          (field "serial_number" (maybeType serialNumType))
           (field "state" (maybeType $ varchar (Just maxLen)))
-          (field "lot" (maybeType $ varchar (Just maxLen)))
+          (field "lot" (maybeType lotType))
           (field "sgtin_filter_value" (maybeType $ sgtinFilterValue))
-          (field "asset_type" (maybeType $ varchar (Just maxLen)))
-          (field "quantity_amount" (maybeType double))
-          (field "quantity_uom" (maybeType $ varchar (Just maxLen)))
+          (field "asset_type" (maybeType $ assetType))
+          (field "quantity_amount" (maybeType amountType))
+          (field "quantity_uom" (maybeType uomType))
     )
     <*> createTable "what_labels"
     (
@@ -96,13 +96,13 @@ migrationStorage =
       Transformation
           (field "transformation_id" pkSerialType)
           (field "transformation_description" (varchar (Just maxLen)) notNull)
-          (BizId (field "transformation_biz_id" text))
+          (BizId (field "transformation_biz_id" gs1CompanyPrefixType))
     )
     <*> createTable "locations"
     (
       Location
           (field "location_id" locationRefType)
-          (BizId (field "location_biz_id" text))
+          (BizId (field "location_biz_id" gs1CompanyPrefixType))
           -- this needs to be locationReferenceNum
           (field "location_lat" double)
           (field "location_long" double)
@@ -147,11 +147,11 @@ migrationStorage =
     (
       Where
           (field "where_id" pkSerialType)
-          (field "where_gs1_company_prefix" (varchar (Just maxLen)) notNull)
+          (field "where_gs1_company_prefix" gs1CompanyPrefixType notNull)
           (field "where_source_dest_type" (maybeType $ srcDestType))
           (field "where_gs1_location_id" (locationRefType) notNull)
           (field "where_location_field" locationType notNull)
-          (field "where_sgln_ext" (maybeType $ varchar (Just maxLen)))
+          (field "where_sgln_ext" (maybeType sglnExtType))
           (EventId (field "where_event_id" pkSerialType))
     )
     <*> createTable "whens"
