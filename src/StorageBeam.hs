@@ -158,7 +158,7 @@ data LabelT f = Label
   , lot                      :: C f (Maybe EPC.Lot)
   , sgtin_filter_value       :: C f (Maybe EPC.SGTINFilterValue)
   , asset_type               :: C f (Maybe EPC.AssetType)
-  , quantity_amount          :: C f (Maybe Double {- EPC.Amount -})
+  , quantity_amount          :: C f (Maybe EPC.Amount)
   , quantity_uom             :: C f (Maybe EPC.Uom)
   }
   deriving Generic

@@ -137,7 +137,7 @@ data NewUser = NewUser {
   emailAddress :: Email,
   firstName    :: T.Text,
   lastName     :: T.Text,
-  company      :: T.Text,
+  company      :: GS1CompanyPrefix,
   password     :: T.Text
 } deriving (Generic, Eq, Show)
 $(deriveJSON defaultOptions ''NewUser)
