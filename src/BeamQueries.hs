@@ -11,12 +11,10 @@ import           Crypto.Scrypt
 import           Data.Binary
 import           Data.ByteString                          (ByteString)
 import           Data.ByteString.Lazy                     (fromStrict, toStrict)
-import           Data.GS1.DWhat                           (DWhat (..),
-                                                           LabelEPC (..))
-import           Data.GS1.DWhen                           (DWhen (..))
-import           Data.GS1.DWhere                          (DWhere (..),
-                                                           SrcDestLocation)
-import           Data.GS1.DWhy                            (DWhy (..))
+import           Data.GS1.DWhat                           as DWhat
+import           Data.GS1.DWhen                           as DWhen
+import           Data.GS1.DWhere                          as DWhere
+import           Data.GS1.DWhy                            as DWhy
 import qualified Data.GS1.EPC                             as EPC
 import qualified Data.GS1.Event                           as Ev
 import qualified Data.GS1.EventID                         as EvId
@@ -194,7 +192,7 @@ insertObjectEvent
 
   let
       eventType = Ev.ObjectEventT
-      dwhat =  ObjectDWhat act labelEpcs
+      dwhat =  ObjWhat $ ObjectDWhat act labelEpcs
       event = Ev.Event eventType foreignEventId dwhat dwhen dwhy dwhere
       jsonEvent = encodeEvent event
 
@@ -228,7 +226,7 @@ insertAggEvent
   ) = do
   let
       eventType = Ev.AggregationEventT
-      dwhat =  AggregationDWhat act mParentLabel labelEpcs
+      dwhat =  AggWhat $ AggregationDWhat act mParentLabel labelEpcs
       event = Ev.Event eventType foreignEventId dwhat dwhen dwhy dwhere
       jsonEvent = encodeEvent event
 
@@ -238,7 +236,7 @@ insertAggEvent
   whatId <- insertDWhat Nothing dwhat eventId
   labelIds <- mapM (insertLabel Nothing whatId) labelEpcs
   -- Make labelType a datatype?
-  let mParentId = insertLabel (Just "parent") whatId <$> (IL <$> mParentLabel)
+  let mParentId = insertLabel (Just "parent") whatId <$> ((IL . unParentLabel )<$> mParentLabel)
   whenId <- insertDWhen dwhen eventId
   whyId <- insertDWhy dwhy eventId
   insertDWhere dwhere eventId
@@ -264,7 +262,7 @@ insertTransfEvent
   ) = do
   let
       eventType = Ev.TransformationEventT
-      dwhat =  TransformationDWhat mTransfId inputs outputs
+      dwhat =  TransformWhat $ TransformationDWhat mTransfId inputs outputs
       event = Ev.Event eventType foreignEventId dwhat dwhen dwhy dwhere
       jsonEvent = encodeEvent event
 
@@ -272,8 +270,8 @@ insertTransfEvent
 
   eventId <- insertEvent userId jsonEvent event
   whatId <- insertDWhat Nothing dwhat eventId
-  inputLabelIds <- mapM (insertLabel (Just "input") whatId) inputs
-  outputLabelIds <- mapM (insertLabel (Just "output") whatId) outputs
+  inputLabelIds <- mapM (insertLabel (Just "input") whatId) (unInputEPC <$> inputs)
+  outputLabelIds <- mapM (insertLabel (Just "output") whatId) (unOutputEPC <$> outputs)
   let labelIds = inputLabelIds ++ outputLabelIds
   whenId <- insertDWhen dwhen eventId
   whyId <- insertDWhy dwhy eventId
@@ -304,7 +302,7 @@ insertTransactEvent
   ) = do
   let
       eventType = Ev.TransactionEventT
-      dwhat =  TransactionDWhat act mParentLabel bizTransactions labelEpcs
+      dwhat =  TransactWhat $ TransactionDWhat act mParentLabel bizTransactions labelEpcs
       event = Ev.Event eventType foreignEventId dwhat dwhen dwhy dwhere
       jsonEvent = encodeEvent event
 
@@ -313,7 +311,7 @@ insertTransactEvent
   eventId <- insertEvent userId jsonEvent event
   whatId <- insertDWhat Nothing dwhat eventId
   labelIds <- mapM (insertLabel Nothing whatId) labelEpcs
-  let mParentId = insertLabel (Just "parent") whatId <$> (IL <$> mParentLabel)
+  let mParentId = insertLabel (Just "parent") whatId <$> ((IL . unParentLabel) <$> mParentLabel)
   whenId <- insertDWhen dwhen eventId
   whyId <- insertDWhy dwhy eventId
   insertDWhere dwhere eventId
