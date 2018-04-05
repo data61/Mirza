@@ -60,6 +60,7 @@ import qualified StorageBeam                      as SB
 import           Utils
 
 import qualified Data.ByteString.Base64           as BS64
+import           Dummies
 import qualified OpenSSL.EVP.Digest               as EVPDigest
 import           OpenSSL.EVP.PKey                 (PublicKey, SomePublicKey,
                                                    toPublicKey)
@@ -67,7 +68,6 @@ import           OpenSSL.EVP.Verify               (VerifyStatus (..), verifyBS)
 import           OpenSSL.PEM                      (readPublicKey)
 import           OpenSSL.RSA                      (RSAPubKey, rsaSize)
 import qualified QueryUtils                       as QU
-
 
 instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub) where
   toSwagger _ =
@@ -321,7 +321,7 @@ sampleEvent=  do
 
 
 sampleWhat :: DWhat
-sampleWhat = ObjectDWhat Observe [IL (GIAI "2020939" "029393")]
+sampleWhat = dummyObjectDWhat
 
 sampleWhy :: DWhy
 sampleWhy = DWhy (Just Arriving) (Just Data.GS1.EPC.Active)
