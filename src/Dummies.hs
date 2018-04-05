@@ -25,10 +25,10 @@ dummyNewUser = makeDummyNewUser "fake@gmail.com"
 -- | Utility function to make many users on the fly
 makeDummyNewUser :: M.Email -> M.NewUser
 makeDummyNewUser emailAddress =
-    M.NewUser "000" emailAddress "Bob" "Smith" "blah Ltd" "password"
+    M.NewUser "000" emailAddress "Bob" "Smith" (GS1CompanyPrefix "blah Ltd") "password"
 
 dummyLocation :: LocationEPC
-dummyLocation = SGLN "blah Ltd" (LocationReference "11111") Nothing
+dummyLocation = SGLN (GS1CompanyPrefix "blah Ltd") (LocationReference "11111") Nothing
 
 sampleObjectFile :: FilePath
 sampleObjectFile = "../GS1Combinators/test/test-xml/ObjectEvent.xml"
@@ -46,26 +46,26 @@ dummyEpcList :: [LabelEPC]
 dummyEpcList =
   [
     dummyLabelEpc,
-    IL (SGTIN "0614141" Nothing "107346" "2018"), -- an extra label
+    IL (SGTIN (GS1CompanyPrefix "0614141") Nothing (ItemReference "107346") (SerialNumber "2018")), -- an extra label
     dummyClassLabel
   ]
 
 dummyInstanceLabel :: InstanceLabelEPC
-dummyInstanceLabel = SGTIN "0614141" (Just UnitLoad) "107346" "2017"
+dummyInstanceLabel = SGTIN (GS1CompanyPrefix "0614141") (Just UnitLoad) (ItemReference "107346") (SerialNumber "2017")
 
 
 dummyClassLabel :: LabelEPC
-dummyClassLabel = CL (CSGTIN "4012345" Nothing "098765") Nothing
+dummyClassLabel = CL (CSGTIN (GS1CompanyPrefix "4012345") Nothing (ItemReference "098765")) Nothing
 
 
 dummyLabelEpc :: LabelEPC
 dummyLabelEpc = IL dummyInstanceLabel
 
 dummyParentLabel :: Maybe ParentLabel
-dummyParentLabel = Just (SSCC "0614141" "1234567890")
+dummyParentLabel = Just . ParentLabel $ (SSCC (GS1CompanyPrefix "0614141") (SerialNumber "1234567890"))
 
 dummyBizTransaction :: BizTransaction
-dummyBizTransaction = BizTransaction{_btid="12345", _bt=Bol}
+dummyBizTransaction = BizTransaction{_btid=BizTransactionID "12345", _bt=Bol}
 -- Events
 
 -- Object Events
@@ -81,6 +81,7 @@ dummyObjEvent =
 
 dummyObjectDWhat :: DWhat
 dummyObjectDWhat =
+  ObjWhat $
   ObjectDWhat
     Add
     dummyEpcList
@@ -92,6 +93,7 @@ dummyObject = fromJust $ M.mkObjectEvent dummyObjEvent
 -- Aggregation Events
 dummyAggDWhat :: DWhat
 dummyAggDWhat =
+  AggWhat $
   AggregationDWhat
     Delete
     dummyParentLabel
@@ -114,12 +116,12 @@ dummyAggregation = fromJust $ M.mkAggEvent dummyAggEvent
 
 dummyTransactDWhat :: DWhat
 dummyTransactDWhat =
-  (TransactionDWhat
+  TransactWhat $
+  TransactionDWhat
     Add
     dummyParentLabel
     [dummyBizTransaction]
     dummyEpcList
-  )
 
 dummyTransactEvent :: Ev.Event
 dummyTransactEvent =
@@ -139,12 +141,13 @@ dummyTransaction = fromJust $ M.mkTransactEvent dummyTransactEvent
 
 dummyTransfDWhat :: DWhat
 dummyTransfDWhat =
-  (TransformationDWhat
+  TransformWhat $
+  TransformationDWhat
     Nothing
-    dummyEpcList
-    [CL (CSGTIN "4012345" Nothing "098769") Nothing]
+    (InputEPC <$> dummyEpcList)
+    [OutputEPC $ CL (CSGTIN (GS1CompanyPrefix "4012345") Nothing (ItemReference "098769")) Nothing]
     -- ^ adding a slightly different class for variety
-  )
+
 
 dummyTransfEvent :: Ev.Event
 dummyTransfEvent =
@@ -164,24 +167,24 @@ dummyTransformation = fromJust $ M.mkTransfEvent dummyTransfEvent
 dummyDWhen :: DWhen
 dummyDWhen =
   DWhen
-    (read "2013-06-08 14:58:56.591+02:00" :: UTCTime)
+    (EPCISTime (read "2013-06-08 14:58:56.591+02:00" :: UTCTime))
     Nothing
     (read "+02:00" :: TimeZone)
 
 dummyDWhere :: DWhere
 dummyDWhere =
   DWhere
-    [SGLN "0012345" (LocationReference "11111") (Just "400")]
+    [ReadPointLocation $ SGLN (GS1CompanyPrefix "0012345") (LocationReference "11111") (Just $ SGLNExtension "400")]
     -- [ReadPointLocation]
-    [SGLN "0012345" (LocationReference "11111") Nothing]
+    [BizLocation $ SGLN (GS1CompanyPrefix "0012345") (LocationReference "11111") Nothing]
     -- [BizLocation]
     [
-      (SDOwningParty,
-      SGLN "0012347" (LocationReference "12345") Nothing)
+      SrcDestLocation $ (SDOwningParty,
+      SGLN (GS1CompanyPrefix "0012347") (LocationReference "12345") Nothing)
     ]
     [
-      (SDPossessingParty,
-      SGLN "0012348" (LocationReference "12346") (Just "400"))
+      SrcDestLocation $ (SDPossessingParty,
+      SGLN (GS1CompanyPrefix "0012348") (LocationReference "12346") (Just $ SGLNExtension "400"))
     ]
 
 dummyDWhy :: DWhy
