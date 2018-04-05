@@ -111,9 +111,9 @@ privateServer user =
         :<|> eventSign user
         :<|> eventHashed user
         :<|> objectEvent user
-        :<|> eventAggregateObjects user
-        :<|> eventStartTransaction user
-        :<|> eventTransformObject user
+        :<|> aggregateEvent user
+        :<|> transactionEvent user
+        :<|> transformationEvent user
         :<|> Service.addPublicKey user
 
 publicServer :: ServerT PublicAPI AC.AppM
@@ -305,14 +305,14 @@ eventHashed user eventID = do
 objectEvent :: User -> ObjectEvent -> AC.AppM Ev.Event -- SB.PrimaryKeyType
 objectEvent = BQ.insertObjectEvent
 
-eventAggregateObjects :: User -> AggregationEvent -> AC.AppM Ev.Event
-eventAggregateObjects = BQ.insertAggEvent
+aggregateEvent :: User -> AggregationEvent -> AC.AppM Ev.Event
+aggregateEvent = BQ.insertAggEvent
 
-eventStartTransaction :: User -> TransactionEvent -> AC.AppM Ev.Event
-eventStartTransaction = BQ.insertTransactEvent
+transactionEvent :: User -> TransactionEvent -> AC.AppM Ev.Event
+transactionEvent = BQ.insertTransactEvent
 
-eventTransformObject :: User -> TransformationEvent -> AC.AppM Ev.Event
-eventTransformObject = BQ.insertTransfEvent
+transformationEvent :: User -> TransformationEvent -> AC.AppM Ev.Event
+transformationEvent = BQ.insertTransfEvent
 
 sampleEvent:: IO Ev.Event
 sampleEvent=  do
