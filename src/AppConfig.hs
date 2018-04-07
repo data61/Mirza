@@ -3,18 +3,31 @@
 {-# LANGUAGE OverloadedStrings          #-}
 
 -- | Contains the definition of our ReaderT AppM
-module AppConfig where
+module AppConfig
+  (EnvType(..)
+  , mkEnvType
+  , Env(..)
+  , AppError(..)
+  , AppM
+  , runAppM
+  , dbFunc
+  , runDb
+  , ask
+  , asks
+  )
+  where
 
-import           Database.PostgreSQL.Simple (Connection, SqlError(..))
-import qualified Database.Beam as B
-import           Database.Beam.Postgres (Pg)
+import qualified Database.Beam              as B
+import           Database.Beam.Postgres     (Pg)
+import           Database.PostgreSQL.Simple (Connection, SqlError (..))
 
-import           Control.Monad.IO.Class (MonadIO)
-import           Control.Monad.Reader   (MonadReader, ReaderT, runReaderT,
-                                         asks, liftIO)
-import           Control.Monad.Except (MonadError, ExceptT(..), runExceptT)
-import qualified Control.Exception as Exc
-import           Errors (ServiceError(..))
+import qualified Control.Exception          as Exc
+import           Control.Monad.Except       (ExceptT (..), MonadError,
+                                             runExceptT)
+import           Control.Monad.IO.Class     (MonadIO)
+import           Control.Monad.Reader       (MonadReader, ReaderT, ask, asks,
+                                             liftIO, runReaderT)
+import           Errors                     (ServiceError (..))
 
 data EnvType = Prod | Dev
   deriving (Show, Eq, Read)
