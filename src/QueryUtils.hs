@@ -42,6 +42,9 @@ import           ErrorUtils (throwBackendError, throwAppError, toServerError
 import           Database.PostgreSQL.Simple
 import qualified Data.Text.Lazy.Encoding as LEn
 import qualified Data.Text.Encoding as En
+import           Control.Monad.Except                     (catchError,
+                                                           throwError)
+import           Control.Monad.Reader                     (ask)
 
 -- | Reads back the ``LocalTime`` in UTCTime (with an offset of 0)
 toEPCISTime :: LocalTime -> UTCTime
@@ -408,15 +411,21 @@ insertLabelEvent eventId labelId = do
         ]
   return pKey
 
-startTransaction :: AppM ()
-startTransaction = do
-  conn <- getDBConn
-  liftIO $ begin conn
 
-endTransaction :: AppM ()
-endTransaction = do
-  conn <- getDBConn
-  liftIO $ execute_ conn "end transaction;" >> return ()
+-- | Runs a gicen action within a postgres transaction. If an exception is
+-- thrown or
+transaction :: AppM a -> AppM a
+transaction act = do
+  env <- ask
+  either throwError pure =<< (liftIO . withTransaction (dbConn env) $ do
+    ea <- runAppM env act
+    case ea of
+      Right a -> pure ea
+      _       -> rollback (dbConn env) *> pure ea
+    )
+  -- TODO: Use liftEither once we have mtl >= 2.2.2
+
+
 
 selectUser :: M.UserID -> AppM (Maybe SB.User)
 selectUser uid = do

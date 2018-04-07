@@ -191,19 +191,17 @@ insertObjectEvent
       event = Ev.Event eventType foreignEventId dwhat dwhen dwhy dwhere
       jsonEvent = encodeEvent event
 
-  startTransaction
+  transaction $ do
+    eventId <- insertEvent userId jsonEvent event
+    whatId <- insertDWhat Nothing dwhat eventId
+    labelIds <- mapM (insertLabel Nothing whatId) labelEpcs
+    whenId <- insertDWhen dwhen eventId
+    whyId <- insertDWhy dwhy eventId
+    insertDWhere dwhere eventId
+    insertUserEvent eventId userId userId False Nothing
+    mapM_ (insertWhatLabel whatId) labelIds
+    mapM_ (insertLabelEvent eventId) labelIds
 
-  eventId <- insertEvent userId jsonEvent event
-  whatId <- insertDWhat Nothing dwhat eventId
-  labelIds <- mapM (insertLabel Nothing whatId) labelEpcs
-  whenId <- insertDWhen dwhen eventId
-  whyId <- insertDWhy dwhy eventId
-  insertDWhere dwhere eventId
-  insertUserEvent eventId userId userId False Nothing
-  mapM (insertWhatLabel whatId) labelIds
-  mapM (insertLabelEvent eventId) labelIds
-
-  endTransaction
 
   return event
 
@@ -225,21 +223,18 @@ insertAggEvent
       event = Ev.Event eventType foreignEventId dwhat dwhen dwhy dwhere
       jsonEvent = encodeEvent event
 
-  startTransaction
-
-  eventId <- insertEvent userId jsonEvent event
-  whatId <- insertDWhat Nothing dwhat eventId
-  labelIds <- mapM (insertLabel Nothing whatId) labelEpcs
-  -- Make labelType a datatype?
-  let mParentId = insertLabel (Just "parent") whatId <$> (IL <$> mParentLabel)
-  whenId <- insertDWhen dwhen eventId
-  whyId <- insertDWhy dwhy eventId
-  insertDWhere dwhere eventId
-  insertUserEvent eventId userId userId False Nothing
-  mapM (insertWhatLabel whatId) labelIds
-  mapM (insertLabelEvent eventId) labelIds
-
-  endTransaction
+  transaction $ do
+    eventId <- insertEvent userId jsonEvent event
+    whatId <- insertDWhat Nothing dwhat eventId
+    labelIds <- mapM (insertLabel Nothing whatId) labelEpcs
+    -- Make labelType a datatype?
+    let mParentId = insertLabel (Just "parent") whatId <$> (IL <$> mParentLabel)
+    whenId <- insertDWhen dwhen eventId
+    whyId <- insertDWhy dwhy eventId
+    insertDWhere dwhere eventId
+    insertUserEvent eventId userId userId False Nothing
+    mapM_ (insertWhatLabel whatId) labelIds
+    mapM_ (insertLabelEvent eventId) labelIds
 
   return event
 
@@ -261,21 +256,19 @@ insertTransfEvent
       event = Ev.Event eventType foreignEventId dwhat dwhen dwhy dwhere
       jsonEvent = encodeEvent event
 
-  startTransaction
+  transaction $ do
+    eventId <- insertEvent userId jsonEvent event
+    whatId <- insertDWhat Nothing dwhat eventId
+    inputLabelIds <- mapM (insertLabel (Just "input") whatId) inputs
+    outputLabelIds <- mapM (insertLabel (Just "output") whatId) outputs
+    let labelIds = inputLabelIds ++ outputLabelIds
+    whenId <- insertDWhen dwhen eventId
+    whyId <- insertDWhy dwhy eventId
+    insertDWhere dwhere eventId
+    insertUserEvent eventId userId userId False Nothing
+    mapM_ (insertWhatLabel whatId) labelIds
+    mapM_ (insertLabelEvent eventId) labelIds
 
-  eventId <- insertEvent userId jsonEvent event
-  whatId <- insertDWhat Nothing dwhat eventId
-  inputLabelIds <- mapM (insertLabel (Just "input") whatId) inputs
-  outputLabelIds <- mapM (insertLabel (Just "output") whatId) outputs
-  let labelIds = inputLabelIds ++ outputLabelIds
-  whenId <- insertDWhen dwhen eventId
-  whyId <- insertDWhy dwhy eventId
-  insertDWhere dwhere eventId
-  insertUserEvent eventId userId userId False Nothing
-  mapM (insertWhatLabel whatId) labelIds
-  mapM (insertLabelEvent eventId) labelIds
-
-  endTransaction
 
   return event
 
@@ -301,20 +294,17 @@ insertTransactionEvent
       event = Ev.Event eventType foreignEventId dwhat dwhen dwhy dwhere
       jsonEvent = encodeEvent event
 
-  startTransaction
-
-  eventId <- insertEvent userId jsonEvent event
-  whatId <- insertDWhat Nothing dwhat eventId
-  labelIds <- mapM (insertLabel Nothing whatId) labelEpcs
-  let mParentId = insertLabel (Just "parent") whatId <$> (IL <$> mParentLabel)
-  whenId <- insertDWhen dwhen eventId
-  whyId <- insertDWhy dwhy eventId
-  insertDWhere dwhere eventId
-  insertUserEvent eventId userId userId False Nothing
-  mapM (insertWhatLabel whatId) labelIds
-  mapM (insertLabelEvent eventId) labelIds
-
-  endTransaction
+  transaction $ do
+    eventId <- insertEvent userId jsonEvent event
+    whatId <- insertDWhat Nothing dwhat eventId
+    labelIds <- mapM (insertLabel Nothing whatId) labelEpcs
+    let mParentId = insertLabel (Just "parent") whatId <$> (IL <$> mParentLabel)
+    whenId <- insertDWhen dwhen eventId
+    whyId <- insertDWhy dwhy eventId
+    insertDWhere dwhere eventId
+    insertUserEvent eventId userId userId False Nothing
+    mapM_ (insertWhatLabel whatId) labelIds
+    mapM_ (insertLabelEvent eventId) labelIds
 
   return event
 
