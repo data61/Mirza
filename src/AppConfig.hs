@@ -45,19 +45,14 @@ newtype AppM a = AppM
            , MonadError AppError
            )
 
-getDBConn :: AppM Connection
-getDBConn = asks dbConn
-
-getEnvType :: AppM EnvType
-getEnvType = asks envType
 
 dbFunc :: AppM (Pg a -> IO a)
 dbFunc = do
-  conn <- getDBConn
-  e <- getEnvType
-  case e of
-    Prod -> pure $ B.withDatabase conn  -- database queries other than migration will be silent
-    _    -> pure $ B.withDatabaseDebug putStrLn conn  -- database queries other than migration will print on screen
+  conn <- asks dbConn
+  e <- asks envType
+  pure $ case e of
+    Prod -> B.withDatabase conn  -- database queries other than migration will be silent
+    _    -> B.withDatabaseDebug putStrLn conn  -- database queries other than migration will print on screen
 
 -- | Helper function to run db functions
 runDb :: Pg a -> AppM (Either SqlError a)

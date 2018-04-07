@@ -13,7 +13,7 @@ import qualified Data.Text as T
 -- Only works in AppM monad
 debugLog :: Show a => a -> AppM ()
 debugLog strLike = do
-  envT <- getEnvType
+  envT <- asks envType
   when (envT == Dev) $ liftIO $ putStrLn $ show strLike
 
 -- | To be used when the Env is known/available.
