@@ -48,6 +48,7 @@ import           Data.Text (pack)
 import           Data.Char (toLower)
 import           Control.Monad.Reader   (MonadReader, ReaderT, runReaderT,
                                          asks, ask, liftIO)
+import           Servant.API.Flatten
 
 -- import qualified Model as M
 import qualified AppConfig as AC
@@ -97,37 +98,38 @@ authCheck = error "not implemented yet" -- do
 
 appMToHandler :: forall x. AC.Env -> AC.AppM x -> Handler x
 appMToHandler env act = do
-  res <- liftIO $ runExceptT $ runReaderT (AC.unAppM act) env
+  res <- liftIO $ AC.runAppM env act
   let envT = AC.envType env
   case res of
     Left (AC.AppError e) -> appErrToHttpErr e
     Right a              -> return a
 
-privateServer :: User -> ServerT PrivateAPI AC.AppM
-privateServer user =
-             epcState user
-        :<|> listEvents user
-        :<|> eventInfo user
-        :<|> contactsInfo user
-        :<|> contactsAdd user
-        :<|> contactsRemove user
---        :<|> contactsSearch user
-        :<|> userSearch user
-        :<|> eventList user
-        :<|> eventUserList user
-        :<|> eventSign user
-        :<|> eventHashed user
-        :<|> objectEvent user
-        :<|> eventAggregateObjects user
-        :<|> eventStartTransaction user
-        :<|> eventTransformObject user
-        :<|> Service.addPublicKey user
+privateServer :: ServerT (Flat (BasicAuth "foo-realm" User :> PrivateAPI)) AC.AppM
+privateServer
+  =    epcState
+  :<|> listEvents
+  :<|> eventInfo
+  :<|> contactsInfo
+  :<|> BQ.addContact
+  :<|> BQ.removeContact
+--        :<|> contactsSearch
+  :<|> userSearch
+  :<|> eventList
+  :<|> eventUserList
+  :<|> eventSign
+  :<|> eventHashed
+  :<|> BQ.insertObjectEvent
+  :<|> BQ.insertAggEvent
+  :<|> BQ.insertTransactionEvent
+  :<|> BQ.insertTransfEvent
+  :<|> Service.addPublicKey
 
 publicServer :: ServerT PublicAPI AC.AppM
-publicServer =     Service.newUser
-              :<|> Service.getPublicKey
-              :<|> Service.getPublicKeyInfo
-              :<|> Service.listBusinesses
+publicServer
+  =     Service.newUser
+  :<|> Service.getPublicKey
+  :<|> Service.getPublicKeyInfo
+  :<|> Service.listBusinesses
 
 appHandlers = privateServer :<|> publicServer
 
@@ -219,13 +221,6 @@ contactsInfo :: User -> AC.AppM [User]
 -- contactsInfo user = liftIO $ Storage.listContacts user
 contactsInfo user = error "Storage module not implemented"
 
-
-contactsAdd :: User -> UserID -> AC.AppM Bool
-contactsAdd = BQ.addContact
-
-contactsRemove :: User -> UserID -> AC.AppM Bool
-contactsRemove = BQ.removeContact
-
 -- Given a search term, search the users contacts for a user matching
 -- that term
 -- might want to use reg-ex features of postgres10 here:
@@ -308,18 +303,6 @@ eventHashed user eventID = do
     Just i -> return i
     -}
 
--- Return the json encoded copy of the event
-objectEvent :: User -> ObjectEvent -> AC.AppM Ev.Event -- SB.PrimaryKeyType
-objectEvent = BQ.insertObjectEvent
-
-eventAggregateObjects :: User -> AggregationEvent -> AC.AppM Ev.Event
-eventAggregateObjects = BQ.insertAggEvent
-
-eventStartTransaction :: User -> TransactionEvent -> AC.AppM Ev.Event
-eventStartTransaction = BQ.insertTransactionEvent
-
-eventTransformObject :: User -> TransformationEvent -> AC.AppM Ev.Event
-eventTransformObject = BQ.insertTransfEvent
 
 sampleEvent:: IO Ev.Event
 sampleEvent=  do
