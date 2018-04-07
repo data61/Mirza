@@ -39,6 +39,7 @@ library
                     , servant-server
                     , servant-swagger
                     , servant-swagger-ui
+                    , servant-flatten
                     , time
                     , text
                     , either
