@@ -53,16 +53,11 @@ import Control.Monad.IO.Class (liftIO)
 insertUser :: EncryptedPass -> M.NewUser -> AppM M.UserID
 insertUser encPass (M.NewUser phone email firstName lastName biz _) = do
   userId <- generatePk
-  res <- runDb $
-            runInsertReturningList (SB._users SB.supplyChainDb) $
-            insertValues (
-              [
-                (SB.User userId
-                (SB.BizId  biz)
-                firstName lastName phone (getEncryptedPass encPass) email
-                )
-              ]
-            )
+  res <- runDb $ runInsertReturningList (SB._users SB.supplyChainDb) $
+    insertValues
+      [SB.User userId (SB.BizId  biz) firstName lastName
+               phone (getEncryptedPass encPass) email
+      ]
   case res of
     Right [r] -> return $ SB.user_id r
     Left e ->
@@ -81,14 +76,13 @@ newUser userInfo@(M.NewUser _ _ _ _ _ password) = do
 -- Basic Auth check using Scrypt hashes.
 authCheck :: M.EmailAddress -> M.Password -> AppM (Maybe M.User)
 authCheck email password = do
-  r <- runDb $
-          runSelectReturningList $ select $ do
-          user <- all_ (SB._users SB.supplyChainDb)
-          guard_ (SB.email_address user  ==. val_ email)
-          pure user
+  r <- runDb $ runSelectReturningList $ select $ do
+        user <- all_ (SB._users SB.supplyChainDb)
+        guard_ (SB.email_address user  ==. val_ email)
+        pure user
   case r of
     Left e -> throwUnexpectedDBError $ sqlToServerError e
-    Right [user] -> do
+    Right [user] ->
         if verifyPass' (Pass password) (EncryptedPass $ SB.password_hash user)
           then return $ Just $ userTableToModel user
           else throwAppError $ AuthFailed email
@@ -106,16 +100,9 @@ addPublicKey (M.User uid _ _)  rsaPubKey = do
   timeStamp <- generateTimeStamp
   keyStr <- liftIO $ writePublicKey rsaPubKey
   r <- runDb $ runInsertReturningList (SB._keys SB.supplyChainDb) $
-               insertValues
-               [
-                 (
-                   SB.Key keyId
-                   (SB.UserId uid)
-                   (T.pack $ keyStr)
-                   timeStamp
-                   Nothing
-                 )
-               ]
+        insertValues
+        [ SB.Key keyId (SB.UserId uid) (T.pack $ keyStr) timeStamp Nothing
+        ]
   case r of
     Right [rowId] -> return (SB.key_id rowId)
     Right _       -> throwAppError $ InvalidKeyID keyId
