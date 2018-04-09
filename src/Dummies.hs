@@ -1,4 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
 
 -- | Sample data types. Serves as a good example of the types defined
 -- in GS1Combinators

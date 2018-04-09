@@ -1,4 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
 
 -- | Contains the migration function of ``supplyChainDb``
 module MigrateScript (migrationStorage) where

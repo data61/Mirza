@@ -14,6 +14,7 @@ extra-source-files:  README.md
 cabal-version:       >=1.10
 
 library
+  default-extensions: OverloadedStrings
   hs-source-dirs:     src
   exposed-modules:    Lib
                     , Migrate
@@ -104,6 +105,7 @@ test-suite supplyChainServer-test
   hs-source-dirs:      test
   main-is:             Spec.hs
   other-modules:       Tests.BeamQueries
+  default-extensions:  OverloadedStrings
   build-depends:       base
                      , GS1Combinators
                      , supplyChainServer
