@@ -104,7 +104,7 @@ appMToHandler env act = do
     Left (AC.AppError e) -> appErrToHttpErr e
     Right a              -> return a
 
-privateServer :: ServerT (Flat (BasicAuth "foo-realm" User :> PrivateAPI)) AC.AppM
+privateServer :: ServerT ProtectedAPI AC.AppM
 privateServer
   =    epcState
   :<|> listEvents

@@ -51,8 +51,10 @@ type SwaggerAPI = SwaggerSchemaUI "swagger-ui" "swagger.json"
 api :: Proxy API'
 api = Proxy
 
+type ProtectedAPI = Flat (BasicAuth "foo-realm" User :> PrivateAPI)
+
 type ServerAPI
-    =  Flat (BasicAuth "foo-realm" User :> PrivateAPI)
+    =  ProtectedAPI
     :<|> PublicAPI -- :<|> SwaggerAPI
 
 
