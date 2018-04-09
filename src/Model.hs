@@ -1,6 +1,5 @@
 {-# LANGUAGE TemplateHaskell            #-}
 {-# LANGUAGE DeriveGeneric              #-}
-{-# LANGUAGE OverloadedStrings          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# OPTIONS_GHC -fno-warn-orphans       #-}
 

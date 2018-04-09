@@ -1,6 +1,5 @@
 
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE OverloadedStrings          #-}
 
 -- | Contains the definition of our ReaderT AppM
 module AppConfig

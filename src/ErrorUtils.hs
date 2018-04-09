@@ -1,4 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
 
 -- | This module contains the helper functions that are used in error handling
 module ErrorUtils where

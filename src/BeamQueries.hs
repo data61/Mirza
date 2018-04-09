@@ -1,4 +1,3 @@
-{-# LANGUAGE OverloadedStrings      #-}
 
 -- | This module is incomplete as of yet.
 -- Functions in the `service` module use the database functions defined here
