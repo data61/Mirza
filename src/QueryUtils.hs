@@ -329,10 +329,11 @@ insertLocationEPC
 -- ReadPoint, BizLocation, Src, Dest
 insertDWhere :: DWhere -> SB.PrimaryKeyType -> AppM ()
 insertDWhere (DWhere rPoint bizLoc srcT destT) eventId = do
-  return $ insertLocationEPC SB.ReadPoint eventId <$> rPoint
-  return $ insertLocationEPC SB.BizLocation eventId <$> bizLoc
-  return $ insertSrcDestType SB.Src eventId <$> srcT
-  return $ insertSrcDestType SB.Dest eventId <$> destT
+  -- FIXME: This code doesn't do anything!
+  _ <- return $ insertLocationEPC SB.ReadPoint eventId <$> rPoint
+  _ <- return $ insertLocationEPC SB.BizLocation eventId <$> bizLoc
+  _ <- return $ insertSrcDestType SB.Src eventId <$> srcT
+  _ <- return $ insertSrcDestType SB.Dest eventId <$> destT
   return ()
 
 insertEvent :: SB.PrimaryKeyType -> T.Text -> Event -> AppM SB.PrimaryKeyType
@@ -353,6 +354,7 @@ insertUserEvent :: SB.PrimaryKeyType
                 -> AppM ()
 insertUserEvent eventId userId addedByUserId signed signedHash = do
   pKey <- generatePk
+  -- TODO: What to do about database errors here?
   _ <- runDb $ B.runInsert $ B.insert (SB._user_events SB.supplyChainDb)
         $ insertValues
         [
@@ -370,6 +372,7 @@ insertWhatLabel :: SB.PrimaryKeyType
                 -> AppM SB.PrimaryKeyType
 insertWhatLabel whatId labelId = do
   pKey <- generatePk
+  -- TODO: What to do about database errors here?
   _ <- runDb $ B.runInsert $ B.insert (SB._what_labels SB.supplyChainDb)
         $ insertValues
         [
@@ -387,6 +390,7 @@ insertLabel :: Maybe T.Text
             -> AppM SB.PrimaryKeyType
 insertLabel labelType whatId labelEpc = do
   pKey <- generatePk
+  -- TODO: What to do about database errors here?
   _ <- runDb $ B.runInsert $ B.insert (SB._labels SB.supplyChainDb)
         $ insertValues
         [ epcToStorageLabel labelType whatId pKey labelEpc]
@@ -398,6 +402,7 @@ insertLabelEvent :: SB.PrimaryKeyType
                  -> AppM SB.PrimaryKeyType
 insertLabelEvent eventId labelId = do
   pKey <- generatePk
+  -- TODO: What to do about database errors here?
   _ <- runDb $ B.runInsert $ B.insert (SB._label_events SB.supplyChainDb)
         $ insertValues
         [

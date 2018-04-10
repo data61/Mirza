@@ -68,6 +68,8 @@ newUser userInfo@(M.NewUser _ _ _ _ _ password) = do
     insertUser hash userInfo
 
 -- Basic Auth check using Scrypt hashes.
+-- TODO: How safe is this to timing attacks? Can we tell which emails are in the
+-- system easily?
 authCheck :: M.EmailAddress -> M.Password -> AppM (Maybe M.User)
 authCheck email password = do
   r <- runDb $ runSelectReturningList $ select $ do
@@ -129,7 +131,7 @@ getPublicKeyInfo keyId = do
     Right _ -> throwAppError $ InvalidKeyID keyId
     Left e  -> throwUnexpectedDBError $ sqlToServerError e
 
-
+-- TODO: Should this return Text or a JSON value?
 getEventJSON :: EvId.EventID -> AppM T.Text
 getEventJSON eventID = do
   r <- runDb $ runSelectReturningList $ select $ do
@@ -209,7 +211,8 @@ insertAggEvent
     whatId <- insertDWhat Nothing dwhat eventId
     labelIds <- mapM (insertLabel Nothing whatId) labelEpcs
     -- Make labelType a datatype?
-    let mParentId = insertLabel (Just "parent") whatId <$> (IL <$> mParentLabel)
+    -- FIXME: not used?
+    -- let mParentId = insertLabel (Just "parent") whatId <$> (IL <$> mParentLabel)
     _whenId <- insertDWhen dwhen eventId
     _whyId <- insertDWhy dwhy eventId
     insertDWhere dwhere eventId
@@ -217,6 +220,8 @@ insertAggEvent
     mapM_ (insertWhatLabel whatId) labelIds
     mapM_ (insertLabelEvent eventId) labelIds
 
+  -- FIXME: This should return the event as it has been inserted - the user has
+  -- no idea what the ID for the transaction is so can't query it later.
   return event
 
 insertTransfEvent :: M.User
@@ -279,7 +284,8 @@ insertTransactionEvent
     eventId <- insertEvent userId jsonEvent event
     whatId <- insertDWhat Nothing dwhat eventId
     labelIds <- mapM (insertLabel Nothing whatId) labelEpcs
-    let mParentId = insertLabel (Just "parent") whatId <$> (IL <$> mParentLabel)
+    -- FIXME: not used?
+    -- let mParentId = insertLabel (Just "parent") whatId <$> (IL <$> mParentLabel)
     _whenId <- insertDWhen dwhen eventId
     _whyId <- insertDWhy dwhy eventId
     insertDWhere dwhere eventId
@@ -382,7 +388,7 @@ removeContact (M.User uid1 _ _) uid2 = do
                 SB.contact_user2_id contact ==. (val_ $ SB.UserId uid2))
       case r of
         Right _ -> not <$> isExistingContact uid1 uid2
-        Left e  -> return False -- log ``e``
+        Left _e -> return False -- FIXME: log ``e``
 
 -- | Checks if a pair of userIds are recorded as a contact
 isExistingContact :: M.UserID -> M.UserID -> AppM Bool
