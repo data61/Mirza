@@ -69,6 +69,8 @@ import OpenSSL.EVP.Verify (verifyBS, VerifyStatus(..))
 import qualified Data.ByteString.Base64 as BS64
 import qualified Data.ByteString.Char8 as BSC
 import qualified QueryUtils as QU
+import           Control.Monad                    (guard)
+import           Control.Monad.Error.Hoist        ((<!?>), (<%?>))
 
 instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub) where
   toSwagger _ =
@@ -157,20 +159,16 @@ minPubKeySize = 1536 --FIXME or 2048
 addPublicKey :: User -> RSAPublicKey -> AC.AppM KeyID
 addPublicKey user (PEMString pemKey) = do
   somePubKey <- liftIO $ readPublicKey pemKey
-  let maybeKey = checkPubKey somePubKey
-  if isJust $ maybeKey
-     then BQ.addPublicKey user (fromJust maybeKey)
-  else throwAppError $ InvalidRSAKey (PEMString pemKey)
+  maybe (throwAppError (InvalidRSAKey (PEMString pemKey)))
+        (BQ.addPublicKey user)
+        (checkPubKey somePubKey)
 
 
 checkPubKey :: SomePublicKey -> Maybe RSAPubKey
-checkPubKey spKey
-  |isNothing mPKey = Nothing
-  |rsaSize pubKey < minPubKeySize = Nothing
-  |otherwise = mPKey
-  where
-    mPKey::(Maybe RSAPubKey) = toPublicKey spKey
-    pubKey = fromJust mPKey
+checkPubKey spKey = do
+  pubKey <- toPublicKey spKey
+  guard (rsaSize pubKey < minPubKeySize)
+  pure pubKey
 
 
 newUser :: NewUser -> AC.AppM UserID
@@ -268,18 +266,15 @@ eventSign :: User -> SignedEvent -> AC.AppM SB.PrimaryKeyType
 eventSign user (SignedEvent eventID keyID (Signature sigStr) digest) = do
   event <- BQ.getEventJSON eventID
   rsaPublicKey <- BQ.getPublicKey keyID
-  let eSigBS = BS64.decode $ BSC.pack $ sigStr
-  case eSigBS of Left s -> throwAppError $ InvalidSignature s
-                 Right sigBS -> do
-                  let (PEMString keyStr) = rsaPublicKey
-                  sKey <- liftIO $ readPublicKey keyStr
-                  let pubKey::RSAPubKey = fromJust $ toPublicKey $ sKey
-                      eventBS = QU.eventTxtToBS event
-                  maybeDigest <- liftIO $  makeDigest digest
-                  verifyStatus <- liftIO $ verifyBS (fromJust maybeDigest) sigBS pubKey eventBS
-                  if verifyStatus == VerifySuccess
-                     then BQ.insertSignature eventID keyID (Signature sigStr) digest
-                     else throwAppError $ InvalidSignature sigStr
+  sigBS <- BS64.decode (BSC.pack sigStr) <%?> AppError . InvalidSignature
+  let (PEMString keyStr) = rsaPublicKey
+  (pubKey :: RSAPubKey) <- liftIO (toPublicKey <$> readPublicKey keyStr) <!?> AppError (InvalidRSAKeyString (pack keyStr))
+  let eventBS = QU.eventTxtToBS event
+  digest <- liftIO (makeDigest digest') <?> AppError (InvalidDigest digest')
+  verifyStatus <- liftIO $ verifyBS digest sigBS pubKey eventBS
+  if verifyStatus == VerifySuccess
+    then BQ.insertSignature eventID keyID (Signature sigStr) digest'
+    else throwAppError $ InvalidSignature sigStr
 
 
 
