@@ -67,8 +67,9 @@ dbFunc = do
 
 -- | Helper function to run db functions
 runDb :: Pg a -> AppM (Either SqlError a)
-runDb q = dbFunc >>= (\f -> liftIO $ Exc.try $ f q)
-
+runDb q = dbFunc >>= (\f -> liftIO $ Exc.try $ f q) -- >>= either (throwError . AppError . DatabaseError) pure
+-- TODO: Should this throwError SqlErrors? we have code which ignores the
+-- errors, we should require explicit catching.
 
 runAppM :: Env -> AppM a -> IO (Either AppError a)
 runAppM env aM = runExceptT $ (runReaderT . unAppM) aM env

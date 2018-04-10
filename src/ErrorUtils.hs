@@ -47,7 +47,8 @@ appErrToHttpErr (InvalidKeyID _) =
   throwError $ err400 {
     errBody = "Invalid Key ID entered."
   }
-
+-- TODO: We should probably explicitly handle all service errors, removing this lets
+-- GHC tell us when we haven't
 appErrToHttpErr _ = throwError err500 {errBody = "The server did not understand this request."}
 
 -- | Takes in a function that can extract errorcode out of an error, the error
