@@ -10,16 +10,15 @@
 -- we are waiting on a library (eg. Beam) to implement something. For example,
 -- migration support for UTCTime
 
-{-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE DeriveGeneric         #-}
+{-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
-{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE StandaloneDeriving    #-}
-{-# LANGUAGE TypeApplications      #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE UndecidableInstances  #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
 {-# OPTIONS_GHC -fno-warn-orphans  #-}
 
 -- | This module contains all the table definitions
@@ -29,25 +28,25 @@
 module StorageBeam where
 
 import           Control.Lens
-import           Database.Beam as B
+import           Database.Beam                        as B
 import           Database.Beam.Postgres
 
-import           Data.Text (Text)
+import           Data.ByteString                      (ByteString)
+import           Data.Text                            (Text)
 import           Data.Time
-import           Data.ByteString (ByteString)
-import           Data.ByteString.Char8 (pack)
-import qualified Data.GS1.Event as Ev
-import qualified Data.GS1.EPC as EPC
-import           Text.Read (readMaybe)
-import           Data.UUID (UUID)
-import           Database.PostgreSQL.Simple.FromField (FromField, Field,
-                                                      fromField, Conversion,
-                                                      returnError)
-import           Database.PostgreSQL.Simple.ToField (ToField, toField)
+-- import           Data.ByteString.Char8 (pack)
+-- import qualified Data.GS1.Event as Ev
+import qualified Data.GS1.EPC                         as EPC
+import           Data.UUID                            (UUID)
 import           Database.Beam.Backend.SQL
+import           Database.PostgreSQL.Simple.FromField (Conversion, Field,
+                                                       FromField, fromField,
+                                                       returnError)
+import           Database.PostgreSQL.Simple.ToField   (ToField, toField)
+import           Text.Read                            (readMaybe)
 -- import           MigrateUtils (eventType)
-import           Data.Swagger ()
-import           Servant ()
+import           Data.Swagger                         ()
+import           Servant                              ()
 
 type PrimaryKeyType = UUID
 -- IMPLEMENTME - NOT NOW

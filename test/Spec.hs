@@ -1,16 +1,16 @@
 
 module Main where
 
+import           Test.Hspec                 (around, hspec)
 import           Tests.BeamQueries
-import           Test.Hspec   (hspec, around)
 
-import Database.Beam.Postgres
-import Database.PostgreSQL.Simple
-import Data.ByteString
-import Control.Exception (bracket)
-import Migrate
-import AppConfig as AC
-import Data.Int
+import           AppConfig                  as AC
+import           Control.Exception          (bracket)
+import           Data.ByteString
+import           Data.Int
+import           Database.Beam.Postgres
+import           Database.PostgreSQL.Simple
+import           Migrate
 
 -- dbFunc = withDatabaseDebug putStrLn
 

@@ -1,35 +1,35 @@
-{-# LANGUAGE DataKinds                  #-}
+{-# LANGUAGE DataKinds             #-}
 -- {-# LANGUAGE TemplateHaskell            #-}
-{-# LANGUAGE DeriveGeneric              #-}
-{-# LANGUAGE FlexibleContexts           #-}
-{-# LANGUAGE FlexibleInstances          #-}
-{-# LANGUAGE MultiParamTypeClasses      #-}
-{-# LANGUAGE ScopedTypeVariables        #-}
-{-# LANGUAGE TypeFamilies               #-}
-{-# LANGUAGE TypeOperators              #-}
-{-# LANGUAGE CPP                        #-}
+{-# LANGUAGE CPP                   #-}
+{-# LANGUAGE DeriveGeneric         #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE TypeOperators         #-}
 -- {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE UndecidableInstances       #-}
+{-# LANGUAGE UndecidableInstances  #-}
 
 
 module CryptHash where
 
-import Model as M
-import Data.GS1.Event
+-- import           Data.GS1.Event
+import           Model              as M
 
-import qualified Data.Text.Lazy as TxtL
-import qualified Data.Text as Txt
-import Data.List.NonEmpty(NonEmpty(..))
-import GHC.Generics       (Generic)
-import qualified Data.List.NonEmpty as NonEmpty
-import Crypto.Hash
+-- import           Crypto.Hash
+import           Data.List.NonEmpty (NonEmpty)
+-- import qualified Data.List.NonEmpty   as NonEmpty
+-- import qualified Data.Text                  as Txt
+-- import qualified Data.Text.Lazy             as TxtL
+import           GHC.Generics       (Generic)
 --import Crypto.PubKey.RSA
-import qualified Data.ByteString as ByteString
-import qualified Data.ByteString.Lazy.Char8 as LChar8
-import qualified Data.ByteString.Char8 as Char8
+-- import qualified Data.ByteString            as ByteString
+-- import qualified Data.ByteString.Char8      as Char8
+-- import qualified Data.ByteString.Lazy.Char8 as LChar8
 --import qualified Crypto.PubKey.RSA.PSS as PSS
-import           Codec.Crypto.RSA (PublicKey (..), verify)
-import           Data.ByteString.Lazy (fromStrict)
+-- import           Codec.Crypto.RSA     (PublicKey (..), verify)
+-- import           Data.ByteString.Lazy (fromStrict)
 
 
 --import Crypto.Hash.SHA256

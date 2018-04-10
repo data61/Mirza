@@ -1,4 +1,3 @@
-
 -- | Following are a bunch of utility functions to do household stuff like
 -- generating primary keys, timestamps - stuff that almost every function
 -- below would need to do anyway
@@ -7,43 +6,42 @@
 -- Model type and its Storage equivalent
 module QueryUtils where
 
-import           Data.Time.LocalTime (utc, utcToLocalTime
-                                     , LocalTime, localTimeToUTC
-                                     , timeZoneOffsetString)
-import           Data.Time (UTCTime, ZonedTime(..), utcToZonedTime
-                           , zonedTimeToUTC)
-import           AppConfig (AppM(..), runDb, getDBConn)
-import qualified StorageBeam as SB
-import           Data.UUID.V4 (nextRandom)
-import           Data.Time.Clock (getCurrentTime)
-import           Control.Monad.Reader (liftIO)
-import           Data.Maybe (catMaybes)
-import           Data.GS1.Event (Event(..))
-import           Data.Aeson.Text (encodeToLazyText)
-import           Data.Aeson (decode)
-import qualified Data.Text.Lazy as TxtL
-import qualified Data.Text as T
-import           Data.GS1.EPC as EPC
-import           Data.GS1.DWhat (DWhat(..), LabelEPC(..))
-import           Data.GS1.DWhy (DWhy(..))
-import           Data.GS1.DWhere (DWhere(..), SrcDestLocation)
-import           Data.GS1.DWhen (DWhen(..))
-import qualified Data.GS1.EventID as EvId
-import qualified Data.GS1.Event as Ev
-import           Utils
-import           Database.Beam as B
-import           Database.Beam.Backend.SQL.BeamExtensions (runInsertReturningList)
-import           Data.ByteString (ByteString)
-import qualified Model as M
-import           ErrorUtils (throwBackendError, throwAppError, toServerError
-                            , defaultToServerError, sqlToServerError
-                            , throwUnexpectedDBError)
+import           AppConfig                  (AppM, Env (..), runAppM, runDb)
+import           Control.Monad.IO.Class     (liftIO)
+import           Data.Aeson                 (decode)
+import           Data.Aeson.Text            (encodeToLazyText)
+import           Data.ByteString            (ByteString)
+import           Data.GS1.DWhat             (DWhat (..), LabelEPC (..))
+import           Data.GS1.DWhen             (DWhen (..))
+import           Data.GS1.DWhere            (DWhere (..), SrcDestLocation)
+import           Data.GS1.DWhy              (DWhy (..))
+import           Data.GS1.EPC               as EPC
+import           Data.GS1.Event             (Event (..))
+import qualified Data.GS1.Event             as Ev
+import qualified Data.GS1.EventID           as EvId
+import           Data.Maybe                 (catMaybes)
+import qualified Data.Text                  as T
+import qualified Data.Text.Encoding         as En
+import qualified Data.Text.Lazy             as TxtL
+import qualified Data.Text.Lazy.Encoding    as LEn
+import           Data.Time                  (UTCTime, ZonedTime (..),
+                                             utcToZonedTime)
+import           Data.Time.Clock            (getCurrentTime)
+import           Data.Time.LocalTime        (LocalTime, localTimeToUTC,
+                                             timeZoneOffsetString, utc,
+                                             utcToLocalTime)
+import           Data.UUID.V4               (nextRandom)
+import           Database.Beam              as B
 import           Database.PostgreSQL.Simple
-import qualified Data.Text.Lazy.Encoding as LEn
-import qualified Data.Text.Encoding as En
-import           Control.Monad.Except                     (catchError,
-                                                           throwError)
-import           Control.Monad.Reader                     (ask)
+import           ErrorUtils                 (sqlToServerError,
+                                             throwBackendError,
+                                             throwUnexpectedDBError)
+import qualified Model                      as M
+import qualified StorageBeam                as SB
+import           Utils
+
+import           Control.Monad.Except       (throwError)
+import           Control.Monad.Reader       (ask)
 
 -- | Reads back the ``LocalTime`` in UTCTime (with an offset of 0)
 toEPCISTime :: LocalTime -> UTCTime

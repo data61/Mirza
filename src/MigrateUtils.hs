@@ -4,10 +4,10 @@
 -- So it is not possible to implement the types yet
 module MigrateUtils where
 
+import qualified Data.GS1.EPC                  as EPC
+import qualified Data.GS1.Event                as Ev
+import           Database.Beam.Migrate         (DataType (..))
 import           Database.Beam.Postgres.Syntax (PgDataTypeSyntax, pgTextType)
-import qualified Data.GS1.Event as Ev
-import qualified Data.GS1.EPC as EPC
-import           Database.Beam.Migrate (DataType(..))
 
 -- | Shorthand for using postgres text type
 textType :: DataType PgDataTypeSyntax a

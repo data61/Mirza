@@ -5,35 +5,36 @@ module Tests.BeamQueries where
 import           Test.Hspec
 
 import           BeamQueries
-import           QueryUtils
-import           Dummies
-import           Database.PostgreSQL.Simple
 import           Database.Beam
+import           Database.PostgreSQL.Simple (Connection, connectPostgreSQL,
+                                             execute_)
+import           Dummies
+import           QueryUtils
 
-import           Data.Maybe (fromJust, isNothing)
-import           Data.Either.Combinators
 import           Crypto.Scrypt
+import           Data.Either.Combinators
+import           Data.Maybe                 (fromJust, isNothing)
 
 -- import           Data.Text.Encoding (encodeUtf8)
-import           Data.ByteString (ByteString)
-import           Data.ByteString.Lazy (toStrict)
-import           Data.Text.Encoding (encodeUtf8)
+import           Data.ByteString            (ByteString)
+import           Data.ByteString.Lazy       (toStrict)
 import           Data.GS1.EPC
+import           Data.Text.Encoding         (encodeUtf8)
 -- import qualified Data.GS1.Event as Ev
 
+import           AppConfig                  (AppM, Env (..), EnvType (..),
+                                             runAppM, runDb)
+import           Migrate                    (testDbConnStr)
+import qualified Model                      as M
+import qualified StorageBeam                as SB
 import           Utils
-import           AppConfig (runAppM, Env(..), AppM, runDb, EnvType(..))
-import qualified StorageBeam as SB
-import qualified Model as M
-import           Migrate (testDbConnStr)
 
 -- import           Crypto.Scrypt
-import           Data.Time.Clock (getCurrentTime, UTCTime(..))
-import           Data.Time (ZonedTime(..), utcToZonedTime
-                           , zonedTimeToUTC)
-import           Data.Time.LocalTime (utc, utcToLocalTime, LocalTime)
 import           Data.Binary
-import           Database.PostgreSQL.Simple (execute_)
+import           Data.Time                  (ZonedTime (..), utcToZonedTime,
+                                             zonedTimeToUTC)
+import           Data.Time.Clock            (UTCTime (..), getCurrentTime)
+import           Data.Time.LocalTime        (LocalTime, utc, utcToLocalTime)
 
 -- NOTE in this file, where fromJust is used in the tests, it is because we expect a Just... this is part of the test
 -- NOTE tables dropped after every running of test in an "it"

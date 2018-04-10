@@ -18,7 +18,7 @@ module AppConfig
 
 import qualified Database.Beam              as B
 import           Database.Beam.Postgres     (Pg)
-import           Database.PostgreSQL.Simple (Connection, SqlError (..))
+import           Database.PostgreSQL.Simple (Connection, SqlError)
 
 import qualified Control.Exception          as Exc
 import           Control.Monad.Except       (ExceptT (..), MonadError,

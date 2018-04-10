@@ -2,11 +2,12 @@
 -- | Contains the migration function of ``supplyChainDb``
 module MigrateScript (migrationStorage) where
 
-import           Database.Beam.Postgres.Migrate
+import           Data.UUID                        (UUID)
+import           Database.Beam.Migrate.SQL        (DataType)
 import           Database.Beam.Migrate.SQL.Tables
 import           Database.Beam.Migrate.Types
 import           Database.Beam.Postgres
-import           Database.Beam.Migrate.Simple (verifySchema)
+import           Database.Beam.Postgres.Syntax    (PgDataTypeSyntax)
 import           StorageBeam
 
 maxLen :: Word

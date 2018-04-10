@@ -1,14 +1,15 @@
-{-# LANGUAGE DeriveGeneric     #-}
+{-# LANGUAGE DeriveGeneric #-}
 
 -- | Contains definition(s) of some error types
 module Errors where
 
-import qualified Model as M
-import           GHC.Generics (Generic)
-import qualified Data.Text as T
-import qualified Data.ByteString as BS
+import qualified Data.ByteString            as BS
+-- import qualified Data.GS1.EPC     as EPC
 import           Data.GS1.EventID
-import qualified Data.GS1.EPC as EPC
+import qualified Data.Text                  as T
+import           Database.PostgreSQL.Simple (SqlError)
+import           GHC.Generics               (Generic)
+import qualified Model                      as M
 
 type ErrorText = T.Text
 type ErrorCode = BS.ByteString

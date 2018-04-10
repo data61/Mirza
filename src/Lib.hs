@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP                   #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
@@ -5,7 +6,6 @@
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
-{-# LANGUAGE CPP                   #-}
 {-# LANGUAGE UndecidableInstances  #-}
 {-# OPTIONS_GHC -fno-warn-orphans  #-}
 
@@ -17,23 +17,23 @@ module Lib
     )
     where
 
-import           Prelude        ()
+import qualified AppConfig                        as AC
+import           Prelude                          ()
 import           Prelude.Compat
-import qualified AppConfig as AC
 
 import           Servant
-import           Servant.Server.Experimental.Auth()
+import           Servant.Server.Experimental.Auth ()
 import           Servant.Swagger.UI
 
+import           Control.Lens                     hiding ((.=))
+import           Data.ByteString                  (ByteString)
 import           Data.Swagger
 import           Database.PostgreSQL.Simple
-import           Data.ByteString (ByteString)
-import qualified Network.Wai.Handler.Warp as Warp
-import           Control.Lens       hiding ((.=))
+import qualified Network.Wai.Handler.Warp         as Warp
 
 import           API
+import           GHC.Word                         (Word16)
 import           Service
-import           GHC.Word        (Word16)
 
 startApp :: ByteString -> AC.EnvType -> Word16 -> UIFlavour-> IO ()
 startApp dbConnStr envT port uiFlavour = do
