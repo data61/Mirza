@@ -23,7 +23,7 @@ import           Migrate
 -- drop all tables created by migration. Equivalent to, at the time of writing;
 -- execute_ conn "DROP TABLE IF EXISTS users, keys, businesses, contacts, labels, what_labels, items, transformations, locations, events, whats, \"bizTransactions\", whys, wheres, whens, \"labelEvents\", \"userEvents\", hashes, blockchain;"
 dropTables :: Connection -> IO Int64
-dropTables conn = 
+dropTables conn =
   --https://stackoverflow.com/questions/3327312/drop-all-tables-in-postgresql
   execute_ conn "DO $$ DECLARE                                                                              \
                \     r RECORD;                                                                              \

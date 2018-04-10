@@ -111,8 +111,8 @@ getPublicKey keyId = do
     pure (SB.pem_str allKeys)
   case r of
     Right [k] -> return $ M.PEMString $ T.unpack k
-    Right _ -> throwAppError $ InvalidKeyID keyId
-    Left e  -> throwUnexpectedDBError $ sqlToServerError e
+    Right _   -> throwAppError $ InvalidKeyID keyId
+    Left e    -> throwUnexpectedDBError $ sqlToServerError e
 
 getPublicKeyInfo :: M.KeyID -> AppM M.KeyInfo
 getPublicKeyInfo keyId = do
@@ -176,8 +176,8 @@ insertObjectEvent
     eventId <- insertEvent userId jsonEvent event
     whatId <- insertDWhat Nothing dwhat eventId
     labelIds <- mapM (insertLabel Nothing whatId) labelEpcs
-    whenId <- insertDWhen dwhen eventId
-    whyId <- insertDWhy dwhy eventId
+    _whenId <- insertDWhen dwhen eventId
+    _whyId <- insertDWhy dwhy eventId
     insertDWhere dwhere eventId
     insertUserEvent eventId userId userId False Nothing
     mapM_ (insertWhatLabel whatId) labelIds
@@ -210,8 +210,8 @@ insertAggEvent
     labelIds <- mapM (insertLabel Nothing whatId) labelEpcs
     -- Make labelType a datatype?
     let mParentId = insertLabel (Just "parent") whatId <$> (IL <$> mParentLabel)
-    whenId <- insertDWhen dwhen eventId
-    whyId <- insertDWhy dwhy eventId
+    _whenId <- insertDWhen dwhen eventId
+    _whyId <- insertDWhy dwhy eventId
     insertDWhere dwhere eventId
     insertUserEvent eventId userId userId False Nothing
     mapM_ (insertWhatLabel whatId) labelIds
@@ -243,8 +243,8 @@ insertTransfEvent
     inputLabelIds <- mapM (insertLabel (Just "input") whatId) inputs
     outputLabelIds <- mapM (insertLabel (Just "output") whatId) outputs
     let labelIds = inputLabelIds ++ outputLabelIds
-    whenId <- insertDWhen dwhen eventId
-    whyId <- insertDWhy dwhy eventId
+    _whenId <- insertDWhen dwhen eventId
+    _whyId <- insertDWhy dwhy eventId
     insertDWhere dwhere eventId
     insertUserEvent eventId userId userId False Nothing
     mapM_ (insertWhatLabel whatId) labelIds
@@ -266,7 +266,7 @@ insertTransactionEvent
     mParentLabel
     bizTransactions
     labelEpcs
-    users
+    _users
     dwhen dwhy dwhere
   ) = do
   let
@@ -280,8 +280,8 @@ insertTransactionEvent
     whatId <- insertDWhat Nothing dwhat eventId
     labelIds <- mapM (insertLabel Nothing whatId) labelEpcs
     let mParentId = insertLabel (Just "parent") whatId <$> (IL <$> mParentLabel)
-    whenId <- insertDWhen dwhen eventId
-    whyId <- insertDWhy dwhy eventId
+    _whenId <- insertDWhen dwhen eventId
+    _whyId <- insertDWhy dwhy eventId
     insertDWhere dwhere eventId
     insertUserEvent eventId userId userId False Nothing
     mapM_ (insertWhatLabel whatId) labelIds
@@ -447,7 +447,7 @@ verifyContact _ _ _ = return False
 
 -- | Lists all the contacts associated with the given user
 listContacts :: M.User -> AppM [M.User]
-listContacts  (M.User uid _ _) = do
+listContacts  (M.User _uid _ _) = do
   r <- runDb $ runSelectReturningList $ select $ do
     user <- all_ (SB._users SB.supplyChainDb)
     contact <- all_ (SB._contacts SB.supplyChainDb)

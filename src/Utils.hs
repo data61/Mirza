@@ -13,13 +13,13 @@ import qualified Data.Text            as T
 debugLog :: Show a => a -> AppM ()
 debugLog strLike = do
   envT <- asks envType
-  when (envT == Dev) $ liftIO $ putStrLn $ show strLike
+  when (envT == Dev) $ liftIO $ print strLike
 
 -- | To be used when the Env is known/available.
 -- It doesn't require that the function is being run in AppM
 debugLogGeneral :: (Show a, MonadIO f) => EnvType -> a -> f ()
-debugLogGeneral envT strLike = do
-  when (envT == Dev) $ liftIO $ putStrLn$ show strLike
+debugLogGeneral envT strLike =
+  when (envT == Dev) $ liftIO $ print strLike
 
 bun :: String
 bun = "========================"

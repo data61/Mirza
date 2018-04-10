@@ -15,7 +15,7 @@ import           Database.PostgreSQL.Simple  (SqlError, connectPostgreSQL)
 -- | Whether or not to run silently
 dbMigrationFunc :: Bool -> Connection -> Pg a -> IO a
 dbMigrationFunc False = withDatabaseDebug putStrLn
-dbMigrationFunc _ = withDatabase
+dbMigrationFunc _     = withDatabase
 
 -- | Default connection string
 defConnectionStr :: ByteString
@@ -27,7 +27,7 @@ testDbConnStr = "dbname=testsupplychainserver"
 
 createSchema :: Bool -> Connection -> IO ()
 createSchema runSilently conn = do
-  dbMigrationFunc runSilently conn $ executeMigration runNoReturn $ migrationStorage
+  _ <- dbMigrationFunc runSilently conn $ executeMigration runNoReturn $ migrationStorage
   return ()
 
 -- dropSchema :: Connection -> IO ()
@@ -45,7 +45,7 @@ tryCreateSchema runSilently conn = E.catch (createSchema runSilently conn) handl
 -- tryDrop conn = E.catch (dropSchema conn) handleErr
 --   where
 --     handleErr :: SqlError -> IO ()
---     handleErr  = print 
+--     handleErr  = print
 
 migrate :: ByteString -> IO ()
 migrate connStr = do
