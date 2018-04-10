@@ -1,34 +1,30 @@
-{-# LANGUAGE TemplateHaskell            #-}
 {-# LANGUAGE DeriveGeneric              #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE TemplateHaskell            #-}
 {-# OPTIONS_GHC -fno-warn-orphans       #-}
 
 -- | This module is a WIP. Changes will be made to the models very frequently
 module Model where
 
-import qualified Data.ByteString as BS
-import           Data.Text as T
 import           Data.Aeson
 import           Data.Aeson.TH
+import qualified Data.ByteString                  as BS
+import           Data.Text                        as T
 
-import           Servant
-import           Servant.Server.Experimental.Auth()
 import           Data.Swagger
+import           Servant.Server.Experimental.Auth ()
 
-import           GHC.Generics (Generic)
-import           Data.Time
-import           Data.UUID (UUID)
+import           Data.UUID                        (UUID)
+import           GHC.Generics                     (Generic)
 
-import           Data.GS1.EventID
-import qualified Data.GS1.Event as Ev
-import           Data.GS1.EPC
-import           Data.GS1.DWhere
 import           Data.GS1.DWhat
 import           Data.GS1.DWhen
+import           Data.GS1.DWhere
 import           Data.GS1.DWhy
-import           StorageBeam (PrimaryKeyType)
-import           OpenSSL.RSA (RSAPubKey)
---import           Data.ByteString.Base64.Type (ByteString64)
+import           Data.GS1.EPC
+import qualified Data.GS1.Event                   as Ev
+import           Data.GS1.EventID
+import           StorageBeam                      (PrimaryKeyType)
 
 
 type UserID = PrimaryKeyType

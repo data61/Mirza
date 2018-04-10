@@ -2,17 +2,19 @@
 -- | This module contains the helper functions that are used in error handling
 module ErrorUtils where
 
-import           AppConfig (AppM(..), AppError(..))
-import           Errors (ServiceError(..), ServerError(..), ErrorCode)
-import           Data.Text.Encoding (encodeUtf8)
-import qualified Data.ByteString.Lazy.Char8 as LBSC8
-import           Data.Text (pack)
-import           Control.Monad.Except (throwError, MonadError(..))
-import           Servant.Server
-import           Utils (toText)
-import           Database.PostgreSQL.Simple.Internal (SqlError(..))
-import           Data.ByteString (ByteString)
+import           AppConfig                           (AppError (..), AppM)
+import           Control.Monad.Except                (MonadError (..),
+                                                      throwError)
+import           Data.ByteString                     (ByteString)
+import qualified Data.ByteString.Lazy.Char8          as LBSC8
 import           Data.GS1.EPC
+import           Data.Text.Encoding                  (encodeUtf8)
+import           Database.PostgreSQL.Simple.Internal (SqlError (..))
+import           Errors                              (ErrorCode,
+                                                      ServerError (..),
+                                                      ServiceError (..))
+import           Servant.Server
+import           Utils                               (toText)
 
 
 -- | Takes in a ServiceError and converts it to an HTTP error (eg. err400)

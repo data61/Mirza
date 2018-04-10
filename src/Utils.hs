@@ -2,10 +2,10 @@
 -- | General utility functions used throughout the codebase
 module Utils where
 
-import           AppConfig (AppM(..), getEnvType, EnvType(..))
-import           Control.Monad (when)
-import           Control.Monad.Reader (liftIO, MonadIO)
-import qualified Data.Text as T
+import           AppConfig            (AppM, EnvType (..), asks, envType)
+import           Control.Monad        (when)
+import           Control.Monad.Reader (MonadIO, liftIO)
+import qualified Data.Text            as T
 
 -- | Given a stringLike, prints it only if the application is in Dev mode
 -- otherwise, does a nop.
