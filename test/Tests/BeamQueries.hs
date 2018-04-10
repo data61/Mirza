@@ -59,12 +59,12 @@ selectKey keyId = do
           pure key
   case r of
     Right [key] -> return $ Just key
-    _ -> return Nothing
+    _           -> return Nothing
 
 testQueries :: SpecWith (Connection, Env)
 testQueries = do
 
-  describe "newUser tests" $ do
+  describe "newUser tests" $
     it "newUser test 1" $ \(conn, env) -> do
       uid <- fromRight' <$> (runAppM env $ newUser dummyNewUser)
       user <- fromRight' <$> (runAppM env $ selectUser uid)
@@ -84,11 +84,11 @@ testQueries = do
             (SB.user_id u) == uid
           )
 
-  describe "authCheck tests" $ do
+  describe "authCheck tests" $
     it "authCheck test 1" $ \(conn, env) -> do
       uid <- fromRight' <$> (runAppM env $ newUser dummyNewUser)
       user <- fromRight' <$> (runAppM env $ authCheck (M.emailAddress dummyNewUser) (encodeUtf8 $ M.password dummyNewUser)) --hash)
-      (fromJust user) `shouldSatisfy`
+      fromJust user `shouldSatisfy`
         (\u ->
           (M.userId u) == uid &&
           (M.userFirstName u) == (M.firstName dummyNewUser) &&
@@ -179,7 +179,7 @@ testQueries = do
       eventList <- fromRight' <$> (runAppM env $ listEvents dummyLabelEpc)
       eventList `shouldBe` [insertedEvent]
 
-  describe "getUser tests" $ do
+  describe "getUser tests" $
     it "getUser test 1" $ \(conn, env) -> do
       uid <- fromRight' <$> (runAppM env $ newUser dummyNewUser)
       user <- fromRight' <$> (runAppM env $ getUser $ M.emailAddress dummyNewUser)
@@ -192,10 +192,10 @@ testQueries = do
           )
 
   (after_ clearContact) . describe "Contacts" $ do
-    describe "Add contact" $ do
+    describe "Add contact" $
       it "addContact simple" $ \(conn, env) -> do
-        uid <- fromRight' <$> (runAppM env $ newUser dummyNewUser)
-        user <- fromRight' <$> (runAppM env $ getUser $ M.emailAddress dummyNewUser)
+        uid <- fromRight' <$> runAppM env (newUser dummyNewUser)
+        user <- fromRight' <$> (runAppM env . getUser . M.emailAddress $ dummyNewUser)
         let myContact = makeDummyNewUser "first@gmail.com"
         myContactUid <- fromRight' <$> (runAppM env $ newUser myContact)
         hasBeenAdded <- fromRight' <$> (runAppM env $ addContact (fromJust user) myContactUid)
@@ -254,9 +254,7 @@ populateContact ioEnv = do
     hasBeenAdded `shouldBe` True
 
 defaultEnv :: IO Env
-defaultEnv = do
-  conn <- connectPostgreSQL testDbConnStr
-  return $ Env Dev conn
+defaultEnv = Env Dev <$> connectPostgreSQL testDbConnStr
 
   -- describe "insertDWhat tests" $ do
   --   it "insertDWhat test 1" $ \(conn, env) -> do

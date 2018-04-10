@@ -58,9 +58,8 @@ toZonedTime = utcToZonedTime utc
 -- | Generates a timestamp in LocalTime + 0:00 offset
 -- which is a UTCTime
 generateTimeStamp :: AppM LocalTime
-generateTimeStamp = do
-  utcTime <- liftIO getCurrentTime
-  return $ utcToLocalTime utc utcTime
+generateTimeStamp = utcToLocalTime utc <$> liftIO getCurrentTime
+
 
 -- | shorthand for wrapping ``UUID.nextRandom`` in ``AppM``
 generatePk :: AppM SB.PrimaryKeyType
@@ -83,7 +82,7 @@ eventTxtToBS :: T.Text -> ByteString
 eventTxtToBS = En.encodeUtf8
 
 decodeEvent :: T.Text -> Maybe Ev.Event
-decodeEvent jsonEvent = decode . LEn.encodeUtf8 . TxtL.fromStrict $ jsonEvent
+decodeEvent = decode . LEn.encodeUtf8 . TxtL.fromStrict
 
 epcToStorageLabel :: Maybe T.Text
                   -> SB.PrimaryKeyType
@@ -125,14 +124,14 @@ epcToStorageLabel labelType whatId pKey (CL (CSGTIN gs1Prefix fv ir) mQ) =
            (getQuantityAmount mQ) (getQuantityUom mQ)
 
 getQuantityAmount :: Maybe Quantity -> Maybe Double
-getQuantityAmount Nothing = Nothing
+getQuantityAmount Nothing                       = Nothing
 getQuantityAmount (Just (MeasuredQuantity a _)) = Just $ realToFrac a
-getQuantityAmount (Just (ItemCount c)) = Just $ realToFrac c
+getQuantityAmount (Just (ItemCount c))          = Just $ realToFrac c
 
 getQuantityUom :: Maybe Quantity -> Maybe EPC.Uom
-getQuantityUom Nothing = Nothing
+getQuantityUom Nothing                       = Nothing
 getQuantityUom (Just (MeasuredQuantity _ u)) = Just u
-getQuantityUom (Just (ItemCount _)) = Nothing
+getQuantityUom (Just (ItemCount _))          = Nothing
 
 
 -- | GS1 DWhat to Storage DWhat
@@ -154,14 +153,14 @@ toStorageDWhat pKey mParentId mBizTranId eventId dwhat
 
 getTransformationId :: DWhat -> Maybe TransformationID
 getTransformationId t@(TransformationDWhat _ _ _) = _transformationId t
-getTransformationId _ = Nothing
+getTransformationId _                             = Nothing
 
 
 getAction :: DWhat -> Maybe Action
-getAction (TransformationDWhat _ _ _) = Nothing
-getAction (ObjectDWhat act _) = Just act
+getAction (TransformationDWhat _ _ _)  = Nothing
+getAction (ObjectDWhat act _)          = Just act
 getAction (TransactionDWhat act _ _ _) = Just act
-getAction (AggregationDWhat act _ _) = Just act
+getAction (AggregationDWhat act _ _)   = Just act
 
 
 findInstLabelId :: InstanceLabelEPC -> AppM (Maybe SB.PrimaryKeyType)
@@ -217,7 +216,7 @@ findClassLabelId' cp msfv ir lot = do
 
 
 findLabelId :: LabelEPC -> AppM (Maybe SB.PrimaryKeyType)
-findLabelId (IL l) = findInstLabelId l
+findLabelId (IL l)   = findInstLabelId l
 findLabelId (CL c _) = findClassLabelId c
 
 getParentId :: DWhat -> AppM (Maybe SB.PrimaryKeyType)
@@ -291,7 +290,7 @@ insertSrcDestType :: SB.LocationField
 insertSrcDestType
   locField
   eventId
-  (sdType, SGLN gs1Company (LocationReference locationRef) ext) = do
+  (sdType, SGLN _gs1Company (LocationReference locationRef) _ext) = do
   pKey <- generatePk
   let
       stWhere = SB.Where pKey
@@ -312,7 +311,7 @@ insertLocationEPC :: SB.LocationField
 insertLocationEPC
   locField
   eventId
-  (SGLN gs1Company (LocationReference locationRef) ext) = do
+  (SGLN _gs1Company (LocationReference locationRef) _ext) = do
   pKey <- generatePk
   let
       stWhere = SB.Where pKey
@@ -354,7 +353,7 @@ insertUserEvent :: SB.PrimaryKeyType
                 -> AppM ()
 insertUserEvent eventId userId addedByUserId signed signedHash = do
   pKey <- generatePk
-  runDb $ B.runInsert $ B.insert (SB._user_events SB.supplyChainDb)
+  _ <- runDb $ B.runInsert $ B.insert (SB._user_events SB.supplyChainDb)
         $ insertValues
         [
           SB.UserEvent pKey
@@ -371,7 +370,7 @@ insertWhatLabel :: SB.PrimaryKeyType
                 -> AppM SB.PrimaryKeyType
 insertWhatLabel whatId labelId = do
   pKey <- generatePk
-  runDb $ B.runInsert $ B.insert (SB._what_labels SB.supplyChainDb)
+  _ <- runDb $ B.runInsert $ B.insert (SB._what_labels SB.supplyChainDb)
         $ insertValues
         [
           SB.WhatLabel pKey
@@ -388,7 +387,7 @@ insertLabel :: Maybe T.Text
             -> AppM SB.PrimaryKeyType
 insertLabel labelType whatId labelEpc = do
   pKey <- generatePk
-  runDb $ B.runInsert $ B.insert (SB._labels SB.supplyChainDb)
+  _ <- runDb $ B.runInsert $ B.insert (SB._labels SB.supplyChainDb)
         $ insertValues
         [ epcToStorageLabel labelType whatId pKey labelEpc]
   return pKey
@@ -399,7 +398,7 @@ insertLabelEvent :: SB.PrimaryKeyType
                  -> AppM SB.PrimaryKeyType
 insertLabelEvent eventId labelId = do
   pKey <- generatePk
-  runDb $ B.runInsert $ B.insert (SB._label_events SB.supplyChainDb)
+  _ <- runDb $ B.runInsert $ B.insert (SB._label_events SB.supplyChainDb)
         $ insertValues
         [
           SB.LabelEvent pKey
@@ -410,14 +409,15 @@ insertLabelEvent eventId labelId = do
 
 
 -- | Runs a gicen action within a postgres transaction. If an exception is
--- thrown or
+-- thrown or the application returns an error the databasze transaction is
+-- rolled back.
 transaction :: AppM a -> AppM a
 transaction act = do
   env <- ask
   either throwError pure =<< (liftIO . withTransaction (dbConn env) $ do
     ea <- runAppM env act
     case ea of
-      Right a -> pure ea
+      Right _ -> pure ea
       _       -> rollback (dbConn env) *> pure ea
     )
   -- TODO: Use liftEither once we have mtl >= 2.2.2

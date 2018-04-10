@@ -97,7 +97,6 @@ authCheck = error "not implemented yet" -- do
 appMToHandler :: forall x. AC.Env -> AC.AppM x -> Handler x
 appMToHandler env act = do
   res <- liftIO $ AC.runAppM env act
-  let envT = AC.envType env
   case res of
     Left (AC.AppError e) -> appErrToHttpErr e
     Right a              -> return a
@@ -124,11 +123,12 @@ privateServer
 
 publicServer :: ServerT PublicAPI AC.AppM
 publicServer
-  =     Service.newUser
-  :<|> Service.getPublicKey
-  :<|> Service.getPublicKeyInfo
-  :<|> Service.listBusinesses
+  =    newUser
+  :<|> getPublicKey
+  :<|> getPublicKeyInfo
+  :<|> listBusinesses
 
+appHandlers :: ServerT ServerAPI AC.AppM
 appHandlers = privateServer :<|> publicServer
 
 serverAPI :: Proxy ServerAPI
@@ -149,7 +149,7 @@ serveSwaggerAPI = toSwagger serverAPI
 basicAuthServerContext :: Servant.Context (BasicAuthCheck User ': '[])
 basicAuthServerContext = authCheck :. EmptyContext
 
-
+minPubKeySize :: Int
 minPubKeySize = 1536 --FIXME or 2048
 
 addPublicKey :: User -> RSAPublicKey -> AC.AppM KeyID
@@ -184,7 +184,7 @@ getPublicKeyInfo = BQ.getPublicKeyInfo
 -- PSUEDO:
 -- Use getLabelIDState
 epcState :: User ->  M.LabelEPCUrn -> AC.AppM EPCState
-epcState user str = return New
+epcState _user _str = return New
 
 -- This takes an EPC urn,
 -- and looks up all the events related to that item. First we've got
@@ -194,9 +194,9 @@ epcState user str = return New
 -- wholeEvents <- select * from events, dwhats, dwhy, dwhen where _whatItemID=labelID AND _eventID=_whatEventID AND _eventID=_whenEventID AND _eventID=_whyEventID ORDER BY _eventTime;
 -- return map constructEvent wholeEvents
 listEvents :: User ->  M.LabelEPCUrn -> AC.AppM [Ev.Event]
-listEvents user urn =
+listEvents _user urn =
   case (urn2LabelEPC . pack $ urn) of
-    Left e -> throwParseError e
+    Left e         -> throwParseError e
     Right labelEpc -> BQ.listEvents labelEpc
 
 
@@ -208,12 +208,12 @@ listEvents user urn =
 --
 eventUserList :: User -> EventID -> AC.AppM [(User, Bool)]
 -- eventUserList user eventID = liftIO $ Storage.eventUserList user eventID
-eventUserList user eventID = error "Storage module not implemented"
+eventUserList _user _eventID = error "Storage module not implemented"
 
 
 contactsInfo :: User -> AC.AppM [User]
 -- contactsInfo user = liftIO $ Storage.listContacts user
-contactsInfo user = error "Storage module not implemented"
+contactsInfo _user = error "Storage module not implemented"
 
 -- Given a search term, search the users contacts for a user matching
 -- that term
@@ -221,12 +221,12 @@ contactsInfo user = error "Storage module not implemented"
 -- PSEUDO:
 -- SELECT user2, firstName, lastName FROM Contacts, Users WHERE user1 LIKE *term* AND user2=Users.id UNION SELECT user1, firstName, lastName FROM Contacts, Users WHERE user2 = ? AND user1=Users.id;" (uid, uid)
 contactsSearch :: User -> String -> AC.AppM [User]
-contactsSearch user term = return []
+contactsSearch _user _term = return []
 
 
 userSearch :: User -> String -> AC.AppM [User]
 -- userSearch user term = liftIO $ Storage.userSearch user term
-userSearch user term = error "Storage module not implemented"
+userSearch _user _term = error "Storage module not implemented"
 
 -- select * from Business;
 listBusinesses :: AC.AppM [Business]
@@ -235,10 +235,10 @@ listBusinesses = error "Implement me"
 -- |List events that a particular user was/is involved with
 -- use BizTransactions and events (createdby) tables
 eventList :: User -> UserID -> AC.AppM [Ev.Event]
-eventList user uID = return []
+eventList _user _uID = return []
 
 makeDigest :: M.Digest -> IO (Maybe EVPDigest.Digest)
-makeDigest d = EVPDigest.getDigestByName $ (map toLower) $ show $ d
+makeDigest = EVPDigest.getDigestByName . map toLower . show
 
 
 {-
@@ -259,14 +259,14 @@ makeDigest d = EVPDigest.getDigestByName $ (map toLower) $ show $ d
 -}
 
 eventSign :: User -> SignedEvent -> AC.AppM SB.PrimaryKeyType
-eventSign user (SignedEvent eventID keyID (Signature sigStr) digest) = do
+eventSign _user (SignedEvent eventID keyID (Signature sigStr) digest') = do
   event <- BQ.getEventJSON eventID
   rsaPublicKey <- BQ.getPublicKey keyID
-  sigBS <- BS64.decode (BSC.pack sigStr) <%?> AppError . InvalidSignature
+  sigBS <- BS64.decode (BSC.pack sigStr) <%?> AC.AppError . InvalidSignature
   let (PEMString keyStr) = rsaPublicKey
-  (pubKey :: RSAPubKey) <- liftIO (toPublicKey <$> readPublicKey keyStr) <!?> AppError (InvalidRSAKeyString (pack keyStr))
+  (pubKey :: RSAPubKey) <- liftIO (toPublicKey <$> readPublicKey keyStr) <!?> AC.AppError (InvalidRSAKeyString (pack keyStr))
   let eventBS = QU.eventTxtToBS event
-  digest <- liftIO (makeDigest digest') <?> AppError (InvalidDigest digest')
+  digest <- liftIO (makeDigest digest') <!?> AC.AppError (InvalidDigest digest')
   verifyStatus <- liftIO $ verifyBS digest sigBS pubKey eventBS
   if verifyStatus == VerifySuccess
     then BQ.insertSignature eventID keyID (Signature sigStr) digest'
@@ -285,7 +285,7 @@ eventSign user (SignedEvent eventID keyID (Signature sigStr) digest) = do
 -- do we need this?
 --
 eventHashed :: User -> EventID -> AC.AppM HashedEvent
-eventHashed user eventID = return (HashedEvent eventID (EventHash "Blob"))
+eventHashed _user eventID = return (HashedEvent eventID (EventHash "Blob"))
   {-
 eventHashed user eventID = do
   mHash <- liftIO $ Storage.eventHashed user eventID
@@ -318,7 +318,7 @@ sampleWhere :: DWhere
 sampleWhere = DWhere [] [] [] []
 
 eventInfo :: User -> EventID -> AC.AppM Ev.Event
-eventInfo user eID = liftIO sampleEvent
+eventInfo _user _eID = liftIO sampleEvent
 
 --eventHash :: EventID -> AC.AppM SignedEvent
 --eventHash eID = return (SignedEvent eID (BinaryBlob ByteString.empty) [(BinaryBlob ByteString.empty)] [1,2])

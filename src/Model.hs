@@ -128,34 +128,34 @@ instance ToSchema EPCInfo
 
 type Email = T.Text
 data NewUser = NewUser {
-  phoneNumber :: T.Text,
+  phoneNumber  :: T.Text,
   emailAddress :: Email,
-  firstName :: T.Text,
-  lastName :: T.Text,
-  company :: T.Text,
-  password :: T.Text
+  firstName    :: T.Text,
+  lastName     :: T.Text,
+  company      :: T.Text,
+  password     :: T.Text
 } deriving (Generic, Eq, Show)
 $(deriveJSON defaultOptions ''NewUser)
 instance ToSchema NewUser
 
 data SearchFields = SearchFields {
-  sUser :: User,
-  sbizName :: Maybe T.Text,
-  sBizId :: Maybe UUID,
+  sUser             :: User,
+  sbizName          :: Maybe T.Text,
+  sBizId            :: Maybe UUID,
   sGS1CompanyPrefix :: Maybe T.Text,
-  sFunction :: Maybe T.Text,
-  sAddress :: Maybe T.Text
+  sFunction         :: Maybe T.Text,
+  sAddress          :: Maybe T.Text
 }
 
 data Business = Business {
-  bizID :: UUID,
-  bizName :: T.Text,
+  bizID            :: UUID,
+  bizName          :: T.Text,
   gs1CompanyPrefix :: GS1CompanyPrefix,
-  function :: T.Text,
-  siteName :: T.Text,
-  address :: T.Text,
-  lat :: Float,
-  lng :: Float
+  function         :: T.Text,
+  siteName         :: T.Text,
+  address          :: T.Text,
+  lat              :: Float,
+  lng              :: Float
 } deriving (Generic, Eq, Show)
 $(deriveJSON defaultOptions ''Business)
 instance ToSchema Business
@@ -267,10 +267,10 @@ instance ToSchema TransactionEvent
 
 
 data SignedEvent = SignedEvent {
-  signed_eventID :: EventID,
-  signed_keyID :: KeyID,
+  signed_eventID   :: EventID,
+  signed_keyID     :: KeyID,
   signed_signature :: Signature,
-  signed_digest :: Digest
+  signed_digest    :: Digest
 } deriving (Generic)
 $(deriveJSON defaultOptions ''SignedEvent)
 instance ToSchema SignedEvent
@@ -279,7 +279,7 @@ instance ToSchema SignedEvent
 
 data HashedEvent = HashedEvent {
   hashed_eventID :: EventID,
-  hashed_event :: EventHash
+  hashed_event   :: EventHash
 } deriving (Generic)
 $(deriveJSON defaultOptions ''HashedEvent)
 instance ToSchema HashedEvent

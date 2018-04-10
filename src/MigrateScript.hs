@@ -17,7 +17,7 @@ maxLen = 120
 maxTzLen :: Word
 maxTzLen = 10
 
--- pkSerialType :: DataType PgDataTypeSyntax UUID
+pkSerialType :: DataType PgDataTypeSyntax UUID
 pkSerialType = uuid
 
 migrationStorage :: Migration PgCommandSyntax (CheckedDatabaseSettings Postgres SupplyChainDb)

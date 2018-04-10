@@ -78,6 +78,7 @@ library
                     , xml-conduit
                     , HsOpenSSL
                     , base64-bytestring
+                    , uuid-types
                     , hoist-error
   default-language:   Haskell2010
   default-extensions: FlexibleContexts

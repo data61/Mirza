@@ -1,4 +1,3 @@
-
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 -- | Contains the definition of our ReaderT AppM
