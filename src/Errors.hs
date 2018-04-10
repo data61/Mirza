@@ -18,22 +18,26 @@ data ServerError = ServerError (Maybe ErrorCode) ErrorText
                    deriving (Show, Read)
 
 -- | A sum type of errors that may occur in the Service layer
-data ServiceError = NeedMoreSignatures T.Text
-                  | InvalidSignature String
-                  | BlockchainSendFailed ServerError
-                  | InvalidEventID EventID
-                  | InvalidKeyID M.KeyID
-                  | InvalidUserID M.UserID
-                  | InvalidRSAKey M.RSAPublicKey
-                  | InsertionFail ServerError T.Text
-                  | EmailExists ServerError M.Email
-                  | EmailNotFound M.Email
-                  | UnexpectedDBResponse ServerError
-                  | AuthFailed  M.Email
-                  | UserNotFound M.Email
-                  | ParseError ErrorText -- EPC.ParseFailure
-                  | BackendErr ErrorText -- fallback
-                  deriving (Show, Read, Generic)
+data ServiceError
+  = NeedMoreSignatures   T.Text
+  | InvalidSignature     String
+  | BlockchainSendFailed ServerError
+  | InvalidEventID       EventID
+  | InvalidKeyID         M.KeyID
+  | InvalidUserID        M.UserID
+  | InvalidRSAKeyString  T.Text
+  | InvalidRSAKey        M.RSAPublicKey
+  | InvalidDigest        M.Digest
+  | InsertionFail        ServerError T.Text
+  | EmailExists          ServerError M.Email
+  | EmailNotFound        M.Email
+  | UnexpectedDBResponse ServerError
+  | AuthFailed            M.Email
+  | UserNotFound         M.Email
+  | ParseError           ErrorText -- EPC.ParseFailure
+  | BackendErr           ErrorText -- fallback
+  | DatabaseError        SqlError
+  deriving (Show, Generic)
 
 {-
 Do not remove the following commented out code until explicitly asked to
