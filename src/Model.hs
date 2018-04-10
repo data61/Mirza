@@ -137,7 +137,7 @@ data NewUser = NewUser {
   emailAddress :: Email,
   firstName    :: T.Text,
   lastName     :: T.Text,
-  company      :: T.Text,
+  company      :: GS1CompanyPrefix,
   password     :: T.Text
 } deriving (Generic, Eq, Show)
 $(deriveJSON defaultOptions ''NewUser)
@@ -181,7 +181,7 @@ mkObjectEvent :: Ev.Event -> Maybe ObjectEvent
 mkObjectEvent
   (Ev.Event Ev.ObjectEventT
     mEid
-    (ObjectDWhat act epcList)
+    (ObjWhat (ObjectDWhat act epcList))
     dwhen dwhy dwhere
   ) = Just $ ObjectEvent mEid act epcList dwhen dwhy dwhere
 mkObjectEvent _ = Nothing
@@ -191,7 +191,7 @@ fromObjectEvent (ObjectEvent mEid act epcList dwhen dwhy dwhere) =
   Ev.Event
     Ev.ObjectEventT
     mEid
-    (ObjectDWhat act epcList)
+    (ObjWhat (ObjectDWhat act epcList))
     dwhen dwhy dwhere
 
 -- XXX is it guaranteed to not have a ``recordTime``?
@@ -213,7 +213,7 @@ mkAggEvent :: Ev.Event -> Maybe AggregationEvent
 mkAggEvent
   (Ev.Event Ev.AggregationEventT
     mEid
-    (AggregationDWhat act mParentLabel epcList)
+    (AggWhat (AggregationDWhat act mParentLabel epcList))
     dwhen dwhy dwhere
   ) = Just $ AggregationEvent mEid act mParentLabel epcList dwhen dwhy dwhere
 mkAggEvent _ = Nothing
@@ -223,14 +223,14 @@ fromAggEvent (AggregationEvent mEid act mParentLabel epcList dwhen dwhy dwhere) 
   Ev.Event
     Ev.AggregationEventT
     mEid
-    (AggregationDWhat act mParentLabel epcList)
+    (AggWhat (AggregationDWhat act mParentLabel epcList))
     dwhen dwhy dwhere
 
 data TransformationEvent = TransformationEvent {
   transf_foreign_event_id  :: Maybe EventID,
   transf_transformation_id :: Maybe TransformationID,
-  transf_input_list        :: [LabelEPC],
-  transf_output_list       :: [LabelEPC],
+  transf_input_list        :: [InputEPC],
+  transf_output_list       :: [OutputEPC],
   transf_when              :: DWhen,
   transf_why               :: DWhy,
   transf_where             :: DWhere
@@ -242,7 +242,7 @@ mkTransfEvent :: Ev.Event -> Maybe TransformationEvent
 mkTransfEvent
   (Ev.Event Ev.TransformationEventT
     mEid
-    (TransformationDWhat mTransfId inputs outputs)
+    (TransformWhat (TransformationDWhat mTransfId inputs outputs))
     dwhen dwhy dwhere
   ) = Just $ TransformationEvent mEid mTransfId inputs outputs dwhen dwhy dwhere
 mkTransfEvent _ = Nothing
@@ -252,7 +252,7 @@ fromTransfEvent (TransformationEvent mEid mTransfId inputs outputs dwhen dwhy dw
   Ev.Event
     Ev.TransformationEventT
     mEid
-    (TransformationDWhat mTransfId inputs outputs)
+    (TransformWhat (TransformationDWhat mTransfId inputs outputs))
     dwhen dwhy dwhere
 
 
@@ -274,7 +274,7 @@ mkTransactEvent :: Ev.Event -> Maybe TransactionEvent
 mkTransactEvent
   (Ev.Event Ev.TransactionEventT
     mEid
-    (TransactionDWhat act mParentLabel bizTransactions epcList)
+    (TransactWhat (TransactionDWhat act mParentLabel bizTransactions epcList))
     dwhen dwhy dwhere
   ) = Just $
       TransactionEvent
@@ -282,12 +282,15 @@ mkTransactEvent
         dwhen dwhy dwhere
 mkTransactEvent _ = Nothing
 
-fromTransactEvent :: TransformationEvent ->  Ev.Event
-fromTransactEvent (TransformationEvent mEid mTransfId inputs outputs dwhen dwhy dwhere) =
+fromTransactEvent :: TransactionEvent ->  Ev.Event
+fromTransactEvent
+  (TransactionEvent
+    mEid act mParentLabel bizTransactions epcList userIds
+    dwhen dwhy dwhere) =
   Ev.Event
     Ev.TransformationEventT
     mEid
-    (TransformationDWhat mTransfId inputs outputs)
+    (TransactWhat (TransactionDWhat act mParentLabel bizTransactions epcList))
     dwhen dwhy dwhere
 
 data SignedEvent = SignedEvent {

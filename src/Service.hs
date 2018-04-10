@@ -60,6 +60,7 @@ import qualified StorageBeam                      as SB
 import           Utils
 
 import qualified Data.ByteString.Base64           as BS64
+import           Dummies
 import qualified OpenSSL.EVP.Digest               as EVPDigest
 import           OpenSSL.EVP.PKey                 (PublicKey, SomePublicKey,
                                                    toPublicKey)
@@ -67,7 +68,6 @@ import           OpenSSL.EVP.Verify               (VerifyStatus (..), verifyBS)
 import           OpenSSL.PEM                      (readPublicKey)
 import           OpenSSL.RSA                      (RSAPubKey, rsaSize)
 import qualified QueryUtils                       as QU
-
 
 instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub) where
   toSwagger _ =
@@ -111,9 +111,9 @@ privateServer user =
         :<|> eventSign user
         :<|> eventHashed user
         :<|> objectEvent user
-        :<|> eventAggregateObjects user
-        :<|> eventStartTransaction user
-        :<|> eventTransformObject user
+        :<|> aggregateEvent user
+        :<|> transactionEvent user
+        :<|> transformationEvent user
         :<|> Service.addPublicKey user
 
 publicServer :: ServerT PublicAPI AC.AppM
@@ -305,14 +305,14 @@ eventHashed user eventID = do
 objectEvent :: User -> ObjectEvent -> AC.AppM Ev.Event -- SB.PrimaryKeyType
 objectEvent = BQ.insertObjectEvent
 
-eventAggregateObjects :: User -> AggregationEvent -> AC.AppM Ev.Event
-eventAggregateObjects = BQ.insertAggEvent
+aggregateEvent :: User -> AggregationEvent -> AC.AppM Ev.Event
+aggregateEvent = BQ.insertAggEvent
 
-eventStartTransaction :: User -> TransactionEvent -> AC.AppM Ev.Event
-eventStartTransaction = BQ.insertTransactEvent
+transactionEvent :: User -> TransactionEvent -> AC.AppM Ev.Event
+transactionEvent = BQ.insertTransactEvent
 
-eventTransformObject :: User -> TransformationEvent -> AC.AppM Ev.Event
-eventTransformObject = BQ.insertTransfEvent
+transformationEvent :: User -> TransformationEvent -> AC.AppM Ev.Event
+transformationEvent = BQ.insertTransfEvent
 
 sampleEvent:: IO Ev.Event
 sampleEvent=  do
@@ -321,7 +321,7 @@ sampleEvent=  do
 
 
 sampleWhat :: DWhat
-sampleWhat = ObjectDWhat Observe [IL (GIAI "2020939" "029393")]
+sampleWhat = dummyObjectDWhat
 
 sampleWhy :: DWhy
 sampleWhy = DWhy (Just Arriving) (Just Data.GS1.EPC.Active)

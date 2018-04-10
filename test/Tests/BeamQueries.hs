@@ -45,7 +45,7 @@ timeStampIO :: MonadIO m => m LocalTime
 timeStampIO = liftIO $ (utcToLocalTime utc) <$> getCurrentTime
 
 timeStampIOEPCIS :: MonadIO m => m EPCISTime
-timeStampIOEPCIS = liftIO $ getCurrentTime
+timeStampIOEPCIS = liftIO $ EPCISTime <$> getCurrentTime
 
 
 rsaPubKey :: IO M.RSAPublicKey
