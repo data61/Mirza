@@ -64,3 +64,7 @@ type API
     = SwaggerSchemaUI "swagger-ui" "swagger.json"
     :<|> ServerAPI
 
+-- To test nested case
+type API' = API
+    :<|> "nested" :> API
+    :<|> SwaggerSchemaUI' "foo-ui" ("foo" :> "swagger.json" :> Get '[JSON] Swagger)
