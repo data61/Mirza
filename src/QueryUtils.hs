@@ -14,13 +14,10 @@ import           Control.Monad.Reader                     (liftIO)
 import           Data.Aeson                               (decode)
 import           Data.Aeson.Text                          (encodeToLazyText)
 import           Data.ByteString                          (ByteString)
-import           Data.GS1.DWhat                           (DWhat (..),
-                                                           LabelEPC (..))
-import           Data.GS1.DWhen                           (DWhen (..))
-import           Data.GS1.DWhere                          (BizLocation,
-                                                           DWhere (..),
-                                                           SrcDestLocation)
-import           Data.GS1.DWhy                            (DWhy (..))
+import           Data.GS1.DWhat                           as DWhat
+import           Data.GS1.DWhen                           as DWhen
+import           Data.GS1.DWhere                          as DWhere
+import           Data.GS1.DWhy                            as DWhen
 import           Data.GS1.EPC                             as EPC
 import           Data.GS1.Event                           (Event (..))
 import qualified Data.GS1.Event                           as Ev
@@ -43,24 +40,19 @@ import           Data.UUID.V4                             (nextRandom)
 import           Database.Beam                            as B
 import           Database.Beam.Backend.SQL.BeamExtensions (runInsertReturningList)
 import           Database.PostgreSQL.Simple
-import           ErrorUtils                               (defaultToServerError,
-                                                           sqlToServerError,
-                                                           throwAppError,
-                                                           throwBackendError,
-                                                           throwUnexpectedDBError,
-                                                           toServerError)
+import           ErrorUtils                               as ErrUtils
 import qualified MigrateUtils                             as MU
 import qualified Model                                    as M
 import qualified StorageBeam                              as SB
 import           Utils
 
 -- | Reads back the ``LocalTime`` in UTCTime (with an offset of 0)
-toEPCISTime :: LocalTime -> UTCTime
-toEPCISTime = localTimeToUTC utc
+toEPCISTime :: LocalTime -> EPCISTime
+toEPCISTime t = EPCISTime (localTimeToUTC utc t)
 
 -- | Shorthand for type-casting UTCTime to LocalTime before storing them in DB
-toLocalTime :: UTCTime -> LocalTime
-toLocalTime = utcToLocalTime utc
+toLocalTime :: EPCISTime -> LocalTime
+toLocalTime = (utcToLocalTime utc) . unEPCISTime
 
 -- | Shorthand for type-casting UTCTime to LocalTime before storing them in DB
 toZonedTime :: UTCTime -> ZonedTime
@@ -135,10 +127,10 @@ epcToStorageLabel labelType whatId pKey (CL (CSGTIN gs1Prefix fv ir) mQ) =
            Nothing Nothing fv Nothing
            (getQuantityAmount mQ) (getQuantityUom mQ)
 
-getQuantityAmount :: Maybe Quantity -> Maybe Double
+getQuantityAmount :: Maybe Quantity -> Maybe Amount
 getQuantityAmount Nothing                       = Nothing
-getQuantityAmount (Just (MeasuredQuantity a _)) = Just $ realToFrac a
-getQuantityAmount (Just (ItemCount c))          = Just $ realToFrac c
+getQuantityAmount (Just (MeasuredQuantity a _)) = Just . Amount . realToFrac . unAmount $ a
+getQuantityAmount (Just (ItemCount c))          = Just . Amount . realToFrac $ c
 
 getQuantityUom :: Maybe Quantity -> Maybe EPC.Uom
 getQuantityUom Nothing                       = Nothing
@@ -160,19 +152,19 @@ toStorageDWhat pKey mParentId mBizTranId eventId dwhat
         (getAction dwhat)
         (SB.LabelId mParentId)
         (SB.BizTransactionId mBizTranId)
-        (SB.TransformationId $ getTransformationId dwhat)
+        (SB.TransformationId $ unTransformationID <$> (getTransformationId $ dwhat))
         (SB.EventId eventId)
 
 getTransformationId :: DWhat -> Maybe TransformationID
-getTransformationId t@(TransformationDWhat _ _ _) = _transformationId t
-getTransformationId _                             = Nothing
+getTransformationId (TransformWhat t) = _transformationId t
+getTransformationId _                 = Nothing
 
 
 getAction :: DWhat -> Maybe Action
-getAction (TransformationDWhat _ _ _)  = Nothing
-getAction (ObjectDWhat act _)          = Just act
-getAction (TransactionDWhat act _ _ _) = Just act
-getAction (AggregationDWhat act _ _)   = Just act
+getAction (TransformWhat _)                           = Nothing
+getAction (ObjWhat (ObjectDWhat act _))               = Just act
+getAction (TransactWhat (TransactionDWhat act _ _ _)) = Just act
+getAction (AggWhat (AggregationDWhat act _ _))        = Just act
 
 
 findInstLabelId :: InstanceLabelEPC -> AppM (Maybe SB.PrimaryKeyType)
@@ -231,8 +223,8 @@ findLabelId (IL l)   = findInstLabelId l
 findLabelId (CL c _) = findClassLabelId c
 
 getParentId :: DWhat -> AppM (Maybe SB.PrimaryKeyType)
-getParentId (TransactionDWhat _ (Just p) _ _) = findInstLabelId p
-getParentId (AggregationDWhat _ (Just p) _)   = findInstLabelId p
+getParentId (TransactWhat (TransactionDWhat _ (Just p) _ _)) = findInstLabelId . unParentLabel $ p
+getParentId (AggWhat (AggregationDWhat _ (Just p) _) )  = findInstLabelId . unParentLabel $ p
 getParentId _                                 = return Nothing
 
 toStorageDWhen :: SB.PrimaryKeyType
@@ -249,8 +241,8 @@ toStorageDWhen pKey (DWhen eventTime mRecordTime tZone) eventId =
 toStorageDWhy :: SB.PrimaryKeyType -> DWhy -> SB.PrimaryKeyType -> SB.Why
 toStorageDWhy pKey (DWhy mBiz mDisp) eventId =
   SB.Why pKey
-    (printURI <$> mBiz)
-    (printURI <$> mDisp)
+    (renderURL <$> mBiz)
+    (renderURL <$> mDisp)
     (SB.EventId eventId)
 
 toStorageEvent :: SB.PrimaryKeyType
@@ -301,7 +293,7 @@ insertSrcDestType :: MU.LocationField
 insertSrcDestType
   locField
   eventId
-  (sdType, SGLN pfix locationRef ext) = do
+  (SrcDestLocation (sdType, SGLN pfix locationRef ext)) = do
   pKey <- generatePk
   let
       stWhere = SB.Where pKey
@@ -344,8 +336,8 @@ insertLocationEPC
 insertDWhere :: DWhere -> SB.PrimaryKeyType -> AppM ()
 insertDWhere (DWhere rPoints bizLocs srcTs destTs) eventId = do
   -- These functions are not firing
-  sequence $ insertLocationEPC MU.ReadPoint eventId <$> rPoints
-  sequence $ insertLocationEPC MU.BizLocation eventId <$> bizLocs
+  sequence $ insertLocationEPC MU.ReadPoint eventId <$> unReadPointLocation <$> rPoints
+  sequence $ insertLocationEPC MU.BizLocation eventId <$> unBizLocation <$> bizLocs
   sequence $ insertSrcDestType MU.Src eventId <$> srcTs
   sequence $ insertSrcDestType MU.Dest eventId <$> destTs
   return ()
@@ -377,8 +369,8 @@ findDWhereByLocationField locField eventId = do
 -- mergeSBWheres :: [SB.WhereT Identity] -> DWhere
 mergeSBWheres :: [[SB.WhereT Identity]] -> DWhere
 mergeSBWheres [rPointsW, bizLocsW, srcTsW, destTsW] = do
-  let rPoints = constructLocation <$> rPointsW
-      bizLocs = constructLocation <$> bizLocsW
+  let rPoints = ReadPointLocation <$> constructLocation <$> rPointsW
+      bizLocs = BizLocation <$> constructLocation <$> bizLocsW
       srcTs = constructSrcDestLocation <$> srcTsW
       destTs = constructSrcDestLocation <$> destTsW
       in
@@ -391,7 +383,7 @@ constructSrcDestLocation whereT =
   let sdType = fromJust . SB.where_source_dest_type $ whereT
       locationEpc = constructLocation whereT
       in
-        (sdType, locationEpc)
+        SrcDestLocation (sdType, locationEpc)
 
 -- | This relies on the user calling this function in the appropriate WhereT
 constructLocation :: SB.WhereT Identity -> LocationEPC
