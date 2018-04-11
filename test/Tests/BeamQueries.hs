@@ -28,12 +28,12 @@ import           Data.Time.Clock            (getCurrentTime)
 import           Data.Time.LocalTime        (LocalTime, utc, utcToLocalTime)
 import           Database.PostgreSQL.Simple (Connection, connectPostgreSQL,
                                              execute_)
+import           GHC.Stack                  (HasCallStack)
 import           Migrate                    (testDbConnStr)
 import qualified Model                      as M
 import qualified Service                    as S
 import qualified StorageBeam                as SB
 
-import           GHC.Stack                  (HasCallStack)
 -- NOTE in this file, where fromJust is used in the tests, it is because we expect a Just... this is part of the test
 -- NOTE tables dropped after every running of test in an "it"
 
@@ -87,8 +87,8 @@ testQueries = do
         key <- selectKey keyId
         pure (key, keyStr, keyId, uid, tEnd)
       case res of
-        (Nothing,_,_,_,_) -> fail "Received Nothing"
-        (Just key,keyStr,keyId,uid,tEnd) ->
+        (Nothing, _, _, _, _) -> fail "Received Nothing"
+        (Just key, keyStr, keyId, uid, tEnd) ->
           key `shouldSatisfy`
               (\k ->
                 T.unpack (SB.pem_str k) == keyStr &&
@@ -97,7 +97,7 @@ testQueries = do
                 (SB.creation_time k) > tStart &&
                 (SB.creation_time k) < tEnd &&
                 isNothing (SB.revocation_time k)
-          )
+              )
   describe "getPublicKeyInfo tests" $
     it "getPublicKeyInfo test 1" $ \(_conn, env) -> do
       tStart <- timeStampIOEPCIS
@@ -124,8 +124,8 @@ testQueries = do
         user <- selectUser uid
         pure (uid, user)
       case res of
-        (_,Nothing) -> fail "Received Nothing for user"
-        (uid,Just user :: Maybe (SB.UserT Identity)) ->
+        (_, Nothing) -> fail "Received Nothing for user"
+        (uid, Just user :: Maybe (SB.UserT Identity)) ->
           user `shouldSatisfy`
             (\u ->
               (SB.phone_number u) == (M.phoneNumber dummyNewUser) &&
@@ -142,133 +142,160 @@ testQueries = do
 
   describe "authCheck tests" $
     it "authCheck test 1" $ \(_conn, env) -> do
-      uid <- fromRight' <$> (runAppM env $ newUser dummyNewUser)
-      user <- fromRight' <$> (runAppM env $ authCheck (M.emailAddress dummyNewUser) (encodeUtf8 $ M.password dummyNewUser)) --hash)
-      fromJust user `shouldSatisfy`
-        (\u ->
-          (M.userId u) == uid &&
-          (M.userFirstName u) == (M.firstName dummyNewUser) &&
-          (M.userLastName u) == (M.lastName dummyNewUser)
-        )
+      res <- testAppM env $ do
+        uid <- newUser dummyNewUser
+        user <- authCheck (M.emailAddress dummyNewUser) (encodeUtf8 $ M.password dummyNewUser)
+        pure (uid, user)
+      case res of
+        (_, Nothing) -> fail "Received Nothing for user"
+        (uid, Just user :: Maybe M.User) ->
+          user `shouldSatisfy`
+            (\u ->
+              (M.userId u) == uid &&
+              (M.userFirstName u) == (M.firstName dummyNewUser) &&
+              (M.userLastName u) == (M.lastName dummyNewUser)
+            )
 
   describe "Object Event" $ do
     it "Insert Object Event" $ \(_conn, env) -> do
-      insertedEvent <- fromRight' <$> (runAppM env $ insertObjectEvent dummyUser dummyObject)
+      insertedEvent <- testAppM env $ insertObjectEvent dummyUser dummyObject
       insertedEvent `shouldSatisfy`
         (\ev -> ev == dummyObjEvent)
 
     it "List event" $ \(_conn, env) -> do
-      insertedEvent <- fromRight' <$> (runAppM env $ insertObjectEvent dummyUser dummyObject)
-      eventList <- fromRight' <$> (runAppM env $ listEvents dummyLabelEpc)
-      insertedEvent `shouldSatisfy`
-        (\ev -> ev == dummyObjEvent)
-      eventList `shouldBe` [insertedEvent]
+      res <- testAppM env $ do
+        insertedEvent <- insertObjectEvent dummyUser dummyObject
+        eventList <- listEvents dummyLabelEpc
+        pure (insertedEvent, eventList)
+      case res of
+        (insertedEvent, eventList) -> do
+          insertedEvent `shouldSatisfy`
+            (\ev -> ev == dummyObjEvent)
+          eventList `shouldBe` [insertedEvent]
 
   describe "Aggregation Event" $ do
     it "Insert Aggregation Event" $ \(_conn, env) -> do
-      insertedEvent <- fromRight' <$> (runAppM env $ insertAggEvent dummyUser dummyAggregation)
+      insertedEvent <- testAppM env $ insertAggEvent dummyUser dummyAggregation
       insertedEvent `shouldSatisfy`
         (\ev -> ev == dummyAggEvent)
 
     it "List event" $ \(_conn, env) -> do
-      insertedEvent <- fromRight' <$> (runAppM env $ insertAggEvent dummyUser dummyAggregation)
-      insertedEvent `shouldSatisfy`
-        (\ev -> ev == dummyAggEvent)
-      eventList <- fromRight' <$> (runAppM env $ listEvents dummyLabelEpc)
-      eventList `shouldBe` [insertedEvent]
+      res <- testAppM env $ do
+        insertedEvent <- insertAggEvent dummyUser dummyAggregation
+        eventList <- listEvents dummyLabelEpc
+        pure (insertedEvent, eventList)
+      case res of
+        (insertedEvent, eventList) -> do
+          insertedEvent `shouldSatisfy`
+            (\ev -> ev == dummyAggEvent)
+          eventList `shouldBe` [insertedEvent]
 
   describe "Transformation Event" $ do
     it "Insert Transformation Event" $ \(_conn, env) -> do
-      insertedEvent <- fromRight' <$> (runAppM env $ insertTransfEvent dummyUser dummyTransformation)
+      insertedEvent <- testAppM env $ insertTransfEvent dummyUser dummyTransformation
       insertedEvent `shouldSatisfy`
         (\ev -> ev == dummyTransfEvent)
 
     it "List event" $ \(_conn, env) -> do
-      insertedEvent <- fromRight' <$> (runAppM env $ insertTransfEvent dummyUser dummyTransformation)
-      insertedEvent `shouldSatisfy`
-        (\ev -> ev == dummyTransfEvent)
-      eventList <- fromRight' <$> (runAppM env $ listEvents dummyLabelEpc)
-      eventList `shouldBe` [insertedEvent]
+      res <- testAppM env $ do
+        insertedEvent <- insertTransfEvent dummyUser dummyTransformation
+        eventList <- listEvents dummyLabelEpc
+        pure (insertedEvent, eventList)
+      case res of
+        (insertedEvent, eventList) -> do
+          insertedEvent `shouldSatisfy`
+            (\ev -> ev == dummyTransfEvent)
+          eventList `shouldBe` [insertedEvent]
 
   describe "Transaction Event" $ do
     it "Insert Transaction Event" $ \(_conn, env) -> do
-      insertedEvent <- fromRight' <$> (runAppM env $ insertTransactEvent dummyUser dummyTransaction)
+      insertedEvent <- testAppM env $ insertTransactEvent dummyUser dummyTransaction
       insertedEvent `shouldSatisfy`
         (\ev -> ev == dummyTransactEvent)
 
     it "List event" $ \(_conn, env) -> do
-      insertedEvent <- fromRight' <$> (runAppM env $ insertTransactEvent dummyUser dummyTransaction)
-      insertedEvent `shouldSatisfy`
-        (\ev -> ev == dummyTransactEvent)
-      eventList <- fromRight' <$> (runAppM env $ listEvents dummyLabelEpc)
-      eventList `shouldBe` [insertedEvent]
+      res <- testAppM env $ do
+        insertedEvent <- insertTransactEvent dummyUser dummyTransaction
+        eventList <- listEvents dummyLabelEpc
+        pure (insertedEvent, eventList)
+      case res of
+        (insertedEvent, eventList) -> do
+          insertedEvent `shouldSatisfy`
+            (\ev -> ev == dummyTransactEvent)
+          eventList `shouldBe` [insertedEvent]
 
   describe "getUser tests" $
     it "getUser test 1" $ \(_conn, env) -> do
-      uid <- fromRight' <$> (runAppM env $ newUser dummyNewUser)
-      user <- fromRight' <$> (runAppM env $ getUser $ M.emailAddress dummyNewUser)
-      (fromJust user)
-        `shouldSatisfy`
-          (\u ->
-            (M.userId u == uid) &&
-            (M.userFirstName u == M.firstName dummyNewUser) &&
-            (M.userLastName u == M.lastName dummyNewUser)
-          )
+      res <- testAppM env $ do
+        uid <- newUser dummyNewUser
+        user <- getUser $ M.emailAddress dummyNewUser
+        pure (uid, user)
+      case res of
+        (_, Nothing) -> fail "Received Nothing for user"
+        (uid, Just user) ->
+          user `shouldSatisfy`
+            (\u ->
+              (M.userId u == uid) &&
+              (M.userFirstName u == M.firstName dummyNewUser) &&
+              (M.userLastName u == M.lastName dummyNewUser)
+            )
 
   (after_ clearContact) . describe "Contacts" $ do
     describe "Add contact" $
       it "addContact simple" $ \(_conn, env) -> do
-        uid <- fromRight' <$> runAppM env (newUser dummyNewUser)
-        user <- fromRight' <$> (runAppM env . getUser . M.emailAddress $ dummyNewUser)
         let myContact = makeDummyNewUser "first@gmail.com"
-        myContactUid <- fromRight' <$> (runAppM env $ newUser myContact)
-        hasBeenAdded <- fromRight' <$> (runAppM env $ addContact (fromJust user) myContactUid)
-        hasBeenAdded `shouldBe` True
-        isContact <- fromRight' <$> (runAppM env $ isExistingContact uid myContactUid)
-        isContact `shouldBe` True
+        res <- testAppM env $ do
+          uid <- newUser dummyNewUser
+          user <- getUser . M.emailAddress $ dummyNewUser
+          myContactUid <- newUser myContact
+          hasBeenAdded <- addContact (fromJust user) myContactUid
+          isContact <- isExistingContact uid myContactUid
+          pure (uid, user, myContactUid, hasBeenAdded, isContact)
+        case res of
+          (_, Nothing, _, _, _) -> fail "Received Nothing for user"
+          (uid, user, myContactUid, hasBeenAdded, isContact) -> do
+            hasBeenAdded `shouldBe` True
+            isContact `shouldBe` True
 
     describe "Remove contact" $ do
       it "Simple remove one" $ \(_conn, env) -> do
-
         -- Adding the contact first
-        -- FIXME: Unused?
-        _uid <- fromRight' <$> (runAppM env $ newUser dummyNewUser)
-        mUser <- fromRight' <$> (runAppM env $ getUser $ M.emailAddress dummyNewUser)
-        let myContact = makeDummyNewUser "first@gmail.com"
-            user = fromJust mUser
-        myContactUid <- fromRight' <$> (runAppM env $ newUser myContact)
-        hasBeenAdded <- fromRight' <$> (runAppM env $ addContact user myContactUid)
-        hasBeenAdded `shouldBe` True
-
+        (hasBeenAdded, hasBeenRemoved) <- testAppM env $ do
+          _uid <- newUser dummyNewUser -- firing a side-effect
+          mUser <- getUser $ M.emailAddress dummyNewUser
+          let myContact = makeDummyNewUser "first@gmail.com"
+              user = fromJust mUser
+          myContactUid <- newUser myContact
+          hasBeenAdded <- addContact user myContactUid
         -- removing the contact now
-        hasBeenRemoved <- fromRight' <$> (runAppM env $ removeContact user myContactUid)
+          hasBeenRemoved <- removeContact user myContactUid
+          pure (hasBeenAdded, hasBeenRemoved)
+        hasBeenAdded `shouldBe` True
         hasBeenRemoved `shouldBe` True
       it "Remove wrong contact" $ \(_conn, env) -> do
-
-        -- Adding the user first
-        -- FIXME: Unused?
-        _uid <- fromRight' <$> (runAppM env $ newUser dummyNewUser)
-        -- retrieving the user
-        mUser <- fromRight' <$> (runAppM env $ getUser $ M.emailAddress dummyNewUser)
-
+        -- Adding the contact first
+        (hasBeenAdded, hasBeenRemoved) <- testAppM env $ do
+          _uid <- newUser dummyNewUser -- firing a side-effect
+          mUser <- getUser $ M.emailAddress dummyNewUser
         -- Add a new user who is NOT a contact
-        otherUserId <- fromRight' <$> (runAppM env $ newUser $ makeDummyNewUser "other@gmail.com")
-        let myContactUser = makeDummyNewUser "first@gmail.com"
-            user = fromJust mUser
-        myContactUid <- fromRight' <$> (runAppM env $ newUser myContactUser)
-        hasBeenAdded <- fromRight' <$> (runAppM env $ addContact user myContactUid)
-        hasBeenAdded `shouldBe` True
-
+          otherUserId <- newUser $ makeDummyNewUser "other@gmail.com"
+          let myContact = makeDummyNewUser "first@gmail.com"
+              user = fromJust mUser
+          myContactUid <- newUser myContact
+          hasBeenAdded <- addContact user myContactUid
         -- removing a wrong contact
-        hasBeenRemoved <- fromRight' <$> (runAppM env $ removeContact user otherUserId)
+          hasBeenRemoved <- removeContact user otherUserId
+          pure (hasBeenAdded, hasBeenRemoved)
+        hasBeenAdded `shouldBe` True
         hasBeenRemoved `shouldBe` False
 
   describe "DWhere" $
     it "Insert and find DWhere" $ \(_conn, env) -> do
       let eventId = dummyId
-      -- FIXME: Unused?
-      _r <- fromRight' <$> runAppM env (insertDWhere dummyDWhere eventId)
-      insertedDWhere <- fromRight' <$> (runAppM env $ findDWhere eventId)
+      insertedDWhere <- testAppM env $ do
+        _r <- insertDWhere dummyDWhere eventId
+        insertedDWhere <- findDWhere eventId
+        pure insertedDWhere
       insertedDWhere `shouldBe` Just dummyDWhere
 
 clearContact :: IO ()
@@ -280,12 +307,13 @@ clearContact = do
 populateContact :: IO Env -> IO ()
 populateContact ioEnv = do
     env <- ioEnv
-    -- FIXME: Unused?
-    _uid <- fromRight' <$> (runAppM env $ newUser dummyNewUser)
-    user <- fromRight' <$> (runAppM env $ getUser $ M.emailAddress dummyNewUser)
     let myContact = makeDummyNewUser "first@gmail.com"
-    myContactUid <- fromRight' <$> (runAppM env $ newUser myContact)
-    hasBeenAdded <- fromRight' <$> (runAppM env $ addContact (fromJust user) myContactUid)
+    hasBeenAdded <- testAppM env $ do
+      _uid <- newUser dummyNewUser
+      user <- getUser $ M.emailAddress dummyNewUser
+      myContactUid <- newUser myContact
+      hasBeenAdded <- addContact (fromJust user) myContactUid
+      pure hasBeenAdded
     hasBeenAdded `shouldBe` True
 
 defaultEnv :: IO Env
