@@ -17,19 +17,13 @@
 -- light wrappers around functions in BeamQueries
 module Service where
 
-import           GHC.TypeLits                     (KnownSymbol)
-
 import           API
 import qualified AppConfig                        as AC
 import qualified BeamQueries                      as BQ
-import qualified Control.Exception.Lifted         as ExL
 import           Control.Lens                     hiding ((.=))
-import           Control.Monad                    (when)
 import           Control.Monad.Except             (runExceptT)
-import           Control.Monad.Reader             (MonadIO, ask, asks, liftIO,
-                                                   runReaderT)
-import           Control.Monad.Trans.Except
-import qualified Data.ByteString                  as BS
+import           Control.Monad.Reader             (liftIO, runReaderT)
+import qualified Data.ByteString.Base64           as BS64
 import qualified Data.ByteString.Char8            as BSCh
 import           Data.Char                        (toLower)
 import           Data.Either.Combinators
@@ -42,25 +36,18 @@ import qualified Data.GS1.Event                   as Ev
 import           Data.GS1.EventID
 import           Data.GS1.Parser.Parser
 import qualified Data.HashMap.Strict.InsOrd       as IOrd
-import           Data.Maybe                       (fromJust, isJust, isNothing)
+import           Data.Maybe                       (fromJust, isNothing)
 import           Data.Swagger
 import qualified Data.Text                        as T
 import           Data.Text.Encoding               (decodeUtf8)
 import           Data.UUID.V4
+import           Dummies
 import           Errors
 import           ErrorUtils                       (appErrToHttpErr,
                                                    throwAppError,
                                                    throwParseError)
+import           GHC.TypeLits                     (KnownSymbol)
 import           Model                            as M
-import qualified Network.Wai.Handler.Warp         as Warp
-import           Servant
-import           Servant.Server.Experimental.Auth ()
-import           Servant.Swagger
-import qualified StorageBeam                      as SB
-import           Utils
-
-import qualified Data.ByteString.Base64           as BS64
-import           Dummies
 import qualified OpenSSL.EVP.Digest               as EVPDigest
 import           OpenSSL.EVP.PKey                 (PublicKey, SomePublicKey,
                                                    toPublicKey)
@@ -68,6 +55,11 @@ import           OpenSSL.EVP.Verify               (VerifyStatus (..), verifyBS)
 import           OpenSSL.PEM                      (readPublicKey)
 import           OpenSSL.RSA                      (RSAPubKey, rsaSize)
 import qualified QueryUtils                       as QU
+import           Servant
+import           Servant.Server.Experimental.Auth ()
+import           Servant.Swagger
+import qualified StorageBeam                      as SB
+import           Utils
 
 instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub) where
   toSwagger _ =
