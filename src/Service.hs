@@ -164,7 +164,8 @@ checkPubKey spKey
   | (rsaSize pubKey) < (unByte minPubKeySize) = Nothing --rsaSize returns size in bytes
   | otherwise = mPKey
   where
-    mPKey::(Maybe RSAPubKey) = toPublicKey spKey
+    mPKey :: Maybe RSAPubKey
+    mPKey = toPublicKey spKey
     pubKey = fromJust mPKey
 
 
