@@ -78,12 +78,12 @@ testQueries = do
         let (M.PEMString keyStr) = pubKey
         keyId <- S.addPublicKey user pubKey
         tEnd <- timeStampIO
-        void $ getPublicKey keyId
-        key <- selectKey keyId
-        pure (key, keyStr, keyId, uid, tEnd)
+        insertedKey <- getPublicKey keyId
+        storageKey <- selectKey keyId
+        pure (storageKey, keyStr, keyId, uid, tEnd, insertedKey)
       case res of
-        (Nothing, _, _, _, _) -> fail "Received Nothing for key"
-        (Just key, keyStr, keyId, uid, tEnd) ->
+        (Nothing, _, _, _, _, _) -> fail "Received Nothing for key"
+        (Just key, keyStr, keyId, uid, tEnd, insertedKey) -> do
           key `shouldSatisfy`
             (\k ->
               T.unpack (SB.pem_str k) == keyStr &&
@@ -93,6 +93,7 @@ testQueries = do
               (SB.creation_time k) < tEnd &&
               isNothing (SB.revocation_time k)
             )
+          insertedKey `shouldBe` pubKey
   describe "getPublicKeyInfo tests" $
     it "getPublicKeyInfo test 1" $ \(_conn, env) -> do
       tStart <- timeStampIOEPCIS
