@@ -59,7 +59,7 @@ import           Servant
 import           Servant.Server.Experimental.Auth ()
 import           Servant.Swagger
 import qualified StorageBeam                      as SB
-import           Utils
+import qualified Utils                            as U
 
 instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub) where
   toSwagger _ =
@@ -134,12 +134,8 @@ serveSwaggerAPI = toSwagger serverAPI
 basicAuthServerContext :: AC.Env -> Servant.Context ((BasicAuthCheck User) ': '[])
 basicAuthServerContext env = (authCheck env) :. EmptyContext
 
-
-newtype Bit  = Bit  {unBit :: Int} deriving (Show, Eq, Read)
-newtype Byte = Byte {unByte :: Int} deriving (Show, Eq, Read)
-
-minPubKeySize :: Byte
-minPubKeySize = Byte 256 -- 2048 / 8
+minPubKeySize :: U.Byte
+minPubKeySize = U.Byte 256 -- 2048 / 8
 
 addPublicKey :: User -> RSAPublicKey -> AC.AppM KeyID
 addPublicKey user pemKey@(PEMString pemStr) = do
