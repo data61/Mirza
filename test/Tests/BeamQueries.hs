@@ -61,6 +61,11 @@ selectKey keyId = do
     Right [key] -> return $ Just key
     _           -> return Nothing
 
+testAppM :: Env -> AppM a -> IO a
+testAppM env act = runAppM env act >>= \case
+    Left err -> fail (show err)
+    Right a -> pure a
+
 testQueries :: HasCallStack => SpecWith (Connection, Env)
 testQueries = do
 
@@ -68,37 +73,42 @@ testQueries = do
     it "addPublicKey test 1" $ \(_conn, env) -> do
       pubKey <- rsaPubKey
       tStart <- timeStampIO
-      uid <- fromRight' <$> (runAppM env $ newUser dummyNewUser)
-      storageUser <- fromRight' <$> (runAppM env $ selectUser uid)
-      let user = userTableToModel . fromJust $ storageUser
-      let (M.PEMString keyStr) = pubKey
-      keyId <- fromRight' <$> (runAppM env $ S.addPublicKey user pubKey)
-      tEnd <- timeStampIO
-      -- FIXME: Unused?
-      _keyDB <- fromRight' <$> (runAppM env $ getPublicKey keyId)
-      key <- fromRight' <$> (runAppM env $ selectKey keyId)
-      (fromJust key)
-        `shouldSatisfy`
-          (\k ->
-            T.unpack (SB.pem_str k) == keyStr &&
-            (SB.key_id k) == keyId &&
-            (SB.key_user_id k) == (SB.UserId uid) &&
-            (SB.creation_time k) > tStart &&
-            (SB.creation_time k) < tEnd &&
-            isNothing (SB.revocation_time k)
+      key <- testAppM env $ do
+        uid <- newUser dummyNewUser
+        storageUser <- selectUser uid
+        let user = userTableToModel . fromJust $ storageUser
+        let (M.PEMString keyStr) = pubKey
+        keyId <- S.addPublicKey user pubKey
+        tEnd <- timeStampIO
+        -- FIXME: Unused?
+        _keyDB <- getPublicKey keyId
+        key <- selectKey keyId
+        pure (key, keyStr, keyId, uid, tEnd)
+      case ekey of
+        (Nothing,_,_,_,_) -> fail "Received Nothing"
+        (Just key,keyStr,keyId,uid,tEnd) ->
+          key `shouldSatisfy`
+              (\k ->
+                T.unpack (SB.pem_str k) == keyStr &&
+                (SB.key_id k) == keyId &&
+                (SB.key_user_id k) == (SB.UserId uid) &&
+                (SB.creation_time k) > tStart &&
+                (SB.creation_time k) < tEnd &&
+                isNothing (SB.revocation_time k)
           )
   describe "getPublicKeyInfo tests" $
     it "getPublicKeyInfo test 1" $ \(_conn, env) -> do
       tStart <- timeStampIOEPCIS
       pubKey <- rsaPubKey
-      uid <- fromRight' <$> (runAppM env $ newUser dummyNewUser)
-      storageUser <- fromRight' <$> (runAppM env $ selectUser uid)
-      let user = userTableToModel . fromJust $ storageUser
-      keyId <- fromRight' <$> (runAppM env $ S.addPublicKey user pubKey)
-      keyInfo <- fromRight' <$> (runAppM env $ getPublicKeyInfo keyId)
-      tEnd <- timeStampIOEPCIS
-      keyInfo
-        `shouldSatisfy`
+      (keyInfo, uid, tEnd) <- testAppM env $ do
+        uid <- newUser dummyNewUser
+        storageUser <- selectUser uid
+        let user = userTableToModel . fromJust $ storageUser
+        keyId <- S.addPublicKey user pubKey
+        keyInfo <- getPublicKeyInfo keyId
+        tEnd <- timeStampIOEPCIS
+        pure (keyInfo, uid, tEnd)
+      keyInfo `shouldSatisfy`
           (\ki ->
             (M.userID ki == uid) &&
             (M.creationTime ki > tStart && M.creationTime ki < tEnd) &&
@@ -107,23 +117,26 @@ testQueries = do
 
   describe "newUser tests" $
     it "newUser test 1" $ \(_conn, env) -> do
-      uid <- fromRight' <$> (runAppM env $ newUser dummyNewUser)
-      user <- fromRight' <$> (runAppM env $ selectUser uid)
-
-      (fromJust user)
-        `shouldSatisfy`
-          (\u ->
-            (SB.phone_number u) == (M.phoneNumber dummyNewUser) &&
-            (SB.email_address u) == (M.emailAddress dummyNewUser) &&
-            (SB.first_name u) == (M.firstName dummyNewUser) &&
-            (SB.last_name u) == (M.lastName dummyNewUser) &&
-            (SB.user_biz_id u) == (SB.BizId (M.company dummyNewUser)) &&
-            -- note database bytestring includes the salt, this checks password
-            (verifyPass'
-              (Pass $ encodeUtf8 $ M.password dummyNewUser)
-              (EncryptedPass $ SB.password_hash u)) &&
-            (SB.user_id u) == uid
-          )
+      res <- testAppM env $  do
+        uid <- newUser dummyNewUser
+        user <- selectUser uid
+        pure (uid, user)
+      case eres of
+        (_,Nothing) -> fail "Received Nothing for user"
+        (uid,Just user) ->
+          user `shouldSatisfy`
+            (\u ->
+              (SB.phone_number u) == (M.phoneNumber dummyNewUser) &&
+              (SB.email_address u) == (M.emailAddress dummyNewUser) &&
+              (SB.first_name u) == (M.firstName dummyNewUser) &&
+              (SB.last_name u) == (M.lastName dummyNewUser) &&
+              (SB.user_biz_id u) == (SB.BizId (M.company dummyNewUser)) &&
+              -- note database bytestring includes the salt, this checks password
+              (verifyPass'
+                (Pass $ encodeUtf8 $ M.password dummyNewUser)
+                (EncryptedPass $ SB.password_hash u)) &&
+              (SB.user_id u) == uid
+            )
 
   describe "authCheck tests" $
     it "authCheck test 1" $ \(_conn, env) -> do
