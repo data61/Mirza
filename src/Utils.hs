@@ -3,34 +3,12 @@
 -- | General utility functions used throughout the codebase
 module Utils where
 
-import           AppConfig            (AppM (..), EnvType (..), getEnvType)
-import           Control.Monad        (when)
-import           Control.Monad.Reader (MonadIO, liftIO)
-import qualified Data.Text            as T
-
--- | Given a stringLike, prints it only if the application is in Dev
--- otherwise, does a nop.
--- Only works in AppM monad
-debugLog :: Show a => a -> AppM ()
-debugLog strLike = do
-  envT <- getEnvType
-  when (envT == Dev) $ liftIO $ putStrLn $ show strLike
-
--- | To be used when the Env is known/available.
--- It doesn't require that the function is being run in AppM
-debugLogGeneral :: (Show a, MonadIO f) => EnvType -> a -> f ()
-debugLogGeneral envT strLike = do
-  when (envT == Dev) $ liftIO $ putStrLn $ show strLike
-
-bun :: String
-bun = "========================"
-
-sandwichLog :: Show a => a -> AppM ()
-sandwichLog patty = do
-  debugLog bun
-  debugLog patty
-  debugLog bun
+import qualified Data.Text as T
 
 -- | Converts anything to a ``Text``
 toText :: Show a => a -> T.Text
 toText = T.pack . show
+
+
+newtype Bit  = Bit  {unBit :: Int} deriving (Show, Eq, Read)
+newtype Byte = Byte {unByte :: Int} deriving (Show, Eq, Read)
