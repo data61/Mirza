@@ -143,7 +143,11 @@ basicAuthServerContext :: AC.Env -> Servant.Context ((BasicAuthCheck User) ': '[
 basicAuthServerContext env = (authCheck env) :. EmptyContext
 
 
-minPubKeySize = 2048
+newtype Bit  = Bit  {unBit :: Int} deriving (Show, Eq, Read)
+newtype Byte = Byte {unByte :: Int} deriving (Show, Eq, Read)
+
+minPubKeySize :: Byte
+minPubKeySize = Byte 256 -- 2048 / 8
 
 addPublicKey :: User -> RSAPublicKey -> AC.AppM KeyID
 addPublicKey user (PEMString pemKey) = do
@@ -156,9 +160,9 @@ addPublicKey user (PEMString pemKey) = do
 
 checkPubKey :: SomePublicKey -> Maybe RSAPubKey
 checkPubKey spKey
-  |isNothing mPKey = Nothing
-  |rsaSize pubKey < minPubKeySize = Nothing
-  |otherwise = mPKey
+  | isNothing mPKey = Nothing
+  | (rsaSize pubKey) < (unByte minPubKeySize) = Nothing --rsaSize returns size in bytes
+  | otherwise = mPKey
   where
     mPKey::(Maybe RSAPubKey) = toPublicKey spKey
     pubKey = fromJust mPKey
