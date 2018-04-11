@@ -155,7 +155,7 @@ addPublicKey user (PEMString pemKey) = do
 checkPubKey :: SomePublicKey -> Maybe RSAPubKey
 checkPubKey spKey = do
   pubKey <- toPublicKey spKey
-  guard (rsaSize pubKey < minPubKeySize)
+  guard (rsaSize pubKey >= minPubKeySize)
   pure pubKey
 
 
