@@ -461,3 +461,38 @@ instance ToField EPC.ItemReference where
 itemRefType :: BMigrate.DataType PgDataTypeSyntax EPC.ItemReference
 itemRefType = textType
 
+
+-- ======= LabelType =======
+
+data LabelType
+  = Input
+  | Output
+  | Parent
+  deriving (Generic, Show, Eq, Read)
+
+
+instance BSQL.HasSqlValueSyntax be String =>
+  BSQL.HasSqlValueSyntax be LabelType where
+    sqlValueSyntax = BSQL.autoSqlValueSyntax
+instance (BMigrate.IsSql92ColumnSchemaSyntax be) =>
+  BMigrate.HasDefaultSqlDataTypeConstraints be LabelType
+
+instance (BSQL.HasSqlValueSyntax (BSQL.Sql92ExpressionValueSyntax be) Bool,
+          BSQL.IsSql92ExpressionSyntax be) =>
+          B.HasSqlEqualityCheck be LabelType
+instance (BSQL.HasSqlValueSyntax (BSQL.Sql92ExpressionValueSyntax be) Bool,
+          BSQL.IsSql92ExpressionSyntax be) =>
+          B.HasSqlQuantifiedEqualityCheck be LabelType
+
+instance BSQL.FromBackendRow BPostgres.Postgres LabelType where
+  fromBackendRow = defaultFromBackendRow "LabelType"
+
+instance FromField LabelType where
+  fromField = defaultFromField "LabelType"
+
+instance ToField LabelType where
+  toField = toField . show
+
+labelType :: BMigrate.DataType PgDataTypeSyntax LabelType
+labelType = textType
+

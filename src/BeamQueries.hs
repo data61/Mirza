@@ -33,6 +33,7 @@ import           ErrorUtils                               (defaultToServerError,
                                                            throwBackendError,
                                                            throwUnexpectedDBError,
                                                            toServerError)
+import qualified MigrateUtils                             as MU
 import qualified Model                                    as M
 import           QueryUtils
 import qualified StorageBeam                              as SB
@@ -41,6 +42,7 @@ import           Utils
 import           Control.Monad.IO.Class                   (liftIO)
 import           OpenSSL.PEM                              (writePublicKey)
 import           OpenSSL.RSA                              (RSAPubKey)
+
 
 {-
 -- Sample NewUser JSON
@@ -236,7 +238,7 @@ insertAggEvent
   whatId <- insertDWhat Nothing dwhat eventId
   labelIds <- mapM (insertLabel Nothing whatId) labelEpcs
   -- Make labelType a datatype?
-  let mParentId = insertLabel (Just "parent") whatId <$> ((IL . unParentLabel )<$> mParentLabel)
+  let mParentId = insertLabel (Just MU.Parent) whatId <$> ((IL . unParentLabel )<$> mParentLabel)
   whenId <- insertDWhen dwhen eventId
   whyId <- insertDWhy dwhy eventId
   insertDWhere dwhere eventId
@@ -270,8 +272,8 @@ insertTransfEvent
 
   eventId <- insertEvent userId jsonEvent event
   whatId <- insertDWhat Nothing dwhat eventId
-  inputLabelIds <- mapM (insertLabel (Just "input") whatId) (unInputEPC <$> inputs)
-  outputLabelIds <- mapM (insertLabel (Just "output") whatId) (unOutputEPC <$> outputs)
+  inputLabelIds <- mapM (insertLabel (Just MU.Input) whatId) (unInputEPC <$> inputs)
+  outputLabelIds <- mapM (insertLabel (Just MU.Output) whatId) (unOutputEPC <$> outputs)
   let labelIds = inputLabelIds ++ outputLabelIds
   whenId <- insertDWhen dwhen eventId
   whyId <- insertDWhy dwhy eventId
@@ -311,7 +313,7 @@ insertTransactEvent
   eventId <- insertEvent userId jsonEvent event
   whatId <- insertDWhat Nothing dwhat eventId
   labelIds <- mapM (insertLabel Nothing whatId) labelEpcs
-  let mParentId = insertLabel (Just "parent") whatId <$> ((IL . unParentLabel) <$> mParentLabel)
+  let mParentId = insertLabel (Just MU.Parent) whatId <$> ((IL . unParentLabel) <$> mParentLabel)
   whenId <- insertDWhen dwhen eventId
   whyId <- insertDWhy dwhy eventId
   insertDWhere dwhere eventId
