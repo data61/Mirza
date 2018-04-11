@@ -1,4 +1,5 @@
-{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DataKinds        #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 module Tests.BeamQueries where
 
@@ -6,7 +7,6 @@ import           Test.Hspec
 
 import           BeamQueries
 import           Database.Beam
-import           Database.PostgreSQL.Simple
 import           Dummies
 import           QueryUtils
 
@@ -23,7 +23,8 @@ import           AppConfig                  (AppM, Env (..), EnvType (..),
 import qualified Data.Text                  as T
 import           Data.Time.Clock            (getCurrentTime)
 import           Data.Time.LocalTime        (LocalTime, utc, utcToLocalTime)
-import           Database.PostgreSQL.Simple (execute_)
+import           Database.PostgreSQL.Simple (Connection, connectPostgreSQL,
+                                             execute_)
 import           Migrate                    (testDbConnStr)
 import qualified Model                      as M
 import qualified Service                    as S
