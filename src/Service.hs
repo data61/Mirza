@@ -147,7 +147,7 @@ addPublicKey user pemKey@(PEMString pemStr) = do
 checkPubKey :: SomePublicKey -> Maybe RSAPubKey
 checkPubKey spKey
   | isNothing mPKey = Nothing
-  | (rsaSize pubKey) < (unByte minPubKeySize) = Nothing --rsaSize returns size in bytes
+  | (rsaSize pubKey) < (U.unByte minPubKeySize) = Nothing --rsaSize returns size in bytes
   | otherwise = mPKey
   where
     mPKey :: Maybe RSAPubKey
