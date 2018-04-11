@@ -7,7 +7,7 @@ import           Control.Monad        (when)
 import           Control.Monad.Reader (MonadIO, liftIO)
 import qualified Data.Text            as T
 
--- | Given a stringLike, prints it only if the application is in Dev mode
+-- | Given a stringLike, prints it only if the application is in Dev
 -- otherwise, does a nop.
 -- Only works in AppM monad
 debugLog :: Show a => a -> AppM ()
@@ -30,5 +30,6 @@ sandwichLog patty = do
   debugLog patty
   debugLog bun
 
+-- | Converts anything to a ``Text``
 toText :: Show a => a -> T.Text
 toText = T.pack . show

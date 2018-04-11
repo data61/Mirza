@@ -17,6 +17,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE StandaloneDeriving    #-}
+{-# LANGUAGE TypeApplications      #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE UndecidableInstances  #-}
 {-# OPTIONS_GHC -fno-warn-orphans  #-}
@@ -28,25 +29,17 @@
 module StorageBeam where
 
 import           Control.Lens
-import           Database.Beam                        as B
+import           Database.Beam          as B
 import           Database.Beam.Postgres
 
-import           Data.ByteString                      (ByteString)
-import           Data.Text                            (Text)
+import           Data.ByteString        (ByteString)
+import qualified Data.GS1.EPC           as EPC
+import qualified Data.GS1.Event         as Ev
+import           Data.Text              (Text)
 import           Data.Time
--- import           Data.ByteString.Char8 (pack)
--- import qualified Data.GS1.Event as Ev
-import qualified Data.GS1.EPC                         as EPC
-import           Data.UUID                            (UUID)
-import           Database.Beam.Backend.SQL
-import           Database.PostgreSQL.Simple.FromField (Conversion, Field,
-                                                       FromField, fromField,
-                                                       returnError)
-import           Database.PostgreSQL.Simple.ToField   (ToField, toField)
-import           Text.Read                            (readMaybe)
--- import           MigrateUtils (eventType)
-import           Data.Swagger                         ()
-import           Servant                              ()
+import           Data.UUID              (UUID)
+import qualified MigrateUtils           as MU
+import           Servant                ()
 
 type PrimaryKeyType = UUID
 -- IMPLEMENTME - NOT NOW
@@ -60,22 +53,6 @@ type PrimaryKeyType = UUID
 --   -- parseUrlPiece :: Text -> Either Text PrimaryKeyType
 --   parseUrlPiece t = error $ show t ++ " parseUP"
 --   parseQueryParam t = error $ show t ++ " parseQP"
-
--- | The generic implementation of fromField
--- If it's a fromField used for ``SomeCustomType``, sample usage would be
--- instance FromField SomeCustomType where
---   fromField = defaultFromField "SomeCustomType"
-defaultFromField :: (Typeable b, Read b) => String
-                 -> Field
-                 -> Maybe ByteString
-                 -> Conversion b
-defaultFromField fName f bs = do
-  x <- readMaybe <$> fromField f bs
-  case x of
-    Nothing ->
-      returnError ConversionFailed
-        f $ "Could not 'read' value for " ++ fName
-    Just val -> pure val
 
 data UserT f = User
   { user_id       :: C f PrimaryKeyType
@@ -130,7 +107,7 @@ data BusinessT f = Business
   { biz_gs1_company_prefix :: C f EPC.GS1CompanyPrefix -- PrimaryKey
   , biz_name               :: C f Text
   , biz_function           :: C f Text
-  , biz_siteName           :: C f Text
+  , biz_site_name          :: C f Text
   , biz_address            :: C f Text
   , biz_lat                :: C f Double
   , biz_long               :: C f Double }
@@ -175,14 +152,14 @@ data LabelT f = Label
   , label_type               :: C f (Maybe Text) -- input/output/parent
   , label_what_id            :: PrimaryKey WhatT f
   , label_gs1_company_prefix :: C f EPC.GS1CompanyPrefix --should this be bizId instead?
-  , item_reference           :: C f (Maybe Text)
-  , serial_number            :: C f (Maybe Text)
+  , item_reference           :: C f (Maybe EPC.ItemReference)
+  , serial_number            :: C f (Maybe EPC.SerialNumber)
   , state                    :: C f (Maybe Text)
-  , lot                      :: C f (Maybe Text)
-  , sgtin_filter_value       :: C f (Maybe Text)
-  , asset_type               :: C f (Maybe Text)
-  , quantity_amount          :: C f (Maybe Double)
-  , quantity_uom             :: C f (Maybe EPC.Uom) -- T.Text
+  , lot                      :: C f (Maybe EPC.Lot)
+  , sgtin_filter_value       :: C f (Maybe EPC.SGTINFilterValue)
+  , asset_type               :: C f (Maybe EPC.AssetType)
+  , quantity_amount          :: C f (Maybe EPC.Amount)
+  , quantity_uom             :: C f (Maybe EPC.Uom)
   }
   deriving Generic
 type Label = LabelT Identity
@@ -264,7 +241,7 @@ instance Table TransformationT where
 deriving instance Eq (PrimaryKey TransformationT Identity)
 
 data LocationT f = Location
-  { location_id     :: C f Text -- EPC.LocationReference
+  { location_id     :: C f EPC.LocationReference
   , location_biz_id :: PrimaryKey BusinessT f
   -- this needs to be locationReferenceNum
   , location_lat    :: C f Double
@@ -281,16 +258,15 @@ instance Beamable (PrimaryKey LocationT)
 deriving instance Show (PrimaryKey LocationT Identity)
 
 instance Table LocationT where
-  data PrimaryKey LocationT f = LocationId (C f Text)
+  data PrimaryKey LocationT f = LocationId (C f EPC.LocationReference)
     deriving Generic
   primaryKey = LocationId . location_id
 
 data EventT f = Event
   { event_id         :: C f PrimaryKeyType
   , foreign_event_id :: C f (Maybe PrimaryKeyType) -- Event ID from XML from foreign systems.
-  -- , event_label_id              :: PrimaryKey BusinessT f --the label scanned to generate this event.
   , event_created_by :: PrimaryKey UserT f
-  , json_event       :: C f Text } -- TODO: ByteString?
+  , json_event       :: C f Text }
   deriving Generic
 type Event = EventT Identity
 type EventId = PrimaryKey EventT Identity
@@ -313,8 +289,8 @@ deriving instance Eq (PrimaryKey EventT Identity)
 
 data WhatT f = What
   { what_id                 :: C f PrimaryKeyType
-  , what_event_type         :: C f (Maybe Text) -- Ev.EventType
-  , action                  :: C f (Maybe Text) -- EPC.Action
+  , what_event_type         :: C f (Maybe Ev.EventType)
+  , action                  :: C f (Maybe EPC.Action)
   , parent                  :: PrimaryKey LabelT (Nullable f)
   , what_biz_transaction_id :: PrimaryKey BizTransactionT (Nullable f)
   , what_transformation_id  :: PrimaryKey TransformationT (Nullable f)
@@ -381,27 +357,14 @@ instance Table WhyT where
     deriving Generic
   primaryKey = WhyId . why_id
 
--- | The record fields in Data.GS1.DWhere for the data type DWhere
-data LocationField = Src | Dest | BizLocation | ReadPoint
-                    deriving (Generic, Show, Eq, Read)
-
-instance FromField LocationField where
-  fromField = defaultFromField "LocationField"
-
-instance FromBackendRow Postgres LocationField
-instance ToField LocationField where
-  toField = toField . show
-
-instance HasSqlValueSyntax be String => HasSqlValueSyntax be LocationField where
-  sqlValueSyntax = autoSqlValueSyntax
-
-
 data WhereT f = Where
-  { where_id               :: C f PrimaryKeyType
-  , where_source_dest_type :: C f (Maybe Text) -- (Maybe EPC.SourceDestType)
-  , where_gs1_location_id  :: C f Text -- locationReferenceNum
-  , where_location_field   :: C f Text -- LocationField
-  , where_event_id         :: PrimaryKey EventT f }
+  { where_id                 :: C f PrimaryKeyType
+  , where_gs1_company_prefix :: C f EPC.GS1CompanyPrefix
+  , where_source_dest_type   :: C f (Maybe EPC.SourceDestType)
+  , where_gs1_location_id    :: C f EPC.LocationReference
+  , where_location_field     :: C f MU.LocationField
+  , where_sgln_ext           :: C f (Maybe EPC.SGLNExtension)
+  , where_event_id           :: PrimaryKey EventT f }
   deriving Generic
 
 type Where = WhereT Identity
@@ -671,4 +634,3 @@ supplyChainDb = defaultDbSettings
           blockchain_event_id = EventId (fieldNamed "blockchain_event_id")
         }
     }
-

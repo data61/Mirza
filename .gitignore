@@ -28,3 +28,7 @@ cabal.project.local~
 # sqlite tables
 *.sqlite
 *.db
+
+# VSCode settings
+.vscode/
+

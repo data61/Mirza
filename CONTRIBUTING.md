@@ -22,7 +22,7 @@ Please make branches freely so long as they make the git workflow more
 understandable to everyone else in the team.
 
 ## Modules of interest
-The entire migration function lives in the module `MigrateUtils`.
+The entire migration function lives in the module `MigrateScript`.
 This module is very tightly coupled with `StorageBeam`. So when you change
 something in the module `StorageBeam`, please make the equivalent change
-in the `MigrateUtils` module as well.
+in the `MigrateScript` module as well.

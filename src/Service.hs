@@ -3,6 +3,7 @@
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings     #-}
 {-# LANGUAGE PolyKinds             #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TypeFamilies          #-}
@@ -14,15 +15,9 @@
 -- light wrappers around functions in BeamQueries
 module Service where
 
-
 import           GHC.TypeLits                     (KnownSymbol)
 
 import           Control.Lens                     hiding ((.=))
--- import           Control.Monad                    (when)
--- import           Control.Monad.Except             (runExceptT)
--- import           Control.Monad.Reader             (MonadReader, ReaderT, ask,
-                                                  --  asks, liftIO, runReaderT)
--- import           Control.Monad.Trans.Except
 import           Control.Monad.IO.Class           (liftIO)
 import           Data.Char                        (toLower)
 import           Data.Either.Combinators
@@ -47,6 +42,7 @@ import           Servant.Swagger
 import           API
 import qualified AppConfig                        as AC
 import qualified BeamQueries                      as BQ
+import           Dummies                          (dummyObjectDWhat)
 import           Errors
 import           ErrorUtils                       (appErrToHttpErr,
                                                    throwAppError,
@@ -59,6 +55,7 @@ import qualified StorageBeam                      as SB
 
 import qualified Data.ByteString.Base64           as BS64
 import qualified Data.ByteString.Char8            as BSC
+import           Data.Text.Encoding               (decodeUtf8)
 import qualified OpenSSL.EVP.Digest               as EVPDigest
 import           OpenSSL.EVP.PKey                 (SomePublicKey, toPublicKey)
 import           OpenSSL.EVP.Verify               (VerifyStatus (..), verifyBS)
@@ -78,21 +75,15 @@ instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub
       & securityDefinitions .~ authSchemes
       & allOperations . security .~ securityRequirements
 
--- deriving instance Applicative BasicAuthCheck
--- instance Monad BasicAuthCheck where
---   (>>=) = error "not implemented yet"
---   return = error "not implemented yet"
-
 -- 'BasicAuthCheck' holds the handler we'll use to verify a username and password.
-authCheck :: BasicAuthCheck User
-authCheck = error "not implemented yet" -- do
-  -- env <- ask
-  -- let check (BasicAuthData useremail password) = do
-  --       maybeUser <- AC.runAppM env $ BQ.authCheck (decodeUtf8 useremail) password
-  --       case maybeUser of
-  --         Right (Just user) -> return (Authorized user)
-  --         _                 -> return Unauthorized
-  -- BasicAuthCheck check
+authCheck :: AC.Env -> BasicAuthCheck User
+authCheck env =
+  let check (BasicAuthData useremail pass) = do
+        eitherUser <- AC.runAppM env $ BQ.authCheck (decodeUtf8 useremail) pass
+        case eitherUser of
+          Right (Just user) -> return (Authorized user)
+          _                 -> return Unauthorized
+  in BasicAuthCheck check
 
 appMToHandler :: forall x. AC.Env -> AC.AppM x -> Handler x
 appMToHandler env act = do
@@ -117,7 +108,7 @@ privateServer
   :<|> eventHashed
   :<|> BQ.insertObjectEvent
   :<|> BQ.insertAggEvent
-  :<|> BQ.insertTransactionEvent
+  :<|> BQ.insertTransactEvent
   :<|> BQ.insertTransfEvent
   :<|> Service.addPublicKey
 
@@ -140,17 +131,18 @@ serveSwaggerAPI = toSwagger serverAPI
   & info.title   .~ "Supplychain Server API"
   & info.version .~ "1.0"
   & info.description ?~ "This is an API that tests swagger integration"
-  & info.license ?~ ("MIT" & url ?~ URL "http://mit.com")
+  & info.license ?~ ("MIT" & url ?~ URL "https://opensource.org/licenses/MIT")
 
 -- | We need to supply our handlers with the right Context. In this case,
 -- Basic Authentication requires a Context Entry with the 'BasicAuthCheck' value
 -- tagged with "foo-tag" This context is then supplied to 'server' and threaded
 -- to the BasicAuth HasServer handlers.
-basicAuthServerContext :: Servant.Context (BasicAuthCheck User ': '[])
-basicAuthServerContext = authCheck :. EmptyContext
+basicAuthServerContext :: AC.Env -> Servant.Context ((BasicAuthCheck User) ': '[])
+basicAuthServerContext env = (authCheck env) :. EmptyContext
+
 
 minPubKeySize :: Int
-minPubKeySize = 1536 --FIXME or 2048
+minPubKeySize = 2048
 
 addPublicKey :: User -> RSAPublicKey -> AC.AppM KeyID
 addPublicKey user (PEMString pemKey) = do
@@ -214,6 +206,13 @@ eventUserList _user _eventID = error "Storage module not implemented"
 contactsInfo :: User -> AC.AppM [User]
 -- contactsInfo user = liftIO $ Storage.listContacts user
 contactsInfo _user = error "Storage module not implemented"
+
+
+contactsAdd :: User -> UserID -> AC.AppM Bool
+contactsAdd = BQ.addContact
+
+contactsRemove :: User -> UserID -> AC.AppM Bool
+contactsRemove = BQ.removeContact
 
 -- Given a search term, search the users contacts for a user matching
 -- that term
@@ -302,7 +301,7 @@ sampleEvent=  do
 
 
 sampleWhat :: DWhat
-sampleWhat = ObjectDWhat Observe [IL (GIAI "2020939" "029393")]
+sampleWhat = dummyObjectDWhat
 
 sampleWhy :: DWhy
 sampleWhy = DWhy (Just Arriving) (Just Data.GS1.EPC.Active)

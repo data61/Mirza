@@ -6,8 +6,7 @@ import           Test.Hspec
 
 import           BeamQueries
 import           Database.Beam
-import           Database.PostgreSQL.Simple (Connection, connectPostgreSQL,
-                                             execute_)
+import           Database.PostgreSQL.Simple
 import           Dummies
 import           QueryUtils
 
@@ -15,27 +14,20 @@ import           Crypto.Scrypt
 import           Data.Either.Combinators
 import           Data.Maybe                 (fromJust, isNothing)
 
--- import           Data.Text.Encoding (encodeUtf8)
 import           Data.ByteString            (ByteString)
-import           Data.ByteString.Lazy       (toStrict)
 import           Data.GS1.EPC
 import           Data.Text.Encoding         (encodeUtf8)
--- import qualified Data.GS1.Event as Ev
 
 import           AppConfig                  (AppM, Env (..), EnvType (..),
                                              runAppM, runDb)
+import qualified Data.Text                  as T
+import           Data.Time.Clock            (getCurrentTime)
+import           Data.Time.LocalTime        (LocalTime, utc, utcToLocalTime)
+import           Database.PostgreSQL.Simple (execute_)
 import           Migrate                    (testDbConnStr)
 import qualified Model                      as M
+import qualified Service                    as S
 import qualified StorageBeam                as SB
-import           Utils
-
--- import           Crypto.Scrypt
-import           Data.Binary
-import           Data.Time                  (ZonedTime (..), utcToZonedTime,
-                                             zonedTimeToUTC)
-import           Data.Time.Clock            (UTCTime (..), getCurrentTime)
-import           Data.Time.LocalTime        (LocalTime, utc, utcToLocalTime)
-
 -- NOTE in this file, where fromJust is used in the tests, it is because we expect a Just... this is part of the test
 -- NOTE tables dropped after every running of test in an "it"
 
@@ -43,11 +35,15 @@ import           Data.Time.LocalTime        (LocalTime, utc, utcToLocalTime)
 hashIO :: MonadIO m => m ByteString
 hashIO = getEncryptedPass <$> (liftIO $ encryptPassIO' (Pass $ encodeUtf8 $ M.password dummyNewUser))
 
-timeStampIO :: MonadIO m => m ZonedTime
-timeStampIO = liftIO $ (utcToZonedTime utc) <$> getCurrentTime
+timeStampIO :: MonadIO m => m LocalTime
+timeStampIO = liftIO $ (utcToLocalTime utc) <$> getCurrentTime
 
 timeStampIOEPCIS :: MonadIO m => m EPCISTime
-timeStampIOEPCIS = liftIO $ getCurrentTime
+timeStampIOEPCIS = liftIO $ EPCISTime <$> getCurrentTime
+
+
+rsaPubKey :: IO M.RSAPublicKey
+rsaPubKey = M.PEMString <$> Prelude.readFile "./test/Tests/testKeys/goodKeys/test.pub"
 
 
 selectKey :: M.KeyID -> AppM (Maybe SB.Key)
@@ -64,8 +60,49 @@ selectKey keyId = do
 testQueries :: SpecWith (Connection, Env)
 testQueries = do
 
+  describe "addPublicKey tests" $
+    it "addPublicKey test 1" $ \(_conn, env) -> do
+      pubKey <- rsaPubKey
+      tStart <- timeStampIO
+      uid <- fromRight' <$> (runAppM env $ newUser dummyNewUser)
+      storageUser <- fromRight' <$> (runAppM env $ selectUser uid)
+      let user = userTableToModel . fromJust $ storageUser
+      let (M.PEMString keyStr) = pubKey
+      keyId <- fromRight' <$> (runAppM env $ S.addPublicKey user pubKey)
+      tEnd <- timeStampIO
+      -- FIXME: Unused?
+      _keyDB <- fromRight' <$> (runAppM env $ getPublicKey keyId)
+      key <- fromRight' <$> (runAppM env $ selectKey keyId)
+      (fromJust key)
+        `shouldSatisfy`
+          (\k ->
+            T.unpack (SB.pem_str k) == keyStr &&
+            (SB.key_id k) == keyId &&
+            (SB.key_user_id k) == (SB.UserId uid) &&
+            (SB.creation_time k) > tStart &&
+            (SB.creation_time k) < tEnd &&
+            isNothing (SB.revocation_time k)
+          )
+  describe "getPublicKeyInfo tests" $
+    it "getPublicKeyInfo test 1" $ \(_conn, env) -> do
+      tStart <- timeStampIOEPCIS
+      pubKey <- rsaPubKey
+      uid <- fromRight' <$> (runAppM env $ newUser dummyNewUser)
+      storageUser <- fromRight' <$> (runAppM env $ selectUser uid)
+      let user = userTableToModel . fromJust $ storageUser
+      keyId <- fromRight' <$> (runAppM env $ S.addPublicKey user pubKey)
+      keyInfo <- fromRight' <$> (runAppM env $ getPublicKeyInfo keyId)
+      tEnd <- timeStampIOEPCIS
+      keyInfo
+        `shouldSatisfy`
+          (\ki ->
+            (M.userID ki == uid) &&
+            (M.creationTime ki > tStart && M.creationTime ki < tEnd) &&
+            isNothing (M.revocationTime ki)
+          )
+
   describe "newUser tests" $
-    it "newUser test 1" $ \(conn, env) -> do
+    it "newUser test 1" $ \(_conn, env) -> do
       uid <- fromRight' <$> (runAppM env $ newUser dummyNewUser)
       user <- fromRight' <$> (runAppM env $ selectUser uid)
 
@@ -85,7 +122,7 @@ testQueries = do
           )
 
   describe "authCheck tests" $
-    it "authCheck test 1" $ \(conn, env) -> do
+    it "authCheck test 1" $ \(_conn, env) -> do
       uid <- fromRight' <$> (runAppM env $ newUser dummyNewUser)
       user <- fromRight' <$> (runAppM env $ authCheck (M.emailAddress dummyNewUser) (encodeUtf8 $ M.password dummyNewUser)) --hash)
       fromJust user `shouldSatisfy`
@@ -95,58 +132,13 @@ testQueries = do
           (M.userLastName u) == (M.lastName dummyNewUser)
         )
 
-{-   describe "addPublicKey tests" $ do
-    it "addPublicKey test 1" $ \(conn, env) -> do
-      tStart <- timeStampIO
-      uid <- fromRight' <$> (runAppM env $ newUser dummyNewUser)
-      storageUser <- fromRight' <$> (runAppM env $ selectUser uid)
-      let user = userTableToModel . fromJust $ storageUser
-      keyId <- fromRight' <$> (runAppM env $ addPublicKey user dummyRsaPubKey) -- this is broken
-
-      key <- fromRight' <$> (runAppM env $ selectKey keyId)
-      tEnd <- timeStampIO
-      (fromJust key)
-        `shouldSatisfy`
-          (\k ->
-            (SB.rsa_public_pkcs8 k) == (toStrict $ encode $ getCryptoPublicKey dummyRsaPubKey) &&
-            (SB.key_id k) == keyId &&
-            (SB.key_user_id k) == (SB.UserId uid) &&
-            -- (SB.creation_time k) > tStart && (SB.creation_time k) < tEnd &&
-            isNothing (SB.revocation_time k)
-          )
-
-  describe "getPublicKey tests" $ do
-    it "getPublicKey test 1" $ \(conn, env) -> do
-      fromRight' <$> (runAppM env $ newUser dummyNewUser)
-      user <- fromRight' <$> (runAppM env $ authCheck (M.emailAddress dummyNewUser) (encodeUtf8 $ M.password dummyNewUser))
-      keyId <- fromRight' <$> (runAppM env $ addPublicKey (fromJust user) dummyRsaPubKey) -- this is broken
-      key <- fromRight' <$> (runAppM env $ getPublicKey keyId)
-      key `shouldBe` dummyRsaPubKey
-
-  describe "getPublicKeyInfo tests" $ do
-    it "getPublicKeyInfo test 1" $ \(conn, env) -> do
-      tStart <- timeStampIOEPCIS
-      uid <- fromRight' <$> (runAppM env $ newUser dummyNewUser)
-      user <- fromRight' <$> (runAppM env $ authCheck (M.emailAddress dummyNewUser) (encodeUtf8 $ M.password dummyNewUser))
-      keyId <- fromRight' <$> (runAppM env $ addPublicKey (fromJust user) dummyRsaPubKey) -- this is broken
-      keyInfo <- fromRight' <$> (runAppM env $ getPublicKeyInfo keyId)
-      tEnd <- timeStampIOEPCIS
-
-      keyInfo
-        `shouldSatisfy`
-          (\ki ->
-            (M.userID ki == uid) &&
-            (M.creationTime ki > tStart && M.creationTime ki < tEnd) &&
-            isNothing (M.revocationTime ki)
-          )
--}
   describe "Object Event" $ do
-    it "Insert Object Event" $ \(conn, env) -> do
+    it "Insert Object Event" $ \(_conn, env) -> do
       insertedEvent <- fromRight' <$> (runAppM env $ insertObjectEvent dummyUser dummyObject)
       insertedEvent `shouldSatisfy`
         (\ev -> ev == dummyObjEvent)
 
-    it "List event" $ \(conn, env) -> do
+    it "List event" $ \(_conn, env) -> do
       insertedEvent <- fromRight' <$> (runAppM env $ insertObjectEvent dummyUser dummyObject)
       eventList <- fromRight' <$> (runAppM env $ listEvents dummyLabelEpc)
       insertedEvent `shouldSatisfy`
@@ -154,12 +146,12 @@ testQueries = do
       eventList `shouldBe` [insertedEvent]
 
   describe "Aggregation Event" $ do
-    it "Insert Aggregation Event" $ \(conn, env) -> do
+    it "Insert Aggregation Event" $ \(_conn, env) -> do
       insertedEvent <- fromRight' <$> (runAppM env $ insertAggEvent dummyUser dummyAggregation)
       insertedEvent `shouldSatisfy`
         (\ev -> ev == dummyAggEvent)
 
-    it "List event" $ \(conn, env) -> do
+    it "List event" $ \(_conn, env) -> do
       insertedEvent <- fromRight' <$> (runAppM env $ insertAggEvent dummyUser dummyAggregation)
       insertedEvent `shouldSatisfy`
         (\ev -> ev == dummyAggEvent)
@@ -167,20 +159,33 @@ testQueries = do
       eventList `shouldBe` [insertedEvent]
 
   describe "Transformation Event" $ do
-    it "Insert Transformation Event" $ \(conn, env) -> do
+    it "Insert Transformation Event" $ \(_conn, env) -> do
       insertedEvent <- fromRight' <$> (runAppM env $ insertTransfEvent dummyUser dummyTransformation)
       insertedEvent `shouldSatisfy`
         (\ev -> ev == dummyTransfEvent)
 
-    it "List event" $ \(conn, env) -> do
+    it "List event" $ \(_conn, env) -> do
       insertedEvent <- fromRight' <$> (runAppM env $ insertTransfEvent dummyUser dummyTransformation)
       insertedEvent `shouldSatisfy`
         (\ev -> ev == dummyTransfEvent)
       eventList <- fromRight' <$> (runAppM env $ listEvents dummyLabelEpc)
       eventList `shouldBe` [insertedEvent]
 
+  describe "Transaction Event" $ do
+    it "Insert Transaction Event" $ \(_conn, env) -> do
+      insertedEvent <- fromRight' <$> (runAppM env $ insertTransactEvent dummyUser dummyTransaction)
+      insertedEvent `shouldSatisfy`
+        (\ev -> ev == dummyTransactEvent)
+
+    it "List event" $ \(_conn, env) -> do
+      insertedEvent <- fromRight' <$> (runAppM env $ insertTransactEvent dummyUser dummyTransaction)
+      insertedEvent `shouldSatisfy`
+        (\ev -> ev == dummyTransactEvent)
+      eventList <- fromRight' <$> (runAppM env $ listEvents dummyLabelEpc)
+      eventList `shouldBe` [insertedEvent]
+
   describe "getUser tests" $
-    it "getUser test 1" $ \(conn, env) -> do
+    it "getUser test 1" $ \(_conn, env) -> do
       uid <- fromRight' <$> (runAppM env $ newUser dummyNewUser)
       user <- fromRight' <$> (runAppM env $ getUser $ M.emailAddress dummyNewUser)
       (fromJust user)
@@ -193,7 +198,7 @@ testQueries = do
 
   (after_ clearContact) . describe "Contacts" $ do
     describe "Add contact" $
-      it "addContact simple" $ \(conn, env) -> do
+      it "addContact simple" $ \(_conn, env) -> do
         uid <- fromRight' <$> runAppM env (newUser dummyNewUser)
         user <- fromRight' <$> (runAppM env . getUser . M.emailAddress $ dummyNewUser)
         let myContact = makeDummyNewUser "first@gmail.com"
@@ -204,10 +209,11 @@ testQueries = do
         isContact `shouldBe` True
 
     describe "Remove contact" $ do
-      it "Simple remove one" $ \(conn, env) -> do
+      it "Simple remove one" $ \(_conn, env) -> do
 
         -- Adding the contact first
-        uid <- fromRight' <$> (runAppM env $ newUser dummyNewUser)
+        -- FIXME: Unused?
+        _uid <- fromRight' <$> (runAppM env $ newUser dummyNewUser)
         mUser <- fromRight' <$> (runAppM env $ getUser $ M.emailAddress dummyNewUser)
         let myContact = makeDummyNewUser "first@gmail.com"
             user = fromJust mUser
@@ -218,10 +224,11 @@ testQueries = do
         -- removing the contact now
         hasBeenRemoved <- fromRight' <$> (runAppM env $ removeContact user myContactUid)
         hasBeenRemoved `shouldBe` True
-      it "Remove wrong contact" $ \(conn, env) -> do
+      it "Remove wrong contact" $ \(_conn, env) -> do
 
         -- Adding the user first
-        uid <- fromRight' <$> (runAppM env $ newUser dummyNewUser)
+        -- FIXME: Unused?
+        _uid <- fromRight' <$> (runAppM env $ newUser dummyNewUser)
         -- retrieving the user
         mUser <- fromRight' <$> (runAppM env $ getUser $ M.emailAddress dummyNewUser)
 
@@ -237,6 +244,14 @@ testQueries = do
         hasBeenRemoved <- fromRight' <$> (runAppM env $ removeContact user otherUserId)
         hasBeenRemoved `shouldBe` False
 
+  describe "DWhere" $
+    it "Insert and find DWhere" $ \(_conn, env) -> do
+      let eventId = dummyId
+      -- FIXME: Unused?
+      _r <- fromRight' <$> runAppM env (insertDWhere dummyDWhere eventId)
+      insertedDWhere <- fromRight' <$> (runAppM env $ findDWhere eventId)
+      insertedDWhere `shouldBe` Just dummyDWhere
+
 clearContact :: IO ()
 clearContact = do
   conn <- connectPostgreSQL testDbConnStr
@@ -246,7 +261,8 @@ clearContact = do
 populateContact :: IO Env -> IO ()
 populateContact ioEnv = do
     env <- ioEnv
-    uid <- fromRight' <$> (runAppM env $ newUser dummyNewUser)
+    -- FIXME: Unused?
+    _uid <- fromRight' <$> (runAppM env $ newUser dummyNewUser)
     user <- fromRight' <$> (runAppM env $ getUser $ M.emailAddress dummyNewUser)
     let myContact = makeDummyNewUser "first@gmail.com"
     myContactUid <- fromRight' <$> (runAppM env $ newUser myContact)
@@ -255,37 +271,3 @@ populateContact ioEnv = do
 
 defaultEnv :: IO Env
 defaultEnv = Env Dev <$> connectPostgreSQL testDbConnStr
-
-  -- describe "insertDWhat tests" $ do
-  --   it "insertDWhat test 1" $ \(conn, env) -> do
-  --     1 `shouldBe` 1
-
-  -- describe "insertDWhen tests" $ do
-  --   it "insertDWhen test 1" $ \(conn, env) -> do
-  --     1 `shouldBe` 1
-
-  -- describe "insertDWhy tests" $ do
-  --   it "insertDWhy test 1" $ \(conn, env) -> do
-  -- describe "getPublicKey tests" $ do
-  --   it "getPublicKey test 1" $ \(conn, env) -> do
-  --     1 `shouldBe` 1
-
-  -- describe "insertSrcDestType tests" $ do
-  --   it "insertSrcDestType test 1" $ \(conn, env) -> do
-  --     1 `shouldBe` 1
-
-  -- describe "insertLocationEPC tests" $ do
-  --   it "insertLocationEPC test 1" $ \(conn, env) -> do
-  --     1 `shouldBe` 1
-
-  -- describe "insertDWhere tests" $ do
-  --   it "insertDWhere test 1" $ \(conn, env) -> do
-  --     1 `shouldBe` 1
-
-  -- describe "insertEvent tests" $ do
-  --   it "insertEvent test 1" $ \(conn, env) -> do
-  --     1 `shouldBe` 1
-
-  -- describe "insertUserEvent tests" $ do
-  --   it "insertUserEvent test 1" $ \(conn, env) -> do
-  --     1 `shouldBe` 1
