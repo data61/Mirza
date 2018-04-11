@@ -287,8 +287,7 @@ testQueries = do
       let eventId = dummyId
       insertedDWhere <- testAppM env $ do
         void $ insertDWhere dummyDWhere eventId
-        insertedDWhere <- findDWhere eventId
-        pure insertedDWhere
+        findDWhere eventId
       insertedDWhere `shouldBe` Just dummyDWhere
 
 clearContact :: IO ()
