@@ -193,7 +193,6 @@ instance Beamable WhatLabelT
 instance Beamable (PrimaryKey WhatLabelT)
 deriving instance Show (PrimaryKey WhatLabelT Identity)
 
--- this table does not have a primary key
 instance Table WhatLabelT where
   data PrimaryKey WhatLabelT f = WhatLabelId (C f PrimaryKeyType)
     deriving Generic
