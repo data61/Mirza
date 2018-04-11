@@ -142,13 +142,11 @@ minPubKeySize :: Byte
 minPubKeySize = Byte 256 -- 2048 / 8
 
 addPublicKey :: User -> RSAPublicKey -> AC.AppM KeyID
-addPublicKey user (PEMString pemKey) = do
-  somePubKey <- liftIO $ readPublicKey pemKey
-  let maybeKey = checkPubKey somePubKey
-  if isJust $ maybeKey
-     then BQ.addPublicKey user (fromJust maybeKey)
-  else throwAppError $ InvalidRSAKey (PEMString pemKey)
-
+addPublicKey user pemKey@(PEMString pemStr) = do
+  somePubKey <- liftIO $ readPublicKey pemStr
+  case checkPubKey somePubKey of
+    Just k -> BQ.addPublicKey user k
+    _      -> throwAppError $ InvalidRSAKey pemKey
 
 checkPubKey :: SomePublicKey -> Maybe RSAPubKey
 checkPubKey spKey
