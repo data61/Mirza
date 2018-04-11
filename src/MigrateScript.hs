@@ -65,7 +65,7 @@ migrationStorage =
     (
       Label
           (field "label_id" pkSerialType)
-          (field "label_type" (maybeType $ varchar (Just maxLen)))
+          (field "label_type" (maybeType labelType))
           (WhatId (field "label_what_id" pkSerialType))
           (field "label_gs1_company_prefix" gs1CompanyPrefixType notNull)
           (field "item_reference" (maybeType itemRefType))
