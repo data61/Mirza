@@ -6,33 +6,29 @@
 
 module Tests.BeamQueries where
 
-import           Test.Hspec
-
-import           BeamQueries
-import           Database.Beam
-import           Dummies
-import           QueryUtils
-
-import           Crypto.Scrypt
-import           Data.Either.Combinators
-import           Data.Maybe                 (fromJust, isNothing)
-
-import           Data.ByteString            (ByteString)
-import           Data.GS1.EPC
-import           Data.Text.Encoding         (encodeUtf8)
-
 import           AppConfig                  (AppM, Env (..), EnvType (..),
                                              runAppM, runDb)
+import           BeamQueries
+import           Control.Monad              (void)
+import           Crypto.Scrypt
+import           Data.ByteString            (ByteString)
+import           Data.GS1.EPC
+import           Data.Maybe                 (fromJust, isNothing)
 import qualified Data.Text                  as T
+import           Data.Text.Encoding         (encodeUtf8)
 import           Data.Time.Clock            (getCurrentTime)
 import           Data.Time.LocalTime        (LocalTime, utc, utcToLocalTime)
+import           Database.Beam
 import           Database.PostgreSQL.Simple (Connection, connectPostgreSQL,
                                              execute_)
+import           Dummies
 import           GHC.Stack                  (HasCallStack)
 import           Migrate                    (testDbConnStr)
 import qualified Model                      as M
+import           QueryUtils
 import qualified Service                    as S
 import qualified StorageBeam                as SB
+import           Test.Hspec
 
 -- NOTE in this file, where fromJust is used in the tests, it is because we expect a Just... this is part of the test
 -- NOTE tables dropped after every running of test in an "it"
@@ -82,22 +78,21 @@ testQueries = do
         let (M.PEMString keyStr) = pubKey
         keyId <- S.addPublicKey user pubKey
         tEnd <- timeStampIO
-        -- FIXME: Unused?
-        _keyDB <- getPublicKey keyId
+        void $ getPublicKey keyId
         key <- selectKey keyId
         pure (key, keyStr, keyId, uid, tEnd)
       case res of
-        (Nothing, _, _, _, _) -> fail "Received Nothing"
+        (Nothing, _, _, _, _) -> fail "Received Nothing for key"
         (Just key, keyStr, keyId, uid, tEnd) ->
           key `shouldSatisfy`
-              (\k ->
-                T.unpack (SB.pem_str k) == keyStr &&
-                (SB.key_id k) == keyId &&
-                (SB.key_user_id k) == (SB.UserId uid) &&
-                (SB.creation_time k) > tStart &&
-                (SB.creation_time k) < tEnd &&
-                isNothing (SB.revocation_time k)
-              )
+            (\k ->
+              T.unpack (SB.pem_str k) == keyStr &&
+              (SB.key_id k) == keyId &&
+              (SB.key_user_id k) == (SB.UserId uid) &&
+              (SB.creation_time k) > tStart &&
+              (SB.creation_time k) < tEnd &&
+              isNothing (SB.revocation_time k)
+            )
   describe "getPublicKeyInfo tests" $
     it "getPublicKeyInfo test 1" $ \(_conn, env) -> do
       tStart <- timeStampIOEPCIS
@@ -111,11 +106,11 @@ testQueries = do
         tEnd <- timeStampIOEPCIS
         pure (keyInfo, uid, tEnd)
       keyInfo `shouldSatisfy`
-          (\ki ->
-            (M.userID ki == uid) &&
-            (M.creationTime ki > tStart && M.creationTime ki < tEnd) &&
-            isNothing (M.revocationTime ki)
-          )
+        (\ki ->
+          (M.userID ki == uid) &&
+          (M.creationTime ki > tStart && M.creationTime ki < tEnd) &&
+          isNothing (M.revocationTime ki)
+        )
 
   describe "newUser tests" $
     it "newUser test 1" $ \(_conn, env) -> do
@@ -244,24 +239,21 @@ testQueries = do
     describe "Add contact" $
       it "addContact simple" $ \(_conn, env) -> do
         let myContact = makeDummyNewUser "first@gmail.com"
-        res <- testAppM env $ do
+        (hasBeenAdded, isContact) <- testAppM env $ do
           uid <- newUser dummyNewUser
           user <- getUser . M.emailAddress $ dummyNewUser
           myContactUid <- newUser myContact
           hasBeenAdded <- addContact (fromJust user) myContactUid
           isContact <- isExistingContact uid myContactUid
-          pure (uid, user, myContactUid, hasBeenAdded, isContact)
-        case res of
-          (_, Nothing, _, _, _) -> fail "Received Nothing for user"
-          (uid, user, myContactUid, hasBeenAdded, isContact) -> do
-            hasBeenAdded `shouldBe` True
-            isContact `shouldBe` True
+          pure (hasBeenAdded, isContact)
+        hasBeenAdded `shouldBe` True
+        isContact `shouldBe` True
 
     describe "Remove contact" $ do
       it "Simple remove one" $ \(_conn, env) -> do
         -- Adding the contact first
         (hasBeenAdded, hasBeenRemoved) <- testAppM env $ do
-          _uid <- newUser dummyNewUser -- firing a side-effect
+          void $ newUser dummyNewUser
           mUser <- getUser $ M.emailAddress dummyNewUser
           let myContact = makeDummyNewUser "first@gmail.com"
               user = fromJust mUser
@@ -275,7 +267,7 @@ testQueries = do
       it "Remove wrong contact" $ \(_conn, env) -> do
         -- Adding the contact first
         (hasBeenAdded, hasBeenRemoved) <- testAppM env $ do
-          _uid <- newUser dummyNewUser -- firing a side-effect
+          void $ newUser dummyNewUser
           mUser <- getUser $ M.emailAddress dummyNewUser
         -- Add a new user who is NOT a contact
           otherUserId <- newUser $ makeDummyNewUser "other@gmail.com"
@@ -293,7 +285,7 @@ testQueries = do
     it "Insert and find DWhere" $ \(_conn, env) -> do
       let eventId = dummyId
       insertedDWhere <- testAppM env $ do
-        _r <- insertDWhere dummyDWhere eventId
+        void $ insertDWhere dummyDWhere eventId
         insertedDWhere <- findDWhere eventId
         pure insertedDWhere
       insertedDWhere `shouldBe` Just dummyDWhere
@@ -309,7 +301,7 @@ populateContact ioEnv = do
     env <- ioEnv
     let myContact = makeDummyNewUser "first@gmail.com"
     hasBeenAdded <- testAppM env $ do
-      _uid <- newUser dummyNewUser
+      void $ newUser dummyNewUser
       user <- getUser $ M.emailAddress dummyNewUser
       myContactUid <- newUser myContact
       hasBeenAdded <- addContact (fromJust user) myContactUid
