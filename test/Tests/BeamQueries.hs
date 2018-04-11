@@ -1,6 +1,8 @@
-{-# LANGUAGE DataKinds        #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE LambdaCase       #-}
+{-# LANGUAGE DataKinds           #-}
+{-# LANGUAGE FlexibleContexts    #-}
+{-# LANGUAGE LambdaCase          #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+
 
 module Tests.BeamQueries where
 
@@ -73,7 +75,7 @@ testQueries = do
     it "addPublicKey test 1" $ \(_conn, env) -> do
       pubKey <- rsaPubKey
       tStart <- timeStampIO
-      key <- testAppM env $ do
+      res <- testAppM env $ do
         uid <- newUser dummyNewUser
         storageUser <- selectUser uid
         let user = userTableToModel . fromJust $ storageUser
@@ -84,7 +86,7 @@ testQueries = do
         _keyDB <- getPublicKey keyId
         key <- selectKey keyId
         pure (key, keyStr, keyId, uid, tEnd)
-      case ekey of
+      case res of
         (Nothing,_,_,_,_) -> fail "Received Nothing"
         (Just key,keyStr,keyId,uid,tEnd) ->
           key `shouldSatisfy`
@@ -121,9 +123,9 @@ testQueries = do
         uid <- newUser dummyNewUser
         user <- selectUser uid
         pure (uid, user)
-      case eres of
+      case res of
         (_,Nothing) -> fail "Received Nothing for user"
-        (uid,Just user) ->
+        (uid,Just user :: Maybe (SB.UserT Identity)) ->
           user `shouldSatisfy`
             (\u ->
               (SB.phone_number u) == (M.phoneNumber dummyNewUser) &&
