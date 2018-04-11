@@ -9,8 +9,14 @@ import qualified StorageBeam                              as SB
 -- import           CryptHash (getCryptoPublicKey)
 import           AppConfig                                (AppM, runDb)
 import           Crypto.Scrypt
-import           Data.GS1.DWhat                           (DWhat (..),
-                                                           LabelEPC (..))
+import           Data.GS1.DWhat                           (AggregationDWhat (..),
+                                                           DWhat (..),
+                                                           InputEPC (..),
+                                                           LabelEPC (..),
+                                                           ObjectDWhat (..),
+                                                           OutputEPC (..),
+                                                           TransactionDWhat (..),
+                                                           TransformationDWhat (..))
 import qualified Data.GS1.Event                           as Ev
 import qualified Data.GS1.EventID                         as EvId
 import qualified Data.Text                                as T
@@ -34,6 +40,7 @@ import           Control.Monad.IO.Class                   (liftIO)
 import           OpenSSL.PEM                              (writePublicKey)
 import           OpenSSL.RSA                              (RSAPubKey)
 {-
+-- Sample NewUser JSON
 {
   "phoneNumber": "0412",
   "emailAddress": "abc@gmail.com",
@@ -57,8 +64,9 @@ insertUser encPass (M.NewUser phone email firstName lastName biz _) = do
     Left e ->
       case constraintViolation e of
         Just (UniqueViolation "users_email_address_key")
-            -> throwAppError $ EmailExists (sqlToServerError e) email
-        _   -> throwAppError $ InsertionFail (toServerError (Just . sqlState) e) email
+          -> throwAppError $ EmailExists (sqlToServerError e) email
+        _ -> throwAppError $ InsertionFail (toServerError (Just . sqlState) e) email
+        -- ^ Generic insertion error
     _         -> throwBackendError res
 
 -- | Hashes the password of the NewUser and inserts the user into the database
@@ -170,7 +178,7 @@ insertObjectEvent
 
   let
       eventType = Ev.ObjectEventT
-      dwhat =  ObjectDWhat act labelEpcs
+      dwhat =  ObjWhat $ ObjectDWhat act labelEpcs
       event = Ev.Event eventType foreignEventId dwhat dwhen dwhy dwhere
       jsonEvent = encodeEvent event
 
@@ -202,7 +210,7 @@ insertAggEvent
   ) = do
   let
       eventType = Ev.AggregationEventT
-      dwhat =  AggregationDWhat act mParentLabel labelEpcs
+      dwhat =  AggWhat $ AggregationDWhat act mParentLabel labelEpcs
       event = Ev.Event eventType foreignEventId dwhat dwhen dwhy dwhere
       jsonEvent = encodeEvent event
 
@@ -238,15 +246,15 @@ insertTransfEvent
   ) = do
   let
       eventType = Ev.TransformationEventT
-      dwhat =  TransformationDWhat mTransfId inputs outputs
+      dwhat =  TransformWhat $ TransformationDWhat mTransfId inputs outputs
       event = Ev.Event eventType foreignEventId dwhat dwhen dwhy dwhere
       jsonEvent = encodeEvent event
 
   transaction $ do
     eventId <- insertEvent userId jsonEvent event
     whatId <- insertDWhat Nothing dwhat eventId
-    inputLabelIds <- mapM (insertLabel (Just "input") whatId) inputs
-    outputLabelIds <- mapM (insertLabel (Just "output") whatId) outputs
+    inputLabelIds <- mapM (\(InputEPC i) -> insertLabel (Just "input") whatId i) inputs
+    outputLabelIds <- mapM (\(OutputEPC o) -> insertLabel (Just "output") whatId o) outputs
     let labelIds = inputLabelIds ++ outputLabelIds
     _whenId <- insertDWhen dwhen eventId
     _whyId <- insertDWhy dwhy eventId
@@ -260,10 +268,10 @@ insertTransfEvent
 
 -- XXX This function is not tested yet.
 -- Needs more specifications for implementation.
-insertTransactionEvent :: M.User
+insertTransactEvent :: M.User
                        -> M.TransactionEvent
                        -> AppM Ev.Event
-insertTransactionEvent
+insertTransactEvent
   (M.User userId _ _ )
   (M.TransactionEvent
     foreignEventId
@@ -276,7 +284,7 @@ insertTransactionEvent
   ) = do
   let
       eventType = Ev.TransactionEventT
-      dwhat =  TransactionDWhat act mParentLabel bizTransactions labelEpcs
+      dwhat =  TransactWhat $ TransactionDWhat act mParentLabel bizTransactions labelEpcs
       event = Ev.Event eventType foreignEventId dwhat dwhen dwhy dwhere
       jsonEvent = encodeEvent event
 

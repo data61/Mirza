@@ -40,7 +40,7 @@ data Env = Env
   -- , port    :: Word16
   }
 
-data AppError = AppError ServiceError
+data AppError = AppError ServiceError deriving (Show)
 
 -- runReaderT :: r -> m a
 -- ReaderT r m a

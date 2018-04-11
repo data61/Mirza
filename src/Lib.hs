@@ -50,7 +50,7 @@ startApp_nomain dbConnStr = startApp dbConnStr AC.Dev 8000 Original
 
 -- Application = Request -> (Response -> IO ResponseReceived) -> IO ResponseReceived
 webApp :: AC.Env -> UIFlavour -> Application
-webApp env uiFlavour  = serveWithContext api basicAuthServerContext (server' env uiFlavour)
+webApp env uiFlavour = serveWithContext api (basicAuthServerContext env) (server' env uiFlavour)
 
 -- Implementation
 

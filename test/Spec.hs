@@ -6,7 +6,6 @@ import           Tests.BeamQueries
 
 import           AppConfig                  as AC
 import           Control.Exception          (bracket)
-import           Data.ByteString
 import           Data.Int
 import           Database.Beam.Postgres
 import           Database.PostgreSQL.Simple
@@ -36,14 +35,14 @@ dropTables conn =
 openConnection :: IO (Connection, Env)
 openConnection = do
   conn <- connectPostgreSQL testDbConnStr
-  dropTables conn -- drop tables before so if already exist no problems... means tables get overwritten though
+  _ <- dropTables conn -- drop tables before so if already exist no problems... means tables get overwritten though
   let envT = AC.mkEnvType True
       env  = AC.Env envT conn
   tryCreateSchema True conn
   return (conn, env)
 
 closeConnection :: (Connection, Env) -> IO ()
-closeConnection (conn, env) = do
+closeConnection (conn, _env) = do
   close conn
 
 withDatabaseConnection :: ((Connection, Env) -> IO ()) -> IO ()

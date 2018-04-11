@@ -1,6 +1,4 @@
 {-# LANGUAGE DataKinds             #-}
--- {-# LANGUAGE TemplateHaskell            #-}
-{-# LANGUAGE CPP                   #-}
 {-# LANGUAGE DeriveGeneric         #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
@@ -8,7 +6,6 @@
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
--- {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE UndecidableInstances  #-}
 
 
