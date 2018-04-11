@@ -7,7 +7,7 @@ module BeamQueries where
 
 import           AppConfig                                (AppM, runDb)
 import           Codec.Crypto.RSA                         (PublicKey (..))
-import           Crypto.Scrypt
+import qualified Crypto.Scrypt                            as Scrypt
 import           Data.Binary
 import           Data.ByteString                          (ByteString)
 import           Data.ByteString.Lazy                     (fromStrict, toStrict)
@@ -54,7 +54,7 @@ import           OpenSSL.RSA                              (RSAPubKey)
 }
 -}
 
-insertUser :: EncryptedPass -> M.NewUser -> AppM M.UserID
+insertUser :: Scrypt.EncryptedPass -> M.NewUser -> AppM M.UserID
 insertUser encPass (M.NewUser phone email firstName lastName biz _) = do
   userId <- generatePk
   res <- runDb $
@@ -63,7 +63,7 @@ insertUser encPass (M.NewUser phone email firstName lastName biz _) = do
               [
                 (SB.User userId
                 (SB.BizId  biz)
-                firstName lastName phone (getEncryptedPass encPass) email
+                firstName lastName phone (Scrypt.getEncryptedPass encPass) email
                 )
               ]
             )
@@ -80,7 +80,7 @@ insertUser encPass (M.NewUser phone email firstName lastName biz _) = do
 -- | Hashes the password of the NewUser and inserts the user into the database
 newUser :: M.NewUser -> AppM M.UserID
 newUser userInfo@(M.NewUser _ _ _ _ _ password) = do
-    hash <- liftIO $ encryptPassIO' (Pass $ encodeUtf8 password)
+    hash <- liftIO $ Scrypt.encryptPassIO' (Scrypt.Pass $ encodeUtf8 password)
     insertUser hash userInfo
 
 -- Basic Auth check using Scrypt hashes.
@@ -94,7 +94,7 @@ authCheck email password = do
   case r of
     Left e -> throwUnexpectedDBError $ sqlToServerError e
     Right [user] -> do
-        if verifyPass' (Pass password) (EncryptedPass $ SB.password_hash user)
+        if Scrypt.verifyPass' (Scrypt.Pass password) (Scrypt.EncryptedPass $ SB.password_hash user)
           then return $ Just $ userTableToModel user
           else throwAppError $ AuthFailed email
     Right [] -> throwAppError $ EmailNotFound email
