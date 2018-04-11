@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds        #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE LambdaCase       #-}
 
 module Tests.BeamQueries where
 
@@ -29,6 +30,8 @@ import           Migrate                    (testDbConnStr)
 import qualified Model                      as M
 import qualified Service                    as S
 import qualified StorageBeam                as SB
+
+import           GHC.Stack                  (HasCallStack)
 -- NOTE in this file, where fromJust is used in the tests, it is because we expect a Just... this is part of the test
 -- NOTE tables dropped after every running of test in an "it"
 
@@ -58,7 +61,7 @@ selectKey keyId = do
     Right [key] -> return $ Just key
     _           -> return Nothing
 
-testQueries :: SpecWith (Connection, Env)
+testQueries :: HasCallStack => SpecWith (Connection, Env)
 testQueries = do
 
   describe "addPublicKey tests" $
