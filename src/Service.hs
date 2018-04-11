@@ -144,6 +144,7 @@ addPublicKey user pemKey@(PEMString pemStr) = do
     Just k -> BQ.addPublicKey user k
     _      -> throwAppError $ InvalidRSAKey pemKey
 
+-- TODO: Make it return an Either
 checkPubKey :: SomePublicKey -> Maybe RSAPubKey
 checkPubKey spKey
   | isNothing mPKey = Nothing
