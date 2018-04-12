@@ -140,13 +140,13 @@ minPubKeySize = U.Byte 256 -- 2048 / 8
 addPublicKey :: User -> RSAPublicKey -> AC.AppM KeyID
 addPublicKey user pemKey@(PEMString pemStr) = do
   somePubKey <- liftIO $ readPublicKey pemStr
-  case checkPubKey somePubKey of
-    Just k -> BQ.addPublicKey user k
-    _      -> throwAppError $ InvalidRSAKey pemKey
+  case checkPubKey somePubKey pemKey of
+    Right k -> BQ.addPublicKey user k
+    Left e  -> throwAppError e
 
-checkPubKey :: SomePublicKey -> Either ServiceError RSAPubKey
-checkPubKey spKey
-  | isNothing mPKey = Left $ InvalidSomeRSAKey spKey
+checkPubKey :: SomePublicKey -> RSAPublicKey-> Either ServiceError RSAPubKey
+checkPubKey spKey pemKey
+  | isNothing mPKey = Left $ InvalidRSAKey pemKey
   | rsaSize pubKey < (U.unByte minPubKeySize)
       = Left $ InvalidRSAKeySize (Expected minPubKeySize) (Received $ U.Byte keySize)
       -- rsaSize returns size in bytes
