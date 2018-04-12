@@ -23,7 +23,7 @@ import           StorageBeam         (PrimaryKeyType)
 type PrivateAPI =
        "epc"      :> Capture "urn" String      :> "info"   :> Get '[JSON] EPCState
   :<|> "epc"      :> Capture "urn" String      :> "events" :> Get '[JSON] [Ev.Event]
-  :<|> "event"    :> Capture "eventID" EventID :> "info"   :> Get '[JSON] Ev.Event
+  :<|> "event"    :> Capture "eventID" EventID :> "info"   :> Get '[JSON] (Maybe Ev.Event)
   :<|> "contacts" :>  Get '[JSON] [User]
   :<|> "contacts" :> "add"                 :> Capture "userID" PrimaryKeyType     :> Get '[JSON] Bool
   :<|> "contacts" :> "remove"              :> Capture "userID" PrimaryKeyType     :> Get '[JSON] Bool
