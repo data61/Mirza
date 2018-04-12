@@ -59,7 +59,7 @@ import           Servant
 import           Servant.Server.Experimental.Auth ()
 import           Servant.Swagger
 import qualified StorageBeam                      as SB
-import           Utils
+import qualified Utils                            as U
 
 instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub) where
   toSwagger _ =
@@ -134,29 +134,28 @@ serveSwaggerAPI = toSwagger serverAPI
 basicAuthServerContext :: AC.Env -> Servant.Context ((BasicAuthCheck User) ': '[])
 basicAuthServerContext env = (authCheck env) :. EmptyContext
 
-
-newtype Bit  = Bit  {unBit :: Int} deriving (Show, Eq, Read)
-newtype Byte = Byte {unByte :: Int} deriving (Show, Eq, Read)
-
-minPubKeySize :: Byte
-minPubKeySize = Byte 256 -- 2048 / 8
+minPubKeySize :: U.Byte
+minPubKeySize = U.Byte 256 -- 2048 / 8
 
 addPublicKey :: User -> RSAPublicKey -> AC.AppM KeyID
 addPublicKey user pemKey@(PEMString pemStr) = do
   somePubKey <- liftIO $ readPublicKey pemStr
-  case checkPubKey somePubKey of
-    Just k -> BQ.addPublicKey user k
-    _      -> throwAppError $ InvalidRSAKey pemKey
+  case checkPubKey somePubKey pemKey of
+    Right k -> BQ.addPublicKey user k
+    Left e  -> throwAppError e
 
-checkPubKey :: SomePublicKey -> Maybe RSAPubKey
-checkPubKey spKey
-  | isNothing mPKey = Nothing
-  | (rsaSize pubKey) < (unByte minPubKeySize) = Nothing --rsaSize returns size in bytes
-  | otherwise = mPKey
+checkPubKey :: SomePublicKey -> RSAPublicKey-> Either ServiceError RSAPubKey
+checkPubKey spKey pemKey
+  | isNothing mPKey = Left $ InvalidRSAKey pemKey
+  | rsaSize pubKey < (U.unByte minPubKeySize)
+      = Left $ InvalidRSAKeySize (Expected minPubKeySize) (Received $ U.Byte keySize)
+      -- rsaSize returns size in bytes
+  | otherwise = Right pubKey
   where
     mPKey :: Maybe RSAPubKey
     mPKey = toPublicKey spKey
     pubKey = fromJust mPKey
+    keySize = rsaSize pubKey
 
 
 newUser :: NewUser -> AC.AppM UserID
