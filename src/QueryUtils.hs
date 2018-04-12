@@ -50,7 +50,6 @@ import           ErrorUtils                 (sqlToServerError,
 import qualified MigrateUtils               as MU
 import qualified Model                      as M
 import qualified StorageBeam                as SB
-import qualified Utils                      as U
 
 -- | Reads back the ``LocalTime`` in UTCTime (with an offset of 0)
 toEPCISTime :: LocalTime -> EPCISTime
@@ -562,6 +561,4 @@ verifyContact _ _ _ = return False
 storageToModelBusiness :: SB.Business -> M.Business
 storageToModelBusiness (SB.Business pfix name f site addr lat long)
   = M.Business pfix name f site addr lat long
-
-
 

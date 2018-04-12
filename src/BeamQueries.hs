@@ -418,12 +418,20 @@ listBusinesses = do
     Left e        -> throwUnexpectedDBError $ sqlToServerError e
 
 -- TODO: Write tests
-getUserByEvent :: SB.PrimaryKeyType -> M.User
+getUserByEvent :: SB.PrimaryKeyType -> AppM M.User
 getUserByEvent eventId = do
-  U.notImplemented
+  r <- runDb $ runSelectReturningList $ select $ do
+    userEvent <- all_ (SB._user_events SB.supplyChainDb)
+    user <- all_ (SB._users SB.supplyChainDb)
+    guard_ (SB.user_events_user_id userEvent `references_` user)
+    pure user
+  case r of
+    Right [user] -> return $ userTableToModel user
+    Left e       -> throwUnexpectedDBError $ sqlToServerError e
+    _            -> throwBackendError r
+
 
 -- -- TODO - convert these below functions, and others in original file Storage.hs
-
 -- -- TODO = use EventId or EventID ???
 -- -- TODO = implement... there is no hash...
 -- createBlockchainPackage ::  (MonadError M.SigError m, MonadIO m) => EventId -> m C.BlockchainPackage
