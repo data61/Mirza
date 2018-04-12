@@ -1,4 +1,3 @@
-
 -- | General utility functions used throughout the codebase
 module Utils where
 
@@ -33,3 +32,9 @@ sandwichLog patty = do
 -- | Converts anything to a ``Text``
 toText :: Show a => a -> T.Text
 toText = T.pack . show
+
+errMsg :: String
+errMsg = "FIXME"
+
+notImplemented :: a
+notImplemented = error errMsg
