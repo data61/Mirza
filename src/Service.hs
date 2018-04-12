@@ -148,8 +148,12 @@ checkPubKey :: SomePublicKey -> Either ServiceError RSAPubKey
 checkPubKey spKey
   | isNothing mPKey = Left $ InvalidSomeRSAKey spKey
   | rsaSize pubKey < (U.unByte minPubKeySize)
+<<<<<<< Updated upstream
       = Left $ InvalidRSAKeySize (Expected minPubKeySize) (Received $ U.Byte keySize)
       -- rsaSize returns size in bytes
+=======
+      = Left $ InvalidRSAKeySize (Expected minPubKeySize) (Received $ U.Byte keySize)--rsaSize returns size in bytes
+>>>>>>> Stashed changes
   | otherwise = Right pubKey
   where
     mPKey :: Maybe RSAPubKey
