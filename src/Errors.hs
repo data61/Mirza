@@ -31,7 +31,6 @@ data ServiceError =
   | InvalidKeyID M.KeyID
   | InvalidUserID M.UserID
   | InvalidRSAKey M.RSAPublicKey
-  | InvalidSomeRSAKey SomePublicKey
   | InvalidRSAKeySize Expected Received
   | InsertionFail ServerError T.Text
   | EmailExists ServerError M.Email
