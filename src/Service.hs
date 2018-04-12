@@ -15,10 +15,15 @@
 -- light wrappers around functions in BeamQueries
 module Service where
 
-import           GHC.TypeLits                     (KnownSymbol)
-
+import           API
+import qualified AppConfig                        as AC
+import qualified BeamQueries                      as BQ
 import           Control.Lens                     hiding ((.=))
+import           Control.Monad                    (guard)
+import           Control.Monad.Error.Hoist        ((<!?>), (<%?>))
 import           Control.Monad.IO.Class           (liftIO)
+import qualified Data.ByteString.Base64           as BS64
+import qualified Data.ByteString.Char8            as BSC
 import           Data.Char                        (toLower)
 import           Data.Either.Combinators
 import           Data.GS1.DWhat
@@ -32,38 +37,26 @@ import           Data.GS1.Parser.Parser
 import qualified Data.HashMap.Strict.InsOrd       as IOrd
 import           Data.Swagger
 import           Data.Text                        (pack)
+import           Data.Text.Encoding               (decodeUtf8)
 import           Data.UUID.V4
--- import qualified Network.Wai.Handler.Warp         as Warp
-import           Servant
-import           Servant.Server.Experimental.Auth ()
-import           Servant.Swagger
-
--- import qualified Model as M
-import           API
-import qualified AppConfig                        as AC
-import qualified BeamQueries                      as BQ
 import           Dummies                          (dummyObjectDWhat)
 import           Errors
 import           ErrorUtils                       (appErrToHttpErr,
                                                    throwAppError,
                                                    throwParseError)
+import           GHC.TypeLits                     (KnownSymbol)
 import           Model                            as M
-import           OpenSSL.PEM                      (readPublicKey)
-import qualified StorageBeam                      as SB
--- import           Utils                            (debugLog, debugLogGeneral)
-
-
-import qualified Data.ByteString.Base64           as BS64
-import qualified Data.ByteString.Char8            as BSC
-import           Data.Text.Encoding               (decodeUtf8)
 import qualified OpenSSL.EVP.Digest               as EVPDigest
 import           OpenSSL.EVP.PKey                 (SomePublicKey, toPublicKey)
 import           OpenSSL.EVP.Verify               (VerifyStatus (..), verifyBS)
+import           OpenSSL.PEM                      (readPublicKey)
 import           OpenSSL.RSA                      (RSAPubKey, rsaSize)
 import qualified QueryUtils                       as QU
-
-import           Control.Monad                    (guard)
-import           Control.Monad.Error.Hoist        ((<!?>), (<%?>))
+import           Servant
+import           Servant.Server.Experimental.Auth ()
+import           Servant.Swagger
+import qualified StorageBeam                      as SB
+import qualified Utils                            as U
 
 instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub) where
   toSwagger _ =
@@ -176,7 +169,7 @@ getPublicKeyInfo = BQ.getPublicKeyInfo
 -- PSUEDO:
 -- Use getLabelIDState
 epcState :: User ->  M.LabelEPCUrn -> AC.AppM EPCState
-epcState _user _str = return New
+epcState _user _str = U.notImplemented
 
 -- This takes an EPC urn,
 -- and looks up all the events related to that item. First we've got
@@ -198,14 +191,16 @@ listEvents _user urn =
 -- SELECT event.userID, userID1, userID2 FROM Events, BizTransactions WHERE Events._eventID=eventID AND BizTransactionsEventId=Events._eventID;
 -- implement a function constructEvent :: WholeEvent -> Event
 --
+
+
+-- Look into usereventsT and tie that back to the user
+-- the function getUser/selectUser might be helpful
 eventUserList :: User -> EventID -> AC.AppM [(User, Bool)]
--- eventUserList user eventID = liftIO $ Storage.eventUserList user eventID
-eventUserList _user _eventID = error "Storage module not implemented"
+eventUserList _user _eventID = U.notImplemented
 
 
 contactsInfo :: User -> AC.AppM [User]
--- contactsInfo user = liftIO $ Storage.listContacts user
-contactsInfo _user = error "Storage module not implemented"
+contactsInfo _user = U.notImplemented
 
 
 contactsAdd :: User -> UserID -> AC.AppM Bool
@@ -219,8 +214,9 @@ contactsRemove = BQ.removeContact
 -- might want to use reg-ex features of postgres10 here:
 -- PSEUDO:
 -- SELECT user2, firstName, lastName FROM Contacts, Users WHERE user1 LIKE *term* AND user2=Users.id UNION SELECT user1, firstName, lastName FROM Contacts, Users WHERE user2 = ? AND user1=Users.id;" (uid, uid)
+--
 contactsSearch :: User -> String -> AC.AppM [User]
-contactsSearch _user _term = return []
+contactsSearch _user _term = U.notImplemented
 
 
 userSearch :: User -> String -> AC.AppM [User]
@@ -229,7 +225,7 @@ userSearch _user _term = error "Storage module not implemented"
 
 -- select * from Business;
 listBusinesses :: AC.AppM [Business]
-listBusinesses = error "Implement me"
+listBusinesses = U.notImplemented
 
 -- |List events that a particular user was/is involved with
 -- use BizTransactions and events (createdby) tables
@@ -284,7 +280,9 @@ eventSign _user (SignedEvent eventID keyID (Signature sigStr) digest') = do
 -- do we need this?
 --
 eventHashed :: User -> EventID -> AC.AppM HashedEvent
-eventHashed _user eventID = return (HashedEvent eventID (EventHash "Blob"))
+eventHashed _user eventID = error "not implemented yet"
+-- return (HashedEvent eventID (EventHash "Blob"))
+
   {-
 eventHashed user eventID = do
   mHash <- liftIO $ Storage.eventHashed user eventID
@@ -317,7 +315,7 @@ sampleWhere :: DWhere
 sampleWhere = DWhere [] [] [] []
 
 eventInfo :: User -> EventID -> AC.AppM Ev.Event
-eventInfo _user _eID = liftIO sampleEvent
+eventInfo _user _eID = U.notImplemented
 
 --eventHash :: EventID -> AC.AppM SignedEvent
 --eventHash eID = return (SignedEvent eID (BinaryBlob ByteString.empty) [(BinaryBlob ByteString.empty)] [1,2])
