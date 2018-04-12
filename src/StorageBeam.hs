@@ -12,9 +12,9 @@
 
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE DeriveGeneric         #-}
+{-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE OverloadedStrings     #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE StandaloneDeriving    #-}
 {-# LANGUAGE TypeApplications      #-}
@@ -29,15 +29,14 @@
 module StorageBeam where
 
 import           Control.Lens
-import           Database.Beam          as B
-import           Database.Beam.Postgres
-
 import           Data.ByteString        (ByteString)
 import qualified Data.GS1.EPC           as EPC
 import qualified Data.GS1.Event         as Ev
 import           Data.Text              (Text)
 import           Data.Time
 import           Data.UUID              (UUID)
+import           Database.Beam          as B
+import           Database.Beam.Postgres
 import qualified MigrateUtils           as MU
 import           Servant                ()
 

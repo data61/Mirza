@@ -1,17 +1,16 @@
-{-# LANGUAGE OverloadedStrings #-}
 
 -- | Module containing functions to run the migration function
 module Migrate where
 
 import qualified Control.Exception           as E
+import           Control.Monad               (void)
+import           Data.ByteString.Char8       (ByteString)
 import           Database.Beam               (withDatabase, withDatabaseDebug)
 import           Database.Beam.Backend       (runNoReturn)
 import           Database.Beam.Migrate.Types (executeMigration)
 import           Database.Beam.Postgres      (Connection, Pg)
-import           MigrateScript               (migrationStorage)
-
-import           Data.ByteString.Char8       (ByteString)
 import           Database.PostgreSQL.Simple  (SqlError, connectPostgreSQL)
+import           MigrateScript               (migrationStorage)
 
 -- | Whether or not to run silently
 dbMigrationFunc :: Bool -> Connection -> Pg a -> IO a
@@ -28,8 +27,7 @@ testDbConnStr = "dbname=testsupplychainserver"
 
 createSchema :: Bool -> Connection -> IO ()
 createSchema runSilently conn = do
-  dbMigrationFunc runSilently conn $ executeMigration runNoReturn $ migrationStorage
-  return ()
+  void $ dbMigrationFunc runSilently conn $ executeMigration runNoReturn migrationStorage
 
 -- dropSchema :: Connection -> IO ()
 -- dropSchema conn = do

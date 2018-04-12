@@ -1,12 +1,13 @@
-{-# LANGUAGE OverloadedStrings #-}
 
 -- | Contains the migration function of ``supplyChainDb``
 module MigrateScript (migrationStorage) where
 
+import           Data.UUID                        (UUID)
+import           Database.Beam.Migrate.SQL        (DataType)
 import           Database.Beam.Migrate.SQL.Tables
 import           Database.Beam.Migrate.Types
 import           Database.Beam.Postgres
-import           Database.Beam.Postgres.Migrate
+import           Database.Beam.Postgres.Syntax    (PgDataTypeSyntax)
 import           MigrateUtils
 import           StorageBeam
 
@@ -17,7 +18,7 @@ maxLen = 120
 maxTzLen :: Word
 maxTzLen = 10
 
--- pkSerialType :: DataType PgDataTypeSyntax UUID
+pkSerialType :: DataType PgDataTypeSyntax UUID
 pkSerialType = uuid
 
 migrationStorage :: Migration PgCommandSyntax (CheckedDatabaseSettings Postgres SupplyChainDb)
@@ -72,8 +73,8 @@ migrationStorage =
           (field "serial_number" (maybeType serialNumType))
           (field "state" (maybeType $ varchar (Just maxLen)))
           (field "lot" (maybeType lotType))
-          (field "sgtin_filter_value" (maybeType $ sgtinFilterValue))
-          (field "asset_type" (maybeType $ assetType))
+          (field "sgtin_filter_value" (maybeType sgtinFilterValue))
+          (field "asset_type" (maybeType assetType))
           (field "quantity_amount" (maybeType amountType))
           (field "quantity_uom" (maybeType uomType))
     )
@@ -147,7 +148,7 @@ migrationStorage =
       Where
           (field "where_id" pkSerialType)
           (field "where_gs1_company_prefix" gs1CompanyPrefixType notNull)
-          (field "where_source_dest_type" (maybeType $ srcDestType))
+          (field "where_source_dest_type" (maybeType srcDestType))
           (field "where_gs1_location_id" (locationRefType) notNull)
           (field "where_location_field" locationType notNull)
           (field "where_sgln_ext" (maybeType sglnExtType))

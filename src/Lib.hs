@@ -3,7 +3,6 @@
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE OverloadedStrings     #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
@@ -36,14 +35,14 @@ import           API
 import           GHC.Word                         (Word16)
 import           Service
 
-startApp :: ByteString -> AC.EnvType -> Word16 -> UIFlavour-> IO ()
-startApp dbConnStr envT port uiFlavour = do
+startApp :: ByteString -> AC.EnvType -> Word16 -> UIFlavour -> IO ()
+startApp dbConnStr envT prt uiFlavour = do
     conn <- connectPostgreSQL dbConnStr
     let
         env  = AC.Env envT conn
         app = return $ webApp env uiFlavour
-    putStrLn $ "http://localhost:" ++ show port ++ "/" ++ "swagger-ui/"
-    Warp.run (fromIntegral port) =<< app
+    putStrLn $ "http://localhost:" ++ show prt ++ "/swagger-ui/"
+    Warp.run (fromIntegral prt) =<< app
 
 -- easily start the app in ghci, no command line arguments required.
 startApp_nomain :: ByteString -> IO ()
