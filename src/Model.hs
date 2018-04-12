@@ -21,7 +21,7 @@ import           Data.GS1.DWhat
 import           Data.GS1.DWhen
 import           Data.GS1.DWhere
 import           Data.GS1.DWhy
-import           Data.GS1.EPC
+import           Data.GS1.EPC                     as EPC
 import qualified Data.GS1.Event                   as Ev
 import           Data.GS1.EventID
 import           StorageBeam                      (PrimaryKeyType)
@@ -148,14 +148,13 @@ data SearchFields = SearchFields {
 }
 
 data Business = Business {
-  bizID            :: UUID,
-  bizName          :: T.Text,
-  gs1CompanyPrefix :: GS1CompanyPrefix,
-  function         :: T.Text,
-  siteName         :: T.Text,
-  address          :: T.Text,
-  lat              :: Float,
-  lng              :: Float
+  bizID    :: EPC.GS1CompanyPrefix,
+  bizName  :: T.Text,
+  function :: T.Text,
+  siteName :: T.Text,
+  address  :: T.Text,
+  lat      :: Double,
+  lng      :: Double
 } deriving (Generic, Eq, Show)
 $(deriveJSON defaultOptions ''Business)
 instance ToSchema Business

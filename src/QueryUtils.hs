@@ -1,4 +1,6 @@
-{-# LANGUAGE TupleSections #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE TupleSections    #-}
+
 -- | Following are a bunch of utility functions to do household stuff like
 -- generating primary keys, timestamps - stuff that almost every function
 -- below would need to do anyway
@@ -8,7 +10,9 @@
 module QueryUtils where
 
 import           AppConfig                  (AppM, Env (..), runAppM, runDb)
+import           Control.Monad.Except       (throwError)
 import           Control.Monad.IO.Class     (liftIO)
+import           Control.Monad.Reader       (ask)
 import           Data.Aeson                 (decode)
 import           Data.Aeson.Text            (encodeToLazyText)
 import           Data.ByteString            (ByteString)
@@ -46,9 +50,7 @@ import           ErrorUtils                 (sqlToServerError,
 import qualified MigrateUtils               as MU
 import qualified Model                      as M
 import qualified StorageBeam                as SB
-
-import           Control.Monad.Except       (throwError)
-import           Control.Monad.Reader       (ask)
+import qualified Utils                      as U
 
 -- | Reads back the ``LocalTime`` in UTCTime (with an offset of 0)
 toEPCISTime :: LocalTime -> EPCISTime
@@ -556,3 +558,7 @@ verifyContact (Right [insertedContact]) uid1 uid2 = return $
                   (SB.contact_user1_id insertedContact == (SB.UserId uid1)) &&
                   (SB.contact_user2_id insertedContact == (SB.UserId uid2))
 verifyContact _ _ _ = return False
+
+storageToModelBusiness :: SB.Business -> M.Business
+storageToModelBusiness (SB.Business pfix name f site addr lat long)
+  = M.Business pfix name f site addr lat long
