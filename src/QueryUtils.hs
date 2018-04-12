@@ -562,3 +562,6 @@ verifyContact _ _ _ = return False
 storageToModelBusiness :: SB.Business -> M.Business
 storageToModelBusiness (SB.Business pfix name f site addr lat long)
   = M.Business pfix name f site addr lat long
+
+
+

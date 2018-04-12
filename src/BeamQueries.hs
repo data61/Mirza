@@ -218,9 +218,8 @@ insertAggEvent
     eventId <- insertEvent userId jsonEvent event
     whatId <- insertDWhat Nothing dwhat eventId
     labelIds <- mapM (insertLabel Nothing whatId) labelEpcs
-    -- Make labelType a datatype?
     -- FIXME: not used?
-    -- let mParentId = insertLabel (Just "parent") whatId <$> (IL <$> mParentLabel)
+    _mParentId <- insertLabel (Just Parent) whatId <$> (IL <$> mParentLabel)
     _whenId <- insertDWhen dwhen eventId
     _whyId <- insertDWhy dwhy eventId
     insertDWhere dwhere eventId
@@ -293,7 +292,7 @@ insertTransactEvent
     whatId <- insertDWhat Nothing dwhat eventId
     labelIds <- mapM (insertLabel Nothing whatId) labelEpcs
     -- FIXME: not used?
-    -- let mParentId = insertLabel (Just "parent") whatId <$> (IL <$> mParentLabel)
+    _mParentId <- insertLabel (Just MU.Parent) whatId <$> (IL <$> unParentLabel mParentLabel)
     _whenId <- insertDWhen dwhen eventId
     _whyId <- insertDWhy dwhy eventId
     insertDWhere dwhere eventId
@@ -407,6 +406,7 @@ listContacts  (M.User _uid _ _) = do
     Left e         -> throwUnexpectedDBError $ sqlToServerError e
 
 
+-- TODO: Write tests
 listBusinesses :: AppM [SB.Business]
 listBusinesses = do
   r <- runDb $ runSelectReturningList $ select $ do
@@ -415,6 +415,11 @@ listBusinesses = do
   case r of
     Right bizList -> return bizList
     Left e        -> throwUnexpectedDBError $ sqlToServerError e
+
+-- TODO: Write tests
+getUserByEvent :: SB.PrimaryKeyType -> M.User
+getUserByEvent eventId = do
+  U.notImplemented
 
 -- -- TODO - convert these below functions, and others in original file Storage.hs
 
