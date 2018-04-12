@@ -4,18 +4,21 @@
 module Errors where
 
 import qualified Data.ByteString            as BS
--- import qualified Data.GS1.EPC     as EPC
 import           Data.GS1.EventID
 import qualified Data.Text                  as T
 import           Database.PostgreSQL.Simple (SqlError)
 import           GHC.Generics               (Generic)
 import qualified Model                      as M
+import qualified Utils                      as U
 
 type ErrorText = T.Text
 type ErrorCode = BS.ByteString
 
 data ServerError = ServerError (Maybe ErrorCode) ErrorText
                    deriving (Show, Read)
+
+newtype Expected = Expected  {unExpected :: U.Byte} deriving (Show, Eq, Read)
+newtype Received = Received  {unReceived :: U.Byte} deriving (Show, Eq, Read)
 
 -- | A sum type of errors that may occur in the Service layer
 data ServiceError
@@ -27,12 +30,13 @@ data ServiceError
   | InvalidUserID        M.UserID
   | InvalidRSAKeyString  T.Text
   | InvalidRSAKey        M.RSAPublicKey
+  | InvalidRSAKeySize    Expected Received
   | InvalidDigest        M.Digest
   | InsertionFail        ServerError T.Text
   | EmailExists          ServerError M.Email
   | EmailNotFound        M.Email
   | UnexpectedDBResponse ServerError
-  | AuthFailed            M.Email
+  | AuthFailed           M.Email
   | UserNotFound         M.Email
   | ParseError           ErrorText -- EPC.ParseFailure
   | BackendErr           ErrorText -- fallback

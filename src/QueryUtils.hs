@@ -93,7 +93,7 @@ eventTxtToBS = En.encodeUtf8
 decodeEvent :: T.Text -> Maybe Ev.Event
 decodeEvent = decode . LEn.encodeUtf8 . TxtL.fromStrict
 
-epcToStorageLabel :: Maybe T.Text
+epcToStorageLabel :: Maybe MU.LabelType
                   -> SB.PrimaryKeyType
                   -> SB.PrimaryKeyType
                   -> LabelEPC
@@ -449,7 +449,7 @@ insertWhatLabel whatId labelId = do
 
 -- | Given the necessary information,
 -- converts a ``LabelEPC`` to SB.Label and writes it to the database
-insertLabel :: Maybe T.Text
+insertLabel :: Maybe MU.LabelType
             -> SB.PrimaryKeyType
             -> LabelEPC
             -> AppM SB.PrimaryKeyType
