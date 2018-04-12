@@ -1,5 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 -- | General utility functions used throughout the codebase
 module Utils where
 
@@ -12,3 +10,9 @@ toText = T.pack . show
 
 newtype Bit  = Bit  {unBit :: Int} deriving (Show, Eq, Read)
 newtype Byte = Byte {unByte :: Int} deriving (Show, Eq, Read)
+
+errMsg :: String
+errMsg = "FIXME"
+
+notImplemented :: a
+notImplemented = error errMsg

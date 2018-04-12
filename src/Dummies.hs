@@ -1,4 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
 
 -- | Sample data types. Serves as a good example of the types defined
 -- in GS1Combinators
@@ -179,11 +178,11 @@ dummyDWhere =
     [BizLocation $ SGLN (GS1CompanyPrefix "0012345") (LocationReference "11111") Nothing]
     -- [BizLocation]
     [
-      SrcDestLocation $ (SDOwningParty,
+      SrcDestLocation (SDOwningParty,
       SGLN (GS1CompanyPrefix "0012347") (LocationReference "12345") Nothing)
     ]
     [
-      SrcDestLocation $ (SDPossessingParty,
+      SrcDestLocation (SDPossessingParty,
       SGLN (GS1CompanyPrefix "0012348") (LocationReference "12346") (Just $ SGLNExtension "400"))
     ]
 

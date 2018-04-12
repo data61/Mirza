@@ -7,7 +7,7 @@
 export DBNAME="devsupplychainserver"
 
 echo Recreating the database
-./manage_db.sh testsupplychainserver
+./manage_db.sh $DBNAME
 
 # Defaulting opt to avoid error
 GIVEN_OPT=$1
@@ -19,9 +19,11 @@ then
     stack clean
 fi
 
-stack build
+stack build --fast
 stack exec supplyChainServer-exe -- -i
 
+
+# eventuially, we will get an updated list from ASIC and populate the db
 echo "Now inserting some dummy companies"
 echo
 psql \
@@ -57,7 +59,7 @@ google-chrome "http://localhost:8000/swagger-ui/"
 
 # The sleep here is to queue this process so that it fires AFTER
 # the supplyChainServer-exe executable is run
-(sleep 1 && \
+(sleep 2 && \
 echo "Inserting a user. Username: abc@gmail.com, Password: password"
 curl -X POST "http://localhost:8000/newUser" \
     -H "accept: application/json;charset=utf-8"\

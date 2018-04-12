@@ -1,5 +1,4 @@
-{-# LANGUAGE OverloadedStrings #-}
-
+{-# LANGUAGE TupleSections #-}
 -- | Following are a bunch of utility functions to do household stuff like
 -- generating primary keys, timestamps - stuff that almost every function
 -- below would need to do anyway
@@ -8,43 +7,48 @@
 -- Model type and its Storage equivalent
 module QueryUtils where
 
-import           AppConfig                                (AppM (..), getDBConn,
-                                                           runDb)
-import           Control.Monad.Reader                     (liftIO)
-import           Data.Aeson                               (decode)
-import           Data.Aeson.Text                          (encodeToLazyText)
-import           Data.ByteString                          (ByteString)
-import           Data.GS1.DWhat                           as DWhat
-import           Data.GS1.DWhen                           as DWhen
-import           Data.GS1.DWhere                          as DWhere
-import           Data.GS1.DWhy                            as DWhen
-import           Data.GS1.EPC                             as EPC
-import           Data.GS1.Event                           (Event (..))
-import qualified Data.GS1.Event                           as Ev
-import qualified Data.GS1.EventID                         as EvId
-import           Data.Maybe                               (catMaybes, fromJust)
-import qualified Data.Text                                as T
-import qualified Data.Text.Encoding                       as En
-import qualified Data.Text.Lazy                           as TxtL
-import qualified Data.Text.Lazy.Encoding                  as LEn
-import           Data.Time                                (UTCTime,
-                                                           ZonedTime (..),
-                                                           utcToZonedTime,
-                                                           zonedTimeToUTC)
-import           Data.Time.Clock                          (getCurrentTime)
-import           Data.Time.LocalTime                      (LocalTime,
-                                                           localTimeToUTC,
-                                                           timeZoneOffsetString,
-                                                           utc, utcToLocalTime)
-import           Data.UUID.V4                             (nextRandom)
-import           Database.Beam                            as B
-import           Database.Beam.Backend.SQL.BeamExtensions (runInsertReturningList)
+import           AppConfig                  (AppM, Env (..), runAppM, runDb)
+import           Control.Monad.IO.Class     (liftIO)
+import           Data.Aeson                 (decode)
+import           Data.Aeson.Text            (encodeToLazyText)
+import           Data.ByteString            (ByteString)
+import           Data.GS1.DWhat             (AggregationDWhat (..), DWhat (..),
+                                             LabelEPC (..), ObjectDWhat (..),
+                                             ParentLabel (..),
+                                             TransactionDWhat (..),
+                                             TransformationDWhat (..))
+import           Data.GS1.DWhen             (DWhen (..))
+import           Data.GS1.DWhere            (BizLocation (..), DWhere (..),
+                                             ReadPointLocation (..),
+                                             SrcDestLocation (..))
+import           Data.GS1.DWhy              (DWhy (..))
+import           Data.GS1.EPC               as EPC
+import           Data.GS1.Event             (Event (..))
+import qualified Data.GS1.Event             as Ev
+import qualified Data.GS1.EventID           as EvId
+import           Data.Maybe                 (catMaybes)
+import qualified Data.Text                  as T
+import qualified Data.Text.Encoding         as En
+import qualified Data.Text.Lazy             as TxtL
+import qualified Data.Text.Lazy.Encoding    as LEn
+import           Data.Time                  (UTCTime, ZonedTime (..),
+                                             utcToZonedTime)
+import           Data.Time.Clock            (getCurrentTime)
+import           Data.Time.LocalTime        (LocalTime, localTimeToUTC,
+                                             timeZoneOffsetString, utc,
+                                             utcToLocalTime)
+import           Data.UUID.V4               (nextRandom)
+import           Database.Beam              as B
 import           Database.PostgreSQL.Simple
-import           ErrorUtils                               as ErrUtils
-import qualified MigrateUtils                             as MU
-import qualified Model                                    as M
-import qualified StorageBeam                              as SB
-import           Utils
+import           ErrorUtils                 (sqlToServerError,
+                                             throwBackendError,
+                                             throwUnexpectedDBError)
+import qualified MigrateUtils               as MU
+import qualified Model                      as M
+import qualified StorageBeam                as SB
+
+import           Control.Monad.Except       (throwError)
+import           Control.Monad.Reader       (ask)
 
 -- | Reads back the ``LocalTime`` in UTCTime (with an offset of 0)
 toEPCISTime :: LocalTime -> EPCISTime
@@ -52,7 +56,7 @@ toEPCISTime t = EPCISTime (localTimeToUTC utc t)
 
 -- | Shorthand for type-casting UTCTime to LocalTime before storing them in DB
 toLocalTime :: EPCISTime -> LocalTime
-toLocalTime = (utcToLocalTime utc) . unEPCISTime
+toLocalTime = utcToLocalTime utc . unEPCISTime
 
 -- | Shorthand for type-casting UTCTime to LocalTime before storing them in DB
 toZonedTime :: UTCTime -> ZonedTime
@@ -61,13 +65,12 @@ toZonedTime = utcToZonedTime utc
 -- | Generates a timestamp in LocalTime + 0:00 offset
 -- which is a UTCTime
 generateTimeStamp :: AppM LocalTime
-generateTimeStamp = do
-  utcTime <- liftIO getCurrentTime
-  return $ utcToLocalTime utc utcTime
+generateTimeStamp = utcToLocalTime utc <$> liftIO getCurrentTime
+
 
 -- | shorthand for wrapping ``UUID.nextRandom`` in ``AppM``
 generatePk :: AppM SB.PrimaryKeyType
-generatePk = liftIO $ nextRandom
+generatePk = liftIO nextRandom
 
 -- | Converts a DB representation of ``User`` to a Model representation
 -- SB.User = SB.User uid bizId fName lName phNum passHash email
@@ -86,7 +89,7 @@ eventTxtToBS :: T.Text -> ByteString
 eventTxtToBS = En.encodeUtf8
 
 decodeEvent :: T.Text -> Maybe Ev.Event
-decodeEvent jsonEvent = decode . LEn.encodeUtf8 . TxtL.fromStrict $ jsonEvent
+decodeEvent = decode . LEn.encodeUtf8 . TxtL.fromStrict
 
 epcToStorageLabel :: Maybe MU.LabelType
                   -> SB.PrimaryKeyType
@@ -152,7 +155,7 @@ toStorageDWhat pKey mParentId mBizTranId eventId dwhat
         (getAction dwhat)
         (SB.LabelId mParentId)
         (SB.BizTransactionId mBizTranId)
-        (SB.TransformationId $ unTransformationID <$> (getTransformationId $ dwhat))
+        (SB.TransformationId $ unTransformationID <$> (getTransformationId dwhat))
         (SB.EventId eventId)
 
 getTransformationId :: DWhat -> Maybe TransformationID
@@ -184,7 +187,7 @@ findInstLabelId' cp sn msfv mir mat = do
   r <- runDb $ runSelectReturningList $ select $ do
     labels <- all_ (SB._labels SB.supplyChainDb)
     guard_ (SB.label_gs1_company_prefix labels ==. val_ cp &&.
-            SB.serial_number labels ==. (val_ $ Just sn) &&.
+            SB.serial_number labels ==. val_ (Just sn) &&.
             (SB.sgtin_filter_value labels) ==. (val_ msfv) &&.
             SB.asset_type labels ==. val_ mat &&.
             SB.item_reference labels ==. val_ mir)
@@ -336,15 +339,17 @@ insertLocationEPC
 insertDWhere :: DWhere -> SB.PrimaryKeyType -> AppM ()
 insertDWhere (DWhere rPoints bizLocs srcTs destTs) eventId = do
   -- These functions are not firing
-  sequence $ insertLocationEPC MU.ReadPoint eventId <$> unReadPointLocation <$> rPoints
-  sequence $ insertLocationEPC MU.BizLocation eventId <$> unBizLocation <$> bizLocs
-  sequence $ insertSrcDestType MU.Src eventId <$> srcTs
-  sequence $ insertSrcDestType MU.Dest eventId <$> destTs
+  -- FIXME: Should this be done in a transaction? should we be doinbg something
+  -- with the results
+  sequence_ $ insertLocationEPC MU.ReadPoint eventId . unReadPointLocation <$> rPoints
+  sequence_ $ insertLocationEPC MU.BizLocation eventId . unBizLocation <$> bizLocs
+  sequence_ $ insertSrcDestType MU.Src eventId <$> srcTs
+  sequence_ $ insertSrcDestType MU.Dest eventId <$> destTs
   return ()
 
 -- | Given a DWhere, looks for all the insertions associated with the DWHere
 -- Think of this as the inverse of ``insertDWhere``
-findDWhere :: SB.PrimaryKeyType -> AppM DWhere
+findDWhere :: SB.PrimaryKeyType -> AppM (Maybe DWhere)
 findDWhere eventId = do
   rPoints <- findDWhereByLocationField MU.ReadPoint eventId
   bizLocs <- findDWhereByLocationField MU.BizLocation eventId
@@ -357,7 +362,7 @@ findDWhereByLocationField locField eventId = do
   r <- runDb $ runSelectReturningList $ select $ do
     wheres <- all_ (SB._wheres SB.supplyChainDb)
     guard_ (
-      SB.where_event_id wheres ==. (val_ $ SB.EventId eventId) &&.
+      SB.where_event_id wheres ==. val_ (SB.EventId eventId) &&.
       SB.where_location_field wheres ==. val_ locField)
     pure wheres
   case r of
@@ -367,23 +372,22 @@ findDWhereByLocationField locField eventId = do
 
 -- | Merges a list of SB.Wheres into one Data.GS1.DWhere
 -- mergeSBWheres :: [SB.WhereT Identity] -> DWhere
-mergeSBWheres :: [[SB.WhereT Identity]] -> DWhere
-mergeSBWheres [rPointsW, bizLocsW, srcTsW, destTsW] = do
-  let rPoints = ReadPointLocation <$> constructLocation <$> rPointsW
-      bizLocs = BizLocation <$> constructLocation <$> bizLocsW
+mergeSBWheres :: [[SB.WhereT Identity]] -> Maybe DWhere
+mergeSBWheres [rPointsW, bizLocsW, srcTsW, destTsW] =
+  let rPoints = ReadPointLocation . constructLocation <$> rPointsW
+      bizLocs = BizLocation . constructLocation <$> bizLocsW
       srcTs = constructSrcDestLocation <$> srcTsW
       destTs = constructSrcDestLocation <$> destTsW
       in
-        DWhere rPoints bizLocs srcTs destTs
+        DWhere rPoints bizLocs <$> sequence srcTs <*> sequence destTs
 mergeSBWheres _                                     = error "Invalid arguments"
 
 -- | This relies on the user calling this function in the appropriate WhereT
-constructSrcDestLocation :: SB.WhereT Identity -> SrcDestLocation
+constructSrcDestLocation :: SB.WhereT Identity -> Maybe SrcDestLocation
 constructSrcDestLocation whereT =
-  let sdType = fromJust . SB.where_source_dest_type $ whereT
-      locationEpc = constructLocation whereT
-      in
-        SrcDestLocation (sdType, locationEpc)
+  SrcDestLocation . (,constructLocation whereT)
+    <$> SB.where_source_dest_type whereT
+
 
 -- | This relies on the user calling this function in the appropriate WhereT
 constructLocation :: SB.WhereT Identity -> LocationEPC
@@ -413,7 +417,8 @@ insertUserEvent :: SB.PrimaryKeyType
                 -> AppM ()
 insertUserEvent eventId userId addedByUserId signed signedHash = do
   pKey <- generatePk
-  runDb $ B.runInsert $ B.insert (SB._user_events SB.supplyChainDb)
+  -- TODO: What to do about database errors here?
+  _ <- runDb $ B.runInsert $ B.insert (SB._user_events SB.supplyChainDb)
         $ insertValues
         [
           SB.UserEvent pKey
@@ -430,7 +435,8 @@ insertWhatLabel :: SB.PrimaryKeyType
                 -> AppM SB.PrimaryKeyType
 insertWhatLabel whatId labelId = do
   pKey <- generatePk
-  runDb $ B.runInsert $ B.insert (SB._what_labels SB.supplyChainDb)
+  -- TODO: What to do about database errors here?
+  _ <- runDb $ B.runInsert $ B.insert (SB._what_labels SB.supplyChainDb)
         $ insertValues
         [
           SB.WhatLabel pKey
@@ -447,7 +453,8 @@ insertLabel :: Maybe MU.LabelType
             -> AppM SB.PrimaryKeyType
 insertLabel labelType whatId labelEpc = do
   pKey <- generatePk
-  runDb $ B.runInsert $ B.insert (SB._labels SB.supplyChainDb)
+  -- TODO: What to do about database errors here?
+  _ <- runDb $ B.runInsert $ B.insert (SB._labels SB.supplyChainDb)
         $ insertValues
         [ epcToStorageLabel labelType whatId pKey labelEpc]
   return pKey
@@ -458,7 +465,8 @@ insertLabelEvent :: SB.PrimaryKeyType
                  -> AppM SB.PrimaryKeyType
 insertLabelEvent eventId labelId = do
   pKey <- generatePk
-  runDb $ B.runInsert $ B.insert (SB._label_events SB.supplyChainDb)
+  -- TODO: What to do about database errors here?
+  _ <- runDb $ B.runInsert $ B.insert (SB._label_events SB.supplyChainDb)
         $ insertValues
         [
           SB.LabelEvent pKey
@@ -467,15 +475,22 @@ insertLabelEvent eventId labelId = do
         ]
   return pKey
 
-startTransaction :: AppM ()
-startTransaction = do
-  conn <- getDBConn
-  liftIO $ begin conn
 
-endTransaction :: AppM ()
-endTransaction = do
-  conn <- getDBConn
-  liftIO $ execute_ conn "end transaction;" >> return ()
+-- | Runs a gicen action within a postgres transaction. If an exception is
+-- thrown or the application returns an error the databasze transaction is
+-- rolled back.
+transaction :: AppM a -> AppM a
+transaction act = do
+  env <- ask
+  either throwError pure =<< (liftIO . withTransaction (dbConn env) $ do
+    ea <- runAppM env act
+    case ea of
+      Right _ -> pure ea
+      _       -> rollback (dbConn env) *> pure ea
+    )
+  -- TODO: Use liftEither once we have mtl >= 2.2.2
+
+
 
 selectUser :: M.UserID -> AppM (Maybe SB.User)
 selectUser uid = do
@@ -493,7 +508,7 @@ getEventList labelId = do
   r <- runDb $
         runSelectReturningList $ select $ do
         labelEvent <- all_ (SB._label_events SB.supplyChainDb)
-        guard_ (SB.label_event_label_id labelEvent ==. (val_ $ SB.LabelId labelId))
+        guard_ (SB.label_event_label_id labelEvent ==. val_ (SB.LabelId labelId))
         pure labelEvent
   case r of
     Left e -> throwUnexpectedDBError $ sqlToServerError e

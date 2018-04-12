@@ -1,6 +1,5 @@
 {-# LANGUAGE DeriveGeneric              #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE OverloadedStrings          #-}
 {-# LANGUAGE TemplateHaskell            #-}
 {-# OPTIONS_GHC -fno-warn-orphans       #-}
 
@@ -13,10 +12,8 @@ import qualified Data.ByteString                  as BS
 import           Data.Text                        as T
 
 import           Data.Swagger
-import           Servant
 import           Servant.Server.Experimental.Auth ()
 
-import           Data.Time
 import           Data.UUID                        (UUID)
 import           GHC.Generics                     (Generic)
 
@@ -27,9 +24,7 @@ import           Data.GS1.DWhy
 import           Data.GS1.EPC
 import qualified Data.GS1.Event                   as Ev
 import           Data.GS1.EventID
-import           OpenSSL.RSA                      (RSAPubKey)
 import           StorageBeam                      (PrimaryKeyType)
---import           Data.ByteString.Base64.Type (ByteString64)
 
 
 type UserID = PrimaryKeyType
@@ -285,7 +280,8 @@ mkTransactEvent _ = Nothing
 fromTransactEvent :: TransactionEvent ->  Ev.Event
 fromTransactEvent
   (TransactionEvent
-    mEid act mParentLabel bizTransactions epcList userIds
+  -- FIXME: userIds is unused?
+    mEid act mParentLabel bizTransactions epcList _userIds
     dwhen dwhy dwhere) =
   Ev.Event
     Ev.TransformationEventT
