@@ -21,7 +21,7 @@ import           Utils                               (toText)
 appErrToHttpErr :: ServiceError -> Handler a
 appErrToHttpErr (EmailExists _ email) =
   throwError $ err400 {
-    errBody = LBSC8.fromChunks $ ["User email ", encodeUtf8 email, " exists."]
+    errBody = LBSC8.fromChunks ["User email ", encodeUtf8 email, " exists."]
   }
 appErrToHttpErr (UnexpectedDBResponse _) =
   throwError $ err500 {
@@ -29,19 +29,19 @@ appErrToHttpErr (UnexpectedDBResponse _) =
   }
 appErrToHttpErr (UserNotFound email) =
   throwError $ err404 {
-    errBody = LBSC8.fromChunks $ ["User with email ", encodeUtf8 email, " could not be found."]
+    errBody = LBSC8.fromChunks ["User with email ", encodeUtf8 email, " could not be found."]
   }
 appErrToHttpErr (AuthFailed email) =
   throwError $ err404 {
-    errBody = LBSC8.fromChunks $ ["Authentication failed for email ", encodeUtf8 email, "."]
+    errBody = LBSC8.fromChunks ["Authentication failed for email ", encodeUtf8 email, "."]
   }
 appErrToHttpErr (EmailNotFound email) =
   throwError $ err404 {
-    errBody = LBSC8.fromChunks $ ["Email ", encodeUtf8 email, " could not be found."]
+    errBody = LBSC8.fromChunks ["Email ", encodeUtf8 email, " could not be found."]
   }
 appErrToHttpErr (InsertionFail _ email) =
   throwError $ err500 {
-    errBody = LBSC8.fromChunks $ ["Email ", encodeUtf8 email, " could not be inserted."]
+    errBody = LBSC8.fromChunks ["Email ", encodeUtf8 email, " could not be inserted."]
   }
 appErrToHttpErr (InvalidKeyID _) =
   throwError $ err400 {
@@ -76,7 +76,7 @@ throwAppError = throwError . AppError
 
 -- | Extracts error code from an ``SqlError``
 getSqlErrorCode :: SqlError -> Maybe ByteString
-getSqlErrorCode e@(SqlError _ _ _ _ _) = Just $ sqlState e
+getSqlErrorCode e@(SqlError{}) = Just $ sqlState e
 
 -- | Shorthand for throwing ``UnexpectedDBError``
 throwUnexpectedDBError :: ServerError -> AppM a
