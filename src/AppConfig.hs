@@ -5,16 +5,16 @@
 -- | Contains the definition of our ReaderT AppM
 module AppConfig where
 
-import qualified Database.Beam              as B
-import           Database.Beam.Postgres     (Pg)
-import           Database.PostgreSQL.Simple (Connection, SqlError (..))
-
 import qualified Control.Exception          as Exc
+import           Control.Monad              (when)
 import           Control.Monad.Except       (ExceptT (..), MonadError,
                                              runExceptT)
 import           Control.Monad.IO.Class     (MonadIO)
 import           Control.Monad.Reader       (MonadReader, ReaderT, asks, liftIO,
                                              runReaderT)
+import qualified Database.Beam              as B
+import           Database.Beam.Postgres     (Pg)
+import           Database.PostgreSQL.Simple (Connection, SqlError (..))
 import           Errors                     (ServiceError (..))
 
 data EnvType = Prod | Dev
@@ -67,3 +67,28 @@ runDb q = dbFunc >>= (\f -> liftIO $ Exc.try $ f q)
 
 runAppM :: Env -> AppM a -> IO (Either AppError a)
 runAppM env aM = runExceptT $ (runReaderT . unAppM) aM env
+
+-- App Utils. Moved from Utils
+
+-- | Given a stringLike, prints it only if the application is in Dev
+-- otherwise, does a nop.
+-- Only works in AppM monad
+debugLog :: Show a => a -> AppM ()
+debugLog strLike = do
+  envT <- getEnvType
+  when (envT == Dev) $ liftIO $ putStrLn $ show strLike
+
+-- | To be used when the Env is known/available.
+-- It doesn't require that the function is being run in AppM
+debugLogGeneral :: (Show a, MonadIO f) => EnvType -> a -> f ()
+debugLogGeneral envT strLike = do
+  when (envT == Dev) $ liftIO $ putStrLn $ show strLike
+
+bun :: String
+bun = "========================"
+
+sandwichLog :: Show a => a -> AppM ()
+sandwichLog patty = do
+  debugLog bun
+  debugLog patty
+  debugLog bun
