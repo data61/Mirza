@@ -19,7 +19,6 @@ import           API
 import qualified AppConfig                        as AC
 import qualified BeamQueries                      as BQ
 import           Control.Lens                     hiding ((.=))
-import           Control.Monad                    (guard)
 import           Control.Monad.Error.Hoist        ((<!?>), (<%?>))
 import           Control.Monad.IO.Class           (liftIO)
 import qualified Data.ByteString.Base64           as BS64
@@ -35,6 +34,7 @@ import qualified Data.GS1.Event                   as Ev
 import           Data.GS1.EventID
 import           Data.GS1.Parser.Parser
 import qualified Data.HashMap.Strict.InsOrd       as IOrd
+import           Data.Maybe                       (fromJust, isNothing)
 import           Data.Swagger
 import           Data.Text                        (pack)
 import           Data.Text.Encoding               (decodeUtf8)
@@ -133,23 +133,28 @@ serveSwaggerAPI = toSwagger serverAPI
 basicAuthServerContext :: AC.Env -> Servant.Context ((BasicAuthCheck M.User) ': '[])
 basicAuthServerContext env = authCheck env :. EmptyContext
 
-
-minPubKeySize :: Int
-minPubKeySize = 2048
+minPubKeySize :: U.Byte
+minPubKeySize = U.Byte 256 -- 2048 / 8
 
 addPublicKey :: M.User -> M.RSAPublicKey -> AC.AppM M.KeyID
-addPublicKey user (M.PEMString pemKey) = do
-  somePubKey <- liftIO $ readPublicKey pemKey
-  maybe (throwAppError (InvalidRSAKey (M.PEMString pemKey)))
-        (BQ.addPublicKey user)
-        (checkPubKey somePubKey)
+addPublicKey user pemKey@(M.PEMString pemStr) = do
+  somePubKey <- liftIO $ readPublicKey pemStr
+  case checkPubKey somePubKey pemKey of
+    Right k -> BQ.addPublicKey user k
+    Left e  -> throwAppError e
 
-
-checkPubKey :: SomePublicKey -> Maybe RSAPubKey
-checkPubKey spKey = do
-  pubKey <- toPublicKey spKey
-  guard (rsaSize pubKey >= minPubKeySize)
-  pure pubKey
+checkPubKey :: SomePublicKey -> M.RSAPublicKey-> Either ServiceError RSAPubKey
+checkPubKey spKey pemKey
+  | isNothing mPKey = Left $ InvalidRSAKey pemKey
+  | rsaSize pubKey < (U.unByte minPubKeySize)
+      = Left $ InvalidRSAKeySize (Expected minPubKeySize) (Received $ U.Byte keySize)
+      -- rsaSize returns size in bytes
+  | otherwise = Right pubKey
+  where
+    mPKey :: Maybe RSAPubKey
+    mPKey = toPublicKey spKey
+    pubKey = fromJust mPKey
+    keySize = rsaSize pubKey
 
 
 newUser :: M.NewUser -> AC.AppM M.UserID
@@ -278,7 +283,7 @@ eventSign _user (M.SignedEvent eventID keyID (M.Signature sigStr) digest') = do
 -- do we need this?
 --
 eventHashed :: M.User -> EventID -> AC.AppM M.HashedEvent
-eventHashed _user eventID = error "not implemented yet"
+eventHashed _user _eventId = error "not implemented yet"
 -- return (HashedEvent eventID (EventHash "Blob"))
 
   {-

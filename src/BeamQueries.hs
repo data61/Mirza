@@ -6,7 +6,7 @@ module BeamQueries where
 
 import           AppConfig                                (AppM, runDb)
 import           Control.Monad.IO.Class                   (liftIO)
-import           Crypto.Scrypt
+import qualified Crypto.Scrypt                            as Scrypt
 import           Data.GS1.DWhat                           (AggregationDWhat (..),
                                                            DWhat (..),
                                                            InputEPC (..),
@@ -14,7 +14,8 @@ import           Data.GS1.DWhat                           (AggregationDWhat (..)
                                                            ObjectDWhat (..),
                                                            OutputEPC (..),
                                                            TransactionDWhat (..),
-                                                           TransformationDWhat (..))
+                                                           TransformationDWhat (..),
+                                                           unParentLabel)
 import qualified Data.GS1.Event                           as Ev
 import qualified Data.GS1.EventID                         as EvId
 import           Data.Maybe                               (fromMaybe)
@@ -31,12 +32,14 @@ import           ErrorUtils                               (sqlToServerError,
                                                            throwBackendError,
                                                            throwUnexpectedDBError,
                                                            toServerError)
+import qualified MigrateUtils                             as MU
 import qualified Model                                    as M
 import           OpenSSL.PEM                              (writePublicKey)
 import           OpenSSL.RSA                              (RSAPubKey)
 import           QueryUtils
 import qualified StorageBeam                              as SB
 import qualified Utils                                    as U
+
 
 
 {-
@@ -51,13 +54,13 @@ import qualified Utils                                    as U
 }
 -}
 
-insertUser :: EncryptedPass -> M.NewUser -> AppM M.UserID
+insertUser :: Scrypt.EncryptedPass -> M.NewUser -> AppM M.UserID
 insertUser encPass (M.NewUser phone email firstName lastName biz _) = do
   userId <- generatePk
   res <- runDb $ runInsertReturningList (SB._users SB.supplyChainDb) $
     insertValues
       [SB.User userId (SB.BizId  biz) firstName lastName
-               phone (getEncryptedPass encPass) email
+               phone (Scrypt.getEncryptedPass encPass) email
       ]
   case res of
     Right [r] -> return $ SB.user_id r
@@ -72,7 +75,7 @@ insertUser encPass (M.NewUser phone email firstName lastName biz _) = do
 -- | Hashes the password of the NewUser and inserts the user into the database
 newUser :: M.NewUser -> AppM M.UserID
 newUser userInfo@(M.NewUser _ _ _ _ _ password) = do
-    hash <- liftIO $ encryptPassIO' (Pass $ encodeUtf8 password)
+    hash <- liftIO $ Scrypt.encryptPassIO' (Scrypt.Pass $ encodeUtf8 password)
     insertUser hash userInfo
 
 -- Basic Auth check using Scrypt hashes.
@@ -87,7 +90,7 @@ authCheck email password = do
   case r of
     Left e -> throwUnexpectedDBError $ sqlToServerError e
     Right [user] ->
-        if verifyPass' (Pass password) (EncryptedPass $ SB.password_hash user)
+        if Scrypt.verifyPass' (Scrypt.Pass password) (Scrypt.EncryptedPass $ SB.password_hash user)
           then return $ Just $ userTableToModel user
           else throwAppError $ AuthFailed email
     Right [] -> throwAppError $ EmailNotFound email
@@ -218,8 +221,7 @@ insertAggEvent
     eventId <- insertEvent userId jsonEvent event
     whatId <- insertDWhat Nothing dwhat eventId
     labelIds <- mapM (insertLabel Nothing whatId) labelEpcs
-    -- FIXME: not used?
-    _mParentId <- insertLabel (Just Parent) whatId <$> (IL <$> mParentLabel)
+    mapM_ (insertLabel (Just MU.Parent) whatId) ((IL . unParentLabel )<$> mParentLabel)
     _whenId <- insertDWhen dwhen eventId
     _whyId <- insertDWhy dwhy eventId
     insertDWhere dwhere eventId
@@ -252,8 +254,8 @@ insertTransfEvent
   transaction $ do
     eventId <- insertEvent userId jsonEvent event
     whatId <- insertDWhat Nothing dwhat eventId
-    inputLabelIds <- mapM (\(InputEPC i) -> insertLabel (Just "input") whatId i) inputs
-    outputLabelIds <- mapM (\(OutputEPC o) -> insertLabel (Just "output") whatId o) outputs
+    inputLabelIds <- mapM (\(InputEPC i) -> insertLabel (Just MU.Input) whatId i) inputs
+    outputLabelIds <- mapM (\(OutputEPC o) -> insertLabel (Just MU.Output) whatId o) outputs
     let labelIds = inputLabelIds ++ outputLabelIds
     _whenId <- insertDWhen dwhen eventId
     _whyId <- insertDWhy dwhy eventId
@@ -291,8 +293,7 @@ insertTransactEvent
     eventId <- insertEvent userId jsonEvent event
     whatId <- insertDWhat Nothing dwhat eventId
     labelIds <- mapM (insertLabel Nothing whatId) labelEpcs
-    -- FIXME: not used?
-    _mParentId <- insertLabel (Just MU.Parent) whatId <$> (IL <$> unParentLabel mParentLabel)
+    mapM_ (insertLabel (Just MU.Parent) whatId) ((IL . unParentLabel )<$> mParentLabel)
     _whenId <- insertDWhen dwhen eventId
     _whyId <- insertDWhy dwhy eventId
     insertDWhere dwhere eventId
