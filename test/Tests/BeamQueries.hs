@@ -35,7 +35,8 @@ import           Test.Hspec
 
 -- for grabbing the encrypted password from user 1
 hashIO :: MonadIO m => m ByteString
-hashIO = getEncryptedPass <$> (liftIO $ encryptPassIO' (Pass $ encodeUtf8 $ M.password dummyNewUser))
+hashIO = getEncryptedPass <$> liftIO
+    (encryptPassIO' (Pass $ encodeUtf8 $ M.password dummyNewUser))
 
 timeStampIO :: MonadIO m => m LocalTime
 timeStampIO = liftIO $ (utcToLocalTime utc) <$> getCurrentTime
@@ -156,7 +157,7 @@ testQueries = do
     it "Insert Object Event" $ \(_conn, env) -> do
       insertedEvent <- testAppM env $ insertObjectEvent dummyUser dummyObject
       insertedEvent `shouldSatisfy`
-        (\ev -> ev == dummyObjEvent)
+        ((== dummyObjEvent))
 
     it "List event" $ \(_conn, env) -> do
       res <- testAppM env $ do
@@ -166,14 +167,14 @@ testQueries = do
       case res of
         (insertedEvent, eventList) -> do
           insertedEvent `shouldSatisfy`
-            (\ev -> ev == dummyObjEvent)
+            ((== dummyObjEvent))
           eventList `shouldBe` [insertedEvent]
 
   describe "Aggregation Event" $ do
     it "Insert Aggregation Event" $ \(_conn, env) -> do
       insertedEvent <- testAppM env $ insertAggEvent dummyUser dummyAggregation
       insertedEvent `shouldSatisfy`
-        (\ev -> ev == dummyAggEvent)
+        ((== dummyAggEvent))
 
     it "List event" $ \(_conn, env) -> do
       res <- testAppM env $ do
@@ -183,14 +184,14 @@ testQueries = do
       case res of
         (insertedEvent, eventList) -> do
           insertedEvent `shouldSatisfy`
-            (\ev -> ev == dummyAggEvent)
+            ((== dummyAggEvent))
           eventList `shouldBe` [insertedEvent]
 
   describe "Transformation Event" $ do
     it "Insert Transformation Event" $ \(_conn, env) -> do
       insertedEvent <- testAppM env $ insertTransfEvent dummyUser dummyTransformation
       insertedEvent `shouldSatisfy`
-        (\ev -> ev == dummyTransfEvent)
+        ((== dummyTransfEvent))
 
     it "List event" $ \(_conn, env) -> do
       res <- testAppM env $ do
@@ -200,14 +201,14 @@ testQueries = do
       case res of
         (insertedEvent, eventList) -> do
           insertedEvent `shouldSatisfy`
-            (\ev -> ev == dummyTransfEvent)
+            ((== dummyTransfEvent))
           eventList `shouldBe` [insertedEvent]
 
   describe "Transaction Event" $ do
     it "Insert Transaction Event" $ \(_conn, env) -> do
       insertedEvent <- testAppM env $ insertTransactEvent dummyUser dummyTransaction
       insertedEvent `shouldSatisfy`
-        (\ev -> ev == dummyTransactEvent)
+        ((== dummyTransactEvent))
 
     it "List event" $ \(_conn, env) -> do
       res <- testAppM env $ do
@@ -217,7 +218,7 @@ testQueries = do
       case res of
         (insertedEvent, eventList) -> do
           insertedEvent `shouldSatisfy`
-            (\ev -> ev == dummyTransactEvent)
+            ((== dummyTransactEvent))
           eventList `shouldBe` [insertedEvent]
 
   describe "getUser tests" $
@@ -293,7 +294,7 @@ testQueries = do
 clearContact :: IO ()
 clearContact = do
   conn <- connectPostgreSQL testDbConnStr
-  execute_ conn "DELETE FROM contacts;" >> return ()
+  void $ execute_ conn "DELETE FROM contacts;"
 
 -- | Utility function that can be used in the ``before_`` hook
 populateContact :: IO Env -> IO ()

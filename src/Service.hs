@@ -138,7 +138,7 @@ serveSwaggerAPI = toSwagger serverAPI
 -- tagged with "foo-tag" This context is then supplied to 'server' and threaded
 -- to the BasicAuth HasServer handlers.
 basicAuthServerContext :: AC.Env -> Servant.Context ((BasicAuthCheck User) ': '[])
-basicAuthServerContext env = (authCheck env) :. EmptyContext
+basicAuthServerContext env = authCheck env :. EmptyContext
 
 
 minPubKeySize :: Int
@@ -187,7 +187,7 @@ epcState _user _str = return New
 -- return map constructEvent wholeEvents
 listEvents :: User ->  M.LabelEPCUrn -> AC.AppM [Ev.Event]
 listEvents _user urn =
-  case (urn2LabelEPC . pack $ urn) of
+  case urn2LabelEPC . pack $ urn of
     Left e         -> throwParseError e
     Right labelEpc -> BQ.listEvents labelEpc
 

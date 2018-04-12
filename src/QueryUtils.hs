@@ -56,7 +56,7 @@ toEPCISTime t = EPCISTime (localTimeToUTC utc t)
 
 -- | Shorthand for type-casting UTCTime to LocalTime before storing them in DB
 toLocalTime :: EPCISTime -> LocalTime
-toLocalTime = (utcToLocalTime utc) . unEPCISTime
+toLocalTime = utcToLocalTime utc . unEPCISTime
 
 -- | Shorthand for type-casting UTCTime to LocalTime before storing them in DB
 toZonedTime :: UTCTime -> ZonedTime
@@ -70,7 +70,7 @@ generateTimeStamp = utcToLocalTime utc <$> liftIO getCurrentTime
 
 -- | shorthand for wrapping ``UUID.nextRandom`` in ``AppM``
 generatePk :: AppM SB.PrimaryKeyType
-generatePk = liftIO $ nextRandom
+generatePk = liftIO nextRandom
 
 -- | Converts a DB representation of ``User`` to a Model representation
 -- SB.User = SB.User uid bizId fName lName phNum passHash email
@@ -155,7 +155,7 @@ toStorageDWhat pKey mParentId mBizTranId eventId dwhat
         (getAction dwhat)
         (SB.LabelId mParentId)
         (SB.BizTransactionId mBizTranId)
-        (SB.TransformationId $ unTransformationID <$> (getTransformationId $ dwhat))
+        (SB.TransformationId $ unTransformationID <$> (getTransformationId dwhat))
         (SB.EventId eventId)
 
 getTransformationId :: DWhat -> Maybe TransformationID
@@ -187,7 +187,7 @@ findInstLabelId' cp sn msfv mir mat = do
   r <- runDb $ runSelectReturningList $ select $ do
     labels <- all_ (SB._labels SB.supplyChainDb)
     guard_ (SB.label_gs1_company_prefix labels ==. val_ cp &&.
-            SB.serial_number labels ==. (val_ $ Just sn) &&.
+            SB.serial_number labels ==. val_ (Just sn) &&.
             (SB.sgtin_filter_value labels) ==. (val_ msfv) &&.
             SB.asset_type labels ==. val_ mat &&.
             SB.item_reference labels ==. val_ mir)
@@ -362,7 +362,7 @@ findDWhereByLocationField locField eventId = do
   r <- runDb $ runSelectReturningList $ select $ do
     wheres <- all_ (SB._wheres SB.supplyChainDb)
     guard_ (
-      SB.where_event_id wheres ==. (val_ $ SB.EventId eventId) &&.
+      SB.where_event_id wheres ==. val_ (SB.EventId eventId) &&.
       SB.where_location_field wheres ==. val_ locField)
     pure wheres
   case r of
@@ -508,7 +508,7 @@ getEventList labelId = do
   r <- runDb $
         runSelectReturningList $ select $ do
         labelEvent <- all_ (SB._label_events SB.supplyChainDb)
-        guard_ (SB.label_event_label_id labelEvent ==. (val_ $ SB.LabelId labelId))
+        guard_ (SB.label_event_label_id labelEvent ==. val_ (SB.LabelId labelId))
         pure labelEvent
   case r of
     Left e -> throwUnexpectedDBError $ sqlToServerError e
