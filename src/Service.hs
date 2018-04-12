@@ -200,7 +200,7 @@ eventUserList _user _eventID = U.notImplemented
 
 
 contactsInfo :: User -> AC.AppM [User]
-contactsInfo _user = U.notImplemented
+contactsInfo = BQ.listContacts
 
 
 contactsAdd :: User -> UserID -> AC.AppM Bool
@@ -314,8 +314,8 @@ sampleWhen = DWhen pt (Just pt) tz
 sampleWhere :: DWhere
 sampleWhere = DWhere [] [] [] []
 
-eventInfo :: User -> EventID -> AC.AppM Ev.Event
-eventInfo _user _eID = U.notImplemented
+eventInfo :: User -> EventID -> AC.AppM (Maybe Ev.Event)
+eventInfo _user (EventID eventId) = QU.findEvent eventId
 
 --eventHash :: EventID -> AC.AppM SignedEvent
 --eventHash eID = return (SignedEvent eID (BinaryBlob ByteString.empty) [(BinaryBlob ByteString.empty)] [1,2])
