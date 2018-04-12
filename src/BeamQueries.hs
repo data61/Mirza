@@ -4,10 +4,8 @@
 -- Functions in the `service` module use the database functions defined here
 module BeamQueries where
 
-import qualified Model                                    as M
-import qualified StorageBeam                              as SB
--- import           CryptHash (getCryptoPublicKey)
 import           AppConfig                                (AppM, runDb)
+import           Control.Monad.IO.Class                   (liftIO)
 import           Crypto.Scrypt
 import           Data.GS1.DWhat                           (AggregationDWhat (..),
                                                            DWhat (..),
@@ -19,26 +17,26 @@ import           Data.GS1.DWhat                           (AggregationDWhat (..)
                                                            TransformationDWhat (..))
 import qualified Data.GS1.Event                           as Ev
 import qualified Data.GS1.EventID                         as EvId
+import           Data.Maybe                               (fromMaybe)
 import qualified Data.Text                                as T
 import           Data.Text.Encoding
 import           Database.Beam                            as B
 import           Database.Beam.Backend.SQL.BeamExtensions
-import           Database.PostgreSQL.Simple.Internal      (SqlError (..))
-import           QueryUtils
---import           Codec.Crypto.RSA.Pure (PublicKey (..))
---import           Data.Binary.Binary (PublicKey (..))
 import           Database.PostgreSQL.Simple.Errors        (ConstraintViolation (..),
                                                            constraintViolation)
+import           Database.PostgreSQL.Simple.Internal      (SqlError (..))
 import           Errors                                   (ServiceError (..))
 import           ErrorUtils                               (sqlToServerError,
                                                            throwAppError,
                                                            throwBackendError,
                                                            throwUnexpectedDBError,
                                                            toServerError)
-
-import           Control.Monad.IO.Class                   (liftIO)
+import qualified Model                                    as M
 import           OpenSSL.PEM                              (writePublicKey)
 import           OpenSSL.RSA                              (RSAPubKey)
+import           QueryUtils
+import qualified StorageBeam                              as SB
+
 {-
 -- Sample NewUser JSON
 {
@@ -105,7 +103,7 @@ addPublicKey (M.User uid _ _)  rsaPubKey = do
   keyStr <- liftIO $ writePublicKey rsaPubKey
   r <- runDb $ runInsertReturningList (SB._keys SB.supplyChainDb) $
         insertValues
-        [ SB.Key keyId (SB.UserId uid) (T.pack $ keyStr) timeStamp Nothing
+        [ SB.Key keyId (SB.UserId uid) (T.pack keyStr) timeStamp Nothing
         ]
   case r of
     Right [rowId] -> return (SB.key_id rowId)
@@ -307,9 +305,7 @@ insertTransactEvent
 listEvents :: LabelEPC -> AppM [Ev.Event]
 listEvents labelEpc = do
   labelId <- findLabelId labelEpc
-  case getEventList <$> labelId of
-    Nothing     -> return []
-    Just evList -> evList
+  fromMaybe (return []) (getEventList <$> labelId)
 
 insertSignature :: EvId.EventID -> M.KeyID -> M.Signature -> M.Digest -> AppM SB.PrimaryKeyType
 --insertSignature :: EventID -> KeyID -> Signature -> Digest -> AppM SigID
@@ -385,18 +381,16 @@ addContact (M.User uid1 _ _) uid2 = do
 removeContact :: M.User -> M.UserID -> AppM Bool
 removeContact (M.User uid1 _ _) uid2 = do
   contactExists <- isExistingContact uid1 uid2
-  case contactExists of
-    False -> return False
-    True  -> do
-      r <- runDb $
-        runDelete $
-        delete (SB._contacts SB.supplyChainDb)
-              (\contact ->
-                SB.contact_user1_id contact ==. (val_ $ SB.UserId uid1) &&.
-                SB.contact_user2_id contact ==. (val_ $ SB.UserId uid2))
+  if contactExists
+    then do
+      r <- runDb $ runDelete $ delete (SB._contacts SB.supplyChainDb)
+              (\ contact ->
+                SB.contact_user1_id contact ==. val_ (SB.UserId uid1) &&.
+                SB.contact_user2_id contact ==. val_ (SB.UserId uid2))
       case r of
-        Right _ -> not <$> isExistingContact uid1 uid2
-        Left _e -> return False -- FIXME: log ``e``
+          Right _ -> not <$> isExistingContact uid1 uid2
+          Left _e -> return False -- FIXME: log ``e``
+  else return False
 
 -- | Checks if a pair of userIds are recorded as a contact
 isExistingContact :: M.UserID -> M.UserID -> AppM Bool
