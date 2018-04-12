@@ -395,14 +395,16 @@ removeContact (M.User uid1 _ _) uid2 = do
   else return False
 
 -- | Lists all the contacts associated with the given user
--- BUG: uid should be used
+-- BUG: Returns the current user as well
 listContacts :: M.User -> AppM [M.User]
 listContacts  (M.User uid _ _) = do
+  -- use filter, as is shown in tutorial 3
   r <- runDb $ runSelectReturningList $ select $ do
     user <- all_ (SB._users SB.supplyChainDb)
     contact <- all_ (SB._contacts SB.supplyChainDb)
-    guard_ (SB.user_id user ==. val_ uid)
-    guard_ (SB.contact_user1_id contact `references_` user)
+    guard_ (SB.contact_user1_id contact ==. val_ (SB.UserId uid) ||.
+            SB.contact_user2_id contact ==. val_ (SB.UserId uid))
+    guard_ (not_ (SB.user_id user) (val_ $ SB.UserId uid))
     pure user
   case r of
     Right userList -> return $ userTableToModel <$> userList
