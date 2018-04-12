@@ -192,16 +192,13 @@ listEvents _user urn =
 -- implement a function constructEvent :: WholeEvent -> Event
 --
 
-
 -- Look into usereventsT and tie that back to the user
 -- the function getUser/selectUser might be helpful
 eventUserList :: User -> EventID -> AC.AppM [(User, Bool)]
 eventUserList _user _eventID = U.notImplemented
 
-
 contactsInfo :: User -> AC.AppM [User]
 contactsInfo = BQ.listContacts
-
 
 contactsAdd :: User -> UserID -> AC.AppM Bool
 contactsAdd = BQ.addContact
@@ -225,7 +222,7 @@ userSearch _user _term = error "Storage module not implemented"
 
 -- select * from Business;
 listBusinesses :: AC.AppM [Business]
-listBusinesses = U.notImplemented
+listBusinesses = BQ.listBusinesses
 
 -- |List events that a particular user was/is involved with
 -- use BizTransactions and events (createdby) tables

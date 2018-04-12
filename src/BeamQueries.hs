@@ -36,6 +36,8 @@ import           OpenSSL.PEM                              (writePublicKey)
 import           OpenSSL.RSA                              (RSAPubKey)
 import           QueryUtils
 import qualified StorageBeam                              as SB
+import qualified Utils                                    as U
+
 
 {-
 -- Sample NewUser JSON
@@ -404,6 +406,15 @@ listContacts  (M.User _uid _ _) = do
     Right userList -> return $ userTableToModel <$> userList
     Left e         -> throwUnexpectedDBError $ sqlToServerError e
 
+
+listBusinesses :: AppM [SB.Business]
+listBusinesses = do
+  r <- runDb $ runSelectReturningList $ select $ do
+    biz <- all_ (SB._businesses SB.supplyChainDb)
+    pure biz
+  case r of
+    Right bizList -> return bizList
+    Left e        -> throwUnexpectedDBError $ sqlToServerError e
 
 -- -- TODO - convert these below functions, and others in original file Storage.hs
 
