@@ -144,16 +144,18 @@ addPublicKey user pemKey@(PEMString pemStr) = do
     Just k -> BQ.addPublicKey user k
     _      -> throwAppError $ InvalidRSAKey pemKey
 
--- TODO: Make it return an Either
-checkPubKey :: SomePublicKey -> Maybe RSAPubKey
+checkPubKey :: SomePublicKey -> Either ServiceError RSAPubKey
 checkPubKey spKey
-  | isNothing mPKey = Nothing
-  | (rsaSize pubKey) < (U.unByte minPubKeySize) = Nothing --rsaSize returns size in bytes
-  | otherwise = mPKey
+  | isNothing mPKey = Left $ InvalidSomeRSAKey spKey
+  | rsaSize pubKey < (U.unByte minPubKeySize)
+      = Left $ InvalidRSAKeySize (Expected minPubKeySize) (Received $ U.Byte keySize)
+      -- rsaSize returns size in bytes
+  | otherwise = Right pubKey
   where
     mPKey :: Maybe RSAPubKey
     mPKey = toPublicKey spKey
     pubKey = fromJust mPKey
+    keySize = rsaSize pubKey
 
 
 newUser :: NewUser -> AC.AppM UserID

@@ -10,12 +10,17 @@ import           Data.GS1.EventID
 import qualified Data.Text        as T
 import           GHC.Generics     (Generic)
 import qualified Model            as M
+import           OpenSSL.EVP.PKey (SomePublicKey)
+import qualified Utils            as U
 
 type ErrorText = T.Text
 type ErrorCode = BS.ByteString
 
 data ServerError = ServerError (Maybe ErrorCode) ErrorText
                    deriving (Show, Read)
+
+newtype Expected = Expected  {unExpected :: U.Byte} deriving (Show, Eq, Read)
+newtype Received = Received  {unReceived :: U.Byte} deriving (Show, Eq, Read)
 
 -- | A sum type of errors that may occur in the Service layer
 data ServiceError =
@@ -26,6 +31,8 @@ data ServiceError =
   | InvalidKeyID M.KeyID
   | InvalidUserID M.UserID
   | InvalidRSAKey M.RSAPublicKey
+  | InvalidSomeRSAKey SomePublicKey
+  | InvalidRSAKeySize Expected Received
   | InsertionFail ServerError T.Text
   | EmailExists ServerError M.Email
   | EmailNotFound M.Email
