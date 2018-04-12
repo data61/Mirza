@@ -1,9 +1,7 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 -- | General utility functions used throughout the codebase
 module Utils where
 
-import           AppConfig            (AppM (..), EnvType (..), getEnvType)
+import           AppConfig            (AppM, EnvType (..), asks, envType)
 import           Control.Monad        (when)
 import           Control.Monad.Reader (MonadIO, liftIO)
 import qualified Data.Text            as T
@@ -13,14 +11,14 @@ import qualified Data.Text            as T
 -- Only works in AppM monad
 debugLog :: Show a => a -> AppM ()
 debugLog strLike = do
-  envT <- getEnvType
-  when (envT == Dev) $ liftIO $ putStrLn $ show strLike
+  envT <- asks envType
+  when (envT == Dev) $ liftIO $ print strLike
 
 -- | To be used when the Env is known/available.
 -- It doesn't require that the function is being run in AppM
 debugLogGeneral :: (Show a, MonadIO f) => EnvType -> a -> f ()
-debugLogGeneral envT strLike = do
-  when (envT == Dev) $ liftIO $ putStrLn $ show strLike
+debugLogGeneral envT strLike =
+  when (envT == Dev) $ liftIO $ print strLike
 
 bun :: String
 bun = "========================"
@@ -34,3 +32,9 @@ sandwichLog patty = do
 -- | Converts anything to a ``Text``
 toText :: Show a => a -> T.Text
 toText = T.pack . show
+
+errMsg :: String
+errMsg = "FIXME"
+
+notImplemented :: a
+notImplemented = error errMsg
