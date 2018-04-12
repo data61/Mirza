@@ -20,6 +20,8 @@ extra-deps:
 - swagger2-2.1.6
 - vector-0.12.0.1
 - storable-tuple-0.0.3.3
+- hoist-error-0.1.0.2
+- servant-flatten-0.2
 
 resolver: lts-10.6
 # allow-newer: true

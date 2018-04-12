@@ -4,8 +4,6 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings     #-}
 {-# LANGUAGE PartialTypeSignatures #-}
-{-# LANGUAGE RecordWildCards       #-}
-{-# LANGUAGE StandaloneDeriving    #-}
 {-# LANGUAGE UndecidableInstances  #-}
 {-# OPTIONS_GHC -fno-warn-orphans  #-}
 
@@ -63,6 +61,8 @@ handleReadColumn Nothing colName val =
 --                       -> F (FromBackendRowF be) b
 -- | Wrapper that calls read and fail appropriately
 -- An explicit definition of ``fromBackendRow`` is required for each custom type
+defaultFromBackendRow :: (Read a, BSQL.FromBackendRow be T.Text)
+                      => String -> BSQL.FromBackendRowM be a
 defaultFromBackendRow colName = do
   val <- BSQL.fromBackendRow
   let valStr = T.unpack val

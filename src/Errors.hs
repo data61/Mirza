@@ -1,17 +1,15 @@
-{-# LANGUAGE DeriveGeneric     #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DeriveGeneric #-}
 
 -- | Contains definition(s) of some error types
 module Errors where
 
-import qualified Data.ByteString  as BS
-import qualified Data.GS1.EPC     as EPC
+import qualified Data.ByteString            as BS
 import           Data.GS1.EventID
-import qualified Data.Text        as T
-import           GHC.Generics     (Generic)
-import qualified Model            as M
-import           OpenSSL.EVP.PKey (SomePublicKey)
-import qualified Utils            as U
+import qualified Data.Text                  as T
+import           Database.PostgreSQL.Simple (SqlError)
+import           GHC.Generics               (Generic)
+import qualified Model                      as M
+import qualified Utils                      as U
 
 type ErrorText = T.Text
 type ErrorCode = BS.ByteString
@@ -23,24 +21,27 @@ newtype Expected = Expected  {unExpected :: U.Byte} deriving (Show, Eq, Read)
 newtype Received = Received  {unReceived :: U.Byte} deriving (Show, Eq, Read)
 
 -- | A sum type of errors that may occur in the Service layer
-data ServiceError =
-    NeedMoreSignatures T.Text
-  | InvalidSignature String
+data ServiceError
+  = NeedMoreSignatures   T.Text
+  | InvalidSignature     String
   | BlockchainSendFailed ServerError
-  | InvalidEventID EventID
-  | InvalidKeyID M.KeyID
-  | InvalidUserID M.UserID
-  | InvalidRSAKey M.RSAPublicKey
-  | InvalidRSAKeySize Expected Received
-  | InsertionFail ServerError T.Text
-  | EmailExists ServerError M.Email
-  | EmailNotFound M.Email
+  | InvalidEventID       EventID
+  | InvalidKeyID         M.KeyID
+  | InvalidUserID        M.UserID
+  | InvalidRSAKeyString  T.Text
+  | InvalidRSAKey        M.RSAPublicKey
+  | InvalidRSAKeySize    Expected Received
+  | InvalidDigest        M.Digest
+  | InsertionFail        ServerError T.Text
+  | EmailExists          ServerError M.Email
+  | EmailNotFound        M.Email
   | UnexpectedDBResponse ServerError
-  | AuthFailed  M.Email
-  | UserNotFound M.Email
-  | ParseError ErrorText -- EPC.ParseFailure
-  | BackendErr ErrorText -- fallback
-  deriving (Show, Read, Generic)
+  | AuthFailed           M.Email
+  | UserNotFound         M.Email
+  | ParseError           ErrorText -- EPC.ParseFailure
+  | BackendErr           ErrorText -- fallback
+  | DatabaseError        SqlError
+  deriving (Show, Generic)
 
 {-
 Do not remove the following commented out code until explicitly asked to
