@@ -395,11 +395,13 @@ removeContact (M.User uid1 _ _) uid2 = do
   else return False
 
 -- | Lists all the contacts associated with the given user
+-- BUG: uid should be used
 listContacts :: M.User -> AppM [M.User]
-listContacts  (M.User _uid _ _) = do
+listContacts  (M.User uid _ _) = do
   r <- runDb $ runSelectReturningList $ select $ do
     user <- all_ (SB._users SB.supplyChainDb)
     contact <- all_ (SB._contacts SB.supplyChainDb)
+    guard_ (SB.user_id user ==. val_ uid)
     guard_ (SB.contact_user1_id contact `references_` user)
     pure user
   case r of
@@ -423,6 +425,7 @@ getUserByEvent eventId = do
   r <- runDb $ runSelectReturningList $ select $ do
     userEvent <- all_ (SB._user_events SB.supplyChainDb)
     user <- all_ (SB._users SB.supplyChainDb)
+    guard_ (SB.user_events_event_id userEvent ==. val_ (SB.EventId eventId))
     guard_ (SB.user_events_user_id userEvent `references_` user)
     pure user
   case r of
