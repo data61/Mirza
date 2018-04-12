@@ -222,7 +222,8 @@ userSearch _user _term = error "Storage module not implemented"
 
 -- select * from Business;
 listBusinesses :: AC.AppM [M.Business]
-listBusinesses = BQ.listBusinesses
+listBusinesses = (QU.storageToModelBusiness <$>) <$> BQ.listBusinesses
+-- ^ one fmap for Functor AppM, one for Functor []
 
 -- |List events that a particular user was/is involved with
 -- use BizTransactions and events (createdby) tables
@@ -261,7 +262,7 @@ eventSign _user (M.SignedEvent eventID keyID (M.Signature sigStr) digest') = do
   digest <- liftIO (makeDigest digest') <!?> AC.AppError (InvalidDigest digest')
   verifyStatus <- liftIO $ verifyBS digest sigBS pubKey eventBS
   if verifyStatus == VerifySuccess
-    then BQ.insertSignature eventID keyID (Signature sigStr) digest'
+    then BQ.insertSignature eventID keyID (M.Signature sigStr) digest'
     else throwAppError $ InvalidSignature sigStr
 
 
