@@ -392,27 +392,17 @@ removeContact (M.User uid1 _ _) uid2 = do
           Left _e -> return False -- FIXME: log ``e``
   else return False
 
--- | Checks if a pair of userIds are recorded as a contact
-isExistingContact :: M.UserID -> M.UserID -> AppM Bool
-isExistingContact uid1 uid2 = do
+-- | Lists all the contacts associated with the given user
+listContacts :: M.User -> AppM [M.User]
+listContacts  (M.User _uid _ _) = do
   r <- runDb $ runSelectReturningList $ select $ do
-        contact <- all_ (SB._contacts SB.supplyChainDb)
-        guard_ (SB.contact_user1_id contact  ==. (val_ . SB.UserId $ uid1) &&.
-                SB.contact_user2_id contact  ==. (val_ . SB.UserId $ uid2))
-        pure contact
-  verifyContact r uid1 uid2
-
--- | Simple utility function to check that the users are part of the contact
--- typically used with the result of a query
-verifyContact :: (Eq (PrimaryKey SB.UserT f), Monad m) =>
-                   Either e [SB.ContactT f] ->
-                   C f SB.PrimaryKeyType ->
-                   C f SB.PrimaryKeyType ->
-                   m Bool
-verifyContact (Right [insertedContact]) uid1 uid2 = return $
-                  (SB.contact_user1_id insertedContact == (SB.UserId uid1)) &&
-                  (SB.contact_user2_id insertedContact == (SB.UserId uid2))
-verifyContact _ _ _ = return False
+    user <- all_ (SB._users SB.supplyChainDb)
+    contact <- all_ (SB._contacts SB.supplyChainDb)
+    guard_ (SB.contact_user1_id contact `references_` user)
+    pure user
+  case r of
+    Right userList -> return $ userTableToModel <$> userList
+    Left e         -> throwUnexpectedDBError $ sqlToServerError e
 
 
 -- -- TODO - convert these below functions, and others in original file Storage.hs
@@ -453,25 +443,6 @@ verifyContact _ _ _ = return False
 -- note that use of complex from Data.List.Unique is not efficient
 -- no union, so we process making unique in haskell
 
--- | Lists all the contacts associated with the given user
-listContacts :: M.User -> AppM [M.User]
-listContacts  (M.User _uid _ _) = do
-  r <- runDb $ runSelectReturningList $ select $ do
-    user <- all_ (SB._users SB.supplyChainDb)
-    contact <- all_ (SB._contacts SB.supplyChainDb)
-    guard_ (SB.contact_user1_id contact `references_` user)
-    pure user
-  case r of
-    Right userList -> return $ userTableToModel <$> userList
-    Left e         -> throwUnexpectedDBError $ sqlToServerError e
-
-
-  -- r_toGrabUser1 <- runDb $ runSelectReturningList $ select $ do
-  --   allUsers <- all_ (SB._users SB.supplyChainDb)
-  --   allContacts <- all_ (SB._contacts SB.supplyChainDb)
-  --   guard_ (_contactUser2Id allContacts ==. uid &&. _userId allUsers ==. _contactUser1Id allContacts)
-  --   pure allUsers
-  -- return $ (\l -> (complex l) ^. _1) $ contactUserToUser <$> (r_toGrabUser1 ++ r_toGrabUser2)
 
 
 -- -- TODO = how to do like, also '%||?||%'
@@ -485,6 +456,5 @@ listContacts  (M.User _uid _ _) = do
 --   return (userToUser <$> rs)
 
 -- userToUser :: (Integer, Integer, String, String, String, String, String) -> M.User
-
 -- userToUser (userID, _, firstName, lastName, _, _, _, _) = M.User userID firstName lastName
 
