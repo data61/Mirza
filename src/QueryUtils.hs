@@ -176,6 +176,15 @@ findInstLabelId (SSCC cp sn) = findInstLabelId' cp sn Nothing Nothing Nothing
 findInstLabelId (SGTIN cp msfv ir sn) = findInstLabelId' cp sn msfv (Just ir) Nothing
 findInstLabelId (GRAI cp at sn) = findInstLabelId' cp sn Nothing Nothing (Just at)
 
+-- | Ueful for handling specific errors from, for example, database transactions
+-- @
+--  handleError errHandler $ runDb ...
+--  ...
+--  where errHandler (AppError (DatabaseError sqlErr)) = ...
+--        errHandler e = throwError e
+-- @
+handleError :: MonadError e m => (e -> m a) -> m a -> m a
+handleError = flip catchError
 
 findInstLabelId' :: GS1CompanyPrefix
                 -> SerialNumber
@@ -193,8 +202,8 @@ findInstLabelId' cp sn msfv mir mat = do
             SB.item_reference labels ==. val_ mir)
     pure labels
   case r of
-    Right [l] -> return $ Just (SB.label_id l)
-    _         -> return Nothing
+    [l] -> return $ Just (SB.label_id l)
+    _   -> return Nothing
 
 
 findClassLabelId :: ClassLabelEPC -> AppM (Maybe SB.PrimaryKeyType)
@@ -217,8 +226,8 @@ findClassLabelId' cp msfv ir lot = do
            )
     pure labels
   case r of
-    Right [l] -> return $ Just (SB.label_id l)
-    _         -> return Nothing
+    [l] -> return $ Just (SB.label_id l)
+    _   -> return Nothing
 
 
 findLabelId :: LabelEPC -> AppM (Maybe SB.PrimaryKeyType)
@@ -262,41 +271,27 @@ insertDWhat :: Maybe SB.PrimaryKeyType
             -> AppM SB.PrimaryKeyType
 insertDWhat mBizTranId dwhat eventId = do
   pKey <- generatePk
-  mParentId <- getParentId dwhat
-  r <- runDb $ B.runInsert $ B.insert (SB._whats SB.supplyChainDb)
-             $ insertValues
-             [toStorageDWhat pKey mParentId mBizTranId eventId dwhat]
-  case r of
-    Left  e -> throwUnexpectedDBError $ sqlToServerError e
-    Right _ -> return pKey
+    mParentId <- getParentId dwhat
+    runDb $ B.runInsert $ B.insert (SB._whats SB.supplyChainDb)
+          $ insertValues [toStorageDWhat pKey mParentId mBizTranId eventId dwhat]
 
 insertDWhen :: DWhen -> SB.PrimaryKeyType -> AppM SB.PrimaryKeyType
 insertDWhen dwhen eventId =  do
   pKey <- generatePk
-  r <- runDb $ B.runInsert $ B.insert (SB._whens SB.supplyChainDb)
+  runDb $ B.runInsert $ B.insert (SB._whens SB.supplyChainDb)
              $ insertValues [toStorageDWhen pKey dwhen eventId]
-  case r of
-    Left  e -> throwUnexpectedDBError $ sqlToServerError e
-    Right _ -> return pKey
 
 
 insertDWhy :: DWhy -> SB.PrimaryKeyType -> AppM SB.PrimaryKeyType
 insertDWhy dwhy eventId = do
   pKey <- generatePk
-  r <- runDb $ B.runInsert $ B.insert (SB._whys SB.supplyChainDb)
+  runDb $ B.runInsert $ B.insert (SB._whys SB.supplyChainDb)
              $ insertValues [toStorageDWhy pKey dwhy eventId]
-  case r of
-    Left  e -> throwUnexpectedDBError $ sqlToServerError e
-    Right _ -> return pKey
 
 insertSrcDestType :: MU.LocationField
                   -> SB.PrimaryKeyType
                   -> SrcDestLocation
                   -> AppM SB.PrimaryKeyType
-insertSrcDestType
-  locField
-  eventId
-  (SrcDestLocation (sdType, SGLN pfix locationRef ext)) = do
   pKey <- generatePk
   let
       stWhere = SB.Where pKey
@@ -305,34 +300,22 @@ insertSrcDestType
                 locationRef
                 locField
                 ext
+insertSrcDestType locField eventId
+  (SrcDestLocation (sdType, SGLN pfix locationRef ext)) =
                 (SB.EventId eventId)
-  r <- runDb $ B.runInsert $ B.insert (SB._wheres SB.supplyChainDb)
+    runDb $ B.runInsert $ B.insert (SB._wheres SB.supplyChainDb)
              $ insertValues [stWhere]
-  case r of
-    Left  e -> throwUnexpectedDBError $ sqlToServerError e
-    Right _ -> return pKey
 
 insertLocationEPC :: MU.LocationField
                   -> SB.PrimaryKeyType
                   -> LocationEPC
                   -> AppM SB.PrimaryKeyType
-insertLocationEPC
-  locField
-  eventId
-  (SGLN pfix locationRef ext) = do
     pKey <- generatePk
-    let stWhere = SB.Where pKey
-                  pfix
-                  Nothing
-                  locationRef
-                  locField
-                  ext
+insertLocationEPC locField eventId (SGLN pfix locationRef ext) =
+    let stWhere = SB.Where pKey pfix Nothing locationRef locField ext
                   (SB.EventId eventId)
-    r <- runDb $ B.runInsert $ B.insert (SB._wheres SB.supplyChainDb)
+    runDb $ B.runInsert $ B.insert (SB._wheres SB.supplyChainDb)
                 $ insertValues [stWhere]
-    case r of
-      Left  e -> throwUnexpectedDBError $ sqlToServerError e
-      Right _ -> return pKey
 
 -- | Maps the relevant insert function for all
 -- ReadPoint, BizLocation, Src, Dest
@@ -358,16 +341,12 @@ findDWhere eventId = do
   return $ mergeSBWheres [rPoints, bizLocs, srcTs, destTs]
 
 findDWhereByLocationField :: MU.LocationField -> SB.PrimaryKeyType -> AppM [SB.WhereT Identity]
-findDWhereByLocationField locField eventId = do
-  r <- runDb $ runSelectReturningList $ select $ do
+findDWhereByLocationField locField eventId = runDb $ runSelectReturningList $ select $ do
     wheres <- all_ (SB._wheres SB.supplyChainDb)
     guard_ (
       SB.where_event_id wheres ==. val_ (SB.EventId eventId) &&.
       SB.where_location_field wheres ==. val_ locField)
     pure wheres
-  case r of
-    Left  e -> throwUnexpectedDBError $ sqlToServerError e
-    Right w -> return w
 
 
 -- | Merges a list of SB.Wheres into one Data.GS1.DWhere
@@ -402,12 +381,8 @@ constructLocation whereT =
 insertEvent :: SB.PrimaryKeyType -> T.Text -> Event -> AppM SB.PrimaryKeyType
 insertEvent userId jsonEvent event = do
   pKey <- generatePk
-  r <- runDb $ B.runInsert $ B.insert (SB._events SB.supplyChainDb)
-             $ insertValues
-             [toStorageEvent pKey userId jsonEvent (_eid event)]
-  case r of
-    Left  e -> throwUnexpectedDBError $ sqlToServerError e
-    Right _ -> return pKey
+  runDb $ B.runInsert $ B.insert (SB._events SB.supplyChainDb)
+        $ insertValues [toStorageEvent pKey userId jsonEvent (_eid event)]
 
 insertUserEvent :: SB.PrimaryKeyType
                 -> SB.PrimaryKeyType
@@ -417,26 +392,18 @@ insertUserEvent :: SB.PrimaryKeyType
                 -> AppM ()
 insertUserEvent eventId userId addedByUserId signed signedHash = do
   pKey <- generatePk
-  -- TODO: What to do about database errors here?
-  _ <- runDb $ B.runInsert $ B.insert (SB._user_events SB.supplyChainDb)
+    runDb $ B.runInsert $ B.insert (SB._user_events SB.supplyChainDb)
         $ insertValues
-        [
-          SB.UserEvent pKey
-          (SB.EventId eventId)
-          (SB.UserId userId)
-          signed
-          (SB.UserId addedByUserId)
-          signedHash
+          [ SB.UserEvent pKey (SB.EventId eventId) (SB.UserId userId)
+                        signed (SB.UserId addedByUserId) signedHash
         ]
-  return ()
 
 insertWhatLabel :: SB.PrimaryKeyType
                 -> SB.PrimaryKeyType
                 -> AppM SB.PrimaryKeyType
 insertWhatLabel whatId labelId = do
   pKey <- generatePk
-  -- TODO: What to do about database errors here?
-  _ <- runDb $ B.runInsert $ B.insert (SB._what_labels SB.supplyChainDb)
+  runDb $ B.runInsert $ B.insert (SB._what_labels SB.supplyChainDb)
         $ insertValues
         [
           SB.WhatLabel pKey
@@ -453,8 +420,7 @@ insertLabel :: Maybe T.Text
             -> AppM SB.PrimaryKeyType
 insertLabel labelType whatId labelEpc = do
   pKey <- generatePk
-  -- TODO: What to do about database errors here?
-  _ <- runDb $ B.runInsert $ B.insert (SB._labels SB.supplyChainDb)
+  runDb $ B.runInsert $ B.insert (SB._labels SB.supplyChainDb)
         $ insertValues
         [ epcToStorageLabel labelType whatId pKey labelEpc]
   return pKey
@@ -465,13 +431,9 @@ insertLabelEvent :: SB.PrimaryKeyType
                  -> AppM SB.PrimaryKeyType
 insertLabelEvent eventId labelId = do
   pKey <- generatePk
-  -- TODO: What to do about database errors here?
-  _ <- runDb $ B.runInsert $ B.insert (SB._label_events SB.supplyChainDb)
+  runDb $ B.runInsert $ B.insert (SB._label_events SB.supplyChainDb)
         $ insertValues
-        [
-          SB.LabelEvent pKey
-          (SB.LabelId labelId)
-          (SB.EventId eventId)
+          [ SB.LabelEvent pKey (SB.LabelId labelId) (SB.EventId eventId)
         ]
   return pKey
 
@@ -500,25 +462,18 @@ selectUser uid = do
           guard_ (SB.user_id user ==. val_ uid)
           pure user
   case r of
-    Right [user] -> return $ Just user
-    _            -> return Nothing
+    [user] -> return $ Just user
+    _      -> return Nothing
 
 getEventList :: SB.PrimaryKeyType -> AppM [Ev.Event]
 getEventList labelId = do
-  r <- runDb $
-        runSelectReturningList $ select $ do
+  labelEvents <- runDb $ runSelectReturningList $ select $ do
         labelEvent <- all_ (SB._label_events SB.supplyChainDb)
         guard_ (SB.label_event_label_id labelEvent ==. val_ (SB.LabelId labelId))
         pure labelEvent
-  case r of
-    Left e -> throwUnexpectedDBError $ sqlToServerError e
-  -- extract eventIds out
-    Right labelEvents ->
-      let
-        eventIds = (SB.unEventId . SB.label_event_event_id) <$> labelEvents
-        allEvents = sequence $ findEvent <$> eventIds
-        in
-          catMaybes <$> allEvents
+  let eventIds = (SB.unEventId . SB.label_event_event_id) <$> labelEvents
+      allEvents = findEvent <$> eventIds
+  catMaybes <$> sequence allEvents
 
 findEvent :: SB.PrimaryKeyType -> AppM (Maybe Ev.Event)
 findEvent eventId = do
@@ -528,9 +483,8 @@ findEvent eventId = do
         guard_ (SB.event_id event ==. (val_ eventId))
         pure event
   case r of
-    Right [event] -> return $ storageToModelEvent event
-    Left  e       -> throwUnexpectedDBError $ sqlToServerError e
-    _             -> throwBackendError r
+    [event] -> return $ storageToModelEvent event
+    _       -> throwBackendError r
 
 storageToModelEvent :: SB.Event -> Maybe Ev.Event
 storageToModelEvent = decodeEvent . SB.json_event
