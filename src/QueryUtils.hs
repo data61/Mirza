@@ -327,14 +327,11 @@ insertLocationEPC locField eventId (SGLN pfix locationRef ext) =
 -- ReadPoint, BizLocation, Src, Dest
 insertDWhere :: DWhere -> SB.PrimaryKeyType -> AppM ()
 insertDWhere (DWhere rPoints bizLocs srcTs destTs) eventId = do
-  -- These functions are not firing
-  -- FIXME: Should this be done in a transaction? should we be doinbg something
-  -- with the results
-  sequence_ $ insertLocationEPC MU.ReadPoint eventId . unReadPointLocation <$> rPoints
-  sequence_ $ insertLocationEPC MU.BizLocation eventId . unBizLocation <$> bizLocs
-  sequence_ $ insertSrcDestType MU.Src eventId <$> srcTs
-  sequence_ $ insertSrcDestType MU.Dest eventId <$> destTs
-  return ()
+  transaction $ do
+    sequence_ $ insertLocationEPC MU.ReadPoint eventId . unReadPointLocation <$> rPoints
+    sequence_ $ insertLocationEPC MU.BizLocation eventId . unBizLocation <$> bizLocs
+    sequence_ $ insertSrcDestType MU.Src eventId <$> srcTs
+    sequence_ $ insertSrcDestType MU.Dest eventId <$> destTs
 
 -- | Given a DWhere, looks for all the insertions associated with the DWHere
 -- Think of this as the inverse of ``insertDWhere``
