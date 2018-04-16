@@ -51,6 +51,8 @@ appErrToHttpErr (InvalidKeyID _) =
 -- GHC tell us when we haven't
 appErrToHttpErr _ = throwError err500 {errBody = "The server did not understand this request."}
 
+-- TODO: Some of these might benefit from HasCallStack constraints
+
 -- | Takes in a function that can extract errorcode out of an error, the error
 -- itself and constructs a ``ServerError`` with it
 toServerError :: Show a => (a -> Maybe ErrorCode) -> a -> ServerError

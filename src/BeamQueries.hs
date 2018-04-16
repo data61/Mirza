@@ -449,6 +449,7 @@ verifyContact _ _ _ = return False
 -- no union, so we process making unique in haskell
 
 -- | Lists all the contacts associated with the given user
+-- FIXME: Doesn't actually use user, leaks all contacts of all users!
 listContacts :: M.User -> AppM [M.User]
 listContacts  (M.User _uid _ _) = do
   users <- runDb $ runSelectReturningList $ select $ do
