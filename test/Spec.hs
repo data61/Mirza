@@ -11,6 +11,8 @@ import           Database.Beam.Postgres
 import           Database.PostgreSQL.Simple
 import           Migrate
 
+import           Crypto.Scrypt              (defaultParams)
+
 -- dbFunc = withDatabaseDebug putStrLn
 
 -- INTERESTING NOTE ON MIGRATION
@@ -37,7 +39,7 @@ openConnection = do
   conn <- connectPostgreSQL testDbConnStr
   _ <- dropTables conn -- drop tables before so if already exist no problems... means tables get overwritten though
   let envT = AC.mkEnvType True
-      env  = AC.Env envT conn
+      env  = AC.Env envT conn defaultParams
   tryCreateSchema True conn
   return (conn, env)
 
