@@ -1,4 +1,5 @@
-{-# LANGUAGE TupleSections #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TupleSections         #-}
 -- | Following are a bunch of utility functions to do household stuff like
 -- generating primary keys, timestamps - stuff that almost every function
 -- below would need to do anyway
@@ -40,14 +41,13 @@ import           Data.Time.LocalTime        (LocalTime, localTimeToUTC,
 import           Data.UUID.V4               (nextRandom)
 import           Database.Beam              as B
 import           Database.PostgreSQL.Simple
-import           ErrorUtils                 (sqlToServerError,
-                                             throwBackendError,
-                                             throwUnexpectedDBError)
+import           ErrorUtils                 (throwBackendError)
 import qualified MigrateUtils               as MU
 import qualified Model                      as M
 import qualified StorageBeam                as SB
 
-import           Control.Monad.Except       (throwError)
+import           Control.Monad              (void)
+import           Control.Monad.Except       (MonadError, catchError, throwError)
 import           Control.Monad.Reader       (ask)
 
 -- | Reads back the ``LocalTime`` in UTCTime (with an offset of 0)
@@ -186,6 +186,19 @@ findInstLabelId (GRAI cp at sn) = findInstLabelId' cp sn Nothing Nothing (Just a
 handleError :: MonadError e m => (e -> m a) -> m a -> m a
 handleError = flip catchError
 
+-- | Handles the common case of generating a primary key, using it in some
+-- transaction and then returning the primary key.
+-- @
+--   insertFoo :: ArgType -> AppM PrimmaryKeyType
+--   insertFoo arg = withPKey $ \pKey -> do
+--     runDb ... pKey ...
+-- @
+withPKey :: (SB.PrimaryKeyType -> AppM a) -> AppM SB.PrimaryKeyType
+withPKey f = do
+  pKey <- generatePk
+  _ <- f pKey
+  pure pKey
+
 findInstLabelId' :: GS1CompanyPrefix
                 -> SerialNumber
                 -> Maybe SGTINFilterValue
@@ -269,22 +282,21 @@ insertDWhat :: Maybe SB.PrimaryKeyType
             -> DWhat
             -> SB.PrimaryKeyType
             -> AppM SB.PrimaryKeyType
-insertDWhat mBizTranId dwhat eventId = do
-  pKey <- generatePk
+insertDWhat mBizTranId dwhat eventId = withPKey $ \pKey ->
+  transaction $ do
     mParentId <- getParentId dwhat
     runDb $ B.runInsert $ B.insert (SB._whats SB.supplyChainDb)
           $ insertValues [toStorageDWhat pKey mParentId mBizTranId eventId dwhat]
 
+
 insertDWhen :: DWhen -> SB.PrimaryKeyType -> AppM SB.PrimaryKeyType
-insertDWhen dwhen eventId =  do
-  pKey <- generatePk
+insertDWhen dwhen eventId = withPKey $ \pKey ->
   runDb $ B.runInsert $ B.insert (SB._whens SB.supplyChainDb)
              $ insertValues [toStorageDWhen pKey dwhen eventId]
 
 
 insertDWhy :: DWhy -> SB.PrimaryKeyType -> AppM SB.PrimaryKeyType
-insertDWhy dwhy eventId = do
-  pKey <- generatePk
+insertDWhy dwhy eventId = withPKey $ \pKey ->
   runDb $ B.runInsert $ B.insert (SB._whys SB.supplyChainDb)
              $ insertValues [toStorageDWhy pKey dwhy eventId]
 
@@ -292,16 +304,10 @@ insertSrcDestType :: MU.LocationField
                   -> SB.PrimaryKeyType
                   -> SrcDestLocation
                   -> AppM SB.PrimaryKeyType
-  pKey <- generatePk
-  let
-      stWhere = SB.Where pKey
-                pfix
-                (Just sdType)
-                locationRef
-                locField
-                ext
 insertSrcDestType locField eventId
   (SrcDestLocation (sdType, SGLN pfix locationRef ext)) =
+  withPKey $ \pKey -> do
+    let stWhere = SB.Where pKey pfix (Just sdType) locationRef locField ext
                 (SB.EventId eventId)
     runDb $ B.runInsert $ B.insert (SB._wheres SB.supplyChainDb)
              $ insertValues [stWhere]
@@ -310,8 +316,8 @@ insertLocationEPC :: MU.LocationField
                   -> SB.PrimaryKeyType
                   -> LocationEPC
                   -> AppM SB.PrimaryKeyType
-    pKey <- generatePk
 insertLocationEPC locField eventId (SGLN pfix locationRef ext) =
+  withPKey $ \pKey -> do
     let stWhere = SB.Where pKey pfix Nothing locationRef locField ext
                   (SB.EventId eventId)
     runDb $ B.runInsert $ B.insert (SB._wheres SB.supplyChainDb)
@@ -377,10 +383,8 @@ constructLocation whereT =
     (SB.where_sgln_ext whereT)
 
 
-
 insertEvent :: SB.PrimaryKeyType -> T.Text -> Event -> AppM SB.PrimaryKeyType
-insertEvent userId jsonEvent event = do
-  pKey <- generatePk
+insertEvent userId jsonEvent event = withPKey $ \pKey ->
   runDb $ B.runInsert $ B.insert (SB._events SB.supplyChainDb)
         $ insertValues [toStorageEvent pKey userId jsonEvent (_eid event)]
 
@@ -390,8 +394,8 @@ insertUserEvent :: SB.PrimaryKeyType
                 -> Bool
                 -> (Maybe ByteString)
                 -> AppM ()
-insertUserEvent eventId userId addedByUserId signed signedHash = do
-  pKey <- generatePk
+insertUserEvent eventId userId addedByUserId signed signedHash =
+  void $ withPKey $ \pKey ->
     runDb $ B.runInsert $ B.insert (SB._user_events SB.supplyChainDb)
         $ insertValues
           [ SB.UserEvent pKey (SB.EventId eventId) (SB.UserId userId)
@@ -401,8 +405,7 @@ insertUserEvent eventId userId addedByUserId signed signedHash = do
 insertWhatLabel :: SB.PrimaryKeyType
                 -> SB.PrimaryKeyType
                 -> AppM SB.PrimaryKeyType
-insertWhatLabel whatId labelId = do
-  pKey <- generatePk
+insertWhatLabel whatId labelId = withPKey $ \pKey ->
   runDb $ B.runInsert $ B.insert (SB._what_labels SB.supplyChainDb)
         $ insertValues
         [
@@ -410,7 +413,6 @@ insertWhatLabel whatId labelId = do
           (SB.WhatId whatId)
           (SB.LabelId labelId)
         ]
-  return pKey
 
 -- | Given the necessary information,
 -- converts a ``LabelEPC`` to SB.Label and writes it to the database
@@ -418,24 +420,20 @@ insertLabel :: Maybe T.Text
             -> SB.PrimaryKeyType
             -> LabelEPC
             -> AppM SB.PrimaryKeyType
-insertLabel labelType whatId labelEpc = do
-  pKey <- generatePk
+insertLabel labelType whatId labelEpc = withPKey $ \pKey ->
   runDb $ B.runInsert $ B.insert (SB._labels SB.supplyChainDb)
         $ insertValues
         [ epcToStorageLabel labelType whatId pKey labelEpc]
-  return pKey
 
 -- | Ties up a label and an event entry in the database
 insertLabelEvent :: SB.PrimaryKeyType
                  -> SB.PrimaryKeyType
                  -> AppM SB.PrimaryKeyType
-insertLabelEvent eventId labelId = do
-  pKey <- generatePk
+insertLabelEvent eventId labelId = withPKey $ \pKey ->
   runDb $ B.runInsert $ B.insert (SB._label_events SB.supplyChainDb)
         $ insertValues
           [ SB.LabelEvent pKey (SB.LabelId labelId) (SB.EventId eventId)
         ]
-  return pKey
 
 
 -- | Runs a gicen action within a postgres transaction. If an exception is
