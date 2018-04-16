@@ -375,7 +375,7 @@ addContact (M.User uid1 _ _) uid2 = do
 -- and returns (not. userExists)
 -- @todo Make ContactErrors = NotAContact | DoesntExist | ..
 removeContact :: M.User -> M.UserID -> AppM Bool
-removeContact (M.User uid1 _ _) uid2 = do
+removeContact (M.User uid1 _ _) uid2 = transaction $ do
   contactExists <- isExistingContact uid1 uid2
   if contactExists
     then do
@@ -386,7 +386,8 @@ removeContact (M.User uid1 _ _) uid2 = do
       not <$> isExistingContact uid1 uid2
   else return False
 
--- | Checks if a pair of userIds are recorded as a contact
+-- | Checks if a pair of userIds are recorded as a contact.
+-- __Must be run in a transaction!__
 isExistingContact :: M.UserID -> M.UserID -> AppM Bool
 isExistingContact uid1 uid2 = do
   r <- runDb $ runSelectReturningList $ select $ do
