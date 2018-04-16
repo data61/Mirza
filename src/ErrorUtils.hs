@@ -62,8 +62,8 @@ defaultToServerError :: Show a => a -> ServerError
 defaultToServerError = toServerError (const Nothing)
 
 -- | Shorthand for only SqlError types
-sqlToServerError :: SqlError -> ServerError
-sqlToServerError = toServerError getSqlErrorCode
+sqlToServerError :: SqlError -> ServiceError
+sqlToServerError = DatabaseError -- toServerError getSqlErrorCode
 
 -- | Shorthand for throwing a Generic Backend error
 throwBackendError :: (Show a) => a -> AppM b
