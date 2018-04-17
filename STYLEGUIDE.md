@@ -48,7 +48,7 @@ wrong value are not detected at compile time.
 
 ## Default type classes to derive
 
-For most data type definitions, at least `Show`, `Eq` and `Generic should be
+For most data type definitions, at least `Show`, `Eq` and `Generic` should be
 derived unless there is a good reason not to.
 
 ```haskell
