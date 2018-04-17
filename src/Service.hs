@@ -139,9 +139,8 @@ minPubKeySize = U.Byte 256 -- 2048 / 8
 addPublicKey :: User -> RSAPublicKey -> AC.AppM KeyID
 addPublicKey user pemKey@(PEMString pemStr) = do
   somePubKey <- liftIO $ readPublicKey pemStr
-  case checkPubKey somePubKey pemKey of
-    Right k -> BQ.addPublicKey user k
-    Left e  -> throwAppError e
+  either throwAppError (BQ.addPublicKey user)
+     $ checkPubKey somePubKey pemKey
 
 checkPubKey :: SomePublicKey -> RSAPublicKey-> Either ServiceError RSAPubKey
 checkPubKey spKey pemKey
