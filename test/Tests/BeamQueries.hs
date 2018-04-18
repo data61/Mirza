@@ -286,63 +286,63 @@ testQueries = do
     --     hasBeenRemoved `shouldBe` False
 
     describe "List contact" $ do
-      it "Add one and list" $ \(_conn, env) -> do
-        -- Adding the contact first
-        (hasBeenAdded, contactList, users) <- testAppM env $ do
-          void $ newUser dummyNewUser
-          mUser <- getUser $ M.emailAddress dummyNewUser
-          let myContact = makeDummyNewUser "first@gmail.com"
-              user = fromJust mUser
-          myContactUid <- newUser myContact
-          mMyContact_user <- getUser "first@gmail.com"
-          hasBeenAdded <- addContact user myContactUid
-          contactList <- listContacts user
-          pure (hasBeenAdded, contactList, [fromJust mMyContact_user])
-        contactList `shouldBe` users
-        hasBeenAdded `shouldBe` True
-      -- it "Add many and list" $ \(_conn, env) -> do
-      --   (contactList, users) <- testAppM env $ do
-      --     -- Making the users
-      --     let myContact_1 = makeDummyNewUser "first@gmail.com"
-      --         myContact_2 = makeDummyNewUser "second@gmail.com"
-      --         myContact_3 = makeDummyNewUser "third@gmail.com"
-      --         myContact_4 = makeDummyNewUser "fourth@gmail.com"
-
-      --     -- Adding the users to the DB
+      -- it "Add one and list" $ \(_conn, env) -> do
+      --   -- Adding the contact first
+      --   (hasBeenAdded, contactList, users) <- testAppM env $ do
       --     void $ newUser dummyNewUser
-      --     myContactUid_1 <- newUser myContact_1
-      --     myContactUid_2 <- newUser myContact_2
-      --     myContactUid_3 <- newUser myContact_3
-      --     myContactUid_4 <- newUser myContact_4
-
-      --     -- Getting the users
       --     mUser <- getUser $ M.emailAddress dummyNewUser
-      --     mMyContact_1 <- getUser "first@gmail.com"
-      --     mMyContact_2 <- getUser "second@gmail.com"
-      --     mMyContact_3 <- getUser "third@gmail.com"
-      --     mMyContact_4 <- getUser "fourth@gmail.com"
-
-      --     let user = fromJust mUser
-      --         myContact_1_user = fromJust mMyContact_1
-      --         myContact_2_user = fromJust mMyContact_2
-      --         myContact_3_user = fromJust mMyContact_3
-      --         myContact_4_user = fromJust mMyContact_4
-
-      --     -- Making them contacts
-      --     void $ addContact user myContactUid_1
-      --     void $ addContact user myContactUid_2
-      --     void $ addContact user myContactUid_3
-      --     -- intentionally not adding contact_4
-
-      --     -- Randomness
-      --     void $ addContact myContact_3_user myContactUid_4
-      --     void $ addContact myContact_3_user myContactUid_2
-      --     void $ addContact myContact_4_user myContactUid_2
-      --     void $ addContact myContact_1_user myContactUid_2
-
+      --     let myContact = makeDummyNewUser "first@gmail.com"
+      --         user = fromJust mUser
+      --     myContactUid <- newUser myContact
+      --     mMyContact_user <- getUser "first@gmail.com"
+      --     hasBeenAdded <- addContact user myContactUid
       --     contactList <- listContacts user
-      --     pure (contactList, [myContact_1_user, myContact_2_user, myContact_3_user])
+      --     pure (hasBeenAdded, contactList, [fromJust mMyContact_user])
       --   contactList `shouldBe` users
+      --   hasBeenAdded `shouldBe` True
+      it "Add many and list" $ \(_conn, env) -> do
+        (contactList, users) <- testAppM env $ do
+          -- Making the users
+          let myContact_1 = makeDummyNewUser "first@gmail.com"
+              myContact_2 = makeDummyNewUser "second@gmail.com"
+              myContact_3 = makeDummyNewUser "third@gmail.com"
+              myContact_4 = makeDummyNewUser "fourth@gmail.com"
+
+          -- Adding the users to the DB
+          void $ newUser dummyNewUser
+          myContactUid_1 <- newUser myContact_1
+          myContactUid_2 <- newUser myContact_2
+          myContactUid_3 <- newUser myContact_3
+          myContactUid_4 <- newUser myContact_4
+
+          -- Getting the users
+          mUser <- getUser $ M.emailAddress dummyNewUser
+          mMyContact_1 <- getUser "first@gmail.com"
+          mMyContact_2 <- getUser "second@gmail.com"
+          mMyContact_3 <- getUser "third@gmail.com"
+          mMyContact_4 <- getUser "fourth@gmail.com"
+
+          let user = fromJust mUser
+              myContact_1_user = fromJust mMyContact_1
+              myContact_2_user = fromJust mMyContact_2
+              myContact_3_user = fromJust mMyContact_3
+              myContact_4_user = fromJust mMyContact_4
+
+          -- Making them contacts
+          void $ addContact user myContactUid_1
+          void $ addContact user myContactUid_2
+          void $ addContact user myContactUid_3
+          -- intentionally not adding contact_4
+
+          -- Randomness
+          void $ addContact myContact_3_user myContactUid_4
+          void $ addContact myContact_3_user myContactUid_2
+          void $ addContact myContact_4_user myContactUid_2
+          void $ addContact myContact_1_user myContactUid_2
+
+          contactList <- listContacts user
+          pure (contactList, [myContact_1_user, myContact_2_user, myContact_3_user])
+        contactList `shouldBe` users
 
   -- describe "DWhere" $
   --   it "Insert and find DWhere" $ \(_conn, env) -> do
