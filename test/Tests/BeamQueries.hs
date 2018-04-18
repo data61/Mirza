@@ -30,6 +30,8 @@ import qualified Service                    as S
 import qualified StorageBeam                as SB
 import           Test.Hspec
 
+import           Crypto.Scrypt              (defaultParams)
+
 -- NOTE in this file, where fromJust is used in the tests, it is because we expect a Just... this is part of the test
 -- NOTE tables dropped after every running of test in an "it"
 
@@ -310,4 +312,4 @@ populateContact ioEnv = do
     hasBeenAdded `shouldBe` True
 
 defaultEnv :: IO Env
-defaultEnv = Env Dev <$> connectPostgreSQL testDbConnStr
+defaultEnv = (\conn -> Env Dev conn defaultParams) <$> connectPostgreSQL testDbConnStr
