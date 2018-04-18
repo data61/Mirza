@@ -364,7 +364,7 @@ mergeSBWheres [rPointsW, bizLocsW, srcTsW, destTsW] =
       destTs = constructSrcDestLocation <$> destTsW
       in
         DWhere rPoints bizLocs <$> sequence srcTs <*> sequence destTs
-mergeSBWheres _                                     = error "Invalid arguments"
+mergeSBWheres _                                     = Nothing -- error "Invalid arguments"
 
 -- | This relies on the user calling this function in the appropriate WhereT
 constructSrcDestLocation :: SB.WhereT Identity -> Maybe SrcDestLocation
@@ -399,7 +399,7 @@ insertUserEvent eventId userId addedByUserId signed signedHash =
         $ insertValues
           [ SB.UserEvent pKey (SB.EventId eventId) (SB.UserId userId)
                         signed (SB.UserId addedByUserId) signedHash
-        ]
+          ]
 
 insertWhatLabel :: SB.PrimaryKeyType
                 -> SB.PrimaryKeyType
