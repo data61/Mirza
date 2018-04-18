@@ -129,7 +129,7 @@ serveSwaggerAPI = toSwagger serverAPI
 -- Basic Authentication requires a Context Entry with the 'BasicAuthCheck' value
 -- tagged with "foo-tag" This context is then supplied to 'server' and threaded
 -- to the BasicAuth HasServer handlers.
-basicAuthServerContext :: AC.Env -> Servant.Context ((BasicAuthCheck M.User) ': '[])
+basicAuthServerContext :: AC.Env -> Servant.Context '[BasicAuthCheck M.User]
 basicAuthServerContext env = authCheck env :. EmptyContext
 
 minPubKeySize :: U.Byte
@@ -218,7 +218,7 @@ userSearch _user _term = error "Storage module not implemented"
 
 -- select * from Business;
 listBusinesses :: AC.AppM [M.Business]
-listBusinesses = (QU.storageToModelBusiness <$>) <$> BQ.listBusinesses
+listBusinesses = fmap QU.storageToModelBusiness <$> BQ.listBusinesses
 -- ^ one fmap for Functor AppM, one for Functor []
 
 -- |List events that a particular user was/is involved with

@@ -11,9 +11,7 @@
 module QueryUtils where
 
 import           AppConfig                  (AppM, Env (..), runAppM, runDb)
-import           Control.Monad.Except       (throwError)
 import           Control.Monad.IO.Class     (liftIO)
-import           Control.Monad.Reader       (ask)
 import           Data.Aeson                 (decode)
 import           Data.Aeson.Text            (encodeToLazyText)
 import           Data.ByteString            (ByteString)
@@ -497,19 +495,19 @@ isExistingContact uid1 uid2 = do
         guard_ (SB.contact_user1_id contact  ==. (val_ . SB.UserId $ uid1) &&.
                 SB.contact_user2_id contact  ==. (val_ . SB.UserId $ uid2))
         pure contact
-  verifyContact r uid1 uid2
+  return $ verifyContact r uid1 uid2
 
 -- | Simple utility function to check that the users are part of the contact
 -- typically used with the result of a query
-verifyContact :: (Eq (PrimaryKey SB.UserT f), Monad m) =>
-                   [SB.ContactT f] ->
-                   C f SB.PrimaryKeyType ->
-                   C f SB.PrimaryKeyType ->
-                   m Bool
-verifyContact [insertedContact] uid1 uid2 = return $
+verifyContact :: (Eq (PrimaryKey SB.UserT f)) =>
+                 [SB.ContactT f] ->
+                 C f SB.PrimaryKeyType ->
+                 C f SB.PrimaryKeyType ->
+                 Bool
+verifyContact [insertedContact] uid1 uid2 =
                   (SB.contact_user1_id insertedContact == (SB.UserId uid1)) &&
                   (SB.contact_user2_id insertedContact == (SB.UserId uid2))
-verifyContact _ _ _ = return False
+verifyContact _ _ _ = False
 
 storageToModelBusiness :: SB.Business -> M.Business
 storageToModelBusiness (SB.Business pfix name f site addr lat long)
