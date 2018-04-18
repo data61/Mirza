@@ -223,7 +223,7 @@ listBusinesses = fmap QU.storageToModelBusiness <$> BQ.listBusinesses
 -- |List events that a particular user was/is involved with
 -- use BizTransactions and events (createdby) tables
 eventList :: M.User -> M.UserID -> AC.AppM [Ev.Event]
-eventList _user _uID = return []
+eventList _user _uId = U.notImplemented
 
 makeDigest :: M.Digest -> IO (Maybe EVPDigest.Digest)
 makeDigest = EVPDigest.getDigestByName . map toLower . show
