@@ -15,27 +15,3 @@ CREATE TABLE IF NOT EXISTS SupplyChain.Hashes (id INTEGER PRIMARY KEY AUTOINCREM
 CREATE TABLE IF NOT EXISTS SupplyChain.Events (id INTEGER PRIMARY KEY AUTOINCREMENT, what TEXT, why TEXT, location TEXT, when TEXT, eventType INTEGER NOT NULL);
 
 CREATE TABLE IF NOT EXISTS SupplyChain.EventTypes (id INTEGER PRIMARY KEY AUTOINCREMENT, eventType TEXT NOT NULL);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-SELECT "t0"."user_id" AS "res0", "t0"."user_biz_id" AS "res1", "t0"."first_name" AS "res2", "t0"."last_name" AS "res3", "t0"."phone_number" AS "res4", "t0"."password_hash" AS "res5", "t0"."email_address" AS "res6" FROM "users" AS "t0" CROSS JOIN "contacts" AS "t1" WHERE (("t0"."user_id") = ('f0338427-27cb-4241-9994-5e89c40038c3')) AND ((("t1"."contact_user1_id") = ("t0"."user_id")) OR (("t1"."contact_user2_id") = ("t0"."user_id")))
-
-
