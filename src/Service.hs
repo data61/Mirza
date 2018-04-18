@@ -145,8 +145,8 @@ checkPubKey spKey pemKey =
   maybe (Left $ InvalidRSAKey pemKey)
   (\pubKey -> do
     if (rsaSize pubKey) < (U.unByte minPubKeySize)
-    then Left $ InvalidRSAKeySize (Expected minPubKeySize) (Received $ U.Byte $ rsaSize pubKey)
-    else Right pubKey
+      then Left $ InvalidRSAKeySize (Expected minPubKeySize) (Received $ U.Byte $ rsaSize pubKey)
+      else Right pubKey
   )
   (toPublicKey spKey)
 
