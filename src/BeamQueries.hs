@@ -18,6 +18,7 @@ import           Data.GS1.DWhat                           (AggregationDWhat (..)
                                                            unParentLabel)
 import qualified Data.GS1.Event                           as Ev
 import qualified Data.GS1.EventID                         as EvId
+import           Data.List                                (nub)
 import           Data.Maybe                               (fromMaybe)
 import qualified Data.Text                                as T
 import           Data.Text.Encoding
@@ -39,7 +40,6 @@ import           OpenSSL.RSA                              (RSAPubKey)
 import           QueryUtils
 import qualified StorageBeam                              as SB
 import qualified Utils                                    as U
-
 
 
 {-
@@ -395,19 +395,18 @@ removeContact (M.User uid1 _ _) uid2 = do
   else return False
 
 -- | Lists all the contacts associated with the given user
--- BUG: Returns the current user as well
+-- BUG: Returns all the users user as well
 listContacts :: M.User -> AppM [M.User]
 listContacts  (M.User uid _ _) = do
   -- use filter, as is shown in tutorial 3
   r <- runDb $ runSelectReturningList $ select $ do
     user <- all_ (SB._users SB.supplyChainDb)
     contact <- all_ (SB._contacts SB.supplyChainDb)
-    guard_ (SB.contact_user1_id contact ==. val_ (SB.UserId uid) ||.
-            SB.contact_user2_id contact ==. val_ (SB.UserId uid))
-    guard_ (not_ (SB.user_id user) (val_ $ SB.UserId uid))
+    guard_ ((SB.contact_user1_id contact ==. val_ (SB.UserId uid)) &&.
+           ((SB.user_id user) /=. (val_ uid)))
     pure user
   case r of
-    Right userList -> return $ userTableToModel <$> userList
+    Right userList -> return $ nub $ userTableToModel <$> userList
     Left e         -> throwUnexpectedDBError $ sqlToServerError e
 
 
