@@ -40,6 +40,7 @@ import           OpenSSL.PEM                              (writePublicKey)
 import           OpenSSL.RSA                              (RSAPubKey)
 import           QueryUtils
 import qualified StorageBeam                              as SB
+import qualified Utils                                    as U
 
 
 {-
@@ -377,7 +378,7 @@ addContact (M.User uid1 _ _) uid2 = do
   pKey <- generatePk
   r <- runDb $ runInsertReturningList (SB._contacts SB.supplyChainDb) $
                insertValues [SB.Contact pKey (SB.UserId uid1) (SB.UserId uid2)]
-  verifyContact r uid1 uid2
+  return $ verifyContact r uid1 uid2
 
 -- | The current behaviour is, if the users were not contacts in the first
 -- place, then the function returns false
@@ -396,32 +397,40 @@ removeContact (M.User uid1 _ _) uid2 = transaction $ do
       not <$> isExistingContact uid1 uid2
   else return False
 
--- | Checks if a pair of userIds are recorded as a contact.
--- __Must be run in a transaction!__
-isExistingContact :: M.UserID -> M.UserID -> AppM Bool
-isExistingContact uid1 uid2 = do
-  r <- runDb $ runSelectReturningList $ select $ do
-        contact <- all_ (SB._contacts SB.supplyChainDb)
-        guard_ (SB.contact_user1_id contact  ==. (val_ . SB.UserId $ uid1) &&.
-                SB.contact_user2_id contact  ==. (val_ . SB.UserId $ uid2))
-        pure contact
-  verifyContact r uid1 uid2
+-- | Lists all the contacts associated with the given user
+listContacts :: M.User -> AppM [M.User]
+listContacts  (M.User uid _ _) = do
+  userList <- runDb $ runSelectReturningList $ select $ do
+    user <- all_ (SB._users SB.supplyChainDb)
+    contact <- all_ (SB._contacts SB.supplyChainDb)
+    guard_ (SB.contact_user1_id contact ==. val_ (SB.UserId uid) &&.
+            SB.contact_user2_id contact ==. (SB.UserId $ SB.user_id user))
+    pure user
+  return $ userTableToModel <$> userList
 
--- | Simple utility function to check that the users are part of the contact
--- typically used with the result of a query
-verifyContact :: (Eq (PrimaryKey SB.UserT f), Monad m) =>
-                   [SB.ContactT f] ->
-                   C f SB.PrimaryKeyType ->
-                   C f SB.PrimaryKeyType ->
-                   m Bool
-verifyContact [insertedContact] uid1 uid2 = return $
-                  (SB.contact_user1_id insertedContact == (SB.UserId uid1)) &&
-                  (SB.contact_user2_id insertedContact == (SB.UserId uid2))
-verifyContact _ _ _ = return False
+
+-- TODO: Write tests
+listBusinesses :: AppM [SB.Business]
+listBusinesses = do
+  runDb $ runSelectReturningList $ select $
+      all_ (SB._businesses SB.supplyChainDb)
+
+-- TODO: Write tests
+-- QUESTION: can we not have muliple users associated with an event?
+getUserByEvent :: SB.PrimaryKeyType -> AppM M.User
+getUserByEvent eventId = do
+  r <- runDb $ runSelectReturningList $ select $ do
+    userEvent <- all_ (SB._user_events SB.supplyChainDb)
+    user <- all_ (SB._users SB.supplyChainDb)
+    guard_ (SB.user_events_event_id userEvent ==. val_ (SB.EventId eventId))
+    guard_ (SB.user_events_user_id userEvent `references_` user)
+    pure user
+  case r of
+    [user] -> return $ userTableToModel user
+    _      -> throwBackendError r
 
 
 -- -- TODO - convert these below functions, and others in original file Storage.hs
-
 -- -- TODO = use EventId or EventID ???
 -- -- TODO = implement... there is no hash...
 -- createBlockchainPackage ::  (MonadError M.SigError m, MonadIO m) => EventId -> m C.BlockchainPackage
@@ -458,24 +467,6 @@ verifyContact _ _ _ = return False
 -- note that use of complex from Data.List.Unique is not efficient
 -- no union, so we process making unique in haskell
 
--- | Lists all the contacts associated with the given user
--- FIXME: Doesn't actually use user, leaks all contacts of all users!
-listContacts :: M.User -> AppM [M.User]
-listContacts  (M.User _uid _ _) = do
-  users <- runDb $ runSelectReturningList $ select $ do
-    user <- all_ (SB._users SB.supplyChainDb)
-    contact <- all_ (SB._contacts SB.supplyChainDb)
-    guard_ (SB.contact_user1_id contact `references_` user)
-    pure user
-  pure (map userTableToModel users)
-
-
-  -- r_toGrabUser1 <- runDb $ runSelectReturningList $ select $ do
-  --   allUsers <- all_ (SB._users SB.supplyChainDb)
-  --   allContacts <- all_ (SB._contacts SB.supplyChainDb)
-  --   guard_ (_contactUser2Id allContacts ==. uid &&. _userId allUsers ==. _contactUser1Id allContacts)
-  --   pure allUsers
-  -- return $ (\l -> (complex l) ^. _1) $ contactUserToUser <$> (r_toGrabUser1 ++ r_toGrabUser2)
 
 
 -- -- TODO = how to do like, also '%||?||%'
@@ -489,6 +480,5 @@ listContacts  (M.User _uid _ _) = do
 --   return (userToUser <$> rs)
 
 -- userToUser :: (Integer, Integer, String, String, String, String, String) -> M.User
-
 -- userToUser (userID, _, firstName, lastName, _, _, _, _) = M.User userID firstName lastName
 
