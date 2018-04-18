@@ -59,8 +59,8 @@ selectKey keyId = do
           guard_ (SB.key_id key ==. val_ keyId)
           pure key
   case r of
-    Right [key] -> return $ Just key
-    _           -> return Nothing
+    [key] -> return $ Just key
+    _     -> return Nothing
 
 testAppM :: Env -> AppM a -> IO a
 testAppM env act = runAppM env act >>= \case

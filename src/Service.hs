@@ -280,7 +280,7 @@ eventSign _user (SignedEvent eventID keyID (Signature sigStr) digest') = do
 -- do we need this?
 --
 eventHashed :: User -> EventID -> AC.AppM HashedEvent
-eventHashed _user eventID = error "not implemented yet"
+eventHashed _user _eventID = error "not implemented yet"
 -- return (HashedEvent eventID (EventHash "Blob"))
 
   {-
