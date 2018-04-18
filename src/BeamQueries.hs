@@ -10,6 +10,7 @@ import           AppConfig                                (AppError (..), AppM,
 import           Control.Monad.Except                     (throwError)
 import           Control.Monad.IO.Class                   (liftIO)
 import qualified Crypto.Scrypt                            as Scrypt
+import           Data.Bifunctor                           (bimap)
 import           Data.GS1.DWhat                           (AggregationDWhat (..),
                                                            DWhat (..),
                                                            InputEPC (..),
@@ -41,7 +42,6 @@ import           OpenSSL.RSA                              (RSAPubKey)
 import           QueryUtils
 import qualified StorageBeam                              as SB
 import qualified Utils                                    as U
-
 
 {-
 -- Sample NewUser JSON
@@ -416,19 +416,16 @@ listBusinesses = do
       all_ (SB._businesses SB.supplyChainDb)
 
 -- TODO: Write tests
--- QUESTION: can we not have muliple users associated with an event?
-getUserByEvent :: SB.PrimaryKeyType -> AppM M.User
-getUserByEvent eventId = do
-  r <- runDb $ runSelectReturningList $ select $ do
+-- Returns the user and whether or not that user had signed the event
+eventUserList :: EvId.EventID -> AppM [(M.User, Bool)]
+eventUserList (EvId.EventID eventId) = do
+  usersSignedList <- runDb $ runSelectReturningList $ select $ do
     userEvent <- all_ (SB._user_events SB.supplyChainDb)
     user <- all_ (SB._users SB.supplyChainDb)
     guard_ (SB.user_events_event_id userEvent ==. val_ (SB.EventId eventId))
     guard_ (SB.user_events_user_id userEvent `references_` user)
-    pure user
-  case r of
-    [user] -> return $ userTableToModel user
-    _      -> throwBackendError r
-
+    pure (user, SB.user_events_has_signed userEvent)
+  return $ bimap userTableToModel id <$> usersSignedList
 
 -- -- TODO - convert these below functions, and others in original file Storage.hs
 -- -- TODO = use EventId or EventID ???
