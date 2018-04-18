@@ -143,9 +143,10 @@ addPublicKey user pemKey@(PEMString pemStr) = do
 checkPubKey :: SomePublicKey -> RSAPublicKey-> Either ServiceError RSAPubKey
 checkPubKey spKey pemKey =
   maybe (Left $ InvalidRSAKey pemKey)
-  (\pubKey -> do
-    if (rsaSize pubKey) < (U.unByte minPubKeySize)
-      then Left $ InvalidRSAKeySize (Expected minPubKeySize) (Received $ U.Byte $ rsaSize pubKey)
+  (\pubKey ->
+    let keySize = rsaSize pubKey in
+    if keySize < (U.unByte minPubKeySize)
+      then Left $ InvalidRSAKeySize (Expected minPubKeySize) (Received $ U.Byte keySize)
       else Right pubKey
   )
   (toPublicKey spKey)
