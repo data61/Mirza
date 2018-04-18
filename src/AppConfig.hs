@@ -12,6 +12,9 @@ module AppConfig
   , runDb
   , ask
   , asks
+  , debugLog
+  , debugLogGeneral
+  , sandwichLog
   )
   where
 
@@ -20,6 +23,7 @@ import           Database.Beam.Postgres     (Pg)
 import           Database.PostgreSQL.Simple (Connection)
 
 import qualified Control.Exception          as Exc
+import           Control.Monad              (when)
 import           Control.Monad.Except       (ExceptT (..), MonadError,
                                              runExceptT, throwError)
 import           Control.Monad.IO.Class     (MonadIO)
@@ -75,3 +79,28 @@ runDb q = dbFunc >>= (\f -> liftIO $ Exc.try $ f q) >>= either (throwError . App
 
 runAppM :: Env -> AppM a -> IO (Either AppError a)
 runAppM env aM = runExceptT $ (runReaderT . unAppM) aM env
+
+-- App Utils. Moved from Utils
+
+-- | Given a stringLike, prints it only if the application is in Dev
+-- otherwise, does a nop.
+-- Only works in AppM monad
+debugLog :: Show a => a -> AppM ()
+debugLog strLike = do
+  envT <- asks envType
+  when (envT == Dev) $ liftIO $ print strLike
+
+-- | To be used when the Env is known/available.
+-- It doesn't require that the function is being run in AppM
+debugLogGeneral :: (Show a, MonadIO f) => EnvType -> a -> f ()
+debugLogGeneral envT strLike = do
+  when (envT == Dev) $ liftIO $ print strLike
+
+bun :: String
+bun = "========================"
+
+sandwichLog :: Show a => a -> AppM ()
+sandwichLog patty = do
+  debugLog bun
+  debugLog patty
+  debugLog bun

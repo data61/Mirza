@@ -17,7 +17,8 @@ import           Data.GS1.DWhat                           (AggregationDWhat (..)
                                                            ObjectDWhat (..),
                                                            OutputEPC (..),
                                                            TransactionDWhat (..),
-                                                           TransformationDWhat (..))
+                                                           TransformationDWhat (..),
+                                                           unParentLabel)
 import qualified Data.GS1.Event                           as Ev
 import qualified Data.GS1.EventID                         as EvId
 import           Data.Maybe                               (fromMaybe)
@@ -33,11 +34,13 @@ import           ErrorUtils                               (getSqlErrorCode,
                                                            throwAppError,
                                                            throwBackendError,
                                                            toServerError)
+import qualified MigrateUtils                             as MU
 import qualified Model                                    as M
 import           OpenSSL.PEM                              (writePublicKey)
 import           OpenSSL.RSA                              (RSAPubKey)
 import           QueryUtils
 import qualified StorageBeam                              as SB
+
 
 {-
 -- Sample NewUser JSON
@@ -222,9 +225,7 @@ insertAggEvent
     eventId <- insertEvent userId jsonEvent event
     whatId <- insertDWhat Nothing dwhat eventId
     labelIds <- mapM (insertLabel Nothing whatId) labelEpcs
-    -- Make labelType a datatype?
-    -- FIXME: not used?
-    -- let mParentId = insertLabel (Just "parent") whatId <$> (IL <$> mParentLabel)
+    mapM_ (insertLabel (Just MU.Parent) whatId) ((IL . unParentLabel )<$> mParentLabel)
     _whenId <- insertDWhen dwhen eventId
     _whyId <- insertDWhy dwhy eventId
     insertDWhere dwhere eventId
@@ -257,8 +258,8 @@ insertTransfEvent
   transaction $ do
     eventId <- insertEvent userId jsonEvent event
     whatId <- insertDWhat Nothing dwhat eventId
-    inputLabelIds <- mapM (\(InputEPC i) -> insertLabel (Just "input") whatId i) inputs
-    outputLabelIds <- mapM (\(OutputEPC o) -> insertLabel (Just "output") whatId o) outputs
+    inputLabelIds <- mapM (\(InputEPC i) -> insertLabel (Just MU.Input) whatId i) inputs
+    outputLabelIds <- mapM (\(OutputEPC o) -> insertLabel (Just MU.Output) whatId o) outputs
     let labelIds = inputLabelIds ++ outputLabelIds
     _whenId <- insertDWhen dwhen eventId
     _whyId <- insertDWhy dwhy eventId
@@ -296,8 +297,7 @@ insertTransactEvent
     eventId <- insertEvent userId jsonEvent event
     whatId <- insertDWhat Nothing dwhat eventId
     labelIds <- mapM (insertLabel Nothing whatId) labelEpcs
-    -- FIXME: not used?
-    -- let mParentId = insertLabel (Just "parent") whatId <$> (IL <$> mParentLabel)
+    mapM_ (insertLabel (Just MU.Parent) whatId) ((IL . unParentLabel )<$> mParentLabel)
     _whenId <- insertDWhen dwhen eventId
     _whyId <- insertDWhy dwhy eventId
     insertDWhere dwhere eventId
