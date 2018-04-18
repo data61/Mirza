@@ -178,7 +178,7 @@ epcState _user _str = U.notImplemented
 -- wholeEvents <- select * from events, dwhats, dwhy, dwhen where _whatItemID=labelID AND _eventID=_whatEventID AND _eventID=_whenEventID AND _eventID=_whyEventID ORDER BY _eventTime;
 -- return map constructEvent wholeEvents
 listEvents :: User ->  M.LabelEPCUrn -> AC.AppM [Ev.Event]
-listEvents _user urn = either throwParseError BQ.listEvents (urn2LabelEPC . pack $ urn)
+listEvents _user = either throwParseError BQ.listEvents . urn2LabelEPC . pack
 
 -- given an event ID, list all the users associated with that event
 -- this can be used to make sure everything is signed
