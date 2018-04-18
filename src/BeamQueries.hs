@@ -378,7 +378,7 @@ addContact (M.User uid1 _ _) uid2 = do
   pKey <- generatePk
   r <- runDb $ runInsertReturningList (SB._contacts SB.supplyChainDb) $
                insertValues [SB.Contact pKey (SB.UserId uid1) (SB.UserId uid2)]
-  verifyContact r uid1 uid2
+  return $ verifyContact r uid1 uid2
 
 -- | The current behaviour is, if the users were not contacts in the first
 -- place, then the function returns false
@@ -412,9 +412,8 @@ listContacts  (M.User uid _ _) = do
 -- TODO: Write tests
 listBusinesses :: AppM [SB.Business]
 listBusinesses = do
-  runDb $ runSelectReturningList $ select $ do
-    biz <- all_ (SB._businesses SB.supplyChainDb)
-    pure biz
+  runDb $ runSelectReturningList $ select $
+      all_ (SB._businesses SB.supplyChainDb)
 
 -- TODO: Write tests
 -- QUESTION: can we not have muliple users associated with an event?
