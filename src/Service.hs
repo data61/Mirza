@@ -186,12 +186,11 @@ listEvents _user = either throwParseError BQ.listEvents . urn2LabelEPC . pack
 -- PSEUDO:
 -- SELECT event.userID, userID1, userID2 FROM Events, BizTransactions WHERE Events._eventID=eventID AND BizTransactionsEventId=Events._eventID;
 -- implement a function constructEvent :: WholeEvent -> Event
---
 
 -- Look into usereventsT and tie that back to the user
 -- the function getUser/selectUser might be helpful
 eventUserList :: M.User -> EventID -> AC.AppM [(M.User, Bool)]
-eventUserList _user _eventID = U.notImplemented
+eventUserList _user = BQ.eventUserList
 
 contactsInfo :: M.User -> AC.AppM [M.User]
 contactsInfo = BQ.listContacts
