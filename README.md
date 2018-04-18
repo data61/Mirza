@@ -4,17 +4,17 @@
 
 If you do not have the latest version of stack, please remove whatever version of stack you have:
 
-`sudo apt remove haskell-stack `
+`sudo apt remove haskell-stack`
 
 Then get the latest version of stack by running:
 
-`wget -qO- https://get.haskellstack.org/ | sh `
+`wget -qO- https://get.haskellstack.org/ | sh`
 
 ## Building the server
 
 To build the server, run:
 
-`stack build `
+`stack build`
 
 On MacOS, you need to `brew install openssl` and then run:
 `stack build --extra-include-dirs=/usr/local/opt/openssl/include --extra-lib-dirs=/usr/local/opt/openssl/lib`
@@ -30,7 +30,7 @@ To install, you can follow the instructions [here]( http://yallalabs.com/linux/h
 Note that you may need to run the commands as a super user.
 
 Create a Postgres account.
-There are good instructions <a href="https://www.digitalocean.com/community/tutorials/how-to-install-and-use-postgresql-on-ubuntu-16-04" target="_blank"> here. </a>
+There are good instructions [here](https://www.digitalocean.com/community/tutorials/how-to-install-and-use-postgresql-on-ubuntu-16-04)
 
 Type in `psql` and see that you can open up a `psql` shell.
 
@@ -50,23 +50,25 @@ Finally, to run the server, do:
 
 Then you can check out the API at:
 
-http://localhost:8000/swagger-ui/
+<http://localhost:8000/swagger-ui/>
 
-To use ghci interactively, run 
+To use ghci interactively, run
 
-`stack ghci `
+`stack ghci`
 
 If you find yourself deleting and recreating the database frequently, run
-`./restart.sh`. It will build your code, drop the database 
+`./restart.sh`. It will build your code, drop the database
 `devsupplychainserver`, create it anew and run the migration script
 to create all the relevant tables.
 
 To do a clean build instead, do `./restart.sh --clean`.
 
 ### Useful Tools
+
 - [GS1 Company Database](https://www.gs1us.org/tools/gs1-company-database-gepir) - You can search for GLN (Global Location Number) of GS1 Companies here
 
 Things to do before next release:
+
 - [x] Integrate ReaderT Monad
 - [ ] Add tests for all the endpoints
 - [ ] Finish backend implementation (queries) for all endpoints

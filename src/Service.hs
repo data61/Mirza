@@ -34,7 +34,6 @@ import qualified Data.GS1.Event                   as Ev
 import           Data.GS1.EventID
 import           Data.GS1.Parser.Parser
 import qualified Data.HashMap.Strict.InsOrd       as IOrd
-import           Data.Maybe                       (fromJust, isNothing)
 import           Data.Swagger
 import           Data.Text                        (pack)
 import           Data.Text.Encoding               (decodeUtf8)
@@ -139,23 +138,19 @@ minPubKeySize = U.Byte 256 -- 2048 / 8
 addPublicKey :: M.User -> M.RSAPublicKey -> AC.AppM M.KeyID
 addPublicKey user pemKey@(M.PEMString pemStr) = do
   somePubKey <- liftIO $ readPublicKey pemStr
-  case checkPubKey somePubKey pemKey of
-    Right k -> BQ.addPublicKey user k
-    Left e  -> throwAppError e
+  either throwAppError (BQ.addPublicKey user) (checkPubKey somePubKey pemKey)
 
 checkPubKey :: SomePublicKey -> M.RSAPublicKey-> Either ServiceError RSAPubKey
-checkPubKey spKey pemKey
-  | isNothing mPKey = Left $ InvalidRSAKey pemKey
-  | rsaSize pubKey < (U.unByte minPubKeySize)
-      = Left $ InvalidRSAKeySize (Expected minPubKeySize) (Received $ U.Byte keySize)
+checkPubKey spKey pemKey =
+  maybe (Left $ InvalidRSAKey pemKey)
+  (\pubKey ->
+    let keySize = rsaSize pubKey in
+    if keySize < (U.unByte minPubKeySize)
       -- rsaSize returns size in bytes
-  | otherwise = Right pubKey
-  where
-    mPKey :: Maybe RSAPubKey
-    mPKey = toPublicKey spKey
-    pubKey = fromJust mPKey
-    keySize = rsaSize pubKey
-
+      then Left $ InvalidRSAKeySize (Expected minPubKeySize) (Received $ U.Byte keySize)
+      else Right pubKey
+  )
+  (toPublicKey spKey)
 
 newUser :: M.NewUser -> AC.AppM M.UserID
 newUser = BQ.newUser
@@ -184,11 +179,7 @@ epcState _user _str = U.notImplemented
 -- wholeEvents <- select * from events, dwhats, dwhy, dwhen where _whatItemID=labelID AND _eventID=_whatEventID AND _eventID=_whenEventID AND _eventID=_whyEventID ORDER BY _eventTime;
 -- return map constructEvent wholeEvents
 listEvents :: M.User ->  M.LabelEPCUrn -> AC.AppM [Ev.Event]
-listEvents _user urn =
-  case urn2LabelEPC . pack $ urn of
-    Left e         -> throwParseError e
-    Right labelEpc -> BQ.listEvents labelEpc
-
+listEvents _user = either throwParseError BQ.listEvents . urn2LabelEPC . pack
 
 -- given an event ID, list all the users associated with that event
 -- this can be used to make sure everything is signed

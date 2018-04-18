@@ -10,7 +10,7 @@ import           AppConfig                  (AppM, Env (..), EnvType (..),
                                              runAppM, runDb)
 import           BeamQueries
 import           Control.Monad              (void)
-import           Crypto.Scrypt
+-- import           Crypto.Scrypt
 import           Data.ByteString            (ByteString)
 import           Data.GS1.EPC
 import           Data.Maybe                 (fromJust, isNothing)
@@ -30,13 +30,15 @@ import qualified Service                    as S
 import qualified StorageBeam                as SB
 import           Test.Hspec
 
+import qualified Crypto.Scrypt              as Scrypt
+
 -- NOTE in this file, where fromJust is used in the tests, it is because we expect a Just... this is part of the test
 -- NOTE tables dropped after every running of test in an "it"
 
 -- for grabbing the encrypted password from user 1
 hashIO :: MonadIO m => m ByteString
-hashIO = getEncryptedPass <$> liftIO
-    (encryptPassIO' (Pass $ encodeUtf8 $ M.password dummyNewUser))
+hashIO = Scrypt.getEncryptedPass <$> liftIO
+    (Scrypt.encryptPassIO' (Scrypt.Pass $ encodeUtf8 $ M.password dummyNewUser))
 
 timeStampIO :: MonadIO m => m LocalTime
 timeStampIO = liftIO $ (utcToLocalTime utc) <$> getCurrentTime
@@ -57,8 +59,8 @@ selectKey keyId = do
           guard_ (SB.key_id key ==. val_ keyId)
           pure key
   case r of
-    Right [key] -> return $ Just key
-    _           -> return Nothing
+    [key] -> return $ Just key
+    _     -> return Nothing
 
 testAppM :: Env -> AppM a -> IO a
 testAppM env act = runAppM env act >>= \case
@@ -131,9 +133,9 @@ testQueries = do
               (SB.last_name u) == (M.lastName dummyNewUser) &&
               (SB.user_biz_id u) == (SB.BizId (M.company dummyNewUser)) &&
               -- note database bytestring includes the salt, this checks password
-              (verifyPass'
-                (Pass $ encodeUtf8 $ M.password dummyNewUser)
-                (EncryptedPass $ SB.password_hash u)) &&
+              (Scrypt.verifyPass'
+                (Scrypt.Pass $ encodeUtf8 $ M.password dummyNewUser)
+                (Scrypt.EncryptedPass $ SB.password_hash u)) &&
               (SB.user_id u) == uid
             )
 
@@ -370,4 +372,4 @@ populateContact ioEnv = do
     hasBeenAdded `shouldBe` True
 
 defaultEnv :: IO Env
-defaultEnv = Env Dev <$> connectPostgreSQL testDbConnStr
+defaultEnv = (\conn -> Env Dev conn Scrypt.defaultParams) <$> connectPostgreSQL testDbConnStr

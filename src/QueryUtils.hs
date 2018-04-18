@@ -1,5 +1,6 @@
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE TupleSections    #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TupleSections         #-}
 
 -- | Following are a bunch of utility functions to do household stuff like
 -- generating primary keys, timestamps - stuff that almost every function
@@ -44,12 +45,14 @@ import           Data.Time.LocalTime        (LocalTime, localTimeToUTC,
 import           Data.UUID.V4               (nextRandom)
 import           Database.Beam              as B
 import           Database.PostgreSQL.Simple
-import           ErrorUtils                 (sqlToServerError,
-                                             throwBackendError,
-                                             throwUnexpectedDBError)
+import           ErrorUtils                 (throwBackendError)
 import qualified MigrateUtils               as MU
 import qualified Model                      as M
 import qualified StorageBeam                as SB
+
+import           Control.Monad              (void)
+import           Control.Monad.Except       (MonadError, catchError, throwError)
+import           Control.Monad.Reader       (ask)
 
 -- | Reads back the ``LocalTime`` in UTCTime (with an offset of 0)
 toEPCISTime :: LocalTime -> EPCISTime
@@ -177,6 +180,28 @@ findInstLabelId (SSCC cp sn) = findInstLabelId' cp sn Nothing Nothing Nothing
 findInstLabelId (SGTIN cp msfv ir sn) = findInstLabelId' cp sn msfv (Just ir) Nothing
 findInstLabelId (GRAI cp at sn) = findInstLabelId' cp sn Nothing Nothing (Just at)
 
+-- | Ueful for handling specific errors from, for example, database transactions
+-- @
+--  handleError errHandler $ runDb ...
+--  ...
+--  where errHandler (AppError (DatabaseError sqlErr)) = ...
+--        errHandler e = throwError e
+-- @
+handleError :: MonadError e m => (e -> m a) -> m a -> m a
+handleError = flip catchError
+
+-- | Handles the common case of generating a primary key, using it in some
+-- transaction and then returning the primary key.
+-- @
+--   insertFoo :: ArgType -> AppM PrimmaryKeyType
+--   insertFoo arg = withPKey $ \pKey -> do
+--     runDb ... pKey ...
+-- @
+withPKey :: (SB.PrimaryKeyType -> AppM a) -> AppM SB.PrimaryKeyType
+withPKey f = do
+  pKey <- generatePk
+  _ <- f pKey
+  pure pKey
 
 findInstLabelId' :: GS1CompanyPrefix
                 -> SerialNumber
@@ -194,8 +219,8 @@ findInstLabelId' cp sn msfv mir mat = do
             SB.item_reference labels ==. val_ mir)
     pure labels
   case r of
-    Right [l] -> return $ Just (SB.label_id l)
-    _         -> return Nothing
+    [l] -> return $ Just (SB.label_id l)
+    _   -> return Nothing
 
 
 findClassLabelId :: ClassLabelEPC -> AppM (Maybe SB.PrimaryKeyType)
@@ -218,8 +243,8 @@ findClassLabelId' cp msfv ir lot = do
            )
     pure labels
   case r of
-    Right [l] -> return $ Just (SB.label_id l)
-    _         -> return Nothing
+    [l] -> return $ Just (SB.label_id l)
+    _   -> return Nothing
 
 
 findLabelId :: LabelEPC -> AppM (Maybe SB.PrimaryKeyType)
@@ -261,92 +286,56 @@ insertDWhat :: Maybe SB.PrimaryKeyType
             -> DWhat
             -> SB.PrimaryKeyType
             -> AppM SB.PrimaryKeyType
-insertDWhat mBizTranId dwhat eventId = do
-  pKey <- generatePk
-  mParentId <- getParentId dwhat
-  r <- runDb $ B.runInsert $ B.insert (SB._whats SB.supplyChainDb)
-             $ insertValues
-             [toStorageDWhat pKey mParentId mBizTranId eventId dwhat]
-  case r of
-    Left  e -> throwUnexpectedDBError $ sqlToServerError e
-    Right _ -> return pKey
+insertDWhat mBizTranId dwhat eventId = withPKey $ \pKey ->
+  transaction $ do
+    mParentId <- getParentId dwhat
+    runDb $ B.runInsert $ B.insert (SB._whats SB.supplyChainDb)
+          $ insertValues [toStorageDWhat pKey mParentId mBizTranId eventId dwhat]
+
 
 insertDWhen :: DWhen -> SB.PrimaryKeyType -> AppM SB.PrimaryKeyType
-insertDWhen dwhen eventId =  do
-  pKey <- generatePk
-  r <- runDb $ B.runInsert $ B.insert (SB._whens SB.supplyChainDb)
+insertDWhen dwhen eventId = withPKey $ \pKey ->
+  runDb $ B.runInsert $ B.insert (SB._whens SB.supplyChainDb)
              $ insertValues [toStorageDWhen pKey dwhen eventId]
-  case r of
-    Left  e -> throwUnexpectedDBError $ sqlToServerError e
-    Right _ -> return pKey
 
 
 insertDWhy :: DWhy -> SB.PrimaryKeyType -> AppM SB.PrimaryKeyType
-insertDWhy dwhy eventId = do
-  pKey <- generatePk
-  r <- runDb $ B.runInsert $ B.insert (SB._whys SB.supplyChainDb)
+insertDWhy dwhy eventId = withPKey $ \pKey ->
+  runDb $ B.runInsert $ B.insert (SB._whys SB.supplyChainDb)
              $ insertValues [toStorageDWhy pKey dwhy eventId]
-  case r of
-    Left  e -> throwUnexpectedDBError $ sqlToServerError e
-    Right _ -> return pKey
 
 insertSrcDestType :: MU.LocationField
                   -> SB.PrimaryKeyType
                   -> SrcDestLocation
                   -> AppM SB.PrimaryKeyType
-insertSrcDestType
-  locField
-  eventId
-  (SrcDestLocation (sdType, SGLN pfix locationRef ext)) = do
-  pKey <- generatePk
-  let
-      stWhere = SB.Where pKey
-                pfix
-                (Just sdType)
-                locationRef
-                locField
-                ext
+insertSrcDestType locField eventId
+  (SrcDestLocation (sdType, SGLN pfix locationRef ext)) =
+  withPKey $ \pKey -> do
+    let stWhere = SB.Where pKey pfix (Just sdType) locationRef locField ext
                 (SB.EventId eventId)
-  r <- runDb $ B.runInsert $ B.insert (SB._wheres SB.supplyChainDb)
+    runDb $ B.runInsert $ B.insert (SB._wheres SB.supplyChainDb)
              $ insertValues [stWhere]
-  case r of
-    Left  e -> throwUnexpectedDBError $ sqlToServerError e
-    Right _ -> return pKey
 
 insertLocationEPC :: MU.LocationField
                   -> SB.PrimaryKeyType
                   -> LocationEPC
                   -> AppM SB.PrimaryKeyType
-insertLocationEPC
-  locField
-  eventId
-  (SGLN pfix locationRef ext) = do
-    pKey <- generatePk
-    let stWhere = SB.Where pKey
-                  pfix
-                  Nothing
-                  locationRef
-                  locField
-                  ext
+insertLocationEPC locField eventId (SGLN pfix locationRef ext) =
+  withPKey $ \pKey -> do
+    let stWhere = SB.Where pKey pfix Nothing locationRef locField ext
                   (SB.EventId eventId)
-    r <- runDb $ B.runInsert $ B.insert (SB._wheres SB.supplyChainDb)
+    runDb $ B.runInsert $ B.insert (SB._wheres SB.supplyChainDb)
                 $ insertValues [stWhere]
-    case r of
-      Left  e -> throwUnexpectedDBError $ sqlToServerError e
-      Right _ -> return pKey
 
 -- | Maps the relevant insert function for all
 -- ReadPoint, BizLocation, Src, Dest
 insertDWhere :: DWhere -> SB.PrimaryKeyType -> AppM ()
 insertDWhere (DWhere rPoints bizLocs srcTs destTs) eventId = do
-  -- These functions are not firing
-  -- FIXME: Should this be done in a transaction? should we be doinbg something
-  -- with the results
-  sequence_ $ insertLocationEPC MU.ReadPoint eventId . unReadPointLocation <$> rPoints
-  sequence_ $ insertLocationEPC MU.BizLocation eventId . unBizLocation <$> bizLocs
-  sequence_ $ insertSrcDestType MU.Src eventId <$> srcTs
-  sequence_ $ insertSrcDestType MU.Dest eventId <$> destTs
-  return ()
+  transaction $ do
+    sequence_ $ insertLocationEPC MU.ReadPoint eventId . unReadPointLocation <$> rPoints
+    sequence_ $ insertLocationEPC MU.BizLocation eventId . unBizLocation <$> bizLocs
+    sequence_ $ insertSrcDestType MU.Src eventId <$> srcTs
+    sequence_ $ insertSrcDestType MU.Dest eventId <$> destTs
 
 -- | Given a DWhere, looks for all the insertions associated with the DWHere
 -- Think of this as the inverse of ``insertDWhere``
@@ -359,16 +348,12 @@ findDWhere eventId = do
   return $ mergeSBWheres [rPoints, bizLocs, srcTs, destTs]
 
 findDWhereByLocationField :: MU.LocationField -> SB.PrimaryKeyType -> AppM [SB.WhereT Identity]
-findDWhereByLocationField locField eventId = do
-  r <- runDb $ runSelectReturningList $ select $ do
+findDWhereByLocationField locField eventId = runDb $ runSelectReturningList $ select $ do
     wheres <- all_ (SB._wheres SB.supplyChainDb)
     guard_ (
       SB.where_event_id wheres ==. val_ (SB.EventId eventId) &&.
       SB.where_location_field wheres ==. val_ locField)
     pure wheres
-  case r of
-    Left  e -> throwUnexpectedDBError $ sqlToServerError e
-    Right w -> return w
 
 
 -- | Merges a list of SB.Wheres into one Data.GS1.DWhere
@@ -399,16 +384,10 @@ constructLocation whereT =
     (SB.where_sgln_ext whereT)
 
 
-
 insertEvent :: SB.PrimaryKeyType -> T.Text -> Event -> AppM SB.PrimaryKeyType
-insertEvent userId jsonEvent event = do
-  pKey <- generatePk
-  r <- runDb $ B.runInsert $ B.insert (SB._events SB.supplyChainDb)
-             $ insertValues
-             [toStorageEvent pKey userId jsonEvent (_eid event)]
-  case r of
-    Left  e -> throwUnexpectedDBError $ sqlToServerError e
-    Right _ -> return pKey
+insertEvent userId jsonEvent event = withPKey $ \pKey ->
+  runDb $ B.runInsert $ B.insert (SB._events SB.supplyChainDb)
+        $ insertValues [toStorageEvent pKey userId jsonEvent (_eid event)]
 
 insertUserEvent :: SB.PrimaryKeyType
                 -> SB.PrimaryKeyType
@@ -416,35 +395,25 @@ insertUserEvent :: SB.PrimaryKeyType
                 -> Bool
                 -> (Maybe ByteString)
                 -> AppM ()
-insertUserEvent eventId userId addedByUserId signed signedHash = do
-  pKey <- generatePk
-  -- TODO: What to do about database errors here?
-  _ <- runDb $ B.runInsert $ B.insert (SB._user_events SB.supplyChainDb)
+insertUserEvent eventId userId addedByUserId signed signedHash =
+  void $ withPKey $ \pKey ->
+    runDb $ B.runInsert $ B.insert (SB._user_events SB.supplyChainDb)
         $ insertValues
-        [
-          SB.UserEvent pKey
-          (SB.EventId eventId)
-          (SB.UserId userId)
-          signed
-          (SB.UserId addedByUserId)
-          signedHash
+          [ SB.UserEvent pKey (SB.EventId eventId) (SB.UserId userId)
+                        signed (SB.UserId addedByUserId) signedHash
         ]
-  return ()
 
 insertWhatLabel :: SB.PrimaryKeyType
                 -> SB.PrimaryKeyType
                 -> AppM SB.PrimaryKeyType
-insertWhatLabel whatId labelId = do
-  pKey <- generatePk
-  -- TODO: What to do about database errors here?
-  _ <- runDb $ B.runInsert $ B.insert (SB._what_labels SB.supplyChainDb)
+insertWhatLabel whatId labelId = withPKey $ \pKey ->
+  runDb $ B.runInsert $ B.insert (SB._what_labels SB.supplyChainDb)
         $ insertValues
         [
           SB.WhatLabel pKey
           (SB.WhatId whatId)
           (SB.LabelId labelId)
         ]
-  return pKey
 
 -- | Given the necessary information,
 -- converts a ``LabelEPC`` to SB.Label and writes it to the database
@@ -452,29 +421,20 @@ insertLabel :: Maybe MU.LabelType
             -> SB.PrimaryKeyType
             -> LabelEPC
             -> AppM SB.PrimaryKeyType
-insertLabel labelType whatId labelEpc = do
-  pKey <- generatePk
-  -- TODO: What to do about database errors here?
-  _ <- runDb $ B.runInsert $ B.insert (SB._labels SB.supplyChainDb)
+insertLabel labelType whatId labelEpc = withPKey $ \pKey ->
+  runDb $ B.runInsert $ B.insert (SB._labels SB.supplyChainDb)
         $ insertValues
         [ epcToStorageLabel labelType whatId pKey labelEpc]
-  return pKey
 
 -- | Ties up a label and an event entry in the database
 insertLabelEvent :: SB.PrimaryKeyType
                  -> SB.PrimaryKeyType
                  -> AppM SB.PrimaryKeyType
-insertLabelEvent eventId labelId = do
-  pKey <- generatePk
-  -- TODO: What to do about database errors here?
-  _ <- runDb $ B.runInsert $ B.insert (SB._label_events SB.supplyChainDb)
+insertLabelEvent eventId labelId = withPKey $ \pKey ->
+  runDb $ B.runInsert $ B.insert (SB._label_events SB.supplyChainDb)
         $ insertValues
-        [
-          SB.LabelEvent pKey
-          (SB.LabelId labelId)
-          (SB.EventId eventId)
+          [ SB.LabelEvent pKey (SB.LabelId labelId) (SB.EventId eventId)
         ]
-  return pKey
 
 
 -- | Runs a gicen action within a postgres transaction. If an exception is
@@ -501,25 +461,18 @@ selectUser uid = do
           guard_ (SB.user_id user ==. val_ uid)
           pure user
   case r of
-    Right [user] -> return $ Just user
-    _            -> return Nothing
+    [user] -> return $ Just user
+    _      -> return Nothing
 
 getEventList :: SB.PrimaryKeyType -> AppM [Ev.Event]
 getEventList labelId = do
-  r <- runDb $
-        runSelectReturningList $ select $ do
+  labelEvents <- runDb $ runSelectReturningList $ select $ do
         labelEvent <- all_ (SB._label_events SB.supplyChainDb)
         guard_ (SB.label_event_label_id labelEvent ==. val_ (SB.LabelId labelId))
         pure labelEvent
-  case r of
-    Left e -> throwUnexpectedDBError $ sqlToServerError e
-  -- extract eventIds out
-    Right labelEvents ->
-      let
-        eventIds = (SB.unEventId . SB.label_event_event_id) <$> labelEvents
-        allEvents = sequence $ findEvent <$> eventIds
-        in
-          catMaybes <$> allEvents
+  let eventIds = (SB.unEventId . SB.label_event_event_id) <$> labelEvents
+      allEvents = findEvent <$> eventIds
+  catMaybes <$> sequence allEvents
 
 findEvent :: SB.PrimaryKeyType -> AppM (Maybe Ev.Event)
 findEvent eventId = do
@@ -529,14 +482,14 @@ findEvent eventId = do
         guard_ (SB.event_id event ==. (val_ eventId))
         pure event
   case r of
-    Right [event] -> return $ storageToModelEvent event
-    Left  e       -> throwUnexpectedDBError $ sqlToServerError e
-    _             -> throwBackendError r
+    [event] -> return $ storageToModelEvent event
+    _       -> throwBackendError r
 
 storageToModelEvent :: SB.Event -> Maybe Ev.Event
 storageToModelEvent = decodeEvent . SB.json_event
 
--- | Checks if a pair of userIds are recorded as a contact
+-- | Checks if a pair of userIds are recorded as a contact.
+-- __Must be run in a transaction!__
 isExistingContact :: M.UserID -> M.UserID -> AppM Bool
 isExistingContact uid1 uid2 = do
   r <- runDb $ runSelectReturningList $ select $ do
@@ -549,11 +502,11 @@ isExistingContact uid1 uid2 = do
 -- | Simple utility function to check that the users are part of the contact
 -- typically used with the result of a query
 verifyContact :: (Eq (PrimaryKey SB.UserT f), Monad m) =>
-                   Either e [SB.ContactT f] ->
+                   [SB.ContactT f] ->
                    C f SB.PrimaryKeyType ->
                    C f SB.PrimaryKeyType ->
                    m Bool
-verifyContact (Right [insertedContact]) uid1 uid2 = return $
+verifyContact [insertedContact] uid1 uid2 = return $
                   (SB.contact_user1_id insertedContact == (SB.UserId uid1)) &&
                   (SB.contact_user2_id insertedContact == (SB.UserId uid2))
 verifyContact _ _ _ = return False

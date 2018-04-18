@@ -20,16 +20,18 @@ module AppConfig
 
 import qualified Database.Beam              as B
 import           Database.Beam.Postgres     (Pg)
-import           Database.PostgreSQL.Simple (Connection, SqlError)
+import           Database.PostgreSQL.Simple (Connection)
 
 import qualified Control.Exception          as Exc
 import           Control.Monad              (when)
 import           Control.Monad.Except       (ExceptT (..), MonadError,
-                                             runExceptT)
+                                             runExceptT, throwError)
 import           Control.Monad.IO.Class     (MonadIO)
 import           Control.Monad.Reader       (MonadReader, ReaderT, ask, asks,
                                              liftIO, runReaderT)
 import           Errors                     (ServiceError (..))
+
+import           Crypto.Scrypt              (ScryptParams)
 
 data EnvType = Prod | Dev
   deriving (Show, Eq, Read)
@@ -39,8 +41,9 @@ mkEnvType False = Prod
 mkEnvType _     = Dev
 
 data Env = Env
-  { envType :: EnvType
-  , dbConn  :: Connection
+  { envType  :: EnvType
+  , dbConn   :: Connection
+  , scryptPs :: ScryptParams
   -- , port    :: Word16
   }
 
@@ -70,10 +73,9 @@ dbFunc = do
     _    -> B.withDatabaseDebug putStrLn conn  -- database queries other than migration will print on screen
 
 -- | Helper function to run db functions
-runDb :: Pg a -> AppM (Either SqlError a)
-runDb q = dbFunc >>= (\f -> liftIO $ Exc.try $ f q) -- >>= either (throwError . AppError . DatabaseError) pure
--- TODO: Should this throwError SqlErrors? we have code which ignores the
--- errors, we should require explicit catching.
+runDb :: Pg a -> AppM a
+runDb q = dbFunc >>= (\f -> liftIO $ Exc.try $ f q) >>= either (throwError . AppError . DatabaseError) pure
+
 
 runAppM :: Env -> AppM a -> IO (Either AppError a)
 runAppM env aM = runExceptT $ (runReaderT . unAppM) aM env
