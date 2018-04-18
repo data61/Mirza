@@ -34,7 +34,6 @@ import qualified Data.GS1.Event                   as Ev
 import           Data.GS1.EventID
 import           Data.GS1.Parser.Parser
 import qualified Data.HashMap.Strict.InsOrd       as IOrd
--- import           Data.Maybe                       (fromJust, isNothing)
 import           Data.Swagger
 import           Data.Text                        (pack)
 import           Data.Text.Encoding               (decodeUtf8)
