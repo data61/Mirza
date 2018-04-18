@@ -574,7 +574,6 @@ supplyChainDb = defaultDbSettings
     , _events =
         modifyTable (const "events") $
         tableModification {
-          -- event_label_id = BizId (fieldNamed "event_label_id")
           event_created_by = UserId (fieldNamed "event_created_by")
         }
     , _whats =
@@ -611,7 +610,6 @@ supplyChainDb = defaultDbSettings
           label_event_label_id = LabelId (fieldNamed "label_event_label_id")
         , label_event_event_id = EventId (fieldNamed "label_event_event_id")
         }
-    -- all the foreign keys are relevant here
     , _user_events =
         modifyTable (const "user_event") $
         tableModification {

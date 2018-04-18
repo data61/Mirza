@@ -1,5 +1,7 @@
+{-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TupleSections         #-}
+
 -- | Following are a bunch of utility functions to do household stuff like
 -- generating primary keys, timestamps - stuff that almost every function
 -- below would need to do anyway
@@ -483,3 +485,31 @@ findEvent eventId = do
 
 storageToModelEvent :: SB.Event -> Maybe Ev.Event
 storageToModelEvent = decodeEvent . SB.json_event
+
+-- | Checks if a pair of userIds are recorded as a contact.
+-- __Must be run in a transaction!__
+isExistingContact :: M.UserID -> M.UserID -> AppM Bool
+isExistingContact uid1 uid2 = do
+  r <- runDb $ runSelectReturningList $ select $ do
+        contact <- all_ (SB._contacts SB.supplyChainDb)
+        guard_ (SB.contact_user1_id contact  ==. (val_ . SB.UserId $ uid1) &&.
+                SB.contact_user2_id contact  ==. (val_ . SB.UserId $ uid2))
+        pure contact
+  return $ verifyContact r uid1 uid2
+
+-- | Simple utility function to check that the users are part of the contact
+-- typically used with the result of a query
+verifyContact :: (Eq (PrimaryKey SB.UserT f)) =>
+                 [SB.ContactT f] ->
+                 C f SB.PrimaryKeyType ->
+                 C f SB.PrimaryKeyType ->
+                 Bool
+verifyContact [insertedContact] uid1 uid2 =
+                  (SB.contact_user1_id insertedContact == (SB.UserId uid1)) &&
+                  (SB.contact_user2_id insertedContact == (SB.UserId uid2))
+verifyContact _ _ _ = False
+
+storageToModelBusiness :: SB.Business -> M.Business
+storageToModelBusiness (SB.Business pfix name f site addr lat long)
+  = M.Business pfix name f site addr lat long
+

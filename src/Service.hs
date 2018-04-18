@@ -44,7 +44,7 @@ import           ErrorUtils                       (appErrToHttpErr,
                                                    throwAppError,
                                                    throwParseError)
 import           GHC.TypeLits                     (KnownSymbol)
-import           Model                            as M
+import qualified Model                            as M
 import qualified OpenSSL.EVP.Digest               as EVPDigest
 import           OpenSSL.EVP.PKey                 (SomePublicKey, toPublicKey)
 import           OpenSSL.EVP.Verify               (VerifyStatus (..), verifyBS)
@@ -68,7 +68,7 @@ instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub
       & allOperations . security .~ securityRequirements
 
 -- 'BasicAuthCheck' holds the handler we'll use to verify a username and password.
-authCheck :: AC.Env -> BasicAuthCheck User
+authCheck :: AC.Env -> BasicAuthCheck M.User
 authCheck env =
   let check (BasicAuthData useremail pass) = do
         eitherUser <- AC.runAppM env $ BQ.authCheck (decodeUtf8 useremail) pass
@@ -129,35 +129,36 @@ serveSwaggerAPI = toSwagger serverAPI
 -- Basic Authentication requires a Context Entry with the 'BasicAuthCheck' value
 -- tagged with "foo-tag" This context is then supplied to 'server' and threaded
 -- to the BasicAuth HasServer handlers.
-basicAuthServerContext :: AC.Env -> Servant.Context ((BasicAuthCheck User) ': '[])
+basicAuthServerContext :: AC.Env -> Servant.Context '[BasicAuthCheck M.User]
 basicAuthServerContext env = authCheck env :. EmptyContext
 
 minPubKeySize :: U.Byte
 minPubKeySize = U.Byte 256 -- 2048 / 8
 
-addPublicKey :: User -> RSAPublicKey -> AC.AppM KeyID
-addPublicKey user pemKey@(PEMString pemStr) = do
+addPublicKey :: M.User -> M.RSAPublicKey -> AC.AppM M.KeyID
+addPublicKey user pemKey@(M.PEMString pemStr) = do
   somePubKey <- liftIO $ readPublicKey pemStr
   either throwAppError (BQ.addPublicKey user) (checkPubKey somePubKey pemKey)
 
-checkPubKey :: SomePublicKey -> RSAPublicKey-> Either ServiceError RSAPubKey
+checkPubKey :: SomePublicKey -> M.RSAPublicKey-> Either ServiceError RSAPubKey
 checkPubKey spKey pemKey =
   maybe (Left $ InvalidRSAKey pemKey)
   (\pubKey ->
     let keySize = rsaSize pubKey in
     if keySize < (U.unByte minPubKeySize)
+      -- rsaSize returns size in bytes
       then Left $ InvalidRSAKeySize (Expected minPubKeySize) (Received $ U.Byte keySize)
       else Right pubKey
   )
   (toPublicKey spKey)
 
-newUser :: NewUser -> AC.AppM UserID
+newUser :: M.NewUser -> AC.AppM M.UserID
 newUser = BQ.newUser
 
-getPublicKey :: KeyID -> AC.AppM RSAPublicKey
+getPublicKey :: M.KeyID -> AC.AppM M.RSAPublicKey
 getPublicKey = BQ.getPublicKey
 
-getPublicKeyInfo :: KeyID -> AC.AppM KeyInfo
+getPublicKeyInfo :: M.KeyID -> AC.AppM M.KeyInfo
 getPublicKeyInfo = BQ.getPublicKeyInfo
 
 -- PSUEDO:
@@ -167,7 +168,7 @@ getPublicKeyInfo = BQ.getPublicKeyInfo
 
 -- PSUEDO:
 -- Use getLabelIDState
-epcState :: User ->  M.LabelEPCUrn -> AC.AppM EPCState
+epcState :: M.User ->  M.LabelEPCUrn -> AC.AppM M.EPCState
 epcState _user _str = U.notImplemented
 
 -- This takes an EPC urn,
@@ -177,7 +178,7 @@ epcState _user _str = U.notImplemented
 -- (labelID, _) <- getLabelIDState
 -- wholeEvents <- select * from events, dwhats, dwhy, dwhen where _whatItemID=labelID AND _eventID=_whatEventID AND _eventID=_whenEventID AND _eventID=_whyEventID ORDER BY _eventTime;
 -- return map constructEvent wholeEvents
-listEvents :: User ->  M.LabelEPCUrn -> AC.AppM [Ev.Event]
+listEvents :: M.User ->  M.LabelEPCUrn -> AC.AppM [Ev.Event]
 listEvents _user = either throwParseError BQ.listEvents . urn2LabelEPC . pack
 
 -- given an event ID, list all the users associated with that event
@@ -187,21 +188,18 @@ listEvents _user = either throwParseError BQ.listEvents . urn2LabelEPC . pack
 -- implement a function constructEvent :: WholeEvent -> Event
 --
 
-
 -- Look into usereventsT and tie that back to the user
 -- the function getUser/selectUser might be helpful
-eventUserList :: User -> EventID -> AC.AppM [(User, Bool)]
+eventUserList :: M.User -> EventID -> AC.AppM [(M.User, Bool)]
 eventUserList _user _eventID = U.notImplemented
 
+contactsInfo :: M.User -> AC.AppM [M.User]
+contactsInfo = BQ.listContacts
 
-contactsInfo :: User -> AC.AppM [User]
-contactsInfo _user = U.notImplemented
-
-
-contactsAdd :: User -> UserID -> AC.AppM Bool
+contactsAdd :: M.User -> M.UserID -> AC.AppM Bool
 contactsAdd = BQ.addContact
 
-contactsRemove :: User -> UserID -> AC.AppM Bool
+contactsRemove :: M.User -> M.UserID -> AC.AppM Bool
 contactsRemove = BQ.removeContact
 
 -- Given a search term, search the users contacts for a user matching
@@ -210,21 +208,22 @@ contactsRemove = BQ.removeContact
 -- PSEUDO:
 -- SELECT user2, firstName, lastName FROM Contacts, Users WHERE user1 LIKE *term* AND user2=Users.id UNION SELECT user1, firstName, lastName FROM Contacts, Users WHERE user2 = ? AND user1=Users.id;" (uid, uid)
 --
-contactsSearch :: User -> String -> AC.AppM [User]
+contactsSearch :: M.User -> String -> AC.AppM [M.User]
 contactsSearch _user _term = U.notImplemented
 
 
-userSearch :: User -> String -> AC.AppM [User]
+userSearch :: M.User -> String -> AC.AppM [M.User]
 -- userSearch user term = liftIO $ Storage.userSearch user term
 userSearch _user _term = error "Storage module not implemented"
 
 -- select * from Business;
-listBusinesses :: AC.AppM [Business]
-listBusinesses = U.notImplemented
+listBusinesses :: AC.AppM [M.Business]
+listBusinesses = fmap QU.storageToModelBusiness <$> BQ.listBusinesses
+-- ^ one fmap for Functor AppM, one for Functor []
 
 -- |List events that a particular user was/is involved with
 -- use BizTransactions and events (createdby) tables
-eventList :: User -> UserID -> AC.AppM [Ev.Event]
+eventList :: M.User -> M.UserID -> AC.AppM [Ev.Event]
 eventList _user _uID = return []
 
 makeDigest :: M.Digest -> IO (Maybe EVPDigest.Digest)
@@ -248,18 +247,18 @@ makeDigest = EVPDigest.getDigestByName . map toLower . show
    Lets do this after we have everything compiling.
 -}
 
-eventSign :: User -> SignedEvent -> AC.AppM SB.PrimaryKeyType
-eventSign _user (SignedEvent eventID keyID (Signature sigStr) digest') = do
+eventSign :: M.User -> M.SignedEvent -> AC.AppM SB.PrimaryKeyType
+eventSign _user (M.SignedEvent eventID keyID (M.Signature sigStr) digest') = do
   event <- BQ.getEventJSON eventID
   rsaPublicKey <- BQ.getPublicKey keyID
   sigBS <- BS64.decode (BSC.pack sigStr) <%?> AC.AppError . InvalidSignature
-  let (PEMString keyStr) = rsaPublicKey
+  let (M.PEMString keyStr) = rsaPublicKey
   (pubKey :: RSAPubKey) <- liftIO (toPublicKey <$> readPublicKey keyStr) <!?> AC.AppError (InvalidRSAKeyString (pack keyStr))
   let eventBS = QU.eventTxtToBS event
   digest <- liftIO (makeDigest digest') <!?> AC.AppError (InvalidDigest digest')
   verifyStatus <- liftIO $ verifyBS digest sigBS pubKey eventBS
   if verifyStatus == VerifySuccess
-    then BQ.insertSignature eventID keyID (Signature sigStr) digest'
+    then BQ.insertSignature eventID keyID (M.Signature sigStr) digest'
     else throwAppError $ InvalidSignature sigStr
 
 
@@ -274,7 +273,7 @@ eventSign _user (SignedEvent eventID keyID (Signature sigStr) digest') = do
 
 -- do we need this?
 --
-eventHashed :: User -> EventID -> AC.AppM HashedEvent
+eventHashed :: M.User -> EventID -> AC.AppM M.HashedEvent
 eventHashed _user _eventId = error "not implemented yet"
 -- return (HashedEvent eventID (EventHash "Blob"))
 
@@ -309,8 +308,8 @@ sampleWhen = DWhen pt (Just pt) tz
 sampleWhere :: DWhere
 sampleWhere = DWhere [] [] [] []
 
-eventInfo :: User -> EventID -> AC.AppM Ev.Event
-eventInfo _user _eID = U.notImplemented
+eventInfo :: M.User -> EventID -> AC.AppM (Maybe Ev.Event)
+eventInfo _user = QU.findEvent . getEventId
 
 --eventHash :: EventID -> AC.AppM SignedEvent
 --eventHash eID = return (SignedEvent eID (BinaryBlob ByteString.empty) [(BinaryBlob ByteString.empty)] [1,2])
