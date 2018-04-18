@@ -190,7 +190,7 @@ listEvents _user = either throwParseError BQ.listEvents . urn2LabelEPC . pack
 -- Look into usereventsT and tie that back to the user
 -- the function getUser/selectUser might be helpful
 eventUserList :: M.User -> EventID -> AC.AppM [(M.User, Bool)]
-eventUserList _user = BQ.eventUserList
+eventUserList _user = BQ.eventUserSignedList
 
 contactsInfo :: M.User -> AC.AppM [M.User]
 contactsInfo = BQ.listContacts
@@ -223,7 +223,7 @@ listBusinesses = fmap QU.storageToModelBusiness <$> BQ.listBusinesses
 -- |List events that a particular user was/is involved with
 -- use BizTransactions and events (createdby) tables
 eventList :: M.User -> M.UserID -> AC.AppM [Ev.Event]
-eventList _user _uId = U.notImplemented
+eventList _user = BQ.eventsByUser
 
 makeDigest :: M.Digest -> IO (Maybe EVPDigest.Digest)
 makeDigest = EVPDigest.getDigestByName . map toLower . show
