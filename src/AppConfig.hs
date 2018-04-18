@@ -31,6 +31,8 @@ import           Control.Monad.Reader       (MonadReader, ReaderT, ask, asks,
                                              liftIO, runReaderT)
 import           Errors                     (ServiceError (..))
 
+import           Crypto.Scrypt              (ScryptParams)
+
 data EnvType = Prod | Dev
   deriving (Show, Eq, Read)
 
@@ -39,8 +41,9 @@ mkEnvType False = Prod
 mkEnvType _     = Dev
 
 data Env = Env
-  { envType :: EnvType
-  , dbConn  :: Connection
+  { envType  :: EnvType
+  , dbConn   :: Connection
+  , scryptPs :: ScryptParams
   -- , port    :: Word16
   }
 
