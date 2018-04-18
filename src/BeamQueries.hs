@@ -4,8 +4,10 @@
 -- Functions in the `service` module use the database functions defined here
 module BeamQueries where
 
-import           AppConfig                                (AppM, asks, runDb,
+import           AppConfig                                (AppError (..), AppM,
+                                                           asks, runDb,
                                                            scryptPs)
+import           Control.Monad.Except                     (throwError)
 import           Control.Monad.IO.Class                   (liftIO)
 import qualified Crypto.Scrypt                            as Scrypt
 import           Data.GS1.DWhat                           (AggregationDWhat (..),
@@ -27,10 +29,9 @@ import           Database.PostgreSQL.Simple.Errors        (ConstraintViolation (
                                                            constraintViolation)
 import           Database.PostgreSQL.Simple.Internal      (SqlError (..))
 import           Errors                                   (ServiceError (..))
-import           ErrorUtils                               (sqlToServerError,
+import           ErrorUtils                               (getSqlErrorCode,
                                                            throwAppError,
                                                            throwBackendError,
-                                                           throwUnexpectedDBError,
                                                            toServerError)
 import qualified Model                                    as M
 import           OpenSSL.PEM                              (writePublicKey)
@@ -53,20 +54,21 @@ import qualified StorageBeam                              as SB
 insertUser :: Scrypt.EncryptedPass -> M.NewUser -> AppM M.UserID
 insertUser encPass (M.NewUser phone email firstName lastName biz _) = do
   userId <- generatePk
-  res <- runDb $ runInsertReturningList (SB._users SB.supplyChainDb) $
+  res <- handleError errHandler $ runDb $ runInsertReturningList (SB._users SB.supplyChainDb) $
     insertValues
       [SB.User userId (SB.BizId  biz) firstName lastName
                phone (Scrypt.getEncryptedPass encPass) email
       ]
   case res of
-    Right [r] -> return $ SB.user_id r
-    Left e ->
-      case constraintViolation e of
+        [r] -> return $ SB.user_id r
+        _   -> throwBackendError res
+  where
+    errHandler (AppError (DatabaseError e)) = throwAppError $ case constraintViolation e of
         Just (UniqueViolation "users_email_address_key")
-          -> throwAppError $ EmailExists (sqlToServerError e) email
-        _ -> throwAppError $ InsertionFail (toServerError (Just . sqlState) e) email
+          -> EmailExists (toServerError getSqlErrorCode e) email
+        _ -> InsertionFail (toServerError (Just . sqlState) e) email
+    errHandler e = throwError e
         -- ^ Generic insertion error
-    _         -> throwBackendError res
 
 -- | Hashes the password of the NewUser and inserts the user into the database
 newUser :: M.NewUser -> AppM M.UserID
@@ -86,20 +88,18 @@ authCheck email password = do
         pure user
   params <- asks scryptPs
   case r of
-    Left e -> throwUnexpectedDBError $ sqlToServerError e
-    Right [user] ->
+    [user] ->
         case Scrypt.verifyPass params (Scrypt.Pass password)
               (Scrypt.EncryptedPass $ SB.password_hash user)
         of
           (False, _     ) -> throwAppError $ AuthFailed email
           (True, Nothing) -> pure $ Just (userTableToModel user)
           (True, Just (Scrypt.EncryptedPass password')) -> do
-            -- TODO: fix the ignored return once #90 is merged
             _ <- runDb $ runUpdate $ update (SB._users SB.supplyChainDb)
                     (\u -> [SB.password_hash u <-. val_ password'])
                     (\u -> SB.user_id u ==. val_ (SB.user_id user))
             pure $ Just (userTableToModel user)
-    Right [] -> throwAppError $ EmailNotFound email
+    [] -> throwAppError $ EmailNotFound email
     _  -> throwBackendError r -- multiple elements
 
 
@@ -117,9 +117,8 @@ addPublicKey (M.User uid _ _)  rsaPubKey = do
         [ SB.Key keyId (SB.UserId uid) (T.pack keyStr) timeStamp Nothing
         ]
   case r of
-    Right [rowId] -> return (SB.key_id rowId)
-    Right _       -> throwAppError $ InvalidKeyID keyId
-    Left e        -> throwUnexpectedDBError $ sqlToServerError e
+    [rowId] -> return (SB.key_id rowId)
+    _       -> throwAppError $ InvalidKeyID keyId
 
 
 getPublicKey :: M.KeyID -> AppM M.RSAPublicKey
@@ -129,9 +128,8 @@ getPublicKey keyId = do
     guard_ (SB.key_id allKeys ==. val_ keyId)
     pure (SB.pem_str allKeys)
   case r of
-    Right [k] -> return $ M.PEMString $ T.unpack k
-    Right _   -> throwAppError $ InvalidKeyID keyId
-    Left e    -> throwUnexpectedDBError $ sqlToServerError e
+    [k] -> return $ M.PEMString $ T.unpack k
+    _   -> throwAppError $ InvalidKeyID keyId
 
 getPublicKeyInfo :: M.KeyID -> AppM M.KeyInfo
 getPublicKeyInfo keyId = do
@@ -141,12 +139,11 @@ getPublicKeyInfo keyId = do
     pure allKeys
 
   case r of
-    Right [(SB.Key _ (SB.UserId uId) _  creationTime revocationTime)] ->
+    [(SB.Key _ (SB.UserId uId) _  creationTime revocationTime)] ->
        return $ M.KeyInfo uId
                 (toEPCISTime creationTime)
                 (toEPCISTime <$> revocationTime)
-    Right _ -> throwAppError $ InvalidKeyID keyId
-    Left e  -> throwUnexpectedDBError $ sqlToServerError e
+    _ -> throwAppError $ InvalidKeyID keyId
 
 -- TODO: Should this return Text or a JSON value?
 getEventJSON :: EvId.EventID -> AppM T.Text
@@ -156,9 +153,8 @@ getEventJSON eventID = do
     guard_ ((SB.event_id allEvents) ==. val_ (EvId.getEventId eventID))
     pure (SB.json_event allEvents)
   case r of
-    Right [jsonEvent] -> return jsonEvent
-    Right _           -> throwAppError $ InvalidEventID eventID
-    Left e            -> throwUnexpectedDBError $ sqlToServerError e
+    [jsonEvent] -> return jsonEvent
+    _           -> throwAppError $ InvalidEventID eventID
 
 
 getUser :: M.EmailAddress -> AppM (Maybe M.User)
@@ -168,10 +164,9 @@ getUser email = do
     guard_ (SB.email_address allUsers ==. val_ email)
     pure allUsers
   case r of
-    Right [u] -> return . Just . userTableToModel $ u
-    Right []  -> throwAppError . UserNotFound $ email
-    Left e    -> throwUnexpectedDBError $ sqlToServerError e
-    _         -> throwBackendError r
+    [u] -> return . Just . userTableToModel $ u
+    []  -> throwAppError . UserNotFound $ email
+    _   -> throwBackendError r
 
 insertObjectEvent :: M.User
                   -> M.ObjectEvent
@@ -390,20 +385,19 @@ addContact (M.User uid1 _ _) uid2 = do
 -- and returns (not. userExists)
 -- @todo Make ContactErrors = NotAContact | DoesntExist | ..
 removeContact :: M.User -> M.UserID -> AppM Bool
-removeContact (M.User uid1 _ _) uid2 = do
+removeContact (M.User uid1 _ _) uid2 = transaction $ do
   contactExists <- isExistingContact uid1 uid2
   if contactExists
     then do
-      r <- runDb $ runDelete $ delete (SB._contacts SB.supplyChainDb)
+      runDb $ runDelete $ delete (SB._contacts SB.supplyChainDb)
               (\ contact ->
                 SB.contact_user1_id contact ==. val_ (SB.UserId uid1) &&.
                 SB.contact_user2_id contact ==. val_ (SB.UserId uid2))
-      case r of
-          Right _ -> not <$> isExistingContact uid1 uid2
-          Left _e -> return False -- FIXME: log ``e``
+      not <$> isExistingContact uid1 uid2
   else return False
 
--- | Checks if a pair of userIds are recorded as a contact
+-- | Checks if a pair of userIds are recorded as a contact.
+-- __Must be run in a transaction!__
 isExistingContact :: M.UserID -> M.UserID -> AppM Bool
 isExistingContact uid1 uid2 = do
   r <- runDb $ runSelectReturningList $ select $ do
@@ -416,11 +410,11 @@ isExistingContact uid1 uid2 = do
 -- | Simple utility function to check that the users are part of the contact
 -- typically used with the result of a query
 verifyContact :: (Eq (PrimaryKey SB.UserT f), Monad m) =>
-                   Either e [SB.ContactT f] ->
+                   [SB.ContactT f] ->
                    C f SB.PrimaryKeyType ->
                    C f SB.PrimaryKeyType ->
                    m Bool
-verifyContact (Right [insertedContact]) uid1 uid2 = return $
+verifyContact [insertedContact] uid1 uid2 = return $
                   (SB.contact_user1_id insertedContact == (SB.UserId uid1)) &&
                   (SB.contact_user2_id insertedContact == (SB.UserId uid2))
 verifyContact _ _ _ = return False
@@ -465,16 +459,15 @@ verifyContact _ _ _ = return False
 -- no union, so we process making unique in haskell
 
 -- | Lists all the contacts associated with the given user
+-- FIXME: Doesn't actually use user, leaks all contacts of all users!
 listContacts :: M.User -> AppM [M.User]
 listContacts  (M.User _uid _ _) = do
-  r <- runDb $ runSelectReturningList $ select $ do
+  users <- runDb $ runSelectReturningList $ select $ do
     user <- all_ (SB._users SB.supplyChainDb)
     contact <- all_ (SB._contacts SB.supplyChainDb)
     guard_ (SB.contact_user1_id contact `references_` user)
     pure user
-  case r of
-    Right userList -> return $ userTableToModel <$> userList
-    Left e         -> throwUnexpectedDBError $ sqlToServerError e
+  pure (map userTableToModel users)
 
 
   -- r_toGrabUser1 <- runDb $ runSelectReturningList $ select $ do
