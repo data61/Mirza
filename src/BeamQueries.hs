@@ -21,7 +21,6 @@ import           Data.GS1.DWhat                           (AggregationDWhat (..)
                                                            unParentLabel)
 import qualified Data.GS1.Event                           as Ev
 import qualified Data.GS1.EventID                         as EvId
-import           Data.List                                (nub)
 import           Data.Maybe                               (fromMaybe)
 import qualified Data.Text                                as T
 import           Data.Text.Encoding
@@ -407,7 +406,7 @@ listContacts  (M.User uid _ _) = do
     guard_ (SB.contact_user1_id contact ==. val_ (SB.UserId uid) &&.
             SB.contact_user2_id contact ==. (SB.UserId $ SB.user_id user))
     pure user
-  return $ nub $ userTableToModel <$> userList
+  return $ userTableToModel <$> userList
 
 
 -- TODO: Write tests
