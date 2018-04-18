@@ -99,6 +99,7 @@ executable supplyChainServer-exe
                      , uuid
                      , aeson-pretty
                      , base64-bytestring
+                     , scrypt
   default-language:    Haskell2010
   default-language:    Haskell2010
 

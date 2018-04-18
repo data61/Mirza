@@ -50,14 +50,14 @@ Finally, to run the server, do:
 
 Then you can check out the API at:
 
-http://localhost:8000/swagger-ui/
+<http://localhost:8000/swagger-ui/>
 
-To use ghci interactively, run 
+To use ghci interactively, run
 
 `stack ghci`
 
 If you find yourself deleting and recreating the database frequently, run
-`./restart.sh`. It will build your code, drop the database 
+`./restart.sh`. It will build your code, drop the database
 `devsupplychainserver`, create it anew and run the migration script
 to create all the relevant tables.
 
