@@ -176,6 +176,7 @@ import qualified Data.Text as T
 ```
 
 Some conventions:
+
 1. `AppConfig as AC`
 1. `StorageBeam as SB`
 1. `Model as M`
@@ -185,6 +186,7 @@ Some conventions:
 1. `Data.GS1.Event as Ev`
 
 ## Notes
+
 If you are unsure about a style tweak, please ask. If people cannot agree on
 a style decision, please go with what the majority of the team find
 comfortable and add it to this guide.
@@ -195,4 +197,3 @@ In general you should aim to make code _pretty_, by aligning elements textually
 definitions and case statements but it can aid greatly in code readability in
 more cases than stylish-haskell handles. See the definition of `PrivateAPI` in
 `API.hs` for an example.
-

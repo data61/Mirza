@@ -19,7 +19,6 @@ import           API
 import qualified AppConfig                        as AC
 import qualified BeamQueries                      as BQ
 import           Control.Lens                     hiding ((.=))
-import           Control.Monad                    (guard)
 import           Control.Monad.Error.Hoist        ((<!?>), (<%?>))
 import           Control.Monad.IO.Class           (liftIO)
 import qualified Data.ByteString.Base64           as BS64
@@ -133,24 +132,24 @@ serveSwaggerAPI = toSwagger serverAPI
 basicAuthServerContext :: AC.Env -> Servant.Context ((BasicAuthCheck User) ': '[])
 basicAuthServerContext env = authCheck env :. EmptyContext
 
-
-minPubKeySize :: Int
-minPubKeySize = 2048
+minPubKeySize :: U.Byte
+minPubKeySize = U.Byte 256 -- 2048 / 8
 
 addPublicKey :: User -> RSAPublicKey -> AC.AppM KeyID
-addPublicKey user (PEMString pemKey) = do
-  somePubKey <- liftIO $ readPublicKey pemKey
-  maybe (throwAppError (InvalidRSAKey (PEMString pemKey)))
-        (BQ.addPublicKey user)
-        (checkPubKey somePubKey)
+addPublicKey user pemKey@(PEMString pemStr) = do
+  somePubKey <- liftIO $ readPublicKey pemStr
+  either throwAppError (BQ.addPublicKey user) (checkPubKey somePubKey pemKey)
 
-
-checkPubKey :: SomePublicKey -> Maybe RSAPubKey
-checkPubKey spKey = do
-  pubKey <- toPublicKey spKey
-  guard (rsaSize pubKey >= minPubKeySize)
-  pure pubKey
-
+checkPubKey :: SomePublicKey -> RSAPublicKey-> Either ServiceError RSAPubKey
+checkPubKey spKey pemKey =
+  maybe (Left $ InvalidRSAKey pemKey)
+  (\pubKey ->
+    let keySize = rsaSize pubKey in
+    if keySize < (U.unByte minPubKeySize)
+      then Left $ InvalidRSAKeySize (Expected minPubKeySize) (Received $ U.Byte keySize)
+      else Right pubKey
+  )
+  (toPublicKey spKey)
 
 newUser :: NewUser -> AC.AppM UserID
 newUser = BQ.newUser
@@ -179,11 +178,7 @@ epcState _user _str = U.notImplemented
 -- wholeEvents <- select * from events, dwhats, dwhy, dwhen where _whatItemID=labelID AND _eventID=_whatEventID AND _eventID=_whenEventID AND _eventID=_whyEventID ORDER BY _eventTime;
 -- return map constructEvent wholeEvents
 listEvents :: User ->  M.LabelEPCUrn -> AC.AppM [Ev.Event]
-listEvents _user urn =
-  case urn2LabelEPC . pack $ urn of
-    Left e         -> throwParseError e
-    Right labelEpc -> BQ.listEvents labelEpc
-
+listEvents _user = either throwParseError BQ.listEvents . urn2LabelEPC . pack
 
 -- given an event ID, list all the users associated with that event
 -- this can be used to make sure everything is signed
@@ -280,7 +275,7 @@ eventSign _user (SignedEvent eventID keyID (Signature sigStr) digest') = do
 -- do we need this?
 --
 eventHashed :: User -> EventID -> AC.AppM HashedEvent
-eventHashed _user _eventID = error "not implemented yet"
+eventHashed _user _eventId = error "not implemented yet"
 -- return (HashedEvent eventID (EventHash "Blob"))
 
   {-
