@@ -8,6 +8,8 @@ import           Lib
 import           Migrate             (defConnectionStr, migrate)
 import           Options.Applicative
 
+import qualified Crypto.Scrypt       as Scrypt
+
 data ServerOptions = ServerOptions
   { env           :: EnvType
   , initDB        :: Bool
@@ -15,40 +17,46 @@ data ServerOptions = ServerOptions
   , connectionStr :: ByteString
   , port          :: Int
   , uiFlavour     :: UIFlavour
+  , sScryptN      :: Integer
+  , sScryptP      :: Integer
+  , sScryptR      :: Integer
   }
 
 serverOptions :: Parser ServerOptions
 serverOptions = ServerOptions
       <$> option auto
-          ( long "env"
-         <> short 'e'
-         <> help "Environment, Dev | Prod"
-         <> showDefault
-         <> value Dev )
+          ( long "env" <> short 'e'
+          <> value Dev <> showDefault
+          <> help "Environment, Dev | Prod"
+          )
       <*> switch
-          ( long "init-db"
-         <> short 'i'
+          ( long "init-db" <> short 'i'
          <> help "Put empty tables into a fresh database" )
     --   <*> switch
     --       ( long "clear-db"
     --      <> short 'e'
     --      <> help "Erase the database - DROP ALL TABLES" )
       <*> option auto
-          ( long "conn"
-         <> short 'c'
-         <> help "database connection string"
-         <> showDefault
-         <> value defConnectionStr)
+          ( long "conn" <> short 'c' <> showDefault
+          <> help "database connection string"
+          <> value defConnectionStr)
        <*> option auto
-          ( long "port"
-         <> help "Port to run database on"
-         <> showDefault
-         <> value 8000)
+          ( long "port" <> showDefault <> value 8000
+          <> help "Port to run database on"
+          )
        <*> option auto
-          ( long "uiFlavour"
+          ( long "uiFlavour" <> showDefault
          <> help "Use jensoleg or Original UI Flavour for the Swagger API"
-         <> showDefault
          <> value Original)
+       <*> option auto
+            (long "scryptN" <> value 14 <> showDefault
+            <> help "Scrypt N parameter (>= 14)")
+       <*> option auto
+            (long "scryptP" <> value 8 <> showDefault
+            <> help "Scrypt r parameter (>= 8)")
+       <*> option auto
+            (long "scryptR" <> value 1 <> showDefault
+            <> help "Scrypt r parameter (>= 1)")
 
 
 main :: IO ()
@@ -68,6 +76,14 @@ main = runProgram =<< execParser opts
 --     startApp connStr isDebug (fromIntegral portNum) flavour
 -- runProgram _ = migrate defConnectionStr
 runProgram :: ServerOptions -> IO ()
-runProgram (ServerOptions envT False connStr portNum flavour) =
-    startApp connStr envT (fromIntegral portNum) flavour
+runProgram (ServerOptions envT False connStr portNum flavour n p r) =
+  case Scrypt.scryptParams (max n 14) (max p 8) (max r 1) of
+    Nothing -> do
+      putStrLn $ unwords
+        ["Invalid Scrypt params: ", show (n,p,r)
+        ,"\nUsing default parameters"
+        ]
+      startApp connStr envT (fromIntegral portNum) flavour Scrypt.defaultParams
+    Just params ->
+      startApp connStr envT (fromIntegral portNum) flavour params
 runProgram _ = migrate defConnectionStr

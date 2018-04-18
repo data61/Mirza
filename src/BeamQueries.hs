@@ -5,10 +5,11 @@
 module BeamQueries where
 
 import           AppConfig                                (AppError (..), AppM,
-                                                           runDb)
+                                                           asks, runDb,
+                                                           scryptPs)
 import           Control.Monad.Except                     (throwError)
 import           Control.Monad.IO.Class                   (liftIO)
-import           Crypto.Scrypt
+import qualified Crypto.Scrypt                            as Scrypt
 import           Data.GS1.DWhat                           (AggregationDWhat (..),
                                                            DWhat (..),
                                                            InputEPC (..),
@@ -50,13 +51,13 @@ import qualified StorageBeam                              as SB
 }
 -}
 
-insertUser :: EncryptedPass -> M.NewUser -> AppM M.UserID
+insertUser :: Scrypt.EncryptedPass -> M.NewUser -> AppM M.UserID
 insertUser encPass (M.NewUser phone email firstName lastName biz _) = do
   userId <- generatePk
   res <- handleError errHandler $ runDb $ runInsertReturningList (SB._users SB.supplyChainDb) $
     insertValues
       [SB.User userId (SB.BizId  biz) firstName lastName
-               phone (getEncryptedPass encPass) email
+               phone (Scrypt.getEncryptedPass encPass) email
       ]
   case res of
         [r] -> return $ SB.user_id r
@@ -72,8 +73,9 @@ insertUser encPass (M.NewUser phone email firstName lastName biz _) = do
 -- | Hashes the password of the NewUser and inserts the user into the database
 newUser :: M.NewUser -> AppM M.UserID
 newUser userInfo@(M.NewUser _ _ _ _ _ password) = do
-    hash <- liftIO $ encryptPassIO' (Pass $ encodeUtf8 password)
-    insertUser hash userInfo
+  params <- asks scryptPs
+  hash <- liftIO $ Scrypt.encryptPassIO params (Scrypt.Pass $ encodeUtf8 password)
+  insertUser hash userInfo
 
 -- Basic Auth check using Scrypt hashes.
 -- TODO: How safe is this to timing attacks? Can we tell which emails are in the
@@ -84,11 +86,19 @@ authCheck email password = do
         user <- all_ (SB._users SB.supplyChainDb)
         guard_ (SB.email_address user  ==. val_ email)
         pure user
+  params <- asks scryptPs
   case r of
     [user] ->
-        if verifyPass' (Pass password) (EncryptedPass $ SB.password_hash user)
-          then return $ Just $ userTableToModel user
-          else throwAppError $ AuthFailed email
+        case Scrypt.verifyPass params (Scrypt.Pass password)
+              (Scrypt.EncryptedPass $ SB.password_hash user)
+        of
+          (False, _     ) -> throwAppError $ AuthFailed email
+          (True, Nothing) -> pure $ Just (userTableToModel user)
+          (True, Just (Scrypt.EncryptedPass password')) -> do
+            _ <- runDb $ runUpdate $ update (SB._users SB.supplyChainDb)
+                    (\u -> [SB.password_hash u <-. val_ password'])
+                    (\u -> SB.user_id u ==. val_ (SB.user_id user))
+            pure $ Just (userTableToModel user)
     [] -> throwAppError $ EmailNotFound email
     _  -> throwBackendError r -- multiple elements
 

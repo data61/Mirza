@@ -35,18 +35,20 @@ import           API
 import           GHC.Word                         (Word16)
 import           Service
 
-startApp :: ByteString -> AC.EnvType -> Word16 -> UIFlavour -> IO ()
-startApp dbConnStr envT prt uiFlavour = do
+import           Crypto.Scrypt                    (ScryptParams, defaultParams)
+
+startApp :: ByteString -> AC.EnvType -> Word16 -> UIFlavour -> ScryptParams -> IO ()
+startApp dbConnStr envT prt uiFlavour params = do
     conn <- connectPostgreSQL dbConnStr
     let
-        env  = AC.Env envT conn
+        env  = AC.Env envT conn params
         app = return $ webApp env uiFlavour
     putStrLn $ "http://localhost:" ++ show prt ++ "/swagger-ui/"
     Warp.run (fromIntegral prt) =<< app
 
 -- easily start the app in ghci, no command line arguments required.
 startApp_nomain :: ByteString -> IO ()
-startApp_nomain dbConnStr = startApp dbConnStr AC.Dev 8000 Original
+startApp_nomain dbConnStr = startApp dbConnStr AC.Dev 8000 Original defaultParams
 
 -- Application = Request -> (Response -> IO ResponseReceived) -> IO ResponseReceived
 webApp :: AC.Env -> UIFlavour -> Application
