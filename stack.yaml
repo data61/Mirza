@@ -23,4 +23,7 @@ extra-deps:
 - hoist-error-0.1.0.2
 - servant-flatten-0.2
 
+ghc-options:
+  $locals: -Wall
+
 resolver: lts-10.6

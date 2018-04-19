@@ -49,7 +49,7 @@ appErrToHttpErr (InvalidKeyID _) =
   }
 -- TODO: We should probably explicitly handle all service errors, removing this lets
 -- GHC tell us when we haven't
-appErrToHttpErr _ = throwError err500 {errBody = "The server did not understand this request."}
+-- appErrToHttpErr _ = throwError err500 {errBody = "The server did not understand this request."}
 
 -- TODO: Some of these might benefit from HasCallStack constraints
 
