@@ -14,5 +14,6 @@ newtype Byte = Byte {unByte :: Int} deriving (Show, Eq, Read)
 errMsg :: String
 errMsg = "FIXME"
 
+{-# WARNING notImplemented "notImplemented should not be used" #-}
 notImplemented :: a
 notImplemented = error errMsg
