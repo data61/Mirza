@@ -426,7 +426,7 @@ eventUserSignedList (EvId.EventID eventId) = do
   return $ bimap userTableToModel id <$> usersSignedList
 
 eventsByUser :: M.UserID -> AppM [Ev.Event]
-eventsByUser userId = do
+eventsByUser (M.UserID userId) = do
   eventList <- runDb $ runSelectReturningList $ select $ do
     userEvent <- all_ (SB._user_events SB.supplyChainDb)
     event <- all_ (SB._events SB.supplyChainDb)
