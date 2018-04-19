@@ -38,7 +38,6 @@ import           Data.UUID              (UUID)
 import           Database.Beam          as B
 import           Database.Beam.Postgres
 import qualified MigrateUtils           as MU
-import           Servant                ()
 
 type PrimaryKeyType = UUID
 -- IMPLEMENTME - NOT NOW

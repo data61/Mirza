@@ -17,25 +17,23 @@ module Lib
     )
     where
 
-import qualified AppConfig                        as AC
-import           Prelude                          ()
+import qualified AppConfig                  as AC
 import           Prelude.Compat
 
 import           Servant
-import           Servant.Server.Experimental.Auth ()
 import           Servant.Swagger.UI
 
-import           Control.Lens                     hiding ((.=))
-import           Data.ByteString                  (ByteString)
+import           Control.Lens               hiding ((.=))
+import           Data.ByteString            (ByteString)
 import           Data.Swagger
 import           Database.PostgreSQL.Simple
-import qualified Network.Wai.Handler.Warp         as Warp
+import qualified Network.Wai.Handler.Warp   as Warp
 
 import           API
-import           GHC.Word                         (Word16)
+import           GHC.Word                   (Word16)
 import           Service
 
-import           Crypto.Scrypt                    (ScryptParams, defaultParams)
+import           Crypto.Scrypt              (ScryptParams, defaultParams)
 
 startApp :: ByteString -> AC.EnvType -> Word16 -> UIFlavour -> ScryptParams -> IO ()
 startApp dbConnStr envT prt uiFlavour params = do

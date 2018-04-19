@@ -52,7 +52,7 @@ rsaPubKey = M.PEMString <$> Prelude.readFile "./test/Tests/testKeys/goodKeys/tes
 
 
 selectKey :: M.KeyID -> AppM (Maybe SB.Key)
-selectKey keyId = do
+selectKey (M.KeyID keyId) = do
   r <- runDb $
           runSelectReturningList $ select $ do
           key <- all_ (SB._keys SB.supplyChainDb)
@@ -86,7 +86,7 @@ testQueries = do
         pure (storageKey, keyStr, keyId, uid, tEnd, insertedKey)
       case res of
         (Nothing, _, _, _, _, _) -> fail "Received Nothing for key"
-        (Just key, keyStr, keyId, uid, tEnd, insertedKey) -> do
+        (Just key, keyStr, (M.KeyID keyId), (M.UserID uid), tEnd, insertedKey) -> do
           key `shouldSatisfy`
             (\k ->
               T.unpack (SB.pem_str k) == keyStr &&
@@ -124,11 +124,11 @@ testQueries = do
         pure (uid, user)
       case res of
         (_, Nothing) -> fail "Received Nothing for user"
-        (uid, Just user :: Maybe (SB.UserT Identity)) ->
+        ((M.UserID uid), Just user :: Maybe (SB.UserT Identity)) ->
           user `shouldSatisfy`
             (\u ->
               (SB.phone_number u) == (M.phoneNumber dummyNewUser) &&
-              (SB.email_address u) == (M.emailAddress dummyNewUser) &&
+              (SB.email_address u) == (M.unEmailAddress . M.emailAddress $ dummyNewUser) &&
               (SB.first_name u) == (M.firstName dummyNewUser) &&
               (SB.last_name u) == (M.lastName dummyNewUser) &&
               (SB.user_biz_id u) == (SB.BizId (M.company dummyNewUser)) &&
@@ -143,7 +143,8 @@ testQueries = do
     it "authCheck test 1" $ \(_conn, env) -> do
       res <- testAppM env $ do
         uid <- newUser dummyNewUser
-        user <- authCheck (M.emailAddress dummyNewUser) (encodeUtf8 $ M.password dummyNewUser)
+        user <- authCheck (M.emailAddress dummyNewUser)
+                          (M.Password $ encodeUtf8 $ M.password dummyNewUser)
         pure (uid, user)
       case res of
         (_, Nothing) -> fail "Received Nothing for user"
@@ -243,7 +244,7 @@ testQueries = do
     (after_ clearContact) . describe "Contacts" $ do
       describe "Add contact" $
         it "addContact simple" $ \(_conn, env) -> do
-          let myContact = makeDummyNewUser "first@gmail.com"
+          let myContact = makeDummyNewUser (M.EmailAddress "first@gmail.com")
           (hasBeenAdded, isContact) <- testAppM env $ do
             uid <- newUser dummyNewUser
             user <- getUser . M.emailAddress $ dummyNewUser
@@ -260,7 +261,7 @@ testQueries = do
         (hasBeenAdded, hasBeenRemoved) <- testAppM env $ do
           void $ newUser dummyNewUser
           mUser <- getUser $ M.emailAddress dummyNewUser
-          let myContact = makeDummyNewUser "first@gmail.com"
+          let myContact = makeDummyNewUser (M.EmailAddress "first@gmail.com")
               user = fromJust mUser
           myContactUid <- newUser myContact
           hasBeenAdded <- addContact user myContactUid
@@ -275,8 +276,8 @@ testQueries = do
           void $ newUser dummyNewUser
           mUser <- getUser $ M.emailAddress dummyNewUser
         -- Add a new user who is NOT a contact
-          otherUserId <- newUser $ makeDummyNewUser "other@gmail.com"
-          let myContact = makeDummyNewUser "first@gmail.com"
+          otherUserId <- newUser $ makeDummyNewUser (M.EmailAddress "other@gmail.com")
+          let myContact = makeDummyNewUser (M.EmailAddress "first@gmail.com")
               user = fromJust mUser
           myContactUid <- newUser myContact
           hasBeenAdded <- addContact user myContactUid
@@ -292,10 +293,10 @@ testQueries = do
         (hasBeenAdded, contactList, users) <- testAppM env $ do
           void $ newUser dummyNewUser
           mUser <- getUser $ M.emailAddress dummyNewUser
-          let myContact = makeDummyNewUser "first@gmail.com"
+          let myContact = makeDummyNewUser (M.EmailAddress "first@gmail.com")
               user = fromJust mUser
           myContactUid <- newUser myContact
-          mMyContact_user <- getUser "first@gmail.com"
+          mMyContact_user <- getUser (M.EmailAddress "first@gmail.com")
           hasBeenAdded <- addContact user myContactUid
           contactList <- listContacts user
           pure (hasBeenAdded, contactList, [fromJust mMyContact_user])
@@ -304,10 +305,10 @@ testQueries = do
       it "Add many and list" $ \(_conn, env) -> do
         (contactList, users) <- testAppM env $ do
           -- Making the users
-          let myContact_1 = makeDummyNewUser "first@gmail.com"
-              myContact_2 = makeDummyNewUser "second@gmail.com"
-              myContact_3 = makeDummyNewUser "third@gmail.com"
-              myContact_4 = makeDummyNewUser "fourth@gmail.com"
+          let myContact_1 = makeDummyNewUser (M.EmailAddress "first@gmail.com")
+              myContact_2 = makeDummyNewUser (M.EmailAddress "second@gmail.com")
+              myContact_3 = makeDummyNewUser (M.EmailAddress "third@gmail.com")
+              myContact_4 = makeDummyNewUser (M.EmailAddress "fourth@gmail.com")
 
           -- Adding the users to the DB
           void $ newUser dummyNewUser
@@ -318,10 +319,10 @@ testQueries = do
 
           -- Getting the users
           mUser <- getUser $ M.emailAddress dummyNewUser
-          mMyContact_1 <- getUser "first@gmail.com"
-          mMyContact_2 <- getUser "second@gmail.com"
-          mMyContact_3 <- getUser "third@gmail.com"
-          mMyContact_4 <- getUser "fourth@gmail.com"
+          mMyContact_1 <- getUser (M.EmailAddress "first@gmail.com")
+          mMyContact_2 <- getUser (M.EmailAddress "second@gmail.com")
+          mMyContact_3 <- getUser (M.EmailAddress "third@gmail.com")
+          mMyContact_4 <- getUser (M.EmailAddress "fourth@gmail.com")
 
           let user = fromJust mUser
               myContact_1_user = fromJust mMyContact_1
@@ -362,7 +363,7 @@ clearContact = do
 populateContact :: IO Env -> IO ()
 populateContact ioEnv = do
     env <- ioEnv
-    let myContact = makeDummyNewUser "first@gmail.com"
+    let myContact = makeDummyNewUser (M.EmailAddress "first@gmail.com")
     hasBeenAdded <- testAppM env $ do
       void $ newUser dummyNewUser
       user <- getUser $ M.emailAddress dummyNewUser

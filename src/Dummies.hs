@@ -19,10 +19,10 @@ import qualified StorageBeam     as SB
 
 -- General Utils
 dummyNewUser :: M.NewUser
-dummyNewUser = makeDummyNewUser "fake@gmail.com"
+dummyNewUser = makeDummyNewUser (M.EmailAddress "fake@gmail.com")
 
 -- | Utility function to make many users on the fly
-makeDummyNewUser :: M.Email -> M.NewUser
+makeDummyNewUser :: M.EmailAddress -> M.NewUser
 makeDummyNewUser emailAddress =
     M.NewUser "000" emailAddress "Bob" "Smith" (GS1CompanyPrefix "blah Ltd") "password"
 
@@ -33,7 +33,7 @@ sampleObjectFile :: FilePath
 sampleObjectFile = "../GS1Combinators/test/test-xml/ObjectEvent.xml"
 
 dummyUser :: M.User
-dummyUser = M.User nil "Sajid" "Anower"
+dummyUser = M.User (M.UserID nil) "Sajid" "Anower"
 
 dummyRsaPubKey :: M.RSAPublicKey
 dummyRsaPubKey = M.PEMString "blah"
