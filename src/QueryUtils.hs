@@ -77,7 +77,7 @@ generatePk = liftIO nextRandom
 -- | Converts a DB representation of ``User`` to a Model representation
 -- SB.User = SB.User uid bizId fName lName phNum passHash email
 userTableToModel :: SB.User -> M.User
-userTableToModel (SB.User uid _ fName lName _ _ _) = M.User uid fName lName
+userTableToModel (SB.User uid _ fName lName _ _ _) = M.User (M.UserID uid) fName lName
 
 -- | Json encode the event
 -- currently do it automagically, but might what to be
@@ -353,7 +353,6 @@ findDWhereByLocationField locField eventId = runDb $ runSelectReturningList $ se
       SB.where_location_field wheres ==. val_ locField)
     pure wheres
 
-
 -- | Merges a list of SB.Wheres into one Data.GS1.DWhere
 -- mergeSBWheres :: [SB.WhereT Identity] -> DWhere
 mergeSBWheres :: [[SB.WhereT Identity]] -> Maybe DWhere
@@ -452,7 +451,7 @@ transaction act = do
 
 
 selectUser :: M.UserID -> AppM (Maybe SB.User)
-selectUser uid = do
+selectUser (M.UserID uid) = do
   r <- runDb $
           runSelectReturningList $ select $ do
           user <- all_ (SB._users SB.supplyChainDb)
@@ -489,7 +488,7 @@ storageToModelEvent = decodeEvent . SB.json_event
 -- | Checks if a pair of userIds are recorded as a contact.
 -- __Must be run in a transaction!__
 isExistingContact :: M.UserID -> M.UserID -> AppM Bool
-isExistingContact uid1 uid2 = do
+isExistingContact (M.UserID uid1) (M.UserID uid2) = do
   r <- runDb $ runSelectReturningList $ select $ do
         contact <- all_ (SB._contacts SB.supplyChainDb)
         guard_ (SB.contact_user1_id contact  ==. (val_ . SB.UserId $ uid1) &&.
