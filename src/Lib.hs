@@ -17,9 +17,6 @@ module Lib
     )
     where
 
-import qualified AppConfig                  as AC
-import           Prelude.Compat
-
 import           Servant
 import           Servant.Swagger.UI
 
@@ -30,6 +27,7 @@ import           Database.PostgreSQL.Simple
 import qualified Network.Wai.Handler.Warp   as Warp
 
 import           API
+import qualified AppConfig                  as AC
 import           GHC.Word                   (Word16)
 import           Service
 

@@ -14,7 +14,6 @@ module API where
 import qualified Data.GS1.Event      as Ev
 import           Data.GS1.EventID
 import           Data.Swagger
-import qualified Data.Text           as T
 import           Model               as M
 import           Servant
 import           Servant.API.Flatten
