@@ -202,11 +202,11 @@ withPKey f = do
   pure pKey
 
 findInstLabelId' :: GS1CompanyPrefix
-                -> SerialNumber
-                -> Maybe SGTINFilterValue
-                -> Maybe ItemReference
-                -> Maybe AssetType
-                -> AppM (Maybe SB.PrimaryKeyType)
+                 -> SerialNumber
+                 -> Maybe SGTINFilterValue
+                 -> Maybe ItemReference
+                 -> Maybe AssetType
+                 -> AppM (Maybe SB.PrimaryKeyType)
 findInstLabelId' cp sn msfv mir mat = do
   r <- runDb $ runSelectReturningList $ select $ do
     labels <- all_ (SB._labels SB.supplyChainDb)
@@ -216,9 +216,9 @@ findInstLabelId' cp sn msfv mir mat = do
             SB.asset_type labels ==. val_ mat &&.
             SB.item_reference labels ==. val_ mir)
     pure labels
-  case r of
-    [l] -> return $ Just (SB.label_id l)
-    _   -> return Nothing
+  return $ case r of
+    [l] -> Just (SB.label_id l)
+    _   -> Nothing
 
 
 findClassLabelId :: ClassLabelEPC -> AppM (Maybe SB.PrimaryKeyType)
@@ -364,7 +364,7 @@ mergeSBWheres [rPointsW, bizLocsW, srcTsW, destTsW] =
       destTs = constructSrcDestLocation <$> destTsW
       in
         DWhere rPoints bizLocs <$> sequence srcTs <*> sequence destTs
-mergeSBWheres _                                     = error "Invalid arguments"
+mergeSBWheres _                                     = Nothing -- error "Invalid arguments"
 
 -- | This relies on the user calling this function in the appropriate WhereT
 constructSrcDestLocation :: SB.WhereT Identity -> Maybe SrcDestLocation
@@ -399,7 +399,7 @@ insertUserEvent eventId userId addedByUserId signed signedHash =
         $ insertValues
           [ SB.UserEvent pKey (SB.EventId eventId) (SB.UserId userId)
                         signed (SB.UserId addedByUserId) signedHash
-        ]
+          ]
 
 insertWhatLabel :: SB.PrimaryKeyType
                 -> SB.PrimaryKeyType
