@@ -1,4 +1,5 @@
-
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 -- | This module contains the helper functions that are used in error handling
 module ErrorUtils where
 
@@ -68,7 +69,7 @@ sqlToServerError :: SqlError -> ServiceError
 sqlToServerError = DatabaseError -- toServerError getSqlErrorCode
 
 -- | Shorthand for throwing a Generic Backend error
-throwBackendError :: (Show a) => a -> AppM b
+throwBackendError :: (Show a, MonadError AppError m) => a -> m b
 throwBackendError er = throwError $ AppError $ BackendErr $ toText er
 
 -- | Shorthand for throwing AppErrors
@@ -78,7 +79,7 @@ throwAppError = throwError . AppError
 
 -- | Extracts error code from an ``SqlError``
 getSqlErrorCode :: SqlError -> Maybe ByteString
-getSqlErrorCode e@(SqlError{}) = Just $ sqlState e
+getSqlErrorCode e@SqlError{} = Just $ sqlState e
 
 -- | Shorthand for throwing ``UnexpectedDBError``
 throwUnexpectedDBError :: ServerError -> AppM a
