@@ -47,9 +47,25 @@ appErrToHttpErr (InvalidKeyID _) =
   throwError $ err400 {
     errBody = "Invalid Key ID entered."
   }
+appErrToHttpErr (NeedMoreSignatures _) = generic500err
+appErrToHttpErr (InvalidSignature _) = generic500err
+appErrToHttpErr (BlockchainSendFailed _) = generic500err
+appErrToHttpErr (InvalidEventID _) = generic500err
+appErrToHttpErr (InvalidUserID _) = generic500err
+appErrToHttpErr (InvalidRSAKeyString _) = generic500err
+appErrToHttpErr (InvalidRSAKey _) = generic500err
+appErrToHttpErr (InvalidRSAKeySize _ _) = generic500err
+appErrToHttpErr (InvalidDigest _) = generic500err
+appErrToHttpErr (ParseError _) = generic500err
+appErrToHttpErr (BackendErr _) = generic500err
+appErrToHttpErr (DatabaseError _) = generic500err
+
 -- TODO: We should probably explicitly handle all service errors, removing this lets
 -- GHC tell us when we haven't
 -- appErrToHttpErr _ = throwError err500 {errBody = "The server did not understand this request."}
+
+generic500err :: Handler a
+generic500err = throwError err500 {errBody = "The server did not understand this request."}
 
 -- TODO: Some of these might benefit from HasCallStack constraints
 
