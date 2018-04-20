@@ -1,5 +1,6 @@
 {-# LANGUAGE DeriveGeneric              #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE StandaloneDeriving         #-}
 {-# LANGUAGE TemplateHaskell            #-}
 {-# OPTIONS_GHC -fno-warn-orphans       #-}
 
@@ -8,31 +9,55 @@ module Model where
 
 import           Data.Aeson
 import           Data.Aeson.TH
-import qualified Data.ByteString                  as BS
-import           Data.Text                        as T
+import qualified Data.ByteString  as BS
+import           Data.Text        as T
 
 import           Data.Swagger
-import           Servant.Server.Experimental.Auth ()
 
-import           Data.UUID                        (UUID)
-import           GHC.Generics                     (Generic)
+import           Data.UUID        (UUID)
+import           GHC.Generics     (Generic)
 
 import           Data.GS1.DWhat
 import           Data.GS1.DWhen
 import           Data.GS1.DWhere
 import           Data.GS1.DWhy
-import           Data.GS1.EPC                     as EPC
-import qualified Data.GS1.Event                   as Ev
+import           Data.GS1.EPC     as EPC
+import qualified Data.GS1.Event   as Ev
 import           Data.GS1.EventID
-import           StorageBeam                      (PrimaryKeyType)
+import           Servant          (FromHttpApiData)
+import           StorageBeam      (PrimaryKeyType)
 
+-- TODO: Should these be in StorageBeam?
+newtype UserID = UserID {unUserID :: PrimaryKeyType}
+  deriving (Show, Eq, Generic, Read, FromJSON, ToJSON)
+newtype EmailAddress = EmailAddress {unEmailAddress :: T.Text}
+  deriving (Show, Eq, Generic, Read, FromJSON, ToJSON)
+newtype KeyID = KeyID {unKeyID :: PrimaryKeyType}
+  deriving (Show, Eq, Generic, Read, FromJSON, ToJSON)
+-- Should this be in GS1Combinators?
+newtype LabelEPCUrn = LabelEPCUrn {unLabelEPCUrn :: T.Text}
+  deriving (Show, Eq, Generic, Read, FromJSON, ToJSON)
 
-type UserID = PrimaryKeyType
+-- TODO: Handwrite these instances to comply with their defined syntax
+-- For example, emails have their own format, as do LabelEPCUrn
 
-type EmailAddress = T.Text
-type KeyID = PrimaryKeyType
-type Password = BS.ByteString
-type LabelEPCUrn = String
+instance ToSchema UserID
+instance ToSchema EmailAddress
+instance ToSchema KeyID
+instance ToSchema LabelEPCUrn
+
+instance ToParamSchema LabelEPCUrn
+instance ToParamSchema UserID
+instance ToParamSchema EmailAddress
+instance ToParamSchema KeyID
+
+deriving instance FromHttpApiData LabelEPCUrn
+deriving instance FromHttpApiData UserID
+deriving instance FromHttpApiData EmailAddress
+deriving instance FromHttpApiData KeyID
+
+newtype Password = Password {unPassword :: BS.ByteString}
+  deriving (Show, Eq, Generic)
 
 data Digest = SHA256 | SHA384 | SHA512
   deriving (Show, Generic, Eq, Read)
@@ -126,10 +151,9 @@ data EPCInfo = EPCInfo {
 $(deriveJSON defaultOptions ''EPCInfo)
 instance ToSchema EPCInfo
 
-type Email = T.Text
 data NewUser = NewUser {
   phoneNumber  :: T.Text,
-  emailAddress :: Email,
+  emailAddress :: EmailAddress,
   firstName    :: T.Text,
   lastName     :: T.Text,
   company      :: GS1CompanyPrefix,

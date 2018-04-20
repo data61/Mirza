@@ -33,11 +33,11 @@ data ServiceError
   | InvalidRSAKeySize    Expected Received
   | InvalidDigest        M.Digest
   | InsertionFail        ServerError T.Text
-  | EmailExists          ServerError M.Email
-  | EmailNotFound        M.Email
+  | EmailExists          ServerError M.EmailAddress
+  | EmailNotFound        M.EmailAddress
   | UnexpectedDBResponse ServerError
-  | AuthFailed           M.Email
-  | UserNotFound         M.Email
+  | AuthFailed           M.EmailAddress
+  | UserNotFound         M.EmailAddress
   | ParseError           ErrorText -- EPC.ParseFailure
   | BackendErr           ErrorText -- fallback
   | DatabaseError        SqlError

@@ -9,6 +9,7 @@ import           AppConfig                                (AppError (..), DB,
 import           Control.Monad.Except                     (throwError)
 import           Control.Monad.IO.Class                   (liftIO)
 import qualified Crypto.Scrypt                            as Scrypt
+import           Data.Bifunctor                           (bimap)
 import           Data.GS1.DWhat                           (AggregationDWhat (..),
                                                            DWhat (..),
                                                            InputEPC (..),
@@ -20,6 +21,7 @@ import           Data.GS1.DWhat                           (AggregationDWhat (..)
                                                            unParentLabel)
 import qualified Data.GS1.Event                           as Ev
 import qualified Data.GS1.EventID                         as EvId
+import           Data.Maybe                               (catMaybes)
 import qualified Data.Text                                as T
 import           Data.Text.Encoding
 import           Database.Beam                            as B
@@ -38,7 +40,6 @@ import           OpenSSL.RSA                              (RSAPubKey)
 import           QueryUtils
 import qualified StorageBeam                              as SB
 
-
 {-
 -- Sample NewUser JSON
 {
@@ -52,7 +53,7 @@ import qualified StorageBeam                              as SB
 -}
 
 insertUser :: Scrypt.EncryptedPass -> M.NewUser -> DB M.UserID
-insertUser encPass (M.NewUser phone email firstName lastName biz _) = do
+insertUser encPass (M.NewUser phone (M.EmailAddress email) firstName lastName biz _) = do
   userId <- generatePk
   -- TODO: use Database.Beam.Backend.SQL.runReturningOne?
   res <- handleError errHandler $ pg $ runInsertReturningList (SB._users SB.supplyChainDb) $
@@ -61,13 +62,13 @@ insertUser encPass (M.NewUser phone email firstName lastName biz _) = do
                phone (Scrypt.getEncryptedPass encPass) email
       ]
   case res of
-        [r] -> return $ SB.user_id r
+        [r] -> return . M.UserID . SB.user_id $ r
         -- TODO: Have a proper error response
         _   -> throwBackendError res
   where
     errHandler (AppError (DatabaseError e)) = throwError . AppError $ case constraintViolation e of
         Just (UniqueViolation "users_email_address_key")
-          -> EmailExists (toServerError getSqlErrorCode e) email
+          -> EmailExists (toServerError getSqlErrorCode e) (M.EmailAddress email)
         _ -> InsertionFail (toServerError (Just . sqlState) e) email
     errHandler e = throwError e
         -- ^ Generic insertion error
@@ -83,7 +84,7 @@ newUser userInfo@(M.NewUser _ _ _ _ _ password) = do
 -- TODO: How safe is this to timing attacks? Can we tell which emails are in the
 -- system easily?
 authCheck :: M.EmailAddress -> M.Password -> DB (Maybe M.User)
-authCheck email password = do
+authCheck e@(M.EmailAddress email) (M.Password password) = do
   r <- pg $ runSelectReturningList $ select $ do
         user <- all_ (SB._users SB.supplyChainDb)
         guard_ (SB.email_address user  ==. val_ email)
@@ -94,14 +95,14 @@ authCheck email password = do
         case Scrypt.verifyPass params (Scrypt.Pass password)
               (Scrypt.EncryptedPass $ SB.password_hash user)
         of
-          (False, _     ) -> throwError . AppError $ AuthFailed email
+          (False, _     ) -> throwError . AppError $ AuthFailed (M.EmailAddress email)
           (True, Nothing) -> pure $ Just (userTableToModel user)
           (True, Just (Scrypt.EncryptedPass password')) -> do
             _ <- pg $ runUpdate $ update (SB._users SB.supplyChainDb)
                     (\u -> [SB.password_hash u <-. val_ password'])
                     (\u -> SB.user_id u ==. val_ (SB.user_id user))
             pure $ Just (userTableToModel user)
-    [] -> throwError . AppError $ EmailNotFound email
+    [] -> throwError . AppError $ EmailNotFound e
     _  -> throwBackendError r -- multiple elements
 
 
@@ -110,7 +111,7 @@ authCheck email password = do
 -- execute conn "INSERT INTO Keys (userID, rsa_n, rsa_e, creationTime) values (?, ?, ?, ?);" (uid, n, e, timestamp)
 
 addPublicKey :: M.User -> RSAPubKey -> DB M.KeyID
-addPublicKey (M.User uid _ _)  rsaPubKey = do
+addPublicKey (M.User (M.UserID uid) _ _)  rsaPubKey = do
   keyId <- generatePk
   timeStamp <- generateTimeStamp
   keyStr <- liftIO $ writePublicKey rsaPubKey
@@ -119,22 +120,21 @@ addPublicKey (M.User uid _ _)  rsaPubKey = do
         [ SB.Key keyId (SB.UserId uid) (T.pack keyStr) timeStamp Nothing
         ]
   case r of
-    [rowId] -> return (SB.key_id rowId)
-    _       -> throwError . AppError $ InvalidKeyID keyId
-
+    [rowId] -> return (M.KeyID $ SB.key_id rowId)
+    _       -> throwError . AppError . InvalidKeyID . M.KeyID $ keyId
 
 getPublicKey :: M.KeyID -> DB M.RSAPublicKey
-getPublicKey keyId = do
+getPublicKey (M.KeyID keyId) = do
   r <- pg $ runSelectReturningList $ select $ do
     allKeys <- all_ (SB._keys SB.supplyChainDb)
     guard_ (SB.key_id allKeys ==. val_ keyId)
     pure (SB.pem_str allKeys)
   case r of
     [k] -> return $ M.PEMString $ T.unpack k
-    _   -> throwError . AppError $ InvalidKeyID keyId
+    _   -> throwError . AppError . InvalidKeyID . M.KeyID $ keyId
 
 getPublicKeyInfo :: M.KeyID -> DB M.KeyInfo
-getPublicKeyInfo keyId = do
+getPublicKeyInfo (M.KeyID keyId) = do
   r <- pg $ runSelectReturningList $ select $ do
     allKeys <- all_ (SB._keys SB.supplyChainDb)
     guard_ (SB.key_id allKeys ==. val_ keyId)
@@ -142,10 +142,10 @@ getPublicKeyInfo keyId = do
 
   case r of
     [(SB.Key _ (SB.UserId uId) _  creationTime revocationTime)] ->
-       return $ M.KeyInfo uId
+       return $ M.KeyInfo (M.UserID uId)
                 (toEPCISTime creationTime)
                 (toEPCISTime <$> revocationTime)
-    _ -> throwError . AppError $ InvalidKeyID keyId
+    _ -> throwError . AppError . InvalidKeyID . M.KeyID $ keyId
 
 -- TODO: Should this return Text or a JSON value?
 getEventJSON :: EvId.EventID -> DB T.Text
@@ -160,21 +160,21 @@ getEventJSON eventID = do
 
 
 getUser :: M.EmailAddress -> DB (Maybe M.User)
-getUser email = do
+getUser (M.EmailAddress email) = do
   r <- pg $ runSelectReturningList $ select $ do
     allUsers <- all_ (SB._users SB.supplyChainDb)
     guard_ (SB.email_address allUsers ==. val_ email)
     pure allUsers
   case r of
     [u] -> return . Just . userTableToModel $ u
-    []  -> throwError . AppError . UserNotFound $ email
+    []  -> throwError . AppError . UserNotFound $ (M.EmailAddress email)
     _   -> throwBackendError r
 
 insertObjectEvent :: M.User
                   -> M.ObjectEvent
                   -> DB Ev.Event
 insertObjectEvent
-  (M.User userId _ _ )
+  (M.User (M.UserID userId) _ _ )
   (M.ObjectEvent
     foreignEventId
     act
@@ -205,7 +205,7 @@ insertAggEvent :: M.User
                -> M.AggregationEvent
                -> DB Ev.Event
 insertAggEvent
-  (M.User userId _ _ )
+  (M.User (M.UserID userId) _ _ )
   (M.AggregationEvent
     foreignEventId
     act
@@ -238,7 +238,7 @@ insertTransfEvent :: M.User
                   -> M.TransformationEvent
                   -> DB Ev.Event
 insertTransfEvent
-  (M.User userId _ _ )
+  (M.User (M.UserID userId) _ _ )
   (M.TransformationEvent
     foreignEventId
     mTransfId
@@ -273,7 +273,7 @@ insertTransactEvent :: M.User
                        -> M.TransactionEvent
                        -> DB Ev.Event
 insertTransactEvent
-  (M.User userId _ _ )
+  (M.User (M.UserID userId) _ _ )
   (M.TransactionEvent
     foreignEventId
     act
@@ -366,7 +366,7 @@ insertSignature = error "Implement me"
 --   liftIO $ sendToBlockchain package
 
 addContact :: M.User -> M.UserID -> DB Bool
-addContact (M.User uid1 _ _) uid2 = do
+addContact (M.User (M.UserID uid1) _ _) (M.UserID uid2) = do
   pKey <- generatePk
   r <- pg $ runInsertReturningList (SB._contacts SB.supplyChainDb) $
                insertValues [SB.Contact pKey (SB.UserId uid1) (SB.UserId uid2)]
@@ -378,20 +378,20 @@ addContact (M.User uid1 _ _) uid2 = do
 -- and returns (not. userExists)
 -- @todo Make ContactErrors = NotAContact | DoesntExist | ..
 removeContact :: M.User -> M.UserID -> DB Bool
-removeContact (M.User uid1 _ _) uid2 = do
-  contactExists <- isExistingContact uid1 uid2
+removeContact (M.User firstId@(M.UserID uid1) _ _) secondId@(M.UserID uid2) = do
+  contactExists <- isExistingContact firstId secondId
   if contactExists
     then do
       pg $ runDelete $ delete (SB._contacts SB.supplyChainDb)
               (\ contact ->
                 SB.contact_user1_id contact ==. val_ (SB.UserId uid1) &&.
                 SB.contact_user2_id contact ==. val_ (SB.UserId uid2))
-      not <$> isExistingContact uid1 uid2
+      not <$> isExistingContact firstId secondId
   else return False
 
 -- | Lists all the contacts associated with the given user
 listContacts :: M.User -> DB [M.User]
-listContacts  (M.User uid _ _) = do
+listContacts  (M.User (M.UserID uid) _ _) = do
   userList <- pg $ runSelectReturningList $ select $ do
     user <- all_ (SB._users SB.supplyChainDb)
     contact <- all_ (SB._contacts SB.supplyChainDb)
@@ -408,19 +408,26 @@ listBusinesses = do
       all_ (SB._businesses SB.supplyChainDb)
 
 -- TODO: Write tests
--- QUESTION: can we not have muliple users associated with an event?
-getUserByEvent :: SB.PrimaryKeyType -> DB M.User
-getUserByEvent eventId = do
-  r <- pg $ runSelectReturningList $ select $ do
+-- Returns the user and whether or not that user had signed the event
+eventUserSignedList :: EvId.EventID -> DB [(M.User, Bool)]
+eventUserSignedList (EvId.EventID eventId) = do
+  usersSignedList <- pg $ runSelectReturningList $ select $ do
     userEvent <- all_ (SB._user_events SB.supplyChainDb)
     user <- all_ (SB._users SB.supplyChainDb)
     guard_ (SB.user_events_event_id userEvent ==. val_ (SB.EventId eventId))
     guard_ (SB.user_events_user_id userEvent `references_` user)
-    pure user
-  case r of
-    [user] -> return $ userTableToModel user
-    _      -> throwBackendError r
+    pure (user, SB.user_events_has_signed userEvent)
+  return $ bimap userTableToModel id <$> usersSignedList
 
+eventsByUser :: M.UserID -> DB [Ev.Event]
+eventsByUser (M.UserID userId) = do
+  eventList <- pg $ runSelectReturningList $ select $ do
+    userEvent <- all_ (SB._user_events SB.supplyChainDb)
+    event <- all_ (SB._events SB.supplyChainDb)
+    guard_ (SB.user_events_event_id userEvent `references_` event &&.
+            SB.user_events_user_id userEvent ==. val_ (SB.UserId userId))
+    pure (SB.json_event event)
+  return $ catMaybes $ decodeEvent <$> eventList
 
 -- -- TODO - convert these below functions, and others in original file Storage.hs
 -- -- TODO = use EventId or EventID ???
