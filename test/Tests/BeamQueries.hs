@@ -6,8 +6,8 @@
 
 module Tests.BeamQueries where
 
-import           AppConfig                  (AppM, Env (..), EnvType (..),
-                                             runAppM, runDb)
+import           AppConfig                  (AppM, DB, Env (..), EnvType (..),
+                                             pg, runAppM, runDb)
 import           BeamQueries
 import           Control.Monad              (void)
 -- import           Crypto.Scrypt
@@ -51,10 +51,10 @@ rsaPubKey :: IO M.RSAPublicKey
 rsaPubKey = M.PEMString <$> Prelude.readFile "./test/Tests/testKeys/goodKeys/test.pub"
 
 
-selectKey :: M.KeyID -> AppM (Maybe SB.Key)
+
+selectKey :: M.KeyID -> DB (Maybe SB.Key)
 selectKey keyId = do
-  r <- runDb $
-          runSelectReturningList $ select $ do
+  r <- pg $ runSelectReturningList $ select $ do
           key <- all_ (SB._keys SB.supplyChainDb)
           guard_ (SB.key_id key ==. val_ keyId)
           pure key
@@ -74,7 +74,7 @@ testQueries = do
     it "addPublicKey test 1" $ \(_conn, env) -> do
       pubKey <- rsaPubKey
       tStart <- timeStampIO
-      res <- testAppM env $ do
+      res <- testAppM env $ runDb $ do
         uid <- newUser dummyNewUser
         storageUser <- selectUser uid
         let user = userTableToModel . fromJust $ storageUser
@@ -86,7 +86,7 @@ testQueries = do
         pure (storageKey, keyStr, keyId, uid, tEnd, insertedKey)
       case res of
         (Nothing, _, _, _, _, _) -> fail "Received Nothing for key"
-        (Just key, keyStr, keyId, uid, tEnd, insertedKey) -> do
+        (Just key, keyStr, (M.KeyID keyId), (M.UserID uid), tEnd, insertedKey) -> do
           key `shouldSatisfy`
             (\k ->
               T.unpack (SB.pem_str k) == keyStr &&
@@ -101,7 +101,7 @@ testQueries = do
     it "getPublicKeyInfo test 1" $ \(_conn, env) -> do
       tStart <- timeStampIOEPCIS
       pubKey <- rsaPubKey
-      (keyInfo, uid, tEnd) <- testAppM env $ do
+      (keyInfo, uid, tEnd) <- testAppM env $ runDb $ do
         uid <- newUser dummyNewUser
         storageUser <- selectUser uid
         let user = userTableToModel . fromJust $ storageUser
@@ -124,11 +124,11 @@ testQueries = do
         pure (uid, user)
       case res of
         (_, Nothing) -> fail "Received Nothing for user"
-        (uid, Just user :: Maybe (SB.UserT Identity)) ->
+        ((M.UserID uid), Just user :: Maybe (SB.UserT Identity)) ->
           user `shouldSatisfy`
             (\u ->
               (SB.phone_number u) == (M.phoneNumber dummyNewUser) &&
-              (SB.email_address u) == (M.emailAddress dummyNewUser) &&
+              (SB.email_address u) == (M.unEmailAddress . M.emailAddress $ dummyNewUser) &&
               (SB.first_name u) == (M.firstName dummyNewUser) &&
               (SB.last_name u) == (M.lastName dummyNewUser) &&
               (SB.user_biz_id u) == (SB.BizId (M.company dummyNewUser)) &&
@@ -141,9 +141,10 @@ testQueries = do
 
   describe "authCheck tests" $
     it "authCheck test 1" $ \(_conn, env) -> do
-      res <- testAppM env $ do
+      res <- testAppM env $ runDb $ do
         uid <- newUser dummyNewUser
-        user <- authCheck (M.emailAddress dummyNewUser) (encodeUtf8 $ M.password dummyNewUser)
+        user <- authCheck (M.emailAddress dummyNewUser)
+                          (M.Password $ encodeUtf8 $ M.password dummyNewUser)
         pure (uid, user)
       case res of
         (_, Nothing) -> fail "Received Nothing for user"
@@ -157,12 +158,12 @@ testQueries = do
 
   describe "Object Event" $ do
     it "Insert Object Event" $ \(_conn, env) -> do
-      insertedEvent <- testAppM env $ insertObjectEvent dummyUser dummyObject
+      insertedEvent <- testAppM env $ runDb $ insertObjectEvent dummyUser dummyObject
       insertedEvent `shouldSatisfy`
         ((== dummyObjEvent))
 
     it "List event" $ \(_conn, env) -> do
-      res <- testAppM env $ do
+      res <- testAppM env $ runDb $ do
         insertedEvent <- insertObjectEvent dummyUser dummyObject
         eventList <- listEvents dummyLabelEpc
         pure (insertedEvent, eventList)
@@ -174,12 +175,12 @@ testQueries = do
 
   describe "Aggregation Event" $ do
     it "Insert Aggregation Event" $ \(_conn, env) -> do
-      insertedEvent <- testAppM env $ insertAggEvent dummyUser dummyAggregation
+      insertedEvent <- testAppM env $ runDb $ insertAggEvent dummyUser dummyAggregation
       insertedEvent `shouldSatisfy`
         ((== dummyAggEvent))
 
     it "List event" $ \(_conn, env) -> do
-      res <- testAppM env $ do
+      res <- testAppM env $ runDb $ do
         insertedEvent <- insertAggEvent dummyUser dummyAggregation
         eventList <- listEvents dummyLabelEpc
         pure (insertedEvent, eventList)
@@ -191,12 +192,12 @@ testQueries = do
 
   describe "Transformation Event" $ do
     it "Insert Transformation Event" $ \(_conn, env) -> do
-      insertedEvent <- testAppM env $ insertTransfEvent dummyUser dummyTransformation
+      insertedEvent <- testAppM env $ runDb $ insertTransfEvent dummyUser dummyTransformation
       insertedEvent `shouldSatisfy`
         ((== dummyTransfEvent))
 
     it "List event" $ \(_conn, env) -> do
-      res <- testAppM env $ do
+      res <- testAppM env $ runDb $ do
         insertedEvent <- insertTransfEvent dummyUser dummyTransformation
         eventList <- listEvents dummyLabelEpc
         pure (insertedEvent, eventList)
@@ -208,12 +209,12 @@ testQueries = do
 
   describe "Transaction Event" $ do
     it "Insert Transaction Event" $ \(_conn, env) -> do
-      insertedEvent <- testAppM env $ insertTransactEvent dummyUser dummyTransaction
+      insertedEvent <- testAppM env $ runDb $ insertTransactEvent dummyUser dummyTransaction
       insertedEvent `shouldSatisfy`
         ((== dummyTransactEvent))
 
     it "List event" $ \(_conn, env) -> do
-      res <- testAppM env $ do
+      res <- testAppM env $ runDb $ do
         insertedEvent <- insertTransactEvent dummyUser dummyTransaction
         eventList <- listEvents dummyLabelEpc
         pure (insertedEvent, eventList)
@@ -225,7 +226,7 @@ testQueries = do
 
   describe "getUser tests" $
     it "getUser test 1" $ \(_conn, env) -> do
-      res <- testAppM env $ do
+      res <- testAppM env $ runDb $ do
         uid <- newUser dummyNewUser
         user <- getUser $ M.emailAddress dummyNewUser
         pure (uid, user)
@@ -240,11 +241,11 @@ testQueries = do
             )
 
   describe "Contacts" $ do
-    (after_ clearContact) . describe "Contacts" $ do
+    (after_ clearContact) . describe "Contacts" $
       describe "Add contact" $
         it "addContact simple" $ \(_conn, env) -> do
-          let myContact = makeDummyNewUser "first@gmail.com"
-          (hasBeenAdded, isContact) <- testAppM env $ do
+          let myContact = makeDummyNewUser (M.EmailAddress "first@gmail.com")
+          (hasBeenAdded, isContact) <- testAppM env $ runDb $ do
             uid <- newUser dummyNewUser
             user <- getUser . M.emailAddress $ dummyNewUser
             myContactUid <- newUser myContact
@@ -257,10 +258,10 @@ testQueries = do
     describe "Remove contact" $ do
       it "Simple remove one" $ \(_conn, env) -> do
         -- Adding the contact first
-        (hasBeenAdded, hasBeenRemoved) <- testAppM env $ do
+        (hasBeenAdded, hasBeenRemoved) <- testAppM env $ runDb $ do
           void $ newUser dummyNewUser
           mUser <- getUser $ M.emailAddress dummyNewUser
-          let myContact = makeDummyNewUser "first@gmail.com"
+          let myContact = makeDummyNewUser (M.EmailAddress "first@gmail.com")
               user = fromJust mUser
           myContactUid <- newUser myContact
           hasBeenAdded <- addContact user myContactUid
@@ -271,12 +272,12 @@ testQueries = do
         hasBeenRemoved `shouldBe` True
       it "Remove wrong contact" $ \(_conn, env) -> do
         -- Adding the contact first
-        (hasBeenAdded, hasBeenRemoved) <- testAppM env $ do
+        (hasBeenAdded, hasBeenRemoved) <- testAppM env $ runDb $ do
           void $ newUser dummyNewUser
           mUser <- getUser $ M.emailAddress dummyNewUser
         -- Add a new user who is NOT a contact
-          otherUserId <- newUser $ makeDummyNewUser "other@gmail.com"
-          let myContact = makeDummyNewUser "first@gmail.com"
+          otherUserId <- newUser $ makeDummyNewUser (M.EmailAddress "other@gmail.com")
+          let myContact = makeDummyNewUser (M.EmailAddress "first@gmail.com")
               user = fromJust mUser
           myContactUid <- newUser myContact
           hasBeenAdded <- addContact user myContactUid
@@ -289,25 +290,25 @@ testQueries = do
     describe "List contact" $ do
       it "Add one and list" $ \(_conn, env) -> do
         -- Adding the contact first
-        (hasBeenAdded, contactList, users) <- testAppM env $ do
+        (hasBeenAdded, contactList, users) <- testAppM env $ runDb $ do
           void $ newUser dummyNewUser
           mUser <- getUser $ M.emailAddress dummyNewUser
-          let myContact = makeDummyNewUser "first@gmail.com"
+          let myContact = makeDummyNewUser (M.EmailAddress "first@gmail.com")
               user = fromJust mUser
           myContactUid <- newUser myContact
-          mMyContact_user <- getUser "first@gmail.com"
+          mMyContact_user <- getUser (M.EmailAddress "first@gmail.com")
           hasBeenAdded <- addContact user myContactUid
           contactList <- listContacts user
           pure (hasBeenAdded, contactList, [fromJust mMyContact_user])
         contactList `shouldBe` users
         hasBeenAdded `shouldBe` True
       it "Add many and list" $ \(_conn, env) -> do
-        (contactList, users) <- testAppM env $ do
+        (contactList, users) <- testAppM env $ runDb $ do
           -- Making the users
-          let myContact_1 = makeDummyNewUser "first@gmail.com"
-              myContact_2 = makeDummyNewUser "second@gmail.com"
-              myContact_3 = makeDummyNewUser "third@gmail.com"
-              myContact_4 = makeDummyNewUser "fourth@gmail.com"
+          let myContact_1 = makeDummyNewUser (M.EmailAddress "first@gmail.com")
+              myContact_2 = makeDummyNewUser (M.EmailAddress "second@gmail.com")
+              myContact_3 = makeDummyNewUser (M.EmailAddress "third@gmail.com")
+              myContact_4 = makeDummyNewUser (M.EmailAddress "fourth@gmail.com")
 
           -- Adding the users to the DB
           void $ newUser dummyNewUser
@@ -318,10 +319,10 @@ testQueries = do
 
           -- Getting the users
           mUser <- getUser $ M.emailAddress dummyNewUser
-          mMyContact_1 <- getUser "first@gmail.com"
-          mMyContact_2 <- getUser "second@gmail.com"
-          mMyContact_3 <- getUser "third@gmail.com"
-          mMyContact_4 <- getUser "fourth@gmail.com"
+          mMyContact_1 <- getUser (M.EmailAddress "first@gmail.com")
+          mMyContact_2 <- getUser (M.EmailAddress "second@gmail.com")
+          mMyContact_3 <- getUser (M.EmailAddress "third@gmail.com")
+          mMyContact_4 <- getUser (M.EmailAddress "fourth@gmail.com")
 
           let user = fromJust mUser
               myContact_1_user = fromJust mMyContact_1
@@ -348,7 +349,7 @@ testQueries = do
   describe "DWhere" $
     it "Insert and find DWhere" $ \(_conn, env) -> do
       let eventId = dummyId
-      insertedDWhere <- testAppM env $ do
+      insertedDWhere <- testAppM env $ runDb $ do
         void $ insertDWhere dummyDWhere eventId
         findDWhere eventId
       insertedDWhere `shouldBe` Just dummyDWhere
@@ -362,13 +363,12 @@ clearContact = do
 populateContact :: IO Env -> IO ()
 populateContact ioEnv = do
     env <- ioEnv
-    let myContact = makeDummyNewUser "first@gmail.com"
-    hasBeenAdded <- testAppM env $ do
+    let myContact = makeDummyNewUser (M.EmailAddress "first@gmail.com")
+    hasBeenAdded <- testAppM env $ runDb $ do
       void $ newUser dummyNewUser
       user <- getUser $ M.emailAddress dummyNewUser
       myContactUid <- newUser myContact
-      hasBeenAdded <- addContact (fromJust user) myContactUid
-      pure hasBeenAdded
+      addContact (fromJust user) myContactUid
     hasBeenAdded `shouldBe` True
 
 defaultEnv :: IO Env

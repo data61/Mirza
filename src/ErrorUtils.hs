@@ -14,13 +14,13 @@ import           Database.PostgreSQL.Simple.Internal (SqlError (..))
 import           Errors                              (ErrorCode,
                                                       ServerError (..),
                                                       ServiceError (..))
+import qualified Model                               as M
 import           Servant.Server
 import           Utils                               (toText)
 
-
 -- | Takes in a ServiceError and converts it to an HTTP error (eg. err400)
 appErrToHttpErr :: ServiceError -> Handler a
-appErrToHttpErr (EmailExists _ email) =
+appErrToHttpErr (EmailExists _ (M.EmailAddress email)) =
   throwError $ err400 {
     errBody = LBSC8.fromChunks ["User email ", encodeUtf8 email, " exists."]
   }
@@ -28,15 +28,15 @@ appErrToHttpErr (UnexpectedDBResponse _) =
   throwError $ err500 {
     errBody = "We received an unexpected response from our database. This error has been logged and someone is looking into it."
   }
-appErrToHttpErr (UserNotFound email) =
+appErrToHttpErr (UserNotFound (M.EmailAddress email)) =
   throwError $ err404 {
     errBody = LBSC8.fromChunks ["User with email ", encodeUtf8 email, " could not be found."]
   }
-appErrToHttpErr (AuthFailed email) =
+appErrToHttpErr (AuthFailed (M.EmailAddress email)) =
   throwError $ err404 {
     errBody = LBSC8.fromChunks ["Authentication failed for email ", encodeUtf8 email, "."]
   }
-appErrToHttpErr (EmailNotFound email) =
+appErrToHttpErr (EmailNotFound (M.EmailAddress email)) =
   throwError $ err404 {
     errBody = LBSC8.fromChunks ["Email ", encodeUtf8 email, " could not be found."]
   }

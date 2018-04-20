@@ -1,11 +1,10 @@
-flags: {}
 extra-package-dbs: []
 packages:
 - '.'
 - location:
     # git: https://github.com/sajidanower23/beam.git
     git: https://github.com/tathougies/beam.git
-    commit: 03f1091b0e0e05a76ec622e454e0c95a7195fb25
+    commit: ba7c05a743d1924588a436d34c741a949adb2cdd
   extra-dep: true
   subdirs:
     - beam-core

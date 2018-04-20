@@ -16,45 +16,43 @@
 module Service where
 
 import           API
-import qualified AppConfig                        as AC
-import qualified BeamQueries                      as BQ
-import           Control.Lens                     hiding ((.=))
-import           Control.Monad.Error.Hoist        ((<!?>), (<%?>))
-import           Control.Monad.IO.Class           (liftIO)
-import qualified Data.ByteString.Base64           as BS64
-import qualified Data.ByteString.Char8            as BSC
-import           Data.Char                        (toLower)
+import qualified AppConfig                  as AC
+import qualified BeamQueries                as BQ
+import           Control.Lens               hiding ((.=))
+import           Control.Monad.Error.Hoist  ((<!?>), (<%?>))
+import           Control.Monad.IO.Class     (liftIO)
+import qualified Data.ByteString.Base64     as BS64
+import qualified Data.ByteString.Char8      as BSC
+import           Data.Char                  (toLower)
 import           Data.Either.Combinators
 import           Data.GS1.DWhat
 import           Data.GS1.DWhen
 import           Data.GS1.DWhere
 import           Data.GS1.DWhy
 import           Data.GS1.EPC
-import qualified Data.GS1.Event                   as Ev
+import qualified Data.GS1.Event             as Ev
 import           Data.GS1.EventID
 import           Data.GS1.Parser.Parser
-import qualified Data.HashMap.Strict.InsOrd       as IOrd
+import qualified Data.HashMap.Strict.InsOrd as IOrd
 import           Data.Swagger
-import           Data.Text                        (pack)
-import           Data.Text.Encoding               (decodeUtf8)
+import           Data.Text                  (pack)
+import           Data.Text.Encoding         (decodeUtf8)
 import           Data.UUID.V4
-import           Dummies                          (dummyObjectDWhat)
+import           Dummies                    (dummyObjectDWhat)
 import           Errors
-import           ErrorUtils                       (appErrToHttpErr,
-                                                   throwParseError)
-import           GHC.TypeLits                     (KnownSymbol)
-import qualified Model                            as M
-import qualified OpenSSL.EVP.Digest               as EVPDigest
-import           OpenSSL.EVP.PKey                 (SomePublicKey, toPublicKey)
-import           OpenSSL.EVP.Verify               (VerifyStatus (..), verifyBS)
-import           OpenSSL.PEM                      (readPublicKey)
-import           OpenSSL.RSA                      (RSAPubKey, rsaSize)
-import qualified QueryUtils                       as QU
+import           ErrorUtils                 (appErrToHttpErr, throwParseError)
+import           GHC.TypeLits               (KnownSymbol)
+import qualified Model                      as M
+import qualified OpenSSL.EVP.Digest         as EVPDigest
+import           OpenSSL.EVP.PKey           (SomePublicKey, toPublicKey)
+import           OpenSSL.EVP.Verify         (VerifyStatus (..), verifyBS)
+import           OpenSSL.PEM                (readPublicKey)
+import           OpenSSL.RSA                (RSAPubKey, rsaSize)
+import qualified QueryUtils                 as QU
 import           Servant
-import           Servant.Server.Experimental.Auth ()
 import           Servant.Swagger
-import qualified StorageBeam                      as SB
-import qualified Utils                            as U
+import qualified StorageBeam                as SB
+import qualified Utils                      as U
 
 instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub) where
   toSwagger _ =
@@ -70,7 +68,8 @@ instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub
 authCheck :: AC.Env -> BasicAuthCheck M.User
 authCheck env =
   let check (BasicAuthData useremail pass) = do
-        eitherUser <- AC.runAppM env $ AC.runDb $ BQ.authCheck (decodeUtf8 useremail) pass
+        eitherUser <- AC.runAppM env . AC.runDb $
+                      BQ.authCheck (M.EmailAddress $ decodeUtf8 useremail) (M.Password pass)
         case eitherUser of
           Right (Just user) -> return (Authorized user)
           _                 -> return Unauthorized
@@ -180,19 +179,18 @@ epcState _user _str = U.notImplemented
 -- wholeEvents <- select * from events, dwhats, dwhy, dwhen where _whatItemID=labelID AND _eventID=_whatEventID AND _eventID=_whenEventID AND _eventID=_whyEventID ORDER BY _eventTime;
 -- return map constructEvent wholeEvents
 listEvents :: M.User ->  M.LabelEPCUrn -> AC.AppM [Ev.Event]
-listEvents _user = either throwParseError (AC.runDb . BQ.listEvents) . urn2LabelEPC . pack
+listEvents _user = either throwParseError (AC.runDb . BQ.listEvents) . urn2LabelEPC . M.unLabelEPCUrn
 
 -- given an event ID, list all the users associated with that event
 -- this can be used to make sure everything is signed
 -- PSEUDO:
 -- SELECT event.userID, userID1, userID2 FROM Events, BizTransactions WHERE Events._eventID=eventID AND BizTransactionsEventId=Events._eventID;
 -- implement a function constructEvent :: WholeEvent -> Event
---
 
 -- Look into usereventsT and tie that back to the user
 -- the function getUser/selectUser might be helpful
 eventUserList :: M.User -> EventID -> AC.AppM [(M.User, Bool)]
-eventUserList _user _eventID = U.notImplemented
+eventUserList _user = AC.runDb . BQ.eventUserSignedList
 
 contactsInfo :: M.User -> AC.AppM [M.User]
 contactsInfo = AC.runDb . BQ.listContacts
@@ -232,7 +230,7 @@ listBusinesses = AC.runDb $ fmap QU.storageToModelBusiness <$> BQ.listBusinesses
 -- |List events that a particular user was/is involved with
 -- use BizTransactions and events (createdby) tables
 eventList :: M.User -> M.UserID -> AC.AppM [Ev.Event]
-eventList _user _uID = return []
+eventList _user = AC.runDb . BQ.eventsByUser
 
 makeDigest :: M.Digest -> IO (Maybe EVPDigest.Digest)
 makeDigest = EVPDigest.getDigestByName . map toLower . show

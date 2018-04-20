@@ -75,7 +75,7 @@ generatePk = liftIO nextRandom
 -- | Converts a DB representation of ``User`` to a Model representation
 -- SB.User = SB.User uid bizId fName lName phNum passHash email
 userTableToModel :: SB.User -> M.User
-userTableToModel (SB.User uid _ fName lName _ _ _) = M.User uid fName lName
+userTableToModel (SB.User uid _ fName lName _ _ _) = M.User (M.UserID uid) fName lName
 
 -- | Json encode the event
 -- currently do it automagically, but might what to be
@@ -214,9 +214,9 @@ findInstLabelId' cp sn msfv mir mat = do
             SB.asset_type labels ==. val_ mat &&.
             SB.item_reference labels ==. val_ mir)
     pure labels
-  case r of
-    [l] -> return $ Just (SB.label_id l)
-    _   -> return Nothing
+  return $ case r of
+    [l] -> Just (SB.label_id l)
+    _   -> Nothing
 
 
 findClassLabelId :: ClassLabelEPC -> DB (Maybe SB.PrimaryKeyType)
@@ -349,7 +349,6 @@ findDWhereByLocationField locField eventId = pg $ runSelectReturningList $ selec
       SB.where_location_field wheres ==. val_ locField)
     pure wheres
 
-
 -- | Merges a list of SB.Wheres into one Data.GS1.DWhere
 -- mergeSBWheres :: [SB.WhereT Identity] -> DWhere
 mergeSBWheres :: [[SB.WhereT Identity]] -> Maybe DWhere
@@ -360,8 +359,7 @@ mergeSBWheres [rPointsW, bizLocsW, srcTsW, destTsW] =
       destTs = constructSrcDestLocation <$> destTsW
       in
         DWhere rPoints bizLocs <$> sequence srcTs <*> sequence destTs
-        -- FIXME: no error, ever!
-mergeSBWheres _                                     = error "Invalid arguments"
+mergeSBWheres _                                     = Nothing -- error "Invalid arguments"
 
 -- | This relies on the user calling this function in the appropriate WhereT
 constructSrcDestLocation :: SB.WhereT Identity -> Maybe SrcDestLocation
@@ -396,7 +394,7 @@ insertUserEvent eventId userId addedByUserId signed signedHash =
         $ insertValues
           [ SB.UserEvent pKey (SB.EventId eventId) (SB.UserId userId)
                         signed (SB.UserId addedByUserId) signedHash
-        ]
+          ]
 
 insertWhatLabel :: SB.PrimaryKeyType
                 -> SB.PrimaryKeyType
@@ -433,7 +431,7 @@ insertLabelEvent eventId labelId = withPKey $ \pKey ->
 
 
 selectUser :: M.UserID -> DB (Maybe SB.User)
-selectUser uid = do
+selectUser (M.UserID uid) = do
   r <- pg $ runSelectReturningList $ select $ do
           user <- all_ (SB._users SB.supplyChainDb)
           guard_ (SB.user_id user ==. val_ uid)
@@ -470,7 +468,7 @@ storageToModelEvent = decodeEvent . SB.json_event
 -- | Checks if a pair of userIds are recorded as a contact.
 -- __Must be run in a transaction!__
 isExistingContact :: M.UserID -> M.UserID -> DB Bool
-isExistingContact uid1 uid2 = do
+isExistingContact (M.UserID uid1) (M.UserID uid2) = do
   r <- pg $ runSelectReturningList $ select $ do
         contact <- all_ (SB._contacts SB.supplyChainDb)
         guard_ (SB.contact_user1_id contact  ==. (val_ . SB.UserId $ uid1) &&.
