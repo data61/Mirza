@@ -60,10 +60,6 @@ appErrToHttpErr (ParseError _) = generic500err
 appErrToHttpErr (BackendErr _) = generic500err
 appErrToHttpErr (DatabaseError _) = generic500err
 
--- TODO: We should probably explicitly handle all service errors, removing this lets
--- GHC tell us when we haven't
--- appErrToHttpErr _ = throwError err500 {errBody = "The server did not understand this request."}
-
 generic500err :: Handler a
 generic500err = throwError err500 {errBody = "The server did not understand this request."}
 
