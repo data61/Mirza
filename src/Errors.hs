@@ -15,7 +15,7 @@ type ErrorText = T.Text
 type ErrorCode = BS.ByteString
 
 data ServerError = ServerError (Maybe ErrorCode) ErrorText
-                   deriving (Show, Read)
+                   deriving (Show, Eq, Generic, Read)
 
 newtype Expected = Expected  {unExpected :: U.Byte} deriving (Show, Eq, Read)
 newtype Received = Received  {unReceived :: U.Byte} deriving (Show, Eq, Read)
@@ -41,7 +41,7 @@ data ServiceError
   | ParseError           ErrorText -- EPC.ParseFailure
   | BackendErr           ErrorText -- fallback
   | DatabaseError        SqlError
-  deriving (Show, Generic)
+  deriving (Show, Eq, Generic)
 
 {-
 Do not remove the following commented out code until explicitly asked to
