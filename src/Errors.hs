@@ -35,7 +35,6 @@ data ServiceError
   | InsertionFail        ServerError T.Text
   | EmailExists          ServerError M.EmailAddress
   | EmailNotFound        M.EmailAddress
-  | UnexpectedDBResponse ServerError
   | AuthFailed           M.EmailAddress
   | UserNotFound         M.EmailAddress
   | ParseError           ErrorText -- EPC.ParseFailure

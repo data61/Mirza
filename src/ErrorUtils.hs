@@ -80,14 +80,12 @@ appErrToHttpErr (BlockchainSendFailed _) =
 appErrToHttpErr (ParseError _) =
   throwError $ err400 {
     errBody = "We could not parse the input provided."
-    -- ^ Add more information on what's wrong?
+    -- TODO: ^ Add more information on what's wrong?
   }
 appErrToHttpErr (BackendErr _) = generic500err
 appErrToHttpErr (DatabaseError _) =
   throw500Err "We received an unexpected response from our database. This error has been logged and someone is looking into it."
-appErrToHttpErr (UnexpectedDBResponse _) =
-  throw500Err "We received an unexpected response from our database. This error has been logged and someone is looking into it."
--- TODO: The above error messages need to be more descriptive
+-- TODO: The above error messages may need to be more descriptive
 
 generic500err :: Handler a
 generic500err = throwError err500 {errBody = "The server did not understand this request."}
@@ -123,10 +121,6 @@ throwAppError = throwError . AppError
 -- | Extracts error code from an ``SqlError``
 getSqlErrorCode :: SqlError -> Maybe ByteString
 getSqlErrorCode e@(SqlError{}) = Just $ sqlState e
-
--- | Shorthand for throwing ``UnexpectedDBError``
-throwUnexpectedDBError :: ServerError -> AppM a
-throwUnexpectedDBError = throwAppError . UnexpectedDBResponse
 
 throwParseError :: ParseFailure -> AppM a
 throwParseError = throwAppError . ParseError . toText
