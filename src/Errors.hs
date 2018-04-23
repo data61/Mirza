@@ -29,7 +29,7 @@ data ServiceError
   | InvalidKeyID         M.KeyID
   | InvalidUserID        M.UserID
   | InvalidRSAKeyString  T.Text
-  | InvalidRSAKey        M.RSAPublicKey
+  | InvalidRSAKey        M.PEM_RSAPubKey
   | InvalidRSAKeySize    Expected Received
   | InvalidDigest        M.Digest
   | InsertionFail        ServerError T.Text
