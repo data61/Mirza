@@ -37,11 +37,11 @@ type PrivateAPI =
   :<|> "event"    :> "aggregateEvent"      :> ReqBody '[JSON] AggregationEvent    :> Post '[JSON] Ev.Event
   :<|> "event"    :> "transactionEvent"    :> ReqBody '[JSON] TransactionEvent    :> Post '[JSON] Ev.Event
   :<|> "event"    :> "transformationEvent" :> ReqBody '[JSON] TransformationEvent :> Post '[JSON] Ev.Event
-  :<|> "key"      :> "add"                 :> ReqBody '[JSON] RSAPublicKey        :> Post '[JSON] KeyID
+  :<|> "key"      :> "add"                 :> ReqBody '[JSON] PEM_RSAPubKey        :> Post '[JSON] KeyID
 
 type PublicAPI =
        "newUser"  :> ReqBody '[JSON] NewUser            :> Post '[JSON] UserID
-  :<|> "key"      :> "get"     :> Capture "keyID" KeyID :> Get '[JSON] RSAPublicKey
+  :<|> "key"      :> "get"     :> Capture "keyID" KeyID :> Get '[JSON] PEM_RSAPubKey
   :<|> "key"      :> "getInfo" :> Capture "keyID" KeyID :> Get '[JSON] KeyInfo
   :<|> "business" :> "list"    :> Get '[JSON] [Business]
 

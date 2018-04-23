@@ -35,9 +35,6 @@ sampleObjectFile = "../GS1Combinators/test/test-xml/ObjectEvent.xml"
 dummyUser :: M.User
 dummyUser = M.User (M.UserID nil) "Sajid" "Anower"
 
-dummyRsaPubKey :: M.RSAPublicKey
-dummyRsaPubKey = M.PEMString "blah"
-
 dummyId :: SB.PrimaryKeyType
 dummyId = nil
 
