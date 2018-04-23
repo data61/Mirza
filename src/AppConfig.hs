@@ -39,6 +39,8 @@ import           Crypto.Scrypt              (ScryptParams)
 
 import qualified Control.Exception          as E
 
+import           Data.Pool                  as Pool
+
 data EnvType = Prod | Dev
   deriving (Show, Eq, Read)
 
@@ -47,9 +49,9 @@ mkEnvType False = Prod
 mkEnvType _     = Dev
 
 data Env = Env
-  { envType  :: EnvType
-  , dbConn   :: Connection
-  , scryptPs :: ScryptParams
+  { envType    :: EnvType
+  , dbConnPool :: Pool Connection
+  , scryptPs   :: ScryptParams
   -- , port    :: Word16
   }
 
@@ -86,26 +88,32 @@ newtype DB a = DB (ReaderT (Connection,Env) (ExceptT AppError Pg) a)
 
 
 
-dbFunc :: Connection -> AppM (Pg a -> IO a)
-dbFunc conn = do
+dbFunc :: AppM (Connection -> Pg a -> IO a)
+dbFunc = do
   e <- asks envType
   pure $ case e of
-    Prod -> B.withDatabase conn  -- database queries other than migration will be silent
-    _    -> B.withDatabaseDebug putStrLn conn  -- database queries other than migration will print on screen
+    Prod -> B.withDatabase  -- database queries other than migration will be silent
+    _    -> B.withDatabaseDebug putStrLn  -- database queries other than migration will print on screen
 
 
 -- | Run a DB action within a transaction. See the documentation for
 -- 'withTransaction'. SqlError exceptions will be caught and lifted into the
 -- AppM MonadError instance, as will all app errors thrown in the DB a action,
 -- and in either case the database transaction is rolled back.
+--
+-- Exceptions which are thrown which are not SqlErrors will be caught by Servant
+-- and cause 500 errors (these are not exceptions we'll generally know how to
+-- deal with).
 runDb :: DB a -> AppM a
 runDb (DB act) = do
   env <- ask
-  dbf <- dbFunc (dbConn env)
-  res <- liftIO . Exc.try
-         . withTransaction (dbConn env)
-         . dbf . runExceptT
-         $ runReaderT act (dbConn env,env)
+  dbf <- dbFunc
+  res <- liftIO $ Pool.withResource (dbConnPool env) $ \conn ->
+          Exc.try
+         . withTransaction conn
+         . dbf conn
+         . runExceptT
+         . runReaderT act $ (conn,env)
         -- :: AppM (Either SqlError (Either AppError a))
   either (throwError . AppError . DatabaseError)
          (either throwError pure)
@@ -114,6 +122,8 @@ runDb (DB act) = do
 
 -- | As "Database.PostgreSQL.Simple.Transaction".'DB.withTransaction',
 -- but aborts the transaction if a 'Left' is returned.
+
+-- TODO: Add NFData constraint to avoid async exceptions.
 withTransaction :: Connection -> IO (Either e a) -> IO (Either e a)
 withTransaction conn act = E.mask $ \restore -> do
   DB.begin conn
