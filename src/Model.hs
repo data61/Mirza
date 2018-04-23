@@ -106,12 +106,12 @@ instance ToSchema Signature
 --   toRow (Signature s) = toRow $ Only s
 
 
-newtype RSAPublicKey = PEMString String
+newtype PEM_RSAPubKey = PEMString String
   deriving (Show, Read, Eq, Generic)
 -- These are orphaned instances
 --
---instance Sql.FromRow RSAPublicKey where
---  fromRow = RSAPublicKey <$> field <$> field
+--instance Sql.FromRow PEM_RSAPubKey where
+--  fromRow = PEM_RSAPubKey <$> field <$> field
 
 --instance ToParamSchema PublicKey where
 --  toParamSchema _ = binaryParamSchema
@@ -120,8 +120,8 @@ newtype RSAPublicKey = PEMString String
 --  declareNamedSchema _ = pure $ NamedSchema (Just "PublicKey") $ binarySchema
 
 --orphaned instances, I know
-$(deriveJSON defaultOptions ''RSAPublicKey)
-instance ToSchema RSAPublicKey
+$(deriveJSON defaultOptions ''PEM_RSAPubKey)
+instance ToSchema PEM_RSAPubKey
 
 data KeyInfo = KeyInfo {
   userID         :: UserID,

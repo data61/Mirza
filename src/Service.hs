@@ -134,12 +134,12 @@ basicAuthServerContext env = authCheck env :. EmptyContext
 minPubKeySize :: U.Byte
 minPubKeySize = U.Byte 256 -- 2048 / 8
 
-addPublicKey :: M.User -> M.RSAPublicKey -> AC.AppM M.KeyID
+addPublicKey :: M.User -> M.PEM_RSAPubKey -> AC.AppM M.KeyID
 addPublicKey user pemKey@(M.PEMString pemStr) = do
   somePubKey <- liftIO $ readPublicKey pemStr
   either throwAppError (BQ.addPublicKey user) (checkPubKey somePubKey pemKey)
 
-checkPubKey :: SomePublicKey -> M.RSAPublicKey-> Either ServiceError RSAPubKey
+checkPubKey :: SomePublicKey -> M.PEM_RSAPubKey-> Either ServiceError RSAPubKey
 checkPubKey spKey pemKey =
   maybe (Left $ InvalidRSAKey pemKey)
   (\pubKey ->
@@ -154,7 +154,7 @@ checkPubKey spKey pemKey =
 newUser :: M.NewUser -> AC.AppM M.UserID
 newUser = BQ.newUser
 
-getPublicKey :: M.KeyID -> AC.AppM M.RSAPublicKey
+getPublicKey :: M.KeyID -> AC.AppM M.PEM_RSAPubKey
 getPublicKey = BQ.getPublicKey
 
 getPublicKeyInfo :: M.KeyID -> AC.AppM M.KeyInfo
