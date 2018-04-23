@@ -22,7 +22,8 @@ module AppConfig
 
 import qualified Database.Beam              as B
 import           Database.Beam.Postgres     (Pg)
-import           Database.PostgreSQL.Simple (Connection, withTransaction)
+import           Database.PostgreSQL.Simple (Connection)
+import qualified Database.PostgreSQL.Simple as DB
 
 import qualified Control.Exception          as Exc
 import           Control.Monad              (when)
@@ -35,6 +36,8 @@ import           Control.Monad.Trans        (lift)
 import           Errors                     (ServiceError (..))
 
 import           Crypto.Scrypt              (ScryptParams)
+
+import qualified Control.Exception          as E
 
 data EnvType = Prod | Dev
   deriving (Show, Eq, Read)
@@ -67,7 +70,10 @@ newtype AppM a = AppM
     , MonadError AppError
     )
 
-
+-- | The DB monad is used to connect to the Beam backend. The only way to run
+-- something of type DB a is to use 'runDb', which ensures the action is run in
+-- a Postgres transaction, and that exceptions and errors thrown inside the DB a
+-- cause the transaction to be rolled back and the error rethrown.
 newtype DB a = DB (ReaderT (Connection,Env) (ExceptT AppError Pg) a)
   deriving
   ( Functor
@@ -89,7 +95,9 @@ dbFunc conn = do
 
 
 -- | Run a DB action within a transaction. See the documentation for
--- 'withTransaction'.
+-- 'withTransaction'. SqlError exceptions will be caught and lifted into the
+-- AppM MonadError instance, as will all app errors thrown in the DB a action,
+-- and in either case the database transaction is rolled back.
 runDb :: DB a -> AppM a
 runDb (DB act) = do
   env <- ask
@@ -103,7 +111,19 @@ runDb (DB act) = do
          (either throwError pure)
          res
 
--- TODO: Remove this once beam version is updated
+
+-- | As "Database.PostgreSQL.Simple.Transaction".'DB.withTransaction',
+-- but aborts the transaction if a 'Left' is returned.
+withTransaction :: Connection -> IO (Either e a) -> IO (Either e a)
+withTransaction conn act = E.mask $ \restore -> do
+  DB.begin conn
+  r <- restore (act >>= E.evaluate) `E.onException` DB.rollback conn
+  case r of
+    Left _  -> DB.rollback conn
+    Right _ -> DB.commit conn
+  pure r
+
+
 pg :: Pg a -> DB a
 pg = DB . lift . lift
 
