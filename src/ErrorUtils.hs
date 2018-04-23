@@ -61,10 +61,13 @@ appErrToHttpErr (InvalidDigest _) =
   throwError $ err400 {
     errBody = "Invalid Key ID entered."
   }
-appErrToHttpErr (AuthFailed (M.EmailAddress email)) =
-  throwError $ err403 {
-    errBody = LBSC8.fromChunks ["Authentication failed for email ", encodeUtf8 email, "."]
+appErrToHttpErr (ParseError _) =
+  throwError $ err400 {
+    errBody = "We could not parse the input provided."
+    -- TODO: ^ Add more information on what's wrong?
   }
+appErrToHttpErr (AuthFailed _) =
+  throwError $ err403 { errBody = "Authentication failed." }
 appErrToHttpErr (UserNotFound (M.EmailAddress email)) =
   throwError $ err404 {
     errBody = LBSC8.fromChunks ["User with email ", encodeUtf8 email, " could not be found."]
@@ -73,22 +76,14 @@ appErrToHttpErr (EmailNotFound (M.EmailAddress email)) =
   throwError $ err404 {
     errBody = LBSC8.fromChunks ["Email ", encodeUtf8 email, " could not be found."]
   }
-appErrToHttpErr (InsertionFail _ email) =
-  throw500Err $ LBSC8.fromChunks ["Email ", encodeUtf8 email, " could not be added. It might be worth trying again."]
-appErrToHttpErr (BlockchainSendFailed _) =
-  throw500Err "The data failed to send to the blockchain. We are looking into it. Thank you for your patience."
-appErrToHttpErr (ParseError _) =
-  throwError $ err400 {
-    errBody = "We could not parse the input provided."
-    -- TODO: ^ Add more information on what's wrong?
-  }
+appErrToHttpErr (InsertionFail _ _email) = generic500err
+appErrToHttpErr (BlockchainSendFailed _) = generic500err
 appErrToHttpErr (BackendErr _) = generic500err
-appErrToHttpErr (DatabaseError _) =
-  throw500Err "Something went wrong."
+appErrToHttpErr (DatabaseError _) = generic500err
 -- TODO: The above error messages may need to be more descriptive
 
 generic500err :: Handler a
-generic500err = throwError err500 {errBody = "The server did not understand this request."}
+generic500err = throwError err500 {errBody = "Something went wrong"}
 
 throw500Err :: MonadError ServantErr m => LBSC8.ByteString -> m a
 throw500Err bdy = throwError err500 {errBody = bdy}
@@ -124,4 +119,3 @@ getSqlErrorCode e@(SqlError{}) = Just $ sqlState e
 
 throwParseError :: ParseFailure -> AppM a
 throwParseError = throwAppError . ParseError . toText
-
