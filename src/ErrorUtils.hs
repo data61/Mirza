@@ -42,11 +42,11 @@ appErrToHttpErr (InvalidSignature _) =
   }
 appErrToHttpErr (InvalidEventID _) =
   throwError $ err400 {
-    errBody = "Invalid Event ID entered."
+    errBody = "No such event."
   }
 appErrToHttpErr (InvalidUserID _) =
   throwError $ err400 {
-    errBody = "Invalid User ID entered."
+    errBody = "No such user."
   }
 appErrToHttpErr (InvalidRSAKeyString _) =
   throwError $ err400 {
@@ -54,11 +54,11 @@ appErrToHttpErr (InvalidRSAKeyString _) =
   }
 appErrToHttpErr (InvalidRSAKey _) =
   throwError $ err400 {
-    errBody = "Invalid RSA Key entered."
+    errBody = "Key not found."
   }
-appErrToHttpErr (InvalidRSAKeySize _ _) =
+appErrToHttpErr (InvalidRSAKeySize (Expected (U.Byte expSize)) (Received (U.Byte recSize))) =
   throwError $ err400 {
-    errBody = "Invalid RSA Key entered."
+    errBody = LBSC8.pack $ printf "Invalid RSA Key size. Expected: %d, Received: %d\n" expSize recSize
   }
 appErrToHttpErr (InvalidDigest _) =
   throwError $ err400 {
@@ -71,14 +71,10 @@ appErrToHttpErr (ParseError _) =
   }
 appErrToHttpErr (AuthFailed _) =
   throwError $ err403 { errBody = "Authentication failed." }
-appErrToHttpErr (UserNotFound (M.EmailAddress email)) =
-  throwError $ err404 {
-    errBody = LBSC8.fromChunks ["User with email ", encodeUtf8 email, " could not be found."]
-  }
-appErrToHttpErr (EmailNotFound (M.EmailAddress email)) =
-  throwError $ err404 {
-    errBody = LBSC8.fromChunks ["Email ", encodeUtf8 email, " could not be found."]
-  }
+appErrToHttpErr (UserNotFound (M.EmailAddress _email)) =
+  throwError $ err404 { errBody = "User not found." }
+appErrToHttpErr (EmailNotFound (M.EmailAddress _email)) =
+  throwError $ err404 { errBody = "User not found." }
 appErrToHttpErr (InsertionFail _ _email) = generic500err
 appErrToHttpErr (BlockchainSendFailed _) = generic500err
 appErrToHttpErr (BackendErr _) = generic500err
