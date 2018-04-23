@@ -47,7 +47,7 @@ timeStampIOEPCIS :: MonadIO m => m EPCISTime
 timeStampIOEPCIS = liftIO $ EPCISTime <$> getCurrentTime
 
 
-rsaPubKey :: IO M.RSAPublicKey
+rsaPubKey :: IO M.PEM_RSAPubKey
 rsaPubKey = M.PEMString <$> Prelude.readFile "./test/Tests/testKeys/goodKeys/test.pub"
 
 
