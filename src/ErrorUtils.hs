@@ -84,7 +84,7 @@ appErrToHttpErr (ParseError _) =
   }
 appErrToHttpErr (BackendErr _) = generic500err
 appErrToHttpErr (DatabaseError _) =
-  throw500Err "We received an unexpected response from our database. This error has been logged and someone is looking into it."
+  throw500Err "Something went wrong."
 -- TODO: The above error messages may need to be more descriptive
 
 generic500err :: Handler a
