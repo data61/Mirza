@@ -136,7 +136,7 @@ minPubKeySize = U.Byte 256 -- 2048 / 8
 addPublicKey :: M.User -> M.RSAPublicKey -> AC.AppM M.KeyID
 addPublicKey user pemKey@(M.PEMString pemStr) = AC.runDb $ do
   somePubKey <- liftIO $ readPublicKey pemStr
-  either (throwError . AC.AppError)
+  either throwAppError
          (BQ.addPublicKey user)
          (checkPubKey somePubKey pemKey)
 
@@ -265,7 +265,7 @@ eventSign _user (M.SignedEvent eventID keyID (M.Signature sigStr) digest') = AC.
   verifyStatus <- liftIO $ verifyBS digest sigBS pubKey eventBS
   if verifyStatus == VerifySuccess
     then BQ.insertSignature eventID keyID (M.Signature sigStr) digest'
-    else throwError . AC.AppError $ InvalidSignature sigStr
+    else throwAppError $ InvalidSignature sigStr
 
 
 

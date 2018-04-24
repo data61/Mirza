@@ -31,6 +31,7 @@ import           Database.PostgreSQL.Simple.Errors        (ConstraintViolation (
 import           Database.PostgreSQL.Simple.Internal      (SqlError (..))
 import           Errors                                   (ServiceError (..))
 import           ErrorUtils                               (getSqlErrorCode,
+                                                           throwAppError,
                                                            throwBackendError,
                                                            toServerError)
 import qualified MigrateUtils                             as MU
@@ -66,7 +67,7 @@ insertUser encPass (M.NewUser phone (M.EmailAddress email) firstName lastName bi
         -- TODO: Have a proper error response
         _   -> throwBackendError res
   where
-    errHandler (AppError (DatabaseError e)) = throwError . AppError $ case constraintViolation e of
+    errHandler (AppError (DatabaseError e)) = throwAppError $ case constraintViolation e of
         Just (UniqueViolation "users_email_address_key")
           -> EmailExists (toServerError getSqlErrorCode e) (M.EmailAddress email)
         _ -> InsertionFail (toServerError (Just . sqlState) e) email
@@ -95,14 +96,14 @@ authCheck e@(M.EmailAddress email) (M.Password password) = do
         case Scrypt.verifyPass params (Scrypt.Pass password)
               (Scrypt.EncryptedPass $ SB.password_hash user)
         of
-          (False, _     ) -> throwError . AppError $ AuthFailed (M.EmailAddress email)
+          (False, _     ) -> throwAppError $ AuthFailed (M.EmailAddress email)
           (True, Nothing) -> pure $ Just (userTableToModel user)
           (True, Just (Scrypt.EncryptedPass password')) -> do
             _ <- pg $ runUpdate $ update (SB._users SB.supplyChainDb)
                     (\u -> [SB.password_hash u <-. val_ password'])
                     (\u -> SB.user_id u ==. val_ (SB.user_id user))
             pure $ Just (userTableToModel user)
-    [] -> throwError . AppError $ EmailNotFound e
+    [] -> throwAppError $ EmailNotFound e
     _  -> throwBackendError r -- multiple elements
 
 
@@ -121,7 +122,7 @@ addPublicKey (M.User (M.UserID uid) _ _)  rsaPubKey = do
         ]
   case r of
     [rowId] -> return (M.KeyID $ SB.key_id rowId)
-    _       -> throwError . AppError . InvalidKeyID . M.KeyID $ keyId
+    _       -> throwAppError . InvalidKeyID . M.KeyID $ keyId
 
 getPublicKey :: M.KeyID -> DB M.RSAPublicKey
 getPublicKey (M.KeyID keyId) = do
@@ -131,7 +132,7 @@ getPublicKey (M.KeyID keyId) = do
     pure (SB.pem_str allKeys)
   case r of
     [k] -> return $ M.PEMString $ T.unpack k
-    _   -> throwError . AppError . InvalidKeyID . M.KeyID $ keyId
+    _   -> throwAppError . InvalidKeyID . M.KeyID $ keyId
 
 getPublicKeyInfo :: M.KeyID -> DB M.KeyInfo
 getPublicKeyInfo (M.KeyID keyId) = do
@@ -145,7 +146,7 @@ getPublicKeyInfo (M.KeyID keyId) = do
        return $ M.KeyInfo (M.UserID uId)
                 (toEPCISTime creationTime)
                 (toEPCISTime <$> revocationTime)
-    _ -> throwError . AppError . InvalidKeyID . M.KeyID $ keyId
+    _ -> throwAppError . InvalidKeyID . M.KeyID $ keyId
 
 -- TODO: Should this return Text or a JSON value?
 getEventJSON :: EvId.EventID -> DB T.Text
@@ -156,7 +157,7 @@ getEventJSON eventID = do
     pure (SB.json_event allEvents)
   case r of
     [jsonEvent] -> return jsonEvent
-    _           -> throwError . AppError $ InvalidEventID eventID
+    _           -> throwAppError $ InvalidEventID eventID
 
 
 getUser :: M.EmailAddress -> DB (Maybe M.User)
@@ -167,7 +168,7 @@ getUser (M.EmailAddress email) = do
     pure allUsers
   case r of
     [u] -> return . Just . userTableToModel $ u
-    []  -> throwError . AppError . UserNotFound $ (M.EmailAddress email)
+    []  -> throwAppError . UserNotFound $ (M.EmailAddress email)
     _   -> throwBackendError r
 
 insertObjectEvent :: M.User
