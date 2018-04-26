@@ -32,10 +32,6 @@ appErrToHttpErr (InvalidKeyID _) =
   throwError $ err400 {
     errBody = "Invalid Key ID entered."
   }
-appErrToHttpErr (NeedMoreSignatures _) =
-  throwError $ err400 {
-    errBody = "We need more signatures."
-  }
 appErrToHttpErr (InvalidSignature _) =
   throwError $ err400 {
     errBody = "Invalid Signature entered."

@@ -22,8 +22,7 @@ newtype Received = Received  {unReceived :: U.Byte} deriving (Show, Eq, Read)
 
 -- | A sum type of errors that may occur in the Service layer
 data ServiceError
-  = NeedMoreSignatures   T.Text
-  | InvalidSignature     String
+  = InvalidSignature     String
   | BlockchainSendFailed ServerError
   | InvalidEventID       EventID
   | InvalidKeyID         M.KeyID
