@@ -54,7 +54,7 @@ appErrToHttpErr (InvalidRSAKeyString _) =
   }
 appErrToHttpErr (InvalidRSAKey _) =
   throwError $ err400 {
-    errBody = "Key not found."
+    errBody = "Failed to parse RSA Public key."
   }
 appErrToHttpErr (InvalidRSAKeySize (Expected (U.Byte expSize)) (Received (U.Byte recSize))) =
   throwError $ err400 {
