@@ -10,11 +10,14 @@ packages:
     - beam-core
     - beam-migrate
     - beam-postgres
+- location:
+    git: https://github.com/qfpl/hs-hoist-error.git
+    commit: f1f7b181bcd6969a2f502823d329dc4f050b9a9e
+  extra-dep: true
 extra-deps:
 - git: git@github.csiro.au:Blockchain/GS1Combinators.git
   commit: 2203815854b7e832e976bcf90d66529feec0584e
-- hoist-error-0.1.0.2
 - servant-flatten-0.2
 
-resolver: lts-10.6
+resolver: lts-11.6
 # allow-newer: true
