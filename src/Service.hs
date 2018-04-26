@@ -40,7 +40,8 @@ import           Data.Text.Encoding         (decodeUtf8)
 import           Data.UUID.V4
 import           Dummies                    (dummyObjectDWhat)
 import           Errors
-import           ErrorUtils                 (appErrToHttpErr, throwParseError)
+import           ErrorUtils                 (appErrToHttpErr, throwAppError,
+                                             throwParseError)
 import           GHC.TypeLits               (KnownSymbol)
 import qualified Model                      as M
 import qualified OpenSSL.EVP.Digest         as EVPDigest

@@ -35,8 +35,6 @@ library
   build-depends:      base >= 4.7 && < 5
                     , GS1Combinators
                     , aeson
-                    , aeson-pretty
-                    , base >=4.7 && <4.11
                     , base64-bytestring
                     , beam-core
                     , beam-migrate
@@ -45,34 +43,26 @@ library
                     , binary
                     , bytestring
                     , cryptonite
-                    , direct-sqlite
                     , either
                     , hoist-error
                     , HsOpenSSL
                     , hspec
-                    , http-types == 0.9.*
+                    , http-types >= 0.9.1
                     , insert-ordered-containers
                     , lens
                     , lifted-base
-                    , monad-logger
                     , mtl
-                    , optparse-applicative
                     , postgresql-simple
                     , resource-pool >= 0.2.3
-                    , RSA
                     , scrypt
-                    , semigroups >= 0.18
                     , servant
                     , servant-flatten
                     , servant-server
                     , servant-swagger
                     , servant-swagger-ui
-                    , sqlite-simple
-                    , sqlite-simple-errors == 0.6.*
                     , string-conversions
                     , swagger2
                     , text
-                    , time
                     , time
                     , transformers >= 0.4
                     , uuid
@@ -97,7 +87,6 @@ executable supplyChainServer-exe
                      , xml-types
                      , text
                      , uuid
-                     , aeson-pretty
                      , base64-bytestring
                      , scrypt
   default-language:    Haskell2010
@@ -112,36 +101,36 @@ test-suite supplyChainServer-test
   build-depends:       base
                      , GS1Combinators
                      , supplyChainServer
-                     , hspec
-                     , time
-                     , text
-                     , either
+                     , aeson
+                    --  , aeson-pretty
+                     , base-compat
+                     , base64-bytestring
+                     , beam-core
+                     , beam-postgres
+                     , binary 
                      , bytestring
+                     , cryptonite
+                    --  , direct-sqlite
+                     , either
+                     , HsOpenSSL
+                     , hspec
                      , hspec-wai
                      , hspec-wai-json
-                     , aeson
+                     , insert-ordered-containers
+                     , lens
+                     , monad-logger
+                     , mtl
+                     , postgresql-simple
+                     , scrypt
                      , servant-server
                      , servant-swagger
                      , servant-swagger-ui
-                     , swagger2
-                     , lens
-                     , aeson-pretty
-                     , insert-ordered-containers
-                     , base-compat
-                     , monad-logger
+                    --  , sqlite-simple
                      , string-conversions
-                     , direct-sqlite
-                     , sqlite-simple
-                     , scrypt
+                     , swagger2
+                     , text
+                     , time
                      , uuid
-                     , cryptonite
-                     , mtl
-                     , beam-postgres
-                     , postgresql-simple
-                     , beam-core
-                     , HsOpenSSL
-                     , binary 
-                     , base64-bytestring
   default-language:    Haskell2010
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
   default-language:    Haskell2010
