@@ -17,8 +17,8 @@ type ErrorCode = BS.ByteString
 data ServerError = ServerError (Maybe ErrorCode) ErrorText
                    deriving (Show, Eq, Generic, Read)
 
-newtype Expected = Expected  {unExpected :: U.Byte} deriving (Show, Eq, Read)
-newtype Received = Received  {unReceived :: U.Byte} deriving (Show, Eq, Read)
+newtype Expected = Expected {unExpected :: U.Byte} deriving (Show, Eq, Read)
+newtype Received = Received {unReceived :: U.Byte} deriving (Show, Eq, Read)
 
 -- | A sum type of errors that may occur in the Service layer
 data ServiceError
