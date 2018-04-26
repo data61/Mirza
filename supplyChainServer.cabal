@@ -44,7 +44,7 @@ library
                     , bytestring
                     , cryptonite
                     , either
-                    , hoist-error
+                    , hoist-error >= 0.2
                     , HsOpenSSL
                     , hspec
                     , http-types >= 0.9.1

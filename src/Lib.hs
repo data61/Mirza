@@ -35,6 +35,8 @@ import           Service
 import           Crypto.Scrypt              (ScryptParams, defaultParams)
 import qualified Data.Pool                  as Pool
 
+import           Model                      (User)
+
 startApp :: ByteString -> AC.EnvType -> Word16 -> UIFlavour -> ScryptParams -> IO ()
 startApp dbConnStr envT prt uiFlavour params = do
     connpool <- Pool.createPool (connectPostgreSQL dbConnStr) close
@@ -81,7 +83,11 @@ server' env uiFlavour = server Normal
     server :: Variant -> Server API
     server variant =
       schemaUiServer (serveSwaggerAPI' variant)
-        :<|> enter (NT (appMToHandler env)) appHandlers
+        :<|> hoistServerWithContext
+                (Proxy :: Proxy ServerAPI)
+                (Proxy :: Proxy '[BasicAuthCheck User])
+                (appMToHandler env)
+                appHandlers
     -- mainServer = enter (appMToHandler env) (server Normal)
     schemaUiServer
         :: (Server api ~ Handler Swagger)
