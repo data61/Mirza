@@ -13,12 +13,6 @@ packages:
 extra-deps:
 - git: git@github.csiro.au:Blockchain/GS1Combinators.git
   commit: 2203815854b7e832e976bcf90d66529feec0584e
-- servant-0.11
-- servant-multipart-0.10
-- servant-server-0.11
-- swagger2-2.1.6
-- vector-0.12.0.1
-- storable-tuple-0.0.3.3
 - hoist-error-0.1.0.2
 - servant-flatten-0.2
 

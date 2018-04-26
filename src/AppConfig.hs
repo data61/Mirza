@@ -115,7 +115,7 @@ runDb (DB act) = do
          . runExceptT
          . runReaderT act $ (conn,env)
         -- :: AppM (Either SqlError (Either AppError a))
-  either (throwAppError . DatabaseError)
+  either (throwError . AppError . DatabaseError)
          (either throwError pure)
          res
 
