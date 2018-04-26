@@ -275,13 +275,13 @@ eventHashed :: M.User -> EventID -> AC.AppM M.HashedEvent
 eventHashed _user _eventId = error "not implemented yet"
 -- return (HashedEvent eventID (EventHash "Blob"))
 
-  {-
+{-
 eventHashed user eventID = do
   mHash <- liftIO $ Storage.eventHashed user eventID
   case mHash of
     Nothing -> throwError err404 { errBody = "Unknown eventID" }
     Just i -> return i
-    -}
+-}
 
 
 sampleEvent:: IO Ev.Event
