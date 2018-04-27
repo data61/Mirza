@@ -161,8 +161,7 @@ testQueries = do
   describe "Object Event" $ do
     it "Insert Object Event" $ \(_conn, env) -> do
       insertedEvent <- testAppM env $ S.insertObjectEvent dummyUser dummyObject
-      insertedEvent `shouldSatisfy`
-        (== dummyObjEvent)
+      insertedEvent `shouldBe` dummyObjEvent
 
     it "List event" $ \(_conn, env) -> do
       res <- testAppM env $ do
@@ -171,15 +170,13 @@ testQueries = do
         pure (insertedEvent, evtList)
       case res of
         (insertedEvent, evtList) -> do
-          insertedEvent `shouldSatisfy`
-            (== dummyObjEvent)
+          insertedEvent `shouldBe` dummyObjEvent
           evtList `shouldBe` [insertedEvent]
 
   describe "Aggregation Event" $ do
     it "Insert Aggregation Event" $ \(_conn, env) -> do
       insertedEvent <- testAppM env $ S.insertAggEvent dummyUser dummyAggregation
-      insertedEvent `shouldSatisfy`
-        (== dummyAggEvent)
+      insertedEvent `shouldBe` dummyAggEvent
 
     it "List event" $ \(_conn, env) -> do
       res <- testAppM env $ do
@@ -188,15 +185,13 @@ testQueries = do
         pure (insertedEvent, evtList)
       case res of
         (insertedEvent, evtList) -> do
-          insertedEvent `shouldSatisfy`
-            (== dummyAggEvent)
+          insertedEvent `shouldBe` dummyAggEvent
           evtList `shouldBe` [insertedEvent]
 
   describe "Transformation Event" $ do
     it "Insert Transformation Event" $ \(_conn, env) -> do
       insertedEvent <- testAppM env $ S.insertTransfEvent dummyUser dummyTransformation
-      insertedEvent `shouldSatisfy`
-        (== dummyTransfEvent)
+      insertedEvent `shouldBe` dummyTransfEvent
 
     it "List event" $ \(_conn, env) -> do
       res <- testAppM env $ do
@@ -205,15 +200,13 @@ testQueries = do
         pure (insertedEvent, eventList)
       case res of
         (insertedEvent, eventList) -> do
-          insertedEvent `shouldSatisfy`
-            (== dummyTransfEvent)
+          insertedEvent `shouldBe` dummyTransfEvent
           eventList `shouldBe` [insertedEvent]
 
   describe "Transaction Event" $ do
     it "Insert Transaction Event" $ \(_conn, env) -> do
       insertedEvent <- testAppM env $ S.insertTransactEvent dummyUser dummyTransaction
-      insertedEvent `shouldSatisfy`
-        (== dummyTransactEvent)
+      insertedEvent `shouldBe` dummyTransactEvent
 
     it "List event" $ \(_conn, env) -> do
       res <- testAppM env $ do
@@ -222,8 +215,7 @@ testQueries = do
         pure (insertedEvent, eventList)
       case res of
         (insertedEvent, eventList) -> do
-          insertedEvent `shouldSatisfy`
-            (== dummyTransactEvent)
+          insertedEvent `shouldBe` dummyTransactEvent
           eventList `shouldBe` [insertedEvent]
 
   describe "runDb $ getUser tests" $
