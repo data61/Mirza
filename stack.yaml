@@ -1,4 +1,3 @@
-flags: {}
 extra-package-dbs: []
 packages:
 - '.'
@@ -11,19 +10,23 @@ packages:
     - beam-core
     - beam-migrate
     - beam-postgres
+- location:
+    git: https://github.com/qfpl/hs-hoist-error.git
+    commit: f1f7b181bcd6969a2f502823d329dc4f050b9a9e
+  extra-dep: true
 extra-deps:
 - git: git@github.csiro.au:Blockchain/GS1Combinators.git
   commit: 2203815854b7e832e976bcf90d66529feec0584e
-- servant-0.11
-- servant-multipart-0.10
-- servant-server-0.11
-- swagger2-2.1.6
-- vector-0.12.0.1
-- storable-tuple-0.0.3.3
-- hoist-error-0.1.0.2
 - servant-flatten-0.2
 
+resolver: lts-11.6
+# allow-newer: true
 ghc-options:
   $locals: -Wall
 
-resolver: lts-10.6
+flags:
+  HsOpenSSL:
+    homebrew-openssl: true
+
+nix:
+  packages: [zlib]

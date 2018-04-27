@@ -10,47 +10,45 @@
 -- Model type and its Storage equivalent
 module QueryUtils where
 
-import           AppConfig                  (AppM, Env (..), runAppM, runDb)
-import           Control.Monad.IO.Class     (liftIO)
-import           Data.Aeson                 (decode)
-import           Data.Aeson.Text            (encodeToLazyText)
-import           Data.ByteString            (ByteString)
-import           Data.GS1.DWhat             (AggregationDWhat (..), DWhat (..),
-                                             LabelEPC (..), ObjectDWhat (..),
-                                             ParentLabel (..),
-                                             TransactionDWhat (..),
-                                             TransformationDWhat (..))
-import           Data.GS1.DWhen             (DWhen (..))
-import           Data.GS1.DWhere            (BizLocation (..), DWhere (..),
-                                             ReadPointLocation (..),
-                                             SrcDestLocation (..))
-import           Data.GS1.DWhy              (DWhy (..))
-import           Data.GS1.EPC               as EPC
-import           Data.GS1.Event             (Event (..))
-import qualified Data.GS1.Event             as Ev
-import qualified Data.GS1.EventID           as EvId
-import           Data.Maybe                 (catMaybes)
-import qualified Data.Text                  as T
-import qualified Data.Text.Encoding         as En
-import qualified Data.Text.Lazy             as TxtL
-import qualified Data.Text.Lazy.Encoding    as LEn
-import           Data.Time                  (UTCTime, ZonedTime (..),
-                                             utcToZonedTime)
-import           Data.Time.Clock            (getCurrentTime)
-import           Data.Time.LocalTime        (LocalTime, localTimeToUTC,
-                                             timeZoneOffsetString, utc,
-                                             utcToLocalTime)
-import           Data.UUID.V4               (nextRandom)
-import           Database.Beam              as B
-import           Database.PostgreSQL.Simple
-import           ErrorUtils                 (throwBackendError)
-import qualified MigrateUtils               as MU
-import qualified Model                      as M
-import qualified StorageBeam                as SB
+import           AppConfig               (DB, pg)
+import           Control.Monad.IO.Class  (liftIO)
+import           Data.Aeson              (decode)
+import           Data.Aeson.Text         (encodeToLazyText)
+import           Data.ByteString         (ByteString)
+import           Data.GS1.DWhat          (AggregationDWhat (..), DWhat (..),
+                                          LabelEPC (..), ObjectDWhat (..),
+                                          ParentLabel (..),
+                                          TransactionDWhat (..),
+                                          TransformationDWhat (..))
+import           Data.GS1.DWhen          (DWhen (..))
+import           Data.GS1.DWhere         (BizLocation (..), DWhere (..),
+                                          ReadPointLocation (..),
+                                          SrcDestLocation (..))
+import           Data.GS1.DWhy           (DWhy (..))
+import           Data.GS1.EPC            as EPC
+import           Data.GS1.Event          (Event (..))
+import qualified Data.GS1.Event          as Ev
+import qualified Data.GS1.EventID        as EvId
+import           Data.Maybe              (catMaybes)
+import qualified Data.Text               as T
+import qualified Data.Text.Encoding      as En
+import qualified Data.Text.Lazy          as TxtL
+import qualified Data.Text.Lazy.Encoding as LEn
+import           Data.Time               (UTCTime, ZonedTime (..),
+                                          utcToZonedTime)
+import           Data.Time.Clock         (getCurrentTime)
+import           Data.Time.LocalTime     (LocalTime, localTimeToUTC,
+                                          timeZoneOffsetString, utc,
+                                          utcToLocalTime)
+import           Data.UUID.V4            (nextRandom)
+import           Database.Beam           as B
+import           ErrorUtils              (throwBackendError)
+import qualified MigrateUtils            as MU
+import qualified Model                   as M
+import qualified StorageBeam             as SB
 
-import           Control.Monad              (void)
-import           Control.Monad.Except       (MonadError, catchError, throwError)
-import           Control.Monad.Reader       (ask)
+import           Control.Monad           (void)
+import           Control.Monad.Except    (MonadError, catchError)
 
 -- | Reads back the ``LocalTime`` in UTCTime (with an offset of 0)
 toEPCISTime :: LocalTime -> EPCISTime
@@ -66,12 +64,12 @@ toZonedTime = utcToZonedTime utc
 
 -- | Generates a timestamp in LocalTime + 0:00 offset
 -- which is a UTCTime
-generateTimeStamp :: AppM LocalTime
+generateTimeStamp :: MonadIO m => m LocalTime
 generateTimeStamp = utcToLocalTime utc <$> liftIO getCurrentTime
 
 
 -- | shorthand for wrapping ``UUID.nextRandom`` in ``AppM``
-generatePk :: AppM SB.PrimaryKeyType
+generatePk :: MonadIO m => m SB.PrimaryKeyType
 generatePk = liftIO nextRandom
 
 -- | Converts a DB representation of ``User`` to a Model representation
@@ -172,7 +170,7 @@ getAction (TransactWhat (TransactionDWhat act _ _ _)) = Just act
 getAction (AggWhat (AggregationDWhat act _ _))        = Just act
 
 
-findInstLabelId :: InstanceLabelEPC -> AppM (Maybe SB.PrimaryKeyType)
+findInstLabelId :: InstanceLabelEPC -> DB (Maybe SB.PrimaryKeyType)
 findInstLabelId (GIAI cp sn) = findInstLabelId' cp sn Nothing Nothing Nothing
 findInstLabelId (SSCC cp sn) = findInstLabelId' cp sn Nothing Nothing Nothing
 findInstLabelId (SGTIN cp msfv ir sn) = findInstLabelId' cp sn msfv (Just ir) Nothing
@@ -195,20 +193,20 @@ handleError = flip catchError
 --   insertFoo arg = withPKey $ \pKey -> do
 --     runDb ... pKey ...
 -- @
-withPKey :: (SB.PrimaryKeyType -> AppM a) -> AppM SB.PrimaryKeyType
+withPKey :: MonadIO m => (SB.PrimaryKeyType -> m a) -> m SB.PrimaryKeyType
 withPKey f = do
   pKey <- generatePk
   _ <- f pKey
   pure pKey
 
 findInstLabelId' :: GS1CompanyPrefix
-                 -> SerialNumber
-                 -> Maybe SGTINFilterValue
-                 -> Maybe ItemReference
-                 -> Maybe AssetType
-                 -> AppM (Maybe SB.PrimaryKeyType)
+                -> SerialNumber
+                -> Maybe SGTINFilterValue
+                -> Maybe ItemReference
+                -> Maybe AssetType
+                -> DB (Maybe SB.PrimaryKeyType)
 findInstLabelId' cp sn msfv mir mat = do
-  r <- runDb $ runSelectReturningList $ select $ do
+  r <- pg $ runSelectReturningList $ select $ do
     labels <- all_ (SB._labels SB.supplyChainDb)
     guard_ (SB.label_gs1_company_prefix labels ==. val_ cp &&.
             SB.serial_number labels ==. val_ (Just sn) &&.
@@ -221,7 +219,17 @@ findInstLabelId' cp sn msfv mir mat = do
     _   -> Nothing
 
 
-findClassLabelId :: ClassLabelEPC -> AppM (Maybe SB.PrimaryKeyType)
+getUser :: M.EmailAddress -> DB (Maybe M.User)
+getUser (M.EmailAddress email) = do
+  r <- pg $ runSelectReturningList $ select $ do
+    allUsers <- all_ (SB._users SB.supplyChainDb)
+    guard_ (SB.email_address allUsers ==. val_ email)
+    pure allUsers
+  return $ case r of
+    [u] -> Just . userTableToModel $ u
+    _   -> Nothing
+
+findClassLabelId :: ClassLabelEPC -> DB (Maybe SB.PrimaryKeyType)
 findClassLabelId (LGTIN cp ir lot)  = findClassLabelId' cp Nothing ir (Just lot)
 findClassLabelId (CSGTIN cp msfv ir) = findClassLabelId' cp msfv ir Nothing
 
@@ -229,9 +237,9 @@ findClassLabelId' :: GS1CompanyPrefix
                  -> Maybe SGTINFilterValue
                  -> ItemReference
                  -> Maybe Lot
-                 -> AppM (Maybe SB.PrimaryKeyType)
+                 -> DB (Maybe SB.PrimaryKeyType)
 findClassLabelId' cp msfv ir lot = do
-  r <- runDb $ runSelectReturningList $ select $ do
+  r <- pg $ runSelectReturningList $ select $ do
     labels <- all_ (SB._labels SB.supplyChainDb)
     guard_ (
              SB.label_gs1_company_prefix labels ==. val_ cp &&.
@@ -245,11 +253,11 @@ findClassLabelId' cp msfv ir lot = do
     _   -> return Nothing
 
 
-findLabelId :: LabelEPC -> AppM (Maybe SB.PrimaryKeyType)
+findLabelId :: LabelEPC -> DB (Maybe SB.PrimaryKeyType)
 findLabelId (IL l)   = findInstLabelId l
 findLabelId (CL c _) = findClassLabelId c
 
-getParentId :: DWhat -> AppM (Maybe SB.PrimaryKeyType)
+getParentId :: DWhat -> DB (Maybe SB.PrimaryKeyType)
 getParentId (TransactWhat (TransactionDWhat _ (Just p) _ _)) = findInstLabelId . unParentLabel $ p
 getParentId (AggWhat (AggregationDWhat _ (Just p) _) )  = findInstLabelId . unParentLabel $ p
 getParentId _                                 = return Nothing
@@ -283,53 +291,51 @@ toStorageEvent pKey userId jsonEvent mEventId =
 insertDWhat :: Maybe SB.PrimaryKeyType
             -> DWhat
             -> SB.PrimaryKeyType
-            -> AppM SB.PrimaryKeyType
-insertDWhat mBizTranId dwhat eventId = withPKey $ \pKey ->
-  transaction $ do
+            -> DB SB.PrimaryKeyType
+insertDWhat mBizTranId dwhat eventId = withPKey $ \pKey ->  do
     mParentId <- getParentId dwhat
-    runDb $ B.runInsert $ B.insert (SB._whats SB.supplyChainDb)
+    pg $ B.runInsert $ B.insert (SB._whats SB.supplyChainDb)
           $ insertValues [toStorageDWhat pKey mParentId mBizTranId eventId dwhat]
 
 
-insertDWhen :: DWhen -> SB.PrimaryKeyType -> AppM SB.PrimaryKeyType
+insertDWhen :: DWhen -> SB.PrimaryKeyType -> DB SB.PrimaryKeyType
 insertDWhen dwhen eventId = withPKey $ \pKey ->
-  runDb $ B.runInsert $ B.insert (SB._whens SB.supplyChainDb)
+  pg $ B.runInsert $ B.insert (SB._whens SB.supplyChainDb)
              $ insertValues [toStorageDWhen pKey dwhen eventId]
 
 
-insertDWhy :: DWhy -> SB.PrimaryKeyType -> AppM SB.PrimaryKeyType
+insertDWhy :: DWhy -> SB.PrimaryKeyType -> DB SB.PrimaryKeyType
 insertDWhy dwhy eventId = withPKey $ \pKey ->
-  runDb $ B.runInsert $ B.insert (SB._whys SB.supplyChainDb)
+  pg $ B.runInsert $ B.insert (SB._whys SB.supplyChainDb)
              $ insertValues [toStorageDWhy pKey dwhy eventId]
 
 insertSrcDestType :: MU.LocationField
                   -> SB.PrimaryKeyType
                   -> SrcDestLocation
-                  -> AppM SB.PrimaryKeyType
+                  -> DB SB.PrimaryKeyType
 insertSrcDestType locField eventId
   (SrcDestLocation (sdType, SGLN pfix locationRef ext)) =
   withPKey $ \pKey -> do
     let stWhere = SB.Where pKey pfix (Just sdType) locationRef locField ext
                 (SB.EventId eventId)
-    runDb $ B.runInsert $ B.insert (SB._wheres SB.supplyChainDb)
+    pg $ B.runInsert $ B.insert (SB._wheres SB.supplyChainDb)
              $ insertValues [stWhere]
 
 insertLocationEPC :: MU.LocationField
                   -> SB.PrimaryKeyType
                   -> LocationEPC
-                  -> AppM SB.PrimaryKeyType
+                  -> DB SB.PrimaryKeyType
 insertLocationEPC locField eventId (SGLN pfix locationRef ext) =
   withPKey $ \pKey -> do
     let stWhere = SB.Where pKey pfix Nothing locationRef locField ext
                   (SB.EventId eventId)
-    runDb $ B.runInsert $ B.insert (SB._wheres SB.supplyChainDb)
+    pg $ B.runInsert $ B.insert (SB._wheres SB.supplyChainDb)
                 $ insertValues [stWhere]
 
 -- | Maps the relevant insert function for all
 -- ReadPoint, BizLocation, Src, Dest
-insertDWhere :: DWhere -> SB.PrimaryKeyType -> AppM ()
+insertDWhere :: DWhere -> SB.PrimaryKeyType -> DB ()
 insertDWhere (DWhere rPoints bizLocs srcTs destTs) eventId = do
-  transaction $ do
     sequence_ $ insertLocationEPC MU.ReadPoint eventId . unReadPointLocation <$> rPoints
     sequence_ $ insertLocationEPC MU.BizLocation eventId . unBizLocation <$> bizLocs
     sequence_ $ insertSrcDestType MU.Src eventId <$> srcTs
@@ -337,7 +343,7 @@ insertDWhere (DWhere rPoints bizLocs srcTs destTs) eventId = do
 
 -- | Given a DWhere, looks for all the insertions associated with the DWHere
 -- Think of this as the inverse of ``insertDWhere``
-findDWhere :: SB.PrimaryKeyType -> AppM (Maybe DWhere)
+findDWhere :: SB.PrimaryKeyType -> DB (Maybe DWhere)
 findDWhere eventId = do
   rPoints <- findDWhereByLocationField MU.ReadPoint eventId
   bizLocs <- findDWhereByLocationField MU.BizLocation eventId
@@ -345,8 +351,8 @@ findDWhere eventId = do
   destTs <- findDWhereByLocationField MU.Dest eventId
   return $ mergeSBWheres [rPoints, bizLocs, srcTs, destTs]
 
-findDWhereByLocationField :: MU.LocationField -> SB.PrimaryKeyType -> AppM [SB.WhereT Identity]
-findDWhereByLocationField locField eventId = runDb $ runSelectReturningList $ select $ do
+findDWhereByLocationField :: MU.LocationField -> SB.PrimaryKeyType -> DB [SB.WhereT Identity]
+findDWhereByLocationField locField eventId = pg $ runSelectReturningList $ select $ do
     wheres <- all_ (SB._wheres SB.supplyChainDb)
     guard_ (
       SB.where_event_id wheres ==. val_ (SB.EventId eventId) &&.
@@ -381,9 +387,9 @@ constructLocation whereT =
     (SB.where_sgln_ext whereT)
 
 
-insertEvent :: SB.PrimaryKeyType -> T.Text -> Event -> AppM SB.PrimaryKeyType
+insertEvent :: SB.PrimaryKeyType -> T.Text -> Event -> DB SB.PrimaryKeyType
 insertEvent userId jsonEvent event = withPKey $ \pKey ->
-  runDb $ B.runInsert $ B.insert (SB._events SB.supplyChainDb)
+  pg $ B.runInsert $ B.insert (SB._events SB.supplyChainDb)
         $ insertValues [toStorageEvent pKey userId jsonEvent (_eid event)]
 
 insertUserEvent :: SB.PrimaryKeyType
@@ -391,10 +397,10 @@ insertUserEvent :: SB.PrimaryKeyType
                 -> SB.PrimaryKeyType
                 -> Bool
                 -> (Maybe ByteString)
-                -> AppM ()
+                -> DB ()
 insertUserEvent eventId userId addedByUserId signed signedHash =
   void $ withPKey $ \pKey ->
-    runDb $ B.runInsert $ B.insert (SB._user_events SB.supplyChainDb)
+    pg $ B.runInsert $ B.insert (SB._user_events SB.supplyChainDb)
         $ insertValues
           [ SB.UserEvent pKey (SB.EventId eventId) (SB.UserId userId)
                         signed (SB.UserId addedByUserId) signedHash
@@ -402,9 +408,9 @@ insertUserEvent eventId userId addedByUserId signed signedHash =
 
 insertWhatLabel :: SB.PrimaryKeyType
                 -> SB.PrimaryKeyType
-                -> AppM SB.PrimaryKeyType
+                -> DB SB.PrimaryKeyType
 insertWhatLabel whatId labelId = withPKey $ \pKey ->
-  runDb $ B.runInsert $ B.insert (SB._what_labels SB.supplyChainDb)
+  pg $ B.runInsert $ B.insert (SB._what_labels SB.supplyChainDb)
         $ insertValues
         [
           SB.WhatLabel pKey
@@ -417,43 +423,26 @@ insertWhatLabel whatId labelId = withPKey $ \pKey ->
 insertLabel :: Maybe MU.LabelType
             -> SB.PrimaryKeyType
             -> LabelEPC
-            -> AppM SB.PrimaryKeyType
+            -> DB SB.PrimaryKeyType
 insertLabel labelType whatId labelEpc = withPKey $ \pKey ->
-  runDb $ B.runInsert $ B.insert (SB._labels SB.supplyChainDb)
+  pg $ B.runInsert $ B.insert (SB._labels SB.supplyChainDb)
         $ insertValues
         [ epcToStorageLabel labelType whatId pKey labelEpc]
 
 -- | Ties up a label and an event entry in the database
 insertLabelEvent :: SB.PrimaryKeyType
                  -> SB.PrimaryKeyType
-                 -> AppM SB.PrimaryKeyType
+                 -> DB SB.PrimaryKeyType
 insertLabelEvent eventId labelId = withPKey $ \pKey ->
-  runDb $ B.runInsert $ B.insert (SB._label_events SB.supplyChainDb)
+  pg $ B.runInsert $ B.insert (SB._label_events SB.supplyChainDb)
         $ insertValues
           [ SB.LabelEvent pKey (SB.LabelId labelId) (SB.EventId eventId)
         ]
 
 
--- | Runs a gicen action within a postgres transaction. If an exception is
--- thrown or the application returns an error the databasze transaction is
--- rolled back.
-transaction :: AppM a -> AppM a
-transaction act = do
-  env <- ask
-  either throwError pure =<< (liftIO . withTransaction (dbConn env) $ do
-    ea <- runAppM env act
-    case ea of
-      Right _ -> pure ea
-      _       -> rollback (dbConn env) *> pure ea
-    )
-  -- TODO: Use liftEither once we have mtl >= 2.2.2
-
-
-
-selectUser :: M.UserID -> AppM (Maybe SB.User)
+selectUser :: M.UserID -> DB (Maybe SB.User)
 selectUser (M.UserID uid) = do
-  r <- runDb $
-          runSelectReturningList $ select $ do
+  r <- pg $ runSelectReturningList $ select $ do
           user <- all_ (SB._users SB.supplyChainDb)
           guard_ (SB.user_id user ==. val_ uid)
           pure user
@@ -461,9 +450,9 @@ selectUser (M.UserID uid) = do
     [user] -> return $ Just user
     _      -> return Nothing
 
-getEventList :: SB.PrimaryKeyType -> AppM [Ev.Event]
+getEventList :: SB.PrimaryKeyType -> DB [Ev.Event]
 getEventList labelId = do
-  labelEvents <- runDb $ runSelectReturningList $ select $ do
+  labelEvents <- pg $ runSelectReturningList $ select $ do
         labelEvent <- all_ (SB._label_events SB.supplyChainDb)
         guard_ (SB.label_event_label_id labelEvent ==. val_ (SB.LabelId labelId))
         pure labelEvent
@@ -471,15 +460,16 @@ getEventList labelId = do
       allEvents = findEvent <$> eventIds
   catMaybes <$> sequence allEvents
 
-findEvent :: SB.PrimaryKeyType -> AppM (Maybe Ev.Event)
+findEvent :: SB.PrimaryKeyType -> DB (Maybe Ev.Event)
 findEvent eventId = do
-  r <- runDb $
+  r <- pg $
         runSelectReturningList $ select $ do
         event <- all_ (SB._events SB.supplyChainDb)
         guard_ (SB.event_id event ==. (val_ eventId))
         pure event
   case r of
     [event] -> return $ storageToModelEvent event
+    -- TODO: Do the right thing here
     _       -> throwBackendError r
 
 storageToModelEvent :: SB.Event -> Maybe Ev.Event
@@ -487,9 +477,9 @@ storageToModelEvent = decodeEvent . SB.json_event
 
 -- | Checks if a pair of userIds are recorded as a contact.
 -- __Must be run in a transaction!__
-isExistingContact :: M.UserID -> M.UserID -> AppM Bool
+isExistingContact :: M.UserID -> M.UserID -> DB Bool
 isExistingContact (M.UserID uid1) (M.UserID uid2) = do
-  r <- runDb $ runSelectReturningList $ select $ do
+  r <- pg $ runSelectReturningList $ select $ do
         contact <- all_ (SB._contacts SB.supplyChainDb)
         guard_ (SB.contact_user1_id contact  ==. (val_ . SB.UserId $ uid1) &&.
                 SB.contact_user2_id contact  ==. (val_ . SB.UserId $ uid2))
