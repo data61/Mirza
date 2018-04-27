@@ -2,7 +2,7 @@
 module Main where
 
 import           Test.Hspec                 (around, hspec)
-import           Tests.BeamQueries
+import           Tests.Service
 
 import           AppConfig                  as AC
 import           Control.Exception          (bracket)
@@ -38,8 +38,9 @@ openConnection :: IO (Connection, Env)
 openConnection = do
   conn <- connectPostgreSQL testDbConnStr
   _ <- dropTables conn -- drop tables before so if already exist no problems... means tables get overwritten though
+  connpool <- defaultPool
   let envT = AC.mkEnvType True
-      env  = AC.Env envT conn defaultParams
+      env  = AC.Env envT connpool defaultParams
   tryCreateSchema True conn
   return (conn, env)
 
