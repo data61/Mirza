@@ -159,18 +159,6 @@ getEventJSON eventID = do
     [jsonEvent] -> return jsonEvent
     _           -> throwAppError $ InvalidEventID eventID
 
-
-getUser :: M.EmailAddress -> DB (Maybe M.User)
-getUser (M.EmailAddress email) = do
-  r <- pg $ runSelectReturningList $ select $ do
-    allUsers <- all_ (SB._users SB.supplyChainDb)
-    guard_ (SB.email_address allUsers ==. val_ email)
-    pure allUsers
-  case r of
-    [u] -> return . Just . userTableToModel $ u
-    []  -> throwAppError . UserNotFound $ (M.EmailAddress email)
-    _   -> throwBackendError r
-
 insertObjectEvent :: M.User
                   -> M.ObjectEvent
                   -> DB Ev.Event

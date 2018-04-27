@@ -219,6 +219,16 @@ findInstLabelId' cp sn msfv mir mat = do
     _   -> Nothing
 
 
+getUser :: M.EmailAddress -> DB (Maybe M.User)
+getUser (M.EmailAddress email) = do
+  r <- pg $ runSelectReturningList $ select $ do
+    allUsers <- all_ (SB._users SB.supplyChainDb)
+    guard_ (SB.email_address allUsers ==. val_ email)
+    pure allUsers
+  return $ case r of
+    [u] -> Just . userTableToModel $ u
+    _   -> Nothing
+
 findClassLabelId :: ClassLabelEPC -> DB (Maybe SB.PrimaryKeyType)
 findClassLabelId (LGTIN cp ir lot)  = findClassLabelId' cp Nothing ir (Just lot)
 findClassLabelId (CSGTIN cp msfv ir) = findClassLabelId' cp msfv ir Nothing

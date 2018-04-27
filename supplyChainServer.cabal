@@ -73,7 +73,7 @@ library
   default-language:   Haskell2010
   default-extensions: FlexibleContexts
                     , FlexibleInstances
-                      
+
 executable supplyChainServer-exe
   hs-source-dirs:      app
   main-is:             Main.hs
@@ -96,7 +96,7 @@ test-suite supplyChainServer-test
   type:                exitcode-stdio-1.0
   hs-source-dirs:      test
   main-is:             Spec.hs
-  other-modules:       Tests.BeamQueries
+  other-modules:       Tests.Service
   default-extensions:  OverloadedStrings
   build-depends:       base
                      , GS1Combinators
@@ -104,6 +104,7 @@ test-suite supplyChainServer-test
                      , aeson
                     --  , aeson-pretty
                      , base-compat
+                    , resource-pool >= 0.2.3
                      , base64-bytestring
                      , beam-core
                      , beam-postgres

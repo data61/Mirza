@@ -88,7 +88,7 @@ privateServer
   =    epcState
   :<|> listEvents
   :<|> eventInfo
-  :<|> contactsInfo
+  :<|> listContacts
   :<|> addContact
   :<|> removeContact
 --        :<|> contactsSearch
@@ -193,8 +193,8 @@ listEvents _user = either throwParseError (AC.runDb . BQ.listEvents) . urn2Label
 eventUserList :: M.User -> EventID -> AC.AppM [(M.User, Bool)]
 eventUserList _user = AC.runDb . BQ.eventUserSignedList
 
-contactsInfo :: M.User -> AC.AppM [M.User]
-contactsInfo = AC.runDb . BQ.listContacts
+listContacts :: M.User -> AC.AppM [M.User]
+listContacts = AC.runDb . BQ.listContacts
 
 
 addContact :: M.User -> M.UserID -> AC.AppM Bool
