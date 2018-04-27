@@ -27,6 +27,7 @@ library
                     , Utils
                     , CryptHash
                     , Service
+                    , Mirza.Client.Servant
   other-modules:      API
                     , MigrateUtils
                     , MigrateScript
@@ -56,6 +57,7 @@ library
                     , resource-pool >= 0.2.3
                     , scrypt
                     , servant
+                    , servant-client >= 0.13
                     , servant-flatten
                     , servant-server
                     , servant-swagger

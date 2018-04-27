@@ -24,7 +24,7 @@ import           Data.GS1.DWhy
 import           Data.GS1.EPC     as EPC
 import qualified Data.GS1.Event   as Ev
 import           Data.GS1.EventID
-import           Servant          (FromHttpApiData)
+import           Servant          (FromHttpApiData, ToHttpApiData)
 import           StorageBeam      (PrimaryKeyType)
 
 -- TODO: Should these be in StorageBeam?
@@ -52,9 +52,16 @@ instance ToParamSchema EmailAddress
 instance ToParamSchema KeyID
 
 deriving instance FromHttpApiData LabelEPCUrn
+deriving instance ToHttpApiData LabelEPCUrn
 deriving instance FromHttpApiData UserID
+deriving instance ToHttpApiData UserID
 deriving instance FromHttpApiData EmailAddress
+deriving instance ToHttpApiData EmailAddress
 deriving instance FromHttpApiData KeyID
+deriving instance ToHttpApiData KeyID
+
+-- TODO: This should really be in GS1Combinators
+deriving instance ToHttpApiData EventID
 
 newtype Password = Password {unPassword :: BS.ByteString}
   deriving (Show, Eq, Generic)
