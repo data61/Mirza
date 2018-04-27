@@ -124,7 +124,7 @@ addPublicKey (M.User (M.UserID uid) _ _)  rsaPubKey = do
     [rowId] -> return (M.KeyID $ SB.key_id rowId)
     _       -> throwAppError . InvalidKeyID . M.KeyID $ keyId
 
-getPublicKey :: M.KeyID -> DB M.RSAPublicKey
+getPublicKey :: M.KeyID -> DB M.PEM_RSAPubKey
 getPublicKey (M.KeyID keyId) = do
   r <- pg $ runSelectReturningList $ select $ do
     allKeys <- all_ (SB._keys SB.supplyChainDb)
@@ -334,7 +334,7 @@ insertSignature = error "Implement me"
 --   pubkey <- if length r == 0
 --     then throwError M.SE_InvalidKeyID
 --     else
---       return $ uncurry M.RSAPublicKey $ head r
+--       return $ uncurry M.PEM_RSAPubKey $ head r
 
 --   r <- runDb $ ((\e -> _jsonEvent e) <$> (runSelectReturningList $ select $ do
 --        allEvents <- all_ (_events supplyChainDb)
@@ -438,7 +438,7 @@ eventsByUser (M.UserID userId) = do
 -- sendToBlockchain :: Monad m => C.BlockchainPackage -> m ()
 -- sendToBlockchain package = return () -- if it fails, raise SE_SEND_TO_BLOCKCHAIN_FAILED error.
 
--- checkSignature :: (MonadError M.SigError m, MonadIO m) => M.RSAPublicKey -> ByteString.ByteString -> M.Signature -> m ()
+-- checkSignature :: (MonadError M.SigError m, MonadIO m) => M.PEM_RSAPubKey -> ByteString.ByteString -> M.Signature -> m ()
 -- checkSignature pubkey blob signature =
 --   unless (C.verifySignature pubkey blob signature) $
 --     throwError M.SE_InvalidSignature

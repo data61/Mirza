@@ -45,7 +45,7 @@ openConnection = do
   return (conn, env)
 
 closeConnection :: (Connection, Env) -> IO ()
-closeConnection (conn, _env) = do
+closeConnection (conn, _env) =
   close conn
 
 withDatabaseConnection :: ((Connection, Env) -> IO ()) -> IO ()

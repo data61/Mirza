@@ -39,7 +39,7 @@ import           Data.UUID.Types
 
 
 newUser      :: NewUser -> ClientM UserID
-getKey       :: KeyID -> ClientM RSAPublicKey
+getKey       :: KeyID -> ClientM PEM_RSAPubKey
 getKeyInfo   :: KeyID -> ClientM KeyInfo
 businessList :: ClientM [Business]
 
@@ -58,7 +58,7 @@ insertObjectEvent   :: BasicAuthData -> ObjectEvent -> ClientM Event
 insertAggEvent      :: BasicAuthData -> AggregationEvent -> ClientM Event
 insertTransactEvent :: BasicAuthData -> TransactionEvent -> ClientM Event
 insertTransfEvent   :: BasicAuthData -> TransformationEvent -> ClientM Event
-addPublicKey        :: BasicAuthData -> RSAPublicKey -> ClientM KeyID
+addPublicKey        :: BasicAuthData -> PEM_RSAPubKey -> ClientM KeyID
 
 _api     :: Client ClientM ServerAPI
 _privAPI :: Client ClientM ProtectedAPI
