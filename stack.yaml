@@ -21,3 +21,12 @@ extra-deps:
 
 resolver: lts-11.6
 # allow-newer: true
+ghc-options:
+  $locals: -Wall
+
+flags:
+  HsOpenSSL:
+    homebrew-openssl: true
+
+nix:
+  packages: [zlib]

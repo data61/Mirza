@@ -24,33 +24,68 @@ appErrToHttpErr (EmailExists _ (M.EmailAddress email)) =
   throwError $ err400 {
     errBody = LBSC8.fromChunks ["User email ", encodeUtf8 email, " exists."]
   }
-appErrToHttpErr (UnexpectedDBResponse _) =
-  throwError $ err500 {
-    errBody = "We received an unexpected response from our database. This error has been logged and someone is looking into it."
+appErrToHttpErr (InvalidKeyID _) =
+  throwError $ err400 {
+    errBody = "Invalid Key ID entered."
   }
+appErrToHttpErr (NeedMoreSignatures _) =
+  throwError $ err400 {
+    errBody = "We need more signatures."
+  }
+appErrToHttpErr (InvalidSignature _) =
+  throwError $ err400 {
+    errBody = "Invalid Signature entered."
+  }
+appErrToHttpErr (InvalidEventID _) =
+  throwError $ err400 {
+    errBody = "Invalid Event ID entered."
+  }
+appErrToHttpErr (InvalidUserID _) =
+  throwError $ err400 {
+    errBody = "Invalid User ID entered."
+  }
+appErrToHttpErr (InvalidRSAKeyString _) =
+  throwError $ err400 {
+    errBody = "Invalid RSA Key entered."
+  }
+appErrToHttpErr (InvalidRSAKey _) =
+  throwError $ err400 {
+    errBody = "Invalid RSA Key entered."
+  }
+appErrToHttpErr (InvalidRSAKeySize _ _) =
+  throwError $ err400 {
+    errBody = "Invalid RSA Key entered."
+  }
+appErrToHttpErr (InvalidDigest _) =
+  throwError $ err400 {
+    errBody = "Invalid Key ID entered."
+  }
+appErrToHttpErr (ParseError _) =
+  throwError $ err400 {
+    errBody = "We could not parse the input provided."
+    -- TODO: ^ Add more information on what's wrong?
+  }
+appErrToHttpErr (AuthFailed _) =
+  throwError $ err403 { errBody = "Authentication failed." }
 appErrToHttpErr (UserNotFound (M.EmailAddress email)) =
   throwError $ err404 {
     errBody = LBSC8.fromChunks ["User with email ", encodeUtf8 email, " could not be found."]
-  }
-appErrToHttpErr (AuthFailed (M.EmailAddress email)) =
-  throwError $ err404 {
-    errBody = LBSC8.fromChunks ["Authentication failed for email ", encodeUtf8 email, "."]
   }
 appErrToHttpErr (EmailNotFound (M.EmailAddress email)) =
   throwError $ err404 {
     errBody = LBSC8.fromChunks ["Email ", encodeUtf8 email, " could not be found."]
   }
-appErrToHttpErr (InsertionFail _ email) =
-  throwError $ err500 {
-    errBody = LBSC8.fromChunks ["Email ", encodeUtf8 email, " could not be inserted."]
-  }
-appErrToHttpErr (InvalidKeyID _) =
-  throwError $ err400 {
-    errBody = "Invalid Key ID entered."
-  }
--- TODO: We should probably explicitly handle all service errors, removing this lets
--- GHC tell us when we haven't
-appErrToHttpErr _ = throwError err500 {errBody = "The server did not understand this request."}
+appErrToHttpErr (InsertionFail _ _email) = generic500err
+appErrToHttpErr (BlockchainSendFailed _) = generic500err
+appErrToHttpErr (BackendErr _) = generic500err
+appErrToHttpErr (DatabaseError _) = generic500err
+-- TODO: The above error messages may need to be more descriptive
+
+generic500err :: Handler a
+generic500err = throwError err500 {errBody = "Something went wrong"}
+
+throw500Err :: MonadError ServantErr m => LBSC8.ByteString -> m a
+throw500Err bdy = throwError err500 {errBody = bdy}
 
 -- TODO: Some of these might benefit from HasCallStack constraints
 
@@ -81,10 +116,5 @@ throwAppError = throwError . AppError
 getSqlErrorCode :: SqlError -> Maybe ByteString
 getSqlErrorCode e@SqlError{} = Just $ sqlState e
 
--- | Shorthand for throwing ``UnexpectedDBError``
-throwUnexpectedDBError :: ServerError -> AppM a
-throwUnexpectedDBError = throwAppError . UnexpectedDBResponse
-
 throwParseError :: ParseFailure -> AppM a
 throwParseError = throwAppError . ParseError . toText
-
