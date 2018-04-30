@@ -25,7 +25,7 @@ module Mirza.Client.Servant
   ) where
 
 import           API
-import           Model
+import           Model            as M
 
 import           Servant.API
 import           Servant.Client
@@ -59,7 +59,7 @@ insertAggEvent      :: BasicAuthData -> AggregationEvent -> ClientM Event
 insertTransactEvent :: BasicAuthData -> TransactionEvent -> ClientM Event
 insertTransfEvent   :: BasicAuthData -> TransformationEvent -> ClientM Event
 addPublicKey        :: BasicAuthData -> PEM_RSAPubKey -> ClientM KeyID
-addUserToEvent      :: BasicAuthData -> EventID -> ClientM Bool
+addUserToEvent      :: BasicAuthData -> M.UserID -> EventID -> ClientM ()
 
 _api     :: Client ClientM ServerAPI
 _privAPI :: Client ClientM ProtectedAPI

@@ -37,7 +37,7 @@ type PrivateAPI =
   :<|> "event"    :> "transactionEvent"    :> ReqBody '[JSON] TransactionEvent    :> Post '[JSON] Ev.Event
   :<|> "event"    :> "transformationEvent" :> ReqBody '[JSON] TransformationEvent :> Post '[JSON] Ev.Event
   :<|> "key"      :> "add"                 :> ReqBody '[JSON] PEM_RSAPubKey       :> Post '[JSON] KeyID
-  :<|> "event"    :> "addUser"             :> Capture "eventID" EventID           :> Post '[JSON] Bool
+  :<|> "event"    :> "addUser" :> Capture "userID" M.UserID :> Capture "eventID" EventID :> Post '[JSON] ()
 
 type PublicAPI =
        "newUser"  :> ReqBody '[JSON] NewUser            :> Post '[JSON] UserID
