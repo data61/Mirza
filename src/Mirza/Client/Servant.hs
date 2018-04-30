@@ -1,7 +1,7 @@
 module Mirza.Client.Servant
   (
   -- * Public API
-  newUser
+   newUser
   ,getKey
   ,getKeyInfo
   ,businessList
@@ -59,6 +59,7 @@ insertAggEvent      :: BasicAuthData -> AggregationEvent -> ClientM Event
 insertTransactEvent :: BasicAuthData -> TransactionEvent -> ClientM Event
 insertTransfEvent   :: BasicAuthData -> TransformationEvent -> ClientM Event
 addPublicKey        :: BasicAuthData -> PEM_RSAPubKey -> ClientM KeyID
+addUserToEvent      :: BasicAuthData -> EventID -> ClientM Bool
 
 _api     :: Client ClientM ServerAPI
 _privAPI :: Client ClientM ProtectedAPI
@@ -81,6 +82,7 @@ _api@(
     :<|> insertTransactEvent
     :<|> insertTransfEvent
     :<|> addPublicKey
+    :<|> addUserToEvent
   )
   :<|>
   _pubAPI@(
