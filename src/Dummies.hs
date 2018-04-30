@@ -145,7 +145,7 @@ dummyTransfDWhat =
     Nothing
     (InputEPC <$> dummyEpcList)
     [OutputEPC $ CL (CSGTIN (GS1CompanyPrefix "4012345") Nothing (ItemReference "098769")) Nothing]
-    -- ^ adding a slightly different class for variety
+    -- adding a slightly different class for variety
 
 
 dummyTransfEvent :: Ev.Event
