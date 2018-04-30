@@ -32,12 +32,20 @@ import           GHC.Word                   (Word16)
 import           Service
 
 import           Crypto.Scrypt              (ScryptParams, defaultParams)
+import qualified Data.Pool                  as Pool
+
+import           Model                      (User)
 
 startApp :: ByteString -> AC.EnvType -> Word16 -> UIFlavour -> ScryptParams -> IO ()
 startApp dbConnStr envT prt uiFlavour params = do
-    conn <- connectPostgreSQL dbConnStr
+    connpool <- Pool.createPool (connectPostgreSQL dbConnStr) close
+                        1 -- Number of "sub-pools",
+                        60 -- How long in seconds to keep a connection open for reuse
+                        10 -- Max number of connections to have open at any one time
+                        -- TODO: Make this a config parameter
+
     let
-        env  = AC.Env envT conn params
+        env  = AC.Env envT connpool params
         app = return $ webApp env uiFlavour
     putStrLn $ "http://localhost:" ++ show prt ++ "/swagger-ui/"
     Warp.run (fromIntegral prt) =<< app
@@ -74,7 +82,11 @@ server' env uiFlavour = server Normal
     server :: Variant -> Server API
     server variant =
       schemaUiServer (serveSwaggerAPI' variant)
-        :<|> enter (NT (appMToHandler env)) appHandlers
+        :<|> hoistServerWithContext
+                (Proxy :: Proxy ServerAPI)
+                (Proxy :: Proxy '[BasicAuthCheck User])
+                (appMToHandler env)
+                appHandlers
     -- mainServer = enter (appMToHandler env) (server Normal)
     schemaUiServer
         :: (Server api ~ Handler Swagger)

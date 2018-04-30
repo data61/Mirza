@@ -10,6 +10,7 @@ import           Data.GS1.DWhy
 import           Data.GS1.EPC
 import qualified Data.GS1.Event  as Ev
 import           Data.Maybe      (fromJust)
+import qualified Data.Text       as T
 import           Data.Time
 import           Data.UUID       (nil)
 import qualified Model           as M
@@ -47,12 +48,14 @@ dummyEpcList =
   ]
 
 dummyInstanceLabel :: InstanceLabelEPC
-dummyInstanceLabel = SGTIN (GS1CompanyPrefix "0614141") (Just UnitLoad) (ItemReference "107346") (SerialNumber "2017")
+dummyInstanceLabel = SGTIN (GS1CompanyPrefix "0614141") Nothing (ItemReference "107346") (SerialNumber "2017")
 
 
 dummyClassLabel :: LabelEPC
 dummyClassLabel = CL (CSGTIN (GS1CompanyPrefix "4012345") Nothing (ItemReference "098765")) Nothing
 
+dummyLabelEpcUrn :: T.Text
+dummyLabelEpcUrn = renderURL dummyInstanceLabel
 
 dummyLabelEpc :: LabelEPC
 dummyLabelEpc = IL dummyInstanceLabel

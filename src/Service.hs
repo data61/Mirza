@@ -69,7 +69,7 @@ instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub
 authCheck :: AC.Env -> BasicAuthCheck M.User
 authCheck env =
   let check (BasicAuthData useremail pass) = do
-        eitherUser <- AC.runAppM env $
+        eitherUser <- AC.runAppM env . AC.runDb $
                       BQ.authCheck (M.EmailAddress $ decodeUtf8 useremail) (M.Password pass)
         case eitherUser of
           Right (Just user) -> return (Authorized user)
@@ -88,19 +88,19 @@ privateServer
   =    epcState
   :<|> listEvents
   :<|> eventInfo
-  :<|> contactsInfo
-  :<|> BQ.addContact
-  :<|> BQ.removeContact
+  :<|> listContacts
+  :<|> addContact
+  :<|> removeContact
 --        :<|> contactsSearch
   :<|> userSearch
   :<|> eventList
   :<|> eventUserList
   :<|> eventSign
   :<|> eventHashed
-  :<|> BQ.insertObjectEvent
-  :<|> BQ.insertAggEvent
-  :<|> BQ.insertTransactEvent
-  :<|> BQ.insertTransfEvent
+  :<|> insertObjectEvent
+  :<|> insertAggEvent
+  :<|> insertTransactEvent
+  :<|> insertTransfEvent
   :<|> Service.addPublicKey
 
 publicServer :: ServerT PublicAPI AC.AppM
@@ -137,7 +137,9 @@ minPubKeySize = U.Byte 256 -- 2048 / 8
 addPublicKey :: M.User -> M.PEM_RSAPubKey -> AC.AppM M.KeyID
 addPublicKey user pemKey@(M.PEMString pemStr) = do
   somePubKey <- liftIO $ readPublicKey pemStr
-  either throwAppError (BQ.addPublicKey user) (checkPubKey somePubKey pemKey)
+  either throwAppError
+         (AC.runDb . BQ.addPublicKey user)
+         (checkPubKey somePubKey pemKey)
 
 checkPubKey :: SomePublicKey -> M.PEM_RSAPubKey-> Either ServiceError RSAPubKey
 checkPubKey spKey pemKey =
@@ -152,13 +154,13 @@ checkPubKey spKey pemKey =
   (toPublicKey spKey)
 
 newUser :: M.NewUser -> AC.AppM M.UserID
-newUser = BQ.newUser
+newUser = AC.runDb . BQ.newUser
 
 getPublicKey :: M.KeyID -> AC.AppM M.PEM_RSAPubKey
-getPublicKey = BQ.getPublicKey
+getPublicKey = AC.runDb . BQ.getPublicKey
 
 getPublicKeyInfo :: M.KeyID -> AC.AppM M.KeyInfo
-getPublicKeyInfo = BQ.getPublicKeyInfo
+getPublicKeyInfo = AC.runDb . BQ.getPublicKeyInfo
 
 -- PSUEDO:
 -- In BeamQueries, implement a function getLabelIDState :: LabelEPCUrn -> IO (_labelID, State)
@@ -178,7 +180,7 @@ epcState _user _str = U.notImplemented
 -- wholeEvents <- select * from events, dwhats, dwhy, dwhen where _whatItemID=labelID AND _eventID=_whatEventID AND _eventID=_whenEventID AND _eventID=_whyEventID ORDER BY _eventTime;
 -- return map constructEvent wholeEvents
 listEvents :: M.User ->  M.LabelEPCUrn -> AC.AppM [Ev.Event]
-listEvents _user = either throwParseError BQ.listEvents . urn2LabelEPC . M.unLabelEPCUrn
+listEvents _user = either throwParseError (AC.runDb . BQ.listEvents) . urn2LabelEPC . M.unLabelEPCUrn
 
 -- given an event ID, list all the users associated with that event
 -- this can be used to make sure everything is signed
@@ -189,16 +191,23 @@ listEvents _user = either throwParseError BQ.listEvents . urn2LabelEPC . M.unLab
 -- Look into usereventsT and tie that back to the user
 -- the function getUser/selectUser might be helpful
 eventUserList :: M.User -> EventID -> AC.AppM [(M.User, Bool)]
-eventUserList _user = BQ.eventUserSignedList
+eventUserList _user = AC.runDb . BQ.eventUserSignedList
 
-contactsInfo :: M.User -> AC.AppM [M.User]
-contactsInfo = BQ.listContacts
+listContacts :: M.User -> AC.AppM [M.User]
+listContacts = AC.runDb . BQ.listContacts
+
+
+addContact :: M.User -> M.UserID -> AC.AppM Bool
+addContact user userId = AC.runDb $ BQ.addContact user userId
+
+removeContact :: M.User -> M.UserID -> AC.AppM Bool
+removeContact user userId = AC.runDb $ BQ.removeContact user userId
 
 contactsAdd :: M.User -> M.UserID -> AC.AppM Bool
-contactsAdd = BQ.addContact
+contactsAdd user = AC.runDb . BQ.addContact user
 
 contactsRemove :: M.User -> M.UserID -> AC.AppM Bool
-contactsRemove = BQ.removeContact
+contactsRemove user = AC.runDb . BQ.removeContact user
 
 -- Given a search term, search the users contacts for a user matching
 -- that term
@@ -216,13 +225,13 @@ userSearch _user _term = error "Storage module not implemented"
 
 -- select * from Business;
 listBusinesses :: AC.AppM [M.Business]
-listBusinesses = fmap QU.storageToModelBusiness <$> BQ.listBusinesses
+listBusinesses = AC.runDb $ fmap QU.storageToModelBusiness <$> BQ.listBusinesses
 -- ^ one fmap for Functor AppM, one for Functor []
 
 -- |List events that a particular user was/is involved with
 -- use BizTransactions and events (createdby) tables
 eventList :: M.User -> M.UserID -> AC.AppM [Ev.Event]
-eventList _user = BQ.eventsByUser
+eventList _user = AC.runDb . BQ.eventsByUser
 
 makeDigest :: M.Digest -> IO (Maybe EVPDigest.Digest)
 makeDigest = EVPDigest.getDigestByName . map toLower . show
@@ -246,7 +255,7 @@ makeDigest = EVPDigest.getDigestByName . map toLower . show
 -}
 
 eventSign :: M.User -> M.SignedEvent -> AC.AppM SB.PrimaryKeyType
-eventSign _user (M.SignedEvent eventID keyID (M.Signature sigStr) digest') = do
+eventSign _user (M.SignedEvent eventID keyID (M.Signature sigStr) digest') = AC.runDb $ do
   event <- BQ.getEventJSON eventID
   rsaPublicKey <- BQ.getPublicKey keyID
   sigBS <- BS64.decode (BSC.pack sigStr) <%?> AC.AppError . InvalidSignature
@@ -284,6 +293,19 @@ eventHashed user eventID = do
 -}
 
 
+insertObjectEvent :: M.User -> M.ObjectEvent -> AC.AppM Ev.Event
+insertObjectEvent user ob = AC.runDb $ BQ.insertObjectEvent user ob
+
+insertAggEvent :: M.User -> M.AggregationEvent -> AC.AppM Ev.Event
+insertAggEvent user ev = AC.runDb $ BQ.insertAggEvent user ev
+
+insertTransactEvent :: M.User -> M.TransactionEvent -> AC.AppM Ev.Event
+insertTransactEvent user ev = AC.runDb $ BQ.insertTransactEvent user ev
+
+insertTransfEvent :: M.User -> M.TransformationEvent -> AC.AppM Ev.Event
+insertTransfEvent user ev = AC.runDb $ BQ.insertTransfEvent user ev
+
+
 sampleEvent:: IO Ev.Event
 sampleEvent=  do
   uuid <- nextRandom
@@ -307,7 +329,7 @@ sampleWhere :: DWhere
 sampleWhere = DWhere [] [] [] []
 
 eventInfo :: M.User -> EventID -> AC.AppM (Maybe Ev.Event)
-eventInfo _user = QU.findEvent . getEventId
+eventInfo _user = AC.runDb . QU.findEvent . getEventId
 
 --eventHash :: EventID -> AC.AppM SignedEvent
 --eventHash eID = return (SignedEvent eID (BinaryBlob ByteString.empty) [(BinaryBlob ByteString.empty)] [1,2])
