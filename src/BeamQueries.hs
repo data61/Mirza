@@ -106,11 +106,6 @@ authCheck e@(M.EmailAddress email) (M.Password password) = do
     [] -> throwAppError $ EmailNotFound e
     _  -> throwBackendError r -- multiple elements
 
-
--- BELOW = Beam versions of SQL versions from Storage.hs
--- execute conn "INSERT INTO Users (bizID, firstName, lastName, phoneNumber, passwordHash, emailAddress) VALUES (?, ?, ?, ?, ?, ?);" (biz, first, last, phone, getEncryptedPass hash, email)
--- execute conn "INSERT INTO Keys (userID, rsa_n, rsa_e, creationTime) values (?, ?, ?, ?);" (uid, n, e, timestamp)
-
 addPublicKey :: M.User -> RSAPubKey -> DB M.KeyID
 addPublicKey (M.User (M.UserID uid) _ _)  rsaPubKey = do
   keyId <- generatePk
@@ -256,11 +251,9 @@ insertTransfEvent
 
   return event
 
--- XXX This function is not tested yet.
--- Needs more specifications for implementation.
 insertTransactEvent :: M.User
-                       -> M.TransactionEvent
-                       -> DB Ev.Event
+                    -> M.TransactionEvent
+                    -> DB Ev.Event
 insertTransactEvent
   (M.User (M.UserID userId) _ _ )
   (M.TransactionEvent
@@ -298,61 +291,6 @@ listEvents labelEpc =
 
 insertSignature :: EvId.EventID -> M.KeyID -> M.Signature -> M.Digest -> DB SB.PrimaryKeyType
 insertSignature = error "Implement me"
-
-  -- error "not implemented yet"
--- -- TODO = fix... what is definition of hasSigned?
--- eventUserList :: M.User -> EvId.EventID -> DB [(M.User, Bool)]
--- eventUserList  (M.User uid _ _ ) eventID = do
---   r <- runDb $ runSelectReturningList $ select $ do
---     allUsers <- all_ (_users supplyChainDb)
---     allEvents <- all_ (_events supplyChainDb)
---     guard_ ((_userId allUsers ==. _eventCreatedBy allEvents) &&. (_eventId allEvents ==. eventID) &&. (_eventCreatedBy allEvents ==. uid))
---     pure allUsers
---   -- TODO = if not creating means false, have to use left join and map null for to false
---   -- return TODO
---   error "TODO"
-
--- toUserBool :: (SB.PrimaryKeyType, T.Text, T.Text, Integer) -> (M.User, Bool)
--- toUserBool (userID, firstName, lastName, hasSigned) =
---   (M.User userID firstName lastName, hasSigned /= 0)
-
--- -- NOT currently relevant since events not currently hashed
--- -- eventHashed :: DBFunc -> M.User -> EventID -> IO (Maybe M.HashedEvent)
--- -- eventHashed  dbFunc _ eventID = do
--- --   r <-
-
--- eventSign :: (MonadError M.SigError m, MonadIO m) => M.User -> M.SignedEvent -> m ()
--- eventSign  (M.User uid _ _ ) (M.SignedEvent eventID keyId (M.Signature signature)) = do
---   timestamp <- liftIO getCurrentTime
---   rFull <- runDb $ runSelectReturningList $ select $ do
---     allKeys <- all_ (_keys supplyChainDb)
---     guard_ (_keyId allKeys ==. keyId)
---     pure allKeys
-
---   r <- zip ((\e -> _rsa_n e) <$> rFull) ((\e -> _rsa_e e) <$> rFull)
-
---   pubkey <- if length r == 0
---     then throwError M.SE_InvalidKeyID
---     else
---       return $ uncurry M.PEM_RSAPubKey $ head r
-
---   r <- runDb $ ((\e -> _jsonEvent e) <$> (runSelectReturningList $ select $ do
---        allEvents <- all_ (_events supplyChainDb)
---        guard_ (_eventId allEvents ==. eventID)
---        pure allEvents))
-
---   blob <- case r of
---             [Only x] -> return $ pack x
---             _      -> throwError M.SE_InvalidEventID
-
---   checkSignature pubkey blob (M.Signature signature)
-
---   -- TODO = note that there is no hashes table now, so insert into hashes excluded
---   -- TODO = userevents is combination of biztransactiontable and _eventCreatedBy field in event table, explore this
-
---   checkReadyForBlockchain eventID
---   package <- createBlockchainPackage eventID
---   liftIO $ sendToBlockchain package
 
 addContact :: M.User -> M.UserID -> DB Bool
 addContact (M.User (M.UserID uid1) _ _) (M.UserID uid2) = do
@@ -451,22 +389,3 @@ eventsByUser (M.UserID userId) = do
 --   case r of
 --     [Only 0] -> pure ()
 --     _ -> throwError M.SE_NeedMoreSignatures
-
--- note that use of complex from Data.List.Unique is not efficient
--- no union, so we process making unique in haskell
-
-
-
--- -- TODO = how to do like, also '%||?||%'
--- -- below is wrong!
--- userSearch :: M.User -> String -> IO [M.User]
--- userSearch (M.User uid _ _) term = do
---   rs <- runDb $ runSelectReturningList $ select $ do
---     allUsers <- all_ (_users supplyChainDb)
---     guard_ (_firstName allUsers ==. term ||. lastName ==. term) -- TODO = fix
---     pure allUsers
---   return (userToUser <$> rs)
-
--- userToUser :: (Integer, Integer, String, String, String, String, String) -> M.User
--- userToUser (userID, _, firstName, lastName, _, _, _, _) = M.User userID firstName lastName
-
