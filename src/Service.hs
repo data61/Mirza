@@ -102,6 +102,7 @@ privateServer
   :<|> insertTransactEvent
   :<|> insertTransfEvent
   :<|> Service.addPublicKey
+  :<|> addUserToEvent
 
 publicServer :: ServerT PublicAPI AC.AppM
 publicServer
@@ -268,7 +269,8 @@ eventSign _user (M.SignedEvent eventID keyID (M.Signature sigStr) digest') = AC.
     then BQ.insertSignature eventID keyID (M.Signature sigStr) digest'
     else throwAppError $ InvalidSignature sigStr
 
-
+-- | A function to tie a user to an event
+-- Populates the ``UserEvents`` table
 addUserToEvent :: M.User -> EventID -> AC.AppM Bool
 addUserToEvent (M.User (M.UserID userId) _ _) (EventID eventId) = U.notImplemented
 
@@ -286,13 +288,13 @@ eventHashed :: M.User -> EventID -> AC.AppM M.HashedEvent
 eventHashed _user _eventId = error "not implemented yet"
 -- return (HashedEvent eventID (EventHash "Blob"))
 
-  {-
+{-
 eventHashed user eventID = do
   mHash <- liftIO $ Storage.eventHashed user eventID
   case mHash of
     Nothing -> throwError err404 { errBody = "Unknown eventID" }
     Just i -> return i
-    -}
+-}
 
 
 insertObjectEvent :: M.User -> M.ObjectEvent -> AC.AppM Ev.Event
