@@ -72,7 +72,7 @@ insertUser encPass (M.NewUser phone (M.EmailAddress email) firstName lastName bi
           -> EmailExists (toServerError getSqlErrorCode e) (M.EmailAddress email)
         _ -> InsertionFail (toServerError (Just . sqlState) e) email
     errHandler e = throwError e
-        -- ^ Generic insertion error
+        -- Generic insertion error
 
 -- | Hashes the password of the NewUser and inserts the user into the database
 newUser :: M.NewUser -> DB M.UserID
