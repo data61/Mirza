@@ -269,6 +269,8 @@ eventSign _user (M.SignedEvent eventID keyID (M.Signature sigStr) digest') = AC.
     else throwAppError $ InvalidSignature sigStr
 
 
+addUserToEvent :: M.User -> EventID -> AC.AppM Bool
+addUserToEvent (M.User (M.UserID userId) _ _) (EventID eventId) = U.notImplemented
 
 -- eventSign user signedEvent = error "Storage module not implemented"
 -- eventSign user signedEvent = do
