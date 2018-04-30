@@ -99,8 +99,8 @@ sqlToServerError :: SqlError -> ServiceError
 sqlToServerError = DatabaseError -- toServerError getSqlErrorCode
 
 -- | Shorthand for throwing a Generic Backend error
-throwBackendError :: (Show a) => a -> AppM b
-throwBackendError er = throwError $ AppError $ BackendErr $ U.toText er
+throwBackendError :: (Show a, MonadError AppError m) => a -> m b
+throwBackendError er = throwAppError $ BackendErr $ U.toText er
 
 -- | Shorthand for throwing AppErrors
 -- Added because we were doing a lot of it
