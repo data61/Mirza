@@ -9,23 +9,24 @@ module Model where
 
 import           Data.Aeson
 import           Data.Aeson.TH
-import qualified Data.ByteString  as BS
-import           Data.Text        as T
+import qualified Data.ByteString    as BS
+import           Data.Text          as T
 
 import           Data.Swagger
 
-import           Data.UUID        (UUID)
-import           GHC.Generics     (Generic)
+import           Data.UUID          (UUID)
+import           GHC.Generics       (Generic)
 
 import           Data.GS1.DWhat
 import           Data.GS1.DWhen
 import           Data.GS1.DWhere
 import           Data.GS1.DWhy
-import           Data.GS1.EPC     as EPC
-import qualified Data.GS1.Event   as Ev
+import           Data.GS1.EPC       as EPC
+import qualified Data.GS1.Event     as Ev
 import           Data.GS1.EventID
-import           Servant          (FromHttpApiData, ToHttpApiData)
-import           StorageBeam      (PrimaryKeyType)
+import           Data.List.NonEmpty (NonEmpty)
+import           Servant            (FromHttpApiData, ToHttpApiData)
+import           StorageBeam        (PrimaryKeyType)
 
 -- TODO: Should these be in StorageBeam?
 newtype UserID = UserID {unUserID :: PrimaryKeyType}
@@ -105,6 +106,10 @@ newtype Signature = Signature String
 $(deriveJSON defaultOptions ''Signature)
 instance ToSchema Signature
 
+data BlockchainPackage = BlockchainPackage EventHash (NonEmpty (Signature, UserID))
+  deriving (Show, Read, Eq, Generic)
+$(deriveJSON defaultOptions ''BlockchainPackage)
+instance ToSchema BlockchainPackage
 
 -- instance Sql.FromRow Signature where
 --   fromRow = Signature <$> field
