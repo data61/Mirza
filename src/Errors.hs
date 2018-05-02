@@ -4,7 +4,7 @@
 module Errors where
 
 import qualified Data.ByteString            as BS
-import           Data.GS1.EventID
+import           Data.GS1.EventID           as EvId
 import qualified Data.Text                  as T
 import           Database.PostgreSQL.Simple (SqlError)
 import           GHC.Generics               (Generic)
@@ -35,6 +35,7 @@ data ServiceError
   | InsertionFail        ServerError T.Text
   | EmailExists          ServerError M.EmailAddress
   | EmailNotFound        M.EmailAddress
+  | UserEventMismatch    M.UserID EvId.EventID
   | AuthFailed           M.EmailAddress
   | UserNotFound         M.EmailAddress
   | ParseError           ErrorText -- EPC.ParseFailure

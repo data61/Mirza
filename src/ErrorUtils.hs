@@ -75,6 +75,10 @@ appErrToHttpErr (EmailNotFound (M.EmailAddress email)) =
   throwError $ err404 {
     errBody = LBSC8.fromChunks ["Email ", encodeUtf8 email, " could not be found."]
   }
+appErrToHttpErr (UserEventMismatch _ _) =
+  throwError $ err400 {
+    errBody = "User not associated with the event."
+  }
 appErrToHttpErr (InsertionFail _ _email) = generic500err
 appErrToHttpErr (BlockchainSendFailed _) = generic500err
 appErrToHttpErr (BackendErr _) = generic500err
