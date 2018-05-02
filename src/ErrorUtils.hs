@@ -112,4 +112,4 @@ getSqlErrorCode :: SqlError -> Maybe ByteString
 getSqlErrorCode e@SqlError{} = Just $ sqlState e
 
 throwParseError :: ParseFailure -> AppM a
-throwParseError = throwAppError . ParseError . U.toText
+throwParseError = throwAppError . ParseError
