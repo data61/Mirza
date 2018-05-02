@@ -65,7 +65,7 @@ appErrToHttpErr (ParseError _) =
     -- TODO: ^ Add more information on what's wrong?
   }
 appErrToHttpErr (AuthFailed _) =
-  throwError $ err403 { errBody = "Authentication failed." }
+  throwError $ err403 { errBody = "Authentication failed. Invalid username or password." }
 appErrToHttpErr (UserNotFound (M.EmailAddress _email)) =
   throwError $ err404 { errBody = "User not found." }
 appErrToHttpErr (EmailNotFound (M.EmailAddress _email)) =
