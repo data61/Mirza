@@ -363,6 +363,7 @@ addUserToEvent (M.User lUserId@(M.UserID loggedInUserId) _ _)
                evId@(EvId.EventID eventId) = do
   userCreatedEvent <- hasUserCreatedEvent lUserId evId
   if userCreatedEvent
+    -- QUESTION: Is the order of arguments correct?
     then insertUserEvent eventId loggedInUserId otherUserId False Nothing
     else throwError . AppError $ UserEventMismatch lUserId evId
 
