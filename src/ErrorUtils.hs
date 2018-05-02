@@ -43,9 +43,9 @@ appErrToHttpErr (InvalidUserID _) =
   throwError $ err400 {
     errBody = "No such user."
   }
-appErrToHttpErr (InvalidRSAKeyString _) =
-  throwError $ err400 {
-    errBody = "Invalid RSA Key entered."
+appErrToHttpErr (InvalidRSAKeyInDB _) =
+  throwError $ err500 {
+    errBody = "Your RSA public key is invalid. Please upload a valid one."
   }
 appErrToHttpErr (InvalidRSAKey _) =
   throwError $ err400 {

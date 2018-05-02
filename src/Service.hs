@@ -260,7 +260,7 @@ eventSign _user (M.SignedEvent eventID keyID (M.Signature sigStr) digest') = AC.
   rsaPublicKey <- BQ.getPublicKey keyID
   sigBS <- BS64.decode (BSC.pack sigStr) <%?> AC.AppError . InvalidSignature
   let (M.PEMString keyStr) = rsaPublicKey
-  (pubKey :: RSAPubKey) <- liftIO (toPublicKey <$> readPublicKey keyStr) <!?> AC.AppError (InvalidRSAKeyString (pack keyStr))
+  (pubKey :: RSAPubKey) <- liftIO (toPublicKey <$> readPublicKey keyStr) <!?> AC.AppError (InvalidRSAKeyInDB (pack keyStr))
   let eventBS = QU.eventTxtToBS event
   digest <- liftIO (makeDigest digest') <!?> AC.AppError (InvalidDigest digest')
   verifyStatus <- liftIO $ verifyBS digest sigBS pubKey eventBS

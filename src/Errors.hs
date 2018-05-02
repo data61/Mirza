@@ -27,7 +27,7 @@ data ServiceError
   | InvalidEventID       EventID
   | InvalidKeyID         M.KeyID
   | InvalidUserID        M.UserID
-  | InvalidRSAKeyString  T.Text
+  | InvalidRSAKeyInDB    T.Text -- when the key already existing in the DB is wrong
   | InvalidRSAKey        M.PEM_RSAPubKey
   | InvalidRSAKeySize    Expected Received
   | InvalidDigest        M.Digest
