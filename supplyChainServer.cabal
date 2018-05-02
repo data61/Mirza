@@ -25,7 +25,6 @@ library
                     , Dummies
                     , QueryUtils
                     , Utils
-                    , CryptHash
                     , Service
                     , Mirza.Client.Servant
   other-modules:      API

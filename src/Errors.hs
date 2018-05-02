@@ -40,38 +40,3 @@ data ServiceError
   | BackendErr           ErrorText -- fallback
   | DatabaseError        SqlError
   deriving (Show, Eq, Generic)
-
-{-
-Do not remove the following commented out code until explicitly asked to
-They serve as reference to what the errors used to be before they
-were merged into ``ServiceError``
--}
--- -- Interface for converting custom errors to ServantErr
--- class AppServantError err where
---   toServantErr :: err -> ServantErr
-
--- data SigError = SE_NeedMoreSignatures T.Text
---               | SE_InvalidSignature BS.ByteString
---               | SE_InvalidUser T.Text
---               | SE_BlockchainSendFailed
---               | SE_InvalidEventID Int
---               | SE_InvalidKeyID
---               deriving (Show, Read, Generic)
-
--- instance AppServantError SigError where
---   toServantErr e = err500 {errBody = LBSC8.pack $ show e}
-
-
--- data GetPropertyError = KE_InvalidKeyID
---                       | KE_InvalidUserID
---                       deriving (Show, Read, Generic)
-
--- instance AppServantError GetPropertyError where
---   toServantErr e = err500 {errBody = LBSC8.pack $ show e}
-
--- data DBError = DBE_InsertionFail
---              | DBE_EmailExists
---              deriving (Show, Read, Generic)
-
--- instance AppServantError DBError where
---   toServantErr e = err500 {errBody = LBSC8.pack $ show e}
