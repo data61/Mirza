@@ -22,6 +22,7 @@ module Mirza.Client.Servant
   ,insertTransactEvent
   ,insertTransfEvent
   ,addPublicKey
+  ,addUserToEvent
   ) where
 
 import           API
