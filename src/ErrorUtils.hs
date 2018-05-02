@@ -59,9 +59,11 @@ appErrToHttpErr (InvalidDigest _) =
   throwError $ err400 {
     errBody = "Invalid Key ID entered."
   }
-appErrToHttpErr (ParseError _) =
+appErrToHttpErr (ParseError err) =
   throwError $ err400 {
-    errBody = "We could not parse the input provided."
+    errBody = LBSC8.append
+                  "We could not parse the input provided. Error(s) encountered"
+                  (parseFailureToErrorMsg err)
     -- TODO: ^ Add more information on what's wrong?
   }
 appErrToHttpErr (AuthFailed _) =
@@ -113,3 +115,20 @@ getSqlErrorCode e@SqlError{} = Just $ sqlState e
 
 throwParseError :: ParseFailure -> AppM a
 throwParseError = throwAppError . ParseError
+
+
+parseFailureToErrorMsg :: ParseFailure -> ByteString
+-- TODO: Include XML Snippet in the error
+parseFailureToErrorMsg InvalidLength = "The length of one of your URN's is not correct"
+parseFailureToErrorMsg InvalidFormat = "Incorrectly formatted XML. Possible Causes: \
+                                      \ Some components of the URN missing,\
+                                      \Incorrectly structured, Wrong payload"
+parseFailureToErrorMsg InvalidAction = "Could not parse the Action provided"
+parseFailureToErrorMsg InvalidBizTransaction = "Could not parse business transaction"
+parseFailureToErrorMsg InvalidEvent = "Could not parse the event supplied"
+parseFailureToErrorMsg TimeZoneError = "There was an error in parsing the timezone"
+parseFailureToErrorMsg TagNotFound = "One or more required tags missing"
+parseFailureToErrorMsg InvalidDispBizCombination = "The combination of Disposition\
+                                                  \ and Business Transaction is incorrect"
+-- TODO: map parseFailureToErrorMsg <all_failures> joined by "\n"
+parseFailureToErrorMsg (ChildFailure (x:xs)) = "Encountered several errors while parsing the data provided."
