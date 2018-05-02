@@ -358,10 +358,13 @@ eventsByUser (M.UserID userId) = do
 
 
 addUserToEvent :: M.User -> M.UserID -> EvId.EventID -> DB ()
-addUserToEvent (M.User (M.UserID loggedInUserId) _ _)
+addUserToEvent (M.User lUserId@(M.UserID loggedInUserId) _ _)
                (M.UserID otherUserId)
-               (EvId.EventID eventId) =
-  insertUserEvent eventId loggedInUserId otherUserId False Nothing
+               evId@(EvId.EventID eventId) = do
+  userCreatedEvent <- hasUserCreatedEvent lUserId evId
+  if userCreatedEvent
+    then insertUserEvent eventId loggedInUserId otherUserId False Nothing
+    else throwError . AppError $ UserEventMismatch lUserId evId
 
 -- -- TODO - convert these below functions, and others in original file Storage.hs
 -- -- TODO = use EventId or EventID ???
