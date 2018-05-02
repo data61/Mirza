@@ -4,13 +4,13 @@
 module Errors where
 
 import qualified Data.ByteString            as BS
+import qualified Data.GS1.EPC               as EPC
 import           Data.GS1.EventID
 import qualified Data.Text                  as T
 import           Database.PostgreSQL.Simple (SqlError)
 import           GHC.Generics               (Generic)
 import qualified Model                      as M
 import qualified Utils                      as U
-
 type ErrorText = T.Text
 type ErrorCode = BS.ByteString
 
@@ -36,7 +36,7 @@ data ServiceError
   | EmailNotFound        M.EmailAddress
   | AuthFailed           M.EmailAddress
   | UserNotFound         M.EmailAddress
-  | ParseError           ErrorText -- EPC.ParseFailure
+  | ParseError           EPC.ParseFailure
   | BackendErr           ErrorText -- fallback
   | DatabaseError        SqlError
   deriving (Show, Eq, Generic)
