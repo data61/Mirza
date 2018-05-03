@@ -10,31 +10,32 @@
 {-# OPTIONS_GHC -fno-warn-orphans  #-}
 
 
-module Lib
+module Mirza.SupplyChain.Lib
     ( startApp,
       startApp_nomain,
       UIFlavour(..)
     )
     where
 
+import           Mirza.SupplyChain.API
+import qualified Mirza.SupplyChain.AppConfig as AC
+import           Mirza.SupplyChain.Model     (User)
+import           Mirza.SupplyChain.Service
+
 import           Servant
 import           Servant.Swagger.UI
 
-import           Control.Lens               hiding ((.=))
-import           Data.ByteString            (ByteString)
+import           Control.Lens                hiding ((.=))
+import           Data.ByteString             (ByteString)
 import           Data.Swagger
 import           Database.PostgreSQL.Simple
-import qualified Network.Wai.Handler.Warp   as Warp
+import qualified Network.Wai.Handler.Warp    as Warp
 
-import           API
-import qualified AppConfig                  as AC
-import           GHC.Word                   (Word16)
-import           Service
+import           GHC.Word                    (Word16)
 
-import           Crypto.Scrypt              (ScryptParams, defaultParams)
-import qualified Data.Pool                  as Pool
+import           Crypto.Scrypt               (ScryptParams, defaultParams)
+import qualified Data.Pool                   as Pool
 
-import           Model                      (User)
 
 startApp :: ByteString -> AC.EnvType -> Word16 -> UIFlavour -> ScryptParams -> IO ()
 startApp dbConnStr envT prt uiFlavour params = do
