@@ -1,20 +1,22 @@
 
 -- | Sample data types. Serves as a good example of the types defined
 -- in GS1Combinators
-module Dummies where
+module Mirza.SupplyChain.Dummies where
+
+import qualified Mirza.SupplyChain.Model       as M
+import qualified Mirza.SupplyChain.StorageBeam as SB
 
 import           Data.GS1.DWhat
 import           Data.GS1.DWhen
 import           Data.GS1.DWhere
 import           Data.GS1.DWhy
 import           Data.GS1.EPC
-import qualified Data.GS1.Event  as Ev
-import           Data.Maybe      (fromJust)
-import qualified Data.Text       as T
+import qualified Data.GS1.Event                as Ev
+
+import           Data.Maybe                    (fromJust)
+import qualified Data.Text                     as T
 import           Data.Time
-import           Data.UUID       (nil)
-import qualified Model           as M
-import qualified StorageBeam     as SB
+import           Data.UUID                     (nil)
 
 -- add function to generate and take dummyLabelEpc
 

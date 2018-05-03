@@ -1,22 +1,24 @@
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 -- | This module contains the helper functions that are used in error handling
-module ErrorUtils where
+module Mirza.SupplyChain.ErrorUtils where
 
-import           AppConfig                           (AppError (..), AppM)
+import           Mirza.SupplyChain.AppConfig         (AppError (..), AppM)
+import           Mirza.SupplyChain.Errors            (ErrorCode,
+                                                      ServerError (..),
+                                                      ServiceError (..))
+import qualified Mirza.SupplyChain.Model             as M
+import           Mirza.SupplyChain.Utils             (toText)
+
+import           Data.GS1.EPC
+
 import           Control.Monad.Except                (MonadError (..),
                                                       throwError)
 import           Data.ByteString                     (ByteString)
 import qualified Data.ByteString.Lazy.Char8          as LBSC8
-import           Data.GS1.EPC
 import           Data.Text.Encoding                  (encodeUtf8)
 import           Database.PostgreSQL.Simple.Internal (SqlError (..))
-import           Errors                              (ErrorCode,
-                                                      ServerError (..),
-                                                      ServiceError (..))
-import qualified Model                               as M
 import           Servant.Server
-import           Utils                               (toText)
 
 -- | Takes in a ServiceError and converts it to an HTTP error (eg. err400)
 appErrToHttpErr :: ServiceError -> Handler a

@@ -8,47 +8,50 @@
 -- functions that start with `insert` does some database operation
 -- functions that start with `to` converts between
 -- Model type and its Storage equivalent
-module QueryUtils where
+module Mirza.SupplyChain.QueryUtils where
 
-import           AppConfig               (DB, pg)
-import           Control.Monad.IO.Class  (liftIO)
-import           Data.Aeson              (decode)
-import           Data.Aeson.Text         (encodeToLazyText)
-import           Data.ByteString         (ByteString)
-import           Data.GS1.DWhat          (AggregationDWhat (..), DWhat (..),
-                                          LabelEPC (..), ObjectDWhat (..),
-                                          ParentLabel (..),
-                                          TransactionDWhat (..),
-                                          TransformationDWhat (..))
-import           Data.GS1.DWhen          (DWhen (..))
-import           Data.GS1.DWhere         (BizLocation (..), DWhere (..),
-                                          ReadPointLocation (..),
-                                          SrcDestLocation (..))
-import           Data.GS1.DWhy           (DWhy (..))
-import           Data.GS1.EPC            as EPC
-import           Data.GS1.Event          (Event (..))
-import qualified Data.GS1.Event          as Ev
-import qualified Data.GS1.EventID        as EvId
-import           Data.Maybe              (catMaybes)
-import qualified Data.Text               as T
-import qualified Data.Text.Encoding      as En
-import qualified Data.Text.Lazy          as TxtL
-import qualified Data.Text.Lazy.Encoding as LEn
-import           Data.Time               (UTCTime, ZonedTime (..),
-                                          utcToZonedTime)
-import           Data.Time.Clock         (getCurrentTime)
-import           Data.Time.LocalTime     (LocalTime, localTimeToUTC,
-                                          timeZoneOffsetString, utc,
-                                          utcToLocalTime)
-import           Data.UUID.V4            (nextRandom)
-import           Database.Beam           as B
-import           ErrorUtils              (throwBackendError)
-import qualified MigrateUtils            as MU
-import qualified Model                   as M
-import qualified StorageBeam             as SB
+import           Mirza.SupplyChain.AppConfig    (DB, pg)
+import           Mirza.SupplyChain.ErrorUtils   (throwBackendError)
+import qualified Mirza.SupplyChain.MigrateUtils as MU
+import qualified Mirza.SupplyChain.Model        as M
+import qualified Mirza.SupplyChain.StorageBeam  as SB
 
-import           Control.Monad           (void)
-import           Control.Monad.Except    (MonadError, catchError)
+import           Data.GS1.DWhy                  (DWhy (..))
+import           Data.GS1.EPC                   as EPC
+import           Data.GS1.Event                 (Event (..))
+import qualified Data.GS1.Event                 as Ev
+import qualified Data.GS1.EventID               as EvId
+
+import           Control.Monad.IO.Class         (liftIO)
+import           Data.Aeson                     (decode)
+import           Data.Aeson.Text                (encodeToLazyText)
+import           Data.ByteString                (ByteString)
+import           Data.GS1.DWhat                 (AggregationDWhat (..),
+                                                 DWhat (..), LabelEPC (..),
+                                                 ObjectDWhat (..),
+                                                 ParentLabel (..),
+                                                 TransactionDWhat (..),
+                                                 TransformationDWhat (..))
+import           Data.GS1.DWhen                 (DWhen (..))
+import           Data.GS1.DWhere                (BizLocation (..), DWhere (..),
+                                                 ReadPointLocation (..),
+                                                 SrcDestLocation (..))
+import           Data.Maybe                     (catMaybes)
+import qualified Data.Text                      as T
+import qualified Data.Text.Encoding             as En
+import qualified Data.Text.Lazy                 as TxtL
+import qualified Data.Text.Lazy.Encoding        as LEn
+import           Data.Time                      (UTCTime, ZonedTime (..),
+                                                 utcToZonedTime)
+import           Data.Time.Clock                (getCurrentTime)
+import           Data.Time.LocalTime            (LocalTime, localTimeToUTC,
+                                                 timeZoneOffsetString, utc,
+                                                 utcToLocalTime)
+import           Data.UUID.V4                   (nextRandom)
+import           Database.Beam                  as B
+
+import           Control.Monad                  (void)
+import           Control.Monad.Except           (MonadError, catchError)
 
 -- | Reads back the ``LocalTime`` in UTCTime (with an offset of 0)
 toEPCISTime :: LocalTime -> EPCISTime
