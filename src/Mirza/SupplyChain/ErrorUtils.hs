@@ -4,11 +4,12 @@
 module Mirza.SupplyChain.ErrorUtils where
 
 import           Mirza.SupplyChain.AppConfig         (AppError (..), AppM)
-import           Mirza.SupplyChain.Errors            (ErrorCode,
+import           Mirza.SupplyChain.Errors            (ErrorCode, Expected (..),
+                                                      Received (..),
                                                       ServerError (..),
                                                       ServiceError (..))
 import qualified Mirza.SupplyChain.Model             as M
-import           Mirza.SupplyChain.Utils             (toText)
+import qualified Mirza.SupplyChain.Utils             as U
 
 import           Control.Monad.Except                (MonadError (..),
                                                       throwError)
@@ -43,10 +44,6 @@ appErrToHttpErr (InvalidUserID _) =
   throwError $ err400 {
     errBody = "No such user."
   }
-appErrToHttpErr (InvalidRSAKeyInDB _) =
-  throwError $ err500 {
-    errBody = "Your RSA public key is invalid. Please upload a valid one."
-  }
 appErrToHttpErr (InvalidRSAKey _) =
   throwError $ err400 {
     errBody = "Failed to parse RSA Public key."
@@ -72,6 +69,7 @@ appErrToHttpErr (UserNotFound (M.EmailAddress _email)) =
   throwError $ err404 { errBody = "User not found." }
 appErrToHttpErr (EmailNotFound (M.EmailAddress _email)) =
   throwError $ err404 { errBody = "User not found." }
+appErrToHttpErr (InvalidRSAKeyInDB _) = generic500err
 appErrToHttpErr (InsertionFail _ _email) = generic500err
 appErrToHttpErr (BlockchainSendFailed _) = generic500err
 appErrToHttpErr (BackendErr _) = generic500err
@@ -117,7 +115,7 @@ throwParseError :: ParseFailure -> AppM a
 throwParseError = throwAppError . ParseError
 
 
-parseFailureToErrorMsg :: ParseFailure -> ByteString
+parseFailureToErrorMsg :: ParseFailure -> LBSC8.ByteString
 -- TODO: Include XML Snippet in the error
 parseFailureToErrorMsg InvalidLength = "The length of one of your URN's is not correct"
 parseFailureToErrorMsg InvalidFormat = "Incorrectly formatted XML. Possible Causes: \
