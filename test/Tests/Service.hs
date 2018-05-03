@@ -6,32 +6,35 @@
 
 module Tests.Service where
 
-import           AppConfig                  (AppM, DB, Env (..), EnvType (..),
-                                             pg, runAppM, runDb)
-import           Control.Monad              (void)
--- import           Crypto.Scrypt
-import           Data.ByteString            (ByteString)
+import           Mirza.SupplyChain.Dummies
+import           Mirza.SupplyChain.Migrate     (testDbConnStr)
+import qualified Mirza.SupplyChain.Model       as M
+import           Mirza.SupplyChain.QueryUtils
+import qualified Mirza.SupplyChain.Service     as S
+import qualified Mirza.SupplyChain.StorageBeam as SB
+
 import           Data.GS1.EPC
-import           Data.Maybe                 (fromJust, isNothing)
-import qualified Data.Text                  as T
-import           Data.Text.Encoding         (encodeUtf8)
-import           Data.Time.Clock            (getCurrentTime)
-import           Data.Time.LocalTime        (LocalTime, utc, utcToLocalTime)
+
+import           Control.Monad                 (void)
+import           Mirza.SupplyChain.AppConfig   (AppM, DB, Env (..),
+                                                EnvType (..), pg, runAppM,
+                                                runDb)
+-- import           Crypto.Scrypt
+import           Data.ByteString               (ByteString)
+import           Data.Maybe                    (fromJust, isNothing)
+import qualified Data.Text                     as T
+import           Data.Text.Encoding            (encodeUtf8)
+import           Data.Time.Clock               (getCurrentTime)
+import           Data.Time.LocalTime           (LocalTime, utc, utcToLocalTime)
 import           Database.Beam
-import           Database.PostgreSQL.Simple (Connection, close,
-                                             connectPostgreSQL, execute_)
-import           Dummies
-import           GHC.Stack                  (HasCallStack)
-import           Migrate                    (testDbConnStr)
-import qualified Model                      as M
-import           QueryUtils
+import           Database.PostgreSQL.Simple    (Connection, close,
+                                                connectPostgreSQL, execute_)
+import           GHC.Stack                     (HasCallStack)
 import           Servant
-import qualified Service                    as S
-import qualified StorageBeam                as SB
 import           Test.Hspec
 
-import qualified Crypto.Scrypt              as Scrypt
-import           Data.Pool                  as Pool
+import qualified Crypto.Scrypt                 as Scrypt
+import           Data.Pool                     as Pool
 -- NOTE in this file, where fromJust is used in the tests, it is because we expect a Just... this is part of the test
 -- NOTE tables dropped after every running of test in an "it"
 

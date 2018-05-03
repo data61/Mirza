@@ -1,14 +1,14 @@
 module Main where
 
-import           AppConfig           (EnvType (..))
-import           Data.ByteString     (ByteString)
-import           Data.Semigroup      ((<>))
-import           Lib
--- import           Migrate
-import           Migrate             (defConnectionStr, migrate)
+import           Mirza.SupplyChain.AppConfig (EnvType (..))
+import           Mirza.SupplyChain.Lib
+import           Mirza.SupplyChain.Migrate   (defConnectionStr, migrate)
+
+import           Data.ByteString             (ByteString)
+import           Data.Semigroup              ((<>))
 import           Options.Applicative
 
-import qualified Crypto.Scrypt       as Scrypt
+import qualified Crypto.Scrypt               as Scrypt
 
 data ServerOptions = ServerOptions
   { env           :: EnvType
