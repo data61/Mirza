@@ -2,14 +2,21 @@
 
 -- | This module is incomplete as of yet.
 -- Functions in the `service` module use the database functions defined here
-module BeamQueries where
+module Mirza.SupplyChain.BeamQueries where
 
-import           AppConfig                                (AppError (..), DB,
+
+import           Mirza.SupplyChain.AppConfig              (AppError (..), DB,
                                                            asks, pg, scryptPs)
-import           Control.Monad.Except                     (throwError)
-import           Control.Monad.IO.Class                   (liftIO)
-import qualified Crypto.Scrypt                            as Scrypt
-import           Data.Bifunctor                           (bimap)
+import           Mirza.SupplyChain.Errors                 (ServiceError (..))
+import           Mirza.SupplyChain.ErrorUtils             (getSqlErrorCode,
+                                                           throwAppError,
+                                                           throwBackendError,
+                                                           toServerError)
+import qualified Mirza.SupplyChain.MigrateUtils           as MU
+import qualified Mirza.SupplyChain.Model                  as M
+import           Mirza.SupplyChain.QueryUtils
+import qualified Mirza.SupplyChain.StorageBeam            as SB
+
 import           Data.GS1.DWhat                           (AggregationDWhat (..),
                                                            DWhat (..),
                                                            InputEPC (..),
@@ -21,6 +28,11 @@ import           Data.GS1.DWhat                           (AggregationDWhat (..)
                                                            unParentLabel)
 import qualified Data.GS1.Event                           as Ev
 import qualified Data.GS1.EventID                         as EvId
+
+import           Control.Monad.Except                     (throwError)
+import           Control.Monad.IO.Class                   (liftIO)
+import qualified Crypto.Scrypt                            as Scrypt
+import           Data.Bifunctor                           (bimap)
 import           Data.Maybe                               (catMaybes)
 import qualified Data.Text                                as T
 import           Data.Text.Encoding
@@ -29,17 +41,8 @@ import           Database.Beam.Backend.SQL.BeamExtensions
 import           Database.PostgreSQL.Simple.Errors        (ConstraintViolation (..),
                                                            constraintViolation)
 import           Database.PostgreSQL.Simple.Internal      (SqlError (..))
-import           Errors                                   (ServiceError (..))
-import           ErrorUtils                               (getSqlErrorCode,
-                                                           throwAppError,
-                                                           throwBackendError,
-                                                           toServerError)
-import qualified MigrateUtils                             as MU
-import qualified Model                                    as M
 import           OpenSSL.PEM                              (writePublicKey)
 import           OpenSSL.RSA                              (RSAPubKey)
-import           QueryUtils
-import qualified StorageBeam                              as SB
 
 {-
 -- Sample NewUser JSON

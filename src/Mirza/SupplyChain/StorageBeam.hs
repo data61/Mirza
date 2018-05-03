@@ -25,18 +25,20 @@
 -- The migration script has been moved to the module MigrateScript
 -- If some definition is changed here, please make the equivalent change
 -- in MigrateScript
-module StorageBeam where
+module Mirza.SupplyChain.StorageBeam where
+
+import qualified Mirza.SupplyChain.MigrateUtils as MU
+
+import qualified Data.GS1.EPC                   as EPC
+import qualified Data.GS1.Event                 as Ev
 
 import           Control.Lens
-import           Data.ByteString        (ByteString)
-import qualified Data.GS1.EPC           as EPC
-import qualified Data.GS1.Event         as Ev
-import           Data.Text              (Text)
+import           Data.ByteString                (ByteString)
+import           Data.Text                      (Text)
 import           Data.Time
-import           Data.UUID              (UUID)
-import           Database.Beam          as B
+import           Data.UUID                      (UUID)
+import           Database.Beam                  as B
 import           Database.Beam.Postgres
-import qualified MigrateUtils           as MU
 
 type PrimaryKeyType = UUID
 -- IMPLEMENTME - NOT NOW

@@ -1,16 +1,18 @@
 
 -- | Module containing functions to run the migration function
-module Migrate where
+module Mirza.SupplyChain.Migrate where
 
-import qualified Control.Exception           as E
-import           Control.Monad               (void)
-import           Data.ByteString.Char8       (ByteString)
-import           Database.Beam               (withDatabase, withDatabaseDebug)
-import           Database.Beam.Backend       (runNoReturn)
-import           Database.Beam.Migrate.Types (executeMigration)
-import           Database.Beam.Postgres      (Connection, Pg)
-import           Database.PostgreSQL.Simple  (SqlError, connectPostgreSQL)
-import           MigrateScript               (migrationStorage)
+import           Mirza.SupplyChain.MigrateScript (migrationStorage)
+
+import qualified Control.Exception               as E
+import           Control.Monad                   (void)
+import           Data.ByteString.Char8           (ByteString)
+import           Database.Beam                   (withDatabase,
+                                                  withDatabaseDebug)
+import           Database.Beam.Backend           (runNoReturn)
+import           Database.Beam.Migrate.Types     (executeMigration)
+import           Database.Beam.Postgres          (Connection, Pg)
+import           Database.PostgreSQL.Simple      (SqlError, connectPostgreSQL)
 
 -- | Whether or not to run silently
 dbMigrationFunc :: Bool -> Connection -> Pg a -> IO a

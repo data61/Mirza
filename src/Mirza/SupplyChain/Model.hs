@@ -5,28 +5,30 @@
 {-# OPTIONS_GHC -fno-warn-orphans       #-}
 
 -- | This module is a WIP. Changes will be made to the models very frequently
-module Model where
+module Mirza.SupplyChain.Model where
 
-import           Data.Aeson
-import           Data.Aeson.TH
-import qualified Data.ByteString    as BS
-import           Data.Text          as T
-
-import           Data.Swagger
-
-import           Data.UUID          (UUID)
-import           GHC.Generics       (Generic)
+import           Mirza.SupplyChain.StorageBeam (PrimaryKeyType)
 
 import           Data.GS1.DWhat
 import           Data.GS1.DWhen
 import           Data.GS1.DWhere
 import           Data.GS1.DWhy
-import           Data.GS1.EPC       as EPC
-import qualified Data.GS1.Event     as Ev
+import           Data.GS1.EPC                  as EPC
+import qualified Data.GS1.Event                as Ev
 import           Data.GS1.EventID
-import           Data.List.NonEmpty (NonEmpty)
-import           Servant            (FromHttpApiData, ToHttpApiData)
-import           StorageBeam        (PrimaryKeyType)
+
+import           Data.Aeson
+import           Data.Aeson.TH
+import qualified Data.ByteString               as BS
+import           Data.Text                     as T
+
+import           Data.Swagger
+
+import           Data.UUID                     (UUID)
+import           GHC.Generics                  (Generic)
+
+import           Data.List.NonEmpty            (NonEmpty)
+import           Servant                       (FromHttpApiData, ToHttpApiData)
 
 -- TODO: Should these be in StorageBeam?
 newtype UserID = UserID {unUserID :: PrimaryKeyType}
