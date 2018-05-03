@@ -43,3 +43,6 @@ data ServiceError
   | BackendErr           ErrorText -- fallback
   | DatabaseError        SqlError
   deriving (Show, Eq, Generic)
+
+-- TODO: Add the mismatch error back
+
