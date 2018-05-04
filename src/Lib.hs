@@ -11,9 +11,10 @@
 
 
 module Lib
-    ( startApp,
-      startApp_nomain,
-      UIFlavour(..)
+    ( buildApp
+    , startApp
+    , startApp_nomain
+    , UIFlavour(..)
     )
     where
 
@@ -36,8 +37,8 @@ import qualified Data.Pool                  as Pool
 
 import           Model                      (User)
 
-startApp :: ByteString -> AC.EnvType -> Word16 -> UIFlavour -> ScryptParams -> IO ()
-startApp dbConnStr envT prt uiFlavour params = do
+buildApp :: ByteString -> AC.EnvType -> UIFlavour -> ScryptParams -> IO Application
+buildApp dbConnStr envT uiFlavour params = do
     connpool <- Pool.createPool (connectPostgreSQL dbConnStr) close
                         1 -- Number of "sub-pools",
                         60 -- How long in seconds to keep a connection open for reuse
@@ -46,9 +47,15 @@ startApp dbConnStr envT prt uiFlavour params = do
 
     let
         env  = AC.Env envT connpool params
-        app = return $ webApp env uiFlavour
-    putStrLn $ "http://localhost:" ++ show prt ++ "/swagger-ui/"
-    Warp.run (fromIntegral prt) =<< app
+        app = webApp env uiFlavour
+
+    pure app
+
+startApp :: ByteString -> AC.EnvType -> Word16 -> UIFlavour -> ScryptParams -> IO ()
+startApp dbConnStr envT prt uiFlavour params = do
+  app <- buildApp dbConnStr envT uiFlavour params
+  putStrLn $ "http://localhost:" ++ show prt ++ "/swagger-ui/"
+  Warp.run (fromIntegral prt) app
 
 -- easily start the app in ghci, no command line arguments required.
 startApp_nomain :: ByteString -> IO ()
