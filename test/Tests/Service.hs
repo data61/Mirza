@@ -64,11 +64,11 @@ testAppM env act = runAppM env act >>= \case
     Left err -> fail (show err)
     Right a -> pure a
 
-testQueries :: HasCallStack => SpecWith (Connection, Env)
+testQueries :: HasCallStack => SpecWith Env
 testQueries = do
 
   describe "addPublicKey tests" $
-    it "addPublicKey test 1" $ \(_conn, env) -> do
+    it "addPublicKey test 1" $ \env -> do
       pubKey <- rsaPubKey
       tStart <- timeStampIO
       res <- testAppM env $ do
@@ -95,7 +95,7 @@ testQueries = do
             )
           insertedKey `shouldBe` pubKey
   describe "getPublicKeyInfo tests" $
-    it "getPublicKeyInfo test 1" $ \(_conn, env) -> do
+    it "getPublicKeyInfo test 1" $ \env -> do
       tStart <- timeStampIOEPCIS
       pubKey <- rsaPubKey
       (keyInfo, uid, tEnd) <- testAppM env $ do
@@ -114,7 +114,7 @@ testQueries = do
         )
 
   describe "newUser tests" $
-    it "newUser test 1" $ \(_conn, env) -> do
+    it "newUser test 1" $ \env -> do
       res <- testAppM env $  do
         uid <- S.newUser dummyNewUser
         user <- runDb $ selectUser uid
@@ -137,7 +137,7 @@ testQueries = do
             )
 
   describe "authCheck tests" $
-    it "authCheck test 1" $ \(_conn, env) -> do
+    it "authCheck test 1" $ \env -> do
       res <- testAppM env $ do
         uid <- S.newUser dummyNewUser
         let check = unBasicAuthCheck $ S.authCheck env
@@ -159,11 +159,11 @@ testQueries = do
         _ -> fail "Could not authenticate user"
 
   describe "Object Event" $ do
-    it "Insert Object Event" $ \(_conn, env) -> do
+    it "Insert Object Event" $ \env -> do
       insertedEvent <- testAppM env $ S.insertObjectEvent dummyUser dummyObject
       insertedEvent `shouldBe` dummyObjEvent
 
-    it "List event" $ \(_conn, env) -> do
+    it "List event" $ \env -> do
       res <- testAppM env $ do
         insertedEvent <- S.insertObjectEvent dummyUser dummyObject
         evtList <- S.listEvents dummyUser (M.LabelEPCUrn dummyLabelEpcUrn)
@@ -174,11 +174,11 @@ testQueries = do
           evtList `shouldBe` [insertedEvent]
 
   describe "Aggregation Event" $ do
-    it "Insert Aggregation Event" $ \(_conn, env) -> do
+    it "Insert Aggregation Event" $ \env -> do
       insertedEvent <- testAppM env $ S.insertAggEvent dummyUser dummyAggregation
       insertedEvent `shouldBe` dummyAggEvent
 
-    it "List event" $ \(_conn, env) -> do
+    it "List event" $ \env -> do
       res <- testAppM env $ do
         insertedEvent <- S.insertAggEvent dummyUser dummyAggregation
         evtList <- S.listEvents dummyUser (M.LabelEPCUrn dummyLabelEpcUrn)
@@ -189,11 +189,11 @@ testQueries = do
           evtList `shouldBe` [insertedEvent]
 
   describe "Transformation Event" $ do
-    it "Insert Transformation Event" $ \(_conn, env) -> do
+    it "Insert Transformation Event" $ \env -> do
       insertedEvent <- testAppM env $ S.insertTransfEvent dummyUser dummyTransformation
       insertedEvent `shouldBe` dummyTransfEvent
 
-    it "List event" $ \(_conn, env) -> do
+    it "List event" $ \env -> do
       res <- testAppM env $ do
         insertedEvent <- S.insertTransfEvent dummyUser dummyTransformation
         eventList <- S.listEvents dummyUser (M.LabelEPCUrn dummyLabelEpcUrn)
@@ -204,11 +204,11 @@ testQueries = do
           eventList `shouldBe` [insertedEvent]
 
   describe "Transaction Event" $ do
-    it "Insert Transaction Event" $ \(_conn, env) -> do
+    it "Insert Transaction Event" $ \env -> do
       insertedEvent <- testAppM env $ S.insertTransactEvent dummyUser dummyTransaction
       insertedEvent `shouldBe` dummyTransactEvent
 
-    it "List event" $ \(_conn, env) -> do
+    it "List event" $ \env -> do
       res <- testAppM env $ do
         insertedEvent <- S.insertTransactEvent dummyUser dummyTransaction
         eventList <- S.listEvents dummyUser (M.LabelEPCUrn dummyLabelEpcUrn)
@@ -219,7 +219,7 @@ testQueries = do
           eventList `shouldBe` [insertedEvent]
 
   describe "runDb $ getUser tests" $
-    it "runDb $ getUser test 1" $ \(_conn, env) -> do
+    it "runDb $ getUser test 1" $ \env -> do
       res <- testAppM env $ do
         uid <- S.newUser dummyNewUser
         user <- runDb $ getUser $ M.emailAddress dummyNewUser
@@ -237,7 +237,7 @@ testQueries = do
   describe "Contacts" $ do
     (after_ clearContact) . describe "Contacts" $
       describe "Add contact" $
-        it "addContact simple" $ \(_conn, env) -> do
+        it "addContact simple" $ \env -> do
           let myContact = makeDummyNewUser (M.EmailAddress "first@gmail.com")
           (hasBeenAdded, isContact) <- testAppM env $ do
             uid <- S.newUser dummyNewUser
@@ -250,7 +250,7 @@ testQueries = do
           isContact `shouldBe` True
 
     describe "Remove contact" $ do
-      it "Simple remove one" $ \(_conn, env) -> do
+      it "Simple remove one" $ \env -> do
         -- Adding the contact first
         (hasBeenAdded, hasBeenRemoved) <- testAppM env $ do
           void $ S.newUser dummyNewUser
@@ -264,7 +264,7 @@ testQueries = do
           pure (hasBeenAdded, hasBeenRemoved)
         hasBeenAdded `shouldBe` True
         hasBeenRemoved `shouldBe` True
-      it "Remove wrong contact" $ \(_conn, env) -> do
+      it "Remove wrong contact" $ \env -> do
         -- Adding the contact first
         (hasBeenAdded, hasBeenRemoved) <- testAppM env $ do
           void $ S.newUser dummyNewUser
@@ -282,7 +282,7 @@ testQueries = do
         hasBeenRemoved `shouldBe` False
 
     describe "List contact" $ do
-      it "Add one and list" $ \(_conn, env) -> do
+      it "Add one and list" $ \env -> do
         -- Adding the contact first
         (hasBeenAdded, contactList, users) <- testAppM env $ do
           void $ S.newUser dummyNewUser
@@ -296,7 +296,7 @@ testQueries = do
           pure (hasBeenAdded, contactList, [fromJust mMyContact_user])
         contactList `shouldBe` users
         hasBeenAdded `shouldBe` True
-      it "Add many and list" $ \(_conn, env) -> do
+      it "Add many and list" $ \env -> do
         (contactList, users) <- testAppM env $ do
           -- Making the users
           let myContact_1 = makeDummyNewUser (M.EmailAddress "first@gmail.com")
@@ -341,7 +341,7 @@ testQueries = do
         contactList `shouldBe` users
 
   describe "DWhere" $
-    it "Insert and find DWhere" $ \(_conn, env) -> do
+    it "Insert and find DWhere" $ \env -> do
       let eventId = dummyId
       insertedDWhere <- testAppM env $ do
         void $ runDb $ insertDWhere dummyDWhere eventId

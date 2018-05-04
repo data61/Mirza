@@ -1,7 +1,12 @@
 
 module Main where
 
-import           Test.Hspec                 (around, hspec)
+import           Test.Hspec.Core            (sequential)
+import           Test.Tasty                 hiding (withResource)
+import           Test.Tasty.Hspec           (around, testSpec)
+import           Test.Tasty.Runners         (NumThreads (..))
+
+import           Tests.Client
 import           Tests.Service
 
 import           AppConfig                  as AC
@@ -12,6 +17,7 @@ import           Database.PostgreSQL.Simple
 import           Migrate
 
 import           Crypto.Scrypt              (defaultParams)
+import           Data.Pool                  (destroyAllResources, withResource)
 
 -- dbFunc = withDatabaseDebug putStrLn
 
@@ -34,22 +40,28 @@ dropTables conn =
                \     END LOOP;                                                                              \
                \ END $$;                                                                                    "
 
-openConnection :: IO (Connection, Env)
+openConnection :: IO Env
 openConnection = do
-  conn <- connectPostgreSQL testDbConnStr
-  _ <- dropTables conn -- drop tables before so if already exist no problems... means tables get overwritten though
   connpool <- defaultPool
+  _ <- withResource connpool dropTables -- drop tables before so if already exist no problems... means tables get overwritten though
+  withResource connpool (tryCreateSchema True)
   let envT = AC.mkEnvType True
       env  = AC.Env envT connpool defaultParams
-  tryCreateSchema True conn
-  return (conn, env)
+  return env
 
-closeConnection :: (Connection, Env) -> IO ()
-closeConnection (conn, _env) =
-  close conn
+closeConnection :: Env -> IO ()
+closeConnection env =
+  destroyAllResources (AC.dbConnPool env)
 
-withDatabaseConnection :: ((Connection, Env) -> IO ()) -> IO ()
+withDatabaseConnection :: (Env -> IO ()) -> IO ()
 withDatabaseConnection = bracket openConnection closeConnection
 
 main :: IO ()
-main = hspec $ around withDatabaseConnection testQueries
+main = do
+  hspecTests <- testSpec "HSpec" (sequential $ around withDatabaseConnection testQueries)
+  clientTests <- testSpec "Client HSpec" clientSpec
+
+  defaultMain $ localOption (NumThreads 1) $ testGroup "tests"
+    [ hspecTests
+    , clientTests
+    ]
