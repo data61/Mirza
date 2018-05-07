@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveGeneric    #-}
 {-# LANGUAGE FlexibleContexts #-}
 
 -- | This module is incomplete as of yet.
@@ -360,9 +361,12 @@ eventsByUser (M.UserID userId) = do
   return $ catMaybes $ decodeEvent <$> eventList
 
 
-addUserToEvent :: M.User -> M.UserID -> EvId.EventID -> DB ()
-addUserToEvent (M.User lUserId@(M.UserID loggedInUserId) _ _)
-               (M.UserID otherUserId)
+newtype EventOwner  = EventOwner M.UserID deriving(Generic, Show, Eq, Read)
+newtype SigningUser = SigningUser M.UserID deriving(Generic, Show, Eq, Read)
+
+addUserToEvent :: EventOwner -> SigningUser -> EvId.EventID -> DB ()
+addUserToEvent (EventOwner lUserId@(M.UserID loggedInUserId))
+               (SigningUser (M.UserID otherUserId))
                evId@(EvId.EventID eventId) = do
   userCreatedEvent <- hasUserCreatedEvent lUserId evId
   if userCreatedEvent
