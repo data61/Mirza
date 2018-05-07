@@ -1,7 +1,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 -- | Contains the definition of our ReaderT AppM
-module AppConfig
+module Mirza.SupplyChain.AppConfig
   (EnvType(..)
   , mkEnvType
   , Env(..)
@@ -33,7 +33,7 @@ import           Control.Monad.IO.Class     (MonadIO)
 import           Control.Monad.Reader       (MonadReader, ReaderT, ask, asks,
                                              liftIO, runReaderT)
 import           Control.Monad.Trans        (lift)
-import           Errors                     (ServiceError (..))
+import           Mirza.SupplyChain.Errors   (ServiceError (..))
 
 import           Crypto.Scrypt              (ScryptParams)
 

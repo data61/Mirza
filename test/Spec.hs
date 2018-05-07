@@ -1,23 +1,24 @@
 
 module Main where
 
-import           Test.Hspec.Core            (sequential)
-import           Test.Tasty                 hiding (withResource)
-import           Test.Tasty.Hspec           (around, testSpec)
-import           Test.Tasty.Runners         (NumThreads (..))
+import           Test.Hspec.Core             (sequential)
+import           Test.Tasty                  hiding (withResource)
+import           Test.Tasty.Hspec            (around, testSpec)
+import           Test.Tasty.Runners          (NumThreads (..))
+
+import           Mirza.SupplyChain.AppConfig as AC
+import           Mirza.SupplyChain.Migrate
 
 import           Tests.Client
 import           Tests.Service
 
-import           AppConfig                  as AC
-import           Control.Exception          (bracket)
+import           Control.Exception           (bracket)
 import           Data.Int
 import           Database.Beam.Postgres
 import           Database.PostgreSQL.Simple
-import           Migrate
 
-import           Crypto.Scrypt              (defaultParams)
-import           Data.Pool                  (destroyAllResources, withResource)
+import           Crypto.Scrypt               (defaultParams)
+import           Data.Pool                   (destroyAllResources, withResource)
 
 -- dbFunc = withDatabaseDebug putStrLn
 

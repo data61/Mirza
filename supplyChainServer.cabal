@@ -18,22 +18,22 @@ library
                     , FlexibleContexts
                     , FlexibleInstances
   hs-source-dirs:     src
-  exposed-modules:    Lib
-                    , Migrate
-                    , BeamQueries
-                    , Model
-                    , StorageBeam
-                    , AppConfig
-                    , Dummies
-                    , QueryUtils
-                    , Utils
-                    , Service
-                    , Mirza.Client.Servant
-  other-modules:      API
-                    , MigrateUtils
-                    , MigrateScript
-                    , Errors
-                    , ErrorUtils
+  exposed-modules:    Mirza.SupplyChain.Lib
+                    , Mirza.SupplyChain.Migrate
+                    , Mirza.SupplyChain.BeamQueries
+                    , Mirza.SupplyChain.Model
+                    , Mirza.SupplyChain.StorageBeam
+                    , Mirza.SupplyChain.AppConfig
+                    , Mirza.SupplyChain.Dummies
+                    , Mirza.SupplyChain.QueryUtils
+                    , Mirza.SupplyChain.Utils
+                    , Mirza.SupplyChain.Service
+                    , Mirza.SupplyChain.Client.Servant
+  other-modules:      Mirza.SupplyChain.API
+                    , Mirza.SupplyChain.MigrateUtils
+                    , Mirza.SupplyChain.MigrateScript
+                    , Mirza.SupplyChain.Errors
+                    , Mirza.SupplyChain.ErrorUtils
   build-depends:      base >= 4.7 && < 5
                     , GS1Combinators
                     , aeson
@@ -109,7 +109,7 @@ test-suite supplyChainServer-test
                      , base64-bytestring
                      , beam-core
                      , beam-postgres
-                     , binary 
+                     , binary
                      , bytestring
                      , cryptonite
                     --  , direct-sqlite
