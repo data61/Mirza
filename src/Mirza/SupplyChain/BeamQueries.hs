@@ -360,7 +360,7 @@ eventsByUser (M.UserID userId) = do
     pure (SB.json_event event)
   return $ catMaybes $ decodeEvent <$> eventList
 
-
+-- TODO: move these to an appropriate ``Types`` module once that's made
 newtype EventOwner  = EventOwner M.UserID deriving(Generic, Show, Eq, Read)
 newtype SigningUser = SigningUser M.UserID deriving(Generic, Show, Eq, Read)
 
