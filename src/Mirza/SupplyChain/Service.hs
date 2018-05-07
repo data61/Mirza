@@ -272,7 +272,7 @@ eventSign _user (M.SignedEvent eventID keyID (M.Signature sigStr) digest') = AC.
 
 
 addUserToEvent :: M.User -> EventID -> AC.AppM Bool
-addUserToEvent (M.User (M.UserID userId) _ _) (EventID eventId) = U.notImplemented
+addUserToEvent (M.User (M.UserID _userId) _ _) (EventID _eventId) = U.notImplemented
 
 -- eventSign user signedEvent = error "Storage module not implemented"
 -- eventSign user signedEvent = do
@@ -333,7 +333,7 @@ sampleWhere :: DWhere
 sampleWhere = DWhere [] [] [] []
 
 eventInfo :: M.User -> EventID -> AC.AppM (Maybe Ev.Event)
-eventInfo _user = AC.runDb . QU.findEvent . getEventId
+eventInfo _user = AC.runDb . QU.findEvent . SB.EventId . getEventId
 
 --eventHash :: EventID -> AC.AppM SignedEvent
 --eventHash eID = return (SignedEvent eID (BinaryBlob ByteString.empty) [(BinaryBlob ByteString.empty)] [1,2])
