@@ -54,10 +54,6 @@ appErrToHttpErr (InvalidRSAKey _) =
   throwError $ err400 {
     errBody = "Invalid RSA Key entered."
   }
-appErrToHttpErr (EventPermissionDenied _ _) =
-  throwError $ err403 {
-    errBody = "User not associated with the event."
-  }
 appErrToHttpErr (InvalidRSAKeySize _ _) =
   throwError $ err400 {
     errBody = "Invalid RSA Key entered."
@@ -76,6 +72,10 @@ appErrToHttpErr (AuthFailed _) =
 appErrToHttpErr (UserNotFound (M.EmailAddress email)) =
   throwError $ err404 {
     errBody = LBSC8.fromChunks ["User with email ", encodeUtf8 email, " could not be found."]
+  }
+appErrToHttpErr (EventPermissionDenied _ _) =
+  throwError $ err403 {
+    errBody = "User not associated with the event."
   }
 appErrToHttpErr (EmailNotFound (M.EmailAddress email)) =
   throwError $ err404 {
