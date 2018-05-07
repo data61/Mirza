@@ -423,7 +423,7 @@ data UserEventT f = UserEvent
   , user_events_event_id   :: PrimaryKey EventT f
   , user_events_user_id    :: PrimaryKey UserT f
   , user_events_has_signed :: C f Bool
-  , user_events_added_by   :: PrimaryKey UserT f
+  , user_events_owner      :: PrimaryKey UserT f
   , user_events_signedHash :: C f (Maybe ByteString)
   }
   deriving Generic
@@ -615,7 +615,7 @@ supplyChainDb = defaultDbSettings
         tableModification {
           user_events_event_id = EventId (fieldNamed "user_events_event_id")
         , user_events_user_id = UserId (fieldNamed "user_events_user_id")
-        , user_events_added_by = UserId (fieldNamed "user_events_added_by")
+        , user_events_owner = UserId (fieldNamed "user_events_added_by")
         }
     , _hashes =
         modifyTable (const "hashes") $
