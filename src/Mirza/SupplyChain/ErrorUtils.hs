@@ -49,8 +49,8 @@ appErrToHttpErr (InvalidRSAKey _) =
     errBody = "Failed to parse RSA Public key."
   }
 appErrToHttpErr (EventPermissionDenied _ _) =
-  throwError $ err400 {
-    errBody = "User not associated with the event."
+  throwError $ err403 {
+    errBody = "User does not own the event."
   }
 appErrToHttpErr (InvalidRSAKeySize (Expected (U.Byte expSize)) (Received (U.Byte recSize))) =
   throwError $ err400 {
