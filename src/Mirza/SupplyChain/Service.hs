@@ -274,8 +274,8 @@ eventSign _user (M.SignedEvent eventID keyID (M.Signature sigStr) digest') = AC.
 -- | A function to tie a user to an event
 -- Populates the ``UserEvents`` table
 addUserToEvent :: M.User -> M.UserID -> EventID -> AC.AppM ()
-addUserToEvent loggedInUser anotherUserId eventId =
-    AC.runDb $ BQ.addUserToEvent loggedInUser anotherUserId eventId
+addUserToEvent (M.User loggedInUserId _ _) anotherUserId eventId =
+    AC.runDb $ BQ.addUserToEvent (BQ.EventOwner loggedInUserId) (BQ.SigningUser anotherUserId) eventId
 
 -- eventSign user signedEvent = error "Storage module not implemented"
 -- eventSign user signedEvent = do
