@@ -28,6 +28,7 @@ module Mirza.Client.Servant
 import           API
 import           Model            as M
 
+import           Model                   as M
 import           Servant.API
 import           Servant.Client
 
