@@ -22,23 +22,23 @@ newtype Received = Received  {unReceived :: U.Byte} deriving (Show, Eq, Read)
 
 -- | A sum type of errors that may occur in the Service layer
 data ServiceError
-  = NeedMoreSignatures   T.Text
-  | InvalidSignature     String
-  | BlockchainSendFailed ServerError
-  | InvalidEventID       EventID
-  | InvalidKeyID         M.KeyID
-  | InvalidUserID        M.UserID
-  | InvalidRSAKeyString  T.Text
-  | InvalidRSAKey        M.PEM_RSAPubKey
-  | InvalidRSAKeySize    Expected Received
-  | InvalidDigest        M.Digest
-  | InsertionFail        ServerError T.Text
-  | EmailExists          ServerError M.EmailAddress
-  | EmailNotFound        M.EmailAddress
-  | UserEventMismatch    M.UserID EvId.EventID
-  | AuthFailed           M.EmailAddress
-  | UserNotFound         M.EmailAddress
-  | ParseError           ErrorText -- EPC.ParseFailure
-  | BackendErr           ErrorText -- fallback
-  | DatabaseError        SqlError
+  = NeedMoreSignatures    T.Text
+  | InvalidSignature      String
+  | BlockchainSendFailed  ServerError
+  | InvalidEventID        EventID
+  | InvalidKeyID          M.KeyID
+  | InvalidUserID         M.UserID
+  | InvalidRSAKeyString   T.Text
+  | InvalidRSAKey         M.PEM_RSAPubKey
+  | InvalidRSAKeySize     Expected Received
+  | InvalidDigest         M.Digest
+  | InsertionFail         ServerError T.Text
+  | EmailExists           ServerError M.EmailAddress
+  | EmailNotFound         M.EmailAddress
+  | EventPermissionDenied M.UserID EvId.EventID
+  | AuthFailed            M.EmailAddress
+  | UserNotFound          M.EmailAddress
+  | ParseError            ErrorText -- EPC.ParseFailure
+  | BackendErr            ErrorText -- fallback
+  | DatabaseError         SqlError
   deriving (Show, Eq, Generic)
