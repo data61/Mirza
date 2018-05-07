@@ -7,7 +7,7 @@ import qualified Mirza.SupplyChain.Model    as M
 import qualified Mirza.SupplyChain.Utils    as U
 
 import qualified Data.GS1.EPC               as EPC
-import           Data.GS1.EventID
+import           Data.GS1.EventID           as EvId
 
 import qualified Data.ByteString            as BS
 import qualified Data.Text                  as T
@@ -25,24 +25,22 @@ newtype Received = Received {unReceived :: U.Byte} deriving (Show, Eq, Read)
 
 -- | A sum type of errors that may occur in the Service layer
 data ServiceError
-  = InvalidSignature     String
-  | BlockchainSendFailed ServerError
-  | InvalidEventID       EventID
-  | InvalidKeyID         M.KeyID
-  | InvalidUserID        M.UserID
-  | InvalidRSAKeyInDB    T.Text -- when the key already existing in the DB is wrong
-  | InvalidRSAKey        M.PEM_RSAPubKey
-  | InvalidRSAKeySize    Expected Received
-  | InvalidDigest        M.Digest
-  | InsertionFail        ServerError T.Text
-  | EmailExists          ServerError M.EmailAddress
-  | EmailNotFound        M.EmailAddress
-  | AuthFailed           M.EmailAddress
-  | UserNotFound         M.EmailAddress
-  | ParseError           EPC.ParseFailure
-  | BackendErr           ErrorText -- fallback
-  | DatabaseError        SqlError
+  = InvalidSignature      String
+  | BlockchainSendFailed  ServerError
+  | InvalidEventID        EventID
+  | InvalidKeyID          M.KeyID
+  | InvalidUserID         M.UserID
+  | InvalidRSAKeyInDB     T.Text -- when the key already existing in the DB is wrong
+  | InvalidRSAKey         M.PEM_RSAPubKey
+  | InvalidRSAKeySize     Expected Received
+  | InvalidDigest         M.Digest
+  | InsertionFail         ServerError T.Text
+  | EventPermissionDenied M.UserID EvId.EventID
+  | EmailExists           ServerError M.EmailAddress
+  | EmailNotFound         M.EmailAddress
+  | AuthFailed            M.EmailAddress
+  | UserNotFound          M.EmailAddress
+  | ParseError            EPC.ParseFailure
+  | BackendErr            ErrorText -- fallback
+  | DatabaseError         SqlError
   deriving (Show, Eq, Generic)
-
--- TODO: Add the mismatch error back
-
