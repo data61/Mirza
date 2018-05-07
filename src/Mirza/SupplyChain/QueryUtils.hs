@@ -480,7 +480,7 @@ hasUserCreatedEvent :: M.UserID -> EvId.EventID -> DB Bool
 hasUserCreatedEvent (M.UserID userId) (EvId.EventID eventId) = do
   r <- pg $ runSelectReturningList $ select $ do
         userEvent <- all_ (SB._user_events SB.supplyChainDb)
-        guard_ (SB.user_events_user_id userEvent ==. (val_ . SB.UserId $ userId) &&.
+        guard_ (SB.user_events_owner userEvent ==. (val_ . SB.UserId $ userId) &&.
                 SB.user_events_event_id userEvent ==. (val_ . SB.EventId $ eventId))
         pure userEvent
   return $ case r of
