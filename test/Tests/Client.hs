@@ -65,6 +65,16 @@ clientSpec =
         res <- first show <$> runClient (contactsInfo authABC) baseurl
         res `shouldBe` Right []
 
+      it "Should fail to authenticate with unknown user" $ \(_,baseurl) -> do
+        res <- first show <$> runClient
+                (contactsInfo (BasicAuthData "xyz@example.com" "notagoodpassword"))
+                baseurl
+        res `shouldSatisfy` isLeft
+
+
+    -- describe "Signatures" $ do
+    --   it "Can "
+
 -- Plumbing
 
 startWaiApp :: Wai.Application -> IO (ThreadId, BaseUrl)
