@@ -54,7 +54,7 @@ appErrToHttpErr (EventPermissionDenied _ _) =
   }
 appErrToHttpErr (InvalidRSAKeySize (Expected (U.Byte expSize)) (Received (U.Byte recSize))) =
   throwError $ err400 {
-    errBody = LBSC8.pack $ printf "Invalid RSA Key size. Expected: %d, Received: %d\n" expSize recSize
+    errBody = LBSC8.pack $ printf "Invalid RSA Key size. Expected: %d Bits, Received: %d Bits\n" (expSize * 8) (recSize * 8)
   }
 appErrToHttpErr (InvalidDigest _) =
   throwError $ err400 {
