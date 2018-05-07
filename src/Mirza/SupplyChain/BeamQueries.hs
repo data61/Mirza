@@ -178,14 +178,14 @@ insertObjectEvent
 
   eventId <- insertEvent userId jsonEvent event
   whatId <- insertDWhat Nothing dwhat eventId
-  labelIds <- mapM (insertLabel Nothing whatId) labelEpcs
+  labelIds' <- mapM (insertLabel Nothing (SB.WhatId whatId)) labelEpcs
+  let labelIds = SB.LabelId <$> labelIds'
   _whenId <- insertDWhen dwhen eventId
   _whyId <- insertDWhy dwhy eventId
   insertDWhere dwhere eventId
   insertUserEvent eventId userId userId False Nothing
-  mapM_ (insertWhatLabel whatId) labelIds
-  mapM_ (insertLabelEvent eventId) labelIds
-
+  mapM_ (insertWhatLabel (SB.WhatId whatId)) labelIds
+  mapM_ (insertLabelEvent (SB.EventId eventId)) labelIds
 
   return event
 
@@ -209,14 +209,15 @@ insertAggEvent
 
   eventId <- insertEvent userId jsonEvent event
   whatId <- insertDWhat Nothing dwhat eventId
-  labelIds <- mapM (insertLabel Nothing whatId) labelEpcs
-  mapM_ (insertLabel (Just MU.Parent) whatId) ((IL . unParentLabel )<$> mParentLabel)
+  labelIds' <- mapM (insertLabel Nothing (SB.WhatId whatId)) labelEpcs
+  let labelIds = SB.LabelId <$> labelIds'
+  mapM_ (insertLabel (Just MU.Parent) (SB.WhatId whatId)) (IL . unParentLabel <$> mParentLabel)
   _whenId <- insertDWhen dwhen eventId
   _whyId <- insertDWhy dwhy eventId
   insertDWhere dwhere eventId
   insertUserEvent eventId userId userId False Nothing
-  mapM_ (insertWhatLabel whatId) labelIds
-  mapM_ (insertLabelEvent eventId) labelIds
+  mapM_ (insertWhatLabel (SB.WhatId whatId)) labelIds
+  mapM_ (insertLabelEvent (SB.EventId eventId)) labelIds
 
   -- FIXME: This should return the event as it has been inserted - the user has
   -- no idea what the ID for the transaction is so can't query it later.
@@ -242,15 +243,15 @@ insertTransfEvent
 
   eventId <- insertEvent userId jsonEvent event
   whatId <- insertDWhat Nothing dwhat eventId
-  inputLabelIds <- mapM (\(InputEPC i) -> insertLabel (Just MU.Input) whatId i) inputs
-  outputLabelIds <- mapM (\(OutputEPC o) -> insertLabel (Just MU.Output) whatId o) outputs
-  let labelIds = inputLabelIds ++ outputLabelIds
+  inputLabelIds <- mapM (\(InputEPC i) -> insertLabel (Just MU.Input) (SB.WhatId whatId) i) inputs
+  outputLabelIds <- mapM (\(OutputEPC o) -> insertLabel (Just MU.Output) (SB.WhatId whatId) o) outputs
+  let labelIds = SB.LabelId <$> (inputLabelIds ++ outputLabelIds)
   _whenId <- insertDWhen dwhen eventId
   _whyId <- insertDWhy dwhy eventId
   insertDWhere dwhere eventId
   insertUserEvent eventId userId userId False Nothing
-  mapM_ (insertWhatLabel whatId) labelIds
-  mapM_ (insertLabelEvent eventId) labelIds
+  mapM_ (insertWhatLabel (SB.WhatId whatId)) labelIds
+  mapM_ (insertLabelEvent (SB.EventId eventId)) labelIds
 
 
   return event
@@ -277,21 +278,22 @@ insertTransactEvent
 
   eventId <- insertEvent userId jsonEvent event
   whatId <- insertDWhat Nothing dwhat eventId
-  labelIds <- mapM (insertLabel Nothing whatId) labelEpcs
-  mapM_ (insertLabel (Just MU.Parent) whatId) ((IL . unParentLabel )<$> mParentLabel)
+  labelIds' <- mapM (insertLabel Nothing (SB.WhatId whatId)) labelEpcs
+  let labelIds = SB.LabelId <$> labelIds'
+  mapM_ (insertLabel (Just MU.Parent) (SB.WhatId whatId)) (IL . unParentLabel <$> mParentLabel)
   _whenId <- insertDWhen dwhen eventId
   _whyId <- insertDWhy dwhy eventId
   insertDWhere dwhere eventId
   insertUserEvent eventId userId userId False Nothing
-  mapM_ (insertWhatLabel whatId) labelIds
-  mapM_ (insertLabelEvent eventId) labelIds
+  mapM_ (insertWhatLabel (SB.WhatId whatId)) labelIds
+  mapM_ (insertLabelEvent (SB.EventId eventId)) labelIds
 
   return event
 
 
 listEvents :: LabelEPC -> DB [Ev.Event]
 listEvents labelEpc =
-  maybe (return []) getEventList =<< findLabelId labelEpc
+  maybe (return []) (getEventList . SB.LabelId) =<< findLabelId labelEpc
 
 insertSignature :: EvId.EventID -> M.KeyID -> M.Signature -> M.Digest -> DB SB.PrimaryKeyType
 insertSignature = error "Implement me"
@@ -301,7 +303,7 @@ addContact (M.User (M.UserID uid1) _ _) (M.UserID uid2) = do
   pKey <- generatePk
   r <- pg $ runInsertReturningList (SB._contacts SB.supplyChainDb) $
                insertValues [SB.Contact pKey (SB.UserId uid1) (SB.UserId uid2)]
-  return $ verifyContact r uid1 uid2
+  return $ verifyContact r (SB.UserId uid1) (SB.UserId uid2)
 
 -- | The current behaviour is, if the users were not contacts in the first
 -- place, then the function returns false
@@ -372,7 +374,6 @@ addUserToEvent (EventOwner lUserId@(M.UserID loggedInUserId))
   if userCreatedEvent
     then insertUserEvent eventId loggedInUserId otherUserId False Nothing
     else throwError . AppError $ EventPermissionDenied lUserId evId
-
 
 -- -- TODO - convert these below functions, and others in original file Storage.hs
 -- -- TODO = use EventId or EventID ???

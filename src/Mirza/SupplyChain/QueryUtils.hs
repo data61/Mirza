@@ -95,39 +95,39 @@ decodeEvent :: T.Text -> Maybe Ev.Event
 decodeEvent = decode . LEn.encodeUtf8 . TxtL.fromStrict
 
 epcToStorageLabel :: Maybe MU.LabelType
-                  -> SB.PrimaryKeyType
+                  -> SB.WhatId
                   -> SB.PrimaryKeyType
                   -> LabelEPC
                   -> SB.Label
-epcToStorageLabel labelType whatId pKey (IL (SGTIN gs1Prefix fv ir sn)) =
+epcToStorageLabel labelType (SB.WhatId whatId) pKey (IL (SGTIN gs1Prefix fv ir sn)) =
   SB.Label pKey labelType (SB.WhatId whatId)
            gs1Prefix (Just ir)
            (Just sn) Nothing Nothing
            fv
            Nothing Nothing Nothing
 
-epcToStorageLabel labelType whatId pKey (IL (GIAI gs1Prefix sn)) =
+epcToStorageLabel labelType (SB.WhatId whatId) pKey (IL (GIAI gs1Prefix sn)) =
   SB.Label pKey labelType (SB.WhatId whatId)
            gs1Prefix Nothing (Just sn)
            Nothing Nothing Nothing Nothing Nothing Nothing
 
-epcToStorageLabel labelType whatId pKey (IL (SSCC gs1Prefix sn)) =
+epcToStorageLabel labelType (SB.WhatId whatId) pKey (IL (SSCC gs1Prefix sn)) =
   SB.Label pKey labelType (SB.WhatId whatId)
            gs1Prefix Nothing (Just sn)
            Nothing Nothing Nothing Nothing Nothing Nothing
 
-epcToStorageLabel labelType whatId pKey (IL (GRAI gs1Prefix at sn)) =
+epcToStorageLabel labelType (SB.WhatId whatId) pKey (IL (GRAI gs1Prefix at sn)) =
   SB.Label pKey labelType (SB.WhatId whatId)
            gs1Prefix Nothing (Just sn)
            Nothing Nothing Nothing (Just at) Nothing Nothing
 
-epcToStorageLabel labelType whatId pKey (CL (LGTIN gs1Prefix ir lot) mQ) =
+epcToStorageLabel labelType (SB.WhatId whatId) pKey (CL (LGTIN gs1Prefix ir lot) mQ) =
   SB.Label pKey labelType (SB.WhatId whatId)
            gs1Prefix (Just ir) Nothing
            Nothing (Just lot) Nothing Nothing
            (getQuantityAmount mQ) (getQuantityUom mQ)
 
-epcToStorageLabel labelType whatId pKey (CL (CSGTIN gs1Prefix fv ir) mQ) =
+epcToStorageLabel labelType (SB.WhatId whatId) pKey (CL (CSGTIN gs1Prefix fv ir) mQ) =
   SB.Label pKey labelType (SB.WhatId whatId)
            gs1Prefix (Just ir) Nothing
            Nothing Nothing fv Nothing
@@ -409,10 +409,10 @@ insertUserEvent eventId userId addedByUserId signed signedHash =
                         signed (SB.UserId addedByUserId) signedHash
           ]
 
-insertWhatLabel :: SB.PrimaryKeyType
-                -> SB.PrimaryKeyType
+insertWhatLabel :: SB.WhatId
+                -> SB.LabelId
                 -> DB SB.PrimaryKeyType
-insertWhatLabel whatId labelId = withPKey $ \pKey ->
+insertWhatLabel (SB.WhatId whatId) (SB.LabelId labelId) = withPKey $ \pKey ->
   pg $ B.runInsert $ B.insert (SB._what_labels SB.supplyChainDb)
         $ insertValues
         [
@@ -424,19 +424,19 @@ insertWhatLabel whatId labelId = withPKey $ \pKey ->
 -- | Given the necessary information,
 -- converts a ``LabelEPC`` to SB.Label and writes it to the database
 insertLabel :: Maybe MU.LabelType
-            -> SB.PrimaryKeyType
+            -> SB.WhatId
             -> LabelEPC
             -> DB SB.PrimaryKeyType
-insertLabel labelType whatId labelEpc = withPKey $ \pKey ->
+insertLabel labelType (SB.WhatId whatId) labelEpc = withPKey $ \pKey ->
   pg $ B.runInsert $ B.insert (SB._labels SB.supplyChainDb)
         $ insertValues
-        [ epcToStorageLabel labelType whatId pKey labelEpc]
+        [ epcToStorageLabel labelType (SB.WhatId whatId) pKey labelEpc]
 
 -- | Ties up a label and an event entry in the database
-insertLabelEvent :: SB.PrimaryKeyType
-                 -> SB.PrimaryKeyType
+insertLabelEvent :: SB.EventId
+                 -> SB.LabelId
                  -> DB SB.PrimaryKeyType
-insertLabelEvent eventId labelId = withPKey $ \pKey ->
+insertLabelEvent (SB.EventId eventId) (SB.LabelId labelId) = withPKey $ \pKey ->
   pg $ B.runInsert $ B.insert (SB._label_events SB.supplyChainDb)
         $ insertValues
           [ SB.LabelEvent pKey (SB.LabelId labelId) (SB.EventId eventId)
@@ -453,18 +453,18 @@ selectUser (M.UserID uid) = do
     [user] -> return $ Just user
     _      -> return Nothing
 
-getEventList :: SB.PrimaryKeyType -> DB [Ev.Event]
-getEventList labelId = do
+getEventList :: SB.LabelId -> DB [Ev.Event]
+getEventList (SB.LabelId labelId) = do
   labelEvents <- pg $ runSelectReturningList $ select $ do
         labelEvent <- all_ (SB._label_events SB.supplyChainDb)
         guard_ (SB.label_event_label_id labelEvent ==. val_ (SB.LabelId labelId))
         pure labelEvent
-  let eventIds = (SB.unEventId . SB.label_event_event_id) <$> labelEvents
+  let eventIds = SB.label_event_event_id <$> labelEvents
       allEvents = findEvent <$> eventIds
   catMaybes <$> sequence allEvents
 
-findEvent :: SB.PrimaryKeyType -> DB (Maybe Ev.Event)
-findEvent eventId = do
+findEvent :: SB.EventId -> DB (Maybe Ev.Event)
+findEvent (SB.EventId eventId) = do
   r <- pg $
         runSelectReturningList $ select $ do
         event <- all_ (SB._events SB.supplyChainDb)
@@ -499,18 +499,19 @@ isExistingContact (M.UserID uid1) (M.UserID uid2) = do
         guard_ (SB.contact_user1_id contact  ==. (val_ . SB.UserId $ uid1) &&.
                 SB.contact_user2_id contact  ==. (val_ . SB.UserId $ uid2))
         pure contact
-  return $ verifyContact r uid1 uid2
+  return $ verifyContact r (SB.UserId uid1) (SB.UserId uid2)
+
 
 -- | Simple utility function to check that the users are part of the contact
 -- typically used with the result of a query
-verifyContact :: (Eq (PrimaryKey SB.UserT f)) =>
+verifyContact :: Eq (PrimaryKey SB.UserT f) =>
                  [SB.ContactT f] ->
-                 C f SB.PrimaryKeyType ->
-                 C f SB.PrimaryKeyType ->
+                 PrimaryKey SB.UserT f ->
+                 PrimaryKey SB.UserT f ->
                  Bool
 verifyContact [insertedContact] uid1 uid2 =
-                  (SB.contact_user1_id insertedContact == (SB.UserId uid1)) &&
-                  (SB.contact_user2_id insertedContact == (SB.UserId uid2))
+                  (SB.contact_user1_id insertedContact == uid1) &&
+                  (SB.contact_user2_id insertedContact == uid2)
 verifyContact _ _ _ = False
 
 storageToModelBusiness :: SB.Business -> M.Business
