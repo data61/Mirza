@@ -1,6 +1,9 @@
 
 -- | Contains the migration function of ``supplyChainDb``
-module MigrateScript (migrationStorage) where
+module Mirza.SupplyChain.MigrateScript (migrationStorage) where
+
+import           Mirza.SupplyChain.MigrateUtils
+import           Mirza.SupplyChain.StorageBeam
 
 import           Data.UUID                        (UUID)
 import           Database.Beam.Migrate.SQL        (DataType)
@@ -8,8 +11,6 @@ import           Database.Beam.Migrate.SQL.Tables
 import           Database.Beam.Migrate.Types
 import           Database.Beam.Postgres
 import           Database.Beam.Postgres.Syntax    (PgDataTypeSyntax)
-import           MigrateUtils
-import           StorageBeam
 
 maxLen :: Word
 maxLen = 120

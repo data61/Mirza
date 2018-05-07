@@ -13,47 +13,49 @@
 
 -- | Endpoint definitions go here. Most of the endpoint definitions are
 -- light wrappers around functions in BeamQueries
-module Service where
+module Mirza.SupplyChain.Service where
 
-import           API
-import qualified AppConfig                  as AC
-import qualified BeamQueries                as BQ
-import           Control.Lens               hiding ((.=))
-import           Control.Monad.Error.Hoist  ((<!?>), (<%?>))
-import           Control.Monad.IO.Class     (liftIO)
-import qualified Data.ByteString.Base64     as BS64
-import qualified Data.ByteString.Char8      as BSC
-import           Data.Char                  (toLower)
-import           Data.Either.Combinators
+import           Mirza.SupplyChain.API
+import qualified Mirza.SupplyChain.AppConfig   as AC
+import qualified Mirza.SupplyChain.BeamQueries as BQ
+import           Mirza.SupplyChain.Dummies     (dummyObjectDWhat)
+import           Mirza.SupplyChain.Errors
+import           Mirza.SupplyChain.ErrorUtils  (appErrToHttpErr, throwAppError,
+                                                throwParseError)
+import qualified Mirza.SupplyChain.Model       as M
+import qualified Mirza.SupplyChain.QueryUtils  as QU
+import qualified Mirza.SupplyChain.StorageBeam as SB
+import qualified Mirza.SupplyChain.Utils       as U
+
 import           Data.GS1.DWhat
 import           Data.GS1.DWhen
 import           Data.GS1.DWhere
 import           Data.GS1.DWhy
 import           Data.GS1.EPC
-import qualified Data.GS1.Event             as Ev
+import qualified Data.GS1.Event                as Ev
 import           Data.GS1.EventID
 import           Data.GS1.Parser.Parser
-import qualified Data.HashMap.Strict.InsOrd as IOrd
+import qualified Data.HashMap.Strict.InsOrd    as IOrd
+
+import           Control.Lens                  hiding ((.=))
+import           Control.Monad.Error.Hoist     ((<!?>), (<%?>))
+import           Control.Monad.IO.Class        (liftIO)
+import qualified Data.ByteString.Base64        as BS64
+import qualified Data.ByteString.Char8         as BSC
+import           Data.Char                     (toLower)
+import           Data.Either.Combinators
 import           Data.Swagger
-import           Data.Text                  (pack)
-import           Data.Text.Encoding         (decodeUtf8)
+import           Data.Text                     (pack)
+import           Data.Text.Encoding            (decodeUtf8)
 import           Data.UUID.V4
-import           Dummies                    (dummyObjectDWhat)
-import           Errors
-import           ErrorUtils                 (appErrToHttpErr, throwAppError,
-                                             throwParseError)
-import           GHC.TypeLits               (KnownSymbol)
-import qualified Model                      as M
-import qualified OpenSSL.EVP.Digest         as EVPDigest
-import           OpenSSL.EVP.PKey           (SomePublicKey, toPublicKey)
-import           OpenSSL.EVP.Verify         (VerifyStatus (..), verifyBS)
-import           OpenSSL.PEM                (readPublicKey)
-import           OpenSSL.RSA                (RSAPubKey, rsaSize)
-import qualified QueryUtils                 as QU
+import           GHC.TypeLits                  (KnownSymbol)
+import qualified OpenSSL.EVP.Digest            as EVPDigest
+import           OpenSSL.EVP.PKey              (SomePublicKey, toPublicKey)
+import           OpenSSL.EVP.Verify            (VerifyStatus (..), verifyBS)
+import           OpenSSL.PEM                   (readPublicKey)
+import           OpenSSL.RSA                   (RSAPubKey, rsaSize)
 import           Servant
 import           Servant.Swagger
-import qualified StorageBeam                as SB
-import qualified Utils                      as U
 
 instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub) where
   toSwagger _ =
@@ -101,7 +103,7 @@ privateServer
   :<|> insertAggEvent
   :<|> insertTransactEvent
   :<|> insertTransfEvent
-  :<|> Service.addPublicKey
+  :<|> addPublicKey
   :<|> addUserToEvent
 
 publicServer :: ServerT PublicAPI AC.AppM

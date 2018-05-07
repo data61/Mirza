@@ -9,16 +9,18 @@
 {-# OPTIONS_GHC -fno-warn-orphans  #-}
 {-# LANGUAGE DataKinds             #-}
 
-module API where
+module Mirza.SupplyChain.API where
 
-import qualified Data.GS1.Event      as Ev
+import           Mirza.SupplyChain.Model       as M
+import           Mirza.SupplyChain.StorageBeam (PrimaryKeyType)
+
+import qualified Data.GS1.Event                as Ev
 import           Data.GS1.EventID
+
 import           Data.Swagger
-import           Model               as M
 import           Servant
 import           Servant.API.Flatten
 import           Servant.Swagger.UI
-import           StorageBeam         (PrimaryKeyType)
 
 type PrivateAPI =
        "epc"      :> Capture "urn" M.LabelEPCUrn      :> "info"   :> Get '[JSON] EPCState

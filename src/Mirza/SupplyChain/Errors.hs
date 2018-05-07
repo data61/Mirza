@@ -1,15 +1,16 @@
 {-# LANGUAGE DeriveGeneric #-}
 
 -- | Contains definition(s) of some error types
-module Errors where
+module Mirza.SupplyChain.Errors where
+
+import qualified Mirza.SupplyChain.Model    as M
+import qualified Mirza.SupplyChain.Utils    as U
 
 import qualified Data.ByteString            as BS
 import           Data.GS1.EventID           as EvId
 import qualified Data.Text                  as T
 import           Database.PostgreSQL.Simple (SqlError)
 import           GHC.Generics               (Generic)
-import qualified Model                      as M
-import qualified Utils                      as U
 
 type ErrorText = T.Text
 type ErrorCode = BS.ByteString
