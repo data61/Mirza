@@ -129,4 +129,4 @@ parseFailureToErrorMsg TagNotFound = "One or more required tags missing"
 parseFailureToErrorMsg InvalidDispBizCombination = "The combination of Disposition\
                                                   \ and Business Transaction is incorrect"
 -- TODO: map parseFailureToErrorMsg <all_failures> joined by "\n"
-parseFailureToErrorMsg (ChildFailure (x:xs)) = "Encountered several errors while parsing the data provided."
+parseFailureToErrorMsg (ChildFailure _) = "Encountered several errors while parsing the data provided."
