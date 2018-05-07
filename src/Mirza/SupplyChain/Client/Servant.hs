@@ -1,4 +1,4 @@
-module Mirza.Client.Servant
+module Mirza.SupplyChain.Client.Servant
   (
   -- * Public API
    newUser
@@ -25,14 +25,13 @@ module Mirza.Client.Servant
   ,addUserToEvent
   ) where
 
-import           API
-import           Model            as M
+import           Mirza.SupplyChain.API
+import           Mirza.SupplyChain.Model as M
 
-import           Model                   as M
 import           Servant.API
 import           Servant.Client
 
-import           Data.Proxy       (Proxy (..))
+import           Data.Proxy              (Proxy (..))
 
 import           Data.GS1.Event
 import           Data.GS1.EventID

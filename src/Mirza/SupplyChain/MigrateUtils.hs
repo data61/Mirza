@@ -11,7 +11,10 @@
 -- Database.Beam.BPostgres.Postgres.Syntax.BMigrate.DataType definitions
 -- At the moment, if Database.Beam.BPostgres.Postgres.Syntax is a hidden module
 -- So it is not possible to implement the types yet
-module MigrateUtils where
+module Mirza.SupplyChain.MigrateUtils where
+
+import qualified Data.GS1.EPC                         as EPC
+import qualified Data.GS1.Event                       as Ev
 
 import qualified Database.Beam                        as B
 import qualified Database.Beam.Backend.SQL            as BSQL
@@ -23,8 +26,6 @@ import qualified Data.Text                            as T
 import           Database.PostgreSQL.Simple.FromField
 import           Text.Read
 
-import qualified Data.GS1.EPC                         as EPC
-import qualified Data.GS1.Event                       as Ev
 import           Database.Beam.Postgres.Syntax        (PgDataTypeSyntax,
                                                        pgTextType)
 import           Database.PostgreSQL.Simple.ToField   (ToField, toField)
