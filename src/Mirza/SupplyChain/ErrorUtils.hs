@@ -48,6 +48,10 @@ appErrToHttpErr (InvalidRSAKey _) =
   throwError $ err400 {
     errBody = "Failed to parse RSA Public key."
   }
+appErrToHttpErr (EventPermissionDenied _ _) =
+  throwError $ err400 {
+    errBody = "User not associated with the event."
+  }
 appErrToHttpErr (InvalidRSAKeySize (Expected (U.Byte expSize)) (Received (U.Byte recSize))) =
   throwError $ err400 {
     errBody = LBSC8.pack $ printf "Invalid RSA Key size. Expected: %d, Received: %d\n" expSize recSize
