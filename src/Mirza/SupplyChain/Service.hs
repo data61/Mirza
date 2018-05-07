@@ -336,7 +336,7 @@ sampleWhere :: DWhere
 sampleWhere = DWhere [] [] [] []
 
 eventInfo :: M.User -> EventID -> AC.AppM (Maybe Ev.Event)
-eventInfo _user = AC.runDb . QU.findEvent . getEventId
+eventInfo _user = AC.runDb . QU.findEvent . SB.EventId . getEventId
 
 --eventHash :: EventID -> AC.AppM SignedEvent
 --eventHash eID = return (SignedEvent eID (BinaryBlob ByteString.empty) [(BinaryBlob ByteString.empty)] [1,2])
