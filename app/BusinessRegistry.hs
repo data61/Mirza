@@ -2,7 +2,7 @@
 
 module Main where
 
-import           Mirza.SupplyChain.AppConfig (EnvType (..))
+import           Mirza.SupplyChain.AppConfig (ServerEnvironmentType (..))
 import           Mirza.SupplyChain.Lib
 import           Mirza.SupplyChain.Migrate   (defConnectionStr, migrate)
 
