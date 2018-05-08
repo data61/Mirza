@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Main where
 
 import           Mirza.SupplyChain.AppConfig (EnvType (..))
@@ -10,80 +12,95 @@ import           Options.Applicative
 
 import qualified Crypto.Scrypt               as Scrypt
 
+
+defaultPortNumber :: Int
+defaultPortNumber = 8000
+
+defaultDatabaseConnectionString :: ByteString
+defaultDatabaseConnectionString = "dbname=devMirzaBusinessRegistry"
+
 data ServerOptions = ServerOptions
-  { env           :: EnvType
-  , initDB        :: Bool
---  , clearDB       :: Bool
-  , connectionStr :: ByteString
-  , port          :: Int
-  , uiFlavour     :: UIFlavour
-  , sScryptN      :: Integer
-  , sScryptP      :: Integer
-  , sScryptR      :: Integer
+  {
+      debug                              :: Bool -- TODO: Remove this program option before release.
+    , initDatabase                       :: Bool
+    , serverOptionsPortNumber            :: Int
+    , serverOptionsDatabaseConnectionStr :: ByteString
   }
 
 serverOptions :: Parser ServerOptions
 serverOptions = ServerOptions
-      <$> option auto
-          ( long "env" <> short 'e'
-          <> value Dev <> showDefault
-          <> help "Environment, Dev | Prod"
+        <$> switch
+          (
+             long "debug"
+          <> short 'd'
+          <> help "Runs the debug command."
           )
-      <*> switch
-          ( long "init-db" <> short 'i'
-         <> help "Put empty tables into a fresh database" )
-    --   <*> switch
-    --       ( long "clear-db"
-    --      <> short 'e'
-    --      <> help "Erase the database - DROP ALL TABLES" )
-      <*> option auto
-          ( long "conn" <> short 'c' <> showDefault
-          <> help "database connection string"
-          <> value defConnectionStr)
-       <*> option auto
-          ( long "port" <> showDefault <> value 8000
-          <> help "Port to run database on"
+        <*> switch
+          (
+             long "init-db"
+          <> short 'i'
+          <> help "Put empty tables into a fresh database" )
+        <*> option auto
+          (
+             long "port"
+          <> help "Port to run the service on."
+          <> showDefault
+          <> value defaultPortNumber
           )
-       <*> option auto
-          ( long "uiFlavour" <> showDefault
-         <> help "Use jensoleg or Original UI Flavour for the Swagger API"
-         <> value Original)
-       <*> option auto
-            (long "scryptN" <> value 14 <> showDefault
-            <> help "Scrypt N parameter (>= 14)")
-       <*> option auto
-            (long "scryptP" <> value 8 <> showDefault
-            <> help "Scrypt r parameter (>= 8)")
-       <*> option auto
-            (long "scryptR" <> value 1 <> showDefault
-            <> help "Scrypt r parameter (>= 1)")
-
+        <*> option auto
+          (
+             long "conn"
+          <> short 'c'
+          <> help "Database connection string."
+          <> showDefault
+          <> value defaultDatabaseConnectionString
+          )
 
 main :: IO ()
-main = runProgram =<< execParser opts
-  where
-    opts = info (serverOptions <**> helper)
-      (fullDesc
-      <> progDesc "Run a supply chain server"
-      <> header "SupplyChainServer - A server for capturing GS1 events and recording them on a blockchain")
+main = launchWithServerOptions =<< execParser opts where
+  opts = Options.Applicative.info (serverOptions <**> helper)
+    (fullDesc
+    <> progDesc "todo some description"
+    <> header "Supply Chain Business Registry Server")
+
+launchWithServerOptions :: ServerOptions -> IO ()
+launchWithServerOptions (ServerOptions _ True _ _) = debugFunc
+--launchWithServerOptions (ServerOptions False _ portNumber databaseConnectionString) = launchServer portNumber databaseConnectionString
+launchWithServerOptions options                    = runProgram options
+
+-- launchServer :: Int -> ByteString -> IO ()
+-- launchServer portNumber databaseConnectionString = do
+--     databaseConnection <- connectPostgreSQL databaseConnectionString
+--     let
+--         env  = Env
+--           {
+--             envSomeValue = False
+--           , envDatabaseConnection = databaseConnection
+--           }
+--         app = return $ serve apiType (server env)
+--     putStrLn $ "http://localhost:" ++ show portNumber ++ "/swagger-ui/" -- todo replace /swagger-ui/ with a constant...see API module...this is where the constant should be
+--     Warp.run (fromIntegral portNumber) =<< app
 
 
--- Sara's
--- runProgram :: ServerOptions -> IO ()
--- runProgram (ServerOptions isDebug False _connStr portNum flavour) =
---     startApp connStr isDebug (fromIntegral portNum) flavour
--- runProgram (ServerOptions _ _ True connStr portNum flavour) =
---     startApp connStr isDebug (fromIntegral portNum) flavour
--- runProgram _ = migrate defConnectionStr
+-- This is a debug function for activating development test stub functions.
+-- TODO: Remove this stub before release.
+debugFunc :: IO()
+debugFunc = do
+  putStrLn ("Running Debug Option")
+  --databaseConnection <- connectPostgreSQL defaultDatabaseConnectionString
+  -- let
+  --   env = Env -- todo need to change this for BusinessRegistryEnvironment...just using this to bootstrap.
+  --     {
+  --       envSomeValue = False
+  --     , envDatabaseConnection = databaseConnection
+  --     }
+
+  -- databaseDebug env
+
+-- Todo Remove This Function: This function currently servers as the entry point while in the process of splicing in the business registry from the other repository.
 runProgram :: ServerOptions -> IO ()
-runProgram (ServerOptions envT False connStr portNum flavour n p r) =
-  case Scrypt.scryptParams (max n 14) (max p 8) (max r 1) of
-    Nothing -> do
-      putStrLn $ unwords
-        ["Invalid Scrypt params: ", show (n,p,r)
-        ,"\nUsing default parameters"
-        ]
-      startApp connStr envT (fromIntegral portNum) flavour Scrypt.defaultParams
-    Just params ->
-      startApp connStr envT (fromIntegral portNum) flavour params
+runProgram (ServerOptions False _ portNumber databaseConnectionString) = do
+  let flavour = Original
+  let env = Prod
+  startApp databaseConnectionString env (fromIntegral portNumber) flavour Scrypt.defaultParams
 runProgram _ = migrate defConnectionStr
