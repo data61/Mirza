@@ -76,13 +76,13 @@ newtype AppM a = AppM
 -- something of type DB a is to use 'runDb', which ensures the action is run in
 -- a Postgres transaction, and that exceptions and errors thrown inside the DB a
 -- cause the transaction to be rolled back and the error rethrown.
-newtype DB a = DB (ReaderT (Connection,Env) (ExceptT AppError Pg) a)
+newtype DB environment error a = DB (ReaderT (Connection,environment) (ExceptT error Pg) a)
   deriving
   ( Functor
   , Applicative
   , Monad
-  , MonadReader (Connection,Env)
-  , MonadError AppError
+  , MonadReader (Connection,environment)
+  , MonadError error
   , MonadIO -- Need to figure out if we actually want this
   )
 
@@ -104,7 +104,7 @@ dbFunc = do
 -- Exceptions which are thrown which are not SqlErrors will be caught by Servant
 -- and cause 500 errors (these are not exceptions we'll generally know how to
 -- deal with).
-runDb :: DB a -> AppM a
+runDb :: DB Env AppError a -> AppM a
 runDb (DB act) = do
   env <- ask
   dbf <- dbFunc
@@ -134,7 +134,7 @@ withTransaction conn act = E.mask $ \restore -> do
   pure r
 
 
-pg :: Pg a -> DB a
+pg :: Pg a -> DB Env AppError a
 pg = DB . lift . lift
 
 runAppM :: Env -> AppM a -> IO (Either AppError a)
