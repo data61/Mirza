@@ -6,8 +6,8 @@ module Mirza.SupplyChain.BeamQueries where
 
 
 import           Mirza.SupplyChain.AppConfig              (AppError (..), DB,
-                                                           Env, asks, pg,
-                                                           scryptPs)
+                                                           ServerEnvironment,
+                                                           asks, pg, scryptPs)
 import           Mirza.SupplyChain.Errors                 (ServiceError (..))
 import           Mirza.SupplyChain.ErrorUtils             (getSqlErrorCode,
                                                            throwAppError,
@@ -57,7 +57,7 @@ import           OpenSSL.RSA                              (RSAPubKey)
 }
 -}
 
-insertUser :: Scrypt.EncryptedPass -> M.NewUser -> DB Env AppError M.UserID
+insertUser :: Scrypt.EncryptedPass -> M.NewUser -> DB ServerEnvironment AppError M.UserID
 insertUser encPass (M.NewUser phone (M.EmailAddress email) firstName lastName biz _) = do
   userId <- generatePk
   -- TODO: use Database.Beam.Backend.SQL.runReturningOne?
@@ -79,7 +79,7 @@ insertUser encPass (M.NewUser phone (M.EmailAddress email) firstName lastName bi
         -- Generic insertion error
 
 -- | Hashes the password of the NewUser and inserts the user into the database
-newUser :: M.NewUser -> DB Env AppError M.UserID
+newUser :: M.NewUser -> DB ServerEnvironment AppError M.UserID
 newUser userInfo@(M.NewUser _ _ _ _ _ password) = do
   params <- asks (scryptPs . snd)
   hash <- liftIO $ Scrypt.encryptPassIO params (Scrypt.Pass $ encodeUtf8 password)
@@ -88,7 +88,7 @@ newUser userInfo@(M.NewUser _ _ _ _ _ password) = do
 -- Basic Auth check using Scrypt hashes.
 -- TODO: How safe is this to timing attacks? Can we tell which emails are in the
 -- system easily?
-authCheck :: M.EmailAddress -> M.Password -> DB Env AppError (Maybe M.User)
+authCheck :: M.EmailAddress -> M.Password -> DB ServerEnvironment AppError (Maybe M.User)
 authCheck e@(M.EmailAddress email) (M.Password password) = do
   r <- pg $ runSelectReturningList $ select $ do
         user <- all_ (SB._users SB.supplyChainDb)
@@ -110,7 +110,7 @@ authCheck e@(M.EmailAddress email) (M.Password password) = do
     [] -> throwAppError $ EmailNotFound e
     _  -> throwBackendError r -- multiple elements
 
-addPublicKey :: M.User -> RSAPubKey -> DB Env AppError M.KeyID
+addPublicKey :: M.User -> RSAPubKey -> DB ServerEnvironment AppError M.KeyID
 addPublicKey (M.User (M.UserID uid) _ _)  rsaPubKey = do
   keyId <- generatePk
   timeStamp <- generateTimeStamp
@@ -123,7 +123,7 @@ addPublicKey (M.User (M.UserID uid) _ _)  rsaPubKey = do
     [rowId] -> return (M.KeyID $ SB.key_id rowId)
     _       -> throwAppError . InvalidKeyID . M.KeyID $ keyId
 
-getPublicKey :: M.KeyID -> DB Env AppError M.PEM_RSAPubKey
+getPublicKey :: M.KeyID -> DB ServerEnvironment AppError M.PEM_RSAPubKey
 getPublicKey (M.KeyID keyId) = do
   r <- pg $ runSelectReturningList $ select $ do
     allKeys <- all_ (SB._keys SB.supplyChainDb)
@@ -133,7 +133,7 @@ getPublicKey (M.KeyID keyId) = do
     [k] -> return $ M.PEMString $ T.unpack k
     _   -> throwAppError . InvalidKeyID . M.KeyID $ keyId
 
-getPublicKeyInfo :: M.KeyID -> DB Env AppError M.KeyInfo
+getPublicKeyInfo :: M.KeyID -> DB ServerEnvironment AppError M.KeyInfo
 getPublicKeyInfo (M.KeyID keyId) = do
   r <- pg $ runSelectReturningList $ select $ do
     allKeys <- all_ (SB._keys SB.supplyChainDb)
@@ -148,7 +148,7 @@ getPublicKeyInfo (M.KeyID keyId) = do
     _ -> throwAppError . InvalidKeyID . M.KeyID $ keyId
 
 -- TODO: Should this return Text or a JSON value?
-getEventJSON :: EvId.EventID -> DB Env AppError T.Text
+getEventJSON :: EvId.EventID -> DB ServerEnvironment AppError T.Text
 getEventJSON eventID = do
   r <- pg $ runSelectReturningList $ select $ do
     allEvents <- all_ (SB._events SB.supplyChainDb)
@@ -160,7 +160,7 @@ getEventJSON eventID = do
 
 insertObjectEvent :: M.User
                   -> M.ObjectEvent
-                  -> DB Env AppError Ev.Event
+                  -> DB ServerEnvironment AppError Ev.Event
 insertObjectEvent
   (M.User (M.UserID userId) _ _ )
   (M.ObjectEvent
@@ -191,7 +191,7 @@ insertObjectEvent
 
 insertAggEvent :: M.User
                -> M.AggregationEvent
-               -> DB Env AppError Ev.Event
+               -> DB ServerEnvironment AppError Ev.Event
 insertAggEvent
   (M.User (M.UserID userId) _ _ )
   (M.AggregationEvent
@@ -225,7 +225,7 @@ insertAggEvent
 
 insertTransfEvent :: M.User
                   -> M.TransformationEvent
-                  -> DB Env AppError Ev.Event
+                  -> DB ServerEnvironment AppError Ev.Event
 insertTransfEvent
   (M.User (M.UserID userId) _ _ )
   (M.TransformationEvent
@@ -258,7 +258,7 @@ insertTransfEvent
 
 insertTransactEvent :: M.User
                     -> M.TransactionEvent
-                    -> DB Env AppError Ev.Event
+                    -> DB ServerEnvironment AppError Ev.Event
 insertTransactEvent
   (M.User (M.UserID userId) _ _ )
   (M.TransactionEvent
@@ -291,14 +291,14 @@ insertTransactEvent
   return event
 
 
-listEvents :: LabelEPC -> DB Env AppError [Ev.Event]
+listEvents :: LabelEPC -> DB ServerEnvironment AppError [Ev.Event]
 listEvents labelEpc =
   maybe (return []) (getEventList . SB.LabelId) =<< findLabelId labelEpc
 
-insertSignature :: EvId.EventID -> M.KeyID -> M.Signature -> M.Digest -> DB envrionment errorUnused SB.PrimaryKeyType
+insertSignature :: EvId.EventID -> M.KeyID -> M.Signature -> M.Digest -> DB environmentUnused errorUnused SB.PrimaryKeyType
 insertSignature = error "Implement me"
 
-addContact :: M.User -> M.UserID -> DB Env AppError Bool
+addContact :: M.User -> M.UserID -> DB ServerEnvironment AppError Bool
 addContact (M.User (M.UserID uid1) _ _) (M.UserID uid2) = do
   pKey <- generatePk
   r <- pg $ runInsertReturningList (SB._contacts SB.supplyChainDb) $
@@ -310,7 +310,7 @@ addContact (M.User (M.UserID uid1) _ _) (M.UserID uid2) = do
 -- otherwise, removes the user. Checks that the user has been removed,
 -- and returns (not. userExists)
 -- @todo Make ContactErrors = NotAContact | DoesntExist | ..
-removeContact :: M.User -> M.UserID -> DB Env AppError Bool
+removeContact :: M.User -> M.UserID -> DB ServerEnvironment AppError Bool
 removeContact (M.User firstId@(M.UserID uid1) _ _) secondId@(M.UserID uid2) = do
   contactExists <- isExistingContact firstId secondId
   if contactExists
@@ -323,7 +323,7 @@ removeContact (M.User firstId@(M.UserID uid1) _ _) secondId@(M.UserID uid2) = do
   else return False
 
 -- | Lists all the contacts associated with the given user
-listContacts :: M.User -> DB Env  AppError [M.User]
+listContacts :: M.User -> DB ServerEnvironment  AppError [M.User]
 listContacts  (M.User (M.UserID uid) _ _) = do
   userList <- pg $ runSelectReturningList $ select $ do
     user <- all_ (SB._users SB.supplyChainDb)
@@ -335,14 +335,14 @@ listContacts  (M.User (M.UserID uid) _ _) = do
 
 
 -- TODO: Write tests
-listBusinesses :: DB Env AppError [SB.Business]
+listBusinesses :: DB ServerEnvironment AppError [SB.Business]
 listBusinesses = do
   pg $ runSelectReturningList $ select $
       all_ (SB._businesses SB.supplyChainDb)
 
 -- TODO: Write tests
 -- Returns the user and whether or not that user had signed the event
-eventUserSignedList :: EvId.EventID -> DB Env AppError [(M.User, Bool)]
+eventUserSignedList :: EvId.EventID -> DB ServerEnvironment AppError [(M.User, Bool)]
 eventUserSignedList (EvId.EventID eventId) = do
   usersSignedList <- pg $ runSelectReturningList $ select $ do
     userEvent <- all_ (SB._user_events SB.supplyChainDb)
@@ -352,7 +352,7 @@ eventUserSignedList (EvId.EventID eventId) = do
     pure (user, SB.user_events_has_signed userEvent)
   return $ bimap userTableToModel id <$> usersSignedList
 
-eventsByUser :: M.UserID -> DB Env AppError [Ev.Event]
+eventsByUser :: M.UserID -> DB ServerEnvironment AppError [Ev.Event]
 eventsByUser (M.UserID userId) = do
   eventList <- pg $ runSelectReturningList $ select $ do
     userEvent <- all_ (SB._user_events SB.supplyChainDb)

@@ -2,9 +2,9 @@
 
 -- | Contains the definition of our ReaderT AppM
 module Mirza.SupplyChain.AppConfig
-  (EnvType(..)
-  , mkEnvType
-  , Env(..)
+  (ServerEnvironmentType(..)
+  , mkServerEnvironmentType
+  , ServerEnvironment(..)
   , AppError(..)
   , AppM
   , DB
@@ -41,15 +41,15 @@ import qualified Control.Exception          as E
 
 import           Data.Pool                  as Pool
 
-data EnvType = Prod | Dev
+data ServerEnvironmentType = Prod | Dev
   deriving (Show, Eq, Read)
 
-mkEnvType :: Bool -> EnvType
-mkEnvType False = Prod
-mkEnvType _     = Dev
+mkServerEnvironmentType :: Bool -> ServerEnvironmentType
+mkServerEnvironmentType False = Prod
+mkServerEnvironmentType _     = Dev
 
-data Env = Env
-  { envType    :: EnvType
+data ServerEnvironment = ServerEnvironment
+  { envType    :: ServerEnvironmentType
   , dbConnPool :: Pool Connection
   , scryptPs   :: ScryptParams
   -- , port    :: Word16
@@ -62,12 +62,12 @@ newtype AppError = AppError ServiceError deriving (Show)
 -- type Handler a = ExceptT ServantErr IO a
 -- newtype ExceptT e m a :: * -> (* -> *) -> * -> *
 newtype AppM a = AppM
-  { unAppM :: ReaderT Env (ExceptT AppError IO) a
+  { unAppM :: ReaderT ServerEnvironment (ExceptT AppError IO) a
   } deriving
     ( Functor
     , Applicative
     , Monad
-    , MonadReader Env
+    , MonadReader ServerEnvironment
     , MonadIO
     , MonadError AppError
     )
@@ -104,7 +104,7 @@ dbFunc = do
 -- Exceptions which are thrown which are not SqlErrors will be caught by Servant
 -- and cause 500 errors (these are not exceptions we'll generally know how to
 -- deal with).
-runDb :: DB Env AppError a -> AppM a
+runDb :: DB ServerEnvironment AppError a -> AppM a
 runDb (DB act) = do
   env <- ask
   dbf <- dbFunc
@@ -134,10 +134,10 @@ withTransaction conn act = E.mask $ \restore -> do
   pure r
 
 
-pg :: Pg a -> DB Env AppError a
+pg :: Pg a -> DB ServerEnvironment AppError a
 pg = DB . lift . lift
 
-runAppM :: Env -> AppM a -> IO (Either AppError a)
+runAppM :: ServerEnvironment -> AppM a -> IO (Either AppError a)
 runAppM env aM = runExceptT $ (runReaderT . unAppM) aM env
 
 -- App Utils. Moved from Utils
@@ -150,9 +150,9 @@ debugLog strLike = do
   envT <- asks envType
   when (envT == Dev) $ liftIO $ print strLike
 
--- | To be used when the Env is known/available.
+-- | To be used when the ServerEnvironment is known/available.
 -- It doesn't require that the function is being run in AppM
-debugLogGeneral :: (Show a, MonadIO f) => EnvType -> a -> f ()
+debugLogGeneral :: (Show a, MonadIO f) => ServerEnvironmentType -> a -> f ()
 debugLogGeneral envT strLike =
   when (envT == Dev) $ liftIO $ print strLike
 
