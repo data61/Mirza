@@ -5,7 +5,7 @@ module Mirza.SupplyChain.AppConfig
   (EnvType(..)
   , mkEnvType
   , SCSContext(..)
-  , AppErr(..)
+  , AppError(..)
   , AppM
   , DB
   , runAppM
@@ -55,21 +55,21 @@ data SCSContext = SCSContext
   -- , port    :: Word16
   }
 
-newtype AppErr = AppErr ServiceError deriving (Show)
+newtype AppError = AppError ServiceError deriving (Show)
 
 -- runReaderT :: r -> m a
 -- ReaderT r m a
 -- type Handler a = ExceptT ServantErr IO a
 -- newtype ExceptT e m a :: * -> (* -> *) -> * -> *
 newtype AppM a = AppM
-  { unAppM :: ReaderT SCSContext (ExceptT AppErr IO) a
+  { unAppM :: ReaderT SCSContext (ExceptT AppError IO) a
   } deriving
     ( Functor
     , Applicative
     , Monad
     , MonadReader SCSContext
     , MonadIO
-    , MonadError AppErr
+    , MonadError AppError
     )
 
 -- | The DB monad is used to connect to the Beam backend. The only way to run
@@ -104,7 +104,7 @@ dbFunc = do
 -- Exceptions which are thrown which are not SqlErrors will be caught by Servant
 -- and cause 500 errors (these are not exceptions we'll generally know how to
 -- deal with).
-runDb :: DB SCSContext AppErr a -> AppM a
+runDb :: DB SCSContext AppError a -> AppM a
 runDb (DB act) = do
   env <- ask
   dbf <- dbFunc
@@ -114,8 +114,8 @@ runDb (DB act) = do
          . dbf conn
          . runExceptT
          . runReaderT act $ (conn,env)
-        -- :: AppM (Either SqlError (Either AppErr a))
-  either (throwError . AppErr . DatabaseError)
+        -- :: AppM (Either SqlError (Either AppError a))
+  either (throwError . AppError . DatabaseError)
          (either throwError pure)
          res
 
@@ -134,10 +134,10 @@ withTransaction conn act = E.mask $ \restore -> do
   pure r
 
 
-pg :: Pg a -> DB SCSContext AppErr a
+pg :: Pg a -> DB SCSContext AppError a
 pg = DB . lift . lift
 
-runAppM :: SCSContext -> AppM a -> IO (Either AppErr a)
+runAppM :: SCSContext -> AppM a -> IO (Either AppError a)
 runAppM env aM = runExceptT $ (runReaderT . unAppM) aM env
 
 -- App Utils. Moved from Utils

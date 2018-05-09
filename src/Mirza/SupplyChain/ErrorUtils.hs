@@ -3,7 +3,7 @@
 -- | This module contains the helper functions that are used in error handling
 module Mirza.SupplyChain.ErrorUtils where
 
-import           Mirza.SupplyChain.AppConfig         (AppErr (..), AppM)
+import           Mirza.SupplyChain.AppConfig         (AppError (..), AppM)
 import           Mirza.SupplyChain.Errors            (ErrorCode,
                                                       ServerError (..),
                                                       ServiceError (..))
@@ -106,17 +106,17 @@ sqlToServerError :: SqlError -> ServiceError
 sqlToServerError = DatabaseError -- toServerError getSqlErrorCode
 
 -- | Shorthand for throwing a Generic Backend error
-throwBackendError :: (Show a, MonadError AppErr m) => a -> m b
-throwBackendError er = throwAppErr $ BackendErr $ toText er
+throwBackendError :: (Show a, MonadError AppError m) => a -> m b
+throwBackendError er = throwAppError $ BackendErr $ toText er
 
--- | Shorthand for throwing AppErrs
+-- | Shorthand for throwing AppErrors
 -- Added because we were doing a lot of it
-throwAppErr :: MonadError AppErr m => ServiceError -> m a
-throwAppErr = throwError . AppErr
+throwAppError :: MonadError AppError m => ServiceError -> m a
+throwAppError = throwError . AppError
 
 -- | Extracts error code from an ``SqlError``
 getSqlErrorCode :: SqlError -> Maybe ByteString
 getSqlErrorCode e@SqlError{} = Just $ sqlState e
 
 throwParseError :: ParseFailure -> AppM a
-throwParseError = throwAppErr . ParseError . toText
+throwParseError = throwAppError . ParseError . toText
