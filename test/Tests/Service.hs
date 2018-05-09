@@ -6,7 +6,8 @@
 
 module Tests.Service where
 
-import           Mirza.SupplyChain.Dummies
+import           Tests.Dummies
+
 import           Mirza.SupplyChain.Migrate     (testDbConnStr)
 import qualified Mirza.SupplyChain.Model       as M
 import           Mirza.SupplyChain.QueryUtils

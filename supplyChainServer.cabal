@@ -23,7 +23,6 @@ library
                     , Mirza.SupplyChain.Model
                     , Mirza.SupplyChain.StorageBeam
                     , Mirza.SupplyChain.Types
-                    , Mirza.SupplyChain.Dummies
                     , Mirza.SupplyChain.QueryUtils
                     , Mirza.SupplyChain.Utils
                     , Mirza.SupplyChain.Service
@@ -103,6 +102,7 @@ test-suite supplyChainServer-test
   hs-source-dirs:      test
   main-is:             Spec.hs
   other-modules:       Tests.Service
+                    , Tests.Dummies
   default-extensions:  OverloadedStrings
   build-depends:       base
                      , GS1Combinators
