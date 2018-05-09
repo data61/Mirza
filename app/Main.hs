@@ -98,7 +98,7 @@ runProgram _ = migrate defConnectionStr
 initMiddleware :: ServerOptions -> IO Middleware
 initMiddleware _ = pure id
 
--- initApplication :: ByteString -> AC.EnvType -> ScryptParams -> IO Application
+-- initApplication :: ByteString -> AC.SCSContextType -> ScryptParams -> IO Application
 initApplication :: ServerOptions -> IO Application
 initApplication (ServerOptions envT _ dbConnStr _ n p r)  = do
   params <- case Scrypt.scryptParams (max n 14) (max p 8) (max r 1) of
@@ -111,7 +111,7 @@ initApplication (ServerOptions envT _ dbConnStr _ n p r)  = do
                       60 -- How long in seconds to keep a connection open for reuse
                       10 -- Max number of connections to have open at any one time
                       -- TODO: Make this a config paramete
-  let ev  = AC.Env envT connpool params
+  let ev  = AC.SCSContext envT connpool params
       app = webApp ev
   pure app
 
@@ -121,7 +121,7 @@ startApp_nomain dbConnStr =
   initApplication (ServerOptions AC.Dev False dbConnStr 8000 14 8 1) >>= Warp.run 8000
 
 -- Application = Request -> (Response -> IO ResponseReceived) -> IO ResponseReceived
-webApp :: AC.Env -> Application
+webApp :: AC.SCSContext -> Application
 webApp ev =
   serveWithContext api
     (basicAuthServerContext ev)
@@ -129,7 +129,7 @@ webApp ev =
 
 -- Implementation
 
-server' :: AC.Env -> Server API
+server' :: AC.SCSContext -> Server API
 server' ev =
   swaggerSchemaUIServer serveSwaggerAPI
   :<|> hoistServerWithContext

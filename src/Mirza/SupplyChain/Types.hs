@@ -1,10 +1,12 @@
+{-# LANGUAGE DeriveGeneric              #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+
 
 -- | Contains the definition of our ReaderT AppM
 module Mirza.SupplyChain.Types
   (EnvType(..)
   , mkEnvType
-  , Env(..)
+  , SCSContext(..)
   , AppError(..)
   , AppM
   , DB
@@ -14,10 +16,14 @@ module Mirza.SupplyChain.Types
   , pg
   , ask
   , asks
+  , EventOwner(..)
+  , SigningUser(..)
   )
   where
 
 import           Mirza.SupplyChain.Errors   (ServiceError (..))
+import qualified Mirza.SupplyChain.Model    as M
+
 
 import qualified Database.Beam              as B
 import           Database.Beam.Postgres     (Pg)
@@ -38,6 +44,8 @@ import qualified Control.Exception          as E
 
 import           Data.Pool                  as Pool
 
+import           GHC.Generics               (Generic)
+
 data EnvType = Prod | Dev
   deriving (Show, Eq, Read)
 
@@ -45,7 +53,7 @@ mkEnvType :: Bool -> EnvType
 mkEnvType False = Prod
 mkEnvType _     = Dev
 
-data Env = Env
+data SCSContext = SCSContext
   { envType    :: EnvType
   , dbConnPool :: Pool Connection
   , scryptPs   :: ScryptParams
@@ -59,12 +67,12 @@ newtype AppError = AppError ServiceError deriving (Show)
 -- type Handler a = ExceptT ServantErr IO a
 -- newtype ExceptT e m a :: * -> (* -> *) -> * -> *
 newtype AppM a = AppM
-  { unAppM :: ReaderT Env (ExceptT AppError IO) a
+  { unAppM :: ReaderT SCSContext (ExceptT AppError IO) a
   } deriving
     ( Functor
     , Applicative
     , Monad
-    , MonadReader Env
+    , MonadReader SCSContext
     , MonadIO
     , MonadError AppError
     )
@@ -73,13 +81,13 @@ newtype AppM a = AppM
 -- something of type DB a is to use 'runDb', which ensures the action is run in
 -- a Postgres transaction, and that exceptions and errors thrown inside the DB a
 -- cause the transaction to be rolled back and the error rethrown.
-newtype DB a = DB (ReaderT (Connection,Env) (ExceptT AppError Pg) a)
+newtype DB context error a = DB (ReaderT (Connection,context) (ExceptT error Pg) a)
   deriving
   ( Functor
   , Applicative
   , Monad
-  , MonadReader (Connection,Env)
-  , MonadError AppError
+  , MonadReader (Connection,context)
+  , MonadError error
   , MonadIO -- Need to figure out if we actually want this
   )
 
@@ -101,7 +109,7 @@ dbFunc = do
 -- Exceptions which are thrown which are not SqlErrors will be caught by Servant
 -- and cause 500 errors (these are not exceptions we'll generally know how to
 -- deal with).
-runDb :: DB a -> AppM a
+runDb :: DB SCSContext AppError a -> AppM a
 runDb (DB act) = do
   env <- ask
   dbf <- dbFunc
@@ -131,9 +139,12 @@ withTransaction conn act = E.mask $ \restore -> do
   pure r
 
 
-pg :: Pg a -> DB a
+pg :: Pg a -> DB SCSContext AppError a
 pg = DB . lift . lift
 
-runAppM :: Env -> AppM a -> IO (Either AppError a)
+runAppM :: SCSContext -> AppM a -> IO (Either AppError a)
 runAppM env aM = runExceptT $ (runReaderT . unAppM) aM env
 
+
+newtype EventOwner  = EventOwner M.UserID deriving(Generic, Show, Eq, Read)
+newtype SigningUser = SigningUser M.UserID deriving(Generic, Show, Eq, Read)

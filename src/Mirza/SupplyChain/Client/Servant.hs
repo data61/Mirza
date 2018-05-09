@@ -1,7 +1,7 @@
 module Mirza.SupplyChain.Client.Servant
   (
   -- * Public API
-  newUser
+   newUser
   ,getKey
   ,getKeyInfo
   ,businessList
@@ -22,10 +22,11 @@ module Mirza.SupplyChain.Client.Servant
   ,insertTransactEvent
   ,insertTransfEvent
   ,addPublicKey
+  ,addUserToEvent
   ) where
 
 import           Mirza.SupplyChain.API
-import           Mirza.SupplyChain.Model
+import           Mirza.SupplyChain.Model as M
 
 import           Servant.API
 import           Servant.Client
@@ -58,6 +59,7 @@ insertObjectEvent   :: BasicAuthData -> ObjectEvent -> ClientM Event
 insertAggEvent      :: BasicAuthData -> AggregationEvent -> ClientM Event
 insertTransactEvent :: BasicAuthData -> TransactionEvent -> ClientM Event
 insertTransfEvent   :: BasicAuthData -> TransformationEvent -> ClientM Event
+addUserToEvent      :: BasicAuthData -> M.UserID -> EventID -> ClientM ()
 addPublicKey        :: BasicAuthData -> PEM_RSAPubKey -> ClientM KeyID
 
 _api     :: Client ClientM ServerAPI
@@ -80,6 +82,7 @@ _api@(
     :<|> insertAggEvent
     :<|> insertTransactEvent
     :<|> insertTransfEvent
+    :<|> addUserToEvent
     :<|> addPublicKey
   )
   :<|>

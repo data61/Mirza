@@ -35,21 +35,21 @@ dropTables conn =
                \     END LOOP;                                                                              \
                \ END $$;                                                                                    "
 
-openConnection :: IO (Connection, Env)
+openConnection :: IO (Connection, SCSContext)
 openConnection = do
   conn <- connectPostgreSQL testDbConnStr
   _ <- dropTables conn -- drop tables before so if already exist no problems... means tables get overwritten though
   connpool <- defaultPool
   let envT = AC.mkEnvType True
-      env  = AC.Env envT connpool defaultParams
+      context  = AC.SCSContext envT connpool defaultParams
   tryCreateSchema True conn
-  return (conn, env)
+  return (conn, context)
 
-closeConnection :: (Connection, Env) -> IO ()
-closeConnection (conn, _env) =
+closeConnection :: (Connection, SCSContext) -> IO ()
+closeConnection (conn, _context) =
   close conn
 
-withDatabaseConnection :: ((Connection, Env) -> IO ()) -> IO ()
+withDatabaseConnection :: ((Connection, SCSContext) -> IO ()) -> IO ()
 withDatabaseConnection = bracket openConnection closeConnection
 
 main :: IO ()

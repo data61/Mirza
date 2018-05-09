@@ -61,19 +61,19 @@ instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub
       & allOperations . security .~ securityRequirements
 
 -- 'BasicAuthCheck' holds the handler we'll use to verify a username and password.
-authCheck :: AC.Env -> BasicAuthCheck M.User
-authCheck env =
+authCheck :: AC.SCSContext -> BasicAuthCheck M.User
+authCheck context =
   let check (BasicAuthData useremail pass) = do
-        eitherUser <- AC.runAppM env . AC.runDb $
+        eitherUser <- AC.runAppM context . AC.runDb $
                       BQ.authCheck (M.EmailAddress $ decodeUtf8 useremail) (M.Password pass)
         case eitherUser of
           Right (Just user) -> return (Authorized user)
           _                 -> return Unauthorized
   in BasicAuthCheck check
 
-appMToHandler :: forall x. AC.Env -> AC.AppM x -> Handler x
-appMToHandler env act = do
-  res <- liftIO $ AC.runAppM env act
+appMToHandler :: forall x. AC.SCSContext -> AC.AppM x -> Handler x
+appMToHandler context act = do
+  res <- liftIO $ AC.runAppM context act
   case res of
     Left (AC.AppError e) -> appErrToHttpErr e
     Right a              -> return a
@@ -96,6 +96,7 @@ privateServer
   :<|> insertAggEvent
   :<|> insertTransactEvent
   :<|> insertTransfEvent
+  :<|> addUserToEvent
   :<|> addPublicKey
 
 publicServer :: ServerT PublicAPI AC.AppM
@@ -123,8 +124,8 @@ serveSwaggerAPI = toSwagger serverAPI
 -- Basic Authentication requires a Context Entry with the 'BasicAuthCheck' value
 -- tagged with "foo-tag" This context is then supplied to 'server' and threaded
 -- to the BasicAuth HasServer handlers.
-basicAuthServerContext :: AC.Env -> Servant.Context '[BasicAuthCheck M.User]
-basicAuthServerContext env = authCheck env :. EmptyContext
+basicAuthServerContext :: AC.SCSContext -> Servant.Context '[BasicAuthCheck M.User]
+basicAuthServerContext context = authCheck context :. EmptyContext
 
 minPubKeySize :: U.Byte
 minPubKeySize = U.Byte 256 -- 2048 / 8
@@ -263,9 +264,11 @@ eventSign _user (M.SignedEvent eventID keyID (M.Signature sigStr) digest') = AC.
     then BQ.insertSignature eventID keyID (M.Signature sigStr) digest'
     else throwAppError $ InvalidSignature sigStr
 
-
-addUserToEvent :: M.User -> EventID -> AC.AppM Bool
-addUserToEvent (M.User (M.UserID _userId) _ _) (EventID _eventId) = U.notImplemented
+-- | A function to tie a user to an event
+-- Populates the ``UserEvents`` table
+addUserToEvent :: M.User -> M.UserID -> EventID -> AC.AppM ()
+addUserToEvent (M.User loggedInUserId _ _) anotherUserId eventId =
+    AC.runDb $ BQ.addUserToEvent (AC.EventOwner loggedInUserId) (AC.SigningUser anotherUserId) eventId
 
 -- eventSign user signedEvent = error "Storage module not implemented"
 -- eventSign user signedEvent = do
