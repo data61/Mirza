@@ -18,12 +18,14 @@ module Mirza.SupplyChain.Service where
 import           Mirza.SupplyChain.API
 import qualified Mirza.SupplyChain.BeamQueries as BQ
 -- import           Mirza.SupplyChain.Dummies     (dummyObjectDWhat)
-import           Mirza.SupplyChain.Errors
 import           Mirza.SupplyChain.ErrorUtils  (appErrToHttpErr, throwAppError,
                                                 throwParseError)
 import qualified Mirza.SupplyChain.Model       as M
 import qualified Mirza.SupplyChain.QueryUtils  as QU
 import qualified Mirza.SupplyChain.StorageBeam as SB
+import           Mirza.SupplyChain.Types       (Byte (..), Expected (..),
+                                                Received (..),
+                                                ServiceError (..))
 import qualified Mirza.SupplyChain.Types       as AC
 import qualified Mirza.SupplyChain.Utils       as U
 
@@ -127,8 +129,8 @@ serveSwaggerAPI = toSwagger serverAPI
 basicAuthServerContext :: AC.SCSContext -> Servant.Context '[BasicAuthCheck M.User]
 basicAuthServerContext context = authCheck context :. EmptyContext
 
-minPubKeySize :: U.Byte
-minPubKeySize = U.Byte 256 -- 2048 / 8
+minPubKeySize :: Byte
+minPubKeySize = Byte 256 -- 2048 / 8
 
 addPublicKey :: M.User -> M.PEM_RSAPubKey -> AC.AppM M.KeyID
 addPublicKey user pemKey@(M.PEMString pemStr) = do
@@ -142,9 +144,9 @@ checkPubKey spKey pemKey =
   maybe (Left $ InvalidRSAKey pemKey)
   (\pubKey ->
     let keySize = rsaSize pubKey in
-    if keySize < (U.unByte minPubKeySize)
+    if keySize < (unByte minPubKeySize)
       -- rsaSize returns size in bytes
-      then Left $ InvalidRSAKeySize (Expected minPubKeySize) (Received $ U.Byte keySize)
+      then Left $ InvalidRSAKeySize (Expected minPubKeySize) (Received $ Byte keySize)
       else Right pubKey
   )
   (toPublicKey spKey)

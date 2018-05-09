@@ -7,7 +7,6 @@ module Mirza.SupplyChain.BeamQueries where
 
 
 
-import           Mirza.SupplyChain.Errors                 (ServiceError (..))
 import           Mirza.SupplyChain.ErrorUtils             (getSqlErrorCode,
                                                            throwAppError,
                                                            throwBackendError,
@@ -19,6 +18,7 @@ import qualified Mirza.SupplyChain.StorageBeam            as SB
 import           Mirza.SupplyChain.Types                  (AppError (..), DB,
                                                            EventOwner (..),
                                                            SCSContext,
+                                                           ServiceError (..),
                                                            SigningUser (..),
                                                            asks, pg, scryptPs)
 

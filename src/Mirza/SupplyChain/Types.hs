@@ -18,18 +18,28 @@ module Mirza.SupplyChain.Types
   , asks
   , EventOwner(..)
   , SigningUser(..)
-  , Bit
-  , Byte
+  , Bit(..)
+  , Byte(..)
+  -- , module Common
+  -- * Errors
+  , ServiceError(..)
+  , ServerError(..)
+  , Expected(..)
+  , Received(..)
+  , ErrorCode
   )
   where
 
-import           Mirza.SupplyChain.Errors   (ServiceError (..))
+-- import           Mirza.SupplyChain.Errors   (ServiceError (..))
 import qualified Mirza.SupplyChain.Model    as M
+
+import qualified Data.GS1.EPC               as EPC
+import           Data.GS1.EventID           as EvId
 
 
 import qualified Database.Beam              as B
 import           Database.Beam.Postgres     (Pg)
-import           Database.PostgreSQL.Simple (Connection)
+import           Database.PostgreSQL.Simple (Connection, SqlError)
 import qualified Database.PostgreSQL.Simple as DB
 
 import qualified Control.Exception          as Exc
@@ -47,6 +57,14 @@ import qualified Control.Exception          as E
 import           Data.Pool                  as Pool
 
 import           GHC.Generics               (Generic)
+
+import qualified Data.ByteString            as BS
+import           Data.Text                  (Text)
+
+
+
+
+-- import           Mirza.Common.Types         as Common
 
 data EnvType = Prod | Dev
   deriving (Show, Eq, Read)
@@ -154,3 +172,33 @@ newtype SigningUser = SigningUser M.UserID deriving(Generic, Show, Eq, Read)
 
 newtype Bit  = Bit  {unBit :: Int} deriving (Show, Eq, Read)
 newtype Byte = Byte {unByte :: Int} deriving (Show, Eq, Read)
+
+type ErrorCode = BS.ByteString
+
+data ServerError = ServerError (Maybe ErrorCode) Text
+                   deriving (Show, Eq, Generic, Read)
+
+newtype Expected = Expected {unExpected :: Byte} deriving (Show, Eq, Read)
+newtype Received = Received {unReceived :: Byte} deriving (Show, Eq, Read)
+
+-- | A sum type of errors that may occur in the Service layer
+data ServiceError
+  = InvalidSignature      String
+  | BlockchainSendFailed  ServerError
+  | InvalidEventID        EventID
+  | InvalidKeyID          M.KeyID
+  | InvalidUserID         M.UserID
+  | InvalidRSAKeyInDB     Text -- when the key already existing in the DB is wrong
+  | InvalidRSAKey         M.PEM_RSAPubKey
+  | InvalidRSAKeySize     Expected Received
+  | InvalidDigest         M.Digest
+  | InsertionFail         ServerError Text
+  | EventPermissionDenied M.UserID EvId.EventID
+  | EmailExists           ServerError M.EmailAddress
+  | EmailNotFound         M.EmailAddress
+  | AuthFailed            M.EmailAddress
+  | UserNotFound          M.EmailAddress
+  | ParseError            EPC.ParseFailure
+  | BackendErr            Text -- fallback
+  | DatabaseError         SqlError
+  deriving (Show, Eq, Generic)
