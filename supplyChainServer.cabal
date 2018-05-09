@@ -16,7 +16,8 @@ cabal-version:       >=1.10
 library
   default-extensions: OverloadedStrings
   hs-source-dirs:     src
-  exposed-modules:    Mirza.SupplyChain.Lib
+  exposed-modules:    Mirza.Common.Types
+                    , Mirza.SupplyChain.API
                     , Mirza.SupplyChain.Migrate
                     , Mirza.SupplyChain.BeamQueries
                     , Mirza.SupplyChain.Model
@@ -27,8 +28,8 @@ library
                     , Mirza.SupplyChain.Utils
                     , Mirza.SupplyChain.Service
                     , Mirza.SupplyChain.Client.Servant
-  other-modules:      Mirza.SupplyChain.API
-                    , Mirza.SupplyChain.MigrateUtils
+  
+  other-modules:      Mirza.SupplyChain.MigrateUtils
                     , Mirza.SupplyChain.MigrateScript
                     , Mirza.SupplyChain.Errors
                     , Mirza.SupplyChain.ErrorUtils
@@ -88,7 +89,12 @@ executable supplyChainServer-exe
                      , text
                      , uuid
                      , base64-bytestring
+                     , postgresql-simple
+                     , resource-pool
                      , scrypt
+                     , servant-server
+                     , servant-swagger-ui
+                     , warp
   ghc-options:         -threaded -Wall -Werror -rtsopts -with-rtsopts=-N
   default-language:    Haskell2010
 
