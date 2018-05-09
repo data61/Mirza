@@ -43,14 +43,12 @@ library
                     , binary
                     , bytestring
                     , cryptonite
-                    , either
                     , hoist-error >= 0.2
                     , HsOpenSSL
                     , hspec
                     , http-types >= 0.9.1
                     , insert-ordered-containers
                     , lens
-                    , lifted-base
                     , mtl
                     , postgresql-simple
                     , resource-pool >= 0.2.3
@@ -69,8 +67,6 @@ library
                     , uuid
                     , uuid-types
                     , wai
-                    , warp
-                    , xml-conduit
   default-language:   Haskell2010
   default-extensions: FlexibleContexts
                     , FlexibleInstances
@@ -83,8 +79,6 @@ executable supplyChainServer-exe
                      , supplyChainServer
                      , optparse-applicative
                      , GS1Combinators
-                     , xml-conduit
-                     , xml-types
                      , text
                      , uuid
                      , base64-bytestring
@@ -108,31 +102,24 @@ test-suite supplyChainServer-test
                      , GS1Combinators
                      , supplyChainServer
                      , aeson
-                    --  , aeson-pretty
                      , base-compat
-                    , resource-pool >= 0.2.3
+                     , resource-pool >= 0.2.3
                      , base64-bytestring
                      , beam-core
                      , beam-postgres
                      , binary
                      , bytestring
                      , cryptonite
-                    --  , direct-sqlite
-                     , either
                      , HsOpenSSL
                      , hspec
-                     , hspec-wai
-                     , hspec-wai-json
                      , insert-ordered-containers
                      , lens
-                     , monad-logger
                      , mtl
                      , postgresql-simple
                      , scrypt
                      , servant-server
                      , servant-swagger
                      , servant-swagger-ui
-                    --  , sqlite-simple
                      , string-conversions
                      , swagger2
                      , text
