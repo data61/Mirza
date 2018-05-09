@@ -69,9 +69,9 @@ instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub
 
 -- 'BasicAuthCheck' holds the handler we'll use to verify a username and password.
 authCheck :: AC.SCSContext -> BasicAuthCheck M.User
-authCheck env =
+authCheck context =
   let check (BasicAuthData useremail pass) = do
-        eitherUser <- AC.runAppM env . AC.runDb $
+        eitherUser <- AC.runAppM context . AC.runDb $
                       BQ.authCheck (M.EmailAddress $ decodeUtf8 useremail) (M.Password pass)
         case eitherUser of
           Right (Just user) -> return (Authorized user)
@@ -79,8 +79,8 @@ authCheck env =
   in BasicAuthCheck check
 
 appMToHandler :: forall x. AC.SCSContext -> AC.AppM x -> Handler x
-appMToHandler env act = do
-  res <- liftIO $ AC.runAppM env act
+appMToHandler context act = do
+  res <- liftIO $ AC.runAppM context act
   case res of
     Left (AC.AppErr e) -> appErrToHttpErr e
     Right a            -> return a
@@ -131,7 +131,7 @@ serveSwaggerAPI = toSwagger serverAPI
 -- tagged with "foo-tag" This context is then supplied to 'server' and threaded
 -- to the BasicAuth HasServer handlers.
 basicAuthServerContext :: AC.SCSContext -> Servant.Context '[BasicAuthCheck M.User]
-basicAuthServerContext env = authCheck env :. EmptyContext
+basicAuthServerContext context = authCheck context :. EmptyContext
 
 minPubKeySize :: U.Byte
 minPubKeySize = U.Byte 256 -- 2048 / 8

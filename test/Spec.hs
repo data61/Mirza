@@ -40,13 +40,13 @@ openConnection = do
   conn <- connectPostgreSQL testDbConnStr
   _ <- dropTables conn -- drop tables before so if already exist no problems... means tables get overwritten though
   connpool <- defaultPool
-  let envT = AC.mkSCSContextType True
-      env  = AC.SCSContext envT connpool defaultParams
+  let contextT = AC.mkSCSContextType True
+      context  = AC.SCSContext contextT connpool defaultParams
   tryCreateSchema True conn
-  return (conn, env)
+  return (conn, context)
 
 closeConnection :: (Connection, SCSContext) -> IO ()
-closeConnection (conn, _env) =
+closeConnection (conn, _context) =
   close conn
 
 withDatabaseConnection :: ((Connection, SCSContext) -> IO ()) -> IO ()

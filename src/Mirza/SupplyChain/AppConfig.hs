@@ -76,12 +76,12 @@ newtype AppM a = AppM
 -- something of type DB a is to use 'runDb', which ensures the action is run in
 -- a Postgres transaction, and that exceptions and errors thrown inside the DB a
 -- cause the transaction to be rolled back and the error rethrown.
-newtype DB environment error a = DB (ReaderT (Connection,environment) (ExceptT error Pg) a)
+newtype DB context error a = DB (ReaderT (Connection,context) (ExceptT error Pg) a)
   deriving
   ( Functor
   , Applicative
   , Monad
-  , MonadReader (Connection,environment)
+  , MonadReader (Connection,context)
   , MonadError error
   , MonadIO -- Need to figure out if we actually want this
   )
