@@ -17,7 +17,7 @@ module Mirza.SupplyChain.Service where
 
 import           Mirza.SupplyChain.API
 import qualified Mirza.SupplyChain.BeamQueries as BQ
-import           Mirza.SupplyChain.Dummies     (dummyObjectDWhat)
+-- import           Mirza.SupplyChain.Dummies     (dummyObjectDWhat)
 import           Mirza.SupplyChain.Errors
 import           Mirza.SupplyChain.ErrorUtils  (appErrToHttpErr, throwAppError,
                                                 throwParseError)
@@ -27,14 +27,9 @@ import qualified Mirza.SupplyChain.StorageBeam as SB
 import qualified Mirza.SupplyChain.Types       as AC
 import qualified Mirza.SupplyChain.Utils       as U
 
-import           Data.GS1.DWhat
-import           Data.GS1.DWhen
-import           Data.GS1.DWhere
-import           Data.GS1.DWhy
-import           Data.GS1.EPC
+import           Data.GS1.DWhat                (urn2LabelEPC)
 import qualified Data.GS1.Event                as Ev
 import           Data.GS1.EventID
-import           Data.GS1.Parser.Parser
 import qualified Data.HashMap.Strict.InsOrd    as IOrd
 
 import           Control.Lens                  hiding ((.=))
@@ -43,11 +38,9 @@ import           Control.Monad.IO.Class        (liftIO)
 import qualified Data.ByteString.Base64        as BS64
 import qualified Data.ByteString.Char8         as BSC
 import           Data.Char                     (toLower)
-import           Data.Either.Combinators
 import           Data.Swagger
 import           Data.Text                     (pack)
 import           Data.Text.Encoding            (decodeUtf8)
-import           Data.UUID.V4
 import           GHC.TypeLits                  (KnownSymbol)
 import qualified OpenSSL.EVP.Digest            as EVPDigest
 import           OpenSSL.EVP.PKey              (SomePublicKey, toPublicKey)
@@ -309,28 +302,6 @@ insertTransactEvent user ev = AC.runDb $ BQ.insertTransactEvent user ev
 insertTransfEvent :: M.User -> M.TransformationEvent -> AC.AppM Ev.Event
 insertTransfEvent user ev = AC.runDb $ BQ.insertTransfEvent user ev
 
-
-sampleEvent:: IO Ev.Event
-sampleEvent=  do
-  uuid <- nextRandom
-  return (Ev.Event Ev.AggregationEventT (Just $ EventID uuid) sampleWhat sampleWhen sampleWhy sampleWhere)
-
-
-sampleWhat :: DWhat
-sampleWhat = dummyObjectDWhat
-
-sampleWhy :: DWhy
-sampleWhy = DWhy (Just Arriving) (Just Data.GS1.EPC.Active)
-
-sampleWhen :: DWhen
-sampleWhen = DWhen pt (Just pt) tz
-  where
-      t = "2017-01-24T13:08:24.11+10:00"
-      pt = fromRight' (parseStr2Time t)
-      tz = fromRight' (parseStr2TimeZone t)
-
-sampleWhere :: DWhere
-sampleWhere = DWhere [] [] [] []
 
 eventInfo :: M.User -> EventID -> AC.AppM (Maybe Ev.Event)
 eventInfo _user = AC.runDb . QU.findEvent . SB.EventId . getEventId
