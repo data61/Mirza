@@ -4,7 +4,10 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
 
-module Tests.Service where
+module Tests.Service
+  ( testQueries
+  , defaultPool
+  ) where
 
 import           Tests.Dummies
 
@@ -17,11 +20,9 @@ import qualified Mirza.SupplyChain.StorageBeam as SB
 import           Data.GS1.EPC
 
 import           Control.Monad                 (void)
-import           Mirza.SupplyChain.Types       (AppM, DB, Env (..),
-                                                EnvType (..), pg, runAppM,
+import           Mirza.SupplyChain.Types       (AppM, DB, Env (..), pg, runAppM,
                                                 runDb)
 -- import           Crypto.Scrypt
-import           Data.ByteString               (ByteString)
 import           Data.Maybe                    (fromJust, isNothing)
 import qualified Data.Text                     as T
 import           Data.Text.Encoding            (encodeUtf8)
@@ -39,10 +40,10 @@ import           Data.Pool                     as Pool
 -- NOTE in this file, where fromJust is used in the tests, it is because we expect a Just... this is part of the test
 -- NOTE tables dropped after every running of test in an "it"
 
--- for grabbing the encrypted password from user 1
-hashIO :: MonadIO m => m ByteString
-hashIO = Scrypt.getEncryptedPass <$> liftIO
-    (Scrypt.encryptPassIO' (Scrypt.Pass $ encodeUtf8 $ M.password dummyNewUser))
+-- -- for grabbing the encrypted password from user 1
+-- hashIO :: MonadIO m => m ByteString
+-- hashIO = Scrypt.getEncryptedPass <$> liftIO
+--     (Scrypt.encryptPassIO' (Scrypt.Pass $ encodeUtf8 $ M.password dummyNewUser))
 
 timeStampIO :: MonadIO m => m LocalTime
 timeStampIO = liftIO $ (utcToLocalTime utc) <$> getCurrentTime
@@ -357,20 +358,20 @@ clearContact = do
   conn <- connectPostgreSQL testDbConnStr
   void $ execute_ conn "DELETE FROM contacts;"
 
--- | Utility function that can be used in the ``before_`` hook
-populateContact :: IO Env -> IO ()
-populateContact ioEnv = do
-    env <- ioEnv
-    let myContact = makeDummyNewUser (M.EmailAddress "first@gmail.com")
-    hasBeenAdded <- testAppM env $ do
-      void $ S.newUser dummyNewUser
-      user <- runDb $ getUser $ M.emailAddress dummyNewUser
-      myContactUid <- S.newUser myContact
-      S.addContact (fromJust user) myContactUid
-    hasBeenAdded `shouldBe` True
+-- -- | Utility function that can be used in the ``before_`` hook
+-- populateContact :: IO Env -> IO ()
+-- populateContact ioEnv = do
+--     env <- ioEnv
+--     let myContact = makeDummyNewUser (M.EmailAddress "first@gmail.com")
+--     hasBeenAdded <- testAppM env $ do
+--       void $ S.newUser dummyNewUser
+--       user <- runDb $ getUser $ M.emailAddress dummyNewUser
+--       myContactUid <- S.newUser myContact
+--       S.addContact (fromJust user) myContactUid
+--     hasBeenAdded `shouldBe` True
 
-defaultEnv :: IO Env
-defaultEnv = (\conn -> Env Dev conn Scrypt.defaultParams) <$> defaultPool
+-- defaultEnv :: IO Env
+-- defaultEnv = (\conn -> Env Dev conn Scrypt.defaultParams) <$> defaultPool
 
 defaultPool :: IO (Pool Connection)
 defaultPool = Pool.createPool (connectPostgreSQL testDbConnStr) close
