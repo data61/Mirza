@@ -1,4 +1,5 @@
 {-# LANGUAGE DataKinds        #-}
+{-# LANGUAGE NamedFieldPuns   #-}
 {-# LANGUAGE TypeApplications #-}
 
 module Main where
@@ -16,13 +17,11 @@ import           Servant.Swagger.UI
 import qualified Data.Pool                  as Pool
 import           Database.PostgreSQL.Simple
 
+import           Network.Wai                (Middleware)
 import qualified Network.Wai.Handler.Warp   as Warp
-
-import           Crypto.Scrypt              (ScryptParams, defaultParams)
 
 import           Data.ByteString            (ByteString)
 import           Data.Semigroup             ((<>))
-import           GHC.Word                   (Word16)
 import           Options.Applicative
 
 import qualified Crypto.Scrypt              as Scrypt
@@ -88,41 +87,38 @@ main = runProgram =<< execParser opts
 --     startApp connStr isDebug (fromIntegral portNum) flavour
 -- runProgram _ = migrate defConnectionStr
 runProgram :: ServerOptions -> IO ()
-runProgram (ServerOptions envT False connStr portNum n p r) =
-  case Scrypt.scryptParams (max n 14) (max p 8) (max r 1) of
-    Nothing -> do
-      putStrLn $ unwords
-        ["Invalid Scrypt params: ", show (n,p,r)
-        ,"\nUsing default parameters"
-        ]
-      startApp connStr envT (fromIntegral portNum) Scrypt.defaultParams
-    Just params ->
-      startApp connStr envT (fromIntegral portNum) params
+runProgram so@ServerOptions{initDB = False, port} = do
+  app <- initApplication so
+  mids <- initMiddleware so
+  putStrLn $ "http://localhost:" ++ show port ++ "/swagger-ui/"
+  Warp.run (fromIntegral port) $ mids app
+-- FIXME: This is definitely wrong
 runProgram _ = migrate defConnectionStr
 
+initMiddleware :: ServerOptions -> IO Middleware
+initMiddleware _ = pure id
 
-
-
-
-
-
-startApp :: ByteString -> AC.EnvType -> Word16 -> ScryptParams -> IO ()
-startApp dbConnStr envT prt params = do
-    connpool <- Pool.createPool (connectPostgreSQL dbConnStr) close
-                        1 -- Number of "sub-pools",
-                        60 -- How long in seconds to keep a connection open for reuse
-                        10 -- Max number of connections to have open at any one time
-                        -- TODO: Make this a config parameter
-
-    let
-        ev  = AC.Env envT connpool params
-        app = webApp ev
-    putStrLn $ "http://localhost:" ++ show prt ++ "/swagger-ui/"
-    Warp.run (fromIntegral prt) app
+-- initApplication :: ByteString -> AC.EnvType -> ScryptParams -> IO Application
+initApplication :: ServerOptions -> IO Application
+initApplication (ServerOptions envT _ dbConnStr _ n p r)  = do
+  params <- case Scrypt.scryptParams (max n 14) (max p 8) (max r 1) of
+    Just scparams -> pure scparams
+    Nothing -> do
+      putStrLn $ "Invalid Scrypt params:" ++ show (n,p,r) ++ " using defaults"
+      pure Scrypt.defaultParams
+  connpool <- Pool.createPool (connectPostgreSQL dbConnStr) close
+                      1 -- Number of "sub-pools",
+                      60 -- How long in seconds to keep a connection open for reuse
+                      10 -- Max number of connections to have open at any one time
+                      -- TODO: Make this a config paramete
+  let ev  = AC.Env envT connpool params
+      app = webApp ev
+  pure app
 
 -- easily start the app in ghci, no command line arguments required.
 startApp_nomain :: ByteString -> IO ()
-startApp_nomain dbConnStr = startApp dbConnStr AC.Dev 8000 defaultParams
+startApp_nomain dbConnStr =
+  initApplication (ServerOptions AC.Dev False dbConnStr 8000 14 8 1) >>= Warp.run 8000
 
 -- Application = Request -> (Response -> IO ResponseReceived) -> IO ResponseReceived
 webApp :: AC.Env -> Application
