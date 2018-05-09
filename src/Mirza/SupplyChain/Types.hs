@@ -18,6 +18,8 @@ module Mirza.SupplyChain.Types
   , asks
   , EventOwner(..)
   , SigningUser(..)
+  , Bit
+  , Byte
   )
   where
 
@@ -148,3 +150,7 @@ runAppM env aM = runExceptT $ (runReaderT . unAppM) aM env
 
 newtype EventOwner  = EventOwner M.UserID deriving(Generic, Show, Eq, Read)
 newtype SigningUser = SigningUser M.UserID deriving(Generic, Show, Eq, Read)
+
+
+newtype Bit  = Bit  {unBit :: Int} deriving (Show, Eq, Read)
+newtype Byte = Byte {unByte :: Int} deriving (Show, Eq, Read)
