@@ -17,7 +17,6 @@ import           Mirza.SupplyChain.StorageBeam (PrimaryKeyType)
 import qualified Data.GS1.Event                as Ev
 import           Data.GS1.EventID
 
-import           Data.Swagger
 import           Servant
 import           Servant.API.Flatten
 import           Servant.Swagger.UI
@@ -48,7 +47,7 @@ type PublicAPI =
 
 type SwaggerAPI = SwaggerSchemaUI "swagger-ui" "swagger.json"
 
-api :: Proxy API'
+api :: Proxy API
 api = Proxy
 
 type ProtectedAPI = Flat (BasicAuth "foo-realm" User :> PrivateAPI)
@@ -63,7 +62,3 @@ type API
     = SwaggerSchemaUI "swagger-ui" "swagger.json"
     :<|> ServerAPI
 
--- To test nested case
-type API' = API
-    :<|> "nested" :> API
-    :<|> SwaggerSchemaUI' "foo-ui" ("foo" :> "swagger.json" :> Get '[JSON] Swagger)
