@@ -4,7 +4,7 @@
 module Mirza.SupplyChain.AppConfig
   (EnvType(..)
   , mkEnvType
-  , Env(..)
+  , SCSContext(..)
   , AppError(..)
   , AppM
   , DB
@@ -49,7 +49,7 @@ mkEnvType :: Bool -> EnvType
 mkEnvType False = Prod
 mkEnvType _     = Dev
 
-data Env = Env
+data SCSContext = SCSContext
   { envType    :: EnvType
   , dbConnPool :: Pool Connection
   , scryptPs   :: ScryptParams
@@ -63,12 +63,12 @@ newtype AppError = AppError ServiceError deriving (Show)
 -- type Handler a = ExceptT ServantErr IO a
 -- newtype ExceptT e m a :: * -> (* -> *) -> * -> *
 newtype AppM a = AppM
-  { unAppM :: ReaderT Env (ExceptT AppError IO) a
+  { unAppM :: ReaderT SCSContext (ExceptT AppError IO) a
   } deriving
     ( Functor
     , Applicative
     , Monad
-    , MonadReader Env
+    , MonadReader SCSContext
     , MonadIO
     , MonadError AppError
     )
@@ -77,13 +77,13 @@ newtype AppM a = AppM
 -- something of type DB a is to use 'runDb', which ensures the action is run in
 -- a Postgres transaction, and that exceptions and errors thrown inside the DB a
 -- cause the transaction to be rolled back and the error rethrown.
-newtype DB a = DB (ReaderT (Connection,Env) (ExceptT AppError Pg) a)
+newtype DB context error a = DB (ReaderT (Connection,context) (ExceptT error Pg) a)
   deriving
   ( Functor
   , Applicative
   , Monad
-  , MonadReader (Connection,Env)
-  , MonadError AppError
+  , MonadReader (Connection,context)
+  , MonadError error
   , MonadIO -- Need to figure out if we actually want this
   )
 
@@ -105,7 +105,7 @@ dbFunc = do
 -- Exceptions which are thrown which are not SqlErrors will be caught by Servant
 -- and cause 500 errors (these are not exceptions we'll generally know how to
 -- deal with).
-runDb :: DB a -> AppM a
+runDb :: DB SCSContext AppError a -> AppM a
 runDb (DB act) = do
   env <- ask
   dbf <- dbFunc
@@ -135,10 +135,10 @@ withTransaction conn act = E.mask $ \restore -> do
   pure r
 
 
-pg :: Pg a -> DB a
+pg :: Pg a -> DB SCSContext AppError a
 pg = DB . lift . lift
 
-runAppM :: Env -> AppM a -> IO (Either AppError a)
+runAppM :: SCSContext -> AppM a -> IO (Either AppError a)
 runAppM env aM = runExceptT $ (runReaderT . unAppM) aM env
 
 -- App Utils. Moved from Utils
@@ -151,7 +151,7 @@ debugLog strLike = do
   envT <- asks envType
   when (envT == Dev) $ liftIO $ print strLike
 
--- | To be used when the Env is known/available.
+-- | To be used when the SCSContext is known/available.
 -- It doesn't require that the function is being run in AppM
 debugLogGeneral :: (Show a, MonadIO f) => EnvType -> a -> f ()
 debugLogGeneral envT strLike =

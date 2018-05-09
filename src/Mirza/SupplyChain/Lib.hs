@@ -46,8 +46,8 @@ startApp dbConnStr envT prt uiFlavour params = do
                         -- TODO: Make this a config parameter
 
     let
-        env  = AC.Env envT connpool params
-        app = return $ webApp env uiFlavour
+        context = AC.SCSContext envT connpool params
+        app     = return $ webApp context uiFlavour
     putStrLn $ "http://localhost:" ++ show prt ++ "/swagger-ui/"
     Warp.run (fromIntegral prt) =<< app
 
@@ -56,8 +56,8 @@ startApp_nomain :: ByteString -> IO ()
 startApp_nomain dbConnStr = startApp dbConnStr AC.Dev 8000 Original defaultParams
 
 -- Application = Request -> (Response -> IO ResponseReceived) -> IO ResponseReceived
-webApp :: AC.Env -> UIFlavour -> Application
-webApp env uiFlavour = serveWithContext api (basicAuthServerContext env) (server' env uiFlavour)
+webApp :: AC.SCSContext -> UIFlavour -> Application
+webApp context uiFlavour = serveWithContext api (basicAuthServerContext context) (server' context uiFlavour)
 
 -- Implementation
 
@@ -73,8 +73,8 @@ data UIFlavour
     | JensOleG
     deriving (Eq, Read, Show)
 
-server' :: AC.Env -> UIFlavour -> Server API'
-server' env uiFlavour = server Normal
+server' :: AC.SCSContext -> UIFlavour -> Server API'
+server' context uiFlavour = server Normal
         :<|> server Nested
         :<|> schemaUiServer (serveSwaggerAPI' SpecDown)
   where
@@ -86,9 +86,9 @@ server' env uiFlavour = server Normal
         :<|> hoistServerWithContext
                 (Proxy :: Proxy ServerAPI)
                 (Proxy :: Proxy '[BasicAuthCheck User])
-                (appMToHandler env)
+                (appMToHandler context)
                 appHandlers
-    -- mainServer = enter (appMToHandler env) (server Normal)
+    -- mainServer = enter (appMToHandler context) (server Normal)
     schemaUiServer
         :: (Server api ~ Handler Swagger)
         => Swagger -> Server (SwaggerSchemaUI' dir api)
