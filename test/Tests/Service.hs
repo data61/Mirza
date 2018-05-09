@@ -16,9 +16,9 @@ import qualified Mirza.SupplyChain.StorageBeam as SB
 import           Data.GS1.EPC
 
 import           Control.Monad                 (void)
-import           Mirza.SupplyChain.AppConfig   (AppM, DB, Env (..),
-                                                EnvType (..), pg, runAppM,
-                                                runDb)
+import           Mirza.SupplyChain.AppConfig   (AppError, AppM, DB,
+                                                EnvType (..), SCSContext (..),
+                                                pg, runAppM, runDb)
 -- import           Crypto.Scrypt
 import           Data.ByteString               (ByteString)
 import           Data.Maybe                    (fromJust, isNothing)
@@ -52,7 +52,7 @@ timeStampIOEPCIS = liftIO $ EPCISTime <$> getCurrentTime
 rsaPubKey :: IO M.PEM_RSAPubKey
 rsaPubKey = M.PEMString <$> Prelude.readFile "./test/Tests/testKeys/goodKeys/test.pub"
 
-selectKey :: M.KeyID -> DB (Maybe SB.Key)
+selectKey :: M.KeyID -> DB SCSContext AppError (Maybe SB.Key)
 selectKey (M.KeyID keyId) = do
   r <- pg $ runSelectReturningList $ select $ do
           key <- all_ (SB._keys SB.supplyChainDb)
@@ -62,19 +62,19 @@ selectKey (M.KeyID keyId) = do
     [key] -> return $ Just key
     _     -> return Nothing
 
-testAppM :: Env -> AppM a -> IO a
-testAppM env act = runAppM env act >>= \case
+testAppM :: SCSContext -> AppM a -> IO a
+testAppM scsContext act = runAppM scsContext act >>= \case
     Left err -> fail (show err)
     Right a -> pure a
 
-testQueries :: HasCallStack => SpecWith (Connection, Env)
+testQueries :: HasCallStack => SpecWith (Connection, SCSContext)
 testQueries = do
 
   describe "addPublicKey tests" $
-    it "addPublicKey test 1" $ \(_conn, env) -> do
+    it "addPublicKey test 1" $ \(_conn, scsContext) -> do
       pubKey <- rsaPubKey
       tStart <- timeStampIO
-      res <- testAppM env $ do
+      res <- testAppM scsContext $ do
         uid <- S.newUser dummyNewUser
         storageUser <- runDb $ selectUser uid
         let user = userTableToModel . fromJust $ storageUser
@@ -98,10 +98,10 @@ testQueries = do
             )
           insertedKey `shouldBe` pubKey
   describe "getPublicKeyInfo tests" $
-    it "getPublicKeyInfo test 1" $ \(_conn, env) -> do
+    it "getPublicKeyInfo test 1" $ \(_conn, scsContext) -> do
       tStart <- timeStampIOEPCIS
       pubKey <- rsaPubKey
-      (keyInfo, uid, tEnd) <- testAppM env $ do
+      (keyInfo, uid, tEnd) <- testAppM scsContext $ do
         uid <- S.newUser dummyNewUser
         storageUser <- runDb $ selectUser uid
         let user = userTableToModel . fromJust $ storageUser
@@ -117,8 +117,8 @@ testQueries = do
         )
 
   describe "newUser tests" $
-    it "newUser test 1" $ \(_conn, env) -> do
-      res <- testAppM env $  do
+    it "newUser test 1" $ \(_conn, scsContext) -> do
+      res <- testAppM scsContext $  do
         uid <- S.newUser dummyNewUser
         user <- runDb $ selectUser uid
         pure (uid, user)
@@ -140,10 +140,10 @@ testQueries = do
             )
 
   describe "authCheck tests" $
-    it "authCheck test 1" $ \(_conn, env) -> do
-      res <- testAppM env $ do
+    it "authCheck test 1" $ \(_conn, scsContext) -> do
+      res <- testAppM scsContext $ do
         uid <- S.newUser dummyNewUser
-        let check = unBasicAuthCheck $ S.authCheck env
+        let check = unBasicAuthCheck $ S.authCheck scsContext
         let basicAuthData = BasicAuthData
                           (encodeUtf8 $ M.unEmailAddress $ M.emailAddress dummyNewUser)
                           (encodeUtf8 $ M.password dummyNewUser)
@@ -162,12 +162,12 @@ testQueries = do
         _ -> fail "Could not authenticate user"
 
   describe "Object Event" $ do
-    it "Insert Object Event" $ \(_conn, env) -> do
-      insertedEvent <- testAppM env $ S.insertObjectEvent dummyUser dummyObject
+    it "Insert Object Event" $ \(_conn, scsContext) -> do
+      insertedEvent <- testAppM scsContext $ S.insertObjectEvent dummyUser dummyObject
       insertedEvent `shouldBe` dummyObjEvent
 
-    it "List event" $ \(_conn, env) -> do
-      res <- testAppM env $ do
+    it "List event" $ \(_conn, scsContext) -> do
+      res <- testAppM scsContext $ do
         insertedEvent <- S.insertObjectEvent dummyUser dummyObject
         evtList <- S.listEvents dummyUser (M.LabelEPCUrn dummyLabelEpcUrn)
         pure (insertedEvent, evtList)
@@ -177,12 +177,12 @@ testQueries = do
           evtList `shouldBe` [insertedEvent]
 
   describe "Aggregation Event" $ do
-    it "Insert Aggregation Event" $ \(_conn, env) -> do
-      insertedEvent <- testAppM env $ S.insertAggEvent dummyUser dummyAggregation
+    it "Insert Aggregation Event" $ \(_conn, scsContext) -> do
+      insertedEvent <- testAppM scsContext $ S.insertAggEvent dummyUser dummyAggregation
       insertedEvent `shouldBe` dummyAggEvent
 
-    it "List event" $ \(_conn, env) -> do
-      res <- testAppM env $ do
+    it "List event" $ \(_conn, scsContext) -> do
+      res <- testAppM scsContext $ do
         insertedEvent <- S.insertAggEvent dummyUser dummyAggregation
         evtList <- S.listEvents dummyUser (M.LabelEPCUrn dummyLabelEpcUrn)
         pure (insertedEvent, evtList)
@@ -192,12 +192,12 @@ testQueries = do
           evtList `shouldBe` [insertedEvent]
 
   describe "Transformation Event" $ do
-    it "Insert Transformation Event" $ \(_conn, env) -> do
-      insertedEvent <- testAppM env $ S.insertTransfEvent dummyUser dummyTransformation
+    it "Insert Transformation Event" $ \(_conn, scsContext) -> do
+      insertedEvent <- testAppM scsContext $ S.insertTransfEvent dummyUser dummyTransformation
       insertedEvent `shouldBe` dummyTransfEvent
 
-    it "List event" $ \(_conn, env) -> do
-      res <- testAppM env $ do
+    it "List event" $ \(_conn, scsContext) -> do
+      res <- testAppM scsContext $ do
         insertedEvent <- S.insertTransfEvent dummyUser dummyTransformation
         eventList <- S.listEvents dummyUser (M.LabelEPCUrn dummyLabelEpcUrn)
         pure (insertedEvent, eventList)
@@ -207,12 +207,12 @@ testQueries = do
           eventList `shouldBe` [insertedEvent]
 
   describe "Transaction Event" $ do
-    it "Insert Transaction Event" $ \(_conn, env) -> do
-      insertedEvent <- testAppM env $ S.insertTransactEvent dummyUser dummyTransaction
+    it "Insert Transaction Event" $ \(_conn, scsContext) -> do
+      insertedEvent <- testAppM scsContext $ S.insertTransactEvent dummyUser dummyTransaction
       insertedEvent `shouldBe` dummyTransactEvent
 
-    it "List event" $ \(_conn, env) -> do
-      res <- testAppM env $ do
+    it "List event" $ \(_conn, scsContext) -> do
+      res <- testAppM scsContext $ do
         insertedEvent <- S.insertTransactEvent dummyUser dummyTransaction
         eventList <- S.listEvents dummyUser (M.LabelEPCUrn dummyLabelEpcUrn)
         pure (insertedEvent, eventList)
@@ -222,8 +222,8 @@ testQueries = do
           eventList `shouldBe` [insertedEvent]
 
   describe "runDb $ getUser tests" $
-    it "runDb $ getUser test 1" $ \(_conn, env) -> do
-      res <- testAppM env $ do
+    it "runDb $ getUser test 1" $ \(_conn, scsContext) -> do
+      res <- testAppM scsContext $ do
         uid <- S.newUser dummyNewUser
         user <- runDb $ getUser $ M.emailAddress dummyNewUser
         pure (uid, user)
@@ -240,9 +240,9 @@ testQueries = do
   describe "Contacts" $ do
     (after_ clearContact) . describe "Contacts" $
       describe "Add contact" $
-        it "addContact simple" $ \(_conn, env) -> do
+        it "addContact simple" $ \(_conn, scsContext) -> do
           let myContact = makeDummyNewUser (M.EmailAddress "first@gmail.com")
-          (hasBeenAdded, isContact) <- testAppM env $ do
+          (hasBeenAdded, isContact) <- testAppM scsContext $ do
             uid <- S.newUser dummyNewUser
             user <- runDb $ getUser . M.emailAddress $ dummyNewUser
             myContactUid <- S.newUser myContact
@@ -253,9 +253,9 @@ testQueries = do
           isContact `shouldBe` True
 
     describe "Remove contact" $ do
-      it "Simple remove one" $ \(_conn, env) -> do
+      it "Simple remove one" $ \(_conn, scsContext) -> do
         -- Adding the contact first
-        (hasBeenAdded, hasBeenRemoved) <- testAppM env $ do
+        (hasBeenAdded, hasBeenRemoved) <- testAppM scsContext $ do
           void $ S.newUser dummyNewUser
           mUser <- runDb $ getUser $ M.emailAddress dummyNewUser
           let myContact = makeDummyNewUser (M.EmailAddress "first@gmail.com")
@@ -267,9 +267,9 @@ testQueries = do
           pure (hasBeenAdded, hasBeenRemoved)
         hasBeenAdded `shouldBe` True
         hasBeenRemoved `shouldBe` True
-      it "Remove wrong contact" $ \(_conn, env) -> do
+      it "Remove wrong contact" $ \(_conn, scsContext) -> do
         -- Adding the contact first
-        (hasBeenAdded, hasBeenRemoved) <- testAppM env $ do
+        (hasBeenAdded, hasBeenRemoved) <- testAppM scsContext $ do
           void $ S.newUser dummyNewUser
           mUser <- runDb $ getUser $ M.emailAddress dummyNewUser
         -- Add a new user who is NOT a contact
@@ -285,9 +285,9 @@ testQueries = do
         hasBeenRemoved `shouldBe` False
 
     describe "List contact" $ do
-      it "Add one and list" $ \(_conn, env) -> do
+      it "Add one and list" $ \(_conn, scsContext) -> do
         -- Adding the contact first
-        (hasBeenAdded, contactList, users) <- testAppM env $ do
+        (hasBeenAdded, contactList, users) <- testAppM scsContext $ do
           void $ S.newUser dummyNewUser
           mUser <- runDb $ getUser $ M.emailAddress dummyNewUser
           let myContact = makeDummyNewUser (M.EmailAddress "first@gmail.com")
@@ -299,8 +299,8 @@ testQueries = do
           pure (hasBeenAdded, contactList, [fromJust mMyContact_user])
         contactList `shouldBe` users
         hasBeenAdded `shouldBe` True
-      it "Add many and list" $ \(_conn, env) -> do
-        (contactList, users) <- testAppM env $ do
+      it "Add many and list" $ \(_conn, scsContext) -> do
+        (contactList, users) <- testAppM scsContext $ do
           -- Making the users
           let myContact_1 = makeDummyNewUser (M.EmailAddress "first@gmail.com")
               myContact_2 = makeDummyNewUser (M.EmailAddress "second@gmail.com")
@@ -344,9 +344,9 @@ testQueries = do
         contactList `shouldBe` users
 
   describe "DWhere" $
-    it "Insert and find DWhere" $ \(_conn, env) -> do
+    it "Insert and find DWhere" $ \(_conn, scsContext) -> do
       let eventId = dummyId
-      insertedDWhere <- testAppM env $ do
+      insertedDWhere <- testAppM scsContext $ do
         void $ runDb $ insertDWhere dummyDWhere eventId
         runDb $ findDWhere eventId
       insertedDWhere `shouldBe` Just dummyDWhere
@@ -357,19 +357,19 @@ clearContact = do
   void $ execute_ conn "DELETE FROM contacts;"
 
 -- | Utility function that can be used in the ``before_`` hook
-populateContact :: IO Env -> IO ()
-populateContact ioEnv = do
-    env <- ioEnv
+populateContact :: IO SCSContext -> IO ()
+populateContact ioSCSContext = do
+    scsContext <- ioSCSContext
     let myContact = makeDummyNewUser (M.EmailAddress "first@gmail.com")
-    hasBeenAdded <- testAppM env $ do
+    hasBeenAdded <- testAppM scsContext $ do
       void $ S.newUser dummyNewUser
       user <- runDb $ getUser $ M.emailAddress dummyNewUser
       myContactUid <- S.newUser myContact
       S.addContact (fromJust user) myContactUid
     hasBeenAdded `shouldBe` True
 
-defaultEnv :: IO Env
-defaultEnv = (\conn -> Env Dev conn Scrypt.defaultParams) <$> defaultPool
+defaultSCSContext :: IO SCSContext
+defaultSCSContext = (\conn -> SCSContext Dev conn Scrypt.defaultParams) <$> defaultPool
 
 defaultPool :: IO (Pool Connection)
 defaultPool = Pool.createPool (connectPostgreSQL testDbConnStr) close
