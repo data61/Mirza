@@ -21,7 +21,7 @@ library
                     , Mirza.SupplyChain.BeamQueries
                     , Mirza.SupplyChain.Model
                     , Mirza.SupplyChain.StorageBeam
-                    , Mirza.SupplyChain.AppConfig
+                    , Mirza.SupplyChain.Types
                     , Mirza.SupplyChain.Dummies
                     , Mirza.SupplyChain.QueryUtils
                     , Mirza.SupplyChain.Utils

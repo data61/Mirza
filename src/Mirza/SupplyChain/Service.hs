@@ -16,7 +16,6 @@
 module Mirza.SupplyChain.Service where
 
 import           Mirza.SupplyChain.API
-import qualified Mirza.SupplyChain.AppConfig   as AC
 import qualified Mirza.SupplyChain.BeamQueries as BQ
 import           Mirza.SupplyChain.Dummies     (dummyObjectDWhat)
 import           Mirza.SupplyChain.Errors
@@ -25,6 +24,7 @@ import           Mirza.SupplyChain.ErrorUtils  (appErrToHttpErr, throwAppError,
 import qualified Mirza.SupplyChain.Model       as M
 import qualified Mirza.SupplyChain.QueryUtils  as QU
 import qualified Mirza.SupplyChain.StorageBeam as SB
+import qualified Mirza.SupplyChain.Types       as AC
 import qualified Mirza.SupplyChain.Utils       as U
 
 import           Data.GS1.DWhat
