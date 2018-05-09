@@ -59,8 +59,8 @@ insertObjectEvent   :: BasicAuthData -> ObjectEvent -> ClientM Event
 insertAggEvent      :: BasicAuthData -> AggregationEvent -> ClientM Event
 insertTransactEvent :: BasicAuthData -> TransactionEvent -> ClientM Event
 insertTransfEvent   :: BasicAuthData -> TransformationEvent -> ClientM Event
-addPublicKey        :: BasicAuthData -> PEM_RSAPubKey -> ClientM KeyID
 addUserToEvent      :: BasicAuthData -> M.UserID -> EventID -> ClientM ()
+addPublicKey        :: BasicAuthData -> PEM_RSAPubKey -> ClientM KeyID
 
 _api     :: Client ClientM ServerAPI
 _privAPI :: Client ClientM ProtectedAPI
@@ -82,8 +82,8 @@ _api@(
     :<|> insertAggEvent
     :<|> insertTransactEvent
     :<|> insertTransfEvent
-    :<|> addPublicKey
     :<|> addUserToEvent
+    :<|> addPublicKey
   )
   :<|>
   _pubAPI@(
