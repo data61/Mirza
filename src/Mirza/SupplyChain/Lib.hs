@@ -37,7 +37,7 @@ import           Crypto.Scrypt               (ScryptParams, defaultParams)
 import qualified Data.Pool                   as Pool
 
 
-startApp :: ByteString -> AC.SCSContextType -> Word16 -> UIFlavour -> ScryptParams -> IO ()
+startApp :: ByteString -> AC.EnvType -> Word16 -> UIFlavour -> ScryptParams -> IO ()
 startApp dbConnStr contextT prt uiFlavour params = do
     connpool <- Pool.createPool (connectPostgreSQL dbConnStr) close
                         1 -- Number of "sub-pools",

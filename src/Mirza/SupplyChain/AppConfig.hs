@@ -2,8 +2,8 @@
 
 -- | Contains the definition of our ReaderT AppM
 module Mirza.SupplyChain.AppConfig
-  (SCSContextType(..)
-  , mkSCSContextType
+  (EnvType(..)
+  , mkEnvType
   , SCSContext(..)
   , AppErr(..)
   , AppM
@@ -41,17 +41,17 @@ import qualified Control.Exception          as E
 
 import           Data.Pool                  as Pool
 
-data SCSContextType = Prod | Dev
+data EnvType = Prod | Dev
   deriving (Show, Eq, Read)
 
-mkSCSContextType :: Bool -> SCSContextType
-mkSCSContextType False = Prod
-mkSCSContextType _     = Dev
+mkEnvType :: Bool -> EnvType
+mkEnvType False = Prod
+mkEnvType _     = Dev
 
 data SCSContext = SCSContext
-  { contextType :: SCSContextType
-  , dbConnPool  :: Pool Connection
-  , scryptPs    :: ScryptParams
+  { envType    :: EnvType
+  , dbConnPool :: Pool Connection
+  , scryptPs   :: ScryptParams
   -- , port    :: Word16
   }
 
@@ -90,7 +90,7 @@ newtype DB context error a = DB (ReaderT (Connection,context) (ExceptT error Pg)
 
 dbFunc :: AppM (Connection -> Pg a -> IO a)
 dbFunc = do
-  e <- asks contextType
+  e <- asks envType
   pure $ case e of
     Prod -> B.withDatabase  -- database queries other than migration will be silent
     _    -> B.withDatabaseDebug putStrLn  -- database queries other than migration will print on screen
@@ -147,12 +147,12 @@ runAppM env aM = runExceptT $ (runReaderT . unAppM) aM env
 -- Only works in AppM monad
 debugLog :: Show a => a -> AppM ()
 debugLog strLike = do
-  envT <- asks contextType
+  envT <- asks envType
   when (envT == Dev) $ liftIO $ print strLike
 
 -- | To be used when the SCSContext is known/available.
 -- It doesn't require that the function is being run in AppM
-debugLogGeneral :: (Show a, MonadIO f) => SCSContextType -> a -> f ()
+debugLogGeneral :: (Show a, MonadIO f) => EnvType -> a -> f ()
 debugLogGeneral envT strLike =
   when (envT == Dev) $ liftIO $ print strLike
 

@@ -40,8 +40,8 @@ openConnection = do
   conn <- connectPostgreSQL testDbConnStr
   _ <- dropTables conn -- drop tables before so if already exist no problems... means tables get overwritten though
   connpool <- defaultPool
-  let contextT = AC.mkSCSContextType True
-      context  = AC.SCSContext contextT connpool defaultParams
+  let envT = AC.mkEnvType True
+      context  = AC.SCSContext envT connpool defaultParams
   tryCreateSchema True conn
   return (conn, context)
 
