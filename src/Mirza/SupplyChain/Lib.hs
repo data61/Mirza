@@ -38,7 +38,7 @@ import qualified Data.Pool                   as Pool
 
 
 startApp :: ByteString -> AC.EnvType -> Word16 -> UIFlavour -> ScryptParams -> IO ()
-startApp dbConnStr contextT prt uiFlavour params = do
+startApp dbConnStr envT prt uiFlavour params = do
     connpool <- Pool.createPool (connectPostgreSQL dbConnStr) close
                         1 -- Number of "sub-pools",
                         60 -- How long in seconds to keep a connection open for reuse
@@ -46,7 +46,7 @@ startApp dbConnStr contextT prt uiFlavour params = do
                         -- TODO: Make this a config parameter
 
     let
-        context  = AC.SCSContext contextT connpool params
+        context  = AC.SCSContext envT connpool params
         app = return $ webApp context uiFlavour
     putStrLn $ "http://localhost:" ++ show prt ++ "/swagger-ui/"
     Warp.run (fromIntegral prt) =<< app
