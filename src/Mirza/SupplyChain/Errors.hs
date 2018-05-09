@@ -1,7 +1,13 @@
 {-# LANGUAGE DeriveGeneric #-}
 
 -- | Contains definition(s) of some error types
-module Mirza.SupplyChain.Errors where
+module Mirza.SupplyChain.Errors
+  ( ServiceError(..)
+  , ServerError(..)
+  , Expected(..)
+  , Received(..)
+  , ErrorCode
+  ) where
 
 import qualified Mirza.SupplyChain.Model    as M
 import qualified Mirza.SupplyChain.Utils    as U
@@ -10,14 +16,14 @@ import qualified Data.GS1.EPC               as EPC
 import           Data.GS1.EventID           as EvId
 
 import qualified Data.ByteString            as BS
+import           Data.Text                  (Text)
 import qualified Data.Text                  as T
 import           Database.PostgreSQL.Simple (SqlError)
 import           GHC.Generics               (Generic)
 
-type ErrorText = T.Text
 type ErrorCode = BS.ByteString
 
-data ServerError = ServerError (Maybe ErrorCode) ErrorText
+data ServerError = ServerError (Maybe ErrorCode) Text
                    deriving (Show, Eq, Generic, Read)
 
 newtype Expected = Expected {unExpected :: U.Byte} deriving (Show, Eq, Read)
@@ -41,6 +47,6 @@ data ServiceError
   | AuthFailed            M.EmailAddress
   | UserNotFound          M.EmailAddress
   | ParseError            EPC.ParseFailure
-  | BackendErr            ErrorText -- fallback
+  | BackendErr            Text -- fallback
   | DatabaseError         SqlError
   deriving (Show, Eq, Generic)

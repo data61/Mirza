@@ -1,7 +1,15 @@
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 -- | This module contains the helper functions that are used in error handling
-module Mirza.SupplyChain.ErrorUtils where
+module Mirza.SupplyChain.ErrorUtils
+  ( appErrToHttpErr
+  , throwBackendError
+  , getSqlErrorCode
+  , throwAppError
+  , toServerError
+  , throwParseError
+  -- , throw500Err
+  ) where
 
 import           Mirza.SupplyChain.Errors            (ErrorCode, Expected (..),
                                                       Received (..),
@@ -83,8 +91,9 @@ appErrToHttpErr (DatabaseError _) = generic500err
 generic500err :: Handler a
 generic500err = throwError err500 {errBody = "Something went wrong"}
 
-throw500Err :: MonadError ServantErr m => LBSC8.ByteString -> m a
-throw500Err bdy = throwError err500 {errBody = bdy}
+-- UNUSED
+_throw500Err :: MonadError ServantErr m => LBSC8.ByteString -> m a
+_throw500Err bdy = throwError err500 {errBody = bdy}
 
 -- TODO: Some of these might benefit from HasCallStack constraints
 
@@ -92,15 +101,6 @@ throw500Err bdy = throwError err500 {errBody = bdy}
 -- itself and constructs a ``ServerError`` with it
 toServerError :: Show a => (a -> Maybe ErrorCode) -> a -> ServerError
 toServerError f e = ServerError (f e) (U.toText e)
-
--- | Shorthand for ``toServerError``.
--- Use if you can't think of a function to extract the error code
-defaultToServerError :: Show a => a -> ServerError
-defaultToServerError = toServerError (const Nothing)
-
--- | Shorthand for only SqlError types
-sqlToServerError :: SqlError -> ServiceError
-sqlToServerError = DatabaseError -- toServerError getSqlErrorCode
 
 -- | Shorthand for throwing a Generic Backend error
 throwBackendError :: (Show a, MonadError AppError m) => a -> m b
@@ -121,16 +121,16 @@ throwParseError = throwAppError . ParseError
 
 parseFailureToErrorMsg :: ParseFailure -> LBSC8.ByteString
 -- TODO: Include XML Snippet in the error
-parseFailureToErrorMsg InvalidLength = "The length of one of your URN's is not correct"
-parseFailureToErrorMsg InvalidFormat = "Incorrectly formatted XML. Possible Causes: \
-                                      \ Some components of the URN missing,\
-                                      \Incorrectly structured, Wrong payload"
-parseFailureToErrorMsg InvalidAction = "Could not parse the Action provided"
-parseFailureToErrorMsg InvalidBizTransaction = "Could not parse business transaction"
-parseFailureToErrorMsg InvalidEvent = "Could not parse the event supplied"
-parseFailureToErrorMsg TimeZoneError = "There was an error in parsing the timezone"
-parseFailureToErrorMsg TagNotFound = "One or more required tags missing"
-parseFailureToErrorMsg InvalidDispBizCombination = "The combination of Disposition\
-                                                  \ and Business Transaction is incorrect"
+parseFailureToErrorMsg e = case e of
+  InvalidLength -> "The length of one of your URN's is not correct"
+  InvalidFormat -> "Incorrectly formatted XML. Possible Causes: Some components \
+                   \of the URN missing,Incorrectly structured, Wrong payload"
+  InvalidAction -> "Could not parse the Action provided"
+  InvalidBizTransaction -> "Could not parse business transaction"
+  InvalidEvent -> "Could not parse the event supplied"
+  TimeZoneError -> "There was an error in parsing the timezone"
+  TagNotFound -> "One or more required tags missing"
+  InvalidDispBizCombination -> "The combination of Disposition\
+                               \ and Business Transaction is incorrect"
 -- TODO: map parseFailureToErrorMsg <all_failures> joined by "\n"
-parseFailureToErrorMsg (ChildFailure _) = "Encountered several errors while parsing the data provided."
+  ChildFailure _ -> "Encountered several errors while parsing the data provided."
