@@ -16,7 +16,7 @@ import qualified Mirza.SupplyChain.StorageBeam as SB
 import           Data.GS1.EPC
 
 import           Control.Monad                 (void)
-import           Mirza.SupplyChain.AppConfig   (AppM, DB, Env (..),
+import           Mirza.SupplyChain.Types       (AppM, DB, Env (..),
                                                 EnvType (..), pg, runAppM,
                                                 runDb)
 -- import           Crypto.Scrypt

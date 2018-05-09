@@ -5,8 +5,6 @@
 module Mirza.SupplyChain.BeamQueries where
 
 
-import           Mirza.SupplyChain.AppConfig              (AppError (..), DB,
-                                                           asks, pg, scryptPs)
 import           Mirza.SupplyChain.Errors                 (ServiceError (..))
 import           Mirza.SupplyChain.ErrorUtils             (getSqlErrorCode,
                                                            throwAppError,
@@ -16,6 +14,8 @@ import qualified Mirza.SupplyChain.MigrateUtils           as MU
 import qualified Mirza.SupplyChain.Model                  as M
 import           Mirza.SupplyChain.QueryUtils
 import qualified Mirza.SupplyChain.StorageBeam            as SB
+import           Mirza.SupplyChain.Types                  (AppError (..), DB,
+                                                           asks, pg, scryptPs)
 
 import           Data.GS1.DWhat                           (AggregationDWhat (..),
                                                            DWhat (..),

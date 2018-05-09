@@ -18,23 +18,23 @@ module Mirza.SupplyChain.Lib
     where
 
 import           Mirza.SupplyChain.API
-import qualified Mirza.SupplyChain.AppConfig as AC
-import           Mirza.SupplyChain.Model     (User)
+import           Mirza.SupplyChain.Model    (User)
 import           Mirza.SupplyChain.Service
+import qualified Mirza.SupplyChain.Types    as AC
 
 import           Servant
 import           Servant.Swagger.UI
 
-import           Control.Lens                hiding ((.=))
-import           Data.ByteString             (ByteString)
+import           Control.Lens               hiding ((.=))
+import           Data.ByteString            (ByteString)
 import           Data.Swagger
 import           Database.PostgreSQL.Simple
-import qualified Network.Wai.Handler.Warp    as Warp
+import qualified Network.Wai.Handler.Warp   as Warp
 
-import           GHC.Word                    (Word16)
+import           GHC.Word                   (Word16)
 
-import           Crypto.Scrypt               (ScryptParams, defaultParams)
-import qualified Data.Pool                   as Pool
+import           Crypto.Scrypt              (ScryptParams, defaultParams)
+import qualified Data.Pool                  as Pool
 
 
 startApp :: ByteString -> AC.EnvType -> Word16 -> UIFlavour -> ScryptParams -> IO ()

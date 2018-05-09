@@ -10,11 +10,11 @@
 -- Model type and its Storage equivalent
 module Mirza.SupplyChain.QueryUtils where
 
-import           Mirza.SupplyChain.AppConfig    (DB, pg)
 import           Mirza.SupplyChain.ErrorUtils   (throwBackendError)
 import qualified Mirza.SupplyChain.MigrateUtils as MU
 import qualified Mirza.SupplyChain.Model        as M
 import qualified Mirza.SupplyChain.StorageBeam  as SB
+import           Mirza.SupplyChain.Types        (DB, pg)
 
 import           Data.GS1.DWhy                  (DWhy (..))
 import           Data.GS1.EPC                   as EPC

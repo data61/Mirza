@@ -3,12 +3,12 @@
 -- | This module contains the helper functions that are used in error handling
 module Mirza.SupplyChain.ErrorUtils where
 
-import           Mirza.SupplyChain.AppConfig         (AppError (..), AppM)
 import           Mirza.SupplyChain.Errors            (ErrorCode, Expected (..),
                                                       Received (..),
                                                       ServerError (..),
                                                       ServiceError (..))
 import qualified Mirza.SupplyChain.Model             as M
+import           Mirza.SupplyChain.Types             (AppError (..), AppM)
 import qualified Mirza.SupplyChain.Utils             as U
 
 import           Control.Monad.Except                (MonadError (..),
