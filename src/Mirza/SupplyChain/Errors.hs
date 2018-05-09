@@ -10,6 +10,7 @@ module Mirza.SupplyChain.Errors
   ) where
 
 import qualified Mirza.SupplyChain.Model    as M
+import qualified Mirza.SupplyChain.Types    as Ty
 import qualified Mirza.SupplyChain.Utils    as U
 
 import qualified Data.GS1.EPC               as EPC
@@ -26,8 +27,8 @@ type ErrorCode = BS.ByteString
 data ServerError = ServerError (Maybe ErrorCode) Text
                    deriving (Show, Eq, Generic, Read)
 
-newtype Expected = Expected {unExpected :: U.Byte} deriving (Show, Eq, Read)
-newtype Received = Received {unReceived :: U.Byte} deriving (Show, Eq, Read)
+newtype Expected = Expected {unExpected :: Ty.Byte} deriving (Show, Eq, Read)
+newtype Received = Received {unReceived :: Ty.Byte} deriving (Show, Eq, Read)
 
 -- | A sum type of errors that may occur in the Service layer
 data ServiceError
