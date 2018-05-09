@@ -16,9 +16,10 @@ import qualified Mirza.SupplyChain.StorageBeam as SB
 import           Data.GS1.EPC
 
 import           Control.Monad                 (void)
-import           Mirza.SupplyChain.AppConfig   (AppM, DB, Env (..),
-                                                EnvType (..), pg, runAppM,
-                                                runDb)
+import           Mirza.SupplyChain.AppConfig   (AppError, AppM, DB,
+                                                SCSContext (..),
+                                                SCSContextType (..), pg,
+                                                runAppM, runDb)
 -- import           Crypto.Scrypt
 import           Data.ByteString               (ByteString)
 import           Data.Maybe                    (fromJust, isNothing)
@@ -52,7 +53,7 @@ timeStampIOEPCIS = liftIO $ EPCISTime <$> getCurrentTime
 rsaPubKey :: IO M.PEM_RSAPubKey
 rsaPubKey = M.PEMString <$> Prelude.readFile "./test/Tests/testKeys/goodKeys/test.pub"
 
-selectKey :: M.KeyID -> DB (Maybe SB.Key)
+selectKey :: M.KeyID -> DB SCSContext AppError (Maybe SB.Key)
 selectKey (M.KeyID keyId) = do
   r <- pg $ runSelectReturningList $ select $ do
           key <- all_ (SB._keys SB.supplyChainDb)
@@ -62,12 +63,12 @@ selectKey (M.KeyID keyId) = do
     [key] -> return $ Just key
     _     -> return Nothing
 
-testAppM :: Env -> AppM a -> IO a
+testAppM :: SCSContext -> AppM a -> IO a
 testAppM env act = runAppM env act >>= \case
     Left err -> fail (show err)
     Right a -> pure a
 
-testQueries :: HasCallStack => SpecWith (Connection, Env)
+testQueries :: HasCallStack => SpecWith (Connection, SCSContext)
 testQueries = do
 
   describe "addPublicKey tests" $
@@ -357,19 +358,19 @@ clearContact = do
   void $ execute_ conn "DELETE FROM contacts;"
 
 -- | Utility function that can be used in the ``before_`` hook
-populateContact :: IO Env -> IO ()
-populateContact ioEnv = do
-    env <- ioEnv
+populateContact :: IO SCSContext -> IO ()
+populateContact ioSCSContext = do
+    scsContext <- ioSCSContext
     let myContact = makeDummyNewUser (M.EmailAddress "first@gmail.com")
-    hasBeenAdded <- testAppM env $ do
+    hasBeenAdded <- testAppM scsContext $ do
       void $ S.newUser dummyNewUser
       user <- runDb $ getUser $ M.emailAddress dummyNewUser
       myContactUid <- S.newUser myContact
       S.addContact (fromJust user) myContactUid
     hasBeenAdded `shouldBe` True
 
-defaultEnv :: IO Env
-defaultEnv = (\conn -> Env Dev conn Scrypt.defaultParams) <$> defaultPool
+defaultSCSContext :: IO SCSContext
+defaultSCSContext = (\conn -> SCSContext Dev conn Scrypt.defaultParams) <$> defaultPool
 
 defaultPool :: IO (Pool Connection)
 defaultPool = Pool.createPool (connectPostgreSQL testDbConnStr) close
