@@ -20,7 +20,7 @@ import qualified Mirza.SupplyChain.AppConfig   as AC
 import qualified Mirza.SupplyChain.BeamQueries as BQ
 import           Mirza.SupplyChain.Dummies     (dummyObjectDWhat)
 import           Mirza.SupplyChain.Errors
-import           Mirza.SupplyChain.ErrorUtils  (appErrToHttpErr, throwAppErr,
+import           Mirza.SupplyChain.ErrorUtils  (appErrToHttpErr, throwAppError,
                                                 throwParseError)
 import qualified Mirza.SupplyChain.Model       as M
 import qualified Mirza.SupplyChain.QueryUtils  as QU
@@ -82,8 +82,8 @@ appMToHandler :: forall x. AC.SCSContext -> AC.AppM x -> Handler x
 appMToHandler context act = do
   res <- liftIO $ AC.runAppM context act
   case res of
-    Left (AC.AppErr e) -> appErrToHttpErr e
-    Right a            -> return a
+    Left (AC.AppError e) -> appErrToHttpErr e
+    Right a              -> return a
 
 privateServer :: ServerT ProtectedAPI AC.AppM
 privateServer
@@ -139,7 +139,7 @@ minPubKeySize = U.Byte 256 -- 2048 / 8
 addPublicKey :: M.User -> M.PEM_RSAPubKey -> AC.AppM M.KeyID
 addPublicKey user pemKey@(M.PEMString pemStr) = do
   somePubKey <- liftIO $ readPublicKey pemStr
-  either throwAppErr
+  either throwAppError
          (AC.runDb . BQ.addPublicKey user)
          (checkPubKey somePubKey pemKey)
 
@@ -260,15 +260,15 @@ eventSign :: M.User -> M.SignedEvent -> AC.AppM SB.PrimaryKeyType
 eventSign _user (M.SignedEvent eventID keyID (M.Signature sigStr) digest') = AC.runDb $ do
   event <- BQ.getEventJSON eventID
   rsaPublicKey <- BQ.getPublicKey keyID
-  sigBS <- BS64.decode (BSC.pack sigStr) <%?> AC.AppErr . InvalidSignature
+  sigBS <- BS64.decode (BSC.pack sigStr) <%?> AC.AppError . InvalidSignature
   let (M.PEMString keyStr) = rsaPublicKey
-  (pubKey :: RSAPubKey) <- liftIO (toPublicKey <$> readPublicKey keyStr) <!?> AC.AppErr (InvalidRSAKeyString (pack keyStr))
+  (pubKey :: RSAPubKey) <- liftIO (toPublicKey <$> readPublicKey keyStr) <!?> AC.AppError (InvalidRSAKeyString (pack keyStr))
   let eventBS = QU.eventTxtToBS event
-  digest <- liftIO (makeDigest digest') <!?> AC.AppErr (InvalidDigest digest')
+  digest <- liftIO (makeDigest digest') <!?> AC.AppError (InvalidDigest digest')
   verifyStatus <- liftIO $ verifyBS digest sigBS pubKey eventBS
   if verifyStatus == VerifySuccess
     then BQ.insertSignature eventID keyID (M.Signature sigStr) digest'
-    else throwAppErr $ InvalidSignature sigStr
+    else throwAppError $ InvalidSignature sigStr
 
 
 addUserToEvent :: M.User -> EventID -> AC.AppM Bool

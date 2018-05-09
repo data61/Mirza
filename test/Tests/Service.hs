@@ -16,9 +16,9 @@ import qualified Mirza.SupplyChain.StorageBeam as SB
 import           Data.GS1.EPC
 
 import           Control.Monad                 (void)
-import           Mirza.SupplyChain.AppConfig   (AppErr, AppM, DB, EnvType (..),
-                                                SCSContext (..), pg, runAppM,
-                                                runDb)
+import           Mirza.SupplyChain.AppConfig   (AppError, AppM, DB,
+                                                EnvType (..), SCSContext (..),
+                                                pg, runAppM, runDb)
 -- import           Crypto.Scrypt
 import           Data.ByteString               (ByteString)
 import           Data.Maybe                    (fromJust, isNothing)
@@ -52,7 +52,7 @@ timeStampIOEPCIS = liftIO $ EPCISTime <$> getCurrentTime
 rsaPubKey :: IO M.PEM_RSAPubKey
 rsaPubKey = M.PEMString <$> Prelude.readFile "./test/Tests/testKeys/goodKeys/test.pub"
 
-selectKey :: M.KeyID -> DB SCSContext AppErr (Maybe SB.Key)
+selectKey :: M.KeyID -> DB SCSContext AppError (Maybe SB.Key)
 selectKey (M.KeyID keyId) = do
   r <- pg $ runSelectReturningList $ select $ do
           key <- all_ (SB._keys SB.supplyChainDb)
