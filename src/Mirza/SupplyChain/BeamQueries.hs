@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveGeneric    #-}
 {-# LANGUAGE FlexibleContexts #-}
 
 -- | This module is incomplete as of yet.
@@ -361,6 +362,18 @@ eventsByUser (M.UserID userId) = do
     pure (SB.json_event event)
   return $ catMaybes $ decodeEvent <$> eventList
 
+-- TODO: move these to an appropriate ``Types`` module once that's made
+newtype EventOwner  = EventOwner M.UserID deriving(Generic, Show, Eq, Read)
+newtype SigningUser = SigningUser M.UserID deriving(Generic, Show, Eq, Read)
+
+addUserToEvent :: EventOwner -> SigningUser -> EvId.EventID -> DB ()
+addUserToEvent (EventOwner lUserId@(M.UserID loggedInUserId))
+               (SigningUser (M.UserID otherUserId))
+               evId@(EvId.EventID eventId) = do
+  userCreatedEvent <- hasUserCreatedEvent lUserId evId
+  if userCreatedEvent
+    then insertUserEvent eventId loggedInUserId otherUserId False Nothing
+    else throwError . AppError $ EventPermissionDenied lUserId evId
 
 -- -- TODO - convert these below functions, and others in original file Storage.hs
 -- -- TODO = use EventId or EventID ???

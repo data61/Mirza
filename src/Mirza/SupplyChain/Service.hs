@@ -103,6 +103,7 @@ privateServer
   :<|> insertAggEvent
   :<|> insertTransactEvent
   :<|> insertTransfEvent
+  :<|> addUserToEvent
   :<|> addPublicKey
 
 publicServer :: ServerT PublicAPI AC.AppM
@@ -270,9 +271,11 @@ eventSign _user (M.SignedEvent eventID keyID (M.Signature sigStr) digest') = AC.
     then BQ.insertSignature eventID keyID (M.Signature sigStr) digest'
     else throwAppError $ InvalidSignature sigStr
 
-
-addUserToEvent :: M.User -> EventID -> AC.AppM Bool
-addUserToEvent (M.User (M.UserID _userId) _ _) (EventID _eventId) = U.notImplemented
+-- | A function to tie a user to an event
+-- Populates the ``UserEvents`` table
+addUserToEvent :: M.User -> M.UserID -> EventID -> AC.AppM ()
+addUserToEvent (M.User loggedInUserId _ _) anotherUserId eventId =
+    AC.runDb $ BQ.addUserToEvent (BQ.EventOwner loggedInUserId) (BQ.SigningUser anotherUserId) eventId
 
 -- eventSign user signedEvent = error "Storage module not implemented"
 -- eventSign user signedEvent = do

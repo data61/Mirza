@@ -6,10 +6,9 @@ module Mirza.SupplyChain.Errors where
 import qualified Mirza.SupplyChain.Model    as M
 import qualified Mirza.SupplyChain.Utils    as U
 
+import qualified Data.ByteString            as BS
 import qualified Data.GS1.EPC               as EPC
 import           Data.GS1.EventID           as EvId
-
-import qualified Data.ByteString            as BS
 import qualified Data.Text                  as T
 import           Database.PostgreSQL.Simple (SqlError)
 import           GHC.Generics               (Generic)
