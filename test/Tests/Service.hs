@@ -16,10 +16,9 @@ import qualified Mirza.SupplyChain.StorageBeam as SB
 import           Data.GS1.EPC
 
 import           Control.Monad                 (void)
-import           Mirza.SupplyChain.AppConfig   (AppErr, AppM, DB,
-                                                SCSContext (..),
-                                                SCSContextType (..), pg,
-                                                runAppM, runDb)
+import           Mirza.SupplyChain.AppConfig   (AppErr, AppM, DB, EnvType (..),
+                                                SCSContext (..), pg, runAppM,
+                                                runDb)
 -- import           Crypto.Scrypt
 import           Data.ByteString               (ByteString)
 import           Data.Maybe                    (fromJust, isNothing)

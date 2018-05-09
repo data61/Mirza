@@ -1,6 +1,6 @@
 module Main where
 
-import           Mirza.SupplyChain.AppConfig (SCSContextType (..))
+import           Mirza.SupplyChain.AppConfig (EnvType (..))
 import           Mirza.SupplyChain.Lib
 import           Mirza.SupplyChain.Migrate   (defConnectionStr, migrate)
 
@@ -11,7 +11,7 @@ import           Options.Applicative
 import qualified Crypto.Scrypt               as Scrypt
 
 data ServerOptions = ServerOptions
-  { env           :: SCSContextType
+  { env           :: EnvType
   , initDB        :: Bool
 --  , clearDB       :: Bool
   , connectionStr :: ByteString
