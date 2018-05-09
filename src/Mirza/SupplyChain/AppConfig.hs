@@ -2,9 +2,9 @@
 
 -- | Contains the definition of our ReaderT AppM
 module Mirza.SupplyChain.AppConfig
-  (ServerEnvironmentType(..)
-  , mkServerEnvironmentType
-  , ServerEnvironment(..)
+  (SCSContextType(..)
+  , mkSCSContextType
+  , SCSContext(..)
   , AppError(..)
   , AppM
   , DB
@@ -41,17 +41,17 @@ import qualified Control.Exception          as E
 
 import           Data.Pool                  as Pool
 
-data ServerEnvironmentType = Prod | Dev
+data SCSContextType = Prod | Dev
   deriving (Show, Eq, Read)
 
-mkServerEnvironmentType :: Bool -> ServerEnvironmentType
-mkServerEnvironmentType False = Prod
-mkServerEnvironmentType _     = Dev
+mkSCSContextType :: Bool -> SCSContextType
+mkSCSContextType False = Prod
+mkSCSContextType _     = Dev
 
-data ServerEnvironment = ServerEnvironment
-  { envType    :: ServerEnvironmentType
-  , dbConnPool :: Pool Connection
-  , scryptPs   :: ScryptParams
+data SCSContext = SCSContext
+  { contextType :: SCSContextType
+  , dbConnPool  :: Pool Connection
+  , scryptPs    :: ScryptParams
   -- , port    :: Word16
   }
 
@@ -62,12 +62,12 @@ newtype AppError = AppError ServiceError deriving (Show)
 -- type Handler a = ExceptT ServantErr IO a
 -- newtype ExceptT e m a :: * -> (* -> *) -> * -> *
 newtype AppM a = AppM
-  { unAppM :: ReaderT ServerEnvironment (ExceptT AppError IO) a
+  { unAppM :: ReaderT SCSContext (ExceptT AppError IO) a
   } deriving
     ( Functor
     , Applicative
     , Monad
-    , MonadReader ServerEnvironment
+    , MonadReader SCSContext
     , MonadIO
     , MonadError AppError
     )
@@ -90,7 +90,7 @@ newtype DB environment error a = DB (ReaderT (Connection,environment) (ExceptT e
 
 dbFunc :: AppM (Connection -> Pg a -> IO a)
 dbFunc = do
-  e <- asks envType
+  e <- asks contextType
   pure $ case e of
     Prod -> B.withDatabase  -- database queries other than migration will be silent
     _    -> B.withDatabaseDebug putStrLn  -- database queries other than migration will print on screen
@@ -104,7 +104,7 @@ dbFunc = do
 -- Exceptions which are thrown which are not SqlErrors will be caught by Servant
 -- and cause 500 errors (these are not exceptions we'll generally know how to
 -- deal with).
-runDb :: DB ServerEnvironment AppError a -> AppM a
+runDb :: DB SCSContext AppError a -> AppM a
 runDb (DB act) = do
   env <- ask
   dbf <- dbFunc
@@ -134,10 +134,10 @@ withTransaction conn act = E.mask $ \restore -> do
   pure r
 
 
-pg :: Pg a -> DB ServerEnvironment AppError a
+pg :: Pg a -> DB SCSContext AppError a
 pg = DB . lift . lift
 
-runAppM :: ServerEnvironment -> AppM a -> IO (Either AppError a)
+runAppM :: SCSContext -> AppM a -> IO (Either AppError a)
 runAppM env aM = runExceptT $ (runReaderT . unAppM) aM env
 
 -- App Utils. Moved from Utils
@@ -147,12 +147,12 @@ runAppM env aM = runExceptT $ (runReaderT . unAppM) aM env
 -- Only works in AppM monad
 debugLog :: Show a => a -> AppM ()
 debugLog strLike = do
-  envT <- asks envType
+  envT <- asks contextType
   when (envT == Dev) $ liftIO $ print strLike
 
--- | To be used when the ServerEnvironment is known/available.
+-- | To be used when the SCSContext is known/available.
 -- It doesn't require that the function is being run in AppM
-debugLogGeneral :: (Show a, MonadIO f) => ServerEnvironmentType -> a -> f ()
+debugLogGeneral :: (Show a, MonadIO f) => SCSContextType -> a -> f ()
 debugLogGeneral envT strLike =
   when (envT == Dev) $ liftIO $ print strLike
 

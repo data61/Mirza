@@ -37,7 +37,7 @@ import           Crypto.Scrypt               (ScryptParams, defaultParams)
 import qualified Data.Pool                   as Pool
 
 
-startApp :: ByteString -> AC.ServerEnvironmentType -> Word16 -> UIFlavour -> ScryptParams -> IO ()
+startApp :: ByteString -> AC.SCSContextType -> Word16 -> UIFlavour -> ScryptParams -> IO ()
 startApp dbConnStr envT prt uiFlavour params = do
     connpool <- Pool.createPool (connectPostgreSQL dbConnStr) close
                         1 -- Number of "sub-pools",
@@ -46,7 +46,7 @@ startApp dbConnStr envT prt uiFlavour params = do
                         -- TODO: Make this a config parameter
 
     let
-        env  = AC.ServerEnvironment envT connpool params
+        env  = AC.SCSContext envT connpool params
         app = return $ webApp env uiFlavour
     putStrLn $ "http://localhost:" ++ show prt ++ "/swagger-ui/"
     Warp.run (fromIntegral prt) =<< app
@@ -56,7 +56,7 @@ startApp_nomain :: ByteString -> IO ()
 startApp_nomain dbConnStr = startApp dbConnStr AC.Dev 8000 Original defaultParams
 
 -- Application = Request -> (Response -> IO ResponseReceived) -> IO ResponseReceived
-webApp :: AC.ServerEnvironment -> UIFlavour -> Application
+webApp :: AC.SCSContext -> UIFlavour -> Application
 webApp env uiFlavour = serveWithContext api (basicAuthServerContext env) (server' env uiFlavour)
 
 -- Implementation
@@ -73,7 +73,7 @@ data UIFlavour
     | JensOleG
     deriving (Eq, Read, Show)
 
-server' :: AC.ServerEnvironment -> UIFlavour -> Server API'
+server' :: AC.SCSContext -> UIFlavour -> Server API'
 server' env uiFlavour = server Normal
         :<|> server Nested
         :<|> schemaUiServer (serveSwaggerAPI' SpecDown)
