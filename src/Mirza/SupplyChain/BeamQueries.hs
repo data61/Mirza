@@ -323,7 +323,7 @@ removeContact (M.User firstId@(M.UserID uid1) _ _) secondId@(M.UserID uid2) = do
   else return False
 
 -- | Lists all the contacts associated with the given user
-listContacts :: M.User -> DB SCSContext  AppError [M.User]
+listContacts :: M.User -> DB SCSContext AppError [M.User]
 listContacts  (M.User (M.UserID uid) _ _) = do
   userList <- pg $ runSelectReturningList $ select $ do
     user <- all_ (SB._users SB.supplyChainDb)

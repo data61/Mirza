@@ -46,8 +46,8 @@ startApp dbConnStr envT prt uiFlavour params = do
                         -- TODO: Make this a config parameter
 
     let
-        context  = AC.SCSContext envT connpool params
-        app = return $ webApp context uiFlavour
+        context = AC.SCSContext envT connpool params
+        app     = return $ webApp context uiFlavour
     putStrLn $ "http://localhost:" ++ show prt ++ "/swagger-ui/"
     Warp.run (fromIntegral prt) =<< app
 
