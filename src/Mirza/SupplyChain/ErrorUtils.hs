@@ -12,12 +12,13 @@ module Mirza.SupplyChain.ErrorUtils
   ) where
 
 import qualified Mirza.SupplyChain.Model             as M
-import           Mirza.SupplyChain.Types             (AppError (..), AppM,
+import           Mirza.SupplyChain.Types             (AppM, AsServiceError (..),
                                                       Byte (..), ErrorCode,
                                                       Expected (..),
                                                       Received (..),
                                                       ServerError (..),
-                                                      ServiceError (..))
+                                                      ServiceError (..),
+                                                      throwing)
 import qualified Mirza.SupplyChain.Utils             as U
 
 import           Control.Monad.Except                (MonadError (..),
@@ -104,20 +105,20 @@ toServerError :: Show a => (a -> Maybe ErrorCode) -> a -> ServerError
 toServerError f e = ServerError (f e) (U.toText e)
 
 -- | Shorthand for throwing a Generic Backend error
-throwBackendError :: (Show a, MonadError AppError m) => a -> m b
-throwBackendError er = throwAppError $ BackendErr $ U.toText er
+throwBackendError :: (Show a, MonadError err m, AsServiceError err) => a -> m b
+throwBackendError er = throwing _BackendErr $ U.toText er
 
 -- | Shorthand for throwing AppErrors
 -- Added because we were doing a lot of it
-throwAppError :: MonadError AppError m => ServiceError -> m a
-throwAppError = throwError . AppError
+throwAppError :: (AsServiceError err, MonadError err m) => ServiceError -> m a
+throwAppError = throwing _ServiceError
 
 -- | Extracts error code from an ``SqlError``
 getSqlErrorCode :: SqlError -> Maybe ByteString
 getSqlErrorCode e@SqlError{} = Just $ sqlState e
 
-throwParseError :: ParseFailure -> AppM a
-throwParseError = throwAppError . ParseError
+throwParseError :: AsServiceError err => ParseFailure -> AppM context err a
+throwParseError = throwing _ParseError
 
 
 parseFailureToErrorMsg :: ParseFailure -> LBSC8.ByteString

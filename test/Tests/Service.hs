@@ -64,7 +64,7 @@ selectKey (M.KeyID keyId) = do
     [key] -> return $ Just key
     _     -> return Nothing
 
-testAppM :: SCSContext -> AppM a -> IO a
+testAppM :: context -> AppM context AppError a -> IO a
 testAppM scsContext act = runAppM scsContext act >>= \case
     Left err -> fail (show err)
     Right a -> pure a
