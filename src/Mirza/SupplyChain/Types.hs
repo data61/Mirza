@@ -1,29 +1,24 @@
 {-# LANGUAGE DeriveGeneric              #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE TemplateHaskell            #-}
+
 
 
 -- | Contains the definition of our ReaderT AppM
 module Mirza.SupplyChain.Types
-  (EnvType(..)
-  , mkEnvType
+  (mkEnvType
   , SCSContext(..)
+  , HasScryptParams(..)
   , AppError(..)
-  , AppM
-  , DB
-  , runAppM
-  , dbFunc
-  , runDb
-  , pg
-  , ask
-  , asks
   , EventOwner(..)
   , SigningUser(..)
   , Bit(..)
   , Byte(..)
-  -- , module Common
+  , module Common
   -- * Errors
   , ServiceError(..)
   , ServerError(..)
+  , AsServiceError(..)
   , Expected(..)
   , Received(..)
   , ErrorCode
@@ -37,22 +32,9 @@ import qualified Data.GS1.EPC               as EPC
 import           Data.GS1.EventID           as EvId
 
 
-import qualified Database.Beam              as B
-import           Database.Beam.Postgres     (Pg)
 import           Database.PostgreSQL.Simple (Connection, SqlError)
-import qualified Database.PostgreSQL.Simple as DB
-
-import qualified Control.Exception          as Exc
-import           Control.Monad.Except       (ExceptT (..), MonadError,
-                                             runExceptT, throwError)
-import           Control.Monad.IO.Class     (MonadIO)
-import           Control.Monad.Reader       (MonadReader, ReaderT, ask, asks,
-                                             liftIO, runReaderT)
-import           Control.Monad.Trans        (lift)
 
 import           Crypto.Scrypt              (ScryptParams)
-
-import qualified Control.Exception          as E
 
 import           Data.Pool                  as Pool
 
@@ -61,109 +43,38 @@ import           GHC.Generics               (Generic)
 import qualified Data.ByteString            as BS
 import           Data.Text                  (Text)
 
+import           Control.Lens
+
+import           Mirza.Common.Types         as Common
 
 
-
--- import           Mirza.Common.Types         as Common
-
-data EnvType = Prod | Dev
-  deriving (Show, Eq, Read)
 
 mkEnvType :: Bool -> EnvType
 mkEnvType False = Prod
 mkEnvType _     = Dev
 
 data SCSContext = SCSContext
-  { envType    :: EnvType
-  , dbConnPool :: Pool Connection
-  , scryptPs   :: ScryptParams
+  { _envType    :: EnvType
+  , _dbConnPool :: Pool Connection
+  , _scryptPs   :: ScryptParams
   -- , port    :: Word16
   }
 
+instance HasEnvType SCSContext where
+  envType = lens _envType (\scs e' -> scs{_envType = e'} )
+
+instance HasConnPool SCSContext where
+  connPool = lens _dbConnPool (\scs p' -> scs{_dbConnPool = p'})
+
+
+class HasScryptParams a where
+  scryptParams :: Lens' a ScryptParams
+
+instance HasScryptParams SCSContext where
+  scryptParams = lens _scryptPs (\scsc p' -> scsc{_scryptPs = p'})
+
 newtype AppError = AppError ServiceError deriving (Show)
 
--- runReaderT :: r -> m a
--- ReaderT r m a
--- type Handler a = ExceptT ServantErr IO a
--- newtype ExceptT e m a :: * -> (* -> *) -> * -> *
-newtype AppM a = AppM
-  { unAppM :: ReaderT SCSContext (ExceptT AppError IO) a
-  } deriving
-    ( Functor
-    , Applicative
-    , Monad
-    , MonadReader SCSContext
-    , MonadIO
-    , MonadError AppError
-    )
-
--- | The DB monad is used to connect to the Beam backend. The only way to run
--- something of type DB a is to use 'runDb', which ensures the action is run in
--- a Postgres transaction, and that exceptions and errors thrown inside the DB a
--- cause the transaction to be rolled back and the error rethrown.
-newtype DB context error a = DB (ReaderT (Connection,context) (ExceptT error Pg) a)
-  deriving
-  ( Functor
-  , Applicative
-  , Monad
-  , MonadReader (Connection,context)
-  , MonadError error
-  , MonadIO -- Need to figure out if we actually want this
-  )
-
-
-
-dbFunc :: AppM (Connection -> Pg a -> IO a)
-dbFunc = do
-  e <- asks envType
-  pure $ case e of
-    Prod -> B.withDatabase  -- database queries other than migration will be silent
-    _    -> B.withDatabaseDebug putStrLn  -- database queries other than migration will print on screen
-
-
--- | Run a DB action within a transaction. See the documentation for
--- 'withTransaction'. SqlError exceptions will be caught and lifted into the
--- AppM MonadError instance, as will all app errors thrown in the DB a action,
--- and in either case the database transaction is rolled back.
---
--- Exceptions which are thrown which are not SqlErrors will be caught by Servant
--- and cause 500 errors (these are not exceptions we'll generally know how to
--- deal with).
-runDb :: DB SCSContext AppError a -> AppM a
-runDb (DB act) = do
-  env <- ask
-  dbf <- dbFunc
-  res <- liftIO $ Pool.withResource (dbConnPool env) $ \conn ->
-          Exc.try
-         . withTransaction conn
-         . dbf conn
-         . runExceptT
-         . runReaderT act $ (conn,env)
-        -- :: AppM (Either SqlError (Either AppError a))
-  either (throwError . AppError . DatabaseError)
-         (either throwError pure)
-         res
-
-
--- | As "Database.PostgreSQL.Simple.Transaction".'DB.withTransaction',
--- but aborts the transaction if a 'Left' is returned.
-
--- TODO: Add NFData constraint to avoid async exceptions.
-withTransaction :: Connection -> IO (Either e a) -> IO (Either e a)
-withTransaction conn act = E.mask $ \restore -> do
-  DB.begin conn
-  r <- restore (act >>= E.evaluate) `E.onException` DB.rollback conn
-  case r of
-    Left _  -> DB.rollback conn
-    Right _ -> DB.commit conn
-  pure r
-
-
-pg :: Pg a -> DB SCSContext AppError a
-pg = DB . lift . lift
-
-runAppM :: SCSContext -> AppM a -> IO (Either AppError a)
-runAppM env aM = runExceptT $ (runReaderT . unAppM) aM env
 
 
 newtype EventOwner  = EventOwner M.UserID deriving(Generic, Show, Eq, Read)
@@ -202,3 +113,14 @@ data ServiceError
   | BackendErr            Text -- fallback
   | DatabaseError         SqlError
   deriving (Show, Eq, Generic)
+
+$(makeClassyPrisms ''ServiceError)
+
+instance AsServiceError AppError where
+  _ServiceError = prism' AppError (\(AppError se) -> Just se)
+
+instance AsSqlError ServiceError where
+  _SqlError = _DatabaseError
+
+instance AsSqlError AppError where
+  _SqlError = _DatabaseError

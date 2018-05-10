@@ -8,7 +8,7 @@ import           Mirza.SupplyChain.API
 import           Mirza.SupplyChain.Migrate  (defConnectionStr, migrate)
 import           Mirza.SupplyChain.Model    (User)
 import           Mirza.SupplyChain.Service
-import           Mirza.SupplyChain.Types    (EnvType (..))
+import           Mirza.SupplyChain.Types    (AppError, EnvType (..))
 import qualified Mirza.SupplyChain.Types    as AC
 
 import           Servant                    hiding (header)
@@ -136,4 +136,4 @@ server' ev =
         (Proxy @ServerAPI)
         (Proxy @'[BasicAuthCheck User])
         (appMToHandler ev)
-        appHandlers
+        (appHandlers @AC.SCSContext @AppError)
