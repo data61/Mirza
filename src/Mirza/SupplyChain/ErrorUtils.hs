@@ -13,8 +13,7 @@ module Mirza.SupplyChain.ErrorUtils
 
 import qualified Mirza.SupplyChain.Model             as M
 import           Mirza.SupplyChain.Types             (AppM, AsServiceError (..),
-                                                      Byte (..), ErrorCode,
-                                                      Expected (..),
+                                                      Byte (..), Expected (..),
                                                       Received (..),
                                                       ServerError (..),
                                                       ServiceError (..),
@@ -101,7 +100,7 @@ _throw500Err bdy = throwError err500 {errBody = bdy}
 
 -- | Takes in a function that can extract errorcode out of an error, the error
 -- itself and constructs a ``ServerError`` with it
-toServerError :: Show a => (a -> Maybe ErrorCode) -> a -> ServerError
+toServerError :: Show a => (a -> Maybe ByteString) -> a -> ServerError
 toServerError f e = ServerError (f e) (U.toText e)
 
 -- | Shorthand for throwing a Generic Backend error

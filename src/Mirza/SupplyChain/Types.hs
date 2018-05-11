@@ -21,7 +21,6 @@ module Mirza.SupplyChain.Types
   , AsServiceError(..)
   , Expected(..)
   , Received(..)
-  , ErrorCode
   )
   where
 
@@ -48,7 +47,6 @@ import           Control.Lens
 import           Mirza.Common.Types         as Common
 
 
-
 mkEnvType :: Bool -> EnvType
 mkEnvType False = Prod
 mkEnvType _     = Dev
@@ -66,16 +64,14 @@ instance HasEnvType SCSContext where
 instance HasConnPool SCSContext where
   connPool = lens _dbConnPool (\scs p' -> scs{_dbConnPool = p'})
 
-
+-- | The class of contexts which have Scrypt parameters
 class HasScryptParams a where
   scryptParams :: Lens' a ScryptParams
 
 instance HasScryptParams SCSContext where
   scryptParams = lens _scryptPs (\scsc p' -> scsc{_scryptPs = p'})
 
-newtype AppError = AppError ServiceError deriving (Show)
-
-
+-- TODO: Document all these types!
 
 newtype EventOwner  = EventOwner M.UserID deriving(Generic, Show, Eq, Read)
 newtype SigningUser = SigningUser M.UserID deriving(Generic, Show, Eq, Read)
@@ -84,13 +80,20 @@ newtype SigningUser = SigningUser M.UserID deriving(Generic, Show, Eq, Read)
 newtype Bit  = Bit  {unBit :: Int} deriving (Show, Eq, Read)
 newtype Byte = Byte {unByte :: Int} deriving (Show, Eq, Read)
 
-type ErrorCode = BS.ByteString
-
-data ServerError = ServerError (Maybe ErrorCode) Text
-                   deriving (Show, Eq, Generic, Read)
 
 newtype Expected = Expected {unExpected :: Byte} deriving (Show, Eq, Read)
 newtype Received = Received {unReceived :: Byte} deriving (Show, Eq, Read)
+
+
+-- | Top level application error type, which combines errors from several
+-- domains. Currently only `ServiceError` is contained by AppError, but as this
+-- is broken into smaller error domains and other domains are added more
+-- constructors will be added.
+newtype AppError = AppError ServiceError deriving (Show)
+
+
+data ServerError = ServerError (Maybe BS.ByteString) Text
+                   deriving (Show, Eq, Generic, Read)
 
 -- | A sum type of errors that may occur in the Service layer
 data ServiceError
