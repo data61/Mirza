@@ -43,6 +43,7 @@ import           Control.Monad.Error.Lens
 data EnvType = Prod | Dev
   deriving (Show, Eq, Read)
 
+-- | The class of contexts which include an 'EnvType'
 $(makeClassy ''EnvType)
 
 
@@ -76,10 +77,17 @@ newtype DB context error a = DB (ReaderT (Connection,context) (ExceptT error Pg)
   )
 
 
-
+-- | The clasds of contexts which have a database pool:
+-- @
+--  pool <- view connPool
+--  Pool.withResource pool $ \conn -> ..
+-- @
 class HasConnPool a where
     connPool :: Lens' a (Pool Connection)
 
+-- | The class of error types which can contain a `SqlError`. See
+-- 'Mirza.SupplyChain.BeamQueries.insertUser' for a good example of how to catch
+-- errors using this class.
 class AsSqlError a where
   _SqlError :: Prism' a SqlError
 
