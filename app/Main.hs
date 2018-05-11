@@ -112,7 +112,9 @@ initApplication (ServerOptions envT _ dbConnStr _ n p r)  = do
                       10 -- Max number of connections to have open at any one time
                       -- TODO: Make this a config paramete
   let ev  = AC.SCSContext envT connpool params
-      app = webApp ev
+      app = serveWithContext api
+            (basicAuthServerContext ev)
+            (server' ev)
   pure app
 
 -- easily start the app in ghci, no command line arguments required.
@@ -120,12 +122,6 @@ startApp_nomain :: ByteString -> IO ()
 startApp_nomain dbConnStr =
   initApplication (ServerOptions AC.Dev False dbConnStr 8000 14 8 1) >>= Warp.run 8000
 
--- Application = Request -> (Response -> IO ResponseReceived) -> IO ResponseReceived
-webApp :: AC.SCSContext -> Application
-webApp ev =
-  serveWithContext api
-    (basicAuthServerContext ev)
-    (server' ev)
 
 -- Implementation
 
