@@ -36,7 +36,7 @@ import qualified Mirza.SupplyChain.Utils       as U
 
 import           Data.GS1.DWhat                (urn2LabelEPC)
 import qualified Data.GS1.Event                as Ev
-import           Data.GS1.EventID
+import           Data.GS1.EventId
 import qualified Data.HashMap.Strict.InsOrd    as IOrd
 
 import           Control.Lens                  hiding ((.=))
@@ -201,7 +201,7 @@ listEvents _user = either throwParseError (AC.runDb . BQ.listEvents) . urn2Label
 
 -- Look into usereventsT and tie that back to the user
 -- the function getUser/selectUser might be helpful
-eventUserList :: SCSApp context err => M.User -> EventID -> AC.AppM context err [(M.User, Bool)]
+eventUserList :: SCSApp context err => M.User -> EventId -> AC.AppM context err [(M.User, Bool)]
 eventUserList _user = AC.runDb . BQ.eventUserSignedList
 
 listContacts :: SCSApp context err => M.User -> AC.AppM context err [M.User]
@@ -281,7 +281,7 @@ eventSign _user (M.SignedEvent eventID keyID (M.Signature sigStr) digest') = AC.
 
 -- | A function to tie a user to an event
 -- Populates the ``UserEvents`` table
-addUserToEvent :: SCSApp context err => M.User -> M.UserID -> EventID -> AC.AppM context err ()
+addUserToEvent :: SCSApp context err => M.User -> M.UserID -> EventId -> AC.AppM context err ()
 addUserToEvent (M.User loggedInUserId _ _) anotherUserId eventId =
     AC.runDb $ BQ.addUserToEvent (AC.EventOwner loggedInUserId) (AC.SigningUser anotherUserId) eventId
 
@@ -295,7 +295,7 @@ addUserToEvent (M.User loggedInUserId _ _) anotherUserId eventId =
 
 -- do we need this?
 --
-eventHashed :: M.User -> EventID -> AC.AppM context err M.HashedEvent
+eventHashed :: M.User -> EventId -> AC.AppM context err M.HashedEvent
 eventHashed _user _eventId = error "not implemented yet"
 -- return (HashedEvent eventID (EventHash "Blob"))
 
@@ -321,8 +321,8 @@ insertTransfEvent :: SCSApp context err => M.User -> M.TransformationEvent -> AC
 insertTransfEvent user ev = AC.runDb $ BQ.insertTransfEvent user ev
 
 
-eventInfo :: SCSApp context err => M.User -> EventID -> AC.AppM context err (Maybe Ev.Event)
-eventInfo _user = AC.runDb . QU.findEvent . SB.EventId . getEventId
+eventInfo :: SCSApp context err => M.User -> EventId -> AC.AppM context err (Maybe Ev.Event)
+eventInfo _user = AC.runDb . QU.findEvent . SB.EventId . unEventId
 
---eventHash :: EventID -> AC.AppM context err SignedEvent
+--eventHash :: EventId -> AC.AppM context err SignedEvent
 --eventHash eID = return (SignedEvent eID (BinaryBlob ByteString.empty) [(BinaryBlob ByteString.empty)] [1,2])
