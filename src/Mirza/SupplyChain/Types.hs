@@ -28,7 +28,7 @@ module Mirza.SupplyChain.Types
 import qualified Mirza.SupplyChain.Model    as M
 
 import qualified Data.GS1.EPC               as EPC
-import           Data.GS1.EventID           as EvId
+import           Data.GS1.EventId           as EvId
 
 
 import           Database.PostgreSQL.Simple (Connection, SqlError)
@@ -99,7 +99,7 @@ data ServerError = ServerError (Maybe BS.ByteString) Text
 data ServiceError
   = InvalidSignature      String
   | BlockchainSendFailed  ServerError
-  | InvalidEventID        EventID
+  | InvalidEventID        EventId
   | InvalidKeyID          M.KeyID
   | InvalidUserID         M.UserID
   | InvalidRSAKeyInDB     Text -- when the key already existing in the DB is wrong
@@ -107,7 +107,7 @@ data ServiceError
   | InvalidRSAKeySize     Expected Received
   | InvalidDigest         M.Digest
   | InsertionFail         ServerError Text
-  | EventPermissionDenied M.UserID EvId.EventID
+  | EventPermissionDenied M.UserID EvId.EventId
   | EmailExists           ServerError M.EmailAddress
   | EmailNotFound         M.EmailAddress
   | AuthFailed            M.EmailAddress

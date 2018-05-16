@@ -16,7 +16,7 @@ packages:
   extra-dep: true
 extra-deps:
 - git: git@github.csiro.au:Blockchain/GS1Combinators.git
-  commit: 2203815854b7e832e976bcf90d66529feec0584e
+  commit: a96c9fc1c14ddf7ef69756d7504feca9ff667c65
 - servant-flatten-0.2
 - hspec-2.5.0
 - hspec-core-2.5.0
