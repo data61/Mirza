@@ -1,7 +1,7 @@
 
 -- | Sample data types. Serves as a good example of the types defined
 -- in GS1Combinators
-module Mirza.SupplyChain.Dummies where
+module Tests.Dummies where
 
 import qualified Mirza.SupplyChain.Model       as M
 import qualified Mirza.SupplyChain.StorageBeam as SB

@@ -4,9 +4,13 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
 
-module Tests.Service where
+module Tests.Service
+  ( testQueries
+  , defaultPool
+  ) where
 
-import           Mirza.SupplyChain.Dummies
+import           Tests.Dummies
+
 import           Mirza.SupplyChain.Migrate     (testDbConnStr)
 import qualified Mirza.SupplyChain.Model       as M
 import           Mirza.SupplyChain.QueryUtils
@@ -16,11 +20,6 @@ import qualified Mirza.SupplyChain.StorageBeam as SB
 import           Data.GS1.EPC
 
 import           Control.Monad                 (void)
-import           Mirza.SupplyChain.AppConfig   (AppError, AppM, DB,
-                                                EnvType (..), SCSContext (..),
-                                                pg, runAppM, runDb)
--- import           Crypto.Scrypt
-import           Data.ByteString               (ByteString)
 import           Data.Maybe                    (fromJust, isNothing)
 import qualified Data.Text                     as T
 import           Data.Text.Encoding            (encodeUtf8)
@@ -30,6 +29,9 @@ import           Database.Beam
 import           Database.PostgreSQL.Simple    (Connection, close,
                                                 connectPostgreSQL, execute_)
 import           GHC.Stack                     (HasCallStack)
+import           Mirza.SupplyChain.Types       (AppError, AppM, DB,
+                                                SCSContext (..), pg, runAppM,
+                                                runDb)
 import           Servant
 import           Test.Hspec
 
@@ -38,10 +40,10 @@ import           Data.Pool                     as Pool
 -- NOTE in this file, where fromJust is used in the tests, it is because we expect a Just... this is part of the test
 -- NOTE tables dropped after every running of test in an "it"
 
--- for grabbing the encrypted password from user 1
-hashIO :: MonadIO m => m ByteString
-hashIO = Scrypt.getEncryptedPass <$> liftIO
-    (Scrypt.encryptPassIO' (Scrypt.Pass $ encodeUtf8 $ M.password dummyNewUser))
+-- -- for grabbing the encrypted password from user 1
+-- hashIO :: MonadIO m => m ByteString
+-- hashIO = Scrypt.getEncryptedPass <$> liftIO
+--     (Scrypt.encryptPassIO' (Scrypt.Pass $ encodeUtf8 $ M.password dummyNewUser))
 
 timeStampIO :: MonadIO m => m LocalTime
 timeStampIO = liftIO $ (utcToLocalTime utc) <$> getCurrentTime
@@ -62,7 +64,7 @@ selectKey (M.KeyID keyId) = do
     [key] -> return $ Just key
     _     -> return Nothing
 
-testAppM :: SCSContext -> AppM a -> IO a
+testAppM :: context -> AppM context AppError a -> IO a
 testAppM scsContext act = runAppM scsContext act >>= \case
     Left err -> fail (show err)
     Right a -> pure a
@@ -356,20 +358,20 @@ clearContact = do
   conn <- connectPostgreSQL testDbConnStr
   void $ execute_ conn "DELETE FROM contacts;"
 
--- | Utility function that can be used in the ``before_`` hook
-populateContact :: IO SCSContext -> IO ()
-populateContact ioSCSContext = do
-    scsContext <- ioSCSContext
-    let myContact = makeDummyNewUser (M.EmailAddress "first@gmail.com")
-    hasBeenAdded <- testAppM scsContext $ do
-      void $ S.newUser dummyNewUser
-      user <- runDb $ getUser $ M.emailAddress dummyNewUser
-      myContactUid <- S.newUser myContact
-      S.addContact (fromJust user) myContactUid
-    hasBeenAdded `shouldBe` True
+-- -- | Utility function that can be used in the ``before_`` hook
+-- populateContact :: IO Env -> IO ()
+-- populateContact ioEnv = do
+--     env <- ioEnv
+--     let myContact = makeDummyNewUser (M.EmailAddress "first@gmail.com")
+--     hasBeenAdded <- testAppM env $ do
+--       void $ S.newUser dummyNewUser
+--       user <- runDb $ getUser $ M.emailAddress dummyNewUser
+--       myContactUid <- S.newUser myContact
+--       S.addContact (fromJust user) myContactUid
+--     hasBeenAdded `shouldBe` True
 
-defaultSCSContext :: IO SCSContext
-defaultSCSContext = (\conn -> SCSContext Dev conn Scrypt.defaultParams) <$> defaultPool
+-- defaultEnv :: IO Env
+-- defaultEnv = (\conn -> Env Dev conn Scrypt.defaultParams) <$> defaultPool
 
 defaultPool :: IO (Pool Connection)
 defaultPool = Pool.createPool (connectPostgreSQL testDbConnStr) close

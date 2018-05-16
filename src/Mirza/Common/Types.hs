@@ -1,34 +1,30 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE TemplateHaskell            #-}
 
--- | Contains the definition of our ReaderT AppM
-module Mirza.SupplyChain.AppConfig
-  (EnvType(..)
-  , mkEnvType
-  , SCSContext(..)
-  , AppError(..)
-  , AppM
-  , DB
+
+module Mirza.Common.Types
+  ( EnvType(..)
+  , AppM(..)
   , runAppM
-  , dbFunc
+  , DB(..)
   , runDb
   , pg
+  , AsSqlError(..)
+  , HasConnPool(..)
+  , HasEnvType(..)
   , ask
   , asks
-  , debugLog
-  , debugLogGeneral
-  , sandwichLog
-  )
-  where
+  , throwing
+  , throwing_
+  ) where
 
-import           Mirza.SupplyChain.Errors   (ServiceError (..))
 
 import qualified Database.Beam              as B
 import           Database.Beam.Postgres     (Pg)
-import           Database.PostgreSQL.Simple (Connection)
+import           Database.PostgreSQL.Simple (Connection, SqlError)
 import qualified Database.PostgreSQL.Simple as DB
 
 import qualified Control.Exception          as Exc
-import           Control.Monad              (when)
 import           Control.Monad.Except       (ExceptT (..), MonadError,
                                              runExceptT, throwError)
 import           Control.Monad.IO.Class     (MonadIO)
@@ -36,41 +32,34 @@ import           Control.Monad.Reader       (MonadReader, ReaderT, ask, asks,
                                              liftIO, runReaderT)
 import           Control.Monad.Trans        (lift)
 
-import           Crypto.Scrypt              (ScryptParams)
-
 import qualified Control.Exception          as E
 
 import           Data.Pool                  as Pool
 
+import           Control.Lens
+import           Control.Monad.Error.Lens
+
+
 data EnvType = Prod | Dev
   deriving (Show, Eq, Read)
 
-mkEnvType :: Bool -> EnvType
-mkEnvType False = Prod
-mkEnvType _     = Dev
+-- | The class of contexts which include an 'EnvType'
+$(makeClassy ''EnvType)
 
-data SCSContext = SCSContext
-  { envType    :: EnvType
-  , dbConnPool :: Pool Connection
-  , scryptPs   :: ScryptParams
-  -- , port    :: Word16
-  }
-
-newtype AppError = AppError ServiceError deriving (Show)
 
 -- runReaderT :: r -> m a
 -- ReaderT r m a
 -- type Handler a = ExceptT ServantErr IO a
 -- newtype ExceptT e m a :: * -> (* -> *) -> * -> *
-newtype AppM a = AppM
-  { unAppM :: ReaderT SCSContext (ExceptT AppError IO) a
+newtype AppM context err a = AppM
+  { unAppM :: ReaderT context (ExceptT err IO) a
   } deriving
     ( Functor
     , Applicative
     , Monad
-    , MonadReader SCSContext
+    , MonadReader context
     , MonadIO
-    , MonadError AppError
+    , MonadError err
     )
 
 -- | The DB monad is used to connect to the Beam backend. The only way to run
@@ -88,14 +77,19 @@ newtype DB context error a = DB (ReaderT (Connection,context) (ExceptT error Pg)
   )
 
 
+-- | The clasds of contexts which have a database pool:
+-- @
+--  pool <- view connPool
+--  Pool.withResource pool $ \conn -> ..
+-- @
+class HasConnPool a where
+    connPool :: Lens' a (Pool Connection)
 
-dbFunc :: AppM (Connection -> Pg a -> IO a)
-dbFunc = do
-  e <- asks envType
-  pure $ case e of
-    Prod -> B.withDatabase  -- database queries other than migration will be silent
-    _    -> B.withDatabaseDebug putStrLn  -- database queries other than migration will print on screen
-
+-- | The class of error types which can contain a `SqlError`. See
+-- 'Mirza.SupplyChain.BeamQueries.insertUser' for a good example of how to catch
+-- errors using this class.
+class AsSqlError a where
+  _SqlError :: Prism' a SqlError
 
 -- | Run a DB action within a transaction. See the documentation for
 -- 'withTransaction'. SqlError exceptions will be caught and lifted into the
@@ -105,18 +99,23 @@ dbFunc = do
 -- Exceptions which are thrown which are not SqlErrors will be caught by Servant
 -- and cause 500 errors (these are not exceptions we'll generally know how to
 -- deal with).
-runDb :: DB SCSContext AppError a -> AppM a
+runDb :: (HasEnvType context,HasConnPool context, AsSqlError err)
+      => DB context err a -> AppM context err a
 runDb (DB act) = do
   env <- ask
-  dbf <- dbFunc
-  res <- liftIO $ Pool.withResource (dbConnPool env) $ \conn ->
+  e <- view envType
+  let dbf =  case e of
+            Prod -> B.withDatabase
+            _    -> B.withDatabaseDebug putStrLn
+
+  res <- liftIO $ Pool.withResource (env ^. connPool) $ \conn ->
           Exc.try
          . withTransaction conn
          . dbf conn
          . runExceptT
          . runReaderT act $ (conn,env)
         -- :: AppM (Either SqlError (Either AppError a))
-  either (throwError . AppError . DatabaseError)
+  either (throwing _SqlError)
          (either throwError pure)
          res
 
@@ -135,33 +134,8 @@ withTransaction conn act = E.mask $ \restore -> do
   pure r
 
 
-pg :: Pg a -> DB SCSContext AppError a
+pg :: Pg a -> DB context err a
 pg = DB . lift . lift
 
-runAppM :: SCSContext -> AppM a -> IO (Either AppError a)
+runAppM :: context -> AppM context err a -> IO (Either err a)
 runAppM env aM = runExceptT $ (runReaderT . unAppM) aM env
-
--- App Utils. Moved from Utils
-
--- | Given a stringLike, prints it only if the application is in Dev
--- otherwise, does a nop.
--- Only works in AppM monad
-debugLog :: Show a => a -> AppM ()
-debugLog strLike = do
-  envT <- asks envType
-  when (envT == Dev) $ liftIO $ print strLike
-
--- | To be used when the SCSContext is known/available.
--- It doesn't require that the function is being run in AppM
-debugLogGeneral :: (Show a, MonadIO f) => EnvType -> a -> f ()
-debugLogGeneral envT strLike =
-  when (envT == Dev) $ liftIO $ print strLike
-
-bun :: String
-bun = "========================"
-
-sandwichLog :: Show a => a -> AppM ()
-sandwichLog patty = do
-  debugLog bun
-  debugLog patty
-  debugLog bun

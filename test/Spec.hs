@@ -1,18 +1,18 @@
 
 module Main where
 
-import           Mirza.SupplyChain.AppConfig as AC
 import           Mirza.SupplyChain.Migrate
+import           Mirza.SupplyChain.Types    as AC
 
-import           Test.Hspec                  (around, hspec)
+import           Test.Hspec                 (around, hspec)
 import           Tests.Service
 
-import           Control.Exception           (bracket)
+import           Control.Exception          (bracket)
 import           Data.Int
 import           Database.Beam.Postgres
 import           Database.PostgreSQL.Simple
 
-import           Crypto.Scrypt               (defaultParams)
+import           Crypto.Scrypt              (defaultParams)
 
 -- dbFunc = withDatabaseDebug putStrLn
 
