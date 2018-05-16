@@ -1,14 +1,30 @@
+{-# LANGUAGE DataKinds        #-}
+{-# LANGUAGE NamedFieldPuns   #-}
+{-# LANGUAGE TypeApplications #-}
+
 module Main where
 
-import           Mirza.SupplyChain.AppConfig (EnvType (..))
-import           Mirza.SupplyChain.Lib
-import           Mirza.SupplyChain.Migrate   (defConnectionStr, migrate)
+import           Mirza.SupplyChain.API
+import           Mirza.SupplyChain.Migrate  (defConnectionStr, migrate)
+import           Mirza.SupplyChain.Model    (User)
+import           Mirza.SupplyChain.Service
+import           Mirza.SupplyChain.Types    (AppError, EnvType (..))
+import qualified Mirza.SupplyChain.Types    as AC
 
-import           Data.ByteString             (ByteString)
-import           Data.Semigroup              ((<>))
+import           Servant                    hiding (header)
+import           Servant.Swagger.UI
+
+import qualified Data.Pool                  as Pool
+import           Database.PostgreSQL.Simple
+
+import           Network.Wai                (Middleware)
+import qualified Network.Wai.Handler.Warp   as Warp
+
+import           Data.ByteString            (ByteString)
+import           Data.Semigroup             ((<>))
 import           Options.Applicative
 
-import qualified Crypto.Scrypt               as Scrypt
+import qualified Crypto.Scrypt              as Scrypt
 
 data ServerOptions = ServerOptions
   { env           :: EnvType
@@ -16,7 +32,6 @@ data ServerOptions = ServerOptions
 --  , clearDB       :: Bool
   , connectionStr :: ByteString
   , port          :: Int
-  , uiFlavour     :: UIFlavour
   , sScryptN      :: Integer
   , sScryptP      :: Integer
   , sScryptR      :: Integer
@@ -45,10 +60,6 @@ serverOptions = ServerOptions
           <> help "Port to run database on"
           )
        <*> option auto
-          ( long "uiFlavour" <> showDefault
-         <> help "Use jensoleg or Original UI Flavour for the Swagger API"
-         <> value Original)
-       <*> option auto
             (long "scryptN" <> value 14 <> showDefault
             <> help "Scrypt N parameter (>= 14)")
        <*> option auto
@@ -76,14 +87,49 @@ main = runProgram =<< execParser opts
 --     startApp connStr isDebug (fromIntegral portNum) flavour
 -- runProgram _ = migrate defConnectionStr
 runProgram :: ServerOptions -> IO ()
-runProgram (ServerOptions envT False connStr portNum flavour n p r) =
-  case Scrypt.scryptParams (max n 14) (max p 8) (max r 1) of
-    Nothing -> do
-      putStrLn $ unwords
-        ["Invalid Scrypt params: ", show (n,p,r)
-        ,"\nUsing default parameters"
-        ]
-      startApp connStr envT (fromIntegral portNum) flavour Scrypt.defaultParams
-    Just params ->
-      startApp connStr envT (fromIntegral portNum) flavour params
+runProgram so@ServerOptions{initDB = False, port} = do
+  app <- initApplication so
+  mids <- initMiddleware so
+  putStrLn $ "http://localhost:" ++ show port ++ "/swagger-ui/"
+  Warp.run (fromIntegral port) $ mids app
+-- FIXME: This is definitely wrong
 runProgram _ = migrate defConnectionStr
+
+initMiddleware :: ServerOptions -> IO Middleware
+initMiddleware _ = pure id
+
+-- initApplication :: ByteString -> AC.SCSContextType -> ScryptParams -> IO Application
+initApplication :: ServerOptions -> IO Application
+initApplication (ServerOptions envT _ dbConnStr _ n p r)  = do
+  params <- case Scrypt.scryptParams (max n 14) (max p 8) (max r 1) of
+    Just scparams -> pure scparams
+    Nothing -> do
+      putStrLn $ "Invalid Scrypt params:" ++ show (n,p,r) ++ " using defaults"
+      pure Scrypt.defaultParams
+  connpool <- Pool.createPool (connectPostgreSQL dbConnStr) close
+                      1 -- Number of "sub-pools",
+                      60 -- How long in seconds to keep a connection open for reuse
+                      10 -- Max number of connections to have open at any one time
+                      -- TODO: Make this a config paramete
+  let ev  = AC.SCSContext envT connpool params
+      app = serveWithContext api
+            (basicAuthServerContext ev)
+            (server' ev)
+  pure app
+
+-- easily start the app in ghci, no command line arguments required.
+startApp_nomain :: ByteString -> IO ()
+startApp_nomain dbConnStr =
+  initApplication (ServerOptions AC.Dev False dbConnStr 8000 14 8 1) >>= Warp.run 8000
+
+
+-- Implementation
+
+server' :: AC.SCSContext -> Server API
+server' ev =
+  swaggerSchemaUIServer serveSwaggerAPI
+  :<|> hoistServerWithContext
+        (Proxy @ServerAPI)
+        (Proxy @'[BasicAuthCheck User])
+        (appMToHandler ev)
+        (appHandlers @AC.SCSContext @AppError)
