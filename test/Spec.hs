@@ -4,7 +4,12 @@ module Main where
 import           Mirza.SupplyChain.Migrate
 import           Mirza.SupplyChain.Types    as AC
 
-import           Test.Hspec                 (around, hspec)
+import           Test.Hspec.Core            (sequential)
+import           Test.Tasty                 hiding (withResource)
+import           Test.Tasty.Hspec           (around, testSpec)
+import           Test.Tasty.Runners         (NumThreads (..))
+
+import           Tests.Client
 import           Tests.Service
 
 import           Control.Exception          (bracket)
@@ -13,6 +18,7 @@ import           Database.Beam.Postgres
 import           Database.PostgreSQL.Simple
 
 import           Crypto.Scrypt              (defaultParams)
+import           Data.Pool                  (destroyAllResources, withResource)
 
 -- dbFunc = withDatabaseDebug putStrLn
 
@@ -35,22 +41,28 @@ dropTables conn =
                \     END LOOP;                                                                              \
                \ END $$;                                                                                    "
 
-openConnection :: IO (Connection, SCSContext)
+openConnection :: IO SCSContext
 openConnection = do
-  conn <- connectPostgreSQL testDbConnStr
-  _ <- dropTables conn -- drop tables before so if already exist no problems... means tables get overwritten though
   connpool <- defaultPool
+  _ <- withResource connpool dropTables -- drop tables before so if already exist no problems... means tables get overwritten though
+  withResource connpool (tryCreateSchema True)
   let envT = AC.mkEnvType True
-      context  = AC.SCSContext envT connpool defaultParams
-  tryCreateSchema True conn
-  return (conn, context)
+      env  = AC.SCSContext envT connpool defaultParams
+  return env
 
-closeConnection :: (Connection, SCSContext) -> IO ()
-closeConnection (conn, _context) =
-  close conn
+closeConnection :: SCSContext -> IO ()
+closeConnection env =
+  destroyAllResources (AC._dbConnPool env)
 
-withDatabaseConnection :: ((Connection, SCSContext) -> IO ()) -> IO ()
+withDatabaseConnection :: (SCSContext -> IO ()) -> IO ()
 withDatabaseConnection = bracket openConnection closeConnection
 
 main :: IO ()
-main = hspec $ around withDatabaseConnection testQueries
+main = do
+  hspecTests <- testSpec "HSpec" (sequential $ around withDatabaseConnection testQueries)
+  clientTests <- testSpec "Client HSpec" clientSpec
+
+  defaultMain $ localOption (NumThreads 1) $ testGroup "tests"
+    [ hspecTests
+    , clientTests
+    ]

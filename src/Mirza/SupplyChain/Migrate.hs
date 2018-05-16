@@ -40,7 +40,7 @@ tryCreateSchema :: Bool -> Connection -> IO ()
 tryCreateSchema runSilently conn = E.catch (createSchema runSilently conn) handleErr
   where
     handleErr :: SqlError -> IO ()
-    handleErr  = print
+    handleErr  str = putStrLn $ "XXXXXX " ++ show str ++ " XXXXXX"
 
 -- tryDrop :: Connection -> IO ()
 -- tryDrop conn = E.catch (dropSchema conn) handleErr

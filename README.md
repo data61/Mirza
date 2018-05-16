@@ -63,6 +63,15 @@ to create all the relevant tables.
 
 To do a clean build instead, do `./restart.sh --clean`.
 
+## Running the tests
+
+the `runTests.sh` script will run the tests (and makes sure they run single
+threaded because the tests depend on previous tests), it should usually be run
+as:
+
+```shell
+./runTests.sh --pedantic
+```
 
 ## Acronyms
 
