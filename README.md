@@ -63,6 +63,14 @@ to create all the relevant tables.
 
 To do a clean build instead, do `./restart.sh --clean`.
 
+
+## Acronyms
+
+Some common acronyms used in the project.
+
+SCS: Supply Chain Service
+BR:  Business Registry
+
 ### Useful Tools
 
 - [GS1 Company Database](https://www.gs1us.org/tools/gs1-company-database-gepir) - You can search for GLN (Global Location Number) of GS1 Companies here

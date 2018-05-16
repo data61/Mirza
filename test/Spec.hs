@@ -1,24 +1,24 @@
 
 module Main where
 
-import           Test.Hspec.Core             (sequential)
-import           Test.Tasty                  hiding (withResource)
-import           Test.Tasty.Hspec            (around, testSpec)
-import           Test.Tasty.Runners          (NumThreads (..))
-
-import           Mirza.SupplyChain.AppConfig as AC
 import           Mirza.SupplyChain.Migrate
+import           Mirza.SupplyChain.Types    as AC
+
+import           Test.Hspec.Core            (sequential)
+import           Test.Tasty                 hiding (withResource)
+import           Test.Tasty.Hspec           (around, testSpec)
+import           Test.Tasty.Runners         (NumThreads (..))
 
 import           Tests.Client
 import           Tests.Service
 
-import           Control.Exception           (bracket)
+import           Control.Exception          (bracket)
 import           Data.Int
 import           Database.Beam.Postgres
 import           Database.PostgreSQL.Simple
 
-import           Crypto.Scrypt               (defaultParams)
-import           Data.Pool                   (destroyAllResources, withResource)
+import           Crypto.Scrypt              (defaultParams)
+import           Data.Pool                  (destroyAllResources, withResource)
 
 -- dbFunc = withDatabaseDebug putStrLn
 
@@ -41,20 +41,20 @@ dropTables conn =
                \     END LOOP;                                                                              \
                \ END $$;                                                                                    "
 
-openConnection :: IO Env
+openConnection :: IO SCSContext
 openConnection = do
   connpool <- defaultPool
   _ <- withResource connpool dropTables -- drop tables before so if already exist no problems... means tables get overwritten though
   withResource connpool (tryCreateSchema True)
   let envT = AC.mkEnvType True
-      env  = AC.Env envT connpool defaultParams
+      env  = AC.SCSContext envT connpool defaultParams
   return env
 
-closeConnection :: Env -> IO ()
+closeConnection :: SCSContext -> IO ()
 closeConnection env =
-  destroyAllResources (AC.dbConnPool env)
+  destroyAllResources (AC._dbConnPool env)
 
-withDatabaseConnection :: (Env -> IO ()) -> IO ()
+withDatabaseConnection :: (SCSContext -> IO ()) -> IO ()
 withDatabaseConnection = bracket openConnection closeConnection
 
 main :: IO ()
