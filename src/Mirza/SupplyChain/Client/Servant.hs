@@ -34,7 +34,7 @@ import           Servant.Client
 import           Data.Proxy              (Proxy (..))
 
 import           Data.GS1.Event
-import           Data.GS1.EventID
+import           Data.GS1.EventId
 
 import           Data.UUID.Types
 
@@ -46,20 +46,20 @@ businessList :: ClientM [Business]
 
 epcState            :: BasicAuthData -> LabelEPCUrn -> ClientM EPCState
 listEvents          :: BasicAuthData -> LabelEPCUrn -> ClientM [Event]
-eventInfo           :: BasicAuthData -> EventID -> ClientM (Maybe Event)
+eventInfo           :: BasicAuthData -> EventId -> ClientM (Maybe Event)
 contactsInfo        :: BasicAuthData -> ClientM [User]
 addContact          :: BasicAuthData -> UserID -> ClientM Bool
 removeContact       :: BasicAuthData -> UserID -> ClientM Bool
 userSearch          :: BasicAuthData -> String -> ClientM [User]
 eventList           :: BasicAuthData -> UserID -> ClientM [Event]
-eventUserList       :: BasicAuthData -> EventID -> ClientM [(User, Bool)]
+eventUserList       :: BasicAuthData -> EventId -> ClientM [(User, Bool)]
 eventSign           :: BasicAuthData -> SignedEvent -> ClientM UUID
-eventHashed         :: BasicAuthData -> EventID -> ClientM HashedEvent
+eventHashed         :: BasicAuthData -> EventId -> ClientM HashedEvent
 insertObjectEvent   :: BasicAuthData -> ObjectEvent -> ClientM Event
 insertAggEvent      :: BasicAuthData -> AggregationEvent -> ClientM Event
 insertTransactEvent :: BasicAuthData -> TransactionEvent -> ClientM Event
 insertTransfEvent   :: BasicAuthData -> TransformationEvent -> ClientM Event
-addUserToEvent      :: BasicAuthData -> M.UserID -> EventID -> ClientM ()
+addUserToEvent      :: BasicAuthData -> M.UserID -> EventId -> ClientM ()
 addPublicKey        :: BasicAuthData -> PEM_RSAPubKey -> ClientM KeyID
 
 _api     :: Client ClientM ServerAPI

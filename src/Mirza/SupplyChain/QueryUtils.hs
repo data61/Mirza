@@ -20,7 +20,7 @@ import           Data.GS1.DWhy                  (DWhy (..))
 import           Data.GS1.EPC                   as EPC
 import           Data.GS1.Event                 (Event (..))
 import qualified Data.GS1.Event                 as Ev
-import qualified Data.GS1.EventID               as EvId
+import qualified Data.GS1.EventId               as EvId
 
 import           Control.Monad.IO.Class         (liftIO)
 import           Data.Aeson                     (decode)
@@ -158,10 +158,10 @@ toStorageDWhat pKey mParentId mBizTranId eventId dwhat
         (getAction dwhat)
         (SB.LabelId mParentId)
         (SB.BizTransactionId mBizTranId)
-        (SB.TransformationId $ unTransformationID <$> (getTransformationId dwhat))
+        (SB.TransformationId $ unTransformationId <$> (getTransformationId dwhat))
         (SB.EventId eventId)
 
-getTransformationId :: DWhat -> Maybe TransformationID
+getTransformationId :: DWhat -> Maybe TransformationId
 getTransformationId (TransformWhat t) = _transformationId t
 getTransformationId _                 = Nothing
 
@@ -286,10 +286,10 @@ toStorageDWhy pKey (DWhy mBiz mDisp) eventId =
 toStorageEvent :: SB.PrimaryKeyType
                -> SB.PrimaryKeyType
                -> T.Text
-               -> Maybe EvId.EventID
+               -> Maybe EvId.EventId
                -> SB.Event
 toStorageEvent pKey userId jsonEvent mEventId =
-  SB.Event pKey (EvId.getEventId <$> mEventId) (SB.UserId userId) jsonEvent
+  SB.Event pKey (EvId.unEventId <$> mEventId) (SB.UserId userId) jsonEvent
 
 insertDWhat :: Maybe SB.PrimaryKeyType
             -> DWhat
@@ -476,8 +476,8 @@ findEvent (SB.EventId eventId) = do
     _       -> throwBackendError r
 
 -- | Checks if a user is associated with an event
-hasUserCreatedEvent :: M.UserID -> EvId.EventID -> DB context err Bool
-hasUserCreatedEvent (M.UserID userId) (EvId.EventID eventId) = do
+hasUserCreatedEvent :: M.UserID -> EvId.EventId -> DB context err Bool
+hasUserCreatedEvent (M.UserID userId) (EvId.EventId eventId) = do
   r <- pg $ runSelectReturningList $ select $ do
         userEvent <- all_ (SB._user_events SB.supplyChainDb)
         guard_ (SB.user_events_owner userEvent ==. (val_ . SB.UserId $ userId) &&.

@@ -1,6 +1,6 @@
-{-# LANGUAGE FlexibleContexts    #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
 -- | This module is incomplete as of yet.
 -- Functions in the `service` module use the database functions defined here
 module Mirza.SupplyChain.BeamQueries where
@@ -32,7 +32,7 @@ import           Data.GS1.DWhat                           (AggregationDWhat (..)
                                                            TransformationDWhat (..),
                                                            unParentLabel)
 import qualified Data.GS1.Event                           as Ev
-import qualified Data.GS1.EventID                         as EvId
+import qualified Data.GS1.EventId                         as EvId
 
 import           Control.Monad.Except                     (MonadError,
                                                            throwError)
@@ -155,11 +155,11 @@ getPublicKeyInfo (M.KeyID keyId) = do
     _ -> throwing _InvalidKeyID . M.KeyID $ keyId
 
 -- TODO: Should this return Text or a JSON value?
-getEventJSON :: AsServiceError err => EvId.EventID -> DB context err T.Text
+getEventJSON :: AsServiceError err => EvId.EventId -> DB context err T.Text
 getEventJSON eventID = do
   r <- pg $ runSelectReturningList $ select $ do
     allEvents <- all_ (SB._events SB.supplyChainDb)
-    guard_ ((SB.event_id allEvents) ==. val_ (EvId.getEventId eventID))
+    guard_ ((SB.event_id allEvents) ==. val_ (EvId.unEventId eventID))
     pure (SB.json_event allEvents)
   case r of
     [jsonEvent] -> return jsonEvent
@@ -302,7 +302,7 @@ listEvents :: AsServiceError err => LabelEPC -> DB context err [Ev.Event]
 listEvents labelEpc =
   maybe (return []) (getEventList . SB.LabelId) =<< findLabelId labelEpc
 
-insertSignature :: EvId.EventID -> M.KeyID -> M.Signature -> M.Digest -> DB environmentUnused errorUnused SB.PrimaryKeyType
+insertSignature :: EvId.EventId -> M.KeyID -> M.Signature -> M.Digest -> DB environmentUnused errorUnused SB.PrimaryKeyType
 insertSignature = error "Implement me"
 
 addContact :: M.User -> M.UserID -> DB context err Bool
@@ -349,8 +349,8 @@ listBusinesses = do
 
 -- TODO: Write tests
 -- Returns the user and whether or not that user had signed the event
-eventUserSignedList :: EvId.EventID -> DB context err [(M.User, Bool)]
-eventUserSignedList (EvId.EventID eventId) = do
+eventUserSignedList :: EvId.EventId -> DB context err [(M.User, Bool)]
+eventUserSignedList (EvId.EventId eventId) = do
   usersSignedList <- pg $ runSelectReturningList $ select $ do
     userEvent <- all_ (SB._user_events SB.supplyChainDb)
     user <- all_ (SB._users SB.supplyChainDb)
@@ -371,17 +371,17 @@ eventsByUser (M.UserID userId) = do
 
 
 
-addUserToEvent :: AsServiceError err => EventOwner -> SigningUser -> EvId.EventID -> DB context err ()
+addUserToEvent :: AsServiceError err => EventOwner -> SigningUser -> EvId.EventId -> DB context err ()
 addUserToEvent (EventOwner lUserId@(M.UserID loggedInUserId))
                (SigningUser (M.UserID otherUserId))
-               evId@(EvId.EventID eventId) = do
+               evId@(EvId.EventId eventId) = do
   userCreatedEvent <- hasUserCreatedEvent lUserId evId
   if userCreatedEvent
     then insertUserEvent eventId loggedInUserId otherUserId False Nothing
     else throwing _EventPermissionDenied (lUserId, evId)
 
 -- -- TODO - convert these below functions, and others in original file Storage.hs
--- -- TODO = use EventId or EventID ???
+-- -- TODO = use EventId or EventId ???
 -- -- TODO = implement... there is no hash...
 -- createBlockchainPackage ::  (MonadError M.SigError m, MonadIO m) => EventId -> m C.BlockchainPackage
 
@@ -405,7 +405,7 @@ addUserToEvent (EventOwner lUserId@(M.UserID loggedInUserId))
 -- checkSignature pubkey blob signature =
 --   unless (C.verifySignature pubkey blob signature) $
 --     throwError M.SE_InvalidSignature
--- -- TODO = use EventId or EventID
+-- -- TODO = use EventId or EventId
 -- -- ready to send to blockchain when all the parties have signed
 -- checkReadyForBlockchain :: (MonadError M.SigError m, MonadIO m) => Connection -> EventId -> m ()
 -- checkReadyForBlockchain eventID = do
