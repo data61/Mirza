@@ -4,9 +4,13 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
 
-module Tests.Service where
+module Tests.Service
+  ( testQueries
+  , defaultPool
+  ) where
 
-import           Mirza.SupplyChain.Dummies
+import           Tests.Dummies
+
 import           Mirza.SupplyChain.Migrate     (testDbConnStr)
 import qualified Mirza.SupplyChain.Model       as M
 import           Mirza.SupplyChain.QueryUtils
@@ -16,11 +20,6 @@ import qualified Mirza.SupplyChain.StorageBeam as SB
 import           Data.GS1.EPC
 
 import           Control.Monad                 (void)
-import           Mirza.SupplyChain.AppConfig   (AppM, DB, Env (..),
-                                                EnvType (..), pg, runAppM,
-                                                runDb)
--- import           Crypto.Scrypt
-import           Data.ByteString               (ByteString)
 import           Data.Maybe                    (fromJust, isNothing)
 import qualified Data.Text                     as T
 import           Data.Text.Encoding            (encodeUtf8)
@@ -30,6 +29,9 @@ import           Database.Beam
 import           Database.PostgreSQL.Simple    (Connection, close,
                                                 connectPostgreSQL, execute_)
 import           GHC.Stack                     (HasCallStack)
+import           Mirza.SupplyChain.Types       (AppError, AppM, DB,
+                                                SCSContext (..), pg, runAppM,
+                                                runDb)
 import           Servant
 import           Test.Hspec
 
@@ -38,10 +40,6 @@ import           Data.Pool                     as Pool
 -- NOTE in this file, where fromJust is used in the tests, it is because we expect a Just... this is part of the test
 -- NOTE tables dropped after every running of test in an "it"
 
--- for grabbing the encrypted password from user 1
-hashIO :: MonadIO m => m ByteString
-hashIO = Scrypt.getEncryptedPass <$> liftIO
-    (Scrypt.encryptPassIO' (Scrypt.Pass $ encodeUtf8 $ M.password dummyNewUser))
 
 timeStampIO :: MonadIO m => m LocalTime
 timeStampIO = liftIO $ (utcToLocalTime utc) <$> getCurrentTime
@@ -52,7 +50,7 @@ timeStampIOEPCIS = liftIO $ EPCISTime <$> getCurrentTime
 rsaPubKey :: IO M.PEM_RSAPubKey
 rsaPubKey = M.PEMString <$> Prelude.readFile "./test/Tests/testKeys/goodKeys/test.pub"
 
-selectKey :: M.KeyID -> DB (Maybe SB.Key)
+selectKey :: M.KeyID -> DB SCSContext AppError (Maybe SB.Key)
 selectKey (M.KeyID keyId) = do
   r <- pg $ runSelectReturningList $ select $ do
           key <- all_ (SB._keys SB.supplyChainDb)
@@ -62,19 +60,19 @@ selectKey (M.KeyID keyId) = do
     [key] -> return $ Just key
     _     -> return Nothing
 
-testAppM :: Env -> AppM a -> IO a
-testAppM env act = runAppM env act >>= \case
+testAppM :: context -> AppM context AppError a -> IO a
+testAppM scsContext act = runAppM scsContext act >>= \case
     Left err -> fail (show err)
     Right a -> pure a
 
-testQueries :: HasCallStack => SpecWith Env
+testQueries :: HasCallStack => SpecWith SCSContext
 testQueries = do
 
   describe "addPublicKey tests" $
-    it "addPublicKey test 1" $ \env -> do
+    it "addPublicKey test 1" $ \scsContext -> do
       pubKey <- rsaPubKey
       tStart <- timeStampIO
-      res <- testAppM env $ do
+      res <- testAppM scsContext $ do
         uid <- S.newUser dummyNewUser
         storageUser <- runDb $ selectUser uid
         let user = userTableToModel . fromJust $ storageUser
@@ -98,10 +96,10 @@ testQueries = do
             )
           insertedKey `shouldBe` pubKey
   describe "getPublicKeyInfo tests" $
-    it "getPublicKeyInfo test 1" $ \env -> do
+    it "getPublicKeyInfo test 1" $ \scsContext -> do
       tStart <- timeStampIOEPCIS
       pubKey <- rsaPubKey
-      (keyInfo, uid, tEnd) <- testAppM env $ do
+      (keyInfo, uid, tEnd) <- testAppM scsContext $ do
         uid <- S.newUser dummyNewUser
         storageUser <- runDb $ selectUser uid
         let user = userTableToModel . fromJust $ storageUser
@@ -117,8 +115,8 @@ testQueries = do
         )
 
   describe "newUser tests" $
-    it "newUser test 1" $ \env -> do
-      res <- testAppM env $  do
+    it "newUser test 1" $ \scsContext -> do
+      res <- testAppM scsContext $  do
         uid <- S.newUser dummyNewUser
         user <- runDb $ selectUser uid
         pure (uid, user)
@@ -140,10 +138,10 @@ testQueries = do
             )
 
   describe "authCheck tests" $
-    it "authCheck test 1" $ \env -> do
-      res <- testAppM env $ do
+    it "authCheck test 1" $ \scsContext -> do
+      res <- testAppM scsContext $ do
         uid <- S.newUser dummyNewUser
-        let check = unBasicAuthCheck $ S.authCheck env
+        let check = unBasicAuthCheck $ S.authCheck scsContext
         let basicAuthData = BasicAuthData
                           (encodeUtf8 $ M.unEmailAddress $ M.emailAddress dummyNewUser)
                           (encodeUtf8 $ M.password dummyNewUser)
@@ -162,12 +160,12 @@ testQueries = do
         _ -> fail "Could not authenticate user"
 
   describe "Object Event" $ do
-    it "Insert Object Event" $ \env -> do
-      insertedEvent <- testAppM env $ S.insertObjectEvent dummyUser dummyObject
+    it "Insert Object Event" $ \scsContext -> do
+      insertedEvent <- testAppM scsContext $ S.insertObjectEvent dummyUser dummyObject
       insertedEvent `shouldBe` dummyObjEvent
 
-    it "List event" $ \env -> do
-      res <- testAppM env $ do
+    it "List event" $ \scsContext -> do
+      res <- testAppM scsContext $ do
         insertedEvent <- S.insertObjectEvent dummyUser dummyObject
         evtList <- S.listEvents dummyUser (M.LabelEPCUrn dummyLabelEpcUrn)
         pure (insertedEvent, evtList)
@@ -177,12 +175,12 @@ testQueries = do
           evtList `shouldBe` [insertedEvent]
 
   describe "Aggregation Event" $ do
-    it "Insert Aggregation Event" $ \env -> do
-      insertedEvent <- testAppM env $ S.insertAggEvent dummyUser dummyAggregation
+    it "Insert Aggregation Event" $ \scsContext -> do
+      insertedEvent <- testAppM scsContext $ S.insertAggEvent dummyUser dummyAggregation
       insertedEvent `shouldBe` dummyAggEvent
 
-    it "List event" $ \env -> do
-      res <- testAppM env $ do
+    it "List event" $ \scsContext -> do
+      res <- testAppM scsContext $ do
         insertedEvent <- S.insertAggEvent dummyUser dummyAggregation
         evtList <- S.listEvents dummyUser (M.LabelEPCUrn dummyLabelEpcUrn)
         pure (insertedEvent, evtList)
@@ -192,12 +190,12 @@ testQueries = do
           evtList `shouldBe` [insertedEvent]
 
   describe "Transformation Event" $ do
-    it "Insert Transformation Event" $ \env -> do
-      insertedEvent <- testAppM env $ S.insertTransfEvent dummyUser dummyTransformation
+    it "Insert Transformation Event" $ \scsContext -> do
+      insertedEvent <- testAppM scsContext $ S.insertTransfEvent dummyUser dummyTransformation
       insertedEvent `shouldBe` dummyTransfEvent
 
-    it "List event" $ \env -> do
-      res <- testAppM env $ do
+    it "List event" $ \scsContext -> do
+      res <- testAppM scsContext $ do
         insertedEvent <- S.insertTransfEvent dummyUser dummyTransformation
         eventList <- S.listEvents dummyUser (M.LabelEPCUrn dummyLabelEpcUrn)
         pure (insertedEvent, eventList)
@@ -207,12 +205,12 @@ testQueries = do
           eventList `shouldBe` [insertedEvent]
 
   describe "Transaction Event" $ do
-    it "Insert Transaction Event" $ \env -> do
-      insertedEvent <- testAppM env $ S.insertTransactEvent dummyUser dummyTransaction
+    it "Insert Transaction Event" $ \scsContext -> do
+      insertedEvent <- testAppM scsContext $ S.insertTransactEvent dummyUser dummyTransaction
       insertedEvent `shouldBe` dummyTransactEvent
 
-    it "List event" $ \env -> do
-      res <- testAppM env $ do
+    it "List event" $ \scsContext -> do
+      res <- testAppM scsContext $ do
         insertedEvent <- S.insertTransactEvent dummyUser dummyTransaction
         eventList <- S.listEvents dummyUser (M.LabelEPCUrn dummyLabelEpcUrn)
         pure (insertedEvent, eventList)
@@ -222,8 +220,8 @@ testQueries = do
           eventList `shouldBe` [insertedEvent]
 
   describe "runDb $ getUser tests" $
-    it "runDb $ getUser test 1" $ \env -> do
-      res <- testAppM env $ do
+    it "runDb $ getUser test 1" $ \scsContext -> do
+      res <- testAppM scsContext $ do
         uid <- S.newUser dummyNewUser
         user <- runDb $ getUser $ M.emailAddress dummyNewUser
         pure (uid, user)
@@ -240,9 +238,9 @@ testQueries = do
   describe "Contacts" $ do
     (after_ clearContact) . describe "Contacts" $
       describe "Add contact" $
-        it "addContact simple" $ \env -> do
+        it "addContact simple" $ \scsContext -> do
           let myContact = makeDummyNewUser (M.EmailAddress "first@gmail.com")
-          (hasBeenAdded, isContact) <- testAppM env $ do
+          (hasBeenAdded, isContact) <- testAppM scsContext $ do
             uid <- S.newUser dummyNewUser
             user <- runDb $ getUser . M.emailAddress $ dummyNewUser
             myContactUid <- S.newUser myContact
@@ -253,9 +251,9 @@ testQueries = do
           isContact `shouldBe` True
 
     describe "Remove contact" $ do
-      it "Simple remove one" $ \env -> do
+      it "Simple remove one" $ \scsContext -> do
         -- Adding the contact first
-        (hasBeenAdded, hasBeenRemoved) <- testAppM env $ do
+        (hasBeenAdded, hasBeenRemoved) <- testAppM scsContext $ do
           void $ S.newUser dummyNewUser
           mUser <- runDb $ getUser $ M.emailAddress dummyNewUser
           let myContact = makeDummyNewUser (M.EmailAddress "first@gmail.com")
@@ -267,9 +265,9 @@ testQueries = do
           pure (hasBeenAdded, hasBeenRemoved)
         hasBeenAdded `shouldBe` True
         hasBeenRemoved `shouldBe` True
-      it "Remove wrong contact" $ \env -> do
+      it "Remove wrong contact" $ \scsContext -> do
         -- Adding the contact first
-        (hasBeenAdded, hasBeenRemoved) <- testAppM env $ do
+        (hasBeenAdded, hasBeenRemoved) <- testAppM scsContext $ do
           void $ S.newUser dummyNewUser
           mUser <- runDb $ getUser $ M.emailAddress dummyNewUser
         -- Add a new user who is NOT a contact
@@ -285,9 +283,9 @@ testQueries = do
         hasBeenRemoved `shouldBe` False
 
     describe "List contact" $ do
-      it "Add one and list" $ \env -> do
+      it "Add one and list" $ \scsContext -> do
         -- Adding the contact first
-        (hasBeenAdded, contactList, users) <- testAppM env $ do
+        (hasBeenAdded, contactList, users) <- testAppM scsContext $ do
           void $ S.newUser dummyNewUser
           mUser <- runDb $ getUser $ M.emailAddress dummyNewUser
           let myContact = makeDummyNewUser (M.EmailAddress "first@gmail.com")
@@ -299,8 +297,8 @@ testQueries = do
           pure (hasBeenAdded, contactList, [fromJust mMyContact_user])
         contactList `shouldBe` users
         hasBeenAdded `shouldBe` True
-      it "Add many and list" $ \env -> do
-        (contactList, users) <- testAppM env $ do
+      it "Add many and list" $ \scsContext -> do
+        (contactList, users) <- testAppM scsContext $ do
           -- Making the users
           let myContact_1 = makeDummyNewUser (M.EmailAddress "first@gmail.com")
               myContact_2 = makeDummyNewUser (M.EmailAddress "second@gmail.com")
@@ -344,9 +342,9 @@ testQueries = do
         contactList `shouldBe` users
 
   describe "DWhere" $
-    it "Insert and find DWhere" $ \env -> do
+    it "Insert and find DWhere" $ \scsContext -> do
       let eventId = dummyId
-      insertedDWhere <- testAppM env $ do
+      insertedDWhere <- testAppM scsContext $ do
         void $ runDb $ insertDWhere dummyDWhere eventId
         runDb $ findDWhere eventId
       insertedDWhere `shouldBe` Just dummyDWhere
@@ -356,20 +354,6 @@ clearContact = do
   conn <- connectPostgreSQL testDbConnStr
   void $ execute_ conn "DELETE FROM contacts;"
 
--- | Utility function that can be used in the ``before_`` hook
-populateContact :: IO Env -> IO ()
-populateContact ioEnv = do
-    env <- ioEnv
-    let myContact = makeDummyNewUser (M.EmailAddress "first@gmail.com")
-    hasBeenAdded <- testAppM env $ do
-      void $ S.newUser dummyNewUser
-      user <- runDb $ getUser $ M.emailAddress dummyNewUser
-      myContactUid <- S.newUser myContact
-      S.addContact (fromJust user) myContactUid
-    hasBeenAdded `shouldBe` True
-
-defaultEnv :: IO Env
-defaultEnv = (\conn -> Env Dev conn Scrypt.defaultParams) <$> defaultPool
 
 defaultPool :: IO (Pool Connection)
 defaultPool = Pool.createPool (connectPostgreSQL testDbConnStr) close

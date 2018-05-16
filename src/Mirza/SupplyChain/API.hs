@@ -17,7 +17,6 @@ import           Mirza.SupplyChain.StorageBeam (PrimaryKeyType)
 import qualified Data.GS1.Event                as Ev
 import           Data.GS1.EventID
 
-import           Data.Swagger
 import           Servant
 import           Servant.API.Flatten
 import           Servant.Swagger.UI
@@ -38,7 +37,8 @@ type PrivateAPI =
   :<|> "event"    :> "aggregateEvent"      :> ReqBody '[JSON] AggregationEvent    :> Post '[JSON] Ev.Event
   :<|> "event"    :> "transactionEvent"    :> ReqBody '[JSON] TransactionEvent    :> Post '[JSON] Ev.Event
   :<|> "event"    :> "transformationEvent" :> ReqBody '[JSON] TransformationEvent :> Post '[JSON] Ev.Event
-  :<|> "key"      :> "add"                 :> ReqBody '[JSON] PEM_RSAPubKey        :> Post '[JSON] KeyID
+  :<|> "event"    :> "addUser" :> Capture "userID" M.UserID :> Capture "eventID" EventID :> Post '[JSON] ()
+  :<|> "key"      :> "add"                 :> ReqBody '[JSON] PEM_RSAPubKey       :> Post '[JSON] KeyID
 
 type PublicAPI =
        "newUser"  :> ReqBody '[JSON] NewUser            :> Post '[JSON] UserID
@@ -48,7 +48,7 @@ type PublicAPI =
 
 type SwaggerAPI = SwaggerSchemaUI "swagger-ui" "swagger.json"
 
-api :: Proxy API'
+api :: Proxy API
 api = Proxy
 
 type ProtectedAPI = Flat (BasicAuth "foo-realm" User :> PrivateAPI)
@@ -63,7 +63,3 @@ type API
     = SwaggerSchemaUI "swagger-ui" "swagger.json"
     :<|> ServerAPI
 
--- To test nested case
-type API' = API
-    :<|> "nested" :> API
-    :<|> SwaggerSchemaUI' "foo-ui" ("foo" :> "swagger.json" :> Get '[JSON] Swagger)

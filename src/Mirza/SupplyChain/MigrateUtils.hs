@@ -11,7 +11,25 @@
 -- Database.Beam.BPostgres.Postgres.Syntax.BMigrate.DataType definitions
 -- At the moment, if Database.Beam.BPostgres.Postgres.Syntax is a hidden module
 -- So it is not possible to implement the types yet
-module Mirza.SupplyChain.MigrateUtils where
+module Mirza.SupplyChain.MigrateUtils
+  ( LabelType(..)
+  , labelType
+  , LocationField(..)
+  , locationRefType
+  , locationType
+  , srcDestType
+  , gs1CompanyPrefixType
+  , actionType
+  , eventType
+  , sglnExtType
+  , uomType
+  , amountType
+  , assetType
+  , sgtinFilterValue
+  , lotType
+  , serialNumType
+  , itemRefType
+  ) where
 
 import qualified Data.GS1.EPC                         as EPC
 import qualified Data.GS1.Event                       as Ev

@@ -15,15 +15,13 @@ import           Data.Bifunctor
 import           Data.Either                      (isLeft, isRight)
 import           Data.Text.Encoding               (encodeUtf8)
 
-import           Crypto.Scrypt                    (defaultParams)
-
-
 import           Test.Tasty.Hspec
 
-import           Mirza.SupplyChain.AppConfig      (EnvType (..))
-import           Mirza.SupplyChain.Lib
+import           Mirza.SupplyChain.Main           (ServerOptions (..),
+                                                   initApplication)
 import           Mirza.SupplyChain.Migrate        (testDbConnStr)
 import           Mirza.SupplyChain.Model
+import           Mirza.SupplyChain.Types          (EnvType (..))
 
 import           Data.GS1.EPC                     (GS1CompanyPrefix (..))
 
@@ -49,7 +47,7 @@ authABC = BasicAuthData
 
 clientSpec :: Spec
 clientSpec =
-  beforeAll (startWaiApp =<< buildApp testDbConnStr Dev Original defaultParams) $
+  beforeAll (startWaiApp =<< initApplication (ServerOptions Dev False testDbConnStr 8000 14 8 1)) $
   afterAll endWaiApp $ do
     describe "SupplyChain.Client new user" $ do
       it "Can create a new user" $ \(_,baseurl) -> do
@@ -79,10 +77,10 @@ clientSpec =
 
 startWaiApp :: Wai.Application -> IO (ThreadId, BaseUrl)
 startWaiApp app = do
-    (port, sock) <- openTestSocket
-    let settings = setPort port $ defaultSettings
+    (prt, sock) <- openTestSocket
+    let settings = setPort prt $ defaultSettings
     thread <- forkIO $ runSettingsSocket settings sock app
-    return (thread, BaseUrl Http "localhost" port "")
+    return (thread, BaseUrl Http "localhost" prt "")
 
 
 endWaiApp :: (ThreadId, BaseUrl) -> IO ()
@@ -94,8 +92,8 @@ openTestSocket = do
   localhost <- inet_addr "127.0.0.1"
   bind s (SockAddrInet aNY_PORT localhost)
   listen s 1
-  port <- socketPort s
-  return (fromIntegral port, s)
+  prt <- socketPort s
+  return (fromIntegral prt, s)
 
 
 
