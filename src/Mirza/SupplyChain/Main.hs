@@ -2,7 +2,7 @@
 {-# LANGUAGE NamedFieldPuns   #-}
 {-# LANGUAGE TypeApplications #-}
 
-module Main where
+module Mirza.SupplyChain.Main where
 
 import           Mirza.SupplyChain.API
 import           Mirza.SupplyChain.Migrate  (defConnectionStr, migrate)
