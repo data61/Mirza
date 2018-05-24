@@ -4,7 +4,7 @@ module Main where
 import           Mirza.SupplyChain.Migrate
 import           Mirza.SupplyChain.Types    as AC
 
-import           Test.Hspec.Core            (sequential)
+import           Test.Hspec.Core.Spec       (sequential)
 import           Test.Tasty                 hiding (withResource)
 import           Test.Tasty.Hspec           (around, testSpec)
 import           Test.Tasty.Runners         (NumThreads (..))
