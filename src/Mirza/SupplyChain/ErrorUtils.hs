@@ -13,7 +13,8 @@ module Mirza.SupplyChain.ErrorUtils
 
 import qualified Mirza.SupplyChain.Model             as M
 import           Mirza.SupplyChain.Types             (AppM, AsServiceError (..),
-                                                      Byte (..), Expected (..),
+                                                      Bit (..), Byte (..),
+                                                      Expected (..),
                                                       Received (..),
                                                       ServerError (..),
                                                       ServiceError (..),
@@ -61,9 +62,9 @@ appErrToHttpErr (EventPermissionDenied _ _) =
   throwError $ err403 {
     errBody = "User does not own the event."
   }
-appErrToHttpErr (InvalidRSAKeySize (Expected (Byte expSize)) (Received (Byte recSize))) =
+appErrToHttpErr (InvalidRSAKeySize (Expected (Bit expSize)) (Received (Bit recSize))) =
   throwError $ err400 {
-    errBody = LBSC8.pack $ printf "Invalid RSA Key size. Expected: %d Bits, Received: %d Bits\n" (expSize * 8) (recSize * 8)
+    errBody = LBSC8.pack $ printf "Invalid RSA Key size. Expected: %d Bits, Received: %d Bits\n" expSize recSize
   }
 appErrToHttpErr (InvalidDigest _) =
   throwError $ err400 {
