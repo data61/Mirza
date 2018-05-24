@@ -77,12 +77,12 @@ newtype EventOwner  = EventOwner M.UserID deriving(Generic, Show, Eq, Read)
 newtype SigningUser = SigningUser M.UserID deriving(Generic, Show, Eq, Read)
 
 
-newtype Bit  = Bit  {unBit :: Int} deriving (Show, Eq, Read)
-newtype Byte = Byte {unByte :: Int} deriving (Show, Eq, Read)
+newtype Bit  = Bit  {unBit :: Int} deriving (Show, Eq, Read, Ord)
+newtype Byte = Byte {unByte :: Int} deriving (Show, Eq, Read, Ord)
 
 
-newtype Expected = Expected {unExpected :: Byte} deriving (Show, Eq, Read)
-newtype Received = Received {unReceived :: Byte} deriving (Show, Eq, Read)
+newtype Expected = Expected {unExpected :: Bit} deriving (Show, Eq, Read, Ord)
+newtype Received = Received {unReceived :: Bit} deriving (Show, Eq, Read, Ord)
 
 
 -- | Top level application error type, which combines errors from several

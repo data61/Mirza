@@ -134,8 +134,8 @@ serveSwaggerAPI = toSwagger serverAPI
 basicAuthServerContext :: AC.SCSContext -> Servant.Context '[BasicAuthCheck M.User]
 basicAuthServerContext context = authCheck context :. EmptyContext
 
-minPubKeySize :: Byte
-minPubKeySize = Byte 256 -- 2048 / 8
+minPubKeySize :: AC.Bit
+minPubKeySize = AC.Bit 2048 -- 256 Bytes
 
 type SCSApp context err =
   ( AsServiceError err
@@ -157,9 +157,9 @@ checkPubKey spKey pemKey =
   maybe (Left $ InvalidRSAKey pemKey)
   (\pubKey ->
     let keySize = rsaSize pubKey in
-    if keySize < (unByte minPubKeySize)
-      -- rsaSize returns size in bytes
-      then Left $ InvalidRSAKeySize (Expected minPubKeySize) (Received $ Byte keySize)
+    -- rsaSize returns size in bytes
+    if (AC.Bit $ keySize * 8) < minPubKeySize
+      then Left $ InvalidRSAKeySize (Expected minPubKeySize) (Received $ AC.Bit keySize)
       else Right pubKey
   )
   (toPublicKey spKey)
