@@ -15,9 +15,8 @@ import           Mirza.SupplyChain.Model       as M
 import           Mirza.SupplyChain.StorageBeam (PrimaryKeyType)
 
 import qualified Data.GS1.Event                as Ev
-import           Data.GS1.EventID
+import           Data.GS1.EventId
 
-import           Data.Swagger
 import           Servant
 import           Servant.API.Flatten
 import           Servant.Swagger.UI
@@ -25,20 +24,20 @@ import           Servant.Swagger.UI
 type PrivateAPI =
        "epc"      :> Capture "urn" M.LabelEPCUrn      :> "info"   :> Get '[JSON] EPCState
   :<|> "epc"      :> Capture "urn" M.LabelEPCUrn      :> "events" :> Get '[JSON] [Ev.Event]
-  :<|> "event"    :> Capture "eventID" EventID        :> "info"   :> Get '[JSON] (Maybe Ev.Event)
+  :<|> "event"    :> Capture "eventID" EventId        :> "info"   :> Get '[JSON] (Maybe Ev.Event)
   :<|> "contacts"                                                 :> Get '[JSON] [User]
   :<|> "contacts" :> "add"                 :> Capture "userID" M.UserID           :> Get '[JSON] Bool
   :<|> "contacts" :> "remove"              :> Capture "userID" M.UserID           :> Get '[JSON] Bool
   :<|> "contacts" :> "search"              :> Capture "term" String               :> Get '[JSON] [User]
   :<|> "event"    :> "list"                :> Capture "userID" M.UserID           :> Get '[JSON] [Ev.Event]
-  :<|> "event"    :> "listUsers"           :> Capture "eventID" EventID           :> Get '[JSON] [(User, Bool)]
+  :<|> "event"    :> "listUsers"           :> Capture "eventID" EventId           :> Get '[JSON] [(User, Bool)]
   :<|> "event"    :> "sign"                :> ReqBody '[JSON] SignedEvent         :> Post '[JSON] PrimaryKeyType
-  :<|> "event"    :> "getHash"             :> ReqBody '[JSON] EventID             :> Post '[JSON] HashedEvent
+  :<|> "event"    :> "getHash"             :> ReqBody '[JSON] EventId             :> Post '[JSON] HashedEvent
   :<|> "event"    :> "objectEvent"         :> ReqBody '[JSON] ObjectEvent         :> Post '[JSON] Ev.Event
   :<|> "event"    :> "aggregateEvent"      :> ReqBody '[JSON] AggregationEvent    :> Post '[JSON] Ev.Event
   :<|> "event"    :> "transactionEvent"    :> ReqBody '[JSON] TransactionEvent    :> Post '[JSON] Ev.Event
   :<|> "event"    :> "transformationEvent" :> ReqBody '[JSON] TransformationEvent :> Post '[JSON] Ev.Event
-  :<|> "event"    :> "addUser" :> Capture "userID" M.UserID :> Capture "eventID" EventID :> Post '[JSON] ()
+  :<|> "event"    :> "addUser" :> Capture "userID" M.UserID :> Capture "eventID" EventId :> Post '[JSON] ()
   :<|> "key"      :> "add"                 :> ReqBody '[JSON] PEM_RSAPubKey       :> Post '[JSON] KeyID
 
 type PublicAPI =
@@ -49,7 +48,7 @@ type PublicAPI =
 
 type SwaggerAPI = SwaggerSchemaUI "swagger-ui" "swagger.json"
 
-api :: Proxy API'
+api :: Proxy API
 api = Proxy
 
 type ProtectedAPI = Flat (BasicAuth "foo-realm" User :> PrivateAPI)
@@ -64,7 +63,3 @@ type API
     = SwaggerSchemaUI "swagger-ui" "swagger.json"
     :<|> ServerAPI
 
--- To test nested case
-type API' = API
-    :<|> "nested" :> API
-    :<|> SwaggerSchemaUI' "foo-ui" ("foo" :> "swagger.json" :> Get '[JSON] Swagger)
