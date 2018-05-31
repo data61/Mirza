@@ -103,6 +103,7 @@ privateServer
   :<|> insertAggEvent
   :<|> insertTransactEvent
   :<|> insertTransfEvent
+  :<|> addUserToEvent
   :<|> addPublicKey
 
 publicServer :: ServerT PublicAPI AC.AppM
@@ -262,7 +263,7 @@ eventSign _user (M.SignedEvent eventID keyID (M.Signature sigStr) digest') = AC.
   rsaPublicKey <- BQ.getPublicKey keyID
   sigBS <- BS64.decode (BSC.pack sigStr) <%?> AC.AppError . InvalidSignature
   let (M.PEMString keyStr) = rsaPublicKey
-  (pubKey :: RSAPubKey) <- liftIO (toPublicKey <$> readPublicKey keyStr) <!?> AC.AppError (InvalidRSAKeyString (pack keyStr))
+  (pubKey :: RSAPubKey) <- liftIO (toPublicKey <$> readPublicKey keyStr) <!?> AC.AppError (InvalidRSAKeyInDB (pack keyStr))
   let eventBS = QU.eventTxtToBS event
   digest <- liftIO (makeDigest digest') <!?> AC.AppError (InvalidDigest digest')
   verifyStatus <- liftIO $ verifyBS digest sigBS pubKey eventBS
@@ -270,9 +271,11 @@ eventSign _user (M.SignedEvent eventID keyID (M.Signature sigStr) digest') = AC.
     then BQ.insertSignature eventID keyID (M.Signature sigStr) digest'
     else throwAppError $ InvalidSignature sigStr
 
-
-addUserToEvent :: M.User -> EventID -> AC.AppM Bool
-addUserToEvent (M.User (M.UserID _userId) _ _) (EventID _eventId) = U.notImplemented
+-- | A function to tie a user to an event
+-- Populates the ``UserEvents`` table
+addUserToEvent :: M.User -> M.UserID -> EventID -> AC.AppM ()
+addUserToEvent (M.User loggedInUserId _ _) anotherUserId eventId =
+    AC.runDb $ BQ.addUserToEvent (BQ.EventOwner loggedInUserId) (BQ.SigningUser anotherUserId) eventId
 
 -- eventSign user signedEvent = error "Storage module not implemented"
 -- eventSign user signedEvent = do
@@ -288,13 +291,13 @@ eventHashed :: M.User -> EventID -> AC.AppM M.HashedEvent
 eventHashed _user _eventId = error "not implemented yet"
 -- return (HashedEvent eventID (EventHash "Blob"))
 
-  {-
+{-
 eventHashed user eventID = do
   mHash <- liftIO $ Storage.eventHashed user eventID
   case mHash of
     Nothing -> throwError err404 { errBody = "Unknown eventID" }
     Just i -> return i
-    -}
+-}
 
 
 insertObjectEvent :: M.User -> M.ObjectEvent -> AC.AppM Ev.Event

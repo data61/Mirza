@@ -20,6 +20,8 @@ module Mirza.SupplyChain.AppConfig
   )
   where
 
+import           Mirza.SupplyChain.Errors   (ServiceError (..))
+
 import qualified Database.Beam              as B
 import           Database.Beam.Postgres     (Pg)
 import           Database.PostgreSQL.Simple (Connection)
@@ -33,7 +35,6 @@ import           Control.Monad.IO.Class     (MonadIO)
 import           Control.Monad.Reader       (MonadReader, ReaderT, ask, asks,
                                              liftIO, runReaderT)
 import           Control.Monad.Trans        (lift)
-import           Mirza.SupplyChain.Errors   (ServiceError (..))
 
 import           Crypto.Scrypt              (ScryptParams)
 
