@@ -15,7 +15,7 @@ import           Data.GS1.DWhere
 import           Data.GS1.DWhy
 import           Data.GS1.EPC                  as EPC
 import qualified Data.GS1.Event                as Ev
-import           Data.GS1.EventID
+import           Data.GS1.EventId
 
 import           Data.Aeson
 import           Data.Aeson.TH
@@ -64,7 +64,7 @@ deriving instance FromHttpApiData KeyID
 deriving instance ToHttpApiData KeyID
 
 -- TODO: This should really be in GS1Combinators
-deriving instance ToHttpApiData EventID
+deriving instance ToHttpApiData EventId
 
 newtype Password = Password {unPassword :: BS.ByteString}
   deriving (Show, Eq, Generic)
@@ -199,7 +199,7 @@ instance ToSchema Business
 
 
 data ObjectEvent = ObjectEvent {
-  obj_foreign_event_id :: Maybe EventID,
+  obj_foreign_event_id :: Maybe EventId,
   obj_act              :: Action,
   obj_epc_list         :: [LabelEPC],
   obj_when             :: DWhen,
@@ -228,7 +228,7 @@ fromObjectEvent (ObjectEvent mEid act epcList dwhen dwhy dwhere) =
 
 -- XXX is it guaranteed to not have a ``recordTime``?
 data AggregationEvent = AggregationEvent {
-  agg_foreign_event_id :: Maybe EventID,
+  agg_foreign_event_id :: Maybe EventId,
   agg_act              :: Action,
   agg_parent_label     :: Maybe ParentLabel,
   agg_child_epc_list   :: [LabelEPC],
@@ -259,8 +259,8 @@ fromAggEvent (AggregationEvent mEid act mParentLabel epcList dwhen dwhy dwhere) 
     dwhen dwhy dwhere
 
 data TransformationEvent = TransformationEvent {
-  transf_foreign_event_id  :: Maybe EventID,
-  transf_transformation_id :: Maybe TransformationID,
+  transf_foreign_event_id  :: Maybe EventId,
+  transf_transformation_id :: Maybe TransformationId,
   transf_input_list        :: [InputEPC],
   transf_output_list       :: [OutputEPC],
   transf_when              :: DWhen,
@@ -289,7 +289,7 @@ fromTransfEvent (TransformationEvent mEid mTransfId inputs outputs dwhen dwhy dw
 
 
 data TransactionEvent = TransactionEvent {
-  transaction_foreign_event_id     :: Maybe EventID,
+  transaction_foreign_event_id     :: Maybe EventId,
   transaction_act                  :: Action,
   transaction_parent_label         :: Maybe ParentLabel,
   transaction_biz_transaction_list :: [BizTransaction],
@@ -327,7 +327,7 @@ fromTransactEvent
     dwhen dwhy dwhere
 
 data SignedEvent = SignedEvent {
-  signed_eventID   :: EventID,
+  signed_eventID   :: EventId,
   signed_keyID     :: KeyID,
   signed_signature :: Signature,
   signed_digest    :: Digest
@@ -338,7 +338,7 @@ instance ToSchema SignedEvent
 --  toParamSchema _ = binaryParamSchema
 
 data HashedEvent = HashedEvent {
-  hashed_eventID :: EventID,
+  hashed_eventID :: EventId,
   hashed_event   :: EventHash
 } deriving (Generic)
 $(deriveJSON defaultOptions ''HashedEvent)

@@ -1,7 +1,7 @@
 
 -- | Sample data types. Serves as a good example of the types defined
 -- in GS1Combinators
-module Mirza.SupplyChain.Dummies where
+module Tests.Dummies where
 
 import qualified Mirza.SupplyChain.Model       as M
 import qualified Mirza.SupplyChain.StorageBeam as SB
@@ -66,7 +66,7 @@ dummyParentLabel :: Maybe ParentLabel
 dummyParentLabel = Just . ParentLabel $ (SSCC (GS1CompanyPrefix "0614141") (SerialNumber "1234567890"))
 
 dummyBizTransaction :: BizTransaction
-dummyBizTransaction = BizTransaction{_btid=BizTransactionID "12345", _bt=Bol}
+dummyBizTransaction = BizTransaction{_btid=BizTransactionId "12345", _bt=Bol}
 -- Events
 
 -- Object Events

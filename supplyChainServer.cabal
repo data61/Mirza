@@ -15,22 +15,24 @@ cabal-version:       >=1.10
 
 library
   default-extensions: OverloadedStrings
+                    , FlexibleContexts
+                    , FlexibleInstances
   hs-source-dirs:     src
-  exposed-modules:    Mirza.SupplyChain.Lib
-                    , Mirza.SupplyChain.Migrate
+  exposed-modules:    Mirza.SupplyChain.API
+                    , Mirza.Common.Types
                     , Mirza.SupplyChain.BeamQueries
-                    , Mirza.SupplyChain.Model
-                    , Mirza.SupplyChain.StorageBeam
-                    , Mirza.SupplyChain.AppConfig
-                    , Mirza.SupplyChain.Dummies
-                    , Mirza.SupplyChain.QueryUtils
-                    , Mirza.SupplyChain.Utils
-                    , Mirza.SupplyChain.Service
                     , Mirza.SupplyChain.Client.Servant
-  other-modules:      Mirza.SupplyChain.API
-                    , Mirza.SupplyChain.MigrateUtils
+                    , Mirza.SupplyChain.Main
+                    , Mirza.SupplyChain.Migrate
+                    , Mirza.SupplyChain.Model
+                    , Mirza.SupplyChain.QueryUtils
+                    , Mirza.SupplyChain.Service
+                    , Mirza.SupplyChain.StorageBeam
+                    , Mirza.SupplyChain.Types
+                    , Mirza.SupplyChain.Utils
+  
+  other-modules:      Mirza.SupplyChain.MigrateUtils
                     , Mirza.SupplyChain.MigrateScript
-                    , Mirza.SupplyChain.Errors
                     , Mirza.SupplyChain.ErrorUtils
   build-depends:      base >= 4.7 && < 5
                     , GS1Combinators
@@ -43,15 +45,14 @@ library
                     , binary
                     , bytestring
                     , cryptonite
-                    , either
                     , hoist-error >= 0.2
                     , HsOpenSSL
                     , hspec
                     , http-types >= 0.9.1
                     , insert-ordered-containers
                     , lens
-                    , lifted-base
                     , mtl
+                    , optparse-applicative
                     , postgresql-simple
                     , resource-pool >= 0.2.3
                     , scrypt
@@ -70,25 +71,26 @@ library
                     , uuid-types
                     , wai
                     , warp
-                    , xml-conduit
   default-language:   Haskell2010
-  default-extensions: FlexibleContexts
-                    , FlexibleInstances
 
 executable supplyChainServer-exe
   hs-source-dirs:      app
-  main-is:             Main.hs
+  main-is:             SupplyChainServer.hs
   build-depends:       bytestring
                      , base
                      , supplyChainServer
                      , optparse-applicative
                      , GS1Combinators
-                     , xml-conduit
-                     , xml-types
                      , text
                      , uuid
                      , base64-bytestring
+                     , postgresql-simple
+                     , resource-pool
                      , scrypt
+                     , servant-server
+                     , servant-swagger-ui
+                     , warp
+                     , wai
   ghc-options:         -threaded -Wall -Werror -rtsopts -with-rtsopts=-N
   default-language:    Haskell2010
 
@@ -110,45 +112,49 @@ executable businessRegistry
                      , scrypt
 
 test-suite supplyChainServer-test
-  type:                exitcode-stdio-1.0
-  hs-source-dirs:      test
-  main-is:             Spec.hs
-  other-modules:       Tests.Service
+  type:               exitcode-stdio-1.0
+  hs-source-dirs:     test
+  main-is:            Spec.hs
+  other-modules:      Tests.Service
+                    , Tests.Dummies
+                    , Tests.Client
   default-extensions:  OverloadedStrings
   build-depends:       base
                      , GS1Combinators
                      , supplyChainServer
                      , aeson
-                    --  , aeson-pretty
                      , base-compat
-                    , resource-pool >= 0.2.3
+                     , resource-pool >= 0.2.3
                      , base64-bytestring
                      , beam-core
                      , beam-postgres
                      , binary
                      , bytestring
                      , cryptonite
-                    --  , direct-sqlite
-                     , either
                      , HsOpenSSL
                      , hspec
-                     , hspec-wai
-                     , hspec-wai-json
+                     , hspec-core
+                     , http-client
                      , insert-ordered-containers
                      , lens
-                     , monad-logger
                      , mtl
+                     , network
                      , postgresql-simple
                      , scrypt
+                     , servant
                      , servant-server
                      , servant-swagger
                      , servant-swagger-ui
-                    --  , sqlite-simple
                      , string-conversions
                      , swagger2
                      , text
                      , time
                      , uuid
+                     , tasty
+                     , tasty-hspec
+                     , wai
+                     , warp
+                     , servant-client
   default-language:    Haskell2010
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N -Wall -Werror
 
