@@ -18,8 +18,9 @@ library
                     , FlexibleContexts
                     , FlexibleInstances
   hs-source-dirs:     src
-  exposed-modules:    Mirza.SupplyChain.API
+  exposed-modules:    Mirza.BusinessRegistry.Main
                     , Mirza.Common.Types
+                    , Mirza.SupplyChain.API
                     , Mirza.SupplyChain.BeamQueries
                     , Mirza.SupplyChain.Client.Servant
                     , Mirza.SupplyChain.Main
@@ -30,7 +31,7 @@ library
                     , Mirza.SupplyChain.StorageBeam
                     , Mirza.SupplyChain.Types
                     , Mirza.SupplyChain.Utils
-  
+
   other-modules:      Mirza.SupplyChain.MigrateUtils
                     , Mirza.SupplyChain.MigrateScript
                     , Mirza.SupplyChain.ErrorUtils
@@ -73,43 +74,24 @@ library
                     , warp
   default-language:   Haskell2010
 
+
+
+
 executable supplyChainServer-exe
-  hs-source-dirs:      app
-  main-is:             SupplyChainServer.hs
-  build-depends:       bytestring
-                     , base
-                     , supplyChainServer
-                     , optparse-applicative
-                     , GS1Combinators
-                     , text
-                     , uuid
-                     , base64-bytestring
-                     , postgresql-simple
-                     , resource-pool
-                     , scrypt
-                     , servant-server
-                     , servant-swagger-ui
-                     , warp
-                     , wai
-  ghc-options:         -threaded -Wall -Werror -rtsopts -with-rtsopts=-N
-  default-language:    Haskell2010
+  hs-source-dirs:       app
+  main-is:              SupplyChainServer.hs
+  ghc-options:          -threaded -Wall -Werror -rtsopts -with-rtsopts=-N
+  default-language:     Haskell2010
+  build-depends:        base >= 4.7 && < 5
+                      , supplyChainServer
 
 executable businessRegistry
-  default-language:    Haskell2010
-  hs-source-dirs:      app
-  main-is:             BusinessRegistry.hs
-  ghc-options:         -threaded -Wall -Werror -rtsopts -with-rtsopts=-N
-  build-depends:       base >= 4.7 && < 5
-                     , bytestring
-                     , supplyChainServer
-                     , optparse-applicative
-                     , GS1Combinators
-                     , xml-conduit
-                     , xml-types
-                     , text
-                     , uuid
-                     , base64-bytestring
-                     , scrypt
+  default-language:     Haskell2010
+  hs-source-dirs:       app
+  main-is:              BusinessRegistry.hs
+  ghc-options:          -threaded -Wall -Werror -rtsopts -with-rtsopts=-N
+  build-depends:        base >= 4.7 && < 5
+                      , supplyChainServer
 
 test-suite supplyChainServer-test
   type:               exitcode-stdio-1.0
