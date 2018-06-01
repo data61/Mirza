@@ -35,13 +35,13 @@ defaultDatabaseConnectionString = "dbname=devMirzaBusinessRegistry"
 
 data ServerOptions = ServerOptions
   {
-      debug                              :: Bool -- TODO: Remove this program option before release.
-    , initDatabase                       :: Bool
-    , serverOptionsPortNumber            :: Int
-    , serverOptionsDatabaseConnectionStr :: ByteString
-    , soScryptN                          :: Integer
-    , soScryptP                          :: Integer
-    , soScryptR                          :: Integer
+      debug                   :: Bool -- TODO: Remove this program option before release.
+    , initDatabase            :: Bool
+    , soPortNumber            :: Int
+    , soDatabaseConnectionStr :: ByteString
+    , soScryptN               :: Integer
+    , soScryptP               :: Integer
+    , soScryptR               :: Integer
   }
 
 serverOptions :: Parser ServerOptions
@@ -103,9 +103,10 @@ main = launchWithServerOptions =<< execParser opts where
     <> header "Supply Chain Business Registry Server")
 
 launchWithServerOptions :: ServerOptions -> IO ()
-launchWithServerOptions (ServerOptions _ True _ _ _ _ _) = debugFunc
 --launchWithServerOptions (ServerOptions False _ portNumber databaseConnectionString) = launchServer portNumber databaseConnectionString
-launchWithServerOptions options                          = runProgram options
+launchWithServerOptions options
+  | debug(options) = debugFunc
+  | otherwise      = runProgram options
 
 -- launchServer :: Int -> ByteString -> IO ()
 -- launchServer portNumber databaseConnectionString = do
@@ -138,13 +139,15 @@ debugFunc = do
 
 -- Todo Remove This Function: This function currently servers as the entry point while in the process of splicing in the business registry from the other repository.
 runProgram :: ServerOptions -> IO ()
-runProgram so@(ServerOptions _ False portNumber _ _ _ _) = do
-  app <- initApplication so
-  mids <- initMiddleware so
-  putStrLn $ "http://localhost:" ++ show portNumber ++ "/swagger-ui/"
-  Warp.run (fromIntegral portNumber) $ mids app
+runProgram options
 -- FIXME: This is definitely wrong
-runProgram _ = migrate defConnectionStr
+  | not (initDatabase(options)) = migrate defConnectionStr
+  | initDatabase(options)  = do
+      let portNumber = soPortNumber options
+      app <- initApplication options
+      mids <- initMiddleware options
+      putStrLn $ "http://localhost:" ++ show portNumber ++ "/swagger-ui/"
+      Warp.run (fromIntegral portNumber) $ mids app
 
 initMiddleware :: ServerOptions -> IO Middleware
 initMiddleware _ = pure id
