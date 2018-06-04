@@ -27,25 +27,28 @@ module Mirza.SupplyChain.Types
 -- import           Mirza.SupplyChain.Errors   (ServiceError (..))
 import qualified Mirza.SupplyChain.Model    as M
 
+import           Mirza.Common.Types         as Common
+
 import qualified Data.GS1.EPC               as EPC
 import           Data.GS1.EventId           as EvId
-
 
 import           Database.PostgreSQL.Simple (Connection, SqlError)
 
 import           Crypto.Scrypt              (ScryptParams)
 
-import           Data.Pool                  as Pool
+import           Control.Lens
 
 import           GHC.Generics               (Generic)
 
 import qualified Data.ByteString            as BS
+import           Data.Pool                  as Pool
 import           Data.Text                  (Text)
 
-import           Control.Lens
 
-import           Mirza.Common.Types         as Common
 
+-- *********************************************************************************************************************
+-- Context Types
+-- *********************************************************************************************************************
 
 mkEnvType :: Bool -> EnvType
 mkEnvType False = Prod
@@ -71,19 +74,11 @@ class HasScryptParams a where
 instance HasScryptParams SCSContext where
   scryptParams = lens _scryptPs (\scsc p' -> scsc{_scryptPs = p'})
 
--- TODO: Document all these types!
-
-newtype EventOwner  = EventOwner M.UserID deriving(Generic, Show, Eq, Read)
-newtype SigningUser = SigningUser M.UserID deriving(Generic, Show, Eq, Read)
 
 
-newtype Bit  = Bit  {unBit :: Int} deriving (Show, Eq, Read, Ord)
-newtype Byte = Byte {unByte :: Int} deriving (Show, Eq, Read, Ord)
-
-
-newtype Expected = Expected {unExpected :: Bit} deriving (Show, Eq, Read, Ord)
-newtype Received = Received {unReceived :: Bit} deriving (Show, Eq, Read, Ord)
-
+-- *********************************************************************************************************************
+-- Error Types
+-- *********************************************************************************************************************
 
 -- | Top level application error type, which combines errors from several
 -- domains. Currently only `ServiceError` is contained by AppError, but as this
@@ -91,6 +86,11 @@ newtype Received = Received {unReceived :: Bit} deriving (Show, Eq, Read, Ord)
 -- constructors will be added.
 newtype AppError = AppError ServiceError deriving (Show)
 
+newtype Bit  = Bit  {unBit :: Int} deriving (Show, Eq, Read, Ord)
+newtype Byte = Byte {unByte :: Int} deriving (Show, Eq, Read, Ord)
+
+newtype Expected = Expected {unExpected :: Bit} deriving (Show, Eq, Read, Ord)
+newtype Received = Received {unReceived :: Bit} deriving (Show, Eq, Read, Ord)
 
 data ServerError = ServerError (Maybe BS.ByteString) Text
                    deriving (Show, Eq, Generic, Read)
@@ -127,3 +127,17 @@ instance AsSqlError ServiceError where
 
 instance AsSqlError AppError where
   _SqlError = _DatabaseError
+
+
+
+-- *********************************************************************************************************************
+-- User Types
+-- *********************************************************************************************************************
+
+-- TODO: Document all these types!
+
+newtype EventOwner  = EventOwner M.UserID deriving(Generic, Show, Eq, Read)
+newtype SigningUser = SigningUser M.UserID deriving(Generic, Show, Eq, Read)
+
+
+
