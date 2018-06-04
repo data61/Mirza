@@ -26,7 +26,7 @@ module Mirza.SupplyChain.Client.Servant
   ) where
 
 import           Mirza.SupplyChain.API
-import           Mirza.SupplyChain.Model as M
+import           Mirza.SupplyChain.Types
 
 import           Servant.API
 import           Servant.Client
@@ -59,7 +59,7 @@ insertObjectEvent   :: BasicAuthData -> ObjectEvent -> ClientM Event
 insertAggEvent      :: BasicAuthData -> AggregationEvent -> ClientM Event
 insertTransactEvent :: BasicAuthData -> TransactionEvent -> ClientM Event
 insertTransfEvent   :: BasicAuthData -> TransformationEvent -> ClientM Event
-addUserToEvent      :: BasicAuthData -> M.UserID -> EventId -> ClientM ()
+addUserToEvent      :: BasicAuthData -> UserID -> EventId -> ClientM ()
 addPublicKey        :: BasicAuthData -> PEM_RSAPubKey -> ClientM KeyID
 
 _api     :: Client ClientM ServerAPI
