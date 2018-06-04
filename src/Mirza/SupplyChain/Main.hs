@@ -6,10 +6,9 @@ module Mirza.SupplyChain.Main where
 
 import           Mirza.SupplyChain.API
 import           Mirza.SupplyChain.Migrate  (defConnectionStr, migrate)
-import           Mirza.SupplyChain.Model    (User)
 import           Mirza.SupplyChain.Service
-import           Mirza.SupplyChain.Types    (AppError, EnvType (..))
-import qualified Mirza.SupplyChain.Types    as AC
+import           Mirza.SupplyChain.Types    (AppError, EnvType (..),
+                                             SCSContext (..), User)
 
 import           Servant                    hiding (header)
 import           Servant.Swagger.UI
@@ -111,7 +110,7 @@ initApplication (ServerOptions envT _ dbConnStr _ n p r)  = do
                       60 -- How long in seconds to keep a connection open for reuse
                       10 -- Max number of connections to have open at any one time
                       -- TODO: Make this a config paramete
-  let ev  = AC.SCSContext envT connpool params
+  let ev  = SCSContext envT connpool params
       app = serveWithContext api
             (basicAuthServerContext ev)
             (server' ev)
@@ -120,16 +119,16 @@ initApplication (ServerOptions envT _ dbConnStr _ n p r)  = do
 -- easily start the app in ghci, no command line arguments required.
 startApp_nomain :: ByteString -> IO ()
 startApp_nomain dbConnStr =
-  initApplication (ServerOptions AC.Dev False dbConnStr 8000 14 8 1) >>= Warp.run 8000
+  initApplication (ServerOptions Dev False dbConnStr 8000 14 8 1) >>= Warp.run 8000
 
 
 -- Implementation
 
-server' :: AC.SCSContext -> Server API
+server' :: SCSContext -> Server API
 server' ev =
   swaggerSchemaUIServer serveSwaggerAPI
   :<|> hoistServerWithContext
         (Proxy @ServerAPI)
         (Proxy @'[BasicAuthCheck User])
         (appMToHandler ev)
-        (appHandlers @AC.SCSContext @AppError)
+        (appHandlers @SCSContext @AppError)

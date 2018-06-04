@@ -12,9 +12,8 @@ module Mirza.SupplyChain.QueryUtils where
 
 import           Mirza.SupplyChain.ErrorUtils   (throwBackendError)
 import qualified Mirza.SupplyChain.MigrateUtils as MU
-import qualified Mirza.SupplyChain.Model        as M
 import qualified Mirza.SupplyChain.StorageBeam  as SB
-import           Mirza.SupplyChain.Types        (AsServiceError (..), DB, pg)
+import           Mirza.SupplyChain.Types
 
 import           Data.GS1.DWhy                  (DWhy (..))
 import           Data.GS1.EPC                   as EPC
@@ -77,8 +76,8 @@ generatePk = liftIO nextRandom
 
 -- | Converts a DB representation of ``User`` to a Model representation
 -- SB.User = SB.User uid bizId fName lName phNum passHash email
-userTableToModel :: SB.User -> M.User
-userTableToModel (SB.User uid _ fName lName _ _ _) = M.User (M.UserID uid) fName lName
+userTableToModel :: SB.User -> User
+userTableToModel (SB.User uid _ fName lName _ _ _) = User (UserID uid) fName lName
 
 -- | Json encode the event
 -- currently do it automagically, but might what to be
@@ -222,8 +221,8 @@ findInstLabelId' cp sn msfv mir mat = do
     _   -> Nothing
 
 
-getUser :: M.EmailAddress -> DB context err (Maybe M.User)
-getUser (M.EmailAddress email) = do
+getUser :: EmailAddress -> DB context err (Maybe User)
+getUser (EmailAddress email) = do
   r <- pg $ runSelectReturningList $ select $ do
     allUsers <- all_ (SB._users SB.supplyChainDb)
     guard_ (SB.email_address allUsers ==. val_ email)
@@ -443,8 +442,8 @@ insertLabelEvent (SB.EventId eventId) (SB.LabelId labelId) = withPKey $ \pKey ->
         ]
 
 
-selectUser :: M.UserID -> DB context err (Maybe SB.User)
-selectUser (M.UserID uid) = do
+selectUser :: UserID -> DB context err (Maybe SB.User)
+selectUser (UserID uid) = do
   r <- pg $ runSelectReturningList $ select $ do
           user <- all_ (SB._users SB.supplyChainDb)
           guard_ (SB.user_id user ==. val_ uid)
@@ -476,8 +475,8 @@ findEvent (SB.EventId eventId) = do
     _       -> throwBackendError r
 
 -- | Checks if a user is associated with an event
-hasUserCreatedEvent :: M.UserID -> EvId.EventId -> DB context err Bool
-hasUserCreatedEvent (M.UserID userId) (EvId.EventId eventId) = do
+hasUserCreatedEvent :: UserID -> EvId.EventId -> DB context err Bool
+hasUserCreatedEvent (UserID userId) (EvId.EventId eventId) = do
   r <- pg $ runSelectReturningList $ select $ do
         userEvent <- all_ (SB._user_events SB.supplyChainDb)
         guard_ (SB.user_events_owner userEvent ==. (val_ . SB.UserId $ userId) &&.
@@ -492,8 +491,8 @@ storageToModelEvent = decodeEvent . SB.json_event
 
 -- | Checks if a pair of userIds are recorded as a contact.
 -- __Must be run in a transaction!__
-isExistingContact :: M.UserID -> M.UserID -> DB context err Bool
-isExistingContact (M.UserID uid1) (M.UserID uid2) = do
+isExistingContact :: UserID -> UserID -> DB context err Bool
+isExistingContact (UserID uid1) (UserID uid2) = do
   r <- pg $ runSelectReturningList $ select $ do
         contact <- all_ (SB._contacts SB.supplyChainDb)
         guard_ (SB.contact_user1_id contact  ==. (val_ . SB.UserId $ uid1) &&.
@@ -514,7 +513,7 @@ verifyContact [insertedContact] uid1 uid2 =
                   (SB.contact_user2_id insertedContact == uid2)
 verifyContact _ _ _ = False
 
-storageToModelBusiness :: SB.Business -> M.Business
+storageToModelBusiness :: SB.Business -> Business
 storageToModelBusiness (SB.Business pfix name f site addr lat long)
-  = M.Business pfix name f site addr lat long
+  = Business pfix name f site addr lat long
 

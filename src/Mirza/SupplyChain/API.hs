@@ -11,8 +11,8 @@
 
 module Mirza.SupplyChain.API where
 
-import           Mirza.SupplyChain.Model       as M
 import           Mirza.SupplyChain.StorageBeam (PrimaryKeyType)
+import           Mirza.SupplyChain.Types       as M
 
 import qualified Data.GS1.Event                as Ev
 import           Data.GS1.EventId
