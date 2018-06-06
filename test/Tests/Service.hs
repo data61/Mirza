@@ -12,10 +12,10 @@ module Tests.Service
 import           Tests.Dummies
 
 import           Mirza.SupplyChain.Migrate     (testDbConnStr)
-import qualified Mirza.SupplyChain.Model       as M
 import           Mirza.SupplyChain.QueryUtils
 import qualified Mirza.SupplyChain.Service     as S
 import qualified Mirza.SupplyChain.StorageBeam as SB
+import           Mirza.SupplyChain.Types
 
 import           Data.GS1.EPC
 
@@ -47,11 +47,11 @@ timeStampIO = liftIO $ (utcToLocalTime utc) <$> getCurrentTime
 timeStampIOEPCIS :: MonadIO m => m EPCISTime
 timeStampIOEPCIS = liftIO $ EPCISTime <$> getCurrentTime
 
-rsaPubKey :: IO M.PEM_RSAPubKey
-rsaPubKey = M.PEMString <$> Prelude.readFile "./test/Tests/testKeys/goodKeys/test.pub"
+rsaPubKey :: IO PEM_RSAPubKey
+rsaPubKey = PEMString <$> Prelude.readFile "./test/Tests/testKeys/goodKeys/test.pub"
 
-selectKey :: M.KeyID -> DB SCSContext AppError (Maybe SB.Key)
-selectKey (M.KeyID keyId) = do
+selectKey :: KeyID -> DB SCSContext AppError (Maybe SB.Key)
+selectKey (KeyID keyId) = do
   r <- pg $ runSelectReturningList $ select $ do
           key <- all_ (SB._keys SB.supplyChainDb)
           guard_ (SB.key_id key ==. val_ keyId)
@@ -76,7 +76,7 @@ testQueries = do
         uid <- S.newUser dummyNewUser
         storageUser <- runDb $ selectUser uid
         let user = userTableToModel . fromJust $ storageUser
-        let (M.PEMString keyStr) = pubKey
+        let (PEMString keyStr) = pubKey
         keyId <- S.addPublicKey user pubKey
         tEnd <- timeStampIO
         insertedKey <- S.getPublicKey keyId
@@ -84,7 +84,7 @@ testQueries = do
         pure (storageKey, keyStr, keyId, uid, tEnd, insertedKey)
       case res of
         (Nothing, _, _, _, _, _) -> fail "Received Nothing for key"
-        (Just key, keyStr, (M.KeyID keyId), (M.UserID uid), tEnd, insertedKey) -> do
+        (Just key, keyStr, (KeyID keyId), (UserID uid), tEnd, insertedKey) -> do
           key `shouldSatisfy`
             (\k ->
               T.unpack (SB.pem_str k) == keyStr &&
@@ -109,9 +109,9 @@ testQueries = do
         pure (keyInfo, uid, tEnd)
       keyInfo `shouldSatisfy`
         (\ki ->
-          (M.userID ki == uid) &&
-          (M.creationTime ki > tStart && M.creationTime ki < tEnd) &&
-          isNothing (M.revocationTime ki)
+          (userID ki == uid) &&
+          (creationTime ki > tStart && creationTime ki < tEnd) &&
+          isNothing (revocationTime ki)
         )
 
   describe "newUser tests" $
@@ -122,17 +122,17 @@ testQueries = do
         pure (uid, user)
       case res of
         (_, Nothing) -> fail "Received Nothing for user"
-        ((M.UserID uid), Just user :: Maybe (SB.UserT Identity)) ->
+        ((UserID uid), Just user :: Maybe (SB.UserT Identity)) ->
           user `shouldSatisfy`
             (\u ->
-              (SB.phone_number u) == (M.phoneNumber dummyNewUser) &&
-              (SB.email_address u) == (M.unEmailAddress . M.emailAddress $ dummyNewUser) &&
-              (SB.first_name u) == (M.firstName dummyNewUser) &&
-              (SB.last_name u) == (M.lastName dummyNewUser) &&
-              (SB.user_biz_id u) == (SB.BizId (M.company dummyNewUser)) &&
+              (SB.phone_number u) == (phoneNumber dummyNewUser) &&
+              (SB.email_address u) == (unEmailAddress . emailAddress $ dummyNewUser) &&
+              (SB.first_name u) == (firstName dummyNewUser) &&
+              (SB.last_name u) == (lastName dummyNewUser) &&
+              (SB.user_biz_id u) == (SB.BizId (company dummyNewUser)) &&
               -- note database bytestring includes the salt, this checks password
               (Scrypt.verifyPass'
-                (Scrypt.Pass $ encodeUtf8 $ M.password dummyNewUser)
+                (Scrypt.Pass $ encodeUtf8 $ password dummyNewUser)
                 (Scrypt.EncryptedPass $ SB.password_hash u)) &&
               (SB.user_id u) == uid
             )
@@ -143,8 +143,8 @@ testQueries = do
         uid <- S.newUser dummyNewUser
         let check = unBasicAuthCheck $ S.authCheck scsContext
         let basicAuthData = BasicAuthData
-                          (encodeUtf8 $ M.unEmailAddress $ M.emailAddress dummyNewUser)
-                          (encodeUtf8 $ M.password dummyNewUser)
+                          (encodeUtf8 $ unEmailAddress $ emailAddress dummyNewUser)
+                          (encodeUtf8 $ password dummyNewUser)
 
         user <- liftIO $ check basicAuthData
         pure (uid, user)
@@ -153,9 +153,9 @@ testQueries = do
         (uid, Authorized user) ->
           user `shouldSatisfy`
             (\u ->
-              (M.userId u) == uid &&
-              (M.userFirstName u) == (M.firstName dummyNewUser) &&
-              (M.userLastName u) == (M.lastName dummyNewUser)
+              (userId u) == uid &&
+              (userFirstName u) == (firstName dummyNewUser) &&
+              (userLastName u) == (lastName dummyNewUser)
             )
         _ -> fail "Could not authenticate user"
 
@@ -167,7 +167,7 @@ testQueries = do
     it "List event" $ \scsContext -> do
       res <- testAppM scsContext $ do
         insertedEvent <- S.insertObjectEvent dummyUser dummyObject
-        evtList <- S.listEvents dummyUser (M.LabelEPCUrn dummyLabelEpcUrn)
+        evtList <- S.listEvents dummyUser (LabelEPCUrn dummyLabelEpcUrn)
         pure (insertedEvent, evtList)
       case res of
         (insertedEvent, evtList) -> do
@@ -182,7 +182,7 @@ testQueries = do
     it "List event" $ \scsContext -> do
       res <- testAppM scsContext $ do
         insertedEvent <- S.insertAggEvent dummyUser dummyAggregation
-        evtList <- S.listEvents dummyUser (M.LabelEPCUrn dummyLabelEpcUrn)
+        evtList <- S.listEvents dummyUser (LabelEPCUrn dummyLabelEpcUrn)
         pure (insertedEvent, evtList)
       case res of
         (insertedEvent, evtList) -> do
@@ -197,7 +197,7 @@ testQueries = do
     it "List event" $ \scsContext -> do
       res <- testAppM scsContext $ do
         insertedEvent <- S.insertTransfEvent dummyUser dummyTransformation
-        eventList <- S.listEvents dummyUser (M.LabelEPCUrn dummyLabelEpcUrn)
+        eventList <- S.listEvents dummyUser (LabelEPCUrn dummyLabelEpcUrn)
         pure (insertedEvent, eventList)
       case res of
         (insertedEvent, eventList) -> do
@@ -212,7 +212,7 @@ testQueries = do
     it "List event" $ \scsContext -> do
       res <- testAppM scsContext $ do
         insertedEvent <- S.insertTransactEvent dummyUser dummyTransaction
-        eventList <- S.listEvents dummyUser (M.LabelEPCUrn dummyLabelEpcUrn)
+        eventList <- S.listEvents dummyUser (LabelEPCUrn dummyLabelEpcUrn)
         pure (insertedEvent, eventList)
       case res of
         (insertedEvent, eventList) -> do
@@ -223,26 +223,26 @@ testQueries = do
     it "runDb $ getUser test 1" $ \scsContext -> do
       res <- testAppM scsContext $ do
         uid <- S.newUser dummyNewUser
-        user <- runDb $ getUser $ M.emailAddress dummyNewUser
+        user <- runDb $ getUser $ emailAddress dummyNewUser
         pure (uid, user)
       case res of
         (_, Nothing) -> fail "Received Nothing for user"
         (uid, Just user) ->
           user `shouldSatisfy`
             (\u ->
-              (M.userId u == uid) &&
-              (M.userFirstName u == M.firstName dummyNewUser) &&
-              (M.userLastName u == M.lastName dummyNewUser)
+              (userId u == uid) &&
+              (userFirstName u == firstName dummyNewUser) &&
+              (userLastName u == lastName dummyNewUser)
             )
 
   describe "Contacts" $ do
     (after_ clearContact) . describe "Contacts" $
       describe "Add contact" $
         it "addContact simple" $ \scsContext -> do
-          let myContact = makeDummyNewUser (M.EmailAddress "first@gmail.com")
+          let myContact = makeDummyNewUser (EmailAddress "first@gmail.com")
           (hasBeenAdded, isContact) <- testAppM scsContext $ do
             uid <- S.newUser dummyNewUser
-            user <- runDb $ getUser . M.emailAddress $ dummyNewUser
+            user <- runDb $ getUser . emailAddress $ dummyNewUser
             myContactUid <- S.newUser myContact
             hasBeenAdded <- S.addContact (fromJust user) myContactUid
             isContact <- runDb $ isExistingContact uid myContactUid
@@ -255,8 +255,8 @@ testQueries = do
         -- Adding the contact first
         (hasBeenAdded, hasBeenRemoved) <- testAppM scsContext $ do
           void $ S.newUser dummyNewUser
-          mUser <- runDb $ getUser $ M.emailAddress dummyNewUser
-          let myContact = makeDummyNewUser (M.EmailAddress "first@gmail.com")
+          mUser <- runDb $ getUser $ emailAddress dummyNewUser
+          let myContact = makeDummyNewUser (EmailAddress "first@gmail.com")
               user = fromJust mUser
           myContactUid <- S.newUser myContact
           hasBeenAdded <- S.addContact user myContactUid
@@ -269,10 +269,10 @@ testQueries = do
         -- Adding the contact first
         (hasBeenAdded, hasBeenRemoved) <- testAppM scsContext $ do
           void $ S.newUser dummyNewUser
-          mUser <- runDb $ getUser $ M.emailAddress dummyNewUser
+          mUser <- runDb $ getUser $ emailAddress dummyNewUser
         -- Add a new user who is NOT a contact
-          otherUserId <- S.newUser $ makeDummyNewUser (M.EmailAddress "other@gmail.com")
-          let myContact = makeDummyNewUser (M.EmailAddress "first@gmail.com")
+          otherUserId <- S.newUser $ makeDummyNewUser (EmailAddress "other@gmail.com")
+          let myContact = makeDummyNewUser (EmailAddress "first@gmail.com")
               user = fromJust mUser
           myContactUid <- S.newUser myContact
           hasBeenAdded <- S.addContact user myContactUid
@@ -287,11 +287,11 @@ testQueries = do
         -- Adding the contact first
         (hasBeenAdded, contactList, users) <- testAppM scsContext $ do
           void $ S.newUser dummyNewUser
-          mUser <- runDb $ getUser $ M.emailAddress dummyNewUser
-          let myContact = makeDummyNewUser (M.EmailAddress "first@gmail.com")
+          mUser <- runDb $ getUser $ emailAddress dummyNewUser
+          let myContact = makeDummyNewUser (EmailAddress "first@gmail.com")
               user = fromJust mUser
           myContactUid <- S.newUser myContact
-          mMyContact_user <- runDb $ getUser (M.EmailAddress "first@gmail.com")
+          mMyContact_user <- runDb $ getUser (EmailAddress "first@gmail.com")
           hasBeenAdded <- S.addContact user myContactUid
           contactList <- S.listContacts user
           pure (hasBeenAdded, contactList, [fromJust mMyContact_user])
@@ -300,10 +300,10 @@ testQueries = do
       it "Add many and list" $ \scsContext -> do
         (contactList, users) <- testAppM scsContext $ do
           -- Making the users
-          let myContact_1 = makeDummyNewUser (M.EmailAddress "first@gmail.com")
-              myContact_2 = makeDummyNewUser (M.EmailAddress "second@gmail.com")
-              myContact_3 = makeDummyNewUser (M.EmailAddress "third@gmail.com")
-              myContact_4 = makeDummyNewUser (M.EmailAddress "fourth@gmail.com")
+          let myContact_1 = makeDummyNewUser (EmailAddress "first@gmail.com")
+              myContact_2 = makeDummyNewUser (EmailAddress "second@gmail.com")
+              myContact_3 = makeDummyNewUser (EmailAddress "third@gmail.com")
+              myContact_4 = makeDummyNewUser (EmailAddress "fourth@gmail.com")
 
           -- Adding the users to the DB
           void $ S.newUser dummyNewUser
@@ -313,11 +313,11 @@ testQueries = do
           myContactUid_4 <- S.newUser myContact_4
 
           -- Getting the users
-          mUser <- runDb $ getUser $ M.emailAddress dummyNewUser
-          mMyContact_1 <- runDb $ getUser (M.EmailAddress "first@gmail.com")
-          mMyContact_2 <- runDb $ getUser (M.EmailAddress "second@gmail.com")
-          mMyContact_3 <- runDb $ getUser (M.EmailAddress "third@gmail.com")
-          mMyContact_4 <- runDb $ getUser (M.EmailAddress "fourth@gmail.com")
+          mUser <- runDb $ getUser $ emailAddress dummyNewUser
+          mMyContact_1 <- runDb $ getUser (EmailAddress "first@gmail.com")
+          mMyContact_2 <- runDb $ getUser (EmailAddress "second@gmail.com")
+          mMyContact_3 <- runDb $ getUser (EmailAddress "third@gmail.com")
+          mMyContact_4 <- runDb $ getUser (EmailAddress "fourth@gmail.com")
 
           let user = fromJust mUser
               myContact_1_user = fromJust mMyContact_1

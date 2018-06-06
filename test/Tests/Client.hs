@@ -20,8 +20,7 @@ import           Test.Tasty.Hspec
 import           Mirza.SupplyChain.Main           (ServerOptions (..),
                                                    initApplication)
 import           Mirza.SupplyChain.Migrate        (testDbConnStr)
-import           Mirza.SupplyChain.Model
-import           Mirza.SupplyChain.Types          (EnvType (..))
+import           Mirza.SupplyChain.Types
 
 import           Data.GS1.EPC                     (GS1CompanyPrefix (..))
 
