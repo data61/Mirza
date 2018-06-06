@@ -76,70 +76,47 @@ instance HasScryptParams SCSContext where
 
 
 
+-- *********************************************************************************************************************
+-- Business Logic Types
+-- TODO: This section needs be further subdivided and refined.
+-- *********************************************************************************************************************
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
--- TODO: Should these be in StorageBeam?
-newtype UserID = UserID {unUserID :: PrimaryKeyType}
-  deriving (Show, Eq, Generic, Read, FromJSON, ToJSON)
-newtype EmailAddress = EmailAddress {unEmailAddress :: Text}
-  deriving (Show, Eq, Generic, Read, FromJSON, ToJSON)
-newtype KeyID = KeyID {unKeyID :: PrimaryKeyType}
-  deriving (Show, Eq, Generic, Read, FromJSON, ToJSON)
--- Should this be in GS1Combinators?
-newtype LabelEPCUrn = LabelEPCUrn {unLabelEPCUrn :: Text}
-  deriving (Show, Eq, Generic, Read, FromJSON, ToJSON)
-
--- TODO: Handwrite these instances to comply with their defined syntax
--- For example, emails have their own format, as do LabelEPCUrn
-
-instance ToSchema UserID
-instance ToSchema EmailAddress
-instance ToSchema KeyID
-instance ToSchema LabelEPCUrn
-
-instance ToParamSchema LabelEPCUrn
-instance ToParamSchema UserID
-instance ToParamSchema EmailAddress
-instance ToParamSchema KeyID
-
-deriving instance FromHttpApiData LabelEPCUrn
-deriving instance ToHttpApiData LabelEPCUrn
-deriving instance FromHttpApiData UserID
-deriving instance ToHttpApiData UserID
-deriving instance FromHttpApiData EmailAddress
-deriving instance ToHttpApiData EmailAddress
-deriving instance FromHttpApiData KeyID
-deriving instance ToHttpApiData KeyID
 
 -- TODO: This should really be in GS1Combinators
 deriving instance ToHttpApiData EventId
 
+
+
+-- TODO: Should these be in StorageBeam?
+-- TODO: Handwrite these instances to comply with their defined syntax
+-- For example, emails have their own format, as do LabelEPCUrn
+newtype UserID = UserID {unUserID :: PrimaryKeyType}
+  deriving (Show, Eq, Generic, Read, FromJSON, ToJSON)
+instance ToSchema UserID
+instance ToParamSchema UserID
+deriving instance FromHttpApiData UserID
+deriving instance ToHttpApiData UserID
+
 newtype Password = Password {unPassword :: BS.ByteString}
   deriving (Show, Eq, Generic)
+
+newtype EmailAddress = EmailAddress {unEmailAddress :: Text}
+  deriving (Show, Eq, Generic, Read, FromJSON, ToJSON)
+instance ToSchema EmailAddress
+instance ToParamSchema EmailAddress
+deriving instance FromHttpApiData EmailAddress
+deriving instance ToHttpApiData EmailAddress
+
+
+-- Should this be in GS1Combinators?
+newtype LabelEPCUrn = LabelEPCUrn {unLabelEPCUrn :: Text}
+  deriving (Show, Eq, Generic, Read, FromJSON, ToJSON)
+instance ToSchema LabelEPCUrn
+instance ToParamSchema LabelEPCUrn
+deriving instance FromHttpApiData LabelEPCUrn
+deriving instance ToHttpApiData LabelEPCUrn
+
 
 data Digest = SHA256 | SHA384 | SHA512
   deriving (Show, Generic, Eq, Read)
@@ -170,7 +147,6 @@ instance ToSchema EventHash
 
 type JSONTxt = Text
 
-
 -- A signature is an EventHash that's been
 -- signed by one of the parties involved in the
 -- event.
@@ -190,7 +166,6 @@ instance ToSchema BlockchainPackage
 
 -- instance Sql.ToRow Signature where
 --   toRow (Signature s) = toRow $ Only s
-
 
 newtype PEM_RSAPubKey = PEMString String
   deriving (Show, Read, Eq, Generic)
@@ -359,7 +334,6 @@ fromTransfEvent (TransformationEvent mEid mTransfId inputs outputs dwhen dwhy dw
     (TransformWhat (TransformationDWhat mTransfId inputs outputs))
     dwhen dwhy dwhere
 
-
 data TransactionEvent = TransactionEvent {
   transaction_foreign_event_id     :: Maybe EventId,
   transaction_act                  :: Action,
@@ -398,6 +372,15 @@ fromTransactEvent
     (TransactWhat (TransactionDWhat act mParentLabel bizTransactions epcList))
     dwhen dwhy dwhere
 
+
+
+newtype KeyID = KeyID {unKeyID :: PrimaryKeyType}
+  deriving (Show, Eq, Generic, Read, FromJSON, ToJSON)
+instance ToSchema KeyID
+instance ToParamSchema KeyID
+deriving instance FromHttpApiData KeyID
+deriving instance ToHttpApiData KeyID
+
 data SignedEvent = SignedEvent {
   signed_eventID   :: EventId,
   signed_keyID     :: KeyID,
@@ -415,40 +398,6 @@ data HashedEvent = HashedEvent {
 } deriving (Generic)
 $(deriveJSON defaultOptions ''HashedEvent)
 instance ToSchema HashedEvent
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
