@@ -77,18 +77,9 @@ instance HasScryptParams SCSContext where
 
 
 -- *********************************************************************************************************************
--- Business Logic Types
--- TODO: This section needs be further subdivided and refined.
+-- User Types
 -- *********************************************************************************************************************
 
-
-
--- TODO: This should really be in GS1Combinators
-deriving instance ToHttpApiData EventId
-
-
-
--- TODO: Should these be in StorageBeam?
 -- TODO: Handwrite these instances to comply with their defined syntax
 -- For example, emails have their own format, as do LabelEPCUrn
 newtype UserID = UserID {unUserID :: PrimaryKeyType}
@@ -108,90 +99,6 @@ instance ToParamSchema EmailAddress
 deriving instance FromHttpApiData EmailAddress
 deriving instance ToHttpApiData EmailAddress
 
-
--- Should this be in GS1Combinators?
-newtype LabelEPCUrn = LabelEPCUrn {unLabelEPCUrn :: Text}
-  deriving (Show, Eq, Generic, Read, FromJSON, ToJSON)
-instance ToSchema LabelEPCUrn
-instance ToParamSchema LabelEPCUrn
-deriving instance FromHttpApiData LabelEPCUrn
-deriving instance ToHttpApiData LabelEPCUrn
-
-
-data Digest = SHA256 | SHA384 | SHA512
-  deriving (Show, Generic, Eq, Read)
-$(deriveJSON defaultOptions ''Digest)
-instance ToSchema Digest
-
--- XXX - move to the right place
-{-
-instance HasSqlValueSyntax be String => HasSqlValueSyntax be Digest where
-  sqlValueSyntax = autoSqlValueSyntax
-instance (IsSql92ColumnSchemaSyntax be) => HasDefaultSqlDataTypeConstraints be Digest
-
-instance FromField Digest where
-  fromField f bs = do
-    mDigest <- readMaybe <$> fromField f bs
-    case mDigest of
-      Nothing -> returnError ConversionFailed f "Could not 'read' value for 'Digest"
-      Just x -> pure x
--}
-
-newtype EventHash = EventHash String
-  deriving (Generic, Show, Read, Eq)
-$(deriveJSON defaultOptions ''EventHash)
-instance ToSchema EventHash
-
--- instance Sql.FromRow EventHash where
---   fromRow = EventHash <$> field
-
-type JSONTxt = Text
-
--- A signature is an EventHash that's been
--- signed by one of the parties involved in the
--- event.
-
-newtype Signature = Signature String
-  deriving (Generic, Show, Read, Eq)
-$(deriveJSON defaultOptions ''Signature)
-instance ToSchema Signature
-
-data BlockchainPackage = BlockchainPackage EventHash (NonEmpty (Signature, UserID))
-  deriving (Show, Read, Eq, Generic)
-$(deriveJSON defaultOptions ''BlockchainPackage)
-instance ToSchema BlockchainPackage
-
--- instance Sql.FromRow Signature where
---   fromRow = Signature <$> field
-
--- instance Sql.ToRow Signature where
---   toRow (Signature s) = toRow $ Only s
-
-newtype PEM_RSAPubKey = PEMString String
-  deriving (Show, Read, Eq, Generic)
--- These are orphaned instances
---
---instance Sql.FromRow PEM_RSAPubKey where
---  fromRow = PEM_RSAPubKey <$> field <$> field
-
---instance ToParamSchema PublicKey where
---  toParamSchema _ = binaryParamSchema
-
---instance ToSchema PublicKey where
---  declareNamedSchema _ = pure $ NamedSchema (Just "PublicKey") $ binarySchema
-
---orphaned instances, I know
-$(deriveJSON defaultOptions ''PEM_RSAPubKey)
-instance ToSchema PEM_RSAPubKey
-
-data KeyInfo = KeyInfo {
-  userID         :: UserID,
-  creationTime   :: EPCISTime,
-  revocationTime :: Maybe EPCISTime
-}deriving (Generic, Eq, Show)
-$(deriveJSON defaultOptions ''KeyInfo)
-instance ToSchema KeyInfo
-
 data User = User {
   userId        :: UserID,
   userFirstName :: Text,
@@ -199,18 +106,6 @@ data User = User {
 } deriving (Generic, Eq, Show)
 $(deriveJSON defaultOptions ''User)
 instance ToSchema User
-
-data EPCState = New | InProgress | AwaitingDeploymentToBC | Customer | Finalised
-  deriving (Generic, Eq, Show)
-$(deriveJSON defaultOptions ''EPCState)
-instance ToSchema EPCState
-
--- XXX - do we want to retrieve more information than this?
-data EPCInfo = EPCInfo {
-  state :: EPCState
-} deriving (Generic, Eq, Show)
-$(deriveJSON defaultOptions ''EPCInfo)
-instance ToSchema EPCInfo
 
 data NewUser = NewUser {
   phoneNumber  :: Text,
@@ -222,6 +117,14 @@ data NewUser = NewUser {
 } deriving (Generic, Eq, Show)
 $(deriveJSON defaultOptions ''NewUser)
 instance ToSchema NewUser
+
+
+
+
+
+-- *********************************************************************************************************************
+-- Business Types
+-- *********************************************************************************************************************
 
 data SearchFields = SearchFields {
   sUser             :: User,
@@ -244,6 +147,45 @@ data Business = Business {
 $(deriveJSON defaultOptions ''Business)
 instance ToSchema Business
 
+
+
+
+
+-- *********************************************************************************************************************
+-- GS1 Types
+-- *********************************************************************************************************************
+
+-- TODO: This should really be in GS1Combinators
+deriving instance ToHttpApiData EventId
+
+-- Should this be in GS1Combinators?
+newtype LabelEPCUrn = LabelEPCUrn {unLabelEPCUrn :: Text}
+  deriving (Show, Eq, Generic, Read, FromJSON, ToJSON)
+instance ToSchema LabelEPCUrn
+instance ToParamSchema LabelEPCUrn
+deriving instance FromHttpApiData LabelEPCUrn
+deriving instance ToHttpApiData LabelEPCUrn
+
+data EPCState = New | InProgress | AwaitingDeploymentToBC | Customer | Finalised
+  deriving (Generic, Eq, Show)
+$(deriveJSON defaultOptions ''EPCState)
+instance ToSchema EPCState
+
+-- XXX - do we want to retrieve more information than this?
+data EPCInfo = EPCInfo {
+  state :: EPCState
+} deriving (Generic, Eq, Show)
+$(deriveJSON defaultOptions ''EPCInfo)
+instance ToSchema EPCInfo
+
+
+
+
+
+-- *********************************************************************************************************************
+-- Event Types
+-- *********************************************************************************************************************
+-- TODO: The factory functions should probably be removed from here.
 
 data ObjectEvent = ObjectEvent {
   obj_foreign_event_id :: Maybe EventId,
@@ -373,6 +315,86 @@ fromTransactEvent
     dwhen dwhy dwhere
 
 
+
+
+
+-- *********************************************************************************************************************
+-- Signing and Hashing Types
+-- *********************************************************************************************************************
+
+data KeyInfo = KeyInfo {
+  userID         :: UserID,
+  creationTime   :: EPCISTime,
+  revocationTime :: Maybe EPCISTime
+}deriving (Generic, Eq, Show)
+$(deriveJSON defaultOptions ''KeyInfo)
+instance ToSchema KeyInfo
+
+newtype EventHash = EventHash String
+  deriving (Generic, Show, Read, Eq)
+$(deriveJSON defaultOptions ''EventHash)
+instance ToSchema EventHash
+
+-- instance Sql.FromRow EventHash where
+--   fromRow = EventHash <$> field
+
+type JSONTxt = Text
+
+-- A signature is an EventHash that's been
+-- signed by one of the parties involved in the
+-- event.
+
+newtype Signature = Signature String
+  deriving (Generic, Show, Read, Eq)
+$(deriveJSON defaultOptions ''Signature)
+instance ToSchema Signature
+
+data BlockchainPackage = BlockchainPackage EventHash (NonEmpty (Signature, UserID))
+  deriving (Show, Read, Eq, Generic)
+$(deriveJSON defaultOptions ''BlockchainPackage)
+instance ToSchema BlockchainPackage
+
+-- instance Sql.FromRow Signature where
+--   fromRow = Signature <$> field
+
+-- instance Sql.ToRow Signature where
+--   toRow (Signature s) = toRow $ Only s
+
+newtype PEM_RSAPubKey = PEMString String
+  deriving (Show, Read, Eq, Generic)
+-- These are orphaned instances
+--
+--instance Sql.FromRow PEM_RSAPubKey where
+--  fromRow = PEM_RSAPubKey <$> field <$> field
+
+--instance ToParamSchema PublicKey where
+--  toParamSchema _ = binaryParamSchema
+
+--instance ToSchema PublicKey where
+--  declareNamedSchema _ = pure $ NamedSchema (Just "PublicKey") $ binarySchema
+
+--orphaned instances, I know
+$(deriveJSON defaultOptions ''PEM_RSAPubKey)
+instance ToSchema PEM_RSAPubKey
+
+data Digest = SHA256 | SHA384 | SHA512
+  deriving (Show, Generic, Eq, Read)
+$(deriveJSON defaultOptions ''Digest)
+instance ToSchema Digest
+
+-- XXX - move to the right place
+{-
+instance HasSqlValueSyntax be String => HasSqlValueSyntax be Digest where
+  sqlValueSyntax = autoSqlValueSyntax
+instance (IsSql92ColumnSchemaSyntax be) => HasDefaultSqlDataTypeConstraints be Digest
+
+instance FromField Digest where
+  fromField f bs = do
+    mDigest <- readMaybe <$> fromField f bs
+    case mDigest of
+      Nothing -> returnError ConversionFailed f "Could not 'read' value for 'Digest"
+      Just x -> pure x
+-}
 
 newtype KeyID = KeyID {unKeyID :: PrimaryKeyType}
   deriving (Show, Eq, Generic, Read, FromJSON, ToJSON)
