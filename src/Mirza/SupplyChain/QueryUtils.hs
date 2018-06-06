@@ -13,7 +13,9 @@ module Mirza.SupplyChain.QueryUtils where
 import           Mirza.SupplyChain.ErrorUtils   (throwBackendError)
 import qualified Mirza.SupplyChain.MigrateUtils as MU
 import qualified Mirza.SupplyChain.StorageBeam  as SB
-import           Mirza.SupplyChain.Types
+import           Mirza.SupplyChain.Types        hiding (Business (..),
+                                                 User (..))
+import qualified Mirza.SupplyChain.Types        as MT
 
 import           Data.GS1.DWhy                  (DWhy (..))
 import           Data.GS1.EPC                   as EPC
@@ -76,8 +78,8 @@ generatePk = liftIO nextRandom
 
 -- | Converts a DB representation of ``User`` to a Model representation
 -- SB.User = SB.User uid bizId fName lName phNum passHash email
-userTableToModel :: SB.User -> User
-userTableToModel (SB.User uid _ fName lName _ _ _) = User (UserID uid) fName lName
+userTableToModel :: SB.User -> MT.User
+userTableToModel (SB.User uid _ fName lName _ _ _) = MT.User (UserID uid) fName lName
 
 -- | Json encode the event
 -- currently do it automagically, but might what to be
@@ -221,7 +223,7 @@ findInstLabelId' cp sn msfv mir mat = do
     _   -> Nothing
 
 
-getUser :: EmailAddress -> DB context err (Maybe User)
+getUser :: EmailAddress -> DB context err (Maybe MT.User)
 getUser (EmailAddress email) = do
   r <- pg $ runSelectReturningList $ select $ do
     allUsers <- all_ (SB._users SB.supplyChainDb)
@@ -513,7 +515,7 @@ verifyContact [insertedContact] uid1 uid2 =
                   (SB.contact_user2_id insertedContact == uid2)
 verifyContact _ _ _ = False
 
-storageToModelBusiness :: SB.Business -> Business
+storageToModelBusiness :: SB.Business -> MT.Business
 storageToModelBusiness (SB.Business pfix name f site addr lat long)
-  = Business pfix name f site addr lat long
+  = MT.Business pfix name f site addr lat long
 

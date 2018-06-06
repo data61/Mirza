@@ -24,8 +24,9 @@ import           Mirza.SupplyChain.ErrorUtils  (appErrToHttpErr, throwAppError,
                                                 throwParseError)
 import qualified Mirza.SupplyChain.QueryUtils  as QU
 import qualified Mirza.SupplyChain.StorageBeam as SB
-import           Mirza.SupplyChain.Types
-import qualified Mirza.SupplyChain.Types       as AC
+import           Mirza.SupplyChain.Types       hiding (NewUser (..),
+                                                User (userId))
+import qualified Mirza.SupplyChain.Types       as MT
 import qualified Mirza.SupplyChain.Utils       as U
 
 import           Data.GS1.DWhat                (urn2LabelEPC)
@@ -62,24 +63,24 @@ instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub
       & allOperations . security .~ securityRequirements
 
 -- 'BasicAuthCheck' holds the handler we'll use to verify a username and password.
-authCheck :: AC.SCSContext -> BasicAuthCheck User
+authCheck :: SCSContext -> BasicAuthCheck MT.User
 authCheck context =
   let check (BasicAuthData useremail pass) = do
-        eitherUser <- AC.runAppM @_ @ServiceError context . AC.runDb $
+        eitherUser <- runAppM @_ @ServiceError context . runDb $
                       BQ.authCheck (EmailAddress $ decodeUtf8 useremail) (Password pass)
         case eitherUser of
           Right (Just user) -> return (Authorized user)
           _                 -> return Unauthorized
   in BasicAuthCheck check
 
-appMToHandler :: forall x context. context -> AC.AppM context AC.AppError x -> Handler x
+appMToHandler :: forall x context. context -> AppM context AppError x -> Handler x
 appMToHandler context act = do
-  res <- liftIO $ AC.runAppM context act
+  res <- liftIO $ runAppM context act
   case res of
-    Left (AC.AppError e) -> appErrToHttpErr e
-    Right a              -> return a
+    Left (AppError e) -> appErrToHttpErr e
+    Right a           -> return a
 
-privateServer :: (SCSApp context err) => ServerT ProtectedAPI (AC.AppM context err)
+privateServer :: (SCSApp context err) => ServerT ProtectedAPI (AppM context err)
 privateServer
   =    epcState
   :<|> listEvents
@@ -100,14 +101,14 @@ privateServer
   :<|> addUserToEvent
   :<|> addPublicKey
 
-publicServer :: (SCSApp context err, HasScryptParams context) => ServerT PublicAPI (AC.AppM context err)
+publicServer :: (SCSApp context err, HasScryptParams context) => ServerT PublicAPI (AppM context err)
 publicServer
   =    newUser
   :<|> getPublicKey
   :<|> getPublicKeyInfo
   :<|> listBusinesses
 
-appHandlers :: (SCSApp context err, HasScryptParams context) => ServerT ServerAPI (AC.AppM context err)
+appHandlers :: (SCSApp context err, HasScryptParams context) => ServerT ServerAPI (AppM context err)
 appHandlers = privateServer :<|> publicServer
 
 serverAPI :: Proxy ServerAPI
@@ -125,11 +126,11 @@ serveSwaggerAPI = toSwagger serverAPI
 -- Basic Authentication requires a Context Entry with the 'BasicAuthCheck' value
 -- tagged with "foo-tag" This context is then supplied to 'server' and threaded
 -- to the BasicAuth HasServer handlers.
-basicAuthServerContext :: AC.SCSContext -> Servant.Context '[BasicAuthCheck User]
+basicAuthServerContext :: SCSContext -> Servant.Context '[BasicAuthCheck MT.User]
 basicAuthServerContext context = authCheck context :. EmptyContext
 
-minPubKeySize :: AC.Bit
-minPubKeySize = AC.Bit 2048 -- 256 Bytes
+minPubKeySize :: Bit
+minPubKeySize = Bit 2048 -- 256 Bytes
 
 type SCSApp context err =
   ( AsServiceError err
@@ -139,11 +140,11 @@ type SCSApp context err =
   )
 
 
-addPublicKey :: SCSApp context err => User -> PEM_RSAPubKey -> AC.AppM context err KeyID
+addPublicKey :: SCSApp context err => MT.User -> PEM_RSAPubKey -> AppM context err KeyID
 addPublicKey user pemKey@(PEMString pemStr) = do
   somePubKey <- liftIO $ readPublicKey pemStr
   either (throwing _ServiceError)
-         (AC.runDb . BQ.addPublicKey user)
+         (runDb . BQ.addPublicKey user)
          (checkPubKey somePubKey pemKey)
 
 checkPubKey :: SomePublicKey -> PEM_RSAPubKey-> Either ServiceError RSAPubKey
@@ -152,20 +153,20 @@ checkPubKey spKey pemKey =
   (\pubKey ->
     let keySize = rsaSize pubKey in
     -- rsaSize returns size in bytes
-    if (AC.Bit $ keySize * 8) < minPubKeySize
-      then Left $ InvalidRSAKeySize (Expected minPubKeySize) (Received $ AC.Bit keySize)
+    if (Bit $ keySize * 8) < minPubKeySize
+      then Left $ InvalidRSAKeySize (Expected minPubKeySize) (Received $ Bit keySize)
       else Right pubKey
   )
   (toPublicKey spKey)
 
-newUser ::  (SCSApp context err, HasScryptParams context)=> NewUser -> AC.AppM context err UserID
-newUser = AC.runDb . BQ.newUser
+newUser ::  (SCSApp context err, HasScryptParams context)=> MT.NewUser -> AppM context err UserID
+newUser = runDb . BQ.newUser
 
-getPublicKey ::  SCSApp context err => KeyID -> AC.AppM context err PEM_RSAPubKey
-getPublicKey = AC.runDb . BQ.getPublicKey
+getPublicKey ::  SCSApp context err => KeyID -> AppM context err PEM_RSAPubKey
+getPublicKey = runDb . BQ.getPublicKey
 
-getPublicKeyInfo ::  SCSApp context err => KeyID -> AC.AppM context err KeyInfo
-getPublicKeyInfo = AC.runDb . BQ.getPublicKeyInfo
+getPublicKeyInfo ::  SCSApp context err => KeyID -> AppM context err KeyInfo
+getPublicKeyInfo = runDb . BQ.getPublicKeyInfo
 
 -- PSUEDO:
 -- In BeamQueries, implement a function getLabelIDState :: LabelEPCUrn -> IO (_labelID, State)
@@ -174,7 +175,7 @@ getPublicKeyInfo = AC.runDb . BQ.getPublicKeyInfo
 
 -- PSUEDO:
 -- Use getLabelIDState
-epcState :: User ->  LabelEPCUrn -> AC.AppM context err EPCState
+epcState :: MT.User ->  LabelEPCUrn -> AppM context err EPCState
 epcState _user _str = U.notImplemented
 
 -- This takes an EPC urn,
@@ -184,8 +185,8 @@ epcState _user _str = U.notImplemented
 -- (labelID, _) <- getLabelIDState
 -- wholeEvents <- select * from events, dwhats, dwhy, dwhen where _whatItemID=labelID AND _eventID=_whatEventID AND _eventID=_whenEventID AND _eventID=_whyEventID ORDER BY _eventTime;
 -- return map constructEvent wholeEvents
-listEvents ::  SCSApp context err => User ->  LabelEPCUrn -> AC.AppM context err [Ev.Event]
-listEvents _user = either throwParseError (AC.runDb . BQ.listEvents) . urn2LabelEPC . unLabelEPCUrn
+listEvents ::  SCSApp context err => MT.User ->  LabelEPCUrn -> AppM context err [Ev.Event]
+listEvents _user = either throwParseError (runDb . BQ.listEvents) . urn2LabelEPC . unLabelEPCUrn
 
 -- given an event ID, list all the users associated with that event
 -- this can be used to make sure everything is signed
@@ -195,24 +196,24 @@ listEvents _user = either throwParseError (AC.runDb . BQ.listEvents) . urn2Label
 
 -- Look into usereventsT and tie that back to the user
 -- the function getUser/selectUser might be helpful
-eventUserList :: SCSApp context err => User -> EventId -> AC.AppM context err [(User, Bool)]
-eventUserList _user = AC.runDb . BQ.eventUserSignedList
+eventUserList :: SCSApp context err => MT.User -> EventId -> AppM context err [(MT.User, Bool)]
+eventUserList _user = runDb . BQ.eventUserSignedList
 
-listContacts :: SCSApp context err => User -> AC.AppM context err [User]
-listContacts = AC.runDb . BQ.listContacts
+listContacts :: SCSApp context err => MT.User -> AppM context err [MT.User]
+listContacts = runDb . BQ.listContacts
 
 
-addContact :: SCSApp context err => User -> UserID -> AC.AppM context err Bool
-addContact user userId = AC.runDb $ BQ.addContact user userId
+addContact :: SCSApp context err => MT.User -> UserID -> AppM context err Bool
+addContact user userId = runDb $ BQ.addContact user userId
 
-removeContact :: SCSApp context err => User -> UserID -> AC.AppM context err Bool
-removeContact user userId = AC.runDb $ BQ.removeContact user userId
+removeContact :: SCSApp context err => MT.User -> UserID -> AppM context err Bool
+removeContact user userId = runDb $ BQ.removeContact user userId
 
-contactsAdd :: SCSApp context err => User -> UserID -> AC.AppM context err Bool
-contactsAdd user = AC.runDb . BQ.addContact user
+contactsAdd :: SCSApp context err => MT.User -> UserID -> AppM context err Bool
+contactsAdd user = runDb . BQ.addContact user
 
-contactsRemove :: SCSApp context err => User -> UserID -> AC.AppM context err Bool
-contactsRemove user = AC.runDb . BQ.removeContact user
+contactsRemove :: SCSApp context err => MT.User -> UserID -> AppM context err Bool
+contactsRemove user = runDb . BQ.removeContact user
 
 -- Given a search term, search the users contacts for a user matching
 -- that term
@@ -220,23 +221,23 @@ contactsRemove user = AC.runDb . BQ.removeContact user
 -- PSEUDO:
 -- SELECT user2, firstName, lastName FROM Contacts, Users WHERE user1 LIKE *term* AND user2=Users.id UNION SELECT user1, firstName, lastName FROM Contacts, Users WHERE user2 = ? AND user1=Users.id;" (uid, uid)
 --
-contactsSearch :: User -> String -> AC.AppM context err [User]
+contactsSearch :: MT.User -> String -> AppM context err [MT.User]
 contactsSearch _user _term = U.notImplemented
 
 
-userSearch :: User -> String -> AC.AppM context err [User]
+userSearch :: MT.User -> String -> AppM context err [MT.User]
 -- userSearch user term = liftIO $ Storage.userSearch user term
 userSearch _user _term = error "Storage module not implemented"
 
 -- select * from Business;
-listBusinesses :: SCSApp context err => AC.AppM context err [Business]
-listBusinesses = AC.runDb $ fmap QU.storageToModelBusiness <$> BQ.listBusinesses
+listBusinesses :: SCSApp context err => AppM context err [Business]
+listBusinesses = runDb $ fmap QU.storageToModelBusiness <$> BQ.listBusinesses
 -- ^ one fmap for Functor AppM, one for Functor []
 
 -- |List events that a particular user was/is involved with
 -- use BizTransactions and events (createdby) tables
-eventList :: SCSApp context err => User -> UserID -> AC.AppM context err [Ev.Event]
-eventList _user = AC.runDb . BQ.eventsByUser
+eventList :: SCSApp context err => MT.User -> UserID -> AppM context err [Ev.Event]
+eventList _user = runDb . BQ.eventsByUser
 
 makeDigest :: Digest -> IO (Maybe EVPDigest.Digest)
 makeDigest = EVPDigest.getDigestByName . map toLower . show
@@ -259,8 +260,8 @@ makeDigest = EVPDigest.getDigestByName . map toLower . show
    Lets do this after we have everything compiling.
 -}
 
-eventSign :: SCSApp context err => User -> SignedEvent -> AC.AppM context err SB.PrimaryKeyType
-eventSign _user (SignedEvent eventID keyID (Signature sigStr) digest') = AC.runDb $ do
+eventSign :: SCSApp context err => MT.User -> SignedEvent -> AppM context err SB.PrimaryKeyType
+eventSign _user (SignedEvent eventID keyID (Signature sigStr) digest') = runDb $ do
   event <- BQ.getEventJSON eventID
   rsaPublicKey <- BQ.getPublicKey keyID
   sigBS <- BS64.decode (BSC.pack sigStr) <%?> review _InvalidSignature
@@ -275,9 +276,9 @@ eventSign _user (SignedEvent eventID keyID (Signature sigStr) digest') = AC.runD
 
 -- | A function to tie a user to an event
 -- Populates the ``UserEvents`` table
-addUserToEvent :: SCSApp context err => User -> UserID -> EventId -> AC.AppM context err ()
+addUserToEvent :: SCSApp context err => MT.User -> UserID -> EventId -> AppM context err ()
 addUserToEvent (User loggedInUserId _ _) anotherUserId eventId =
-    AC.runDb $ BQ.addUserToEvent (AC.EventOwner loggedInUserId) (AC.SigningUser anotherUserId) eventId
+    runDb $ BQ.addUserToEvent (EventOwner loggedInUserId) (SigningUser anotherUserId) eventId
 
 -- eventSign user signedEvent = error "Storage module not implemented"
 -- eventSign user signedEvent = do
@@ -289,7 +290,7 @@ addUserToEvent (User loggedInUserId _ _) anotherUserId eventId =
 
 -- do we need this?
 --
-eventHashed :: User -> EventId -> AC.AppM context err HashedEvent
+eventHashed :: MT.User -> EventId -> AppM context err HashedEvent
 eventHashed _user _eventId = error "not implemented yet"
 -- return (HashedEvent eventID (EventHash "Blob"))
 
@@ -302,21 +303,21 @@ eventHashed user eventID = do
 -}
 
 
-insertObjectEvent :: SCSApp context err => User -> ObjectEvent -> AC.AppM context err Ev.Event
-insertObjectEvent user ob = AC.runDb $ BQ.insertObjectEvent user ob
+insertObjectEvent :: SCSApp context err => MT.User -> ObjectEvent -> AppM context err Ev.Event
+insertObjectEvent user ob = runDb $ BQ.insertObjectEvent user ob
 
-insertAggEvent :: SCSApp context err => User -> AggregationEvent -> AC.AppM context err Ev.Event
-insertAggEvent user ev = AC.runDb $ BQ.insertAggEvent user ev
+insertAggEvent :: SCSApp context err => MT.User -> AggregationEvent -> AppM context err Ev.Event
+insertAggEvent user ev = runDb $ BQ.insertAggEvent user ev
 
-insertTransactEvent :: SCSApp context err => User -> TransactionEvent -> AC.AppM context err Ev.Event
-insertTransactEvent user ev = AC.runDb $ BQ.insertTransactEvent user ev
+insertTransactEvent :: SCSApp context err => MT.User -> TransactionEvent -> AppM context err Ev.Event
+insertTransactEvent user ev = runDb $ BQ.insertTransactEvent user ev
 
-insertTransfEvent :: SCSApp context err => User -> TransformationEvent -> AC.AppM context err Ev.Event
-insertTransfEvent user ev = AC.runDb $ BQ.insertTransfEvent user ev
+insertTransfEvent :: SCSApp context err => MT.User -> TransformationEvent -> AppM context err Ev.Event
+insertTransfEvent user ev = runDb $ BQ.insertTransfEvent user ev
 
 
-eventInfo :: SCSApp context err => User -> EventId -> AC.AppM context err (Maybe Ev.Event)
-eventInfo _user = AC.runDb . QU.findEvent . SB.EventId . unEventId
+eventInfo :: SCSApp context err => MT.User -> EventId -> AppM context err (Maybe Ev.Event)
+eventInfo _user = runDb . QU.findEvent . SB.EventId . unEventId
 
---eventHash :: EventId -> AC.AppM context err SignedEvent
+--eventHash :: EventId -> AppM context err SignedEvent
 --eventHash eID = return (SignedEvent eID (BinaryBlob ByteString.empty) [(BinaryBlob ByteString.empty)] [1,2])
