@@ -6,10 +6,9 @@ module Mirza.BusinessRegistry.Main where
 
 import           Mirza.SupplyChain.API
 import           Mirza.SupplyChain.Migrate  (defConnectionStr, migrate)
-import           Mirza.SupplyChain.Model    (User)
 import           Mirza.SupplyChain.Service
-import           Mirza.SupplyChain.Types    (AppError, EnvType (..))
-import qualified Mirza.SupplyChain.Types    as AC
+import           Mirza.SupplyChain.Types    (AppError, EnvType (..),
+                                             SCSContext (..), User)
 
 import           Servant                    hiding (header)
 import           Servant.Swagger.UI
@@ -152,7 +151,7 @@ runProgram options
 initMiddleware :: ServerOptions -> IO Middleware
 initMiddleware _ = pure id
 
--- initApplication :: ByteString -> AC.SCSContextType -> ScryptParams -> IO Application
+-- initApplication :: ByteString -> SCSContextType -> ScryptParams -> IO Application
 initApplication :: ServerOptions -> IO Application
 initApplication (ServerOptions _ _ _ dbConnStr n p r)  = do
   params <- case Scrypt.scryptParams (max n 14) (max p 8) (max r 1) of
@@ -165,7 +164,7 @@ initApplication (ServerOptions _ _ _ dbConnStr n p r)  = do
                       60 -- How long in seconds to keep a connection open for reuse
                       10 -- Max number of connections to have open at any one time
                       -- TODO: Make this a config paramete
-  let ev  = AC.SCSContext Dev connpool params
+  let ev  = SCSContext Dev connpool params
       app = serveWithContext api
             (basicAuthServerContext ev)
             (server' ev)
@@ -179,11 +178,11 @@ startApp_nomain dbConnStr =
 
 -- Implementation
 
-server' :: AC.SCSContext -> Server API
+server' :: SCSContext -> Server API
 server' ev =
   swaggerSchemaUIServer serveSwaggerAPI
   :<|> hoistServerWithContext
         (Proxy @ServerAPI)
         (Proxy @'[BasicAuthCheck User])
         (appMToHandler ev)
-        (appHandlers @AC.SCSContext @AppError)
+        (appHandlers @SCSContext @AppError)
