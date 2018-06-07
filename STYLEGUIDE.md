@@ -178,7 +178,9 @@ import qualified Data.Text as T
 Some conventions:
 
 1. `StorageBeam as SB`
-1. `Types as ST`
+1. `...SupplyChain.Types as ST`
+1. `...Common.Types as CT`
+1. `...Foo.Types as FT` etc.
 1. `BeamQueries as BQ`
 1. `Data.Text as T`
 1. `Data.GS1.EPC as EPC`
