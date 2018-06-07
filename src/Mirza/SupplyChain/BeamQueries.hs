@@ -303,40 +303,6 @@ listEvents labelEpc =
 insertSignature :: EvId.EventId -> KeyID -> Signature -> Digest -> DB environmentUnused errorUnused SB.PrimaryKeyType
 insertSignature = error "Implement me"
 
-addContact :: ST.User -> ST.UserID -> DB context err Bool
-addContact (User (ST.UserID uid1) _ _) (ST.UserID uid2) = do
-  pKey <- generatePk
-  r <- pg $ runInsertReturningList (SB._contacts SB.supplyChainDb) $
-               insertValues [SB.Contact pKey (SB.UserId uid1) (SB.UserId uid2)]
-  return $ verifyContact r (SB.UserId uid1) (SB.UserId uid2)
-
--- | The current behaviour is, if the users were not contacts in the first
--- place, then the function returns false
--- otherwise, removes the user. Checks that the user has been removed,
--- and returns (not. userExists)
--- @todo Make ContactErrors = NotAContact | DoesntExist | ..
-removeContact :: ST.User -> ST.UserID -> DB context err Bool
-removeContact (User firstId@(ST.UserID uid1) _ _) secondId@(ST.UserID uid2) = do
-  contactExists <- isExistingContact firstId secondId
-  if contactExists
-    then do
-      pg $ runDelete $ delete (SB._contacts SB.supplyChainDb)
-              (\ contact ->
-                SB.contact_user1_id contact ==. val_ (SB.UserId uid1) &&.
-                SB.contact_user2_id contact ==. val_ (SB.UserId uid2))
-      not <$> isExistingContact firstId secondId
-  else return False
-
--- | Lists all the contacts associated with the given user
-listContacts :: ST.User -> DB context err [ST.User]
-listContacts  (User (ST.UserID uid) _ _) = do
-  userList <- pg $ runSelectReturningList $ select $ do
-    user <- all_ (SB._users SB.supplyChainDb)
-    contact <- all_ (SB._contacts SB.supplyChainDb)
-    guard_ (SB.contact_user1_id contact ==. val_ (SB.UserId uid) &&.
-            SB.contact_user2_id contact ==. (SB.UserId $ SB.user_id user))
-    pure user
-  return $ userTableToModel <$> userList
 
 
 -- TODO: Write tests
