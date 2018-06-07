@@ -18,7 +18,7 @@ import           Mirza.SupplyChain.Types                  hiding (KeyInfo (..),
                                                            NewUser (..),
                                                            User (userId),
                                                            UserID)
-import qualified Mirza.SupplyChain.Types                  as MT
+import qualified Mirza.SupplyChain.Types                  as ST
 
 import           Data.GS1.DWhat                           (AggregationDWhat (..),
                                                            DWhat (..),
@@ -50,7 +50,7 @@ import           OpenSSL.RSA                              (RSAPubKey)
 
 import           Control.Lens                             (view, (^?), _2)
 {-
--- Sample MT.NewUser JSON
+-- Sample ST.NewUser JSON
 {
   "phoneNumber": "0412",
   "emailAddress": "abc@gmail.com",
@@ -61,8 +61,8 @@ import           Control.Lens                             (view, (^?), _2)
 }
 -}
 
-insertUser :: AsServiceError err => Scrypt.EncryptedPass -> MT.NewUser -> DB context err MT.UserID
-insertUser encPass (MT.NewUser phone (EmailAddress email) firstName lastName biz _) = do
+insertUser :: AsServiceError err => Scrypt.EncryptedPass -> ST.NewUser -> DB context err ST.UserID
+insertUser encPass (ST.NewUser phone (EmailAddress email) firstName lastName biz _) = do
   userId <- generatePk
   -- TODO: use Database.Beam.Backend.SQL.runReturningOne?
   res <- handleError errHandler $ pg $ runInsertReturningList (SB._users SB.supplyChainDb) $
@@ -71,7 +71,7 @@ insertUser encPass (MT.NewUser phone (EmailAddress email) firstName lastName biz
                phone (Scrypt.getEncryptedPass encPass) email
       ]
   case res of
-        [r] -> return . MT.UserID . SB.user_id $ r
+        [r] -> return . ST.UserID . SB.user_id $ r
         -- TODO: Have a proper error response
         _   -> throwBackendError res
   where
@@ -83,9 +83,9 @@ insertUser encPass (MT.NewUser phone (EmailAddress email) firstName lastName biz
           -> throwing _EmailExists (toServerError getSqlErrorCode sqlErr, EmailAddress email)
         _ -> throwing _InsertionFail (toServerError (Just . sqlState) sqlErr, email)
 
--- | Hashes the password of the MT.NewUser and inserts the user into the database
-newUser :: (AsServiceError err, HasScryptParams context) => MT.NewUser -> DB context err MT.UserID
-newUser userInfo@(MT.NewUser _ _ _ _ _ password) = do
+-- | Hashes the password of the ST.NewUser and inserts the user into the database
+newUser :: (AsServiceError err, HasScryptParams context) => ST.NewUser -> DB context err ST.UserID
+newUser userInfo@(ST.NewUser _ _ _ _ _ password) = do
   params <- view $ _2 . scryptParams
   hash <- liftIO $ Scrypt.encryptPassIO params (Scrypt.Pass $ encodeUtf8 password)
   insertUser hash userInfo
@@ -93,7 +93,7 @@ newUser userInfo@(MT.NewUser _ _ _ _ _ password) = do
 -- Basic Auth check using Scrypt hashes.
 -- TODO: How safe is this to timing attacks? Can we tell which emails are in the
 -- system easily?
-authCheck :: (AsServiceError err, HasScryptParams context) =>  EmailAddress -> Password -> DB context err (Maybe MT.User)
+authCheck :: (AsServiceError err, HasScryptParams context) =>  EmailAddress -> Password -> DB context err (Maybe ST.User)
 authCheck e@(EmailAddress email) (Password password) = do
   r <- pg $ runSelectReturningList $ select $ do
         user <- all_ (SB._users SB.supplyChainDb)
@@ -115,8 +115,8 @@ authCheck e@(EmailAddress email) (Password password) = do
     [] -> throwAppError $ EmailNotFound e
     _  -> throwBackendError r -- multiple elements
 
-addPublicKey :: AsServiceError err =>  MT.User -> RSAPubKey -> DB context err KeyID
-addPublicKey (User (MT.UserID uid) _ _)  rsaPubKey = do
+addPublicKey :: AsServiceError err =>  ST.User -> RSAPubKey -> DB context err KeyID
+addPublicKey (User (ST.UserID uid) _ _)  rsaPubKey = do
   keyId <- generatePk
   timeStamp <- generateTimeStamp
   keyStr <- liftIO $ writePublicKey rsaPubKey
@@ -138,7 +138,7 @@ getPublicKey (KeyID keyId) = do
     [k] -> return $ PEMString $ T.unpack k
     _   -> throwing _InvalidKeyID . KeyID $ keyId
 
-getPublicKeyInfo :: AsServiceError err => KeyID -> DB context err MT.KeyInfo
+getPublicKeyInfo :: AsServiceError err => KeyID -> DB context err ST.KeyInfo
 getPublicKeyInfo (KeyID keyId) = do
   r <- pg $ runSelectReturningList $ select $ do
     allKeys <- all_ (SB._keys SB.supplyChainDb)
@@ -147,7 +147,7 @@ getPublicKeyInfo (KeyID keyId) = do
 
   case r of
     [(SB.Key _ (SB.UserId uId) _  creationTime revocationTime)] ->
-       return $ MT.KeyInfo (MT.UserID uId)
+       return $ ST.KeyInfo (ST.UserID uId)
                 (toEPCISTime creationTime)
                 (toEPCISTime <$> revocationTime)
     _ -> throwing _InvalidKeyID . KeyID $ keyId
@@ -163,11 +163,11 @@ getEventJSON eventID = do
     [jsonEvent] -> return jsonEvent
     _           -> throwing _InvalidEventID eventID
 
-insertObjectEvent :: MT.User
+insertObjectEvent :: ST.User
                   -> ObjectEvent
                   -> DB context err Ev.Event
 insertObjectEvent
-  (MT.User (MT.UserID userId) _ _ )
+  (ST.User (ST.UserID userId) _ _ )
   (ObjectEvent
     foreignEventId
     act
@@ -194,11 +194,11 @@ insertObjectEvent
 
   return event
 
-insertAggEvent :: MT.User
+insertAggEvent :: ST.User
                -> AggregationEvent
                -> DB context err Ev.Event
 insertAggEvent
-  (MT.User (MT.UserID userId) _ _ )
+  (ST.User (ST.UserID userId) _ _ )
   (AggregationEvent
     foreignEventId
     act
@@ -228,11 +228,11 @@ insertAggEvent
   -- no idea what the ID for the transaction is so can't query it later.
   return event
 
-insertTransfEvent :: MT.User
+insertTransfEvent :: ST.User
                   -> TransformationEvent
                   -> DB context err Ev.Event
 insertTransfEvent
-  (MT.User (MT.UserID userId) _ _ )
+  (ST.User (ST.UserID userId) _ _ )
   (TransformationEvent
     foreignEventId
     mTransfId
@@ -261,11 +261,11 @@ insertTransfEvent
 
   return event
 
-insertTransactEvent :: MT.User
+insertTransactEvent :: ST.User
                     -> TransactionEvent
                     -> DB context err Ev.Event
 insertTransactEvent
-  (MT.User (MT.UserID userId) _ _ )
+  (ST.User (ST.UserID userId) _ _ )
   (TransactionEvent
     foreignEventId
     act
@@ -303,8 +303,8 @@ listEvents labelEpc =
 insertSignature :: EvId.EventId -> KeyID -> Signature -> Digest -> DB environmentUnused errorUnused SB.PrimaryKeyType
 insertSignature = error "Implement me"
 
-addContact :: MT.User -> MT.UserID -> DB context err Bool
-addContact (User (MT.UserID uid1) _ _) (MT.UserID uid2) = do
+addContact :: ST.User -> ST.UserID -> DB context err Bool
+addContact (User (ST.UserID uid1) _ _) (ST.UserID uid2) = do
   pKey <- generatePk
   r <- pg $ runInsertReturningList (SB._contacts SB.supplyChainDb) $
                insertValues [SB.Contact pKey (SB.UserId uid1) (SB.UserId uid2)]
@@ -315,8 +315,8 @@ addContact (User (MT.UserID uid1) _ _) (MT.UserID uid2) = do
 -- otherwise, removes the user. Checks that the user has been removed,
 -- and returns (not. userExists)
 -- @todo Make ContactErrors = NotAContact | DoesntExist | ..
-removeContact :: MT.User -> MT.UserID -> DB context err Bool
-removeContact (User firstId@(MT.UserID uid1) _ _) secondId@(MT.UserID uid2) = do
+removeContact :: ST.User -> ST.UserID -> DB context err Bool
+removeContact (User firstId@(ST.UserID uid1) _ _) secondId@(ST.UserID uid2) = do
   contactExists <- isExistingContact firstId secondId
   if contactExists
     then do
@@ -328,8 +328,8 @@ removeContact (User firstId@(MT.UserID uid1) _ _) secondId@(MT.UserID uid2) = do
   else return False
 
 -- | Lists all the contacts associated with the given user
-listContacts :: MT.User -> DB context err [MT.User]
-listContacts  (User (MT.UserID uid) _ _) = do
+listContacts :: ST.User -> DB context err [ST.User]
+listContacts  (User (ST.UserID uid) _ _) = do
   userList <- pg $ runSelectReturningList $ select $ do
     user <- all_ (SB._users SB.supplyChainDb)
     contact <- all_ (SB._contacts SB.supplyChainDb)
@@ -347,7 +347,7 @@ listBusinesses = do
 
 -- TODO: Write tests
 -- Returns the user and whether or not that user had signed the event
-eventUserSignedList :: EvId.EventId -> DB context err [(MT.User, Bool)]
+eventUserSignedList :: EvId.EventId -> DB context err [(ST.User, Bool)]
 eventUserSignedList (EvId.EventId eventId) = do
   usersSignedList <- pg $ runSelectReturningList $ select $ do
     userEvent <- all_ (SB._user_events SB.supplyChainDb)
@@ -357,8 +357,8 @@ eventUserSignedList (EvId.EventId eventId) = do
     pure (user, SB.user_events_has_signed userEvent)
   return $ bimap userTableToModel id <$> usersSignedList
 
-eventsByUser :: MT.UserID -> DB context err [Ev.Event]
-eventsByUser (MT.UserID userId) = do
+eventsByUser :: ST.UserID -> DB context err [Ev.Event]
+eventsByUser (ST.UserID userId) = do
   eventList <- pg $ runSelectReturningList $ select $ do
     userEvent <- all_ (SB._user_events SB.supplyChainDb)
     event <- all_ (SB._events SB.supplyChainDb)
@@ -370,8 +370,8 @@ eventsByUser (MT.UserID userId) = do
 
 
 addUserToEvent :: AsServiceError err => EventOwner -> SigningUser -> EvId.EventId -> DB context err ()
-addUserToEvent (EventOwner lUserId@(MT.UserID loggedInUserId))
-               (SigningUser (MT.UserID otherUserId))
+addUserToEvent (EventOwner lUserId@(ST.UserID loggedInUserId))
+               (SigningUser (ST.UserID otherUserId))
                evId@(EvId.EventId eventId) = do
   userCreatedEvent <- hasUserCreatedEvent lUserId evId
   if userCreatedEvent
