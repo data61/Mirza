@@ -12,7 +12,7 @@
 module Mirza.SupplyChain.API where
 
 import           Mirza.SupplyChain.StorageBeam (PrimaryKeyType)
-import           Mirza.SupplyChain.Types       as M
+import           Mirza.SupplyChain.Types       as ST
 
 import qualified Data.GS1.Event                as Ev
 import           Data.GS1.EventId
@@ -22,14 +22,14 @@ import           Servant.API.Flatten
 import           Servant.Swagger.UI
 
 type PrivateAPI =
-       "epc"      :> Capture "urn" M.LabelEPCUrn      :> "info"   :> Get '[JSON] EPCState
-  :<|> "epc"      :> Capture "urn" M.LabelEPCUrn      :> "events" :> Get '[JSON] [Ev.Event]
+       "epc"      :> Capture "urn" ST.LabelEPCUrn      :> "info"   :> Get '[JSON] EPCState
+  :<|> "epc"      :> Capture "urn" ST.LabelEPCUrn      :> "events" :> Get '[JSON] [Ev.Event]
   :<|> "event"    :> Capture "eventID" EventId        :> "info"   :> Get '[JSON] (Maybe Ev.Event)
   :<|> "contacts"                                                 :> Get '[JSON] [User]
-  :<|> "contacts" :> "add"                 :> Capture "userID" M.UserID           :> Get '[JSON] Bool
-  :<|> "contacts" :> "remove"              :> Capture "userID" M.UserID           :> Get '[JSON] Bool
+  :<|> "contacts" :> "add"                 :> Capture "userID" ST.UserID           :> Get '[JSON] Bool
+  :<|> "contacts" :> "remove"              :> Capture "userID" ST.UserID           :> Get '[JSON] Bool
   :<|> "contacts" :> "search"              :> Capture "term" String               :> Get '[JSON] [User]
-  :<|> "event"    :> "list"                :> Capture "userID" M.UserID           :> Get '[JSON] [Ev.Event]
+  :<|> "event"    :> "list"                :> Capture "userID" ST.UserID           :> Get '[JSON] [Ev.Event]
   :<|> "event"    :> "listUsers"           :> Capture "eventID" EventId           :> Get '[JSON] [(User, Bool)]
   :<|> "event"    :> "sign"                :> ReqBody '[JSON] SignedEvent         :> Post '[JSON] PrimaryKeyType
   :<|> "event"    :> "getHash"             :> ReqBody '[JSON] EventId             :> Post '[JSON] HashedEvent
@@ -37,7 +37,7 @@ type PrivateAPI =
   :<|> "event"    :> "aggregateEvent"      :> ReqBody '[JSON] AggregationEvent    :> Post '[JSON] Ev.Event
   :<|> "event"    :> "transactionEvent"    :> ReqBody '[JSON] TransactionEvent    :> Post '[JSON] Ev.Event
   :<|> "event"    :> "transformationEvent" :> ReqBody '[JSON] TransformationEvent :> Post '[JSON] Ev.Event
-  :<|> "event"    :> "addUser" :> Capture "userID" M.UserID :> Capture "eventID" EventId :> Post '[JSON] ()
+  :<|> "event"    :> "addUser" :> Capture "userID" ST.UserID :> Capture "eventID" EventId :> Post '[JSON] ()
   :<|> "key"      :> "add"                 :> ReqBody '[JSON] PEM_RSAPubKey       :> Post '[JSON] KeyID
 
 type PublicAPI =
