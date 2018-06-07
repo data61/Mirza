@@ -30,6 +30,7 @@ library
                     , Mirza.SupplyChain.StorageBeam
                     , Mirza.SupplyChain.Types
                     , Mirza.SupplyChain.Utils
+                    , Mirza.SupplyChain.Handlers.Common
 
   other-modules:      Mirza.SupplyChain.MigrateUtils
                     , Mirza.SupplyChain.MigrateScript

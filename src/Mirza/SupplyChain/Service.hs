@@ -132,12 +132,6 @@ basicAuthServerContext context = authCheck context :. EmptyContext
 minPubKeySize :: Bit
 minPubKeySize = Bit 2048 -- 256 Bytes
 
-type SCSApp context err =
-  ( AsServiceError err
-  , AsSqlError err
-  , HasEnvType context
-  , HasConnPool context
-  )
 
 
 addPublicKey :: SCSApp context err => MT.User -> PEM_RSAPubKey -> AppM context err KeyID
