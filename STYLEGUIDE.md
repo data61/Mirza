@@ -177,9 +177,8 @@ import qualified Data.Text as T
 
 Some conventions:
 
-1. `AppConfig as AC`
 1. `StorageBeam as SB`
-1. `Model as M`
+1. `Types as ST`
 1. `BeamQueries as BQ`
 1. `Data.Text as T`
 1. `Data.GS1.EPC as EPC`
