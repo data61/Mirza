@@ -3,8 +3,9 @@
 -- in GS1Combinators
 module Tests.Dummies where
 
-import qualified Mirza.SupplyChain.Model       as M
 import qualified Mirza.SupplyChain.StorageBeam as SB
+import           Mirza.SupplyChain.Types       hiding (InProgress, NewUser (..))
+import qualified Mirza.SupplyChain.Types       as ST
 
 import           Data.GS1.DWhat
 import           Data.GS1.DWhen
@@ -21,13 +22,13 @@ import           Data.UUID                     (nil)
 -- add function to generate and take dummyLabelEpc
 
 -- General Utils
-dummyNewUser :: M.NewUser
-dummyNewUser = makeDummyNewUser (M.EmailAddress "fake@gmail.com")
+dummyNewUser :: ST.NewUser
+dummyNewUser = makeDummyNewUser (EmailAddress "fake@gmail.com")
 
 -- | Utility function to make many users on the fly
-makeDummyNewUser :: M.EmailAddress -> M.NewUser
+makeDummyNewUser :: EmailAddress -> ST.NewUser
 makeDummyNewUser emailAddress =
-    M.NewUser "000" emailAddress "Bob" "Smith" (GS1CompanyPrefix "blah Ltd") "password"
+    ST.NewUser "000" emailAddress "Bob" "Smith" (GS1CompanyPrefix "blah Ltd") "password"
 
 dummyLocation :: LocationEPC
 dummyLocation = SGLN (GS1CompanyPrefix "blah Ltd") (LocationReference "11111") Nothing
@@ -35,8 +36,8 @@ dummyLocation = SGLN (GS1CompanyPrefix "blah Ltd") (LocationReference "11111") N
 sampleObjectFile :: FilePath
 sampleObjectFile = "../GS1Combinators/test/test-xml/ObjectEvent.xml"
 
-dummyUser :: M.User
-dummyUser = M.User (M.UserID nil) "Sajid" "Anower"
+dummyUser :: User
+dummyUser = User (UserID nil) "Sajid" "Anower"
 
 dummyId :: SB.PrimaryKeyType
 dummyId = nil
@@ -87,8 +88,8 @@ dummyObjectDWhat =
     Add
     dummyEpcList
 
-dummyObject :: M.ObjectEvent
-dummyObject = fromJust $ M.mkObjectEvent dummyObjEvent
+dummyObject :: ObjectEvent
+dummyObject = fromJust $ mkObjectEvent dummyObjEvent
 
 
 -- Aggregation Events
@@ -110,8 +111,8 @@ dummyAggEvent =
     dummyDWhy
     dummyDWhere
 
-dummyAggregation :: M.AggregationEvent
-dummyAggregation = fromJust $ M.mkAggEvent dummyAggEvent
+dummyAggregation :: AggregationEvent
+dummyAggregation = fromJust $ mkAggEvent dummyAggEvent
 
 -- Transaction Events
 
@@ -134,8 +135,8 @@ dummyTransactEvent =
     dummyDWhy
     dummyDWhere
 
-dummyTransaction :: M.TransactionEvent
-dummyTransaction = fromJust $ M.mkTransactEvent dummyTransactEvent
+dummyTransaction :: TransactionEvent
+dummyTransaction = fromJust $ mkTransactEvent dummyTransactEvent
 
 
 -- Transformation Events
@@ -160,8 +161,8 @@ dummyTransfEvent =
     dummyDWhy
     dummyDWhere
 
-dummyTransformation :: M.TransformationEvent
-dummyTransformation = fromJust $ M.mkTransfEvent dummyTransfEvent
+dummyTransformation :: TransformationEvent
+dummyTransformation = fromJust $ mkTransfEvent dummyTransfEvent
 
 -- Dimensions
 

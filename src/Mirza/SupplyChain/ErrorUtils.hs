@@ -11,14 +11,8 @@ module Mirza.SupplyChain.ErrorUtils
   -- , throw500Err
   ) where
 
-import qualified Mirza.SupplyChain.Model             as M
-import           Mirza.SupplyChain.Types             (AppM, AsServiceError (..),
-                                                      Bit (..), Byte (..),
-                                                      Expected (..),
-                                                      Received (..),
-                                                      ServerError (..),
-                                                      ServiceError (..),
-                                                      throwing)
+import           Mirza.Common.Types
+import           Mirza.SupplyChain.Types
 import qualified Mirza.SupplyChain.Utils             as U
 
 import           Control.Monad.Except                (MonadError (..),
@@ -34,7 +28,7 @@ import           Servant.Server
 
 -- | Takes in a ServiceError and converts it to an HTTP error (eg. err400)
 appErrToHttpErr :: ServiceError -> Handler a
-appErrToHttpErr (EmailExists _ (M.EmailAddress email)) =
+appErrToHttpErr (EmailExists _ (EmailAddress email)) =
   throwError $ err400 {
     errBody = LBSC8.fromChunks ["User email ", encodeUtf8 email, " exists."]
   }
@@ -79,9 +73,9 @@ appErrToHttpErr (ParseError err) =
   }
 appErrToHttpErr (AuthFailed _) =
   throwError $ err403 { errBody = "Authentication failed. Invalid username or password." }
-appErrToHttpErr (UserNotFound (M.EmailAddress _email)) =
+appErrToHttpErr (UserNotFound (EmailAddress _email)) =
   throwError $ err404 { errBody = "User not found." }
-appErrToHttpErr (EmailNotFound (M.EmailAddress _email)) =
+appErrToHttpErr (EmailNotFound (EmailAddress _email)) =
   throwError $ err404 { errBody = "User not found." }
 appErrToHttpErr (InvalidRSAKeyInDB _) = generic500err
 appErrToHttpErr (InsertionFail _ _email) = generic500err

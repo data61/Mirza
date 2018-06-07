@@ -25,7 +25,6 @@ library
                     , Mirza.SupplyChain.Client.Servant
                     , Mirza.SupplyChain.Main
                     , Mirza.SupplyChain.Migrate
-                    , Mirza.SupplyChain.Model
                     , Mirza.SupplyChain.QueryUtils
                     , Mirza.SupplyChain.Service
                     , Mirza.SupplyChain.StorageBeam
