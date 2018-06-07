@@ -187,6 +187,8 @@ instance ToSchema EPCInfo
 -- *********************************************************************************************************************
 -- TODO: The factory functions should probably be removed from here.
 
+newtype EventOwner  = EventOwner UserID deriving(Generic, Show, Eq, Read)
+
 data ObjectEvent = ObjectEvent {
   obj_foreign_event_id :: Maybe EventId,
   obj_act              :: Action,
@@ -321,6 +323,8 @@ fromTransactEvent
 -- *********************************************************************************************************************
 -- Signing and Hashing Types
 -- *********************************************************************************************************************
+
+newtype SigningUser = SigningUser UserID deriving(Generic, Show, Eq, Read)
 
 data KeyInfo = KeyInfo {
   userID         :: UserID,
@@ -476,14 +480,3 @@ instance AsSqlError ServiceError where
 
 instance AsSqlError AppError where
   _SqlError = _DatabaseError
-
-
-
--- *********************************************************************************************************************
--- User Types
--- *********************************************************************************************************************
-
--- TODO: Document all these types!
-
-newtype EventOwner  = EventOwner UserID deriving(Generic, Show, Eq, Read)
-newtype SigningUser = SigningUser UserID deriving(Generic, Show, Eq, Read)
