@@ -5,7 +5,7 @@ module Tests.Dummies where
 
 import qualified Mirza.SupplyChain.StorageBeam as SB
 import           Mirza.SupplyChain.Types       hiding (InProgress, NewUser (..))
-import qualified Mirza.SupplyChain.Types       as MT
+import qualified Mirza.SupplyChain.Types       as ST
 
 import           Data.GS1.DWhat
 import           Data.GS1.DWhen
@@ -22,13 +22,13 @@ import           Data.UUID                     (nil)
 -- add function to generate and take dummyLabelEpc
 
 -- General Utils
-dummyNewUser :: MT.NewUser
+dummyNewUser :: ST.NewUser
 dummyNewUser = makeDummyNewUser (EmailAddress "fake@gmail.com")
 
 -- | Utility function to make many users on the fly
-makeDummyNewUser :: EmailAddress -> MT.NewUser
+makeDummyNewUser :: EmailAddress -> ST.NewUser
 makeDummyNewUser emailAddress =
-    MT.NewUser "000" emailAddress "Bob" "Smith" (GS1CompanyPrefix "blah Ltd") "password"
+    ST.NewUser "000" emailAddress "Bob" "Smith" (GS1CompanyPrefix "blah Ltd") "password"
 
 dummyLocation :: LocationEPC
 dummyLocation = SGLN (GS1CompanyPrefix "blah Ltd") (LocationReference "11111") Nothing
