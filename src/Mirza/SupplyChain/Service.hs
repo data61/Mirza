@@ -18,37 +18,43 @@
 module Mirza.SupplyChain.Service where
 
 import           Mirza.SupplyChain.API
-import qualified Mirza.SupplyChain.BeamQueries as BQ
+import qualified Mirza.SupplyChain.BeamQueries       as BQ
 -- import           Mirza.SupplyChain.Dummies     (dummyObjectDWhat)
-import           Mirza.SupplyChain.ErrorUtils  (appErrToHttpErr, throwAppError,
-                                                throwParseError)
-import qualified Mirza.SupplyChain.QueryUtils  as QU
-import qualified Mirza.SupplyChain.StorageBeam as SB
-import           Mirza.SupplyChain.Types       hiding (NewUser (..),
-                                                User (userId))
-import qualified Mirza.SupplyChain.Types       as MT
-import qualified Mirza.SupplyChain.Utils       as U
+import           Mirza.SupplyChain.ErrorUtils        (appErrToHttpErr,
+                                                      throwAppError,
+                                                      throwParseError)
+import           Mirza.SupplyChain.Handlers.Common
 
-import           Data.GS1.DWhat                (urn2LabelEPC)
-import qualified Data.GS1.Event                as Ev
+import           Mirza.SupplyChain.Handlers.Contacts
+import qualified Mirza.SupplyChain.QueryUtils        as QU
+import qualified Mirza.SupplyChain.StorageBeam       as SB
+import           Mirza.SupplyChain.Types             hiding (NewUser (..),
+                                                      User (userId))
+import qualified Mirza.SupplyChain.Types             as MT
+import qualified Mirza.SupplyChain.Utils             as U
+
+import           Data.GS1.DWhat                      (urn2LabelEPC)
+import qualified Data.GS1.Event                      as Ev
 import           Data.GS1.EventId
-import qualified Data.HashMap.Strict.InsOrd    as IOrd
+import qualified Data.HashMap.Strict.InsOrd          as IOrd
 
-import           Control.Lens                  hiding ((.=))
-import           Control.Monad.Error.Hoist     ((<!?>), (<%?>))
-import           Control.Monad.IO.Class        (liftIO)
-import qualified Data.ByteString.Base64        as BS64
-import qualified Data.ByteString.Char8         as BSC
-import           Data.Char                     (toLower)
+import           Control.Lens                        hiding ((.=))
+import           Control.Monad.Error.Hoist           ((<!?>), (<%?>))
+import           Control.Monad.IO.Class              (liftIO)
+import qualified Data.ByteString.Base64              as BS64
+import qualified Data.ByteString.Char8               as BSC
+import           Data.Char                           (toLower)
 import           Data.Swagger
-import           Data.Text                     (pack)
-import           Data.Text.Encoding            (decodeUtf8)
-import           GHC.TypeLits                  (KnownSymbol)
-import qualified OpenSSL.EVP.Digest            as EVPDigest
-import           OpenSSL.EVP.PKey              (SomePublicKey, toPublicKey)
-import           OpenSSL.EVP.Verify            (VerifyStatus (..), verifyBS)
-import           OpenSSL.PEM                   (readPublicKey)
-import           OpenSSL.RSA                   (RSAPubKey, rsaSize)
+import           Data.Text                           (pack)
+import           Data.Text.Encoding                  (decodeUtf8)
+import           GHC.TypeLits                        (KnownSymbol)
+import qualified OpenSSL.EVP.Digest                  as EVPDigest
+import           OpenSSL.EVP.PKey                    (SomePublicKey,
+                                                      toPublicKey)
+import           OpenSSL.EVP.Verify                  (VerifyStatus (..),
+                                                      verifyBS)
+import           OpenSSL.PEM                         (readPublicKey)
+import           OpenSSL.RSA                         (RSAPubKey, rsaSize)
 import           Servant
 import           Servant.Swagger
 
@@ -193,30 +199,6 @@ listEvents _user = either throwParseError (runDb . BQ.listEvents) . urn2LabelEPC
 eventUserList :: SCSApp context err => MT.User -> EventId -> AppM context err [(MT.User, Bool)]
 eventUserList _user = runDb . BQ.eventUserSignedList
 
-listContacts :: SCSApp context err => MT.User -> AppM context err [MT.User]
-listContacts = runDb . BQ.listContacts
-
-
-addContact :: SCSApp context err => MT.User -> UserID -> AppM context err Bool
-addContact user userId = runDb $ BQ.addContact user userId
-
-removeContact :: SCSApp context err => MT.User -> UserID -> AppM context err Bool
-removeContact user userId = runDb $ BQ.removeContact user userId
-
-contactsAdd :: SCSApp context err => MT.User -> UserID -> AppM context err Bool
-contactsAdd user = runDb . BQ.addContact user
-
-contactsRemove :: SCSApp context err => MT.User -> UserID -> AppM context err Bool
-contactsRemove user = runDb . BQ.removeContact user
-
--- Given a search term, search the users contacts for a user matching
--- that term
--- might want to use reg-ex features of postgres10 here:
--- PSEUDO:
--- SELECT user2, firstName, lastName FROM Contacts, Users WHERE user1 LIKE *term* AND user2=Users.id UNION SELECT user1, firstName, lastName FROM Contacts, Users WHERE user2 = ? AND user1=Users.id;" (uid, uid)
---
-contactsSearch :: MT.User -> String -> AppM context err [MT.User]
-contactsSearch _user _term = U.notImplemented
 
 
 userSearch :: MT.User -> String -> AppM context err [MT.User]

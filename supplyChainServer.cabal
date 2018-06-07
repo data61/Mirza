@@ -31,6 +31,7 @@ library
                     , Mirza.SupplyChain.Types
                     , Mirza.SupplyChain.Utils
                     , Mirza.SupplyChain.Handlers.Common
+                    , Mirza.SupplyChain.Handlers.Contacts
 
   other-modules:      Mirza.SupplyChain.MigrateUtils
                     , Mirza.SupplyChain.MigrateScript
