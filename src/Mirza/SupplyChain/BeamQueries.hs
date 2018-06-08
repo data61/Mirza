@@ -116,29 +116,7 @@ authCheck e@(EmailAddress email) (Password password) = do
     _  -> throwBackendError r -- multiple elements
 
 
-getPublicKey :: AsServiceError err =>  KeyID -> DB context err PEM_RSAPubKey
-getPublicKey (KeyID keyId) = do
-  r <- pg $ runSelectReturningList $ select $ do
-    allKeys <- all_ (SB._keys SB.supplyChainDb)
-    guard_ (SB.key_id allKeys ==. val_ keyId)
-    pure (SB.pem_str allKeys)
-  case r of
-    [k] -> return $ PEMString $ T.unpack k
-    _   -> throwing _InvalidKeyID . KeyID $ keyId
 
-getPublicKeyInfo :: AsServiceError err => KeyID -> DB context err ST.KeyInfo
-getPublicKeyInfo (KeyID keyId) = do
-  r <- pg $ runSelectReturningList $ select $ do
-    allKeys <- all_ (SB._keys SB.supplyChainDb)
-    guard_ (SB.key_id allKeys ==. val_ keyId)
-    pure allKeys
-
-  case r of
-    [(SB.Key _ (SB.UserId uId) _  creationTime revocationTime)] ->
-       return $ ST.KeyInfo (ST.UserID uId)
-                (toEPCISTime creationTime)
-                (toEPCISTime <$> revocationTime)
-    _ -> throwing _InvalidKeyID . KeyID $ keyId
 
 
 
@@ -156,11 +134,6 @@ listEvents labelEpc =
 
 
 
--- TODO: Write tests
-listBusinesses :: DB context err [SB.Business]
-listBusinesses = do
-  pg $ runSelectReturningList $ select $
-      all_ (SB._businesses SB.supplyChainDb)
 
 -- TODO: Write tests
 -- Returns the user and whether or not that user had signed the event
