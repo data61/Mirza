@@ -37,6 +37,23 @@ import qualified Data.Text                                as T
 
 
 
+-- | A function to tie a user to an event
+-- Populates the ``UserEvents`` table
+addUserToEvent :: SCSApp context err => ST.User -> ST.UserID -> EvId.EventId -> AppM context err ()
+addUserToEvent (User loggedInUserId _ _) anotherUserId eventId =
+    runDb $ addUserToEventQuery (EventOwner loggedInUserId) (SigningUser anotherUserId) eventId
+
+addUserToEventQuery :: AsServiceError err => EventOwner -> SigningUser -> EvId.EventId -> DB context err ()
+addUserToEventQuery (EventOwner lUserId@(ST.UserID loggedInUserId))
+                (SigningUser (ST.UserID otherUserId))
+                evId@(EvId.EventId eventId) = do
+  userCreatedEvent <- hasUserCreatedEvent lUserId evId
+  if userCreatedEvent
+    then insertUserEvent eventId loggedInUserId otherUserId False Nothing
+    else throwing _EventPermissionDenied (lUserId, evId)
+
+
+
 {-
    The default padding is PKCS1-1.5, which is deprecated
    for new applications. We should be using PSS instead.
