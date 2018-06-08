@@ -23,11 +23,12 @@ import qualified Mirza.SupplyChain.BeamQueries                as BQ
 import           Mirza.SupplyChain.ErrorUtils                 (appErrToHttpErr,
                                                                throwAppError,
                                                                throwParseError)
-import           Mirza.SupplyChain.Handlers.Common
 
 import           Mirza.SupplyChain.Handlers.Business
+import           Mirza.SupplyChain.Handlers.Common
 import           Mirza.SupplyChain.Handlers.Contacts
 import           Mirza.SupplyChain.Handlers.EventRegistration
+import           Mirza.SupplyChain.Handlers.Queries
 import           Mirza.SupplyChain.Handlers.Signatures        hiding
                                                                (getPublicKey)
 import           Mirza.SupplyChain.Handlers.Users
@@ -161,31 +162,8 @@ basicAuthServerContext context = authCheck context :. EmptyContext
 -- use readLabelEPC in EPC.hs to do it.
 -- SELECT * FROM Labels WHERE _labelGs1CompanyPrefix=gs1CompanyPrefix AND _labelType=type AND ...
 
--- PSUEDO:
--- Use getLabelIDState
-epcState :: ST.User ->  LabelEPCUrn -> AppM context err EPCState
-epcState _user _str = U.notImplemented
 
--- This takes an EPC urn,
--- and looks up all the events related to that item. First we've got
--- to find all the related "Whats"
--- PSEUDO:
--- (labelID, _) <- getLabelIDState
--- wholeEvents <- select * from events, dwhats, dwhy, dwhen where _whatItemID=labelID AND _eventID=_whatEventID AND _eventID=_whenEventID AND _eventID=_whyEventID ORDER BY _eventTime;
--- return map constructEvent wholeEvents
-listEvents ::  SCSApp context err => ST.User ->  LabelEPCUrn -> AppM context err [Ev.Event]
-listEvents _user = either throwParseError (runDb . BQ.listEvents) . urn2LabelEPC . unLabelEPCUrn
 
--- given an event ID, list all the users associated with that event
--- this can be used to make sure everything is signed
--- PSEUDO:
--- SELECT event.userID, userID1, userID2 FROM Events, BizTransactions WHERE Events._eventID=eventID AND BizTransactionsEventId=Events._eventID;
--- implement a function constructEvent :: WholeEvent -> Event
-
--- Look into usereventsT and tie that back to the user
--- the function getUser/selectUser might be helpful
-eventUserList :: SCSApp context err => ST.User -> EventId -> AppM context err [(ST.User, Bool)]
-eventUserList _user = runDb . BQ.eventUserSignedList
 
 
 
@@ -194,20 +172,11 @@ userSearch :: ST.User -> String -> AppM context err [ST.User]
 userSearch _user _term = error "Storage module not implemented"
 
 
--- |List events that a particular user was/is involved with
--- use BizTransactions and events (createdby) tables
-eventList :: SCSApp context err => ST.User -> UserID -> AppM context err [Ev.Event]
-eventList _user = runDb . BQ.eventsByUser
 
 
 
 
 
-
-
-
-eventInfo :: SCSApp context err => ST.User -> EventId -> AppM context err (Maybe Ev.Event)
-eventInfo _user = runDb . QU.findEvent . SB.EventId . unEventId
 
 --eventHash :: EventId -> AppM context err SignedEvent
 --eventHash eID = return (SignedEvent eID (BinaryBlob ByteString.empty) [(BinaryBlob ByteString.empty)] [1,2])

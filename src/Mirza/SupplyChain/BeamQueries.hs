@@ -36,7 +36,6 @@ import           Control.Monad.Except                     (MonadError,
                                                            throwError)
 import           Control.Monad.IO.Class                   (liftIO)
 import qualified Crypto.Scrypt                            as Scrypt
-import           Data.Bifunctor                           (bimap)
 import           Data.Maybe                               (catMaybes)
 import qualified Data.Text                                as T
 import           Data.Text.Encoding
@@ -88,35 +87,9 @@ authCheck e@(EmailAddress email) (Password password) = do
 
 
 
-listEvents :: AsServiceError err => LabelEPC -> DB context err [Ev.Event]
-listEvents labelEpc =
-  maybe (return []) (getEventList . SB.LabelId) =<< findLabelId labelEpc
 
 
 
-
-
--- TODO: Write tests
--- Returns the user and whether or not that user had signed the event
-eventUserSignedList :: EvId.EventId -> DB context err [(ST.User, Bool)]
-eventUserSignedList (EvId.EventId eventId) = do
-  usersSignedList <- pg $ runSelectReturningList $ select $ do
-    userEvent <- all_ (SB._user_events SB.supplyChainDb)
-    user <- all_ (SB._users SB.supplyChainDb)
-    guard_ (SB.user_events_event_id userEvent ==. val_ (SB.EventId eventId))
-    guard_ (SB.user_events_user_id userEvent `references_` user)
-    pure (user, SB.user_events_has_signed userEvent)
-  return $ bimap userTableToModel id <$> usersSignedList
-
-eventsByUser :: ST.UserID -> DB context err [Ev.Event]
-eventsByUser (ST.UserID userId) = do
-  eventList <- pg $ runSelectReturningList $ select $ do
-    userEvent <- all_ (SB._user_events SB.supplyChainDb)
-    event <- all_ (SB._events SB.supplyChainDb)
-    guard_ (SB.user_events_event_id userEvent `references_` event &&.
-            SB.user_events_user_id userEvent ==. val_ (SB.UserId userId))
-    pure (SB.json_event event)
-  return $ catMaybes $ decodeEvent <$> eventList
 
 
 
