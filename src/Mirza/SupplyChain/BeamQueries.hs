@@ -152,16 +152,6 @@ getPublicKeyInfo (KeyID keyId) = do
                 (toEPCISTime <$> revocationTime)
     _ -> throwing _InvalidKeyID . KeyID $ keyId
 
--- TODO: Should this return Text or a JSON value?
-getEventJSON :: AsServiceError err => EvId.EventId -> DB context err T.Text
-getEventJSON eventID = do
-  r <- pg $ runSelectReturningList $ select $ do
-    allEvents <- all_ (SB._events SB.supplyChainDb)
-    guard_ ((SB.event_id allEvents) ==. val_ (EvId.unEventId eventID))
-    pure (SB.json_event allEvents)
-  case r of
-    [jsonEvent] -> return jsonEvent
-    _           -> throwing _InvalidEventID eventID
 
 insertObjectEvent :: ST.User
                   -> ObjectEvent
@@ -300,8 +290,6 @@ listEvents :: AsServiceError err => LabelEPC -> DB context err [Ev.Event]
 listEvents labelEpc =
   maybe (return []) (getEventList . SB.LabelId) =<< findLabelId labelEpc
 
-insertSignature :: EvId.EventId -> KeyID -> Signature -> Digest -> DB environmentUnused errorUnused SB.PrimaryKeyType
-insertSignature = error "Implement me"
 
 
 
