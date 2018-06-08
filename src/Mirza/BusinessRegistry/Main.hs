@@ -140,8 +140,8 @@ debugFunc = do
 runProgram :: ServerOptions -> IO ()
 runProgram options
 -- FIXME: This is definitely wrong
-  | not (initDatabase(options)) = migrate defConnectionStr
-  | initDatabase(options)  = do
+  | initDatabase(options) = migrate defConnectionStr
+  | otherwise  = do
       let portNumber = soPortNumber options
       app <- initApplication options
       mids <- initMiddleware options
