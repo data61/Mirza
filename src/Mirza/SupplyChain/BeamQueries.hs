@@ -159,14 +159,6 @@ eventsByUser (ST.UserID userId) = do
 
 
 
-addUserToEvent :: AsServiceError err => EventOwner -> SigningUser -> EvId.EventId -> DB context err ()
-addUserToEvent (EventOwner lUserId@(ST.UserID loggedInUserId))
-               (SigningUser (ST.UserID otherUserId))
-               evId@(EvId.EventId eventId) = do
-  userCreatedEvent <- hasUserCreatedEvent lUserId evId
-  if userCreatedEvent
-    then insertUserEvent eventId loggedInUserId otherUserId False Nothing
-    else throwing _EventPermissionDenied (lUserId, evId)
 
 -- -- TODO - convert these below functions, and others in original file Storage.hs
 -- -- TODO = use EventId or EventId ???

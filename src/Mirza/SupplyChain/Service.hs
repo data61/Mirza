@@ -202,11 +202,6 @@ eventList _user = runDb . BQ.eventsByUser
 
 
 
--- | A function to tie a user to an event
--- Populates the ``UserEvents`` table
-addUserToEvent :: SCSApp context err => ST.User -> UserID -> EventId -> AppM context err ()
-addUserToEvent (User loggedInUserId _ _) anotherUserId eventId =
-    runDb $ BQ.addUserToEvent (EventOwner loggedInUserId) (SigningUser anotherUserId) eventId
 
 
 
