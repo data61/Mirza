@@ -62,7 +62,6 @@ insertObjectEventQuery
 insertAggEvent :: SCSApp context err => ST.User -> AggregationEvent -> AppM context err Ev.Event
 insertAggEvent user ev = runDb $ insertAggEventQuery user ev
 
-
 insertAggEventQuery :: ST.User
                -> AggregationEvent
                -> DB context err Ev.Event
