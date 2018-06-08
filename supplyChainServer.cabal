@@ -21,7 +21,7 @@ library
   exposed-modules:    Mirza.BusinessRegistry.Main
                     , Mirza.Common.Types
                     , Mirza.SupplyChain.API
-                    , Mirza.SupplyChain.BeamQueries
+                    , Mirza.SupplyChain.Auth
                     , Mirza.SupplyChain.Client.Servant
                     , Mirza.SupplyChain.Main
                     , Mirza.SupplyChain.Migrate
