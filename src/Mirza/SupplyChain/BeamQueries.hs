@@ -49,46 +49,7 @@ import           OpenSSL.PEM                              (writePublicKey)
 import           OpenSSL.RSA                              (RSAPubKey)
 
 import           Control.Lens                             (view, (^?), _2)
-{-
--- Sample ST.NewUser JSON
-{
-  "phoneNumber": "0412",
-  "emailAddress": "abc@gmail.com",
-  "firstName": "sajid",
-  "lastName": "anower",
-  "company": "4000001",
-  "password": "password"
-}
--}
 
-insertUser :: AsServiceError err => Scrypt.EncryptedPass -> ST.NewUser -> DB context err ST.UserID
-insertUser encPass (ST.NewUser phone (EmailAddress email) firstName lastName biz _) = do
-  userId <- generatePk
-  -- TODO: use Database.Beam.Backend.SQL.runReturningOne?
-  res <- handleError errHandler $ pg $ runInsertReturningList (SB._users SB.supplyChainDb) $
-    insertValues
-      [SB.User userId (SB.BizId  biz) firstName lastName
-               phone (Scrypt.getEncryptedPass encPass) email
-      ]
-  case res of
-        [r] -> return . ST.UserID . SB.user_id $ r
-        -- TODO: Have a proper error response
-        _   -> throwBackendError res
-  where
-    errHandler :: (AsServiceError err, MonadError err m) => err -> m a
-    errHandler e = case e ^? _DatabaseError of
-      Nothing -> throwError e
-      Just sqlErr -> case constraintViolation sqlErr of
-        Just (UniqueViolation "users_email_address_key")
-          -> throwing _EmailExists (toServerError getSqlErrorCode sqlErr, EmailAddress email)
-        _ -> throwing _InsertionFail (toServerError (Just . sqlState) sqlErr, email)
-
--- | Hashes the password of the ST.NewUser and inserts the user into the database
-newUser :: (AsServiceError err, HasScryptParams context) => ST.NewUser -> DB context err ST.UserID
-newUser userInfo@(ST.NewUser _ _ _ _ _ password) = do
-  params <- view $ _2 . scryptParams
-  hash <- liftIO $ Scrypt.encryptPassIO params (Scrypt.Pass $ encodeUtf8 password)
-  insertUser hash userInfo
 
 -- Basic Auth check using Scrypt hashes.
 -- TODO: How safe is this to timing attacks? Can we tell which emails are in the

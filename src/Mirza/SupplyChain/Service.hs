@@ -30,6 +30,7 @@ import           Mirza.SupplyChain.Handlers.Contacts
 import           Mirza.SupplyChain.Handlers.EventRegistration
 import           Mirza.SupplyChain.Handlers.Signatures        hiding
                                                                (getPublicKey)
+import           Mirza.SupplyChain.Handlers.Users
 import qualified Mirza.SupplyChain.QueryUtils                 as QU
 import qualified Mirza.SupplyChain.StorageBeam                as SB
 import           Mirza.SupplyChain.Types                      hiding
@@ -71,7 +72,7 @@ appHandlers = publicServer :<|> privateServer
 
 publicServer :: (SCSApp context err, HasScryptParams context) => ServerT PublicAPI (AppM context err)
 publicServer =
-  -- Auth
+  -- Users
        newUser
   -- Business
   :<|> getPublicKey
@@ -152,8 +153,6 @@ basicAuthServerContext context = authCheck context :. EmptyContext
 
 
 
-newUser ::  (SCSApp context err, HasScryptParams context)=> ST.NewUser -> AppM context err UserID
-newUser = runDb . BQ.newUser
 
 
 
