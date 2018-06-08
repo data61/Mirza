@@ -21,6 +21,33 @@ import           Servant
 import           Servant.API.Flatten
 import           Servant.Swagger.UI
 
+
+
+type API
+    -- this serves both: swagger.json and swagger-ui
+    = SwaggerSchemaUI "swagger-ui" "swagger.json"
+    :<|> ServerAPI
+
+api :: Proxy API
+api = Proxy
+
+
+type ServerAPI = PublicAPI :<|> ProtectedAPI
+type ProtectedAPI = Flat (BasicAuth "foo-realm" User :> PrivateAPI)
+
+serverAPI :: Proxy ServerAPI
+serverAPI = Proxy
+
+
+type PublicAPI =
+  -- Auth
+         "newUser"                            :> ReqBody '[JSON] NewUser                                        :> Post '[JSON] UserID
+  -- Business
+    :<|> "key"      :> "get"                  :> Capture "keyID" KeyID                                          :> Get '[JSON] PEM_RSAPubKey
+    :<|> "key"      :> "getInfo"              :> Capture "keyID" KeyID                                          :> Get '[JSON] KeyInfo
+    :<|> "business" :> "list"                                                                                   :> Get '[JSON] [Business]
+
+
 type PrivateAPI =
 -- Contacts
        "contacts"                                                                                             :> Get '[JSON] [User]
@@ -44,29 +71,3 @@ type PrivateAPI =
   :<|> "event"    :> "transformationEvent"  :> ReqBody '[JSON] TransformationEvent                            :> Post '[JSON] Ev.Event
 -- Business
   :<|> "key"      :> "add"                  :> ReqBody '[JSON] PEM_RSAPubKey                                  :> Post '[JSON] KeyID
-
-type PublicAPI =
--- Auth
-       "newUser"                            :> ReqBody '[JSON] NewUser                                        :> Post '[JSON] UserID
--- Business
-  :<|> "key"      :> "get"                  :> Capture "keyID" KeyID                                          :> Get '[JSON] PEM_RSAPubKey
-  :<|> "key"      :> "getInfo"              :> Capture "keyID" KeyID                                          :> Get '[JSON] KeyInfo
-  :<|> "business" :> "list"                                                                                   :> Get '[JSON] [Business]
-
-type SwaggerAPI = SwaggerSchemaUI "swagger-ui" "swagger.json"
-
-api :: Proxy API
-api = Proxy
-
-type ProtectedAPI = Flat (BasicAuth "foo-realm" User :> PrivateAPI)
-
-type ServerAPI
-    =  ProtectedAPI
-    :<|> PublicAPI -- :<|> SwaggerAPI
-
-
-type API
-    -- this serves both: swagger.json and swagger-ui
-    = SwaggerSchemaUI "swagger-ui" "swagger.json"
-    :<|> ServerAPI
-

@@ -66,6 +66,13 @@ _api     :: Client ClientM ServerAPI
 _privAPI :: Client ClientM ProtectedAPI
 _pubAPI  :: Client ClientM PublicAPI
 _api@(
+  _pubAPI@(
+    newUser
+    :<|>getKey
+    :<|>getKeyInfo
+    :<|>businessList
+  )
+  :<|>
   _privAPI@(
          contactsInfo
     :<|> addContact
@@ -88,12 +95,5 @@ _api@(
     :<|> insertTransfEvent
 
     :<|> addPublicKey
-  )
-  :<|>
-  _pubAPI@(
-    newUser
-    :<|>getKey
-    :<|>getKeyInfo
-    :<|>businessList
   )
  ) = client (Proxy :: Proxy ServerAPI)

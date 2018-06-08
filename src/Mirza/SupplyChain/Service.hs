@@ -64,33 +64,19 @@ import           OpenSSL.RSA                                  (RSAPubKey,
 import           Servant
 import           Servant.Swagger
 
-instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub) where
-  toSwagger _ =
-    let
-      authSchemes = IOrd.singleton "basic" $ SecurityScheme SecuritySchemeBasic Nothing
-      securityRequirements = [SecurityRequirement $ IOrd.singleton "basic" []]
-    in
-      toSwagger (Proxy :: Proxy sub)
-      & securityDefinitions .~ authSchemes
-      & allOperations . security .~ securityRequirements
 
--- 'BasicAuthCheck' holds the handler we'll use to verify a username and password.
-authCheck :: SCSContext -> BasicAuthCheck ST.User
-authCheck context =
-  let check (BasicAuthData useremail pass) = do
-        eitherUser <- runAppM @_ @ServiceError context . runDb $
-                      BQ.authCheck (EmailAddress $ decodeUtf8 useremail) (Password pass)
-        case eitherUser of
-          Right (Just user) -> return (Authorized user)
-          _                 -> return Unauthorized
-  in BasicAuthCheck check
 
-appMToHandler :: forall x context. context -> AppM context AppError x -> Handler x
-appMToHandler context act = do
-  res <- liftIO $ runAppM context act
-  case res of
-    Left (AppError e) -> appErrToHttpErr e
-    Right a           -> return a
+appHandlers :: (SCSApp context err, HasScryptParams context) => ServerT ServerAPI (AppM context err)
+appHandlers = publicServer :<|> privateServer
+
+publicServer :: (SCSApp context err, HasScryptParams context) => ServerT PublicAPI (AppM context err)
+publicServer =
+  -- Auth
+       newUser
+  -- Business
+  :<|> getPublicKey
+  :<|> getPublicKeyInfo
+  :<|> listBusinesses
 
 privateServer :: (SCSApp context err) => ServerT ProtectedAPI (AppM context err)
 privateServer =
@@ -118,20 +104,34 @@ privateServer =
 -- Business
   :<|> addPublicKey
 
-publicServer :: (SCSApp context err, HasScryptParams context) => ServerT PublicAPI (AppM context err)
-publicServer =
-  -- Auth
-       newUser
-  -- Business
-  :<|> getPublicKey
-  :<|> getPublicKeyInfo
-  :<|> listBusinesses
 
-appHandlers :: (SCSApp context err, HasScryptParams context) => ServerT ServerAPI (AppM context err)
-appHandlers = privateServer :<|> publicServer
+instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub) where
+  toSwagger _ =
+    let
+      authSchemes = IOrd.singleton "basic" $ SecurityScheme SecuritySchemeBasic Nothing
+      securityRequirements = [SecurityRequirement $ IOrd.singleton "basic" []]
+    in
+      toSwagger (Proxy :: Proxy sub)
+      & securityDefinitions .~ authSchemes
+      & allOperations . security .~ securityRequirements
 
-serverAPI :: Proxy ServerAPI
-serverAPI = Proxy
+-- 'BasicAuthCheck' holds the handler we'll use to verify a username and password.
+authCheck :: SCSContext -> BasicAuthCheck ST.User
+authCheck context =
+  let check (BasicAuthData useremail pass) = do
+        eitherUser <- runAppM @_ @ServiceError context . runDb $
+                      BQ.authCheck (EmailAddress $ decodeUtf8 useremail) (Password pass)
+        case eitherUser of
+          Right (Just user) -> return (Authorized user)
+          _                 -> return Unauthorized
+  in BasicAuthCheck check
+
+appMToHandler :: forall x context. context -> AppM context AppError x -> Handler x
+appMToHandler context act = do
+  res <- liftIO $ runAppM context act
+  case res of
+    Left (AppError e) -> appErrToHttpErr e
+    Right a           -> return a
 
 -- | Swagger spec for server API.
 serveSwaggerAPI :: Swagger
