@@ -22,29 +22,36 @@ import           Servant.API.Flatten
 import           Servant.Swagger.UI
 
 type PrivateAPI =
-       "epc"      :> Capture "urn" ST.LabelEPCUrn      :> "info"   :> Get '[JSON] EPCState
-  :<|> "epc"      :> Capture "urn" ST.LabelEPCUrn      :> "events" :> Get '[JSON] [Ev.Event]
-  :<|> "event"    :> Capture "eventID" EventId        :> "info"   :> Get '[JSON] (Maybe Ev.Event)
-  :<|> "contacts"                                                 :> Get '[JSON] [User]
-  :<|> "contacts" :> "add"                 :> Capture "userID" ST.UserID           :> Get '[JSON] Bool
-  :<|> "contacts" :> "remove"              :> Capture "userID" ST.UserID           :> Get '[JSON] Bool
-  :<|> "contacts" :> "search"              :> Capture "term" String               :> Get '[JSON] [User]
-  :<|> "event"    :> "list"                :> Capture "userID" ST.UserID           :> Get '[JSON] [Ev.Event]
-  :<|> "event"    :> "listUsers"           :> Capture "eventID" EventId           :> Get '[JSON] [(User, Bool)]
-  :<|> "event"    :> "sign"                :> ReqBody '[JSON] SignedEvent         :> Post '[JSON] PrimaryKeyType
-  :<|> "event"    :> "getHash"             :> ReqBody '[JSON] EventId             :> Post '[JSON] HashedEvent
-  :<|> "event"    :> "objectEvent"         :> ReqBody '[JSON] ObjectEvent         :> Post '[JSON] Ev.Event
-  :<|> "event"    :> "aggregateEvent"      :> ReqBody '[JSON] AggregationEvent    :> Post '[JSON] Ev.Event
-  :<|> "event"    :> "transactionEvent"    :> ReqBody '[JSON] TransactionEvent    :> Post '[JSON] Ev.Event
-  :<|> "event"    :> "transformationEvent" :> ReqBody '[JSON] TransformationEvent :> Post '[JSON] Ev.Event
-  :<|> "event"    :> "addUser" :> Capture "userID" ST.UserID :> Capture "eventID" EventId :> Post '[JSON] ()
-  :<|> "key"      :> "add"                 :> ReqBody '[JSON] PEM_RSAPubKey       :> Post '[JSON] KeyID
+-- Contacts
+       "contacts"                                                                                             :> Get '[JSON] [User]
+  :<|> "contacts" :> "add"                  :> Capture "userID" ST.UserID                                     :> Get '[JSON] Bool
+  :<|> "contacts" :> "remove"               :> Capture "userID" ST.UserID                                     :> Get '[JSON] Bool
+  :<|> "contacts" :> "search"               :> Capture "term" String                                          :> Get '[JSON] [User]
+-- Signatures
+  :<|> "event"    :> "addUser"              :> Capture "userID" ST.UserID       :> Capture "eventID" EventId  :> Post '[JSON] ()
+  :<|> "event"    :> "sign"                 :> ReqBody '[JSON] SignedEvent                                    :> Post '[JSON] PrimaryKeyType
+  :<|> "event"    :> "getHash"              :> ReqBody '[JSON] EventId                                        :> Post '[JSON] HashedEvent
+-- Queries
+  :<|> "epc"                                :> Capture "urn" ST.LabelEPCUrn     :> "info"                     :> Get '[JSON] EPCState
+  :<|> "epc"                                :> Capture "urn" ST.LabelEPCUrn     :> "events"                   :> Get '[JSON] [Ev.Event]
+  :<|> "event"                              :> Capture "eventID" EventId        :> "info"                     :> Get '[JSON] (Maybe Ev.Event)
+  :<|> "event"    :> "list"                 :> Capture "userID" ST.UserID                                     :> Get '[JSON] [Ev.Event]
+  :<|> "event"    :> "listUsers"            :> Capture "eventID" EventId                                      :> Get '[JSON] [(User, Bool)]
+-- Event Registration
+  :<|> "event"    :> "objectEvent"          :> ReqBody '[JSON] ObjectEvent                                    :> Post '[JSON] Ev.Event
+  :<|> "event"    :> "aggregateEvent"       :> ReqBody '[JSON] AggregationEvent                               :> Post '[JSON] Ev.Event
+  :<|> "event"    :> "transactionEvent"     :> ReqBody '[JSON] TransactionEvent                               :> Post '[JSON] Ev.Event
+  :<|> "event"    :> "transformationEvent"  :> ReqBody '[JSON] TransformationEvent                            :> Post '[JSON] Ev.Event
+-- Business
+  :<|> "key"      :> "add"                  :> ReqBody '[JSON] PEM_RSAPubKey                                  :> Post '[JSON] KeyID
 
 type PublicAPI =
-       "newUser"  :> ReqBody '[JSON] NewUser            :> Post '[JSON] UserID
-  :<|> "key"      :> "get"     :> Capture "keyID" KeyID :> Get '[JSON] PEM_RSAPubKey
-  :<|> "key"      :> "getInfo" :> Capture "keyID" KeyID :> Get '[JSON] KeyInfo
-  :<|> "business" :> "list"    :> Get '[JSON] [Business]
+-- Auth
+       "newUser"                            :> ReqBody '[JSON] NewUser                                        :> Post '[JSON] UserID
+-- Business
+  :<|> "key"      :> "get"                  :> Capture "keyID" KeyID                                          :> Get '[JSON] PEM_RSAPubKey
+  :<|> "key"      :> "getInfo"              :> Capture "keyID" KeyID                                          :> Get '[JSON] KeyInfo
+  :<|> "business" :> "list"                                                                                   :> Get '[JSON] [Business]
 
 type SwaggerAPI = SwaggerSchemaUI "swagger-ui" "swagger.json"
 
