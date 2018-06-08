@@ -18,43 +18,44 @@
 module Mirza.SupplyChain.Service where
 
 import           Mirza.SupplyChain.API
-import qualified Mirza.SupplyChain.BeamQueries       as BQ
+import qualified Mirza.SupplyChain.BeamQueries         as BQ
 -- import           Mirza.SupplyChain.Dummies     (dummyObjectDWhat)
-import           Mirza.SupplyChain.ErrorUtils        (appErrToHttpErr,
-                                                      throwAppError,
-                                                      throwParseError)
+import           Mirza.SupplyChain.ErrorUtils          (appErrToHttpErr,
+                                                        throwAppError,
+                                                        throwParseError)
 import           Mirza.SupplyChain.Handlers.Common
 
 import           Mirza.SupplyChain.Handlers.Contacts
-import qualified Mirza.SupplyChain.QueryUtils        as QU
-import qualified Mirza.SupplyChain.StorageBeam       as SB
-import           Mirza.SupplyChain.Types             hiding (NewUser (..),
-                                                      User (userId))
-import qualified Mirza.SupplyChain.Types             as MT
-import qualified Mirza.SupplyChain.Utils             as U
+import           Mirza.SupplyChain.Handlers.Signatures hiding (getPublicKey)
+import qualified Mirza.SupplyChain.QueryUtils          as QU
+import qualified Mirza.SupplyChain.StorageBeam         as SB
+import           Mirza.SupplyChain.Types               hiding (NewUser (..),
+                                                        User (userId))
+import qualified Mirza.SupplyChain.Types               as MT
+import qualified Mirza.SupplyChain.Utils               as U
 
-import           Data.GS1.DWhat                      (urn2LabelEPC)
-import qualified Data.GS1.Event                      as Ev
+import           Data.GS1.DWhat                        (urn2LabelEPC)
+import qualified Data.GS1.Event                        as Ev
 import           Data.GS1.EventId
-import qualified Data.HashMap.Strict.InsOrd          as IOrd
+import qualified Data.HashMap.Strict.InsOrd            as IOrd
 
-import           Control.Lens                        hiding ((.=))
-import           Control.Monad.Error.Hoist           ((<!?>), (<%?>))
-import           Control.Monad.IO.Class              (liftIO)
-import qualified Data.ByteString.Base64              as BS64
-import qualified Data.ByteString.Char8               as BSC
-import           Data.Char                           (toLower)
+import           Control.Lens                          hiding ((.=))
+import           Control.Monad.Error.Hoist             ((<!?>), (<%?>))
+import           Control.Monad.IO.Class                (liftIO)
+import qualified Data.ByteString.Base64                as BS64
+import qualified Data.ByteString.Char8                 as BSC
+import           Data.Char                             (toLower)
 import           Data.Swagger
-import           Data.Text                           (pack)
-import           Data.Text.Encoding                  (decodeUtf8)
-import           GHC.TypeLits                        (KnownSymbol)
-import qualified OpenSSL.EVP.Digest                  as EVPDigest
-import           OpenSSL.EVP.PKey                    (SomePublicKey,
-                                                      toPublicKey)
-import           OpenSSL.EVP.Verify                  (VerifyStatus (..),
-                                                      verifyBS)
-import           OpenSSL.PEM                         (readPublicKey)
-import           OpenSSL.RSA                         (RSAPubKey, rsaSize)
+import           Data.Text                             (pack)
+import           Data.Text.Encoding                    (decodeUtf8)
+import           GHC.TypeLits                          (KnownSymbol)
+import qualified OpenSSL.EVP.Digest                    as EVPDigest
+import           OpenSSL.EVP.PKey                      (SomePublicKey,
+                                                        toPublicKey)
+import           OpenSSL.EVP.Verify                    (VerifyStatus (..),
+                                                        verifyBS)
+import           OpenSSL.PEM                           (readPublicKey)
+import           OpenSSL.RSA                           (RSAPubKey, rsaSize)
 import           Servant
 import           Servant.Swagger
 
@@ -215,40 +216,7 @@ listBusinesses = runDb $ fmap QU.storageToModelBusiness <$> BQ.listBusinesses
 eventList :: SCSApp context err => MT.User -> UserID -> AppM context err [Ev.Event]
 eventList _user = runDb . BQ.eventsByUser
 
-makeDigest :: Digest -> IO (Maybe EVPDigest.Digest)
-makeDigest = EVPDigest.getDigestByName . map toLower . show
 
-
-{-
-   The default padding is PKCS1-1.5, which is deprecated
-   for new applications. We should be using PSS instead.
-
-   In the OpenSSL wrapper, the verify function in generic,
-   and does not allow you to specify a padding type, as this
-   is an RSA specific property.
-
-   I propose we modify OpenSSL to add a function called
-   verifyBSRSA :: Digest -> BS -> key -> BS -> PaddingType -> IO VerifyStatus
-
-   We'll need to use the foreign function interface to call:
-   EVP_PKEY_CTX_set_rsa_padding in libSSL.
-
-   Lets do this after we have everything compiling.
--}
-
-eventSign :: SCSApp context err => MT.User -> SignedEvent -> AppM context err SB.PrimaryKeyType
-eventSign _user (SignedEvent eventID keyID (Signature sigStr) digest') = runDb $ do
-  event <- BQ.getEventJSON eventID
-  rsaPublicKey <- BQ.getPublicKey keyID
-  sigBS <- BS64.decode (BSC.pack sigStr) <%?> review _InvalidSignature
-  let (PEMString keyStr) = rsaPublicKey
-  (pubKey :: RSAPubKey) <- liftIO (toPublicKey <$> readPublicKey keyStr) <!?> review _InvalidRSAKeyInDB (pack keyStr)
-  let eventBS = QU.eventTxtToBS event
-  digest <- liftIO (makeDigest digest') <!?> review _InvalidDigest digest'
-  verifyStatus <- liftIO $ verifyBS digest sigBS pubKey eventBS
-  if verifyStatus == VerifySuccess
-    then BQ.insertSignature eventID keyID (Signature sigStr) digest'
-    else throwAppError $ InvalidSignature sigStr
 
 -- | A function to tie a user to an event
 -- Populates the ``UserEvents`` table
@@ -256,27 +224,6 @@ addUserToEvent :: SCSApp context err => MT.User -> UserID -> EventId -> AppM con
 addUserToEvent (User loggedInUserId _ _) anotherUserId eventId =
     runDb $ BQ.addUserToEvent (EventOwner loggedInUserId) (SigningUser anotherUserId) eventId
 
--- eventSign user signedEvent = error "Storage module not implemented"
--- eventSign user signedEvent = do
---   result <- liftIO $ runExceptT $ Storage.eventSign user signedEvent
---   case result of
---     Left SE_NeedMoreSignatures -> return False
---     Left e -> throwError err400 { errBody = LBSC8.pack $ show e }
---     Right () -> return True
-
--- do we need this?
---
-eventHashed :: MT.User -> EventId -> AppM context err HashedEvent
-eventHashed _user _eventId = error "not implemented yet"
--- return (HashedEvent eventID (EventHash "Blob"))
-
-{-
-eventHashed user eventID = do
-  mHash <- liftIO $ Storage.eventHashed user eventID
-  case mHash of
-    Nothing -> throwError err404 { errBody = "Unknown eventID" }
-    Just i -> return i
--}
 
 
 insertObjectEvent :: SCSApp context err => MT.User -> ObjectEvent -> AppM context err Ev.Event
