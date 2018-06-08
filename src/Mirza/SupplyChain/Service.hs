@@ -25,6 +25,7 @@ import           Mirza.SupplyChain.ErrorUtils                 (appErrToHttpErr,
                                                                throwParseError)
 import           Mirza.SupplyChain.Handlers.Common
 
+import           Mirza.SupplyChain.Handlers.Business
 import           Mirza.SupplyChain.Handlers.Contacts
 import           Mirza.SupplyChain.Handlers.EventRegistration
 import           Mirza.SupplyChain.Handlers.Signatures        hiding
@@ -140,29 +141,9 @@ serveSwaggerAPI = toSwagger serverAPI
 basicAuthServerContext :: SCSContext -> Servant.Context '[BasicAuthCheck ST.User]
 basicAuthServerContext context = authCheck context :. EmptyContext
 
-minPubKeySize :: Bit
-minPubKeySize = Bit 2048 -- 256 Bytes
 
 
 
-addPublicKey :: SCSApp context err => ST.User -> PEM_RSAPubKey -> AppM context err KeyID
-addPublicKey user pemKey@(PEMString pemStr) = do
-  somePubKey <- liftIO $ readPublicKey pemStr
-  either (throwing _ServiceError)
-         (runDb . BQ.addPublicKey user)
-         (checkPubKey somePubKey pemKey)
-
-checkPubKey :: SomePublicKey -> PEM_RSAPubKey-> Either ServiceError RSAPubKey
-checkPubKey spKey pemKey =
-  maybe (Left $ InvalidRSAKey pemKey)
-  (\pubKey ->
-    let keySize = rsaSize pubKey in
-    -- rsaSize returns size in bytes
-    if (Bit $ keySize * 8) < minPubKeySize
-      then Left $ InvalidRSAKeySize (Expected minPubKeySize) (Received $ Bit keySize)
-      else Right pubKey
-  )
-  (toPublicKey spKey)
 
 newUser ::  (SCSApp context err, HasScryptParams context)=> ST.NewUser -> AppM context err UserID
 newUser = runDb . BQ.newUser
