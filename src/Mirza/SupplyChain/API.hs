@@ -40,7 +40,7 @@ serverAPI = Proxy
 
 
 type PublicAPI =
-  -- Auth
+  -- Users
          "newUser"                            :> ReqBody '[JSON] NewUser                                        :> Post '[JSON] UserID
   -- Business
     :<|> "key"      :> "get"                  :> Capture "keyID" KeyID                                          :> Get '[JSON] PEM_RSAPubKey

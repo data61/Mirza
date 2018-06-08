@@ -34,6 +34,7 @@ library
                     , Mirza.SupplyChain.Handlers.Contacts
                     , Mirza.SupplyChain.Handlers.EventRegistration
                     , Mirza.SupplyChain.Handlers.Business
+                    , Mirza.SupplyChain.Handlers.Users
                     , Mirza.SupplyChain.Handlers.Signatures
 
   other-modules:      Mirza.SupplyChain.MigrateUtils
