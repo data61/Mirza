@@ -18,44 +18,48 @@
 module Mirza.SupplyChain.Service where
 
 import           Mirza.SupplyChain.API
-import qualified Mirza.SupplyChain.BeamQueries         as BQ
+import qualified Mirza.SupplyChain.BeamQueries                as BQ
 -- import           Mirza.SupplyChain.Dummies     (dummyObjectDWhat)
-import           Mirza.SupplyChain.ErrorUtils          (appErrToHttpErr,
-                                                        throwAppError,
-                                                        throwParseError)
+import           Mirza.SupplyChain.ErrorUtils                 (appErrToHttpErr,
+                                                               throwAppError,
+                                                               throwParseError)
 import           Mirza.SupplyChain.Handlers.Common
 
 import           Mirza.SupplyChain.Handlers.Contacts
-import           Mirza.SupplyChain.Handlers.Signatures hiding (getPublicKey)
-import qualified Mirza.SupplyChain.QueryUtils          as QU
-import qualified Mirza.SupplyChain.StorageBeam         as SB
-import           Mirza.SupplyChain.Types               hiding (NewUser (..),
-                                                        User (userId))
-import qualified Mirza.SupplyChain.Types               as ST
-import qualified Mirza.SupplyChain.Utils               as U
+import           Mirza.SupplyChain.Handlers.EventRegistration
+import           Mirza.SupplyChain.Handlers.Signatures        hiding
+                                                               (getPublicKey)
+import qualified Mirza.SupplyChain.QueryUtils                 as QU
+import qualified Mirza.SupplyChain.StorageBeam                as SB
+import           Mirza.SupplyChain.Types                      hiding
+                                                               (NewUser (..),
+                                                               User (userId))
+import qualified Mirza.SupplyChain.Types                      as ST
+import qualified Mirza.SupplyChain.Utils                      as U
 
-import           Data.GS1.DWhat                        (urn2LabelEPC)
-import qualified Data.GS1.Event                        as Ev
+import           Data.GS1.DWhat                               (urn2LabelEPC)
+import qualified Data.GS1.Event                               as Ev
 import           Data.GS1.EventId
-import qualified Data.HashMap.Strict.InsOrd            as IOrd
+import qualified Data.HashMap.Strict.InsOrd                   as IOrd
 
-import           Control.Lens                          hiding ((.=))
-import           Control.Monad.Error.Hoist             ((<!?>), (<%?>))
-import           Control.Monad.IO.Class                (liftIO)
-import qualified Data.ByteString.Base64                as BS64
-import qualified Data.ByteString.Char8                 as BSC
-import           Data.Char                             (toLower)
+import           Control.Lens                                 hiding ((.=))
+import           Control.Monad.Error.Hoist                    ((<!?>), (<%?>))
+import           Control.Monad.IO.Class                       (liftIO)
+import qualified Data.ByteString.Base64                       as BS64
+import qualified Data.ByteString.Char8                        as BSC
+import           Data.Char                                    (toLower)
 import           Data.Swagger
-import           Data.Text                             (pack)
-import           Data.Text.Encoding                    (decodeUtf8)
-import           GHC.TypeLits                          (KnownSymbol)
-import qualified OpenSSL.EVP.Digest                    as EVPDigest
-import           OpenSSL.EVP.PKey                      (SomePublicKey,
-                                                        toPublicKey)
-import           OpenSSL.EVP.Verify                    (VerifyStatus (..),
-                                                        verifyBS)
-import           OpenSSL.PEM                           (readPublicKey)
-import           OpenSSL.RSA                           (RSAPubKey, rsaSize)
+import           Data.Text                                    (pack)
+import           Data.Text.Encoding                           (decodeUtf8)
+import           GHC.TypeLits                                 (KnownSymbol)
+import qualified OpenSSL.EVP.Digest                           as EVPDigest
+import           OpenSSL.EVP.PKey                             (SomePublicKey,
+                                                               toPublicKey)
+import           OpenSSL.EVP.Verify                           (VerifyStatus (..),
+                                                               verifyBS)
+import           OpenSSL.PEM                                  (readPublicKey)
+import           OpenSSL.RSA                                  (RSAPubKey,
+                                                               rsaSize)
 import           Servant
 import           Servant.Swagger
 
@@ -226,17 +230,6 @@ addUserToEvent (User loggedInUserId _ _) anotherUserId eventId =
 
 
 
-insertObjectEvent :: SCSApp context err => ST.User -> ObjectEvent -> AppM context err Ev.Event
-insertObjectEvent user ob = runDb $ BQ.insertObjectEvent user ob
-
-insertAggEvent :: SCSApp context err => ST.User -> AggregationEvent -> AppM context err Ev.Event
-insertAggEvent user ev = runDb $ BQ.insertAggEvent user ev
-
-insertTransactEvent :: SCSApp context err => ST.User -> TransactionEvent -> AppM context err Ev.Event
-insertTransactEvent user ev = runDb $ BQ.insertTransactEvent user ev
-
-insertTransfEvent :: SCSApp context err => ST.User -> TransformationEvent -> AppM context err Ev.Event
-insertTransfEvent user ev = runDb $ BQ.insertTransfEvent user ev
 
 
 eventInfo :: SCSApp context err => ST.User -> EventId -> AppM context err (Maybe Ev.Event)
