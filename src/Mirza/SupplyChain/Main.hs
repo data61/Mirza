@@ -5,6 +5,7 @@
 module Mirza.SupplyChain.Main where
 
 import           Mirza.SupplyChain.API
+import           Mirza.SupplyChain.Auth
 import           Mirza.SupplyChain.Migrate  (defConnectionStr, migrate)
 import           Mirza.SupplyChain.Service
 import           Mirza.SupplyChain.Types    (AppError, EnvType (..),

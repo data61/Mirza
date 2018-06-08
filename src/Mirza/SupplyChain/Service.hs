@@ -18,7 +18,6 @@ module Mirza.SupplyChain.Service where
 
 
 import           Mirza.SupplyChain.API
-import qualified Mirza.SupplyChain.BeamQueries                as BQ
 import           Mirza.SupplyChain.ErrorUtils                 (appErrToHttpErr)
 
 import           Mirza.SupplyChain.Handlers.Business
@@ -29,10 +28,7 @@ import           Mirza.SupplyChain.Handlers.Queries
 import           Mirza.SupplyChain.Handlers.Signatures        hiding
                                                                (getPublicKey)
 import           Mirza.SupplyChain.Handlers.Users
-import           Mirza.SupplyChain.Types                      hiding
-                                                               (NewUser (..),
-                                                               User (userId))
-import qualified Mirza.SupplyChain.Types                      as ST
+import           Mirza.SupplyChain.Types
 
 import           Servant
 import           Servant.Swagger
@@ -43,7 +39,6 @@ import           Control.Lens                                 hiding ((.=))
 import           Control.Monad.IO.Class                       (liftIO)
 import qualified Data.HashMap.Strict.InsOrd                   as IOrd
 import           Data.Swagger
-import           Data.Text.Encoding                           (decodeUtf8)
 
 
 
@@ -86,6 +81,7 @@ privateServer =
   :<|> addPublicKey
 
 
+
 instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub) where
   toSwagger _ =
     let
@@ -96,16 +92,7 @@ instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub
       & securityDefinitions .~ authSchemes
       & allOperations . security .~ securityRequirements
 
--- 'BasicAuthCheck' holds the handler we'll use to verify a username and password.
-authCheck :: SCSContext -> BasicAuthCheck ST.User
-authCheck context =
-  let check (BasicAuthData useremail pass) = do
-        eitherUser <- runAppM @_ @ServiceError context . runDb $
-                      BQ.authCheck (EmailAddress $ decodeUtf8 useremail) (Password pass)
-        case eitherUser of
-          Right (Just user) -> return (Authorized user)
-          _                 -> return Unauthorized
-  in BasicAuthCheck check
+
 
 appMToHandler :: forall x context. context -> AppM context AppError x -> Handler x
 appMToHandler context act = do
@@ -122,12 +109,6 @@ serveSwaggerAPI = toSwagger serverAPI
   & info.description ?~ "This is an API that tests swagger integration"
   & info.license ?~ ("MIT" & url ?~ URL "https://opensource.org/licenses/MIT")
 
--- | We need to supply our handlers with the right Context. In this case,
--- Basic Authentication requires a Context Entry with the 'BasicAuthCheck' value
--- tagged with "foo-tag" This context is then supplied to 'server' and threaded
--- to the BasicAuth HasServer handlers.
-basicAuthServerContext :: SCSContext -> Servant.Context '[BasicAuthCheck ST.User]
-basicAuthServerContext context = authCheck context :. EmptyContext
 
 
 
