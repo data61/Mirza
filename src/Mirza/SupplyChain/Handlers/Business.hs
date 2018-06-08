@@ -29,6 +29,51 @@ minPubKeySize = Bit 2048 -- 256 Bytes
 
 
 
+getPublicKey ::  SCSApp context err => KeyID -> AppM context err PEM_RSAPubKey
+getPublicKey = runDb . getPublicKeyQuery
+
+getPublicKeyQuery :: AsServiceError err =>  KeyID -> DB context err PEM_RSAPubKey
+getPublicKeyQuery (KeyID keyId) = do
+  r <- pg $ runSelectReturningList $ select $ do
+    allKeys <- all_ (SB._keys SB.supplyChainDb)
+    guard_ (SB.key_id allKeys ==. val_ keyId)
+    pure (SB.pem_str allKeys)
+  case r of
+    [k] -> return $ PEMString $ T.unpack k
+    _   -> throwing _InvalidKeyID . KeyID $ keyId
+
+
+getPublicKeyInfo ::  SCSApp context err => KeyID -> AppM context err ST.KeyInfo
+getPublicKeyInfo = runDb . getPublicKeyInfoQuery
+
+getPublicKeyInfoQuery :: AsServiceError err => KeyID -> DB context err ST.KeyInfo
+getPublicKeyInfoQuery (KeyID keyId) = do
+  r <- pg $ runSelectReturningList $ select $ do
+    allKeys <- all_ (SB._keys SB.supplyChainDb)
+    guard_ (SB.key_id allKeys ==. val_ keyId)
+    pure allKeys
+
+  case r of
+    [(SB.Key _ (SB.UserId uId) _  creationTime revocationTime)] ->
+       return $ ST.KeyInfo (ST.UserID uId)
+                (QU.toEPCISTime creationTime)
+                (QU.toEPCISTime <$> revocationTime)
+    _ -> throwing _InvalidKeyID . KeyID $ keyId
+
+
+-- select * from Business;
+listBusinesses :: SCSApp context err => AppM context err [Business]
+listBusinesses = runDb $ fmap QU.storageToModelBusiness <$> listBusinessesQuery
+-- ^ one fmap for Functor AppM, one for Functor []
+
+-- TODO: Write tests
+listBusinessesQuery :: DB context err [SB.Business]
+listBusinessesQuery = do
+  pg $ runSelectReturningList $ select $
+      all_ (SB._businesses SB.supplyChainDb)
+
+
+
 addPublicKey :: SCSApp context err => ST.User -> PEM_RSAPubKey -> AppM context err KeyID
 addPublicKey user pemKey@(PEMString pemStr) = do
   somePubKey <- liftIO $ readPublicKey pemStr

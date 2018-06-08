@@ -155,11 +155,7 @@ basicAuthServerContext context = authCheck context :. EmptyContext
 newUser ::  (SCSApp context err, HasScryptParams context)=> ST.NewUser -> AppM context err UserID
 newUser = runDb . BQ.newUser
 
-getPublicKey ::  SCSApp context err => KeyID -> AppM context err PEM_RSAPubKey
-getPublicKey = runDb . BQ.getPublicKey
 
-getPublicKeyInfo ::  SCSApp context err => KeyID -> AppM context err KeyInfo
-getPublicKeyInfo = runDb . BQ.getPublicKeyInfo
 
 -- PSUEDO:
 -- In BeamQueries, implement a function getLabelIDState :: LabelEPCUrn -> IO (_labelID, State)
@@ -198,10 +194,6 @@ userSearch :: ST.User -> String -> AppM context err [ST.User]
 -- userSearch user term = liftIO $ Storage.userSearch user term
 userSearch _user _term = error "Storage module not implemented"
 
--- select * from Business;
-listBusinesses :: SCSApp context err => AppM context err [Business]
-listBusinesses = runDb $ fmap QU.storageToModelBusiness <$> BQ.listBusinesses
--- ^ one fmap for Functor AppM, one for Functor []
 
 -- |List events that a particular user was/is involved with
 -- use BizTransactions and events (createdby) tables
