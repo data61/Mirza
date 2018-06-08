@@ -93,29 +93,36 @@ appMToHandler context act = do
     Right a           -> return a
 
 privateServer :: (SCSApp context err) => ServerT ProtectedAPI (AppM context err)
-privateServer
-  =    epcState
-  :<|> listEvents
-  :<|> eventInfo
-  :<|> listContacts
+privateServer =
+-- Contacts
+       listContacts
   :<|> addContact
   :<|> removeContact
---        :<|> contactsSearch
+--  :<|> contactsSearch
   :<|> userSearch
-  :<|> eventList
-  :<|> eventUserList
+-- Signatures
+  :<|> addUserToEvent
   :<|> eventSign
   :<|> eventHashed
+-- Queries
+  :<|> epcState
+  :<|> listEvents
+  :<|> eventInfo
+  :<|> eventList
+  :<|> eventUserList
+-- Event Registration
   :<|> insertObjectEvent
   :<|> insertAggEvent
   :<|> insertTransactEvent
   :<|> insertTransfEvent
-  :<|> addUserToEvent
+-- Business
   :<|> addPublicKey
 
 publicServer :: (SCSApp context err, HasScryptParams context) => ServerT PublicAPI (AppM context err)
-publicServer
-  =    newUser
+publicServer =
+  -- Auth
+       newUser
+  -- Business
   :<|> getPublicKey
   :<|> getPublicKeyInfo
   :<|> listBusinesses

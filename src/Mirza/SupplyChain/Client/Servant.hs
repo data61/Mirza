@@ -67,22 +67,26 @@ _privAPI :: Client ClientM ProtectedAPI
 _pubAPI  :: Client ClientM PublicAPI
 _api@(
   _privAPI@(
-    epcState
-    :<|> listEvents
-    :<|> eventInfo
-    :<|> contactsInfo
+         contactsInfo
     :<|> addContact
     :<|> removeContact
     :<|> userSearch
-    :<|> eventList
-    :<|> eventUserList
+
+    :<|> addUserToEvent
     :<|> eventSign
     :<|> eventHashed
+
+    :<|> epcState
+    :<|> listEvents
+    :<|> eventInfo
+    :<|> eventList
+    :<|> eventUserList
+
     :<|> insertObjectEvent
     :<|> insertAggEvent
     :<|> insertTransactEvent
     :<|> insertTransfEvent
-    :<|> addUserToEvent
+
     :<|> addPublicKey
   )
   :<|>
