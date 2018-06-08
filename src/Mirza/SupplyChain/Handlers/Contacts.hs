@@ -76,3 +76,9 @@ removeContactQuery (User firstId@(ST.UserID uid1) _ _) secondId@(ST.UserID uid2)
 --
 contactsSearch :: ST.User -> String -> AppM context err [ST.User]
 contactsSearch _user _term = U.notImplemented
+
+
+
+userSearch :: ST.User -> String -> AppM context err [ST.User]
+-- userSearch user term = liftIO $ Storage.userSearch user term
+userSearch _user _term = error "Storage module not implemented"
