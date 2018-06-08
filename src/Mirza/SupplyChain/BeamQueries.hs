@@ -115,18 +115,6 @@ authCheck e@(EmailAddress email) (Password password) = do
     [] -> throwAppError $ EmailNotFound e
     _  -> throwBackendError r -- multiple elements
 
-addPublicKey :: AsServiceError err =>  ST.User -> RSAPubKey -> DB context err KeyID
-addPublicKey (User (ST.UserID uid) _ _)  rsaPubKey = do
-  keyId <- generatePk
-  timeStamp <- generateTimeStamp
-  keyStr <- liftIO $ writePublicKey rsaPubKey
-  r <- pg $ runInsertReturningList (SB._keys SB.supplyChainDb) $
-        insertValues
-        [ SB.Key keyId (SB.UserId uid) (T.pack keyStr) timeStamp Nothing
-        ]
-  case r of
-    [rowId] -> return (KeyID $ SB.key_id rowId)
-    _       -> throwing _InvalidKeyID . KeyID $ keyId
 
 getPublicKey :: AsServiceError err =>  KeyID -> DB context err PEM_RSAPubKey
 getPublicKey (KeyID keyId) = do
