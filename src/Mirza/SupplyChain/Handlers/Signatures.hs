@@ -5,35 +5,31 @@ module Mirza.SupplyChain.Handlers.Signatures where
 
 import           Mirza.SupplyChain.Handlers.Common
 
-import           Mirza.SupplyChain.ErrorUtils             (throwAppError)
+import           Mirza.SupplyChain.ErrorUtils      (throwAppError)
 import           Mirza.SupplyChain.QueryUtils
-import qualified Mirza.SupplyChain.StorageBeam            as SB
-import           Mirza.SupplyChain.Types                  hiding (KeyInfo (..),
-                                                           NewUser (..),
-                                                           User (userId),
-                                                           UserID)
-import qualified Mirza.SupplyChain.Types                  as ST
-import qualified Mirza.SupplyChain.Utils                  as U
+import qualified Mirza.SupplyChain.StorageBeam     as SB
+import           Mirza.SupplyChain.Types           hiding (KeyInfo (..),
+                                                    NewUser (..), User (userId),
+                                                    UserID)
+import qualified Mirza.SupplyChain.Types           as ST
 
-import qualified Data.GS1.EventId                         as EvId
+import qualified Data.GS1.EventId                  as EvId
 
-import           Database.Beam                            as B
-import           Database.Beam.Backend.SQL.BeamExtensions
+import           Database.Beam                     as B
 
-import qualified OpenSSL.EVP.Digest                       as EVPDigest
-import           OpenSSL.EVP.PKey                         (toPublicKey)
-import           OpenSSL.EVP.Verify                       (VerifyStatus (..),
-                                                           verifyBS)
-import           OpenSSL.PEM                              (readPublicKey)
-import           OpenSSL.RSA                              (RSAPubKey)
+import qualified OpenSSL.EVP.Digest                as EVPDigest
+import           OpenSSL.EVP.PKey                  (toPublicKey)
+import           OpenSSL.EVP.Verify                (VerifyStatus (..), verifyBS)
+import           OpenSSL.PEM                       (readPublicKey)
+import           OpenSSL.RSA                       (RSAPubKey)
 
-import           Control.Lens                             hiding ((.=))
-import           Control.Monad.Error.Hoist                ((<!?>), (<%?>))
-import qualified Data.ByteString.Base64                   as BS64
-import qualified Data.ByteString.Char8                    as BSC
-import           Data.Char                                (toLower)
-import           Data.Text                                (pack)
-import qualified Data.Text                                as T
+import           Control.Lens                      hiding ((.=))
+import           Control.Monad.Error.Hoist         ((<!?>), (<%?>))
+import qualified Data.ByteString.Base64            as BS64
+import qualified Data.ByteString.Char8             as BSC
+import           Data.Char                         (toLower)
+import           Data.Text                         (pack)
+import qualified Data.Text                         as T
 
 
 

@@ -1,53 +1,23 @@
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
--- | This module is incomplete as of yet.
--- Functions in the `service` module use the database functions defined here
+
 module Mirza.SupplyChain.BeamQueries where
 
 
-
-import           Mirza.SupplyChain.ErrorUtils             (getSqlErrorCode,
-                                                           throwAppError,
-                                                           throwBackendError,
-                                                           toServerError)
-import qualified Mirza.SupplyChain.MigrateUtils           as MU
+import           Mirza.SupplyChain.ErrorUtils  (throwAppError,
+                                                throwBackendError)
 import           Mirza.SupplyChain.QueryUtils
-import qualified Mirza.SupplyChain.StorageBeam            as SB
-import           Mirza.SupplyChain.Types                  hiding (KeyInfo (..),
-                                                           NewUser (..),
-                                                           User (userId),
-                                                           UserID)
-import qualified Mirza.SupplyChain.Types                  as ST
+import qualified Mirza.SupplyChain.StorageBeam as SB
+import           Mirza.SupplyChain.Types       hiding (KeyInfo (..),
+                                                NewUser (..), User (userId),
+                                                UserID)
+import qualified Mirza.SupplyChain.Types       as ST
 
-import           Data.GS1.DWhat                           (AggregationDWhat (..),
-                                                           DWhat (..),
-                                                           InputEPC (..),
-                                                           LabelEPC (..),
-                                                           ObjectDWhat (..),
-                                                           OutputEPC (..),
-                                                           TransactionDWhat (..),
-                                                           TransformationDWhat (..),
-                                                           unParentLabel)
-import qualified Data.GS1.Event                           as Ev
-import qualified Data.GS1.EventId                         as EvId
+import qualified Crypto.Scrypt                 as Scrypt
+import           Database.Beam                 as B
 
-import           Control.Monad.Except                     (MonadError,
-                                                           throwError)
-import           Control.Monad.IO.Class                   (liftIO)
-import qualified Crypto.Scrypt                            as Scrypt
-import           Data.Maybe                               (catMaybes)
-import qualified Data.Text                                as T
-import           Data.Text.Encoding
-import           Database.Beam                            as B
-import           Database.Beam.Backend.SQL.BeamExtensions
-import           Database.PostgreSQL.Simple.Errors        (ConstraintViolation (..),
-                                                           constraintViolation)
-import           Database.PostgreSQL.Simple.Internal      (SqlError (..))
-import           OpenSSL.PEM                              (writePublicKey)
-import           OpenSSL.RSA                              (RSAPubKey)
-
-import           Control.Lens                             (view, (^?), _2)
+import           Control.Lens                  (view, _2)
 
 
 -- Basic Auth check using Scrypt hashes.
@@ -74,20 +44,6 @@ authCheck e@(EmailAddress email) (Password password) = do
             pure $ Just (userTableToModel user)
     [] -> throwAppError $ EmailNotFound e
     _  -> throwBackendError r -- multiple elements
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

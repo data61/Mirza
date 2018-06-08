@@ -19,7 +19,6 @@ import           Data.GS1.DWhat                    (AggregationDWhat (..),
                                                     TransformationDWhat (..),
                                                     unParentLabel)
 import qualified Data.GS1.Event                    as Ev
-import qualified Data.GS1.EventId                  as EvId
 
 
 

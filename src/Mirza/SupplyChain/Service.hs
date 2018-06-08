@@ -19,10 +19,7 @@ module Mirza.SupplyChain.Service where
 
 import           Mirza.SupplyChain.API
 import qualified Mirza.SupplyChain.BeamQueries                as BQ
--- import           Mirza.SupplyChain.Dummies     (dummyObjectDWhat)
-import           Mirza.SupplyChain.ErrorUtils                 (appErrToHttpErr,
-                                                               throwAppError,
-                                                               throwParseError)
+import           Mirza.SupplyChain.ErrorUtils                 (appErrToHttpErr)
 
 import           Mirza.SupplyChain.Handlers.Business
 import           Mirza.SupplyChain.Handlers.Common
@@ -32,39 +29,21 @@ import           Mirza.SupplyChain.Handlers.Queries
 import           Mirza.SupplyChain.Handlers.Signatures        hiding
                                                                (getPublicKey)
 import           Mirza.SupplyChain.Handlers.Users
-import qualified Mirza.SupplyChain.QueryUtils                 as QU
-import qualified Mirza.SupplyChain.StorageBeam                as SB
 import           Mirza.SupplyChain.Types                      hiding
                                                                (NewUser (..),
                                                                User (userId))
 import qualified Mirza.SupplyChain.Types                      as ST
-import qualified Mirza.SupplyChain.Utils                      as U
 
-import           Data.GS1.DWhat                               (urn2LabelEPC)
-import qualified Data.GS1.Event                               as Ev
-import           Data.GS1.EventId
-import qualified Data.HashMap.Strict.InsOrd                   as IOrd
-
-import           Control.Lens                                 hiding ((.=))
-import           Control.Monad.Error.Hoist                    ((<!?>), (<%?>))
-import           Control.Monad.IO.Class                       (liftIO)
-import qualified Data.ByteString.Base64                       as BS64
-import qualified Data.ByteString.Char8                        as BSC
-import           Data.Char                                    (toLower)
-import           Data.Swagger
-import           Data.Text                                    (pack)
-import           Data.Text.Encoding                           (decodeUtf8)
-import           GHC.TypeLits                                 (KnownSymbol)
-import qualified OpenSSL.EVP.Digest                           as EVPDigest
-import           OpenSSL.EVP.PKey                             (SomePublicKey,
-                                                               toPublicKey)
-import           OpenSSL.EVP.Verify                           (VerifyStatus (..),
-                                                               verifyBS)
-import           OpenSSL.PEM                                  (readPublicKey)
-import           OpenSSL.RSA                                  (RSAPubKey,
-                                                               rsaSize)
 import           Servant
 import           Servant.Swagger
+
+import           GHC.TypeLits                                 (KnownSymbol)
+
+import           Control.Lens                                 hiding ((.=))
+import           Control.Monad.IO.Class                       (liftIO)
+import qualified Data.HashMap.Strict.InsOrd                   as IOrd
+import           Data.Swagger
+import           Data.Text.Encoding                           (decodeUtf8)
 
 
 
@@ -156,26 +135,10 @@ basicAuthServerContext context = authCheck context :. EmptyContext
 
 
 
-
 -- PSUEDO:
 -- In BeamQueries, implement a function getLabelIDState :: LabelEPCUrn -> IO (_labelID, State)
 -- use readLabelEPC in EPC.hs to do it.
 -- SELECT * FROM Labels WHERE _labelGs1CompanyPrefix=gs1CompanyPrefix AND _labelType=type AND ...
-
-
-
-
-
-
-userSearch :: ST.User -> String -> AppM context err [ST.User]
--- userSearch user term = liftIO $ Storage.userSearch user term
-userSearch _user _term = error "Storage module not implemented"
-
-
-
-
-
-
 
 
 --eventHash :: EventId -> AppM context err SignedEvent
