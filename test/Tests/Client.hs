@@ -69,7 +69,7 @@ clientSpec =
                 (contactsInfo (BasicAuthData "xyz@example.com" "notagoodpassword"))
                 baseurl
         res `shouldSatisfy` isLeft
-    describe "Events can be inserted" $ do
+    describe "Events can be inserted by the new user" $ do
       -- TODO: Events need their EventId returned to user
       it "Can insert Object events" $ \(_,baseurl) -> do
         res <- first show <$> runClient
@@ -95,6 +95,13 @@ clientSpec =
                 baseurl
         print res
         res `shouldSatisfy` isRight
+      xit "Can retrieve all submitted events" $ \(_,_baseurl) ->
+        pending
+        --   res@(Right evs) <- first show <$> runClient
+        --           (eventList authABC uid) -- uid of userABC
+        --           baseurl
+        --   print res
+        --   res `shouldSatisfy` isRight
 
 {-
 Check Provenance of a labelEPC
