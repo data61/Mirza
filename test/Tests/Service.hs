@@ -11,6 +11,7 @@ module Tests.Service
 
 import           Tests.Dummies
 
+import           Mirza.SupplyChain.Auth
 import           Mirza.SupplyChain.Handlers.Business
 import           Mirza.SupplyChain.Handlers.Contacts
 import           Mirza.SupplyChain.Handlers.EventRegistration
@@ -18,7 +19,6 @@ import           Mirza.SupplyChain.Handlers.Queries
 import           Mirza.SupplyChain.Handlers.Users
 import           Mirza.SupplyChain.Migrate                    (testDbConnStr)
 import           Mirza.SupplyChain.QueryUtils
-import qualified Mirza.SupplyChain.Service                    as S
 import qualified Mirza.SupplyChain.StorageBeam                as SB
 import           Mirza.SupplyChain.Types
 
@@ -152,7 +152,7 @@ testQueries = do
     it "authCheck test 1" $ \scsContext -> do
       res <- testAppM scsContext $ do
         uid <- newUser dummyNewUser
-        let check = unBasicAuthCheck $ S.authCheck scsContext
+        let check = unBasicAuthCheck $ authCheck scsContext
         let basicAuthData = BasicAuthData
                           (encodeUtf8 $ unEmailAddress $ emailAddress dummyNewUser)
                           (encodeUtf8 $ password dummyNewUser)
