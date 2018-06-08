@@ -1,4 +1,4 @@
--- {-# LANGUAGE CPP                   #-}
+{-# LANGUAGE ConstraintKinds       #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
@@ -9,13 +9,13 @@
 {-# LANGUAGE TypeApplications      #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
--- {-# LANGUAGE UndecidableInstances  #-}
-{-# LANGUAGE ConstraintKinds       #-}
 {-# OPTIONS_GHC -fno-warn-orphans       #-}
 
 -- | Endpoint definitions go here. Most of the endpoint definitions are
 -- light wrappers around functions in BeamQueries
 module Mirza.SupplyChain.Service where
+
+
 
 import           Mirza.SupplyChain.API
 import qualified Mirza.SupplyChain.BeamQueries                as BQ

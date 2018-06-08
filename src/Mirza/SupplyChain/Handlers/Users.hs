@@ -1,5 +1,7 @@
 module Mirza.SupplyChain.Handlers.Users where
 
+
+
 import           Mirza.SupplyChain.ErrorUtils             (getSqlErrorCode,
                                                            throwBackendError,
                                                            toServerError)
@@ -11,7 +13,6 @@ import           Mirza.SupplyChain.Types                  hiding (KeyInfo (..),
                                                            User (userId),
                                                            UserID)
 import qualified Mirza.SupplyChain.Types                  as ST
-
 
 import           Database.Beam                            as B
 import           Database.Beam.Backend.SQL.BeamExtensions

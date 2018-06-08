@@ -5,6 +5,7 @@
 module Mirza.SupplyChain.BeamQueries where
 
 
+
 import           Mirza.SupplyChain.ErrorUtils  (throwAppError,
                                                 throwBackendError)
 import           Mirza.SupplyChain.QueryUtils
@@ -14,10 +15,12 @@ import           Mirza.SupplyChain.Types       hiding (KeyInfo (..),
                                                 UserID)
 import qualified Mirza.SupplyChain.Types       as ST
 
-import qualified Crypto.Scrypt                 as Scrypt
 import           Database.Beam                 as B
 
 import           Control.Lens                  (view, _2)
+
+import qualified Crypto.Scrypt                 as Scrypt
+
 
 
 -- Basic Auth check using Scrypt hashes.

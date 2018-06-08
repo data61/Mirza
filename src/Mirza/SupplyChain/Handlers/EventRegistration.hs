@@ -1,5 +1,7 @@
 module Mirza.SupplyChain.Handlers.EventRegistration where
 
+
+
 import           Mirza.SupplyChain.Handlers.Common
 
 import qualified Mirza.SupplyChain.MigrateUtils    as MU

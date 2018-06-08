@@ -1,7 +1,8 @@
 module Mirza.SupplyChain.Handlers.Queries where
 
-import           Mirza.SupplyChain.Handlers.Common
 
+
+import           Mirza.SupplyChain.Handlers.Common
 
 import           Mirza.SupplyChain.ErrorUtils      (throwParseError)
 import           Mirza.SupplyChain.QueryUtils
@@ -11,11 +12,9 @@ import           Mirza.SupplyChain.Types           hiding (KeyInfo (..),
 import qualified Mirza.SupplyChain.Types           as ST
 import qualified Mirza.SupplyChain.Utils           as U
 
-
 import           Data.GS1.DWhat                    (LabelEPC (..), urn2LabelEPC)
 import qualified Data.GS1.Event                    as Ev
 import           Data.GS1.EventId                  as EvId
-
 
 import           Database.Beam                     as B
 
