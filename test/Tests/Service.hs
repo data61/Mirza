@@ -346,7 +346,7 @@ testQueries = do
 
   describe "DWhere" $
     it "Insert and find DWhere" $ \scsContext -> do
-      let eventId = dummyId
+      let eventId = SB.EventId dummyId
       insertedDWhere <- testAppM scsContext $ do
         void $ runDb $ insertDWhere dummyDWhere eventId
         runDb $ findDWhere eventId
