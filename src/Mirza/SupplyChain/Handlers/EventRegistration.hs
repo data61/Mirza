@@ -25,12 +25,14 @@ import           Data.GS1.DWhat                    (AggregationDWhat (..),
 import qualified Data.GS1.Event                    as Ev
 
 
-insertObjectEvent :: SCSApp context err => ST.User -> ObjectEvent -> AppM context err Ev.Event
+insertObjectEvent :: SCSApp context err => ST.User
+                  -> ObjectEvent
+                  -> AppM context err Ev.Event
 insertObjectEvent user ob = runDb $ insertObjectEventQuery user ob
 
 insertObjectEventQuery :: ST.User
-                  -> ObjectEvent
-                  -> DB context err Ev.Event
+                       -> ObjectEvent
+                       -> DB context err Ev.Event
 insertObjectEventQuery
   (ST.User (ST.UserID tUserId) _ _ )
   (ObjectEvent
@@ -62,12 +64,14 @@ insertObjectEventQuery
   return event
 
 
-insertAggEvent :: SCSApp context err => ST.User -> AggregationEvent -> AppM context err Ev.Event
+insertAggEvent :: SCSApp context err => ST.User
+               -> AggregationEvent
+               -> AppM context err Ev.Event
 insertAggEvent user ev = runDb $ insertAggEventQuery user ev
 
 insertAggEventQuery :: ST.User
-               -> AggregationEvent
-               -> DB context err Ev.Event
+                    -> AggregationEvent
+                    -> DB context err Ev.Event
 insertAggEventQuery
   (ST.User (ST.UserID tUserId) _ _ )
   (AggregationEvent
@@ -103,12 +107,14 @@ insertAggEventQuery
 
 
 
-insertTransactEvent :: SCSApp context err => ST.User -> TransactionEvent -> AppM context err Ev.Event
+insertTransactEvent :: SCSApp context err => ST.User
+                    -> TransactionEvent
+                    -> AppM context err Ev.Event
 insertTransactEvent user ev = runDb $ insertTransactEventQuery user ev
 
 insertTransactEventQuery :: ST.User
-                    -> TransactionEvent
-                    -> DB context err Ev.Event
+                         -> TransactionEvent
+                         -> DB context err Ev.Event
 insertTransactEventQuery
   (ST.User (ST.UserID tUserId) _ _ )
   (TransactionEvent
@@ -144,12 +150,14 @@ insertTransactEventQuery
 
 
 
-insertTransfEvent :: SCSApp context err => ST.User -> TransformationEvent -> AppM context err Ev.Event
+insertTransfEvent :: SCSApp context err => ST.User
+                  -> TransformationEvent
+                  -> AppM context err Ev.Event
 insertTransfEvent user ev = runDb $ insertTransfEventQuery user ev
 
 insertTransfEventQuery :: ST.User
-                  -> TransformationEvent
-                  -> DB context err Ev.Event
+                       -> TransformationEvent
+                       -> DB context err Ev.Event
 insertTransfEventQuery
   (ST.User (ST.UserID tUserId) _ _ )
   (TransformationEvent
