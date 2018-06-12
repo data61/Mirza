@@ -1,3 +1,5 @@
+{-# LANGUAGE MultiParamTypeClasses #-}
+
 module Mirza.SupplyChain.Handlers.EventRegistration where
 
 
@@ -21,7 +23,6 @@ import           Data.GS1.DWhat                    (AggregationDWhat (..),
                                                     TransformationDWhat (..),
                                                     unParentLabel)
 import qualified Data.GS1.Event                    as Ev
-
 
 
 insertObjectEvent :: SCSApp context err => ST.User -> ObjectEvent -> AppM context err Ev.Event
@@ -52,7 +53,7 @@ insertObjectEventQuery
   _whenId <- insertDWhen dwhen eventId
   _whyId <- insertDWhy dwhy eventId
   insertDWhere dwhere eventId
-  insertUserEvent eventId userId userId False Nothing
+  insertUserEvent (SB.EventId eventId) (SB.UserId userId) (SB.UserId userId) False Nothing
   mapM_ (insertWhatLabel (SB.WhatId whatId)) labelIds
   mapM_ (insertLabelEvent (SB.EventId eventId)) labelIds
 
