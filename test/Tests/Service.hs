@@ -38,19 +38,11 @@ import           Database.PostgreSQL.Simple                   (Connection,
                                                                connectPostgreSQL,
                                                                execute_)
 import           GHC.Stack                                    (HasCallStack)
-import           Mirza.SupplyChain.Types                      (AppError, AppM,
-                                                               DB,
-                                                               SCSContext (..),
-                                                               pg, runAppM,
-                                                               runDb)
 import           Servant
 import           Test.Hspec
 
 import qualified Crypto.Scrypt                                as Scrypt
 import           Data.Pool                                    as Pool
--- NOTE in this file, where fromJust is used in the tests, it is because we expect a Just... this is part of the test
--- NOTE tables dropped after every running of test in an "it"
-
 
 timeStampIO :: MonadIO m => m LocalTime
 timeStampIO = liftIO $ (utcToLocalTime utc) <$> getCurrentTime
