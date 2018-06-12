@@ -32,7 +32,7 @@ insertObjectEventQuery :: ST.User
                   -> ObjectEvent
                   -> DB context err Ev.Event
 insertObjectEventQuery
-  (ST.User (ST.UserID userId) _ _ )
+  (ST.User (ST.UserID tUserId) _ _ )
   (ObjectEvent
     foreignEventId
     act
@@ -41,24 +41,25 @@ insertObjectEventQuery
   ) = do
 
   let
+      userId = SB.UserId tUserId -- converting from model to storage UserId
       eventType = Ev.ObjectEventT
       dwhat =  ObjWhat $ ObjectDWhat act labelEpcs
       event = Ev.Event eventType foreignEventId dwhat dwhen dwhy dwhere
       jsonEvent = encodeEvent event
 
-  eventId <- insertEvent userId jsonEvent event
+  eventId' <- insertEvent userId jsonEvent event
+  let eventId = SB.EventId eventId'
   whatId <- insertDWhat Nothing dwhat eventId
   labelIds' <- mapM (insertLabel Nothing (SB.WhatId whatId)) labelEpcs
   let labelIds = SB.LabelId <$> labelIds'
   _whenId <- insertDWhen dwhen eventId
   _whyId <- insertDWhy dwhy eventId
   insertDWhere dwhere eventId
-  insertUserEvent (SB.EventId eventId) (SB.UserId userId) (SB.UserId userId) False Nothing
+  insertUserEvent eventId userId userId False Nothing
   mapM_ (insertWhatLabel (SB.WhatId whatId)) labelIds
-  mapM_ (insertLabelEvent (SB.EventId eventId)) labelIds
+  mapM_ (insertLabelEvent eventId) labelIds
 
   return event
-
 
 
 insertAggEvent :: SCSApp context err => ST.User -> AggregationEvent -> AppM context err Ev.Event
@@ -68,7 +69,7 @@ insertAggEventQuery :: ST.User
                -> AggregationEvent
                -> DB context err Ev.Event
 insertAggEventQuery
-  (ST.User (ST.UserID userId) _ _ )
+  (ST.User (ST.UserID tUserId) _ _ )
   (AggregationEvent
     foreignEventId
     act
@@ -77,12 +78,14 @@ insertAggEventQuery
     dwhen dwhy dwhere
   ) = do
   let
+      userId = SB.UserId tUserId
       eventType = Ev.AggregationEventT
       dwhat =  AggWhat $ AggregationDWhat act mParentLabel labelEpcs
       event = Ev.Event eventType foreignEventId dwhat dwhen dwhy dwhere
       jsonEvent = encodeEvent event
 
-  eventId <- insertEvent userId jsonEvent event
+  eventId' <- insertEvent userId jsonEvent event
+  let eventId = SB.EventId eventId'
   whatId <- insertDWhat Nothing dwhat eventId
   labelIds' <- mapM (insertLabel Nothing (SB.WhatId whatId)) labelEpcs
   let labelIds = SB.LabelId <$> labelIds'
@@ -92,7 +95,7 @@ insertAggEventQuery
   insertDWhere dwhere eventId
   insertUserEvent eventId userId userId False Nothing
   mapM_ (insertWhatLabel (SB.WhatId whatId)) labelIds
-  mapM_ (insertLabelEvent (SB.EventId eventId)) labelIds
+  mapM_ (insertLabelEvent eventId) labelIds
 
   -- FIXME: This should return the event as it has been inserted - the user has
   -- no idea what the ID for the transaction is so can't query it later.
@@ -107,7 +110,7 @@ insertTransactEventQuery :: ST.User
                     -> TransactionEvent
                     -> DB context err Ev.Event
 insertTransactEventQuery
-  (ST.User (ST.UserID userId) _ _ )
+  (ST.User (ST.UserID tUserId) _ _ )
   (TransactionEvent
     foreignEventId
     act
@@ -118,12 +121,14 @@ insertTransactEventQuery
     dwhen dwhy dwhere
   ) = do
   let
+      userId = SB.UserId tUserId
       eventType = Ev.TransactionEventT
       dwhat =  TransactWhat $ TransactionDWhat act mParentLabel bizTransactions labelEpcs
       event = Ev.Event eventType foreignEventId dwhat dwhen dwhy dwhere
       jsonEvent = encodeEvent event
 
-  eventId <- insertEvent userId jsonEvent event
+  eventId' <- insertEvent userId jsonEvent event
+  let eventId = SB.EventId eventId'
   whatId <- insertDWhat Nothing dwhat eventId
   labelIds' <- mapM (insertLabel Nothing (SB.WhatId whatId)) labelEpcs
   let labelIds = SB.LabelId <$> labelIds'
@@ -133,7 +138,7 @@ insertTransactEventQuery
   insertDWhere dwhere eventId
   insertUserEvent eventId userId userId False Nothing
   mapM_ (insertWhatLabel (SB.WhatId whatId)) labelIds
-  mapM_ (insertLabelEvent (SB.EventId eventId)) labelIds
+  mapM_ (insertLabelEvent eventId) labelIds
 
   return event
 
@@ -146,7 +151,7 @@ insertTransfEventQuery :: ST.User
                   -> TransformationEvent
                   -> DB context err Ev.Event
 insertTransfEventQuery
-  (ST.User (ST.UserID userId) _ _ )
+  (ST.User (ST.UserID tUserId) _ _ )
   (TransformationEvent
     foreignEventId
     mTransfId
@@ -155,12 +160,14 @@ insertTransfEventQuery
     dwhen dwhy dwhere
   ) = do
   let
+      userId = SB.UserId tUserId
       eventType = Ev.TransformationEventT
       dwhat =  TransformWhat $ TransformationDWhat mTransfId inputs outputs
       event = Ev.Event eventType foreignEventId dwhat dwhen dwhy dwhere
       jsonEvent = encodeEvent event
 
-  eventId <- insertEvent userId jsonEvent event
+  eventId' <- insertEvent userId jsonEvent event
+  let eventId = SB.EventId eventId'
   whatId <- insertDWhat Nothing dwhat eventId
   inputLabelIds <- mapM (\(InputEPC i) -> insertLabel (Just MU.Input) (SB.WhatId whatId) i) inputs
   outputLabelIds <- mapM (\(OutputEPC o) -> insertLabel (Just MU.Output) (SB.WhatId whatId) o) outputs
@@ -170,6 +177,6 @@ insertTransfEventQuery
   insertDWhere dwhere eventId
   insertUserEvent eventId userId userId False Nothing
   mapM_ (insertWhatLabel (SB.WhatId whatId)) labelIds
-  mapM_ (insertLabelEvent (SB.EventId eventId)) labelIds
+  mapM_ (insertLabelEvent eventId) labelIds
 
   return event
