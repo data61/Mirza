@@ -33,7 +33,9 @@ import qualified Data.GS1.EPC                   as EPC
 import qualified Data.GS1.Event                 as Ev
 
 import           Control.Lens
+import           Data.Aeson                     (FromJSON, ToJSON)
 import           Data.ByteString                (ByteString)
+import           Data.Swagger                   (ToSchema)
 import           Data.Text                      (Text)
 import           Data.Time
 import           Data.UUID                      (UUID)
@@ -268,6 +270,10 @@ data EventT f = Event
   deriving Generic
 type Event = EventT Identity
 type EventId = PrimaryKey EventT Identity
+
+instance ToSchema EventId
+instance FromJSON EventId
+instance ToJSON EventId
 
 deriving instance Show Event
 
