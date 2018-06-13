@@ -19,11 +19,14 @@ module Mirza.SupplyChain.API
   , API, api
   ) where
 
-import           Mirza.SupplyChain.StorageBeam (PrimaryKeyType)
+import qualified Mirza.SupplyChain.StorageBeam as SB
+
 import           Mirza.SupplyChain.Types       as ST
 
 import qualified Data.GS1.Event                as Ev
 import           Data.GS1.EventId
+
+import           Data.Time.Clock               (UTCTime)
 
 import           Servant
 import           Servant.API.Flatten
@@ -62,7 +65,7 @@ type PrivateAPI =
   :<|> "contacts" :> "search"               :> Capture "term" String                                          :> Get '[JSON] [User]
 -- Signatures
   :<|> "event"    :> "addUser"              :> Capture "userID" ST.UserID       :> Capture "eventID" EventId  :> Post '[JSON] ()
-  :<|> "event"    :> "sign"                 :> ReqBody '[JSON] SignedEvent                                    :> Post '[JSON] PrimaryKeyType
+  :<|> "event"    :> "sign"                 :> ReqBody '[JSON] SignedEvent                                    :> Post '[JSON] SB.PrimaryKeyType
   :<|> "event"    :> "getHash"              :> ReqBody '[JSON] EventId                                        :> Post '[JSON] HashedEvent
 -- Queries
   :<|> "epc"                                :> Capture "urn" ST.LabelEPCUrn     :> "info"                     :> Get '[JSON] EPCState
@@ -71,9 +74,10 @@ type PrivateAPI =
   :<|> "event"    :> "list"                 :> Capture "userID" ST.UserID                                     :> Get '[JSON] [Ev.Event]
   :<|> "event"    :> "listUsers"            :> Capture "eventID" EventId                                      :> Get '[JSON] [(User, Bool)]
 -- Event Registration
-  :<|> "event"    :> "objectEvent"          :> ReqBody '[JSON] ObjectEvent                                    :> Post '[JSON] Ev.Event
-  :<|> "event"    :> "aggregateEvent"       :> ReqBody '[JSON] AggregationEvent                               :> Post '[JSON] Ev.Event
-  :<|> "event"    :> "transactionEvent"     :> ReqBody '[JSON] TransactionEvent                               :> Post '[JSON] Ev.Event
-  :<|> "event"    :> "transformationEvent"  :> ReqBody '[JSON] TransformationEvent                            :> Post '[JSON] Ev.Event
+  :<|> "event"    :> "objectEvent"          :> ReqBody '[JSON] ObjectEvent                                    :> Post '[JSON] (Ev.Event, SB.EventId)
+  :<|> "event"    :> "aggregateEvent"       :> ReqBody '[JSON] AggregationEvent                               :> Post '[JSON] (Ev.Event, SB.EventId)
+  :<|> "event"    :> "transactionEvent"     :> ReqBody '[JSON] TransactionEvent                               :> Post '[JSON] (Ev.Event, SB.EventId)
+  :<|> "event"    :> "transformationEvent"  :> ReqBody '[JSON] TransformationEvent                            :> Post '[JSON] (Ev.Event, SB.EventId)
 -- Business
-  :<|> "key"      :> "add"                  :> ReqBody '[JSON] PEM_RSAPubKey                                  :> Post '[JSON] KeyID
+  :<|> "key"      :> "add" :> ReqBody '[JSON] PEM_RSAPubKey :> QueryParam "expirationTime" ExpirationTime :> Post '[JSON] KeyID
+  :<|> "key"      :> "revoke"              :> Capture "keyID" KeyID               :> Post '[JSON] UTCTime

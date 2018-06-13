@@ -33,7 +33,9 @@ import qualified Data.GS1.EPC                   as EPC
 import qualified Data.GS1.Event                 as Ev
 
 import           Control.Lens
+import           Data.Aeson                     (FromJSON, ToJSON)
 import           Data.ByteString                (ByteString)
+import           Data.Swagger                   (ToSchema)
 import           Data.Text                      (Text)
 import           Data.Time
 import           Data.UUID                      (UUID)
@@ -84,6 +86,7 @@ data KeyT f = Key
   , pem_str         :: C f Text
   , creation_time   :: C f LocalTime -- UTCTime
   , revocation_time :: C f (Maybe LocalTime) -- UTCTime
+  , expiration_time :: C f (Maybe LocalTime) -- UTCTime
   }
   deriving Generic
 type Key = KeyT Identity
@@ -268,6 +271,10 @@ data EventT f = Event
   deriving Generic
 type Event = EventT Identity
 type EventId = PrimaryKey EventT Identity
+
+instance ToSchema EventId
+instance FromJSON EventId
+instance ToJSON EventId
 
 deriving instance Show Event
 
@@ -489,7 +496,6 @@ instance Table BlockChainT where
   data PrimaryKey BlockChainT f = BlockChainId (C f PrimaryKeyType)
     deriving Generic
   primaryKey = BlockChainId . blockchain_id
-
 
 data SupplyChainDb f = SupplyChainDb
   { _users            :: f (TableEntity UserT)
