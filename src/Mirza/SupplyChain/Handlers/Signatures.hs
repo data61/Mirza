@@ -1,13 +1,18 @@
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
 
-{-# LANGUAGE ScopedTypeVariables #-}
-
-module Mirza.SupplyChain.Handlers.Signatures where
+module Mirza.SupplyChain.Handlers.Signatures
+  (
+    addUserToEvent
+  , eventSign, getEventJSON, makeDigest, insertSignature, eventHashed
+  ) where
 
 
 
 import           Mirza.SupplyChain.Handlers.Common
 
 import           Mirza.SupplyChain.ErrorUtils      (throwAppError)
+-- import           Mirza.SupplyChain.Handlers.Business (getPublicKey)
 import           Mirza.SupplyChain.QueryUtils
 import qualified Mirza.SupplyChain.StorageBeam     as SB
 import           Mirza.SupplyChain.Types           hiding (KeyInfo (..),
