@@ -104,10 +104,10 @@ checkPubKey :: SomePublicKey -> PEM_RSAPubKey-> Either ServiceError RSAPubKey
 checkPubKey spKey pemKey =
   maybe (Left $ InvalidRSAKey pemKey)
   (\pubKey ->
-    let keySize = rsaSize pubKey in
+    let keySizeBits = Bit $ rsaSize pubKey * 8 in
     -- rsaSize returns size in bytes
-    if (Bit $ keySize * 8) < minPubKeySize
-      then Left $ InvalidRSAKeySize (Expected minPubKeySize) (Received $ Bit keySize)
+    if keySizeBits < minPubKeySize
+      then Left $ InvalidRSAKeySize (Expected minPubKeySize) (Received keySizeBits)
       else Right pubKey
   )
   (toPublicKey spKey)
