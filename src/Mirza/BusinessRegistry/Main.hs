@@ -4,26 +4,32 @@
 
 module Mirza.BusinessRegistry.Main where
 
+import           Mirza.BusinessRegistry.Types as BT
 import           Mirza.SupplyChain.API
-import           Mirza.SupplyChain.Migrate  (defConnectionStr, migrate)
+import           Mirza.SupplyChain.Migrate    (defConnectionStr, migrate)
 import           Mirza.SupplyChain.Service
-import           Mirza.SupplyChain.Types    (AppError, EnvType (..),
-                                             SCSContext (..), User)
+import           Mirza.SupplyChain.Types      (AppError, EnvType (..), User)
 
-import           Servant                    hiding (header)
+import           Servant                      hiding (header)
 import           Servant.Swagger.UI
 
-import qualified Data.Pool                  as Pool
+import qualified Data.Pool                    as Pool
 import           Database.PostgreSQL.Simple
 
-import           Network.Wai                (Middleware)
-import qualified Network.Wai.Handler.Warp   as Warp
+import           Network.Wai                  (Middleware)
+import qualified Network.Wai.Handler.Warp     as Warp
 
-import           Data.ByteString            (ByteString)
-import           Data.Semigroup             ((<>))
+import           Data.ByteString              (ByteString)
+import           Data.Semigroup               ((<>))
+import           Data.Text                    (pack)
 import           Options.Applicative
 
-import qualified Crypto.Scrypt              as Scrypt
+import qualified Crypto.Scrypt                as Scrypt
+
+import           Control.Exception            (finally)
+import           Katip                        as K
+import           System.IO                    (stdout)
+
 
 
 defaultPortNumber :: Int
@@ -33,19 +39,26 @@ defaultDatabaseConnectionString :: ByteString
 defaultDatabaseConnectionString = "dbname=devMirzaBusinessRegistry"
 
 data ServerOptions = ServerOptions
-  {
-      debug                   :: Bool -- TODO: Remove this program option before release.
+  { soEnvType                 :: EnvType
+    , debug                   :: Bool -- TODO: Remove this program option before release.
     , initDatabase            :: Bool
     , soPortNumber            :: Int
     , soDatabaseConnectionStr :: ByteString
     , soScryptN               :: Integer
     , soScryptP               :: Integer
     , soScryptR               :: Integer
+    , soLoggingLevel          :: K.Severity
+
   }
 
 serverOptions :: Parser ServerOptions
 serverOptions = ServerOptions
-        <$> switch
+        <$> option auto
+          ( long "env" <> short 'e'
+          <> value Dev <> showDefault
+          <> help "Environment, Dev | Prod"
+          )
+        <*> switch
           (
               long "debug"
           <>  short 'd'
@@ -92,6 +105,12 @@ serverOptions = ServerOptions
           <>  help "Scrypt r parameter (>= 1)"
           <> showDefault
           <> value 1
+          )
+       <*> option auto
+          (  long "log-level"
+          <> value InfoS
+          <> showDefault
+          <> help ("Logging level: " ++ show [minBound .. maxBound :: Severity])
           )
 
 main :: IO ()
@@ -141,19 +160,24 @@ runProgram :: ServerOptions -> IO ()
 runProgram options
 -- FIXME: This is definitely wrong
   | not (initDatabase(options)) = migrate defConnectionStr
-  | initDatabase(options)  = do
+  | otherwise = do
       let portNumber = soPortNumber options
-      app <- initApplication options
+      ctx <- initBRContext options
+      app <- initApplication options ctx
       mids <- initMiddleware options
       putStrLn $ "http://localhost:" ++ show portNumber ++ "/swagger-ui/"
-      Warp.run (fromIntegral portNumber) $ mids app
+      Warp.run (fromIntegral portNumber) (mids app) `finally` closeScribes (BT._brKatipLogEnv ctx)
 
 initMiddleware :: ServerOptions -> IO Middleware
 initMiddleware _ = pure id
 
--- initApplication :: ByteString -> SCSContextType -> ScryptParams -> IO Application
-initApplication :: ServerOptions -> IO Application
-initApplication (ServerOptions _ _ _ dbConnStr n p r)  = do
+
+
+initBRContext :: ServerOptions -> IO BT.BRContext
+initBRContext (ServerOptions envT _ _ _ dbConnStr n p r lev) = do
+  handleScribe <- mkHandleScribe ColorIfTerminal stdout lev V3
+  logEnv <- initLogEnv "businessRegistry" (Environment . pack . show $ envT)
+            >>= registerScribe "stdout" handleScribe defaultScribeSettings
   params <- case Scrypt.scryptParams (max n 14) (max p 8) (max r 1) of
     Just scparams -> pure scparams
     Nothing -> do
@@ -164,25 +188,30 @@ initApplication (ServerOptions _ _ _ dbConnStr n p r)  = do
                       60 -- How long in seconds to keep a connection open for reuse
                       10 -- Max number of connections to have open at any one time
                       -- TODO: Make this a config paramete
-  let ev  = SCSContext Dev connpool params
-      app = serveWithContext api
-            (basicAuthServerContext ev)
-            (server' ev)
-  pure app
+
+  pure $ BRContext envT connpool params logEnv mempty mempty
+
+initApplication :: ServerOptions -> BT.BRContext -> IO Application
+initApplication _so ev =
+  pure $ serveWithContext api
+          (basicAuthServerContext ev)
+          (server' ev)
 
 -- easily start the app in ghci, no command line arguments required.
-startApp_nomain :: ByteString -> IO ()
-startApp_nomain dbConnStr =
-  initApplication (ServerOptions False False 8000 dbConnStr 14 8 1) >>= Warp.run 8000
+startAppSimple :: ByteString -> IO ()
+startAppSimple dbConnStr = do
+  let so = ServerOptions Dev False False 8000 dbConnStr 14 8 1 DebugS
+  ctx <- initBRContext so
+  initApplication so ctx >>= Warp.run 8000
 
 
 -- Implementation
 
-server' :: SCSContext -> Server API
+server' :: BRContext -> Server API
 server' ev =
   swaggerSchemaUIServer serveSwaggerAPI
   :<|> hoistServerWithContext
         (Proxy @ServerAPI)
         (Proxy @'[BasicAuthCheck User])
         (appMToHandler ev)
-        (appHandlers @SCSContext @AppError)
+        (appHandlers @BRContext @AppError)
