@@ -1,4 +1,9 @@
-module Mirza.SupplyChain.Handlers.Users where
+{-# LANGUAGE MultiParamTypeClasses #-}
+
+module Mirza.SupplyChain.Handlers.Users
+  (
+    newUser
+  ) where
 
 
 
