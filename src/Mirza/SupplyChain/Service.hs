@@ -43,6 +43,7 @@ import           Data.Char                     (toLower)
 import           Data.Swagger
 import           Data.Text                     (pack)
 import           Data.Text.Encoding            (decodeUtf8)
+import           Data.Time.Clock               (UTCTime)
 import           GHC.TypeLits                  (KnownSymbol)
 import qualified OpenSSL.EVP.Digest            as EVPDigest
 import           OpenSSL.EVP.PKey              (SomePublicKey, toPublicKey)
@@ -100,6 +101,7 @@ privateServer
   :<|> insertTransfEvent
   :<|> addUserToEvent
   :<|> addPublicKey
+  :<|> revokePublicKey
 
 publicServer :: (SCSApp context err, HasScryptParams context) => ServerT PublicAPI (AppM context err)
 publicServer
@@ -140,14 +142,21 @@ type SCSApp context err =
   )
 
 
-addPublicKey :: SCSApp context err => MT.User -> PEM_RSAPubKey -> AppM context err KeyID
-addPublicKey user pemKey@(PEMString pemStr) = do
+addPublicKey :: SCSApp context err => MT.User
+             -> MT.PEM_RSAPubKey
+             -> Maybe MT.ExpirationTime
+             -> MT.AppM context err MT.KeyID
+addPublicKey user pemKey@(MT.PEMString pemStr) mExp = do
   somePubKey <- liftIO $ readPublicKey pemStr
   either (throwing _ServiceError)
-         (runDb . BQ.addPublicKey user)
+         (runDb . BQ.addPublicKey user mExp)
          (checkPubKey somePubKey pemKey)
 
-checkPubKey :: SomePublicKey -> PEM_RSAPubKey-> Either ServiceError RSAPubKey
+revokePublicKey :: SCSApp context err => MT.User -> MT.KeyID -> MT.AppM context err UTCTime
+revokePublicKey (MT.User userId _ _) keyId =
+    runDb $ BQ.revokePublicKey userId keyId
+
+checkPubKey :: SomePublicKey -> MT.PEM_RSAPubKey-> Either ServiceError RSAPubKey
 checkPubKey spKey pemKey =
   maybe (Left $ InvalidRSAKey pemKey)
   (\pubKey ->
@@ -195,8 +204,8 @@ listEvents _user = either throwParseError (runDb . BQ.listEvents) . urn2LabelEPC
 -- implement a function constructEvent :: WholeEvent -> Event
 
 -- Look into usereventsT and tie that back to the user
--- the function getUser/selectUser might be helpful
-eventUserList :: SCSApp context err => MT.User -> EventId -> AppM context err [(MT.User, Bool)]
+-- the function getUser/getUserById might be helpful
+eventUserList :: SCSApp context err => MT.User -> EventId -> MT.AppM context err [(MT.User, Bool)]
 eventUserList _user = runDb . BQ.eventUserSignedList
 
 listContacts :: SCSApp context err => MT.User -> AppM context err [MT.User]
