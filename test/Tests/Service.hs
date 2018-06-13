@@ -6,7 +6,6 @@
 
 module Tests.Service
   ( testQueries
-  , defaultPool
   ) where
 
 import           Tests.Dummies
@@ -24,14 +23,15 @@ import           Data.Text.Encoding            (encodeUtf8)
 import           Data.Time.Clock               (getCurrentTime)
 import           Data.Time.LocalTime           (LocalTime, utc, utcToLocalTime)
 import           Database.Beam
-import           Database.PostgreSQL.Simple    (Connection, close,
-                                                connectPostgreSQL, execute_)
+import           Database.PostgreSQL.Simple    (connectPostgreSQL, execute_)
 import           GHC.Stack                     (HasCallStack)
 import           Servant
 import           Test.Hspec
 
 import qualified Crypto.Scrypt                 as Scrypt
-import           Data.Pool                     as Pool
+
+-- NOTE in this file, where fromJust is used in the tests, it is because we expect a Just... this is part of the test
+-- NOTE tables dropped after every running of test in an "it"
 
 timeStampIO :: MonadIO m => m LocalTime
 timeStampIO = liftIO $ (utcToLocalTime utc) <$> getCurrentTime
@@ -334,10 +334,4 @@ clearContact = do
   conn <- connectPostgreSQL testDbConnStr
   void $ execute_ conn "DELETE FROM contacts;"
 
-
-defaultPool :: IO (Pool Connection)
-defaultPool = Pool.createPool (connectPostgreSQL testDbConnStr) close
-                1 -- Number of "sub-pools",
-                60 -- How long in seconds to keep a connection open for reuse
-                10 -- Max number of connections to have open at any one time
 
