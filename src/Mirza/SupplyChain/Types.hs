@@ -22,6 +22,7 @@ import           Data.GS1.DWhy
 import           Data.GS1.EPC                  as EPC
 import qualified Data.GS1.Event                as Ev
 import           Data.GS1.EventId              as EvId
+import           Data.Time                     (UTCTime)
 
 import           Database.PostgreSQL.Simple    (Connection, SqlError)
 
@@ -314,12 +315,48 @@ fromTransactEvent
 -- Signing and Hashing Types
 -- *****************************************************************************
 
+newtype CreationTime = CreationTime {unCreationTime :: UTCTime}
+  deriving (Show, Eq, Generic, Read, FromJSON, ToJSON)
+instance ToSchema CreationTime
+instance ToParamSchema CreationTime
+deriving instance FromHttpApiData CreationTime
+deriving instance ToHttpApiData CreationTime
+
+
+newtype RevocationTime = RevocationTime {unRevocationTime :: UTCTime}
+  deriving (Show, Eq, Generic, Read, FromJSON, ToJSON)
+instance ToSchema RevocationTime
+instance ToParamSchema RevocationTime
+deriving instance FromHttpApiData RevocationTime
+deriving instance ToHttpApiData RevocationTime
+
+
+newtype ExpirationTime = ExpirationTime {unExpirationTime :: UTCTime}
+  deriving (Show, Eq, Read, Generic, FromJSON, ToJSON)
+instance ToSchema ExpirationTime
+instance ToParamSchema ExpirationTime
+deriving instance FromHttpApiData ExpirationTime
+deriving instance ToHttpApiData ExpirationTime
+
+
+data KeyState
+  = InEffect -- Can be used
+  | Revoked -- Key passed the revocation time
+  | Expired -- Key passed the expiration time
+  deriving (Show, Eq, Read, Generic)
+$(deriveJSON defaultOptions ''KeyState)
+instance ToSchema KeyState
+instance ToParamSchema KeyState
+
+
 newtype SigningUser = SigningUser UserID deriving(Generic, Show, Eq, Read)
 
 data KeyInfo = KeyInfo {
-  userID         :: UserID,
-  creationTime   :: EPCISTime,
-  revocationTime :: Maybe EPCISTime
+  keyInfoUserId  :: UserID,
+  creationTime   :: CreationTime,
+  revocationTime :: Maybe RevocationTime,
+  keyState       :: KeyState,
+  expirationTime :: Maybe ExpirationTime
 }deriving (Generic, Eq, Show)
 $(deriveJSON defaultOptions ''KeyInfo)
 instance ToSchema KeyInfo
@@ -447,6 +484,8 @@ data ServiceError
   | InvalidRSAKey         PEM_RSAPubKey
   | InvalidRSAKeySize     Expected Received
   | InvalidDigest         Digest
+  | KeyAlreadyRevoked
+  | UnauthorisedKeyAccess
   | InsertionFail         ServerError Text
   | EventPermissionDenied UserID EvId.EventId
   | EmailExists           ServerError EmailAddress

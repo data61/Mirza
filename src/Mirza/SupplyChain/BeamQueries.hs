@@ -1,11 +1,10 @@
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
+
 -- | This module is incomplete as of yet.
 -- Functions in the `service` module use the database functions defined here
 module Mirza.SupplyChain.BeamQueries where
-
-
 
 import           Mirza.SupplyChain.ErrorUtils             (getSqlErrorCode,
                                                            throwAppError,
@@ -32,23 +31,31 @@ import           Data.GS1.DWhat                           (AggregationDWhat (..)
 import qualified Data.GS1.Event                           as Ev
 import qualified Data.GS1.EventId                         as EvId
 
+import           Control.Lens                             (view, (^?), _2)
+import           Control.Monad                            (unless, when)
 import           Control.Monad.Except                     (MonadError,
                                                            throwError)
 import           Control.Monad.IO.Class                   (liftIO)
-import qualified Crypto.Scrypt                            as Scrypt
+
 import           Data.Bifunctor                           (bimap)
 import           Data.Maybe                               (catMaybes)
 import qualified Data.Text                                as T
 import           Data.Text.Encoding
+
+import           Data.Time.Clock                          (UTCTime,
+                                                           getCurrentTime)
+import           Data.Time.LocalTime                      (utc, utcToLocalTime)
+
 import           Database.Beam                            as B
 import           Database.Beam.Backend.SQL.BeamExtensions
 import           Database.PostgreSQL.Simple.Errors        (ConstraintViolation (..),
                                                            constraintViolation)
 import           Database.PostgreSQL.Simple.Internal      (SqlError (..))
+
+import qualified Crypto.Scrypt                            as Scrypt
 import           OpenSSL.PEM                              (writePublicKey)
 import           OpenSSL.RSA                              (RSAPubKey)
 
-import           Control.Lens                             (view, (^?), _2)
 {-
 -- Sample ST.NewUser JSON
 {
@@ -115,21 +122,44 @@ authCheck e@(EmailAddress email) (Password password) = do
     [] -> throwAppError $ EmailNotFound e
     _  -> throwBackendError r -- multiple elements
 
-addPublicKey :: AsServiceError err =>  ST.User -> RSAPubKey -> DB context err KeyID
-addPublicKey (User (ST.UserID uid) _ _)  rsaPubKey = do
+addPublicKey :: AsServiceError err =>  ST.User
+             -> Maybe ST.ExpirationTime
+             -> RSAPubKey
+             -> DB context err ST.KeyID
+addPublicKey (ST.User (ST.UserID uid) _ _) expTime rsaPubKey = do
   keyId <- generatePk
   timeStamp <- generateTimeStamp
   keyStr <- liftIO $ writePublicKey rsaPubKey
   r <- pg $ runInsertReturningList (SB._keys SB.supplyChainDb) $
         insertValues
-        [ SB.Key keyId (SB.UserId uid) (T.pack keyStr) timeStamp Nothing
+        [ SB.Key keyId (SB.UserId uid) (T.pack keyStr)
+            timeStamp Nothing ((utcToLocalTime utc) . ST.unExpirationTime <$> expTime)
         ]
   case r of
     [rowId] -> return (KeyID $ SB.key_id rowId)
-    _       -> throwing _InvalidKeyID . KeyID $ keyId
+    _       -> throwing _BackendErr "Failed to add public key"
 
-getPublicKey :: AsServiceError err =>  KeyID -> DB context err PEM_RSAPubKey
-getPublicKey (KeyID keyId) = do
+
+isKeyRevoked :: AsServiceError err => ST.KeyID -> DB context err Bool
+isKeyRevoked k = do
+  keyInfo <- getPublicKeyInfo k
+  return $ ST.keyState keyInfo == ST.Revoked
+
+revokePublicKey :: AsServiceError err => ST.UserID -> ST.KeyID -> DB context err UTCTime
+revokePublicKey userId k@(ST.KeyID keyId) = do
+  userOwnsKey <- doesUserOwnKey userId k
+  unless userOwnsKey $ throwing_ _UnauthorisedKeyAccess
+  keyRevoked <- isKeyRevoked k
+  when keyRevoked $ throwing_ _KeyAlreadyRevoked
+  timeStamp <- generateTimeStamp
+  _r <- pg $ runUpdate $ update
+                (SB._keys SB.supplyChainDb)
+                (\key -> [SB.revocation_time key <-. val_ (Just timeStamp)])
+                (\key -> SB.key_id key ==. (val_ keyId))
+  return $ onLocalTime id timeStamp
+
+getPublicKey :: AsServiceError err => ST.KeyID -> DB context err ST.PEM_RSAPubKey
+getPublicKey (ST.KeyID keyId) = do
   r <- pg $ runSelectReturningList $ select $ do
     allKeys <- all_ (SB._keys SB.supplyChainDb)
     guard_ (SB.key_id allKeys ==. val_ keyId)
@@ -138,19 +168,25 @@ getPublicKey (KeyID keyId) = do
     [k] -> return $ PEMString $ T.unpack k
     _   -> throwing _InvalidKeyID . KeyID $ keyId
 
-getPublicKeyInfo :: AsServiceError err => KeyID -> DB context err ST.KeyInfo
-getPublicKeyInfo (KeyID keyId) = do
+
+getPublicKeyInfo :: AsServiceError err => ST.KeyID -> DB context err ST.KeyInfo
+getPublicKeyInfo (ST.KeyID keyId) = do
   r <- pg $ runSelectReturningList $ select $ do
     allKeys <- all_ (SB._keys SB.supplyChainDb)
     guard_ (SB.key_id allKeys ==. val_ keyId)
     pure allKeys
-
+  currTime <- liftIO getCurrentTime
   case r of
-    [(SB.Key _ (SB.UserId uId) _  creationTime revocationTime)] ->
+    [(SB.Key _ (SB.UserId uId) _  creationTime revocationTime mExpTime)] ->
        return $ ST.KeyInfo (ST.UserID uId)
-                (toEPCISTime creationTime)
-                (toEPCISTime <$> revocationTime)
-    _ -> throwing _InvalidKeyID . KeyID $ keyId
+                (onLocalTime ST.CreationTime creationTime)
+                (onLocalTime ST.RevocationTime <$> revocationTime)
+                (getKeyState currTime
+                    (onLocalTime ST.RevocationTime <$> revocationTime)
+                    ((onLocalTime ST.ExpirationTime <$> mExpTime))
+                )
+                (onLocalTime ST.ExpirationTime <$> mExpTime)
+    _ -> throwing _InvalidKeyID . ST.KeyID $ keyId
 
 -- TODO: Should this return Text or a JSON value?
 getEventJSON :: AsServiceError err => EvId.EventId -> DB context err T.Text

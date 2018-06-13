@@ -54,9 +54,11 @@ import           Database.Beam                  as B
 import           Control.Monad                  (void)
 import           Control.Monad.Except           (MonadError, catchError)
 
+
 -- | Reads back the ``LocalTime`` in UTCTime (with an offset of 0)
-toEPCISTime :: LocalTime -> EPCISTime
-toEPCISTime t = EPCISTime (localTimeToUTC utc t)
+-- And wraps it in a custom constructor (newtype wrappers around UTCTime)
+onLocalTime :: (UTCTime -> t) -> LocalTime -> t
+onLocalTime c t = c (localTimeToUTC utc t)
 
 -- | Shorthand for type-casting UTCTime to LocalTime before storing them in DB
 toLocalTime :: EPCISTime -> LocalTime
@@ -94,6 +96,45 @@ eventTxtToBS = En.encodeUtf8
 
 decodeEvent :: T.Text -> Maybe Ev.Event
 decodeEvent = decode . LEn.encodeUtf8 . TxtL.fromStrict
+
+doesUserOwnKey :: AsServiceError err => ST.UserID -> ST.KeyID -> DB context err Bool
+doesUserOwnKey (ST.UserID userId) (ST.KeyID keyId) = do
+  r <- pg $ runSelectReturningList $ select $ do
+          key <- all_ (SB._keys SB.supplyChainDb)
+          guard_ (SB.key_id key ==. val_ keyId)
+          guard_ (val_ (SB.UserId userId) ==. (SB.key_user_id key))
+          pure key
+  return $ case r of
+    [_key] -> True
+    _      -> False
+
+getKeyById :: ST.KeyID -> DB context err (Maybe SB.Key)
+getKeyById (ST.KeyID keyId) = do
+  r <- pg $ runSelectReturningList $ select $ do
+          key <- all_ (SB._keys SB.supplyChainDb)
+          guard_ (SB.key_id key ==. val_ keyId)
+          pure key
+  case r of
+    [key] -> return $ Just key
+    _     -> return Nothing
+
+
+getKeyState :: UTCTime
+            -> Maybe ST.RevocationTime
+            -> Maybe ST.ExpirationTime
+            -> ST.KeyState
+-- order of precedence - Revoked > Expired
+getKeyState currTime (Just (ST.RevocationTime rTime)) (Just (ST.ExpirationTime eTime))
+  | currTime > rTime = ST.Revoked
+  | currTime > eTime = ST.Expired
+  | otherwise        = ST.InEffect
+getKeyState currTime Nothing (Just (ST.ExpirationTime eTime))
+  | currTime > eTime = ST.Expired
+  | otherwise        = ST.InEffect
+getKeyState currTime (Just (ST.RevocationTime rTime)) Nothing
+  | currTime > rTime = ST.Revoked
+  | otherwise        = ST.InEffect
+getKeyState _ Nothing Nothing = ST.InEffect
 
 epcToStorageLabel :: Maybe MU.LabelType
                   -> SB.WhatId
@@ -443,9 +484,8 @@ insertLabelEvent (SB.EventId eventId) (SB.LabelId labelId) = withPKey $ \pKey ->
           [ SB.LabelEvent pKey (SB.LabelId labelId) (SB.EventId eventId)
         ]
 
-
-selectUser :: UserID -> DB context err (Maybe SB.User)
-selectUser (UserID uid) = do
+getUserById :: UserID -> DB context err (Maybe SB.User)
+getUserById (UserID uid) = do
   r <- pg $ runSelectReturningList $ select $ do
           user <- all_ (SB._users SB.supplyChainDb)
           guard_ (SB.user_id user ==. val_ uid)
