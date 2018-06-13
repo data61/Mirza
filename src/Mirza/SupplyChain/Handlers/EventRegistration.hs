@@ -25,14 +25,15 @@ import           Data.GS1.DWhat                    (AggregationDWhat (..),
 import qualified Data.GS1.Event                    as Ev
 
 
+
 insertObjectEvent :: SCSApp context err => ST.User
                   -> ObjectEvent
-                  -> AppM context err Ev.Event
+                  -> AppM context err (Ev.Event, SB.EventId)
 insertObjectEvent user ob = runDb $ insertObjectEventQuery user ob
 
 insertObjectEventQuery :: ST.User
                        -> ObjectEvent
-                       -> DB context err Ev.Event
+                       -> DB context err (Ev.Event, SB.EventId)
 insertObjectEventQuery
   (ST.User (ST.UserID tUserId) _ _ )
   (ObjectEvent
@@ -61,17 +62,18 @@ insertObjectEventQuery
   mapM_ (insertWhatLabel (SB.WhatId whatId)) labelIds
   mapM_ (insertLabelEvent eventId) labelIds
 
-  return event
+  return (event, eventId)
+
 
 
 insertAggEvent :: SCSApp context err => ST.User
                -> AggregationEvent
-               -> AppM context err Ev.Event
+               -> AppM context err (Ev.Event, SB.EventId)
 insertAggEvent user ev = runDb $ insertAggEventQuery user ev
 
 insertAggEventQuery :: ST.User
                     -> AggregationEvent
-                    -> DB context err Ev.Event
+                    -> DB context err (Ev.Event, SB.EventId)
 insertAggEventQuery
   (ST.User (ST.UserID tUserId) _ _ )
   (AggregationEvent
@@ -103,18 +105,17 @@ insertAggEventQuery
 
   -- FIXME: This should return the event as it has been inserted - the user has
   -- no idea what the ID for the transaction is so can't query it later.
-  return event
-
+  return (event, eventId)
 
 
 insertTransactEvent :: SCSApp context err => ST.User
                     -> TransactionEvent
-                    -> AppM context err Ev.Event
+                    -> AppM context err (Ev.Event, SB.EventId)
 insertTransactEvent user ev = runDb $ insertTransactEventQuery user ev
 
 insertTransactEventQuery :: ST.User
                          -> TransactionEvent
-                         -> DB context err Ev.Event
+                         -> DB context err (Ev.Event, SB.EventId)
 insertTransactEventQuery
   (ST.User (ST.UserID tUserId) _ _ )
   (TransactionEvent
@@ -146,18 +147,18 @@ insertTransactEventQuery
   mapM_ (insertWhatLabel (SB.WhatId whatId)) labelIds
   mapM_ (insertLabelEvent eventId) labelIds
 
-  return event
+  return (event, eventId)
 
 
 
 insertTransfEvent :: SCSApp context err => ST.User
                   -> TransformationEvent
-                  -> AppM context err Ev.Event
+                  -> AppM context err (Ev.Event, SB.EventId)
 insertTransfEvent user ev = runDb $ insertTransfEventQuery user ev
 
 insertTransfEventQuery :: ST.User
                        -> TransformationEvent
-                       -> DB context err Ev.Event
+                       -> DB context err (Ev.Event, SB.EventId)
 insertTransfEventQuery
   (ST.User (ST.UserID tUserId) _ _ )
   (TransformationEvent
@@ -187,4 +188,4 @@ insertTransfEventQuery
   mapM_ (insertWhatLabel (SB.WhatId whatId)) labelIds
   mapM_ (insertLabelEvent eventId) labelIds
 
-  return event
+  return (event, eventId)

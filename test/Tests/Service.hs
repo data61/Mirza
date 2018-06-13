@@ -146,12 +146,12 @@ testQueries = do
 
   describe "Object Event" $ do
     it "Insert Object Event" $ \scsContext -> do
-      insertedEvent <- testAppM scsContext $ insertObjectEvent dummyUser dummyObject
+      (insertedEvent, _) <- testAppM scsContext $ insertObjectEvent dummyUser dummyObject
       insertedEvent `shouldBe` dummyObjEvent
 
     it "List event" $ \scsContext -> do
       res <- testAppM scsContext $ do
-        insertedEvent <- insertObjectEvent dummyUser dummyObject
+        (insertedEvent, _) <- insertObjectEvent dummyUser dummyObject
         evtList <- listEvents dummyUser (LabelEPCUrn dummyLabelEpcUrn)
         pure (insertedEvent, evtList)
       case res of
@@ -161,12 +161,12 @@ testQueries = do
 
   describe "Aggregation Event" $ do
     it "Insert Aggregation Event" $ \scsContext -> do
-      insertedEvent <- testAppM scsContext $ insertAggEvent dummyUser dummyAggregation
+      (insertedEvent, _) <- testAppM scsContext $ insertAggEvent dummyUser dummyAggregation
       insertedEvent `shouldBe` dummyAggEvent
 
     it "List event" $ \scsContext -> do
       res <- testAppM scsContext $ do
-        insertedEvent <- insertAggEvent dummyUser dummyAggregation
+        (insertedEvent, _) <- insertAggEvent dummyUser dummyAggregation
         evtList <- listEvents dummyUser (LabelEPCUrn dummyLabelEpcUrn)
         pure (insertedEvent, evtList)
       case res of
@@ -176,12 +176,12 @@ testQueries = do
 
   describe "Transformation Event" $ do
     it "Insert Transformation Event" $ \scsContext -> do
-      insertedEvent <- testAppM scsContext $ insertTransfEvent dummyUser dummyTransformation
+      (insertedEvent, _) <- testAppM scsContext $ insertTransfEvent dummyUser dummyTransformation
       insertedEvent `shouldBe` dummyTransfEvent
 
     it "List event" $ \scsContext -> do
       res <- testAppM scsContext $ do
-        insertedEvent <- insertTransfEvent dummyUser dummyTransformation
+        (insertedEvent, _) <- insertTransfEvent dummyUser dummyTransformation
         evtList <- listEvents dummyUser (LabelEPCUrn dummyLabelEpcUrn)
         pure (insertedEvent, evtList)
       case res of
@@ -191,12 +191,12 @@ testQueries = do
 
   describe "Transaction Event" $ do
     it "Insert Transaction Event" $ \scsContext -> do
-      insertedEvent <- testAppM scsContext $ insertTransactEvent dummyUser dummyTransaction
+      (insertedEvent, _) <- testAppM scsContext $ insertTransactEvent dummyUser dummyTransaction
       insertedEvent `shouldBe` dummyTransactEvent
 
     it "List event" $ \scsContext -> do
       res <- testAppM scsContext $ do
-        insertedEvent <- insertTransactEvent dummyUser dummyTransaction
+        (insertedEvent, _) <- insertTransactEvent dummyUser dummyTransaction
         evtList <- listEvents dummyUser (LabelEPCUrn dummyLabelEpcUrn)
         pure (insertedEvent, evtList)
       case res of
