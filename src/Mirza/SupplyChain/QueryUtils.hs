@@ -8,7 +8,10 @@
 -- functions that start with `insert` does some database operation
 -- functions that start with `to` converts between
 -- Model type and its Storage equivalent
-module Mirza.SupplyChain.QueryUtils where
+module Mirza.SupplyChain.QueryUtils
+  (
+
+  ) where
 
 import           Mirza.SupplyChain.ErrorUtils   (throwBackendError)
 import qualified Mirza.SupplyChain.MigrateUtils as MU
