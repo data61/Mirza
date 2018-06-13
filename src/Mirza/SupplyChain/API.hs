@@ -17,6 +17,8 @@ import           Mirza.SupplyChain.Types       as ST
 import qualified Data.GS1.Event                as Ev
 import           Data.GS1.EventId
 
+import           Data.Time.Clock               (UTCTime)
+
 import           Servant
 import           Servant.API.Flatten
 import           Servant.Swagger.UI
@@ -38,7 +40,8 @@ type PrivateAPI =
   :<|> "event"    :> "transactionEvent"    :> ReqBody '[JSON] TransactionEvent    :> Post '[JSON] Ev.Event
   :<|> "event"    :> "transformationEvent" :> ReqBody '[JSON] TransformationEvent :> Post '[JSON] Ev.Event
   :<|> "event"    :> "addUser" :> Capture "userID" ST.UserID :> Capture "eventID" EventId :> Post '[JSON] ()
-  :<|> "key"      :> "add"                 :> ReqBody '[JSON] PEM_RSAPubKey       :> Post '[JSON] KeyID
+  :<|> "key"      :> "add" :> ReqBody '[JSON] PEM_RSAPubKey :> QueryParam "expirationTime" ExpirationTime :> Post '[JSON] KeyID
+  :<|> "key"      :> "revoke"              :> Capture "keyID" KeyID               :> Post '[JSON] UTCTime
 
 type PublicAPI =
        "newUser"  :> ReqBody '[JSON] NewUser            :> Post '[JSON] UserID

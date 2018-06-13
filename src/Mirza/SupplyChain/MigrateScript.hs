@@ -44,6 +44,7 @@ migrationStorage =
           (field "pem_str" text)
           (field "creation_time" timestamptz)
           (field "revocation_time" (maybeType timestamptz))
+          (field "expiration_time" (maybeType timestamptz))
     )
     <*> createTable "businesses"
     (
