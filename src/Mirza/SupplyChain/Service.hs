@@ -13,9 +13,14 @@
 
 -- | Endpoint definitions go here. Most of the endpoint definitions are
 -- light wrappers around functions in BeamQueries
-module Mirza.SupplyChain.Service where
-
-
+module Mirza.SupplyChain.Service
+ (
+    appHandlers
+  , publicServer
+  , privateServer
+  , appMToHandler
+  , serveSwaggerAPI
+ ) where
 
 import           Mirza.SupplyChain.API
 import           Mirza.SupplyChain.ErrorUtils                 (appErrToHttpErr)

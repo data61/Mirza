@@ -9,7 +9,15 @@
 {-# OPTIONS_GHC -fno-warn-orphans  #-}
 {-# LANGUAGE DataKinds             #-}
 
-module Mirza.SupplyChain.API where
+module Mirza.SupplyChain.API
+  (
+    serverAPI
+  , ServerAPI
+  , PublicAPI
+  , PrivateAPI
+  , ProtectedAPI
+  , API, api
+  ) where
 
 import           Mirza.SupplyChain.StorageBeam (PrimaryKeyType)
 import           Mirza.SupplyChain.Types       as ST
@@ -20,8 +28,6 @@ import           Data.GS1.EventId
 import           Servant
 import           Servant.API.Flatten
 import           Servant.Swagger.UI
-
-
 
 type API
     -- this serves both: swagger.json and swagger-ui
