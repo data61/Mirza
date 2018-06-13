@@ -6,6 +6,7 @@ module Mirza.BusinessRegistry.Main where
 
 import           Mirza.BusinessRegistry.Types as BT
 import           Mirza.SupplyChain.API
+import           Mirza.SupplyChain.Auth
 import           Mirza.SupplyChain.Migrate    (defConnectionStr, migrate)
 import           Mirza.SupplyChain.Service
 import           Mirza.SupplyChain.Types      (AppError, EnvType (..), User)
@@ -159,8 +160,8 @@ debugFunc = do
 runProgram :: ServerOptions -> IO ()
 runProgram options
 -- FIXME: This is definitely wrong
-  | not (initDatabase(options)) = migrate defConnectionStr
-  | otherwise = do
+  | initDatabase(options) = migrate defConnectionStr
+  | otherwise  = do
       let portNumber = soPortNumber options
       ctx <- initBRContext options
       app <- initApplication options ctx

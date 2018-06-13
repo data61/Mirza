@@ -68,32 +68,36 @@ _api     :: Client ClientM ServerAPI
 _privAPI :: Client ClientM ProtectedAPI
 _pubAPI  :: Client ClientM PublicAPI
 _api@(
-  _privAPI@(
-    epcState
-    :<|> listEvents
-    :<|> eventInfo
-    :<|> contactsInfo
-    :<|> addContact
-    :<|> removeContact
-    :<|> userSearch
-    :<|> eventList
-    :<|> eventUserList
-    :<|> eventSign
-    :<|> eventHashed
-    :<|> insertObjectEvent
-    :<|> insertAggEvent
-    :<|> insertTransactEvent
-    :<|> insertTransfEvent
-    :<|> addUserToEvent
-    :<|> addPublicKey
-    :<|> revokePublicKey
-
-  )
-  :<|>
   _pubAPI@(
     newUser
     :<|>getKey
     :<|>getKeyInfo
     :<|>businessList
+  )
+  :<|>
+  _privAPI@(
+         contactsInfo
+    :<|> addContact
+    :<|> removeContact
+    :<|> userSearch
+
+    :<|> addUserToEvent
+    :<|> eventSign
+    :<|> eventHashed
+
+    :<|> epcState
+    :<|> listEvents
+    :<|> eventInfo
+    :<|> eventList
+    :<|> eventUserList
+
+    :<|> insertObjectEvent
+    :<|> insertAggEvent
+    :<|> insertTransactEvent
+    :<|> insertTransfEvent
+
+    :<|> addPublicKey
+    :<|> revokePublicKey
+
   )
  ) = client (Proxy :: Proxy ServerAPI)
