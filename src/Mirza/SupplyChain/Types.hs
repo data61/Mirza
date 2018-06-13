@@ -2,6 +2,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE StandaloneDeriving         #-}
 {-# LANGUAGE TemplateHaskell            #-}
+{-# OPTIONS_GHC -Wno-orphans            #-}
 
 
 
@@ -22,6 +23,7 @@ import           Data.GS1.DWhy
 import           Data.GS1.EPC                  as EPC
 import qualified Data.GS1.Event                as Ev
 import           Data.GS1.EventId              as EvId
+import           Data.Time                     (UTCTime)
 
 import           Database.PostgreSQL.Simple    (Connection, SqlError)
 
@@ -42,35 +44,37 @@ import           Data.Swagger
 import           Data.Text                     (Text)
 import           Data.UUID                     (UUID)
 
+import           Katip                         as K
 
 
 -- *****************************************************************************
 -- Context Types
 -- *****************************************************************************
 
+
 mkEnvType :: Bool -> EnvType
 mkEnvType False = Prod
 mkEnvType _     = Dev
 
 data SCSContext = SCSContext
-  { _envType    :: EnvType
-  , _dbConnPool :: Pool Connection
-  , _scryptPs   :: ScryptParams
+  { _scsEnvType          :: EnvType
+  , _scsDbConnPool       :: Pool Connection
+  , _scsScryptPs         :: ScryptParams
+  , _scsKatipLogEnv      :: K.LogEnv
+  , _scsKatipLogContexts :: K.LogContexts
+  , _scsKatipNamespace   :: K.Namespace
   -- , port    :: Word16
   }
+$(makeLenses ''SCSContext)
 
-instance HasEnvType SCSContext where
-  envType = lens _envType (\scs e' -> scs{_envType = e'} )
+instance HasEnvType SCSContext where envType = scsEnvType
+instance HasConnPool SCSContext where connPool = scsDbConnPool
+instance HasScryptParams SCSContext where scryptParams = scsScryptPs
+instance HasKatipLogEnv SCSContext where katipLogEnv = scsKatipLogEnv
+instance HasKatipContext SCSContext where
+  katipContexts = scsKatipLogContexts
+  katipNamespace = scsKatipNamespace
 
-instance HasConnPool SCSContext where
-  connPool = lens _dbConnPool (\scs p' -> scs{_dbConnPool = p'})
-
--- | The class of contexts which have Scrypt parameters
-class HasScryptParams a where
-  scryptParams :: Lens' a ScryptParams
-
-instance HasScryptParams SCSContext where
-  scryptParams = lens _scryptPs (\scsc p' -> scsc{_scryptPs = p'})
 
 
 
@@ -314,12 +318,48 @@ fromTransactEvent
 -- Signing and Hashing Types
 -- *****************************************************************************
 
+newtype CreationTime = CreationTime {unCreationTime :: UTCTime}
+  deriving (Show, Eq, Generic, Read, FromJSON, ToJSON)
+instance ToSchema CreationTime
+instance ToParamSchema CreationTime
+deriving instance FromHttpApiData CreationTime
+deriving instance ToHttpApiData CreationTime
+
+
+newtype RevocationTime = RevocationTime {unRevocationTime :: UTCTime}
+  deriving (Show, Eq, Generic, Read, FromJSON, ToJSON)
+instance ToSchema RevocationTime
+instance ToParamSchema RevocationTime
+deriving instance FromHttpApiData RevocationTime
+deriving instance ToHttpApiData RevocationTime
+
+
+newtype ExpirationTime = ExpirationTime {unExpirationTime :: UTCTime}
+  deriving (Show, Eq, Read, Generic, FromJSON, ToJSON)
+instance ToSchema ExpirationTime
+instance ToParamSchema ExpirationTime
+deriving instance FromHttpApiData ExpirationTime
+deriving instance ToHttpApiData ExpirationTime
+
+
+data KeyState
+  = InEffect -- Can be used
+  | Revoked -- Key passed the revocation time
+  | Expired -- Key passed the expiration time
+  deriving (Show, Eq, Read, Generic)
+$(deriveJSON defaultOptions ''KeyState)
+instance ToSchema KeyState
+instance ToParamSchema KeyState
+
+
 newtype SigningUser = SigningUser UserID deriving(Generic, Show, Eq, Read)
 
 data KeyInfo = KeyInfo {
-  userID         :: UserID,
-  creationTime   :: EPCISTime,
-  revocationTime :: Maybe EPCISTime
+  keyInfoUserId  :: UserID,
+  creationTime   :: CreationTime,
+  revocationTime :: Maybe RevocationTime,
+  keyState       :: KeyState,
+  expirationTime :: Maybe ExpirationTime
 }deriving (Generic, Eq, Show)
 $(deriveJSON defaultOptions ''KeyInfo)
 instance ToSchema KeyInfo
@@ -447,6 +487,8 @@ data ServiceError
   | InvalidRSAKey         PEM_RSAPubKey
   | InvalidRSAKeySize     Expected Received
   | InvalidDigest         Digest
+  | KeyAlreadyRevoked
+  | UnauthorisedKeyAccess
   | InsertionFail         ServerError Text
   | EventPermissionDenied UserID EvId.EventId
   | EmailExists           ServerError EmailAddress

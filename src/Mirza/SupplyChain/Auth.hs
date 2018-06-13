@@ -1,5 +1,8 @@
 {-# LANGUAGE DataKinds        #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE MonoLocalBinds   #-}
 {-# LANGUAGE TypeApplications #-}
+
 
 module Mirza.SupplyChain.Auth where
 
@@ -29,13 +32,16 @@ import           Data.Text.Encoding            (decodeUtf8)
 -- Basic Authentication requires a Context Entry with the 'BasicAuthCheck' value
 -- tagged with "foo-tag" This context is then supplied to 'server' and threaded
 -- to the BasicAuth HasServer handlers.
-basicAuthServerContext :: SCSContext -> Servant.Context '[BasicAuthCheck ST.User]
+basicAuthServerContext :: (HasScryptParams context, DBConstraint context ServiceError)
+                       => context  -> Servant.Context '[BasicAuthCheck ST.User]
 basicAuthServerContext context = authCheck context :. EmptyContext
 
 
 
 -- 'BasicAuthCheck' holds the handler we'll use to verify a username and password.
-authCheck :: SCSContext -> BasicAuthCheck ST.User
+-- authCheck :: SCSContext -> BasicAuthCheck ST.User
+authCheck :: (HasScryptParams context, DBConstraint context ServiceError)
+          => context -> BasicAuthCheck ST.User
 authCheck context =
   let check (BasicAuthData useremail pass) = do
         eitherUser <- runAppM @_ @ServiceError context . runDb $
