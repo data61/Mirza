@@ -52,10 +52,6 @@ appErrToHttpErr (InvalidRSAKey _) =
   throwError $ err400 {
     errBody = "Failed to parse RSA Public key."
   }
-appErrToHttpErr (EventPermissionDenied _ _) =
-  throwError $ err403 {
-    errBody = "User does not own the event."
-  }
 appErrToHttpErr (InvalidRSAKeySize (Expected (Bit expSize)) (Received (Bit recSize))) =
   throwError $ err400 {
     errBody = LBSC8.pack $ printf "Invalid RSA Key size. Expected: %d Bits, Received: %d Bits\n" expSize recSize
@@ -69,10 +65,17 @@ appErrToHttpErr (ParseError err) =
     errBody = LBSC8.append
                   "We could not parse the input provided. Error(s) encountered"
                   (parseFailureToErrorMsg err)
-    -- TODO: ^ Add more information on what's wrong?
   }
+appErrToHttpErr KeyAlreadyRevoked =
+  throwError $ err400 { errBody = "Public Key already revoked" }
+appErrToHttpErr UnauthorisedKeyAccess =
+  throwError $ err403 { errBody = "Not authorised to access this key." }
 appErrToHttpErr (AuthFailed _) =
   throwError $ err403 { errBody = "Authentication failed. Invalid username or password." }
+appErrToHttpErr (EventPermissionDenied _ _) =
+  throwError $ err403 {
+    errBody = "User does not own the event."
+  }
 appErrToHttpErr (UserNotFound (EmailAddress _email)) =
   throwError $ err404 { errBody = "User not found." }
 appErrToHttpErr (EmailNotFound (EmailAddress _email)) =
@@ -82,7 +85,6 @@ appErrToHttpErr (InsertionFail _ _email) = generic500err
 appErrToHttpErr (BlockchainSendFailed _) = generic500err
 appErrToHttpErr (BackendErr _) = generic500err
 appErrToHttpErr (DatabaseError _) = generic500err
--- TODO: The above error messages may need to be more descriptive
 
 generic500err :: Handler a
 generic500err = throwError err500 {errBody = "Something went wrong"}

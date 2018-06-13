@@ -84,6 +84,7 @@ data KeyT f = Key
   , pem_str         :: C f Text
   , creation_time   :: C f LocalTime -- UTCTime
   , revocation_time :: C f (Maybe LocalTime) -- UTCTime
+  , expiration_time :: C f (Maybe LocalTime) -- UTCTime
   }
   deriving Generic
 type Key = KeyT Identity
@@ -489,7 +490,6 @@ instance Table BlockChainT where
   data PrimaryKey BlockChainT f = BlockChainId (C f PrimaryKeyType)
     deriving Generic
   primaryKey = BlockChainId . blockchain_id
-
 
 data SupplyChainDb f = SupplyChainDb
   { _users            :: f (TableEntity UserT)

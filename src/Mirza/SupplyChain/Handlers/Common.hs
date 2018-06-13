@@ -10,7 +10,5 @@ import           Mirza.SupplyChain.Types
 
 type SCSApp context err =
   ( AsServiceError err
-  , AsSqlError err
-  , HasEnvType context
-  , HasConnPool context
+  , DBConstraint context err
   )

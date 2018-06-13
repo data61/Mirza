@@ -20,14 +20,13 @@ module Mirza.SupplyChain.Service where
 import           Mirza.SupplyChain.API
 import           Mirza.SupplyChain.ErrorUtils                 (appErrToHttpErr)
 
-import           Mirza.SupplyChain.Handlers.Business
-import           Mirza.SupplyChain.Handlers.Common
-import           Mirza.SupplyChain.Handlers.Contacts
-import           Mirza.SupplyChain.Handlers.EventRegistration
-import           Mirza.SupplyChain.Handlers.Queries
-import           Mirza.SupplyChain.Handlers.Signatures        hiding
-                                                               (getPublicKey)
-import           Mirza.SupplyChain.Handlers.Users
+import           Mirza.SupplyChain.Handlers.Business          as Handlers
+import           Mirza.SupplyChain.Handlers.Common            as Handlers
+import           Mirza.SupplyChain.Handlers.Contacts          as Handlers
+import           Mirza.SupplyChain.Handlers.EventRegistration as Handlers
+import           Mirza.SupplyChain.Handlers.Queries           as Handlers
+import           Mirza.SupplyChain.Handlers.Signatures        as Handlers hiding (getPublicKey)
+import           Mirza.SupplyChain.Handlers.Users             as Handlers
 import           Mirza.SupplyChain.Types
 
 import           Servant
@@ -79,6 +78,7 @@ privateServer =
   :<|> insertTransfEvent
 -- Business
   :<|> addPublicKey
+  :<|> revokePublicKey
 
 
 

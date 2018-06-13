@@ -6,7 +6,6 @@
 
 module Tests.Service
   ( testQueries
-  , defaultPool
   ) where
 
 import           Tests.Dummies
@@ -22,8 +21,6 @@ import           Mirza.SupplyChain.QueryUtils
 import qualified Mirza.SupplyChain.StorageBeam                as SB
 import           Mirza.SupplyChain.Types
 
-import           Data.GS1.EPC
-
 import           Control.Monad                                (void)
 import           Data.Maybe                                   (fromJust,
                                                                isNothing)
@@ -33,43 +30,21 @@ import           Data.Time.Clock                              (getCurrentTime)
 import           Data.Time.LocalTime                          (LocalTime, utc,
                                                                utcToLocalTime)
 import           Database.Beam
-import           Database.PostgreSQL.Simple                   (Connection,
-                                                               close,
-                                                               connectPostgreSQL,
+import           Database.PostgreSQL.Simple                   (connectPostgreSQL,
                                                                execute_)
 import           GHC.Stack                                    (HasCallStack)
-import           Mirza.SupplyChain.Types                      (AppError, AppM,
-                                                               DB,
-                                                               SCSContext (..),
-                                                               pg, runAppM,
-                                                               runDb)
 import           Servant
 import           Test.Hspec
 
 import qualified Crypto.Scrypt                                as Scrypt
-import           Data.Pool                                    as Pool
 -- NOTE in this file, where fromJust is used in the tests, it is because we expect a Just... this is part of the test
 -- NOTE tables dropped after every running of test in an "it"
-
 
 timeStampIO :: MonadIO m => m LocalTime
 timeStampIO = liftIO $ (utcToLocalTime utc) <$> getCurrentTime
 
-timeStampIOEPCIS :: MonadIO m => m EPCISTime
-timeStampIOEPCIS = liftIO $ EPCISTime <$> getCurrentTime
-
 rsaPubKey :: IO PEM_RSAPubKey
 rsaPubKey = PEMString <$> Prelude.readFile "./test/Tests/testKeys/goodKeys/test.pub"
-
-selectKey :: KeyID -> DB SCSContext AppError (Maybe SB.Key)
-selectKey (KeyID keyId) = do
-  r <- pg $ runSelectReturningList $ select $ do
-          key <- all_ (SB._keys SB.supplyChainDb)
-          guard_ (SB.key_id key ==. val_ keyId)
-          pure key
-  case r of
-    [key] -> return $ Just key
-    _     -> return Nothing
 
 testAppM :: context -> AppM context AppError a -> IO a
 testAppM scsContext act = runAppM scsContext act >>= \case
@@ -85,13 +60,13 @@ testQueries = do
       tStart <- timeStampIO
       res <- testAppM scsContext $ do
         uid <- newUser dummyNewUser
-        storageUser <- runDb $ selectUser uid
+        storageUser <- runDb $ getUserById uid
         let user = userTableToModel . fromJust $ storageUser
         let (PEMString keyStr) = pubKey
-        keyId <- addPublicKey user pubKey
+        keyId <- addPublicKey user pubKey Nothing
         tEnd <- timeStampIO
         insertedKey <- getPublicKey keyId
-        storageKey <- runDb $ selectKey keyId
+        storageKey <- runDb $ getKeyById keyId
         pure (storageKey, keyStr, keyId, uid, tEnd, insertedKey)
       case res of
         (Nothing, _, _, _, _, _) -> fail "Received Nothing for key"
@@ -108,20 +83,21 @@ testQueries = do
           insertedKey `shouldBe` pubKey
   describe "getPublicKeyInfo tests" $
     it "getPublicKeyInfo test 1" $ \scsContext -> do
-      tStart <- timeStampIOEPCIS
+      tStart <- liftIO getCurrentTime
       pubKey <- rsaPubKey
       (keyInfo, uid, tEnd) <- testAppM scsContext $ do
         uid <- newUser dummyNewUser
-        storageUser <- runDb $ selectUser uid
+        storageUser <- runDb $ getUserById uid
         let user = userTableToModel . fromJust $ storageUser
-        keyId <- addPublicKey user pubKey
+        keyId <- addPublicKey user pubKey Nothing
         keyInfo <- getPublicKeyInfo keyId
-        tEnd <- timeStampIOEPCIS
+        tEnd <- liftIO getCurrentTime
         pure (keyInfo, uid, tEnd)
       keyInfo `shouldSatisfy`
         (\ki ->
-          (userID ki == uid) &&
-          (creationTime ki > tStart && creationTime ki < tEnd) &&
+          (keyInfoUserId ki == uid) &&
+          ((unCreationTime . creationTime $ ki) > tStart &&
+           (unCreationTime . creationTime $ ki) < tEnd) &&
           isNothing (revocationTime ki)
         )
 
@@ -129,7 +105,7 @@ testQueries = do
     it "newUser test 1" $ \scsContext -> do
       res <- testAppM scsContext $  do
         uid <- newUser dummyNewUser
-        user <- runDb $ selectUser uid
+        user <- runDb $ getUserById uid
         pure (uid, user)
       case res of
         (_, Nothing) -> fail "Received Nothing for user"
@@ -208,12 +184,12 @@ testQueries = do
     it "List event" $ \scsContext -> do
       res <- testAppM scsContext $ do
         insertedEvent <- insertTransfEvent dummyUser dummyTransformation
-        events <- listEvents dummyUser (LabelEPCUrn dummyLabelEpcUrn)
-        pure (insertedEvent, events)
+        evtList <- listEvents dummyUser (LabelEPCUrn dummyLabelEpcUrn)
+        pure (insertedEvent, evtList)
       case res of
-        (insertedEvent, events) -> do
+        (insertedEvent, evtList) -> do
           insertedEvent `shouldBe` dummyTransfEvent
-          events `shouldBe` [insertedEvent]
+          evtList `shouldBe` [insertedEvent]
 
   describe "Transaction Event" $ do
     it "Insert Transaction Event" $ \scsContext -> do
@@ -223,15 +199,15 @@ testQueries = do
     it "List event" $ \scsContext -> do
       res <- testAppM scsContext $ do
         insertedEvent <- insertTransactEvent dummyUser dummyTransaction
-        events <- listEvents dummyUser (LabelEPCUrn dummyLabelEpcUrn)
-        pure (insertedEvent, events)
+        evtList <- listEvents dummyUser (LabelEPCUrn dummyLabelEpcUrn)
+        pure (insertedEvent, evtList)
       case res of
-        (insertedEvent, events) -> do
+        (insertedEvent, evtList) -> do
           insertedEvent `shouldBe` dummyTransactEvent
-          events `shouldBe` [insertedEvent]
+          evtList `shouldBe` [insertedEvent]
 
-  describe "runDb $ getUser tests" $
-    it "runDb $ getUser test 1" $ \scsContext -> do
+  describe "getUser tests" $
+    it "getUser test 1" $ \scsContext -> do
       res <- testAppM scsContext $ do
         uid <- newUser dummyNewUser
         user <- runDb $ getUser $ emailAddress dummyNewUser
@@ -365,10 +341,4 @@ clearContact = do
   conn <- connectPostgreSQL testDbConnStr
   void $ execute_ conn "DELETE FROM contacts;"
 
-
-defaultPool :: IO (Pool Connection)
-defaultPool = Pool.createPool (connectPostgreSQL testDbConnStr) close
-                1 -- Number of "sub-pools",
-                60 -- How long in seconds to keep a connection open for reuse
-                10 -- Max number of connections to have open at any one time
 
