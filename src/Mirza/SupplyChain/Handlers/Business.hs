@@ -21,8 +21,14 @@ import           OpenSSL.PEM                              (readPublicKey,
                                                            writePublicKey)
 import           OpenSSL.RSA                              (RSAPubKey, rsaSize)
 
+import           Control.Monad                            (unless, when)
 import           Control.Monad.IO.Class                   (liftIO)
 import qualified Data.Text                                as T
+
+import           Data.Time.Clock                          (UTCTime,
+                                                           getCurrentTime)
+import           Data.Time.LocalTime                      (utc, utcToLocalTime)
+
 
 
 
@@ -34,7 +40,7 @@ minPubKeySize = Bit 2048 -- 256 Bytes
 getPublicKey ::  SCSApp context err => KeyID -> AppM context err PEM_RSAPubKey
 getPublicKey = runDb . getPublicKeyQuery
 
-getPublicKeyQuery :: AsServiceError err =>  KeyID -> DB context err PEM_RSAPubKey
+getPublicKeyQuery :: AsServiceError err => KeyID -> DB context err PEM_RSAPubKey
 getPublicKeyQuery (KeyID keyId) = do
   r <- pg $ runSelectReturningList $ select $ do
     allKeys <- all_ (SB._keys SB.supplyChainDb)
@@ -54,13 +60,19 @@ getPublicKeyInfoQuery (KeyID keyId) = do
     allKeys <- all_ (SB._keys SB.supplyChainDb)
     guard_ (SB.key_id allKeys ==. val_ keyId)
     pure allKeys
-
+  currTime <- liftIO getCurrentTime
   case r of
-    [(SB.Key _ (SB.UserId uId) _  creationTime revocationTime)] ->
+    [(SB.Key _ (SB.UserId uId) _  creationTime revocationTime mExpTime)] ->
        return $ ST.KeyInfo (ST.UserID uId)
-                (QU.toEPCISTime creationTime)
-                (QU.toEPCISTime <$> revocationTime)
+                (QU.onLocalTime CreationTime creationTime)
+                (QU.onLocalTime RevocationTime <$> revocationTime)
+                (QU.getKeyState currTime
+                    (QU.onLocalTime RevocationTime <$> revocationTime)
+                    ((QU.onLocalTime ExpirationTime <$> mExpTime))
+                )
+                (QU.onLocalTime ExpirationTime <$> mExpTime)
     _ -> throwing _InvalidKeyID . KeyID $ keyId
+
 
 
 -- select * from Business;
@@ -76,12 +88,16 @@ listBusinessesQuery = do
 
 
 
-addPublicKey :: SCSApp context err => ST.User -> PEM_RSAPubKey -> AppM context err KeyID
-addPublicKey user pemKey@(PEMString pemStr) = do
+addPublicKey :: SCSApp context err => ST.User
+             -> PEM_RSAPubKey
+             -> Maybe ExpirationTime
+             -> AppM context err KeyID
+addPublicKey user pemKey@(PEMString pemStr) mExp = do
   somePubKey <- liftIO $ readPublicKey pemStr
   either (throwing _ServiceError)
-         (runDb . addPublicKeyQuery user)
+         (runDb . addPublicKeyQuery user mExp)
          (checkPubKey somePubKey pemKey)
+
 
 
 checkPubKey :: SomePublicKey -> PEM_RSAPubKey-> Either ServiceError RSAPubKey
@@ -97,15 +113,45 @@ checkPubKey spKey pemKey =
   (toPublicKey spKey)
 
 
-addPublicKeyQuery :: AsServiceError err =>  ST.User -> RSAPubKey -> DB context err KeyID
-addPublicKeyQuery (User (ST.UserID uid) _ _)  rsaPubKey = do
+addPublicKeyQuery :: AsServiceError err => ST.User
+                  -> Maybe ExpirationTime
+                  -> RSAPubKey
+                  -> DB context err KeyID
+addPublicKeyQuery (User (ST.UserID uid) _ _) expTime rsaPubKey = do
   keyId <- QU.generatePk
   timeStamp <- QU.generateTimeStamp
   keyStr <- liftIO $ writePublicKey rsaPubKey
   r <- pg $ runInsertReturningList (SB._keys SB.supplyChainDb) $
         insertValues
-        [ SB.Key keyId (SB.UserId uid) (T.pack keyStr) timeStamp Nothing
+        [ SB.Key keyId (SB.UserId uid) (T.pack keyStr)
+            timeStamp Nothing ((utcToLocalTime utc) . unExpirationTime <$> expTime)
         ]
   case r of
     [rowId] -> return (KeyID $ SB.key_id rowId)
-    _       -> throwing _InvalidKeyID . KeyID $ keyId
+    _       -> throwing _BackendErr "Failed to add public key"
+
+
+
+revokePublicKey :: SCSApp context err => ST.User -> KeyID -> AppM context err UTCTime
+revokePublicKey (ST.User userId _ _) keyId =
+    runDb $ revokePublicKeyQuery userId keyId
+
+isKeyRevoked :: AsServiceError err => KeyID -> DB context err Bool
+isKeyRevoked k = do
+  keyInfo <- getPublicKeyInfoQuery k
+  return $ ST.keyState keyInfo == Revoked
+
+revokePublicKeyQuery :: AsServiceError err => ST.UserID -> KeyID -> DB context err UTCTime
+revokePublicKeyQuery userId k@(KeyID keyId) = do
+  userOwnsKey <- QU.doesUserOwnKey userId k
+  unless userOwnsKey $ throwing_ _UnauthorisedKeyAccess
+  keyRevoked <- isKeyRevoked k
+  when keyRevoked $ throwing_ _KeyAlreadyRevoked
+  timeStamp <- QU.generateTimeStamp
+  _r <- pg $ runUpdate $ update
+                (SB._keys SB.supplyChainDb)
+                (\key -> [SB.revocation_time key <-. val_ (Just timeStamp)])
+                (\key -> SB.key_id key ==. (val_ keyId))
+  return $ QU.onLocalTime id timeStamp
+
+

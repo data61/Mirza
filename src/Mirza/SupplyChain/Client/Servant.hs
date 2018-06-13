@@ -22,6 +22,7 @@ module Mirza.SupplyChain.Client.Servant
   ,insertTransactEvent
   ,insertTransfEvent
   ,addPublicKey
+  ,revokePublicKey
   ,addUserToEvent
   ) where
 
@@ -36,8 +37,8 @@ import           Data.Proxy              (Proxy (..))
 import           Data.GS1.Event
 import           Data.GS1.EventId
 
+import           Data.Time.Clock         (UTCTime)
 import           Data.UUID.Types
-
 
 newUser      :: NewUser -> ClientM UserID
 getKey       :: KeyID -> ClientM PEM_RSAPubKey
@@ -60,7 +61,8 @@ insertAggEvent      :: BasicAuthData -> AggregationEvent -> ClientM Event
 insertTransactEvent :: BasicAuthData -> TransactionEvent -> ClientM Event
 insertTransfEvent   :: BasicAuthData -> TransformationEvent -> ClientM Event
 addUserToEvent      :: BasicAuthData -> UserID -> EventId -> ClientM ()
-addPublicKey        :: BasicAuthData -> PEM_RSAPubKey -> ClientM KeyID
+addPublicKey        :: BasicAuthData -> PEM_RSAPubKey -> Maybe ExpirationTime -> ClientM KeyID
+revokePublicKey     :: BasicAuthData -> KeyID -> ClientM UTCTime
 
 _api     :: Client ClientM ServerAPI
 _privAPI :: Client ClientM ProtectedAPI
@@ -95,5 +97,7 @@ _api@(
     :<|> insertTransfEvent
 
     :<|> addPublicKey
+    :<|> revokePublicKey
+
   )
  ) = client (Proxy :: Proxy ServerAPI)
