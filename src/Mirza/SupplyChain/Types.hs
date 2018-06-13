@@ -2,6 +2,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE StandaloneDeriving         #-}
 {-# LANGUAGE TemplateHaskell            #-}
+{-# OPTIONS_GHC -Wno-orphans            #-}
 
 
 
@@ -43,35 +44,37 @@ import           Data.Swagger
 import           Data.Text                     (Text)
 import           Data.UUID                     (UUID)
 
+import           Katip                         as K
 
 
 -- *****************************************************************************
 -- Context Types
 -- *****************************************************************************
 
+
 mkEnvType :: Bool -> EnvType
 mkEnvType False = Prod
 mkEnvType _     = Dev
 
 data SCSContext = SCSContext
-  { _envType    :: EnvType
-  , _dbConnPool :: Pool Connection
-  , _scryptPs   :: ScryptParams
+  { _scsEnvType          :: EnvType
+  , _scsDbConnPool       :: Pool Connection
+  , _scsScryptPs         :: ScryptParams
+  , _scsKatipLogEnv      :: K.LogEnv
+  , _scsKatipLogContexts :: K.LogContexts
+  , _scsKatipNamespace   :: K.Namespace
   -- , port    :: Word16
   }
+$(makeLenses ''SCSContext)
 
-instance HasEnvType SCSContext where
-  envType = lens _envType (\scs e' -> scs{_envType = e'} )
+instance HasEnvType SCSContext where envType = scsEnvType
+instance HasConnPool SCSContext where connPool = scsDbConnPool
+instance HasScryptParams SCSContext where scryptParams = scsScryptPs
+instance HasKatipLogEnv SCSContext where katipLogEnv = scsKatipLogEnv
+instance HasKatipContext SCSContext where
+  katipContexts = scsKatipLogContexts
+  katipNamespace = scsKatipNamespace
 
-instance HasConnPool SCSContext where
-  connPool = lens _dbConnPool (\scs p' -> scs{_dbConnPool = p'})
-
--- | The class of contexts which have Scrypt parameters
-class HasScryptParams a where
-  scryptParams :: Lens' a ScryptParams
-
-instance HasScryptParams SCSContext where
-  scryptParams = lens _scryptPs (\scsc p' -> scsc{_scryptPs = p'})
 
 
 

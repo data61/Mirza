@@ -10,6 +10,8 @@ import           Mirza.SupplyChain.Service
 import           Mirza.SupplyChain.Types    (AppError, EnvType (..),
                                              SCSContext (..), User)
 
+import qualified Mirza.SupplyChain.Types    as ST
+
 import           Servant                    hiding (header)
 import           Servant.Swagger.UI
 
@@ -21,9 +23,16 @@ import qualified Network.Wai.Handler.Warp   as Warp
 
 import           Data.ByteString            (ByteString)
 import           Data.Semigroup             ((<>))
+import           Data.Text                  (pack)
 import           Options.Applicative
 
+import           Control.Lens
+
 import qualified Crypto.Scrypt              as Scrypt
+
+import           Control.Exception          (finally)
+import           Katip                      as K
+import           System.IO                  (stdout)
 
 data ServerOptions = ServerOptions
   { env           :: EnvType
@@ -34,6 +43,7 @@ data ServerOptions = ServerOptions
   , sScryptN      :: Integer
   , sScryptP      :: Integer
   , sScryptR      :: Integer
+  , loggingLevel  :: K.Severity
   }
 
 serverOptions :: Parser ServerOptions
@@ -55,7 +65,7 @@ serverOptions = ServerOptions
           <> help "database connection string"
           <> value defConnectionStr)
        <*> option auto
-          ( long "port" <> showDefault <> value 8000
+          ( long "port" <> short 'p' <> showDefault <> value 8000
           <> help "Port to run database on"
           )
        <*> option auto
@@ -67,6 +77,9 @@ serverOptions = ServerOptions
        <*> option auto
             (long "scryptR" <> value 1 <> showDefault
             <> help "Scrypt r parameter (>= 1)")
+      <*> option auto
+            (long "log-level" <> value InfoS <> showDefault
+            <> help ("Logging level: " ++ show [minBound .. maxBound :: Severity]))
 
 
 main :: IO ()
@@ -87,19 +100,23 @@ main = runProgram =<< execParser opts
 -- runProgram _ = migrate defConnectionStr
 runProgram :: ServerOptions -> IO ()
 runProgram so@ServerOptions{initDB = False, port} = do
-  app <- initApplication so
+  ctx <- initSCSContext so
+  app <- initApplication so ctx
   mids <- initMiddleware so
   putStrLn $ "http://localhost:" ++ show port ++ "/swagger-ui/"
-  Warp.run (fromIntegral port) $ mids app
+  Warp.run (fromIntegral port) (mids app) `finally` closeScribes (ctx ^. ST.scsKatipLogEnv)
 -- FIXME: This is definitely wrong
 runProgram _ = migrate defConnectionStr
 
 initMiddleware :: ServerOptions -> IO Middleware
 initMiddleware _ = pure id
 
--- initApplication :: ByteString -> AC.SCSContextType -> ScryptParams -> IO Application
-initApplication :: ServerOptions -> IO Application
-initApplication (ServerOptions envT _ dbConnStr _ n p r)  = do
+
+initSCSContext :: ServerOptions -> IO ST.SCSContext
+initSCSContext (ServerOptions envT _ dbConnStr _ n p r lev) = do
+  handleScribe <- mkHandleScribe ColorIfTerminal stdout lev V3
+  logEnv <- initLogEnv "supplyChainServer" (Environment . pack . show $ envT)
+            >>= registerScribe "stdout" handleScribe defaultScribeSettings
   params <- case Scrypt.scryptParams (max n 14) (max p 8) (max r 1) of
     Just scparams -> pure scparams
     Nothing -> do
@@ -110,16 +127,24 @@ initApplication (ServerOptions envT _ dbConnStr _ n p r)  = do
                       60 -- How long in seconds to keep a connection open for reuse
                       10 -- Max number of connections to have open at any one time
                       -- TODO: Make this a config paramete
-  let ev  = SCSContext envT connpool params
-      app = serveWithContext api
-            (basicAuthServerContext ev)
-            (server' ev)
-  pure app
+
+  pure $ SCSContext envT connpool params logEnv mempty mempty
+
+
+initApplication :: ServerOptions -> ST.SCSContext -> IO Application
+initApplication _so ev =
+  pure $ serveWithContext api
+          (basicAuthServerContext ev)
+          (server' ev)
+
+
 
 -- easily start the app in ghci, no command line arguments required.
-startApp_nomain :: ByteString -> IO ()
-startApp_nomain dbConnStr =
-  initApplication (ServerOptions Dev False dbConnStr 8000 14 8 1) >>= Warp.run 8000
+startAppSimple :: ByteString -> IO ()
+startAppSimple dbConnStr = do
+  let so = (ServerOptions ST.Dev False dbConnStr 8000 14 8 1 DebugS)
+  ctx <- initSCSContext so
+  initApplication so ctx >>= Warp.run 8000
 
 
 -- Implementation
