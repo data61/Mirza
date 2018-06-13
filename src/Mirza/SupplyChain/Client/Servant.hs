@@ -22,22 +22,24 @@ module Mirza.SupplyChain.Client.Servant
   ,insertTransactEvent
   ,insertTransfEvent
   ,addPublicKey
+  ,revokePublicKey
   ,addUserToEvent
   ) where
 
 import           Mirza.SupplyChain.API
-import           Mirza.SupplyChain.Types
+import qualified Mirza.SupplyChain.StorageBeam as SB
+import           Mirza.SupplyChain.Types       as T
 
 import           Servant.API
 import           Servant.Client
 
-import           Data.Proxy              (Proxy (..))
+import           Data.Proxy                    (Proxy (..))
 
-import           Data.GS1.Event
+import qualified Data.GS1.Event                as Ev
 import           Data.GS1.EventId
 
+import           Data.Time.Clock               (UTCTime)
 import           Data.UUID.Types
-
 
 newUser      :: NewUser -> ClientM UserID
 getKey       :: KeyID -> ClientM PEM_RSAPubKey
@@ -45,22 +47,23 @@ getKeyInfo   :: KeyID -> ClientM KeyInfo
 businessList :: ClientM [Business]
 
 epcState            :: BasicAuthData -> LabelEPCUrn -> ClientM EPCState
-listEvents          :: BasicAuthData -> LabelEPCUrn -> ClientM [Event]
-eventInfo           :: BasicAuthData -> EventId -> ClientM (Maybe Event)
-contactsInfo        :: BasicAuthData -> ClientM [User]
+listEvents          :: BasicAuthData -> LabelEPCUrn -> ClientM [Ev.Event]
+eventInfo           :: BasicAuthData -> EventId -> ClientM (Maybe Ev.Event)
+contactsInfo        :: BasicAuthData -> ClientM [T.User]
 addContact          :: BasicAuthData -> UserID -> ClientM Bool
 removeContact       :: BasicAuthData -> UserID -> ClientM Bool
-userSearch          :: BasicAuthData -> String -> ClientM [User]
-eventList           :: BasicAuthData -> UserID -> ClientM [Event]
-eventUserList       :: BasicAuthData -> EventId -> ClientM [(User, Bool)]
+userSearch          :: BasicAuthData -> String -> ClientM [T.User]
+eventList           :: BasicAuthData -> UserID -> ClientM [Ev.Event]
+eventUserList       :: BasicAuthData -> EventId -> ClientM [(T.User, Bool)]
 eventSign           :: BasicAuthData -> SignedEvent -> ClientM UUID
 eventHashed         :: BasicAuthData -> EventId -> ClientM HashedEvent
-insertObjectEvent   :: BasicAuthData -> ObjectEvent -> ClientM Event
-insertAggEvent      :: BasicAuthData -> AggregationEvent -> ClientM Event
-insertTransactEvent :: BasicAuthData -> TransactionEvent -> ClientM Event
-insertTransfEvent   :: BasicAuthData -> TransformationEvent -> ClientM Event
+insertObjectEvent   :: BasicAuthData -> ObjectEvent -> ClientM (Ev.Event, SB.EventId)
+insertAggEvent      :: BasicAuthData -> AggregationEvent -> ClientM (Ev.Event, SB.EventId)
+insertTransactEvent :: BasicAuthData -> TransactionEvent -> ClientM (Ev.Event, SB.EventId)
+insertTransfEvent   :: BasicAuthData -> TransformationEvent -> ClientM (Ev.Event, SB.EventId)
 addUserToEvent      :: BasicAuthData -> UserID -> EventId -> ClientM ()
-addPublicKey        :: BasicAuthData -> PEM_RSAPubKey -> ClientM KeyID
+addPublicKey        :: BasicAuthData -> PEM_RSAPubKey -> Maybe ExpirationTime -> ClientM KeyID
+revokePublicKey     :: BasicAuthData -> KeyID -> ClientM UTCTime
 
 _api     :: Client ClientM ServerAPI
 _privAPI :: Client ClientM ProtectedAPI
@@ -95,5 +98,7 @@ _api@(
     :<|> insertTransfEvent
 
     :<|> addPublicKey
+    :<|> revokePublicKey
+
   )
  ) = client (Proxy :: Proxy ServerAPI)

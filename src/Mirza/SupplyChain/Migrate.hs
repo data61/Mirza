@@ -5,6 +5,7 @@ module Mirza.SupplyChain.Migrate
     defConnectionStr
   , testDbConnStr
   , migrate
+  , tryCreateSchema
   ) where
 
 import           Mirza.SupplyChain.MigrateScript (migrationStorage)

@@ -18,13 +18,16 @@ import           Data.Text.Encoding               (encodeUtf8)
 import           Test.Tasty.Hspec
 
 import           Mirza.SupplyChain.Main           (ServerOptions (..),
-                                                   initApplication)
+                                                   initApplication,
+                                                   initSCSContext)
 import           Mirza.SupplyChain.Migrate        (testDbConnStr)
 import           Mirza.SupplyChain.Types
 
 import           Data.GS1.EPC                     (GS1CompanyPrefix (..))
 
 import           Mirza.SupplyChain.Client.Servant
+
+import           Katip                            (Severity (DebugS))
 
 -- Cribbed from https://github.com/haskell-servant/servant/blob/master/servant-client/test/Servant/ClientSpec.hs
 
@@ -44,9 +47,15 @@ authABC = BasicAuthData
   (encodeUtf8 . unEmailAddress . emailAddress $ userABC)
   (encodeUtf8 . password                      $ userABC)
 
+runApp :: IO (ThreadId, BaseUrl)
+runApp = do
+  let so = (ServerOptions Dev False testDbConnStr 8000 14 8 1 DebugS)
+  ctx <- initSCSContext so
+  startWaiApp =<< initApplication so ctx
+
 clientSpec :: Spec
 clientSpec =
-  beforeAll (startWaiApp =<< initApplication (ServerOptions Dev False testDbConnStr 8000 14 8 1)) $
+  beforeAll runApp $
   afterAll endWaiApp $ do
     describe "SupplyChain.Client new user" $ do
       it "Can create a new user" $ \(_,baseurl) -> do

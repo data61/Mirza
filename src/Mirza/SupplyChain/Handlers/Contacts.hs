@@ -1,3 +1,5 @@
+{-# LANGUAGE MultiParamTypeClasses #-}
+
 module Mirza.SupplyChain.Handlers.Contacts where
 
 
