@@ -30,7 +30,8 @@ import           Data.Maybe                                   (fromJust,
 import qualified Data.Text                                    as T
 import           Data.Text.Encoding                           (encodeUtf8)
 
-import           Data.Time.Clock                              (getCurrentTime)
+import           Data.Time.Clock                              (addUTCTime,
+                                                               getCurrentTime)
 import           Data.Time.LocalTime                          (LocalTime, utc,
                                                                utcToLocalTime)
 import           Database.Beam
@@ -117,6 +118,7 @@ testServiceQueries = do
         keyInfo <- getPublicKeyInfo keyId
         pure (keyState keyInfo)
       myKeyState `shouldBe` Revoked
+
     it "Revoke public key without permissions" $ \scsContext -> do
       pubKey <- rsaPubKey
       r <- runAppM @_ @ServiceError scsContext $ do
@@ -133,6 +135,49 @@ testServiceQueries = do
         revokePublicKey hacker keyId
       r `shouldSatisfy` isLeft
       r `shouldBe` Left UnauthorisedKeyAccess
+
+    it "Already expired AND revoked pub key" $ \scsContext -> do
+      nowish <- getCurrentTime
+      let hundredMinutes = 100 * 60
+          yesterday = addUTCTime (-hundredMinutes) nowish
+      pubKey <- rsaPubKey
+      myKeyState <- testAppM scsContext $ do
+        uid <- newUser dummyNewUser
+        storageUser <- runDb $ getUserById uid
+        let user = userTableToModel . fromJust $ storageUser
+        keyId <- addPublicKey user pubKey (Just . ExpirationTime $ yesterday )
+        _timeKeyRevoked <- revokePublicKey user keyId
+        keyInfo <- getPublicKeyInfo keyId
+        pure (keyState keyInfo)
+      myKeyState `shouldBe` Revoked
+
+    it "Expired but NOT revoked pub key" $ \scsContext -> do
+      nowish <- getCurrentTime
+      let hundredMinutes = 100 * 60
+          yesterday = addUTCTime (-hundredMinutes) nowish
+      pubKey <- rsaPubKey
+      myKeyState <- testAppM scsContext $ do
+        uid <- newUser dummyNewUser
+        storageUser <- runDb $ getUserById uid
+        let user = userTableToModel . fromJust $ storageUser
+        keyId <- addPublicKey user pubKey (Just . ExpirationTime $ yesterday )
+        keyInfo <- getPublicKeyInfo keyId
+        pure (keyState keyInfo)
+      myKeyState `shouldBe` Expired
+
+    it "Expiry date in the future" $ \scsContext -> do
+      nowish <- getCurrentTime
+      let hundredMinutes = 100 * 60
+          tomorrow = addUTCTime (hundredMinutes) nowish
+      pubKey <- rsaPubKey
+      myKeyState <- testAppM scsContext $ do
+        uid <- newUser dummyNewUser
+        storageUser <- runDb $ getUserById uid
+        let user = userTableToModel . fromJust $ storageUser
+        keyId <- addPublicKey user pubKey (Just . ExpirationTime $ tomorrow)
+        keyInfo <- getPublicKeyInfo keyId
+        pure (keyState keyInfo)
+      myKeyState `shouldBe` InEffect
 
   describe "newUser tests" $
     it "newUser test 1" $ \scsContext -> do
