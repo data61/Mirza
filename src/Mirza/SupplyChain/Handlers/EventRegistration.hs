@@ -50,8 +50,7 @@ insertObjectEventQuery
       event = Ev.Event eventType foreignEventId dwhat dwhen dwhy dwhere
       jsonEvent = encodeEvent event
 
-  eventId' <- insertEvent userId jsonEvent event
-  let eventId = SB.EventId eventId'
+  eventId <- insertEvent userId jsonEvent event
   whatId <- insertDWhat Nothing dwhat eventId
   labelIds' <- mapM (insertLabel Nothing (SB.WhatId whatId)) labelEpcs
   let labelIds = SB.LabelId <$> labelIds'
@@ -90,8 +89,7 @@ insertAggEventQuery
       event = Ev.Event eventType foreignEventId dwhat dwhen dwhy dwhere
       jsonEvent = encodeEvent event
 
-  eventId' <- insertEvent userId jsonEvent event
-  let eventId = SB.EventId eventId'
+  eventId <- insertEvent userId jsonEvent event
   whatId <- insertDWhat Nothing dwhat eventId
   labelIds' <- mapM (insertLabel Nothing (SB.WhatId whatId)) labelEpcs
   let labelIds = SB.LabelId <$> labelIds'
@@ -134,8 +132,7 @@ insertTransactEventQuery
       event = Ev.Event eventType foreignEventId dwhat dwhen dwhy dwhere
       jsonEvent = encodeEvent event
 
-  eventId' <- insertEvent userId jsonEvent event
-  let eventId = SB.EventId eventId'
+  eventId <- insertEvent userId jsonEvent event
   whatId <- insertDWhat Nothing dwhat eventId
   labelIds' <- mapM (insertLabel Nothing (SB.WhatId whatId)) labelEpcs
   let labelIds = SB.LabelId <$> labelIds'
@@ -175,8 +172,7 @@ insertTransfEventQuery
       event = Ev.Event eventType foreignEventId dwhat dwhen dwhy dwhere
       jsonEvent = encodeEvent event
 
-  eventId' <- insertEvent userId jsonEvent event
-  let eventId = SB.EventId eventId'
+  eventId <- insertEvent userId jsonEvent event
   whatId <- insertDWhat Nothing dwhat eventId
   inputLabelIds <- mapM (\(InputEPC i) -> insertLabel (Just MU.Input) (SB.WhatId whatId) i) inputs
   outputLabelIds <- mapM (\(OutputEPC o) -> insertLabel (Just MU.Output) (SB.WhatId whatId) o) outputs

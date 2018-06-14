@@ -426,8 +426,8 @@ constructLocation whereT =
     (SB.where_sgln_ext whereT)
 
 
-insertEvent :: SB.UserId -> T.Text -> Event -> DB context err SB.PrimaryKeyType
-insertEvent userId jsonEvent event = withPKey $ \pKey ->
+insertEvent :: SB.UserId -> T.Text -> Event -> DB context err SB.EventId
+insertEvent userId jsonEvent event = fmap (SB.EventId <$>) withPKey $ \pKey ->
   pg $ B.runInsert $ B.insert (SB._events SB.supplyChainDb)
       $ insertValues [toStorageEvent (SB.EventId pKey) userId jsonEvent (_eid event)]
 
