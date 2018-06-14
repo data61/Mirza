@@ -1,6 +1,10 @@
 {-# LANGUAGE FlexibleContexts #-}
 -- | General utility functions used throughout the codebase
-module Mirza.SupplyChain.Utils where
+module Mirza.SupplyChain.Utils
+  (
+    toText
+  , notImplemented
+  ) where
 
 import qualified Data.Text as T
 import           GHC.Stack (HasCallStack)

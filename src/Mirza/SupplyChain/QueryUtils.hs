@@ -8,7 +8,31 @@
 -- functions that start with `insert` does some database operation
 -- functions that start with `to` converts between
 -- Model type and its Storage equivalent
-module Mirza.SupplyChain.QueryUtils where
+module Mirza.SupplyChain.QueryUtils
+  (
+    userTableToModel, storageToModelBusiness, storageToModelEvent
+  , verifyContact, isExistingContact
+  , generatePk
+  , onLocalTime , toLocalTime, toZonedTime, generateTimeStamp
+  , encodeEvent, decodeEvent
+  , eventTxtToBS
+  , doesUserOwnKey
+  , getKeyState
+  , epcToStorageLabel, getQuantityAmount, getQuantityUom, getAction
+  , findInstLabelId
+  , handleError
+  , withPKey
+  , getUser
+  , findClassLabelId
+  , findLabelId, getParentId
+  , toStorageDWhat, toStorageDWhen, toStorageDWhy, toStorageEvent
+  , insertDWhat, insertDWhen, insertDWhere, insertDWhy, insertEvent
+  , insertUserEvent, insertLabelEvent, insertLabel
+  , insertLocationEPC, insertSrcDestType
+  , insertWhatLabel
+  , findDWhere, findEvent, getEventList, getUserById, getKeyById
+  , hasUserCreatedEvent
+  ) where
 
 import           Mirza.SupplyChain.ErrorUtils   (throwBackendError)
 import qualified Mirza.SupplyChain.MigrateUtils as MU
