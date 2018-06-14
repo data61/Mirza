@@ -1,4 +1,11 @@
-module Mirza.SupplyChain.Handlers.Queries where
+{-# LANGUAGE MultiParamTypeClasses #-}
+
+module Mirza.SupplyChain.Handlers.Queries
+  (
+    epcState
+  , listEvents, eventInfo, eventList, eventUserList, eventsByUser
+  , eventUserSignedList
+  ) where
 
 
 

@@ -1,7 +1,12 @@
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
 
-{-# LANGUAGE ScopedTypeVariables #-}
+module Mirza.SupplyChain.Handlers.Signatures
+  (
+    addUserToEvent
+  , eventSign, getEventJSON, makeDigest, insertSignature, eventHashed
+  ) where
 
-module Mirza.SupplyChain.Handlers.Signatures where
 
 
 
@@ -47,10 +52,12 @@ addUserToEventQuery (EventOwner lUserId@(ST.UserID loggedInUserId))
                 evId@(EvId.EventId eventId) = do
   userCreatedEvent <- hasUserCreatedEvent lUserId evId
   if userCreatedEvent
-    then insertUserEvent eventId loggedInUserId otherUserId False Nothing
+    then insertUserEvent
+            (SB.EventId eventId)
+            (SB.UserId loggedInUserId)
+            (SB.UserId otherUserId)
+            False Nothing
     else throwing _EventPermissionDenied (lUserId, evId)
-
-
 
 {-
    The default padding is PKCS1-1.5, which is deprecated
