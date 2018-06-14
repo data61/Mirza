@@ -26,14 +26,16 @@ import qualified Data.GS1.Event                    as Ev
 
 
 
-insertObjectEvent :: SCSApp context err => ST.User -> ObjectEvent -> AppM context err (Ev.Event, SB.EventId)
+insertObjectEvent :: SCSApp context err => ST.User
+                  -> ObjectEvent
+                  -> AppM context err (Ev.Event, SB.EventId)
 insertObjectEvent user ob = runDb $ insertObjectEventQuery user ob
 
 insertObjectEventQuery :: ST.User
-                  -> ObjectEvent
-                  -> DB context err (Ev.Event, SB.EventId)
+                       -> ObjectEvent
+                       -> DB context err (Ev.Event, SB.EventId)
 insertObjectEventQuery
-  (ST.User (ST.UserID userId) _ _ )
+  (ST.User (ST.UserID tUserId) _ _ )
   (ObjectEvent
     foreignEventId
     act
@@ -42,6 +44,7 @@ insertObjectEventQuery
   ) = do
 
   let
+      userId = SB.UserId tUserId -- converting from model to storage UserId
       eventType = Ev.ObjectEventT
       dwhat =  ObjWhat $ ObjectDWhat act labelEpcs
       event = Ev.Event eventType foreignEventId dwhat dwhen dwhy dwhere
@@ -56,20 +59,22 @@ insertObjectEventQuery
   insertDWhere dwhere eventId
   insertUserEvent eventId userId userId False Nothing
   mapM_ (insertWhatLabel (SB.WhatId whatId)) labelIds
-  mapM_ (insertLabelEvent (SB.EventId eventId)) labelIds
+  mapM_ (insertLabelEvent eventId) labelIds
 
-  return (event, (SB.EventId eventId))
+  return (event, eventId)
 
 
 
-insertAggEvent :: SCSApp context err => ST.User -> AggregationEvent -> AppM context err (Ev.Event, SB.EventId)
+insertAggEvent :: SCSApp context err => ST.User
+               -> AggregationEvent
+               -> AppM context err (Ev.Event, SB.EventId)
 insertAggEvent user ev = runDb $ insertAggEventQuery user ev
 
 insertAggEventQuery :: ST.User
-               -> AggregationEvent
-               -> DB context err (Ev.Event, SB.EventId)
+                    -> AggregationEvent
+                    -> DB context err (Ev.Event, SB.EventId)
 insertAggEventQuery
-  (ST.User (ST.UserID userId) _ _ )
+  (ST.User (ST.UserID tUserId) _ _ )
   (AggregationEvent
     foreignEventId
     act
@@ -78,6 +83,7 @@ insertAggEventQuery
     dwhen dwhy dwhere
   ) = do
   let
+      userId = SB.UserId tUserId
       eventType = Ev.AggregationEventT
       dwhat =  AggWhat $ AggregationDWhat act mParentLabel labelEpcs
       event = Ev.Event eventType foreignEventId dwhat dwhen dwhy dwhere
@@ -93,21 +99,23 @@ insertAggEventQuery
   insertDWhere dwhere eventId
   insertUserEvent eventId userId userId False Nothing
   mapM_ (insertWhatLabel (SB.WhatId whatId)) labelIds
-  mapM_ (insertLabelEvent (SB.EventId eventId)) labelIds
+  mapM_ (insertLabelEvent eventId) labelIds
 
   -- FIXME: This should return the event as it has been inserted - the user has
   -- no idea what the ID for the transaction is so can't query it later.
-  return (event, (SB.EventId eventId))
+  return (event, eventId)
 
 
-insertTransactEvent :: SCSApp context err => ST.User -> TransactionEvent -> AppM context err (Ev.Event, SB.EventId)
+insertTransactEvent :: SCSApp context err => ST.User
+                    -> TransactionEvent
+                    -> AppM context err (Ev.Event, SB.EventId)
 insertTransactEvent user ev = runDb $ insertTransactEventQuery user ev
 
 insertTransactEventQuery :: ST.User
-                    -> TransactionEvent
-                    -> DB context err (Ev.Event, SB.EventId)
+                         -> TransactionEvent
+                         -> DB context err (Ev.Event, SB.EventId)
 insertTransactEventQuery
-  (ST.User (ST.UserID userId) _ _ )
+  (ST.User (ST.UserID tUserId) _ _ )
   (TransactionEvent
     foreignEventId
     act
@@ -118,6 +126,7 @@ insertTransactEventQuery
     dwhen dwhy dwhere
   ) = do
   let
+      userId = SB.UserId tUserId
       eventType = Ev.TransactionEventT
       dwhat =  TransactWhat $ TransactionDWhat act mParentLabel bizTransactions labelEpcs
       event = Ev.Event eventType foreignEventId dwhat dwhen dwhy dwhere
@@ -133,20 +142,22 @@ insertTransactEventQuery
   insertDWhere dwhere eventId
   insertUserEvent eventId userId userId False Nothing
   mapM_ (insertWhatLabel (SB.WhatId whatId)) labelIds
-  mapM_ (insertLabelEvent (SB.EventId eventId)) labelIds
+  mapM_ (insertLabelEvent eventId) labelIds
 
-  return (event, (SB.EventId eventId))
+  return (event, eventId)
 
 
 
-insertTransfEvent :: SCSApp context err => ST.User -> TransformationEvent -> AppM context err (Ev.Event, SB.EventId)
+insertTransfEvent :: SCSApp context err => ST.User
+                  -> TransformationEvent
+                  -> AppM context err (Ev.Event, SB.EventId)
 insertTransfEvent user ev = runDb $ insertTransfEventQuery user ev
 
 insertTransfEventQuery :: ST.User
-                  -> TransformationEvent
-                  -> DB context err (Ev.Event, SB.EventId)
+                       -> TransformationEvent
+                       -> DB context err (Ev.Event, SB.EventId)
 insertTransfEventQuery
-  (ST.User (ST.UserID userId) _ _ )
+  (ST.User (ST.UserID tUserId) _ _ )
   (TransformationEvent
     foreignEventId
     mTransfId
@@ -155,6 +166,7 @@ insertTransfEventQuery
     dwhen dwhy dwhere
   ) = do
   let
+      userId = SB.UserId tUserId
       eventType = Ev.TransformationEventT
       dwhat =  TransformWhat $ TransformationDWhat mTransfId inputs outputs
       event = Ev.Event eventType foreignEventId dwhat dwhen dwhy dwhere
@@ -170,6 +182,6 @@ insertTransfEventQuery
   insertDWhere dwhere eventId
   insertUserEvent eventId userId userId False Nothing
   mapM_ (insertWhatLabel (SB.WhatId whatId)) labelIds
-  mapM_ (insertLabelEvent (SB.EventId eventId)) labelIds
+  mapM_ (insertLabelEvent eventId) labelIds
 
-  return (event, (SB.EventId eventId))
+  return (event, eventId)
