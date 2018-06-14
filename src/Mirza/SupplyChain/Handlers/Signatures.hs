@@ -12,7 +12,6 @@ module Mirza.SupplyChain.Handlers.Signatures
 import           Mirza.SupplyChain.Handlers.Common
 
 import           Mirza.SupplyChain.ErrorUtils      (throwAppError)
--- import           Mirza.SupplyChain.Handlers.Business (getPublicKey)
 import           Mirza.SupplyChain.QueryUtils
 import qualified Mirza.SupplyChain.StorageBeam     as SB
 import           Mirza.SupplyChain.Types           hiding (KeyInfo (..),
