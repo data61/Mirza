@@ -1,6 +1,12 @@
 
 -- | Module containing functions to run the migration function
-module Mirza.SupplyChain.Migrate where
+module Mirza.SupplyChain.Migrate
+  (
+    defConnectionStr
+  , testDbConnStr
+  , migrate
+  , tryCreateSchema
+  ) where
 
 import           Mirza.SupplyChain.MigrateScript (migrationStorage)
 

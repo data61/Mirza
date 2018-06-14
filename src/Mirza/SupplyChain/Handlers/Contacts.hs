@@ -1,4 +1,13 @@
-module Mirza.SupplyChain.Handlers.Contacts where
+{-# LANGUAGE MultiParamTypeClasses #-}
+
+module Mirza.SupplyChain.Handlers.Contacts
+  (
+    listContacts
+  , addContact
+  , removeContact
+  , contactsSearch
+  , userSearch
+  ) where
 
 
 
