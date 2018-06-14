@@ -4,8 +4,9 @@
 
 module Mirza.BusinessRegistry.Main where
 
+
 import           Mirza.BusinessRegistry.Types as BT
-import           Mirza.SupplyChain.API
+import           Mirza.SupplyChain.API        (API, ServerAPI, api)
 import           Mirza.SupplyChain.Auth
 import           Mirza.SupplyChain.Migrate    (defConnectionStr, migrate)
 import           Mirza.SupplyChain.Service

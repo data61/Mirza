@@ -1,8 +1,12 @@
-
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 
-module Mirza.SupplyChain.Handlers.Signatures where
+module Mirza.SupplyChain.Handlers.Signatures
+  (
+    addUserToEvent
+  , eventSign, getEventJSON, makeDigest, insertSignature, eventHashed
+  ) where
+
 
 
 

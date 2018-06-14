@@ -1,8 +1,12 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 
-module Mirza.SupplyChain.Handlers.EventRegistration where
-
-
+module Mirza.SupplyChain.Handlers.EventRegistration
+  (
+    insertAggEvent
+  , insertObjectEvent
+  , insertTransactEvent
+  , insertTransfEvent
+  ) where
 
 import           Mirza.SupplyChain.Handlers.Common
 

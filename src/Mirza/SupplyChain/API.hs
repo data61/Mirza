@@ -9,7 +9,15 @@
 {-# OPTIONS_GHC -fno-warn-orphans  #-}
 {-# LANGUAGE DataKinds             #-}
 
-module Mirza.SupplyChain.API where
+module Mirza.SupplyChain.API
+  (
+    serverAPI
+  , ServerAPI
+  , PublicAPI
+  , PrivateAPI
+  , ProtectedAPI
+  , API, api
+  ) where
 
 import qualified Mirza.SupplyChain.StorageBeam as SB
 
@@ -23,8 +31,6 @@ import           Data.Time.Clock               (UTCTime)
 import           Servant
 import           Servant.API.Flatten
 import           Servant.Swagger.UI
-
-
 
 type API
     -- this serves both: swagger.json and swagger-ui
