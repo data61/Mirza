@@ -37,8 +37,6 @@ import           Servant
 import           Test.Hspec
 
 import qualified Crypto.Scrypt                                as Scrypt
--- NOTE in this file, where fromJust is used in the tests, it is because we expect a Just... this is part of the test
--- NOTE tables dropped after every running of test in an "it"
 
 timeStampIO :: MonadIO m => m LocalTime
 timeStampIO = liftIO $ (utcToLocalTime utc) <$> getCurrentTime
@@ -330,7 +328,7 @@ testQueries = do
 
   describe "DWhere" $
     it "Insert and find DWhere" $ \scsContext -> do
-      let eventId = dummyId
+      let eventId = SB.EventId dummyId
       insertedDWhere <- testAppM scsContext $ do
         void $ runDb $ insertDWhere dummyDWhere eventId
         runDb $ findDWhere eventId
