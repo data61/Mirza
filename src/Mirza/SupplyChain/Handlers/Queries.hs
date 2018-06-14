@@ -10,23 +10,32 @@ module Mirza.SupplyChain.Handlers.Queries
 
 
 import           Mirza.SupplyChain.Handlers.Common
+import           Mirza.SupplyChain.Handlers.EventRegistration (findEvent,
+                                                               findLabelId,
+                                                               getEventList,
+                                                               hasUserCreatedEvent,
+                                                               insertUserEvent)
+import           Mirza.SupplyChain.Handlers.Users             (userTableToModel)
 
-import           Mirza.SupplyChain.ErrorUtils      (throwParseError)
+import           Mirza.SupplyChain.ErrorUtils                 (throwParseError)
 import           Mirza.SupplyChain.QueryUtils
-import qualified Mirza.SupplyChain.StorageBeam     as SB
-import           Mirza.SupplyChain.Types           hiding (KeyInfo (..),
-                                                    NewUser (..), User (..))
-import qualified Mirza.SupplyChain.Types           as ST
-import qualified Mirza.SupplyChain.Utils           as U
+import qualified Mirza.SupplyChain.StorageBeam                as SB
+import           Mirza.SupplyChain.Types                      hiding
+                                                               (KeyInfo (..),
+                                                               NewUser (..),
+                                                               User (..))
+import qualified Mirza.SupplyChain.Types                      as ST
+import qualified Mirza.SupplyChain.Utils                      as U
 
-import           Data.GS1.DWhat                    (LabelEPC (..), urn2LabelEPC)
-import qualified Data.GS1.Event                    as Ev
-import           Data.GS1.EventId                  as EvId
+import           Data.GS1.DWhat                               (LabelEPC (..),
+                                                               urn2LabelEPC)
+import qualified Data.GS1.Event                               as Ev
+import           Data.GS1.EventId                             as EvId
 
-import           Database.Beam                     as B
+import           Database.Beam                                as B
 
-import           Data.Bifunctor                    (bimap)
-import           Data.Maybe                        (catMaybes)
+import           Data.Bifunctor                               (bimap)
+import           Data.Maybe                                   (catMaybes)
 
 
 
@@ -34,7 +43,6 @@ import           Data.Maybe                        (catMaybes)
 -- Use getLabelIDState
 epcState :: ST.User ->  LabelEPCUrn -> AppM context err EPCState
 epcState _user _str = U.notImplemented
-
 
 
 -- This takes an EPC urn,
@@ -97,3 +105,6 @@ eventUserSignedList (EvId.EventId eventId) = do
     guard_ (SB.user_events_user_id userEvent `references_` user)
     pure (user, SB.user_events_has_signed userEvent)
   return $ bimap userTableToModel id <$> usersSignedList
+
+
+-- Helper functions
