@@ -137,13 +137,13 @@ testServiceQueries = do
     it "Already expired AND revoked pub key" $ \scsContext -> do
       nowish <- getCurrentTime
       let hundredMinutes = 100 * 60
-          yesterday = addUTCTime (-hundredMinutes) nowish
+          someTimeAgo = addUTCTime (-hundredMinutes) nowish
       pubKey <- rsaPubKey
       myKeyState <- testAppM scsContext $ do
         uid <- newUser dummyNewUser
         storageUser <- runDb $ getUserById uid
         let user = userTableToModel . fromJust $ storageUser
-        keyId <- addPublicKey user pubKey (Just . ExpirationTime $ yesterday )
+        keyId <- addPublicKey user pubKey (Just . ExpirationTime $ someTimeAgo )
         _timeKeyRevoked <- revokePublicKey user keyId
         keyInfo <- getPublicKeyInfo keyId
         pure (keyState keyInfo)
@@ -152,13 +152,13 @@ testServiceQueries = do
     it "Expired but NOT revoked pub key" $ \scsContext -> do
       nowish <- getCurrentTime
       let hundredMinutes = 100 * 60
-          yesterday = addUTCTime (-hundredMinutes) nowish
+          someTimeAgo = addUTCTime (-hundredMinutes) nowish
       pubKey <- rsaPubKey
       myKeyState <- testAppM scsContext $ do
         uid <- newUser dummyNewUser
         storageUser <- runDb $ getUserById uid
         let user = userTableToModel . fromJust $ storageUser
-        keyId <- addPublicKey user pubKey (Just . ExpirationTime $ yesterday )
+        keyId <- addPublicKey user pubKey (Just . ExpirationTime $ someTimeAgo )
         keyInfo <- getPublicKeyInfo keyId
         pure (keyState keyInfo)
       myKeyState `shouldBe` Expired
