@@ -7,6 +7,7 @@ module Mirza.SupplyChain.Handlers.Business
   , checkPubKey
   , addPublicKey
   , listBusinesses
+  , getKeyById
   ) where
 
 
@@ -75,7 +76,7 @@ getPublicKeyInfoQuery (KeyID keyId) = do
        return $ ST.KeyInfo (ST.UserID uId)
                 (QU.onLocalTime CreationTime creationTime)
                 (QU.onLocalTime RevocationTime <$> revocationTime)
-                (QU.getKeyState currTime
+                (getKeyState currTime
                     (QU.onLocalTime RevocationTime <$> revocationTime)
                     ((QU.onLocalTime ExpirationTime <$> mExpTime))
                 )
@@ -152,7 +153,7 @@ isKeyRevoked k = do
 
 revokePublicKeyQuery :: AsServiceError err => ST.UserID -> KeyID -> DB context err UTCTime
 revokePublicKeyQuery userId k@(KeyID keyId) = do
-  userOwnsKey <- QU.doesUserOwnKey userId k
+  userOwnsKey <- doesUserOwnKey userId k
   unless userOwnsKey $ throwing_ _UnauthorisedKeyAccess
   keyRevoked <- isKeyRevoked k
   when keyRevoked $ throwing_ _KeyAlreadyRevoked
@@ -163,4 +164,46 @@ revokePublicKeyQuery userId k@(KeyID keyId) = do
                 (\key -> SB.key_id key ==. (val_ keyId))
   return $ QU.onLocalTime id timeStamp
 
+
+
+-- Helper functions
+
+doesUserOwnKey :: AsServiceError err => ST.UserID -> ST.KeyID -> DB context err Bool
+doesUserOwnKey (ST.UserID userId) (ST.KeyID keyId) = do
+  r <- pg $ runSelectReturningList $ select $ do
+          key <- all_ (SB._keys SB.supplyChainDb)
+          guard_ (SB.key_id key ==. val_ keyId)
+          guard_ (val_ (SB.UserId userId) ==. (SB.key_user_id key))
+          pure key
+  return $ case r of
+    [_key] -> True
+    _      -> False
+
+getKeyById :: ST.KeyID -> DB context err (Maybe SB.Key)
+getKeyById (ST.KeyID keyId) = do
+  r <- pg $ runSelectReturningList $ select $ do
+          key <- all_ (SB._keys SB.supplyChainDb)
+          guard_ (SB.key_id key ==. val_ keyId)
+          pure key
+  case r of
+    [key] -> return $ Just key
+    _     -> return Nothing
+
+
+getKeyState :: UTCTime
+            -> Maybe ST.RevocationTime
+            -> Maybe ST.ExpirationTime
+            -> ST.KeyState
+-- order of precedence - Revoked > Expired
+getKeyState currTime (Just (ST.RevocationTime rTime)) (Just (ST.ExpirationTime eTime))
+  | currTime > rTime = ST.Revoked
+  | currTime > eTime = ST.Expired
+  | otherwise        = ST.InEffect
+getKeyState currTime Nothing (Just (ST.ExpirationTime eTime))
+  | currTime > eTime = ST.Expired
+  | otherwise        = ST.InEffect
+getKeyState currTime (Just (ST.RevocationTime rTime)) Nothing
+  | currTime > rTime = ST.Revoked
+  | otherwise        = ST.InEffect
+getKeyState _ Nothing Nothing = ST.InEffect
 
