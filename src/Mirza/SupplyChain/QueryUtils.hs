@@ -19,49 +19,31 @@ module Mirza.SupplyChain.QueryUtils
   , withPKey
   ) where
 
-import           Mirza.SupplyChain.ErrorUtils   (throwBackendError)
-import qualified Mirza.SupplyChain.MigrateUtils as MU
-import qualified Mirza.SupplyChain.StorageBeam  as SB
-import           Mirza.SupplyChain.Types        hiding (Business (..),
-                                                 User (..))
-import qualified Mirza.SupplyChain.Types        as ST
+import qualified Mirza.SupplyChain.StorageBeam as SB
+import           Mirza.SupplyChain.Types       hiding (Business (..), User (..))
+import qualified Mirza.SupplyChain.Types       as ST
 
-import           Data.GS1.DWhy                  (DWhy (..))
-import           Data.GS1.EPC                   as EPC
-import           Data.GS1.Event                 (Event (..))
-import qualified Data.GS1.Event                 as Ev
-import qualified Data.GS1.EventId               as EvId
+import           Data.GS1.EPC                  as EPC
+import           Data.GS1.Event                (Event (..))
+import qualified Data.GS1.Event                as Ev
 
-import           Control.Monad.IO.Class         (liftIO)
-import           Data.Aeson                     (decode)
-import           Data.Aeson.Text                (encodeToLazyText)
-import           Data.ByteString                (ByteString)
-import           Data.GS1.DWhat                 (AggregationDWhat (..),
-                                                 DWhat (..), LabelEPC (..),
-                                                 ObjectDWhat (..),
-                                                 ParentLabel (..),
-                                                 TransactionDWhat (..),
-                                                 TransformationDWhat (..))
-import           Data.GS1.DWhen                 (DWhen (..))
-import           Data.GS1.DWhere                (BizLocation (..), DWhere (..),
-                                                 ReadPointLocation (..),
-                                                 SrcDestLocation (..))
-import           Data.Maybe                     (catMaybes)
-import qualified Data.Text                      as T
-import qualified Data.Text.Encoding             as En
-import qualified Data.Text.Lazy                 as TxtL
-import qualified Data.Text.Lazy.Encoding        as LEn
-import           Data.Time                      (UTCTime, ZonedTime (..),
-                                                 utcToZonedTime)
-import           Data.Time.Clock                (getCurrentTime)
-import           Data.Time.LocalTime            (LocalTime, localTimeToUTC,
-                                                 timeZoneOffsetString, utc,
-                                                 utcToLocalTime)
-import           Data.UUID.V4                   (nextRandom)
-import           Database.Beam                  as B
+import           Control.Monad.IO.Class        (liftIO)
+import           Data.Aeson                    (decode)
+import           Data.Aeson.Text               (encodeToLazyText)
+import           Data.ByteString               (ByteString)
+import qualified Data.Text                     as T
+import qualified Data.Text.Encoding            as En
+import qualified Data.Text.Lazy                as TxtL
+import qualified Data.Text.Lazy.Encoding       as LEn
+import           Data.Time                     (UTCTime, ZonedTime (..),
+                                                utcToZonedTime)
+import           Data.Time.Clock               (getCurrentTime)
+import           Data.Time.LocalTime           (LocalTime, localTimeToUTC, utc,
+                                                utcToLocalTime)
+import           Data.UUID.V4                  (nextRandom)
+import           Database.Beam                 as B
 
-import           Control.Monad                  (void)
-import           Control.Monad.Except           (MonadError, catchError)
+import           Control.Monad.Except          (MonadError, catchError)
 
 
 -- | Reads back the ``LocalTime`` in UTCTime (with an offset of 0)
