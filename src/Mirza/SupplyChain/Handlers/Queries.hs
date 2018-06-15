@@ -12,9 +12,7 @@ module Mirza.SupplyChain.Handlers.Queries
 import           Mirza.SupplyChain.Handlers.Common
 import           Mirza.SupplyChain.Handlers.EventRegistration (findEvent,
                                                                findLabelId,
-                                                               getEventList,
-                                                               hasUserCreatedEvent,
-                                                               insertUserEvent)
+                                                               getEventList)
 import           Mirza.SupplyChain.Handlers.Users             (userTableToModel)
 
 import           Mirza.SupplyChain.ErrorUtils                 (throwParseError)
@@ -39,7 +37,6 @@ import           Data.Maybe                                   (catMaybes)
 
 
 
--- PSUEDO:
 -- Use getLabelIDState
 epcState :: ST.User ->  LabelEPCUrn -> AppM context err EPCState
 epcState _user _str = U.notImplemented
@@ -48,10 +45,6 @@ epcState _user _str = U.notImplemented
 -- This takes an EPC urn,
 -- and looks up all the events related to that item. First we've got
 -- to find all the related "Whats"
--- PSEUDO:
--- (labelID, _) <- getLabelIDState
--- wholeEvents <- select * from events, dwhats, dwhy, dwhen where _whatItemID=labelID AND _eventID=_whatEventID AND _eventID=_whenEventID AND _eventID=_whyEventID ORDER BY _eventTime;
--- return map constructEvent wholeEvents
 listEvents ::  SCSApp context err => ST.User ->  LabelEPCUrn -> AppM context err [Ev.Event]
 listEvents _user = either throwParseError (runDb . listEventsQuery) . urn2LabelEPC . unLabelEPCUrn
 

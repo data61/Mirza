@@ -6,7 +6,7 @@ module Mirza.SupplyChain.Handlers.Contacts
     listContacts
   , addContact
   , removeContact
-  , contactsSearch
+  , contactsSearch, isExistingContact
   , userSearch
   ) where
 
