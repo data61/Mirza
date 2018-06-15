@@ -12,6 +12,8 @@ module Mirza.SupplyChain.Handlers.EventRegistration
   , findEvent
   , findLabelId
   , getEventList
+  , getUser, getUserById
+  , insertDWhere, findDWhere
   ) where
 
 import           Mirza.SupplyChain.Handlers.Common
@@ -26,7 +28,6 @@ import qualified Mirza.SupplyChain.Types           as ST
 import qualified Mirza.SupplyChain.QueryUtils      as QU
 
 
-import           Data.GS1.DWhy                     (DWhy (..))
 import           Data.GS1.EPC                      as EPC
 import           Data.GS1.Event                    (Event (..))
 import qualified Data.GS1.Event                    as Ev
@@ -45,6 +46,7 @@ import           Data.GS1.DWhere                   (BizLocation (..),
                                                     DWhere (..),
                                                     ReadPointLocation (..),
                                                     SrcDestLocation (..))
+import           Data.GS1.DWhy                     (DWhy (..))
 
 import           Data.Maybe                        (catMaybes)
 
