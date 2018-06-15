@@ -32,13 +32,12 @@ import           OpenSSL.RSA                       (RSAPubKey)
 
 import           Control.Lens                      hiding ((.=))
 import           Control.Monad.Error.Hoist         ((<!?>), (<%?>))
+
 import qualified Data.ByteString.Base64            as BS64
 import qualified Data.ByteString.Char8             as BSC
 import           Data.Char                         (toLower)
 import           Data.Text                         (pack)
 import qualified Data.Text                         as T
-
-
 
 -- | A function to tie a user to an event
 -- Populates the ``UserEvents`` table
