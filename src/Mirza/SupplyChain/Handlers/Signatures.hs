@@ -11,33 +11,38 @@ module Mirza.SupplyChain.Handlers.Signatures
 
 
 import           Mirza.SupplyChain.Handlers.Common
+import           Mirza.SupplyChain.Handlers.EventRegistration (hasUserCreatedEvent,
+                                                               insertUserEvent)
 
-import           Mirza.SupplyChain.ErrorUtils      (throwAppError)
-import           Mirza.SupplyChain.QueryUtils
-import qualified Mirza.SupplyChain.StorageBeam     as SB
-import           Mirza.SupplyChain.Types           hiding (KeyInfo (..),
-                                                    NewUser (..), User (userId),
-                                                    UserID)
-import qualified Mirza.SupplyChain.Types           as ST
+import           Mirza.SupplyChain.ErrorUtils                 (throwAppError)
+import qualified Mirza.SupplyChain.QueryUtils                 as QU
+import qualified Mirza.SupplyChain.StorageBeam                as SB
+import           Mirza.SupplyChain.Types                      hiding
+                                                               (KeyInfo (..),
+                                                               NewUser (..),
+                                                               User (userId),
+                                                               UserID)
+import qualified Mirza.SupplyChain.Types                      as ST
 
-import qualified Data.GS1.EventId                  as EvId
+import qualified Data.GS1.EventId                             as EvId
 
-import           Database.Beam                     as B
+import           Database.Beam                                as B
 
-import qualified OpenSSL.EVP.Digest                as EVPDigest
-import           OpenSSL.EVP.PKey                  (toPublicKey)
-import           OpenSSL.EVP.Verify                (VerifyStatus (..), verifyBS)
-import           OpenSSL.PEM                       (readPublicKey)
-import           OpenSSL.RSA                       (RSAPubKey)
+import qualified OpenSSL.EVP.Digest                           as EVPDigest
+import           OpenSSL.EVP.PKey                             (toPublicKey)
+import           OpenSSL.EVP.Verify                           (VerifyStatus (..),
+                                                               verifyBS)
+import           OpenSSL.PEM                                  (readPublicKey)
+import           OpenSSL.RSA                                  (RSAPubKey)
 
-import           Control.Lens                      hiding ((.=))
-import           Control.Monad.Error.Hoist         ((<!?>), (<%?>))
+import           Control.Lens                                 hiding ((.=))
+import           Control.Monad.Error.Hoist                    ((<!?>), (<%?>))
 
-import qualified Data.ByteString.Base64            as BS64
-import qualified Data.ByteString.Char8             as BSC
-import           Data.Char                         (toLower)
-import           Data.Text                         (pack)
-import qualified Data.Text                         as T
+import qualified Data.ByteString.Base64                       as BS64
+import qualified Data.ByteString.Char8                        as BSC
+import           Data.Char                                    (toLower)
+import           Data.Text                                    (pack)
+import qualified Data.Text                                    as T
 
 -- | A function to tie a user to an event
 -- Populates the ``UserEvents`` table
@@ -82,7 +87,7 @@ eventSign _user (SignedEvent eventID keyID (Signature sigStr) digest') = runDb $
   sigBS <- BS64.decode (BSC.pack sigStr) <%?> review _InvalidSignature
   let (PEMString keyStr) = rsaPublicKey
   (pubKey :: RSAPubKey) <- liftIO (toPublicKey <$> readPublicKey keyStr) <!?> review _InvalidRSAKeyInDB (pack keyStr)
-  let eventBS = eventTxtToBS event
+  let eventBS = QU.eventTxtToBS event
   digest <- liftIO (makeDigest digest') <!?> review _InvalidDigest digest'
   verifyStatus <- liftIO $ verifyBS digest sigBS pubKey eventBS
   if verifyStatus == VerifySuccess

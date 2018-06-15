@@ -18,7 +18,6 @@ import           Mirza.SupplyChain.Handlers.EventRegistration
 import           Mirza.SupplyChain.Handlers.Queries
 import           Mirza.SupplyChain.Handlers.Users
 import           Mirza.SupplyChain.Migrate                    (testDbConnStr)
-import           Mirza.SupplyChain.QueryUtils
 import qualified Mirza.SupplyChain.StorageBeam                as SB
 import           Mirza.SupplyChain.Types
 
