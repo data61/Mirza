@@ -20,6 +20,7 @@ library
   hs-source-dirs:     src
   exposed-modules:    Mirza.BusinessRegistry.Main
                     , Mirza.BusinessRegistry.Types
+                    , Mirza.Common.Beam
                     , Mirza.Common.Types
                     , Mirza.SupplyChain.API
                     , Mirza.SupplyChain.Auth
