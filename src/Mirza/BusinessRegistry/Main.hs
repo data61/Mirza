@@ -214,6 +214,6 @@ server' ev =
   swaggerSchemaUIServer serveSwaggerAPI
   :<|> hoistServerWithContext
         (Proxy @ServerAPI)
-        (Proxy @'[BasicAuthCheck BT.User])
+        (Proxy @'[BasicAuthCheck BT.AuthUser])
         (appMToHandler ev)
         (appHandlers @BRContext @AppError)

@@ -29,14 +29,14 @@ import           Data.Text.Encoding           (decodeUtf8)
 -- tagged with "foo-tag" This context is then supplied to 'server' and threaded
 -- to the BasicAuth HasServer handlers.
 basicAuthServerContext :: (HasScryptParams context, DBConstraint context ServiceError)
-                       => context  -> Servant.Context '[BasicAuthCheck BT.User]
+                       => context  -> Servant.Context '[BasicAuthCheck BT.AuthUser]
 basicAuthServerContext context = authCheck context :. EmptyContext
 
 
 -- 'BasicAuthCheck' holds the handler we'll use to verify a username and password.
 -- authCheck :: SCSContext -> BasicAuthCheck ST.User
 authCheck :: (HasScryptParams context, DBConstraint context ServiceError)
-          => context -> BasicAuthCheck BT.User
-authCheck context = BasicAuthCheck (\ basicAuthData -> pure (Authorized (BT.User ())))
+          => context -> BasicAuthCheck BT.AuthUser
+authCheck context = BasicAuthCheck (\ basicAuthData -> pure (Authorized (BT.AuthUser undefined)))
 
 

@@ -9,21 +9,24 @@ module Mirza.BusinessRegistry.Types where
 
 import           Mirza.Common.Types
 
+import           Mirza.BusinessRegistry.StorageBeam
 
-import           Data.Pool                  as Pool
-import           Database.PostgreSQL.Simple (Connection)
+import           Data.Pool                          as Pool
+import           Database.PostgreSQL.Simple         (Connection)
 
-import           Crypto.Scrypt              (ScryptParams)
+import           Crypto.Scrypt                      (ScryptParams)
 
 import           Control.Lens.TH
 
-import           Katip                      as K
+import           Katip                              as K
 
 import           Data.Aeson
 import           Data.Swagger
-import           GHC.Generics               (Generic)
-import           Servant                    (FromHttpApiData, ToHttpApiData)
+import           GHC.Generics                       (Generic)
+import           Servant                            (FromHttpApiData,
+                                                     ToHttpApiData)
 
+import           Control.Monad.Identity
 
 
 data BRContext = BRContext
@@ -71,12 +74,12 @@ instance ToParamSchema PEM_RSAPubKey
 instance FromHttpApiData PEM_RSAPubKey
 instance ToHttpApiData PEM_RSAPubKey
 
-newtype Business = Business ()
+newtype BusinessResponse = BusinessResponse()
   deriving (Generic, ToJSON, FromJSON)
-instance ToSchema Business
-instance ToParamSchema Business
-instance FromHttpApiData Business
-instance ToHttpApiData Business
+instance ToSchema BusinessResponse
+instance ToParamSchema BusinessResponse
+instance FromHttpApiData BusinessResponse
+instance ToHttpApiData BusinessResponse
 
 newtype KeyInfo = KeyInfo ()
   deriving (Generic, ToJSON, FromJSON)
@@ -85,9 +88,15 @@ instance ToParamSchema KeyInfo
 instance FromHttpApiData KeyInfo
 instance ToHttpApiData KeyInfo
 
-newtype User = User ()
-  deriving (Generic, ToJSON, FromJSON)
-instance ToSchema User
-instance ToParamSchema User
-instance FromHttpApiData User
-instance ToHttpApiData User
+type UserID = PrimaryKey UserT Identity
+instance ToSchema UserID
+instance ToParamSchema UserID
+
+newtype AuthUser = AuthUser {
+  userId        :: UserID
+  }
+  deriving (Generic)
+instance ToSchema AuthUser
+instance ToParamSchema AuthUser
+instance FromHttpApiData AuthUser
+instance ToHttpApiData AuthUser

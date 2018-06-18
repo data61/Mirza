@@ -38,7 +38,7 @@ api = Proxy
 
 
 type ServerAPI = PublicAPI :<|> ProtectedAPI
-type ProtectedAPI = Flat (BasicAuth "foo-realm" User :> PrivateAPI)
+type ProtectedAPI = Flat (BasicAuth "foo-realm" AuthUser :> PrivateAPI)
 
 serverAPI :: Proxy ServerAPI
 serverAPI = Proxy
@@ -48,7 +48,7 @@ type PublicAPI =
   -- Business
          "key"      :> "get"                  :> Capture "keyID" KeyID                                          :> Get '[JSON] PEM_RSAPubKey
     :<|> "key"      :> "getInfo"              :> Capture "keyID" KeyID                                          :> Get '[JSON] KeyInfo
-    :<|> "business" :> "list"                                                                                   :> Get '[JSON] [Business]
+    :<|> "business" :> "list"                                                                                   :> Get '[JSON] [BusinessResponse]
 
 
 type PrivateAPI =

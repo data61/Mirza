@@ -44,16 +44,16 @@ getPublicKeyInfo = notImplemented
 
 
 -- select * from Business;
-listBusinesses :: BRApp context err => AppM context err [Business]
+listBusinesses :: BRApp context err => AppM context err [BusinessResponse]
 listBusinesses = notImplemented
 
 
-addPublicKey :: BRApp context err => BT.User
+addPublicKey :: BRApp context err => BT.AuthUser
              -> PEM_RSAPubKey
              -> Maybe ExpirationTime
              -> AppM context err KeyID
 addPublicKey = notImplemented
 
 
-revokePublicKey :: BRApp context err => BT.User -> KeyID -> AppM context err UTCTime
+revokePublicKey :: BRApp context err => BT.AuthUser -> KeyID -> AppM context err UTCTime
 revokePublicKey = notImplemented

@@ -21,7 +21,6 @@ import qualified Data.GS1.Event         as Ev
 import           Control.Lens
 import           Data.Aeson             (FromJSON, ToJSON)
 import           Data.ByteString        (ByteString)
-import           Data.Swagger           (ToSchema)
 import           Data.Text              (Text)
 
 import           Data.Time              (LocalTime)
@@ -30,7 +29,12 @@ import           Data.UUID              (UUID)
 import           Database.Beam          as B
 import           Database.Beam.Postgres
 
+import           Data.Swagger           (ToParamSchema, ToSchema)
+import           Servant
 
+
+
+-- Table types and constructors are suffixed with T (for Table).
 
 data BusinessRegistryDB f = BusinessRegistryDB
   { _users      :: f (TableEntity UserT)
@@ -71,7 +75,7 @@ supplyChainDb = defaultDbSettings
 
 type PrimaryKeyType = UUID
 
-data UserT f = User
+data UserT f = UserT
   { user_id       :: C f PrimaryKeyType
   , user_biz_id   :: PrimaryKey BusinessT f
   , first_name    :: C f Text
@@ -96,7 +100,7 @@ instance Table UserT where
   primaryKey = UserId . user_id
 deriving instance Eq (PrimaryKey UserT Identity)
 
-data KeyT f = Key
+data KeyT f = KeyT
   { key_id          :: C f PrimaryKeyType
   , key_user_id     :: PrimaryKey UserT f
   , pem_str         :: C f Text
@@ -121,7 +125,7 @@ deriving instance Eq (PrimaryKey KeyT Identity)
 
 -- CBV-Standard-1-2-r-2016-09-29.pdf Page 11
 
-data BusinessT f = Business
+data BusinessT f = BusinessT
   { biz_gs1_company_prefix :: C f EPC.GS1CompanyPrefix -- PrimaryKey
   , biz_name               :: C f Text
   , biz_function           :: C f Text

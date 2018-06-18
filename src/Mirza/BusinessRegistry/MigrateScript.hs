@@ -45,7 +45,7 @@ migrationStorage () =
   BusinessRegistryDB
     <$> createTable "users"
     (
-      User
+      UserT
           (field "user_id" pkSerialType)
           (BizId (field "user_biz_id" gs1CompanyPrefixType))
           (field "first_name" (varchar (Just maxLen)) notNull)
@@ -56,7 +56,7 @@ migrationStorage () =
     )
     <*> createTable "keys"
     (
-      Key
+      KeyT
           (field "key_id" pkSerialType)
           (UserId (field "key_user_id" pkSerialType))
           (field "pem_str" text)
@@ -66,7 +66,7 @@ migrationStorage () =
     )
     <*> createTable "businesses"
       (
-        Business
+        BusinessT
             (field "biz_gs1_company_prefix" gs1CompanyPrefixType) -- note is primary key
             (field "biz_name" (varchar (Just maxLen)) notNull)
             (field "biz_function" (varchar (Just maxLen)) notNull)
