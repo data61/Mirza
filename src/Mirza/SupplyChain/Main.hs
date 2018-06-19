@@ -6,7 +6,8 @@ module Mirza.SupplyChain.Main where
 
 import           Mirza.SupplyChain.API
 import           Mirza.SupplyChain.Auth
-import           Mirza.SupplyChain.Migrate  (defConnectionStr, migrate)
+import           Mirza.SupplyChain.Migrate  (dbNameToConnStr, defaultDbName,
+                                             migrate)
 import           Mirza.SupplyChain.Service
 import           Mirza.SupplyChain.Types    (AppError, EnvType (..),
                                              SCSContext (..), User)
@@ -61,10 +62,10 @@ serverOptions = ServerOptions
     --       ( long "clear-db"
     --      <> short 'e'
     --      <> help "Erase the database - DROP ALL TABLES" )
-      <*> option auto
-          ( long "conn" <> short 'c' <> showDefault
-          <> help "database connection string"
-          <> value defConnectionStr)
+      <*> strOption
+          ( long "database" <> short 'd' <> showDefault
+          <> help "Database name"
+          <> value defaultDbName)
        <*> option auto
           ( long "port" <> short 'p' <> showDefault <> value 8000
           <> help "Port to run database on"
@@ -106,15 +107,14 @@ runProgram so@ServerOptions{initDB = False, port} = do
   mids <- initMiddleware so
   putStrLn $ "http://localhost:" ++ show port ++ "/swagger-ui/"
   Warp.run (fromIntegral port) (mids app) `finally` closeScribes (ctx ^. ST.scsKatipLogEnv)
--- FIXME: This is definitely wrong
-runProgram _ = migrate defConnectionStr
+runProgram so = migrate $ dbNameToConnStr (connectionStr so)
 
 initMiddleware :: ServerOptions -> IO Middleware
 initMiddleware _ = pure id
 
 
 initSCSContext :: ServerOptions -> IO ST.SCSContext
-initSCSContext (ServerOptions envT _ dbConnStr _ n p r lev) = do
+initSCSContext (ServerOptions envT _ dbName _ n p r lev) = do
   handleScribe <- mkHandleScribe ColorIfTerminal stdout lev V3
   logEnv <- initLogEnv "supplyChainServer" (Environment . pack . show $ envT)
             >>= registerScribe "stdout" handleScribe defaultScribeSettings
@@ -123,7 +123,7 @@ initSCSContext (ServerOptions envT _ dbConnStr _ n p r lev) = do
     Nothing -> do
       putStrLn $ "Invalid Scrypt params:" ++ show (n,p,r) ++ " using defaults"
       pure Scrypt.defaultParams
-  connpool <- Pool.createPool (connectPostgreSQL dbConnStr) close
+  connpool <- Pool.createPool (connectPostgreSQL (dbNameToConnStr dbName)) close
                       1 -- Number of "sub-pools",
                       60 -- How long in seconds to keep a connection open for reuse
                       10 -- Max number of connections to have open at any one time
