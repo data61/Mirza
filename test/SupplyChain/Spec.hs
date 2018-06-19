@@ -1,7 +1,7 @@
 
 module Main where
 
-import           Tests.Common
+import           SupplyChain.Tests.Common
 
 import           Mirza.SupplyChain.Main     hiding (main)
 import           Mirza.SupplyChain.Migrate
@@ -12,8 +12,8 @@ import           Test.Tasty                 hiding (withResource)
 import           Test.Tasty.Hspec           (around, testSpec)
 import           Test.Tasty.Runners         (NumThreads (..))
 
-import           Tests.Client
-import           Tests.Service
+import           SupplyChain.Tests.Client
+import           SupplyChain.Tests.Service
 
 import           Control.Exception          (bracket)
 import           Data.Int
