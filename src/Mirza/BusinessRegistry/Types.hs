@@ -12,7 +12,7 @@ import           Mirza.Common.Types
 import           Mirza.BusinessRegistry.StorageBeam
 
 import           Data.Pool                          as Pool
-import           Database.PostgreSQL.Simple         (Connection)
+import           Database.PostgreSQL.Simple         (Connection, SqlError)
 
 import           Crypto.Scrypt                      (ScryptParams)
 
@@ -49,8 +49,16 @@ instance HasKatipContext BRContext where
   katipNamespace = brKatipNamespace
 
 
+data BussinessRegistryError
+  = DBError SqlError
+  | KeyNotLargeEnough
+  deriving (Show, Eq, Generic)
+
+$(makeClassyPrisms ''BussinessRegistryError)
 
 
+instance AsSqlError BussinessRegistryError where
+  _SqlError = _DBError
 
   -- Stubs for now...
 newtype KeyID = KeyID ()
