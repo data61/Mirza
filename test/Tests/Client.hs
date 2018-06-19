@@ -1,5 +1,7 @@
 module Tests.Client where
 
+import           Tests.Common
+
 import           Control.Concurrent               (ThreadId, forkIO, killThread)
 import           System.IO.Unsafe                 (unsafePerformIO)
 
@@ -17,13 +19,11 @@ import           Data.Text.Encoding               (encodeUtf8)
 
 import           Test.Tasty.Hspec
 
+import           Data.GS1.EPC                     (GS1CompanyPrefix (..))
 import           Mirza.SupplyChain.Main           (ServerOptions (..),
                                                    initApplication,
                                                    initSCSContext)
-import           Mirza.SupplyChain.Migrate        (testDbConnStr)
 import           Mirza.SupplyChain.Types
-
-import           Data.GS1.EPC                     (GS1CompanyPrefix (..))
 
 import           Mirza.SupplyChain.Client.Servant
 
@@ -49,7 +49,7 @@ authABC = BasicAuthData
 
 runApp :: IO (ThreadId, BaseUrl)
 runApp = do
-  let so = (ServerOptions Dev False testDbConnStr 8000 14 8 1 DebugS)
+  let so = (ServerOptions Dev False testDbName 8000 14 8 1 DebugS)
   ctx <- initSCSContext so
   startWaiApp =<< initApplication so ctx
 
@@ -117,7 +117,7 @@ runClient x baseUrl' = runClientM x (mkClientEnv manager' baseUrl')
 -- defaultEnv = (\conn -> Env Dev conn Scrypt.defaultParams) <$> defaultPool
 
 -- defaultPool :: IO (Pool Connection)
--- defaultPool = Pool.createPool (connectPostgreSQL testDbConnStr) close
+-- defaultPool = Pool.createPool (connectPostgreSQL testDbNameConnStr) close
 --                 1 -- Number of "sub-pools",
 --                 60 -- How long in seconds to keep a connection open for reuse
 --                 10 -- Max number of connections to have open at any one time
