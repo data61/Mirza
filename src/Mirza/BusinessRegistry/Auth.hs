@@ -12,7 +12,6 @@ module Mirza.BusinessRegistry.Auth
 
 import qualified Mirza.BusinessRegistry.Types as BT
 import           Mirza.Common.Types           as CT
-import           Mirza.SupplyChain.Types      (ServiceError)
 
 import           Database.Beam                as B
 
@@ -28,14 +27,14 @@ import           Data.Text.Encoding           (decodeUtf8)
 -- Basic Authentication requires a Context Entry with the 'BasicAuthCheck' value
 -- tagged with "foo-tag" This context is then supplied to 'server' and threaded
 -- to the BasicAuth HasServer handlers.
-basicAuthServerContext :: (HasScryptParams context, DBConstraint context ServiceError)
+basicAuthServerContext :: (HasScryptParams context, DBConstraint context BT.BussinessRegistryError)
                        => context  -> Servant.Context '[BasicAuthCheck BT.AuthUser]
 basicAuthServerContext context = authCheck context :. EmptyContext
 
 
 -- 'BasicAuthCheck' holds the handler we'll use to verify a username and password.
 -- authCheck :: SCSContext -> BasicAuthCheck ST.User
-authCheck :: (HasScryptParams context, DBConstraint context ServiceError)
+authCheck :: (HasScryptParams context, DBConstraint context BT.BussinessRegistryError)
           => context -> BasicAuthCheck BT.AuthUser
 authCheck context = BasicAuthCheck (\ basicAuthData -> pure (Authorized (BT.AuthUser undefined)))
 
