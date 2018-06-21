@@ -5,32 +5,32 @@
 module Mirza.BusinessRegistry.Main where
 
 
-import           Mirza.BusinessRegistry.Types as BT
-import           Mirza.SupplyChain.API        (API, ServerAPI, api)
-import           Mirza.SupplyChain.Auth
-import           Mirza.SupplyChain.Migrate    (defConnectionStr, migrate)
-import           Mirza.SupplyChain.Service
-import           Mirza.SupplyChain.Types      (AppError, EnvType (..), User)
+import           Mirza.BusinessRegistry.API     (API, ServerAPI, api)
+import           Mirza.BusinessRegistry.Auth
+import           Mirza.BusinessRegistry.Service
+import           Mirza.BusinessRegistry.Types   as BT
+import           Mirza.SupplyChain.Migrate      (defConnectionStr, migrate)
+import           Mirza.SupplyChain.Types        (AppError, EnvType (..))
 
-import           Servant                      hiding (header)
+import           Servant                        hiding (header)
 import           Servant.Swagger.UI
 
-import qualified Data.Pool                    as Pool
+import qualified Data.Pool                      as Pool
 import           Database.PostgreSQL.Simple
 
-import           Network.Wai                  (Middleware)
-import qualified Network.Wai.Handler.Warp     as Warp
+import           Network.Wai                    (Middleware)
+import qualified Network.Wai.Handler.Warp       as Warp
 
-import           Data.ByteString              (ByteString)
-import           Data.Semigroup               ((<>))
-import           Data.Text                    (pack)
+import           Data.ByteString                (ByteString)
+import           Data.Semigroup                 ((<>))
+import           Data.Text                      (pack)
 import           Options.Applicative
 
-import qualified Crypto.Scrypt                as Scrypt
+import qualified Crypto.Scrypt                  as Scrypt
 
-import           Control.Exception            (finally)
-import           Katip                        as K
-import           System.IO                    (stdout)
+import           Control.Exception              (finally)
+import           Katip                          as K
+import           System.IO                      (stdout)
 
 
 
@@ -214,6 +214,6 @@ server' ev =
   swaggerSchemaUIServer serveSwaggerAPI
   :<|> hoistServerWithContext
         (Proxy @ServerAPI)
-        (Proxy @'[BasicAuthCheck User])
+        (Proxy @'[BasicAuthCheck BT.User])
         (appMToHandler ev)
         (appHandlers @BRContext @AppError)

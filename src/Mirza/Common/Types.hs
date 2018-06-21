@@ -1,4 +1,5 @@
 {-# LANGUAGE ConstraintKinds            #-}
+{-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE TemplateHaskell            #-}
 
@@ -22,6 +23,7 @@ module Mirza.Common.Types
   , asks
   , throwing
   , throwing_
+  , notImplemented
   ) where
 
 
@@ -50,6 +52,8 @@ import           Control.Monad.Error.Lens
 
 import           Katip                      as K
 import           Katip.Monadic              (askLoggerIO)
+
+import           GHC.Stack                  (HasCallStack)
 
 
 data EnvType = Prod | Dev
@@ -194,3 +198,11 @@ pg = DB . lift . lift
 
 runAppM :: context -> AppM context err a -> IO (Either err a)
 runAppM env aM = runExceptT $ (runReaderT . unAppM) aM env
+
+
+
+
+
+{-# WARNING notImplemented "notImplemented should not be used" #-}
+notImplemented :: HasCallStack => a
+notImplemented = error "FIXME"
