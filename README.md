@@ -49,6 +49,7 @@ The -c option takes a database connection string in libpq format. See: https://w
 Some examples are:
 - "dbname=devsupplychainserver"`
 - "postgresql://localhost/devsupplychainserver"
+
 Note that you can change `devsupplychainserver` for any database name you like.
 Not giving it the `-c` flag will result in a database named `devsupplychainserver`.
 
