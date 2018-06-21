@@ -23,7 +23,7 @@ This is because Apple has deprecated the use of OpenSSL in favour of its own SSL
 
 ## Installing PostgreSQL
 
-PostgreSQL is used as the database backend. Before you run the server, make sure you have PostgreSQL 10 or higher installed.
+PostgreSQL is used as the database backend. Before you run the server, make sure you have PostgreSQL 9 or higher installed.
 
 To install, you can follow the instructions [here]( http://yallalabs.com/linux/how-to-install-and-use-postgresql-10-on-ubuntu-16-04/).
 
