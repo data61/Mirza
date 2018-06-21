@@ -4,11 +4,12 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
 
-module Tests.Service
+module SupplyChain.Tests.Service
   ( testQueries
   ) where
 
-import           Tests.Dummies
+import           SupplyChain.Tests.Common
+import           SupplyChain.Tests.Dummies
 
 import           Mirza.SupplyChain.Auth
 import           Mirza.SupplyChain.Handlers.Business
@@ -16,7 +17,6 @@ import           Mirza.SupplyChain.Handlers.Contacts
 import           Mirza.SupplyChain.Handlers.EventRegistration
 import           Mirza.SupplyChain.Handlers.Queries
 import           Mirza.SupplyChain.Handlers.Users
-import           Mirza.SupplyChain.Migrate                    (testDbConnStr)
 import qualified Mirza.SupplyChain.StorageBeam                as SB
 import           Mirza.SupplyChain.Types
 
@@ -41,7 +41,7 @@ timeStampIO :: MonadIO m => m LocalTime
 timeStampIO = liftIO $ (utcToLocalTime utc) <$> getCurrentTime
 
 rsaPubKey :: IO PEM_RSAPubKey
-rsaPubKey = PEMString <$> Prelude.readFile "./test/Tests/testKeys/goodKeys/test.pub"
+rsaPubKey = PEMString <$> Prelude.readFile "./test/SupplyChain/Tests/testKeys/goodKeys/test.pub"
 
 testAppM :: context -> AppM context AppError a -> IO a
 testAppM scsContext act = runAppM scsContext act >>= \case
