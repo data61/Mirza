@@ -49,7 +49,7 @@ dropTables conn =
 
 
 defaultPool :: IO (Pool Connection)
-defaultPool = Pool.createPool (connectPostgreSQL (dbNameToConnStr testDbName)) close
+defaultPool = Pool.createPool (connectPostgreSQL testDbConnStr) close
                 1 -- Number of "sub-pools",
                 60 -- How long in seconds to keep a connection open for reuse
                 10 -- Max number of connections to have open at any one time
@@ -62,7 +62,7 @@ openConnection = do
   _ <- withResource connpool dropTables -- drop tables before so if already exist no problems... means tables get overwritten though
   withResource connpool (tryCreateSchema True)
   let envT = AC.mkEnvType True
-  initSCSContext (ServerOptions envT False testDbName 8000 14 8 1 DebugS)
+  initSCSContext (ServerOptions envT False testDbConnStr 8000 14 8 1 DebugS)
 
 closeConnection :: SCSContext -> IO ()
 closeConnection = destroyAllResources . AC._scsDbConnPool

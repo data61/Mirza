@@ -9,8 +9,8 @@ import           Data.ByteString.Char8 (ByteString)
 
 
 
--- | Default database used when running tests. Be careful with this construct as
---  it could lead to problems...users not specifying the database and
--- accidentally operating on the wrong database.
-testDbName :: ByteString
-testDbName = "testsupplychainserver"
+-- | Default database connection string used when running tests. Be careful with
+-- this construct as it could lead to problems...users not specifying the
+-- database and accidentally operating on the wrong database.
+testDbConnStr :: ByteString
+testDbConnStr = "dbname=testsupplychainserver"

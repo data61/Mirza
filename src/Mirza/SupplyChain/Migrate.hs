@@ -2,8 +2,7 @@
 -- | Module containing functions to run the migration function
 module Mirza.SupplyChain.Migrate
   (
-    defaultDbName
-  , dbNameToConnStr
+    defaultDbConnectionStr
   , migrate
   , tryCreateSchema
   ) where
@@ -12,7 +11,6 @@ import           Mirza.SupplyChain.MigrateScript (migrationStorage)
 
 import qualified Control.Exception               as E
 import           Control.Monad                   (void)
-import qualified Data.ByteString                 as BS
 import           Data.ByteString.Char8           (ByteString)
 import           Database.Beam                   (withDatabase,
                                                   withDatabaseDebug)
@@ -26,14 +24,11 @@ dbMigrationFunc :: Bool -> Connection -> Pg a -> IO a
 dbMigrationFunc False = withDatabaseDebug putStrLn
 dbMigrationFunc _     = withDatabase
 
--- | Default database. Be careful with this construct as it could lead to
+-- | Default connection string. Be careful with this construct as it could lead to
 -- problems...users not specifying the database and accidentally operating on
 -- the wrong database.
-defaultDbName :: ByteString
-defaultDbName = "devsupplychainserver"
-
-dbNameToConnStr :: ByteString -> ByteString
-dbNameToConnStr = BS.append "dbname="
+defaultDbConnectionStr :: ByteString
+defaultDbConnectionStr = "dbname=devsupplychainserver"
 
 createSchema :: Bool -> Connection -> IO ()
 createSchema runSilently conn = do
