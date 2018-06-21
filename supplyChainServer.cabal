@@ -38,6 +38,13 @@ library
                     , Mirza.SupplyChain.Handlers.Queries
                     , Mirza.SupplyChain.Handlers.Signatures
                     , Mirza.SupplyChain.Handlers.Users
+                    , Mirza.BusinessRegistry.API
+                    , Mirza.BusinessRegistry.Auth
+                    , Mirza.BusinessRegistry.MigrateScript
+                    , Mirza.BusinessRegistry.StorageBeam
+                    , Mirza.BusinessRegistry.Service
+                    , Mirza.BusinessRegistry.Handlers.Business
+                    , Mirza.BusinessRegistry.Handlers.Common
 
   other-modules:      Mirza.SupplyChain.MigrateUtils
                     , Mirza.SupplyChain.MigrateScript
