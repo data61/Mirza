@@ -21,9 +21,9 @@ On MacOS, you need to `brew install openssl` and then run:
 
 This is because Apple has deprecated the use of OpenSSL in favour of its own SSL and TLS libs.
 
-## Setting up the database
+## Installing PostgreSQL
 
-Before you run the server, make sure you have PostgreSQL 10 or higher installed.
+PostgreSQL is used as the database backend. Before you run the server, make sure you have PostgreSQL 10 or higher installed.
 
 To install, you can follow the instructions [here]( http://yallalabs.com/linux/how-to-install-and-use-postgresql-10-on-ubuntu-16-04/).
 
@@ -34,19 +34,29 @@ There are good instructions [here](https://www.digitalocean.com/community/tutori
 
 Type in `psql` and see that you can open up a `psql` shell.
 
-## Running the server
+## Initalising the database
 
-After that, to create the database, run
+When first run you will need to inialise the database.
 
-`stack exec supplyChainServer-exe -- -i -d devsupplychainserver`
+After that, to create the database, run:
+`createdb 'devsupplychainserver'`
 
+To initalise the database run:
+`stack exec supplyChainServer-exe -- -init-db -c "dbname=devsupplychainserver"`
+
+The -c option takes a database connection string in libpq format. See: https://www.postgresql.org/docs/9.5/static/libpq-connect.html#LIBPQ-CONNSTRING
+Some examples are:
+- "dbname=devsupplychainserver"`
+- "postgresql://localhost/devsupplychainserver"
 Note that you can change `devsupplychainserver` for any database name you like.
-Not giving it the `-d` flag will result in a database named
-`devsupplychainserver`.
+Not giving it the `-c` flag will result in a database named `devsupplychainserver`.
+
+
+## Running the server
 
 Finally, to run the server, do:
 
-`stack exec supplyChainServer-exe`
+`stack exec supplyChainServer-exe -c "dbname=devsupplychainserver"`
 
 Then you can check out the API at:
 

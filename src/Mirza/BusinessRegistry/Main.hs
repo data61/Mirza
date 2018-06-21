@@ -8,7 +8,7 @@ module Mirza.BusinessRegistry.Main where
 import           Mirza.BusinessRegistry.Types as BT
 import           Mirza.SupplyChain.API        (API, ServerAPI, api)
 import           Mirza.SupplyChain.Auth
-import           Mirza.SupplyChain.Migrate    (dbNameToConnStr, migrate)
+import           Mirza.SupplyChain.Migrate    (migrate)
 import           Mirza.SupplyChain.Service
 import           Mirza.SupplyChain.Types      (AppError, EnvType (..), User)
 
@@ -38,18 +38,18 @@ defaultPortNumber :: Int
 defaultPortNumber = 8000
 
 defaultDatabaseConnectionString :: ByteString
-defaultDatabaseConnectionString = "devMirzaBusinessRegistry"
+defaultDatabaseConnectionString = "dbname=devMirzaBusinessRegistry"
 
 data ServerOptions = ServerOptions
-  { soEnvType        :: EnvType
-    , debug          :: Bool -- TODO: Remove this program option before release.
-    , initDatabase   :: Bool
-    , soPortNumber   :: Int
-    , soDatabaseName :: ByteString
-    , soScryptN      :: Integer
-    , soScryptP      :: Integer
-    , soScryptR      :: Integer
-    , soLoggingLevel :: K.Severity
+  { soEnvType                 :: EnvType
+    , debug                   :: Bool -- TODO: Remove this program option before release.
+    , initDatabase            :: Bool
+    , soPortNumber            :: Int
+    , soDatabaseConnectionStr :: ByteString
+    , soScryptN               :: Integer
+    , soScryptP               :: Integer
+    , soScryptR               :: Integer
+    , soLoggingLevel          :: K.Severity
 
   }
 
@@ -63,12 +63,12 @@ serverOptions = ServerOptions
         <*> switch
           (
               long "debug"
+          <>  short 'd'
           <>  help "Runs the debug command."
           )
         <*> switch
           (
               long "init-db"
-          <>  short 'i'
           <>  help "Put empty tables into a fresh database"
           )
         <*> option auto
@@ -80,9 +80,9 @@ serverOptions = ServerOptions
           )
         <*> strOption
           (
-              long "database"
-          <>  short 'd'
-          <>  help "Database name."
+              long "conn"
+          <>  short 'c'
+          <>  help "Database connection string in libpq format. See: https://www.postgresql.org/docs/9.5/static/libpq-connect.html#LIBPQ-CONNSTRING"
           <>  showDefault
           <>  value defaultDatabaseConnectionString
           )
@@ -160,7 +160,7 @@ debugFunc = do
 runProgram :: ServerOptions -> IO ()
 runProgram options
 -- FIXME: This is definitely wrong
-  | initDatabase(options) = migrate $ dbNameToConnStr (soDatabaseName options)
+  | initDatabase(options) = migrate $ soDatabaseConnectionStr options
   | otherwise  = do
       let portNumber = soPortNumber options
       ctx <- initBRContext options

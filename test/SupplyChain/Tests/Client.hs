@@ -19,11 +19,12 @@ import           Data.Text.Encoding               (encodeUtf8)
 
 import           Test.Tasty.Hspec
 
-import           Data.GS1.EPC                     (GS1CompanyPrefix (..))
 import           Mirza.SupplyChain.Main           (ServerOptions (..),
                                                    initApplication,
                                                    initSCSContext)
 import           Mirza.SupplyChain.Types
+
+import           Data.GS1.EPC                     (GS1CompanyPrefix (..))
 
 import           Mirza.SupplyChain.Client.Servant
 
@@ -49,7 +50,7 @@ authABC = BasicAuthData
 
 runApp :: IO (ThreadId, BaseUrl)
 runApp = do
-  let so = (ServerOptions Dev False testDbName 8000 14 8 1 DebugS)
+  let so = (ServerOptions Dev False testDbConnStr 8000 14 8 1 DebugS)
   ctx <- initSCSContext so
   startWaiApp =<< initApplication so ctx
 

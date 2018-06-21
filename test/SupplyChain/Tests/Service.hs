@@ -17,7 +17,6 @@ import           Mirza.SupplyChain.Handlers.Contacts
 import           Mirza.SupplyChain.Handlers.EventRegistration
 import           Mirza.SupplyChain.Handlers.Queries
 import           Mirza.SupplyChain.Handlers.Users
-import           Mirza.SupplyChain.Migrate                    (dbNameToConnStr)
 import qualified Mirza.SupplyChain.StorageBeam                as SB
 import           Mirza.SupplyChain.Types
 
@@ -336,7 +335,7 @@ testQueries = do
 
 clearContact :: IO ()
 clearContact = do
-  conn <- connectPostgreSQL $ dbNameToConnStr testDbName
+  conn <- connectPostgreSQL testDbConnStr
   void $ execute_ conn "DELETE FROM contacts;"
 
 
