@@ -2,6 +2,12 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE UndecidableInstances  #-}
 
+-- TODO: Remove the following and fix the orphand instances properly.
+--       (This is just to work around that we don't want to spend the time
+--       fixing these currently and don't want these warnings to show up until
+--       we are ready to deal with this properly.)
+{-# OPTIONS_GHC -fno-warn-orphans       #-}
+
 -- | Contains the migration function of ``businessRegistryDb``
 module Mirza.BusinessRegistry.MigrateScript (migrationStorage) where
 

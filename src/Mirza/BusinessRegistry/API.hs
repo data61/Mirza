@@ -19,9 +19,6 @@ module Mirza.BusinessRegistry.API
 
 import           Mirza.BusinessRegistry.Types as ST
 
-import qualified Data.GS1.Event               as Ev
-import           Data.GS1.EventId
-
 import           Data.Time.Clock              (UTCTime)
 
 import           Servant

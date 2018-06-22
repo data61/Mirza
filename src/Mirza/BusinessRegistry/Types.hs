@@ -23,10 +23,8 @@ import           Katip                              as K
 import           Data.Aeson
 import           Data.Swagger
 import           GHC.Generics                       (Generic)
-import           Servant                            (FromHttpApiData,
-                                                     ToHttpApiData)
+import           Servant                            (FromHttpApiData (..))
 
-import           Control.Monad.Identity
 
 
 data BRContext = BRContext
@@ -65,40 +63,37 @@ newtype KeyID = KeyID ()
   deriving (Generic, ToJSON, FromJSON)
 instance ToSchema KeyID
 instance ToParamSchema KeyID
-instance FromHttpApiData KeyID
-instance ToHttpApiData KeyID
+instance FromHttpApiData KeyID where
+  parseUrlPiece t = fmap KeyID (parseUrlPiece t)
 
 newtype ExpirationTime = ExpirationTime ()
   deriving (Generic, ToJSON, FromJSON)
 instance ToSchema ExpirationTime
 instance ToParamSchema ExpirationTime
-instance FromHttpApiData ExpirationTime
-instance ToHttpApiData ExpirationTime
+instance FromHttpApiData ExpirationTime where
+  parseUrlPiece t = fmap ExpirationTime (parseUrlPiece t)
 
 newtype PEM_RSAPubKey = PEM_RSAPubKey ()
   deriving (Generic, ToJSON, FromJSON)
 instance ToSchema PEM_RSAPubKey
 instance ToParamSchema PEM_RSAPubKey
-instance FromHttpApiData PEM_RSAPubKey
-instance ToHttpApiData PEM_RSAPubKey
+instance FromHttpApiData PEM_RSAPubKey where
+  parseUrlPiece t = fmap PEM_RSAPubKey (parseUrlPiece t)
 
 newtype BusinessResponse = BusinessResponse()
   deriving (Generic, ToJSON, FromJSON)
 instance ToSchema BusinessResponse
 instance ToParamSchema BusinessResponse
-instance FromHttpApiData BusinessResponse
-instance ToHttpApiData BusinessResponse
+instance FromHttpApiData BusinessResponse where
+  parseUrlPiece t = fmap BusinessResponse (parseUrlPiece t)
 
 newtype KeyInfo = KeyInfo ()
   deriving (Generic, ToJSON, FromJSON)
 instance ToSchema KeyInfo
 instance ToParamSchema KeyInfo
-instance FromHttpApiData KeyInfo
-instance ToHttpApiData KeyInfo
+instance FromHttpApiData KeyInfo where
+  parseUrlPiece t = fmap KeyInfo (parseUrlPiece t)
 
-type UserID = PrimaryKey UserT Identity
-instance ToSchema UserID
-instance ToParamSchema UserID
 
 newtype AuthUser = AuthUser {
   userId        :: UserID
@@ -106,5 +101,5 @@ newtype AuthUser = AuthUser {
   deriving (Generic)
 instance ToSchema AuthUser
 instance ToParamSchema AuthUser
-instance FromHttpApiData AuthUser
-instance ToHttpApiData AuthUser
+instance FromHttpApiData AuthUser where
+  parseUrlPiece = notImplemented

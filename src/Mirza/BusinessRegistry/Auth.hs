@@ -29,6 +29,7 @@ basicAuthServerContext context = authCheck context :. EmptyContext
 -- authCheck :: SCSContext -> BasicAuthCheck ST.User
 authCheck :: (HasScryptParams context, DBConstraint context BT.BussinessRegistryError)
           => context -> BasicAuthCheck BT.AuthUser
-authCheck context = BasicAuthCheck (\ basicAuthData -> pure (Authorized (BT.AuthUser undefined)))
+-- TODO: The following implementation is dummy only and needs to be correctly replaced before this is deployed.
+authCheck _context = BasicAuthCheck (\ _basicAuthData -> pure (Authorized (BT.AuthUser undefined)))
 
 

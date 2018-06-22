@@ -7,7 +7,6 @@ module Mirza.SupplyChain.Utils
   ) where
 
 import qualified Data.Text          as T
-import           GHC.Stack          (HasCallStack)
 import           Mirza.Common.Types (notImplemented)
 
 -- | Converts anything to a ``Text``
