@@ -9,7 +9,7 @@ import           Mirza.BusinessRegistry.API     (API, ServerAPI, api)
 import           Mirza.BusinessRegistry.Auth
 import           Mirza.BusinessRegistry.Service
 import           Mirza.BusinessRegistry.Types   as BT
-import           Mirza.SupplyChain.Migrate    (migrate)
+import           Mirza.SupplyChain.Migrate      (migrate)
 import           Mirza.SupplyChain.Types        (AppError, EnvType (..))
 
 import           Servant                        hiding (header)
@@ -114,64 +114,33 @@ serverOptions = ServerOptions
           <> help ("Logging level: " ++ show [minBound .. maxBound :: Severity])
           )
 
+
+
 main :: IO ()
-main = launchWithServerOptions =<< execParser opts where
+main = multiplexGlobalOptions =<< execParser opts where
   opts = Options.Applicative.info (serverOptions <**> helper)
     (fullDesc
     <> progDesc "todo some description"
-    <> header "Supply Chain Business Registry Server")
-
-launchWithServerOptions :: ServerOptions -> IO ()
---launchWithServerOptions (ServerOptions False _ portNumber databaseConnectionString) = launchServer portNumber databaseConnectionString
-launchWithServerOptions options
-  | debug(options) = debugFunc
-  | otherwise      = runProgram options
-
--- launchServer :: Int -> ByteString -> IO ()
--- launchServer portNumber databaseConnectionString = do
---     databaseConnection <- connectPostgreSQL databaseConnectionString
---     let
---         env  = Env
---           {
---             envSomeValue = False
---           , envDatabaseConnection = databaseConnection
---           }
---         app = return $ serve apiType (server env)
---     putStrLn $ "http://localhost:" ++ show portNumber ++ "/swagger-ui/" -- todo replace /swagger-ui/ with a constant...see API module...this is where the constant should be
---     Warp.run (fromIntegral portNumber) =<< app
+    <> header "Supply Chain Business Registry Service")
 
 
--- This is a debug function for activating development test stub functions.
--- TODO: Remove this stub before release.
-debugFunc :: IO()
-debugFunc = do
-  putStrLn ("Running Debug Option")
-  --databaseConnection <- connectPostgreSQL defaultDatabaseConnectionString
-  -- let
-  --   env = Env -- todo need to change this for BusinessRegistryEnvironment...just using this to bootstrap.
-  --     {
-  --       envSomeValue = False
-  --     , envDatabaseConnection = databaseConnection
-  --     }
-
-  -- databaseDebug env
-
--- Todo Remove This Function: This function currently servers as the entry point while in the process of splicing in the business registry from the other repository.
-runProgram :: ServerOptions -> IO ()
-runProgram options
--- FIXME: This is definitely wrong
+-- Handles the overriding global options (this effectively defines the point
+-- where the single binary could be split into multiple binaries.
+multiplexGlobalOptions :: ServerOptions -> IO ()
+multiplexGlobalOptions options
+  | debug(options)        = debugFunc
   | initDatabase(options) = migrate $ soDatabaseConnectionStr options
-  | otherwise  = do
+  | otherwise             = launchServer options
+
+
+launchServer :: ServerOptions -> IO ()
+launchServer options = do
       let portNumber = soPortNumber options
       ctx <- initBRContext options
       app <- initApplication options ctx
       mids <- initMiddleware options
       putStrLn $ "http://localhost:" ++ show portNumber ++ "/swagger-ui/"
       Warp.run (fromIntegral portNumber) (mids app) `finally` closeScribes (BT._brKatipLogEnv ctx)
-
-initMiddleware :: ServerOptions -> IO Middleware
-initMiddleware _ = pure id
-
 
 
 initBRContext :: ServerOptions -> IO BT.BRContext
@@ -189,30 +158,35 @@ initBRContext (ServerOptions envT _ _ _ dbConnStr n p r lev) = do
                       60 -- How long in seconds to keep a connection open for reuse
                       10 -- Max number of connections to have open at any one time
                       -- TODO: Make this a config paramete
-
   pure $ BRContext envT connpool params logEnv mempty mempty
+
 
 initApplication :: ServerOptions -> BT.BRContext -> IO Application
 initApplication _so ev =
   pure $ serveWithContext api
           (basicAuthServerContext ev)
-          (server' ev)
+          (server ev)
 
--- easily start the app in ghci, no command line arguments required.
-startAppSimple :: ByteString -> IO ()
-startAppSimple dbConnStr = do
-  let so = ServerOptions Dev False False 8000 dbConnStr 14 8 1 DebugS
-  ctx <- initBRContext so
-  initApplication so ctx >>= Warp.run 8000
+
+initMiddleware :: ServerOptions -> IO Middleware
+initMiddleware _ = pure id
 
 
 -- Implementation
-
-server' :: BRContext -> Server API
-server' ev =
+server :: BRContext -> Server API
+server ev =
   swaggerSchemaUIServer serveSwaggerAPI
   :<|> hoistServerWithContext
         (Proxy @ServerAPI)
         (Proxy @'[BasicAuthCheck BT.AuthUser])
         (appMToHandler ev)
         (appHandlers @BRContext @AppError)
+
+
+
+-- This is a debug function for activating development test stub functions.
+-- TODO: Remove this stub before release.
+debugFunc :: IO()
+debugFunc = do
+  putStrLn ("Running Debug Option")
+  -- Debug test code goes here...
