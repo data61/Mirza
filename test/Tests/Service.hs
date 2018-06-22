@@ -11,14 +11,14 @@ module Tests.Service
 
 import           Tests.Dummies
 
-import qualified Data.GS1.EventId                             as EvId
+-- import qualified Data.GS1.EventId                             as EvId
 
 import           Mirza.SupplyChain.Auth
 import           Mirza.SupplyChain.Handlers.Business
 import           Mirza.SupplyChain.Handlers.Contacts
 import           Mirza.SupplyChain.Handlers.EventRegistration
 import           Mirza.SupplyChain.Handlers.Queries
-import           Mirza.SupplyChain.Handlers.Signatures
+-- import           Mirza.SupplyChain.Handlers.Signatures
 import           Mirza.SupplyChain.Handlers.Users
 import           Mirza.SupplyChain.Migrate                    (testDbConnStr)
 import qualified Mirza.SupplyChain.StorageBeam                as SB
@@ -179,32 +179,32 @@ testServiceQueries = do
         pure (keyState keyInfo)
       myKeyState `shouldBe` InEffect
 
-  describe "eventSign - INCOMPLETE " $ do
-    it "Signing an event with a revoked key" $ \scsContext -> do
-      nowish <- getCurrentTime
-      let hundredMinutes = 100 * 60
-          tomorrow = addUTCTime (hundredMinutes) nowish
-      pubKey <- rsaPubKey
-      myKeyState <- testAppM scsContext $ do
+  -- describe "eventSign - INCOMPLETE " $ do
+  --   it "Signing an event with a revoked key" $ \scsContext -> do
+  --     nowish <- getCurrentTime
+  --     let hundredMinutes = 100 * 60
+  --         someTimeLater = addUTCTime (hundredMinutes) nowish
+  --     pubKey <- rsaPubKey
+  --     myKeyState <- testAppM scsContext $ do
 
-        -- Adding a user, key, and revoking the key
-        uid <- newUser dummyNewUser
-        storageUser <- runDb $ getUserById uid
-        let user = userTableToModel . fromJust $ storageUser
-        keyId <- addPublicKey user pubKey (Just . ExpirationTime $ tomorrow)
-        _timeKeyRevoked <- revokePublicKey user keyId
-        keyInfo <- getPublicKeyInfo keyId
+  --       -- Adding a user, key, and revoking the key
+  --       uid <- newUser dummyNewUser
+  --       storageUser <- runDb $ getUserById uid
+  --       let user = userTableToModel . fromJust $ storageUser
+  --       keyId <- addPublicKey user pubKey (Just . ExpirationTime $ someTimeLater)
+  --       _timeKeyRevoked <- revokePublicKey user keyId
+  --       keyInfo <- getPublicKeyInfo keyId
 
-        -- Adding the event
-        (_insertedEvent, (SB.EventId eventId)) <- insertObjectEvent dummyUser dummyObject
-        let myDigest = SHA256
-            mySign = Signature "c2FqaWRhbm93ZXIyMw=="
-            mySignedEvent = SignedEvent (EvId.EventId eventId) keyId mySign myDigest
-        -- if this test can proceed after the following statement
-        _eventSignId <- eventSign user mySignedEvent
-        -- it means the basic functionality of ``eventSign`` function is perhaps done
-        pure (keyState keyInfo)
-      myKeyState `shouldBe` InEffect
+  --       -- Adding the event
+  --       (_insertedEvent, (SB.EventId eventId)) <- insertObjectEvent dummyUser dummyObject
+  --       let myDigest = SHA256
+  --           mySign = Signature "c2FqaWRhbm93ZXIyMw=="
+  --           mySignedEvent = SignedEvent (EvId.EventId eventId) keyId mySign myDigest
+  --       -- if this test can proceed after the following statement
+  --       _eventSignId <- eventSign user mySignedEvent
+  --       -- it means the basic functionality of ``eventSign`` function is perhaps done
+  --       pure (keyState keyInfo)
+  --     myKeyState `shouldBe` InEffect
 
   describe "newUser tests" $
     it "newUser test 1" $ \scsContext -> do
