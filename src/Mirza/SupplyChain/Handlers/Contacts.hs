@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 
 module Mirza.SupplyChain.Handlers.Contacts
@@ -5,7 +6,7 @@ module Mirza.SupplyChain.Handlers.Contacts
     listContacts
   , addContact
   , removeContact
-  , contactsSearch
+  , contactsSearch, isExistingContact
   , userSearch
   ) where
 
@@ -92,3 +93,29 @@ contactsSearch _user _term = U.notImplemented
 userSearch :: ST.User -> String -> AppM context err [ST.User]
 -- userSearch user term = liftIO $ Storage.userSearch user term
 userSearch _user _term = error "Storage module not implemented"
+
+
+-- | Checks if a pair of userIds are recorded as a contact.
+-- __Must be run in a transaction!__
+isExistingContact :: ST.UserID -> ST.UserID -> DB context err Bool
+isExistingContact (ST.UserID uid1) (ST.UserID uid2) = do
+  r <- pg $ runSelectReturningList $ select $ do
+        contact <- all_ (SB._contacts SB.supplyChainDb)
+        guard_ (SB.contact_user1_id contact  ==. (val_ . SB.UserId $ uid1) &&.
+                SB.contact_user2_id contact  ==. (val_ . SB.UserId $ uid2))
+        pure contact
+  return $ verifyContact r (SB.UserId uid1) (SB.UserId uid2)
+
+
+-- | Simple utility function to check that the users are part of the contact
+-- typically used with the result of a query
+verifyContact :: Eq (PrimaryKey SB.UserT f) =>
+                 [SB.ContactT f] ->
+                 PrimaryKey SB.UserT f ->
+                 PrimaryKey SB.UserT f ->
+                 Bool
+verifyContact [insertedContact] uid1 uid2 =
+                  (SB.contact_user1_id insertedContact == uid1) &&
+                  (SB.contact_user2_id insertedContact == uid2)
+verifyContact _ _ _ = False
+

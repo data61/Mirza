@@ -6,7 +6,7 @@ module Mirza.SupplyChain.Main where
 
 import           Mirza.SupplyChain.API
 import           Mirza.SupplyChain.Auth
-import           Mirza.SupplyChain.Migrate  (defConnectionStr, migrate)
+import           Mirza.SupplyChain.Migrate  (defaultDbConnectionStr, migrate)
 import           Mirza.SupplyChain.Service
 import           Mirza.SupplyChain.Types    (AppError, EnvType (..),
                                              SCSContext (..), User)
@@ -55,16 +55,16 @@ serverOptions = ServerOptions
           <> help "Environment, Dev | Prod"
           )
       <*> switch
-          ( long "init-db" <> short 'i'
+          ( long "init-db"
          <> help "Put empty tables into a fresh database" )
     --   <*> switch
     --       ( long "clear-db"
     --      <> short 'e'
     --      <> help "Erase the database - DROP ALL TABLES" )
-      <*> option auto
+      <*> strOption
           ( long "conn" <> short 'c' <> showDefault
-          <> help "database connection string"
-          <> value defConnectionStr)
+          <> help "Database connection string in libpq format. See: https://www.postgresql.org/docs/9.5/static/libpq-connect.html#LIBPQ-CONNSTRING"
+          <> value defaultDbConnectionStr)
        <*> option auto
           ( long "port" <> short 'p' <> showDefault <> value 8000
           <> help "Port to run database on"
@@ -106,8 +106,7 @@ runProgram so@ServerOptions{initDB = False, port} = do
   mids <- initMiddleware so
   putStrLn $ "http://localhost:" ++ show port ++ "/swagger-ui/"
   Warp.run (fromIntegral port) (mids app) `finally` closeScribes (ctx ^. ST.scsKatipLogEnv)
--- FIXME: This is definitely wrong
-runProgram _ = migrate defConnectionStr
+runProgram so = migrate $ connectionStr so
 
 initMiddleware :: ServerOptions -> IO Middleware
 initMiddleware _ = pure id
