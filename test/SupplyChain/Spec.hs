@@ -1,6 +1,8 @@
 
 module Main where
 
+import           SupplyChain.Tests.Common
+
 import           Mirza.SupplyChain.Main     hiding (main)
 import           Mirza.SupplyChain.Migrate
 import           Mirza.SupplyChain.Types    as AC
@@ -10,8 +12,8 @@ import           Test.Tasty                 hiding (withResource)
 import           Test.Tasty.Hspec           (around, testSpec)
 import           Test.Tasty.Runners         (NumThreads (..))
 
-import           Tests.Client
-import           Tests.Service              (testServiceQueries)
+import           SupplyChain.Tests.Client
+import           SupplyChain.Tests.Service  (testServiceQueries)
 
 import           Control.Exception          (bracket)
 import           Data.Int

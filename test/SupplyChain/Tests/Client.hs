@@ -1,4 +1,6 @@
-module Tests.Client where
+module SupplyChain.Tests.Client where
+
+import           SupplyChain.Tests.Common
 
 import           Control.Concurrent               (ThreadId, forkIO, killThread)
 import           System.IO.Unsafe                 (unsafePerformIO)
@@ -20,7 +22,6 @@ import           Test.Tasty.Hspec
 import           Mirza.SupplyChain.Main           (ServerOptions (..),
                                                    initApplication,
                                                    initSCSContext)
-import           Mirza.SupplyChain.Migrate        (testDbConnStr)
 import           Mirza.SupplyChain.Types
 
 import           Data.GS1.EPC                     (GS1CompanyPrefix (..))
@@ -117,7 +118,7 @@ runClient x baseUrl' = runClientM x (mkClientEnv manager' baseUrl')
 -- defaultEnv = (\conn -> Env Dev conn Scrypt.defaultParams) <$> defaultPool
 
 -- defaultPool :: IO (Pool Connection)
--- defaultPool = Pool.createPool (connectPostgreSQL testDbConnStr) close
+-- defaultPool = Pool.createPool (connectPostgreSQL testDbNameConnStr) close
 --                 1 -- Number of "sub-pools",
 --                 60 -- How long in seconds to keep a connection open for reuse
 --                 10 -- Max number of connections to have open at any one time
