@@ -8,6 +8,7 @@ module Mirza.BusinessRegistry.Types where
 
 
 import           Mirza.Common.Types
+import           Mirza.Common.Utils
 
 import           Mirza.BusinessRegistry.StorageBeam
 
