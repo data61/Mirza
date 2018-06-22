@@ -1,6 +1,8 @@
 
 module Main where
 
+import           SupplyChain.Tests.Common
+
 import           Mirza.SupplyChain.Main     hiding (main)
 import           Mirza.SupplyChain.Migrate
 import           Mirza.SupplyChain.Types    as AC
@@ -10,8 +12,8 @@ import           Test.Tasty                 hiding (withResource)
 import           Test.Tasty.Hspec           (around, testSpec)
 import           Test.Tasty.Runners         (NumThreads (..))
 
-import           Tests.Client
-import           Tests.Service
+import           SupplyChain.Tests.Client
+import           SupplyChain.Tests.Service  (testServiceQueries)
 
 import           Control.Exception          (bracket)
 import           Data.Int
@@ -70,10 +72,10 @@ withDatabaseConnection = bracket openConnection closeConnection
 
 main :: IO ()
 main = do
-  hspecTests <- testSpec "HSpec" (sequential $ around withDatabaseConnection testQueries)
+  serviceTests <- testSpec "HSpec" (sequential $ around withDatabaseConnection testServiceQueries)
   clientTests <- testSpec "Client HSpec" clientSpec
 
   defaultMain $ localOption (NumThreads 1) $ testGroup "tests"
-    [ hspecTests
+    [ serviceTests
     , clientTests
     ]

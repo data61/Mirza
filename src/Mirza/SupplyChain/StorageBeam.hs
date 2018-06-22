@@ -1,15 +1,3 @@
--- Please do not remove any commented out code in this module.
--- We are working with a WIP library, namely Beam.
--- In table definitions
--- most of the commented out code are there for
--- 1. Reference. To see how the Haskell data type looks like
--- 2. As a record of what the types were previously
---  --> to help us decide whether or not to roll back some changes
-
--- If you see the word ``WAITING_FOR_LIB_FIX`` anywhere, it probably means that
--- we are waiting on a library (eg. Beam) to implement something. For example,
--- migration support for UTCTime
-
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE DeriveGeneric         #-}
 {-# LANGUAGE FlexibleContexts      #-}
@@ -33,25 +21,18 @@ import qualified Data.GS1.EPC                   as EPC
 import qualified Data.GS1.Event                 as Ev
 
 import           Control.Lens
+import           Data.Aeson                     (FromJSON, ToJSON)
 import           Data.ByteString                (ByteString)
+import           Data.Swagger                   (ToSchema)
 import           Data.Text                      (Text)
-import           Data.Time
+
+import           Data.Time                      (LocalTime)
 import           Data.UUID                      (UUID)
+
 import           Database.Beam                  as B
 import           Database.Beam.Postgres
 
 type PrimaryKeyType = UUID
--- IMPLEMENTME - NOT NOW
--- Change PrimaryKeyType to ``Auto Int`` and define the instances below
--- instance ToSchema PrimaryKeyType
--- instance ToParamSchema PrimaryKeyType where
---   -- TODO = refactor this, want toParamSchema for ToParamSchema UUID
---   -- https://github.com/GetShopTV/swagger2/blob/master/src/Data/Swagger/Internal/ParamSchema.hs#L268
---   toParamSchema _ = mempty & type_ .~ SwaggerString & Data.Swagger.format ?~ "uuid"
--- instance FromHttpApiData PrimaryKeyType where
---   -- parseUrlPiece :: Text -> Either Text PrimaryKeyType
---   parseUrlPiece t = error $ show t ++ " parseUP"
---   parseQueryParam t = error $ show t ++ " parseQP"
 
 data UserT f = User
   { user_id       :: C f PrimaryKeyType
@@ -269,6 +250,10 @@ data EventT f = Event
   deriving Generic
 type Event = EventT Identity
 type EventId = PrimaryKey EventT Identity
+
+instance ToSchema EventId
+instance FromJSON EventId
+instance ToJSON EventId
 
 deriving instance Show Event
 
