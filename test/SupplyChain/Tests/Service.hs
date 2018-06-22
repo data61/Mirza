@@ -168,7 +168,7 @@ testServiceQueries = do
     it "Expiry date in the future" $ \scsContext -> do
       nowish <- getCurrentTime
       let hundredMinutes = 100 * 60
-          someTimeLater = addUTCTime (hundredMinutes) nowish
+          someTimeLater = addUTCTime hundredMinutes nowish
       pubKey <- rsaPubKey
       myKeyState <- testAppM scsContext $ do
         uid <- newUser dummyNewUser
