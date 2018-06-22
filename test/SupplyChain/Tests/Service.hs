@@ -1,64 +1,76 @@
 {-# LANGUAGE DataKinds           #-}
 {-# LANGUAGE FlexibleContexts    #-}
 {-# LANGUAGE LambdaCase          #-}
+{-# LANGUAGE MonoLocalBinds      #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeApplications    #-}
 
-
-module Tests.Service
-  ( testQueries
+module SupplyChain.Tests.Service
+  ( testServiceQueries
   ) where
 
-import           Tests.Dummies
+import           SupplyChain.Tests.Common
+import           SupplyChain.Tests.Dummies
 
-import           Mirza.SupplyChain.Migrate     (testDbConnStr)
-import           Mirza.SupplyChain.QueryUtils
-import qualified Mirza.SupplyChain.Service     as S
-import qualified Mirza.SupplyChain.StorageBeam as SB
+-- import qualified Data.GS1.EventId                             as EvId
+
+import           Mirza.SupplyChain.Auth
+import           Mirza.SupplyChain.Handlers.Business
+import           Mirza.SupplyChain.Handlers.Contacts
+import           Mirza.SupplyChain.Handlers.EventRegistration
+import           Mirza.SupplyChain.Handlers.Queries
+-- import           Mirza.SupplyChain.Handlers.Signatures
+import           Mirza.SupplyChain.Handlers.Users
+import qualified Mirza.SupplyChain.StorageBeam                as SB
 import           Mirza.SupplyChain.Types
 
-import           Control.Monad                 (void)
-import           Data.Maybe                    (fromJust, isNothing)
-import qualified Data.Text                     as T
-import           Data.Text.Encoding            (encodeUtf8)
-import           Data.Time.Clock               (getCurrentTime)
-import           Data.Time.LocalTime           (LocalTime, utc, utcToLocalTime)
+import           Control.Monad                                (void)
+import           Data.Either                                  (isLeft)
+import           Data.Maybe                                   (fromJust,
+                                                               isNothing)
+
+import qualified Data.Text                                    as T
+import           Data.Text.Encoding                           (encodeUtf8)
+
+import           Data.Time.Clock                              (addUTCTime,
+                                                               getCurrentTime)
+import           Data.Time.LocalTime                          (LocalTime, utc,
+                                                               utcToLocalTime)
 import           Database.Beam
-import           Database.PostgreSQL.Simple    (connectPostgreSQL, execute_)
-import           GHC.Stack                     (HasCallStack)
+import           Database.PostgreSQL.Simple                   (connectPostgreSQL,
+                                                               execute_)
+import           GHC.Stack                                    (HasCallStack)
 import           Servant
 import           Test.Hspec
 
-import qualified Crypto.Scrypt                 as Scrypt
-
--- NOTE in this file, where fromJust is used in the tests, it is because we expect a Just... this is part of the test
--- NOTE tables dropped after every running of test in an "it"
+import qualified Crypto.Scrypt                                as Scrypt
 
 timeStampIO :: MonadIO m => m LocalTime
 timeStampIO = liftIO $ (utcToLocalTime utc) <$> getCurrentTime
 
 rsaPubKey :: IO PEM_RSAPubKey
-rsaPubKey = PEMString <$> Prelude.readFile "./test/Tests/testKeys/goodKeys/test.pub"
+rsaPubKey = PEMString <$> Prelude.readFile "./test/SupplyChain/Tests/testKeys/goodKeys/test.pub"
 
 testAppM :: context -> AppM context AppError a -> IO a
 testAppM scsContext act = runAppM scsContext act >>= \case
     Left err -> fail (show err)
     Right a -> pure a
 
-testQueries :: HasCallStack => SpecWith SCSContext
-testQueries = do
+testServiceQueries :: HasCallStack => SpecWith SCSContext
+testServiceQueries = do
 
   describe "addPublicKey tests" $
     it "addPublicKey test 1" $ \scsContext -> do
       pubKey <- rsaPubKey
       tStart <- timeStampIO
       res <- testAppM scsContext $ do
-        uid <- S.newUser dummyNewUser
+        uid <- newUser dummyNewUser
         storageUser <- runDb $ getUserById uid
         let user = userTableToModel . fromJust $ storageUser
         let (PEMString keyStr) = pubKey
-        keyId <- S.addPublicKey user pubKey Nothing
+        keyId <- addPublicKey user pubKey Nothing
         tEnd <- timeStampIO
-        insertedKey <- S.getPublicKey keyId
+        insertedKey <- getPublicKey keyId
         storageKey <- runDb $ getKeyById keyId
         pure (storageKey, keyStr, keyId, uid, tEnd, insertedKey)
       case res of
@@ -79,11 +91,11 @@ testQueries = do
       tStart <- liftIO getCurrentTime
       pubKey <- rsaPubKey
       (keyInfo, uid, tEnd) <- testAppM scsContext $ do
-        uid <- S.newUser dummyNewUser
+        uid <- newUser dummyNewUser
         storageUser <- runDb $ getUserById uid
         let user = userTableToModel . fromJust $ storageUser
-        keyId <- S.addPublicKey user pubKey Nothing
-        keyInfo <- S.getPublicKeyInfo keyId
+        keyId <- addPublicKey user pubKey Nothing
+        keyInfo <- getPublicKeyInfo keyId
         tEnd <- liftIO getCurrentTime
         pure (keyInfo, uid, tEnd)
       keyInfo `shouldSatisfy`
@@ -94,10 +106,110 @@ testQueries = do
           isNothing (revocationTime ki)
         )
 
+  describe "revokePublicKey tests" $ do
+    it "Revoke public key with permissions" $ \scsContext -> do
+      pubKey <- rsaPubKey
+      myKeyState <- testAppM scsContext $ do
+        uid <- newUser dummyNewUser
+        storageUser <- runDb $ getUserById uid
+        let user = userTableToModel . fromJust $ storageUser
+        keyId <- addPublicKey user pubKey Nothing
+        _timeKeyRevoked <- revokePublicKey user keyId
+        keyInfo <- getPublicKeyInfo keyId
+        pure (keyState keyInfo)
+      myKeyState `shouldBe` Revoked
+
+    it "Revoke public key without permissions" $ \scsContext -> do
+      pubKey <- rsaPubKey
+      r <- runAppM @_ @ServiceError scsContext $ do
+        uid <- newUser dummyNewUser
+        storageUser <- runDb $ getUserById uid
+        let user = userTableToModel . fromJust $ storageUser
+        keyId <- addPublicKey user pubKey Nothing
+
+        -- making a fake user
+        hackerUid <- newUser $ makeDummyNewUser (EmailAddress "l33t@hacker.com")
+        storageHacker <- runDb $ getUserById hackerUid
+        let hacker = userTableToModel . fromJust $ storageHacker
+
+        revokePublicKey hacker keyId
+      r `shouldSatisfy` isLeft
+      r `shouldBe` Left UnauthorisedKeyAccess
+
+    it "Already expired AND revoked pub key" $ \scsContext -> do
+      nowish <- getCurrentTime
+      let hundredMinutes = 100 * 60
+          someTimeAgo = addUTCTime (-hundredMinutes) nowish
+      pubKey <- rsaPubKey
+      myKeyState <- testAppM scsContext $ do
+        uid <- newUser dummyNewUser
+        storageUser <- runDb $ getUserById uid
+        let user = userTableToModel . fromJust $ storageUser
+        keyId <- addPublicKey user pubKey (Just . ExpirationTime $ someTimeAgo )
+        _timeKeyRevoked <- revokePublicKey user keyId
+        keyInfo <- getPublicKeyInfo keyId
+        pure (keyState keyInfo)
+      myKeyState `shouldBe` Revoked
+
+    it "Expired but NOT revoked pub key" $ \scsContext -> do
+      nowish <- getCurrentTime
+      let hundredMinutes = 100 * 60
+          someTimeAgo = addUTCTime (-hundredMinutes) nowish
+      pubKey <- rsaPubKey
+      myKeyState <- testAppM scsContext $ do
+        uid <- newUser dummyNewUser
+        storageUser <- runDb $ getUserById uid
+        let user = userTableToModel . fromJust $ storageUser
+        keyId <- addPublicKey user pubKey (Just . ExpirationTime $ someTimeAgo )
+        keyInfo <- getPublicKeyInfo keyId
+        pure (keyState keyInfo)
+      myKeyState `shouldBe` Expired
+
+    it "Expiry date in the future" $ \scsContext -> do
+      nowish <- getCurrentTime
+      let hundredMinutes = 100 * 60
+          someTimeLater = addUTCTime hundredMinutes nowish
+      pubKey <- rsaPubKey
+      myKeyState <- testAppM scsContext $ do
+        uid <- newUser dummyNewUser
+        storageUser <- runDb $ getUserById uid
+        let user = userTableToModel . fromJust $ storageUser
+        keyId <- addPublicKey user pubKey (Just . ExpirationTime $ someTimeLater)
+        keyInfo <- getPublicKeyInfo keyId
+        pure (keyState keyInfo)
+      myKeyState `shouldBe` InEffect
+
+  -- describe "eventSign - INCOMPLETE " $ do
+  --   it "Signing an event with a revoked key" $ \scsContext -> do
+  --     nowish <- getCurrentTime
+  --     let hundredMinutes = 100 * 60
+  --         someTimeLater = addUTCTime (hundredMinutes) nowish
+  --     pubKey <- rsaPubKey
+  --     myKeyState <- testAppM scsContext $ do
+
+  --       -- Adding a user, key, and revoking the key
+  --       uid <- newUser dummyNewUser
+  --       storageUser <- runDb $ getUserById uid
+  --       let user = userTableToModel . fromJust $ storageUser
+  --       keyId <- addPublicKey user pubKey (Just . ExpirationTime $ someTimeLater)
+  --       _timeKeyRevoked <- revokePublicKey user keyId
+  --       keyInfo <- getPublicKeyInfo keyId
+
+  --       -- Adding the event
+  --       (_insertedEvent, (SB.EventId eventId)) <- insertObjectEvent dummyUser dummyObject
+  --       let myDigest = SHA256
+  --           mySign = Signature "c2FqaWRhbm93ZXIyMw=="
+  --           mySignedEvent = SignedEvent (EvId.EventId eventId) keyId mySign myDigest
+  --       -- if this test can proceed after the following statement
+  --       _eventSignId <- eventSign user mySignedEvent
+  --       -- it means the basic functionality of ``eventSign`` function is perhaps done
+  --       pure (keyState keyInfo)
+  --     myKeyState `shouldBe` InEffect
+
   describe "newUser tests" $
     it "newUser test 1" $ \scsContext -> do
       res <- testAppM scsContext $  do
-        uid <- S.newUser dummyNewUser
+        uid <- newUser dummyNewUser
         user <- runDb $ getUserById uid
         pure (uid, user)
       case res of
@@ -120,8 +232,8 @@ testQueries = do
   describe "authCheck tests" $
     it "authCheck test 1" $ \scsContext -> do
       res <- testAppM scsContext $ do
-        uid <- S.newUser dummyNewUser
-        let check = unBasicAuthCheck $ S.authCheck scsContext
+        uid <- newUser dummyNewUser
+        let check = unBasicAuthCheck $ authCheck scsContext
         let basicAuthData = BasicAuthData
                           (encodeUtf8 $ unEmailAddress $ emailAddress dummyNewUser)
                           (encodeUtf8 $ password dummyNewUser)
@@ -129,7 +241,6 @@ testQueries = do
         user <- liftIO $ check basicAuthData
         pure (uid, user)
       case res of
-        -- (_, Nothing) -> fail "Received Nothing for user"
         (uid, Authorized user) ->
           user `shouldSatisfy`
             (\u ->
@@ -141,13 +252,13 @@ testQueries = do
 
   describe "Object Event" $ do
     it "Insert Object Event" $ \scsContext -> do
-      insertedEvent <- testAppM scsContext $ S.insertObjectEvent dummyUser dummyObject
+      (insertedEvent, _) <- testAppM scsContext $ insertObjectEvent dummyUser dummyObject
       insertedEvent `shouldBe` dummyObjEvent
 
     it "List event" $ \scsContext -> do
       res <- testAppM scsContext $ do
-        insertedEvent <- S.insertObjectEvent dummyUser dummyObject
-        evtList <- S.listEvents dummyUser (LabelEPCUrn dummyLabelEpcUrn)
+        (insertedEvent, _) <- insertObjectEvent dummyUser dummyObject
+        evtList <- listEvents dummyUser (LabelEPCUrn dummyLabelEpcUrn)
         pure (insertedEvent, evtList)
       case res of
         (insertedEvent, evtList) -> do
@@ -156,13 +267,13 @@ testQueries = do
 
   describe "Aggregation Event" $ do
     it "Insert Aggregation Event" $ \scsContext -> do
-      insertedEvent <- testAppM scsContext $ S.insertAggEvent dummyUser dummyAggregation
+      (insertedEvent, _) <- testAppM scsContext $ insertAggEvent dummyUser dummyAggregation
       insertedEvent `shouldBe` dummyAggEvent
 
     it "List event" $ \scsContext -> do
       res <- testAppM scsContext $ do
-        insertedEvent <- S.insertAggEvent dummyUser dummyAggregation
-        evtList <- S.listEvents dummyUser (LabelEPCUrn dummyLabelEpcUrn)
+        (insertedEvent, _) <- insertAggEvent dummyUser dummyAggregation
+        evtList <- listEvents dummyUser (LabelEPCUrn dummyLabelEpcUrn)
         pure (insertedEvent, evtList)
       case res of
         (insertedEvent, evtList) -> do
@@ -171,38 +282,38 @@ testQueries = do
 
   describe "Transformation Event" $ do
     it "Insert Transformation Event" $ \scsContext -> do
-      insertedEvent <- testAppM scsContext $ S.insertTransfEvent dummyUser dummyTransformation
+      (insertedEvent, _) <- testAppM scsContext $ insertTransfEvent dummyUser dummyTransformation
       insertedEvent `shouldBe` dummyTransfEvent
 
     it "List event" $ \scsContext -> do
       res <- testAppM scsContext $ do
-        insertedEvent <- S.insertTransfEvent dummyUser dummyTransformation
-        eventList <- S.listEvents dummyUser (LabelEPCUrn dummyLabelEpcUrn)
-        pure (insertedEvent, eventList)
+        (insertedEvent, _) <- insertTransfEvent dummyUser dummyTransformation
+        evtList <- listEvents dummyUser (LabelEPCUrn dummyLabelEpcUrn)
+        pure (insertedEvent, evtList)
       case res of
-        (insertedEvent, eventList) -> do
+        (insertedEvent, evtList) -> do
           insertedEvent `shouldBe` dummyTransfEvent
-          eventList `shouldBe` [insertedEvent]
+          evtList `shouldBe` [insertedEvent]
 
   describe "Transaction Event" $ do
     it "Insert Transaction Event" $ \scsContext -> do
-      insertedEvent <- testAppM scsContext $ S.insertTransactEvent dummyUser dummyTransaction
+      (insertedEvent, _) <- testAppM scsContext $ insertTransactEvent dummyUser dummyTransaction
       insertedEvent `shouldBe` dummyTransactEvent
 
     it "List event" $ \scsContext -> do
       res <- testAppM scsContext $ do
-        insertedEvent <- S.insertTransactEvent dummyUser dummyTransaction
-        eventList <- S.listEvents dummyUser (LabelEPCUrn dummyLabelEpcUrn)
-        pure (insertedEvent, eventList)
+        (insertedEvent, _) <- insertTransactEvent dummyUser dummyTransaction
+        evtList <- listEvents dummyUser (LabelEPCUrn dummyLabelEpcUrn)
+        pure (insertedEvent, evtList)
       case res of
-        (insertedEvent, eventList) -> do
+        (insertedEvent, evtList) -> do
           insertedEvent `shouldBe` dummyTransactEvent
-          eventList `shouldBe` [insertedEvent]
+          evtList `shouldBe` [insertedEvent]
 
   describe "getUser tests" $
     it "getUser test 1" $ \scsContext -> do
       res <- testAppM scsContext $ do
-        uid <- S.newUser dummyNewUser
+        uid <- newUser dummyNewUser
         user <- runDb $ getUser $ emailAddress dummyNewUser
         pure (uid, user)
       case res of
@@ -221,10 +332,10 @@ testQueries = do
         it "addContact simple" $ \scsContext -> do
           let myContact = makeDummyNewUser (EmailAddress "first@gmail.com")
           (hasBeenAdded, isContact) <- testAppM scsContext $ do
-            uid <- S.newUser dummyNewUser
+            uid <- newUser dummyNewUser
             user <- runDb $ getUser . emailAddress $ dummyNewUser
-            myContactUid <- S.newUser myContact
-            hasBeenAdded <- S.addContact (fromJust user) myContactUid
+            myContactUid <- newUser myContact
+            hasBeenAdded <- addContact (fromJust user) myContactUid
             isContact <- runDb $ isExistingContact uid myContactUid
             pure (hasBeenAdded, isContact)
           hasBeenAdded `shouldBe` True
@@ -234,30 +345,30 @@ testQueries = do
       it "Simple remove one" $ \scsContext -> do
         -- Adding the contact first
         (hasBeenAdded, hasBeenRemoved) <- testAppM scsContext $ do
-          void $ S.newUser dummyNewUser
+          void $ newUser dummyNewUser
           mUser <- runDb $ getUser $ emailAddress dummyNewUser
           let myContact = makeDummyNewUser (EmailAddress "first@gmail.com")
               user = fromJust mUser
-          myContactUid <- S.newUser myContact
-          hasBeenAdded <- S.addContact user myContactUid
+          myContactUid <- newUser myContact
+          hasBeenAdded <- addContact user myContactUid
         -- removing the contact now
-          hasBeenRemoved <- S.removeContact user myContactUid
+          hasBeenRemoved <- removeContact user myContactUid
           pure (hasBeenAdded, hasBeenRemoved)
         hasBeenAdded `shouldBe` True
         hasBeenRemoved `shouldBe` True
       it "Remove wrong contact" $ \scsContext -> do
         -- Adding the contact first
         (hasBeenAdded, hasBeenRemoved) <- testAppM scsContext $ do
-          void $ S.newUser dummyNewUser
+          void $ newUser dummyNewUser
           mUser <- runDb $ getUser $ emailAddress dummyNewUser
         -- Add a new user who is NOT a contact
-          otherUserId <- S.newUser $ makeDummyNewUser (EmailAddress "other@gmail.com")
+          otherUserId <- newUser $ makeDummyNewUser (EmailAddress "other@gmail.com")
           let myContact = makeDummyNewUser (EmailAddress "first@gmail.com")
               user = fromJust mUser
-          myContactUid <- S.newUser myContact
-          hasBeenAdded <- S.addContact user myContactUid
+          myContactUid <- newUser myContact
+          hasBeenAdded <- addContact user myContactUid
         -- removing a wrong contact
-          hasBeenRemoved <- S.removeContact user otherUserId
+          hasBeenRemoved <- removeContact user otherUserId
           pure (hasBeenAdded, hasBeenRemoved)
         hasBeenAdded `shouldBe` True
         hasBeenRemoved `shouldBe` False
@@ -266,14 +377,14 @@ testQueries = do
       it "Add one and list" $ \scsContext -> do
         -- Adding the contact first
         (hasBeenAdded, contactList, users) <- testAppM scsContext $ do
-          void $ S.newUser dummyNewUser
+          void $ newUser dummyNewUser
           mUser <- runDb $ getUser $ emailAddress dummyNewUser
           let myContact = makeDummyNewUser (EmailAddress "first@gmail.com")
               user = fromJust mUser
-          myContactUid <- S.newUser myContact
+          myContactUid <- newUser myContact
           mMyContact_user <- runDb $ getUser (EmailAddress "first@gmail.com")
-          hasBeenAdded <- S.addContact user myContactUid
-          contactList <- S.listContacts user
+          hasBeenAdded <- addContact user myContactUid
+          contactList <- listContacts user
           pure (hasBeenAdded, contactList, [fromJust mMyContact_user])
         contactList `shouldBe` users
         hasBeenAdded `shouldBe` True
@@ -286,11 +397,11 @@ testQueries = do
               myContact_4 = makeDummyNewUser (EmailAddress "fourth@gmail.com")
 
           -- Adding the users to the DB
-          void $ S.newUser dummyNewUser
-          myContactUid_1 <- S.newUser myContact_1
-          myContactUid_2 <- S.newUser myContact_2
-          myContactUid_3 <- S.newUser myContact_3
-          myContactUid_4 <- S.newUser myContact_4
+          void $ newUser dummyNewUser
+          myContactUid_1 <- newUser myContact_1
+          myContactUid_2 <- newUser myContact_2
+          myContactUid_3 <- newUser myContact_3
+          myContactUid_4 <- newUser myContact_4
 
           -- Getting the users
           mUser <- runDb $ getUser $ emailAddress dummyNewUser
@@ -306,24 +417,24 @@ testQueries = do
               myContact_4_user = fromJust mMyContact_4
 
           -- Making them contacts
-          void $ S.addContact user myContactUid_1
-          void $ S.addContact user myContactUid_2
-          void $ S.addContact user myContactUid_3
+          void $ addContact user myContactUid_1
+          void $ addContact user myContactUid_2
+          void $ addContact user myContactUid_3
           -- intentionally not adding contact_4
 
           -- Randomness
-          void $ S.addContact myContact_3_user myContactUid_4
-          void $ S.addContact myContact_3_user myContactUid_2
-          void $ S.addContact myContact_4_user myContactUid_2
-          void $ S.addContact myContact_1_user myContactUid_2
+          void $ addContact myContact_3_user myContactUid_4
+          void $ addContact myContact_3_user myContactUid_2
+          void $ addContact myContact_4_user myContactUid_2
+          void $ addContact myContact_1_user myContactUid_2
 
-          contactList <- S.listContacts user
+          contactList <- listContacts user
           pure (contactList, [myContact_1_user, myContact_2_user, myContact_3_user])
         contactList `shouldBe` users
 
   describe "DWhere" $
     it "Insert and find DWhere" $ \scsContext -> do
-      let eventId = dummyId
+      let eventId = SB.EventId dummyId
       insertedDWhere <- testAppM scsContext $ do
         void $ runDb $ insertDWhere dummyDWhere eventId
         runDb $ findDWhere eventId

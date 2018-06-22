@@ -1,6 +1,11 @@
 
 -- | Module containing functions to run the migration function
-module Mirza.SupplyChain.Migrate where
+module Mirza.SupplyChain.Migrate
+  (
+    defaultDbConnectionStr
+  , migrate
+  , tryCreateSchema
+  ) where
 
 import           Mirza.SupplyChain.MigrateScript (migrationStorage)
 
@@ -19,13 +24,11 @@ dbMigrationFunc :: Bool -> Connection -> Pg a -> IO a
 dbMigrationFunc False = withDatabaseDebug putStrLn
 dbMigrationFunc _     = withDatabase
 
--- | Default connection string
-defConnectionStr :: ByteString
-defConnectionStr = "dbname=devsupplychainserver"
-
--- | Connection string used when running tests
-testDbConnStr :: ByteString
-testDbConnStr = "dbname=testsupplychainserver"
+-- | Default connection string. Be careful with this construct as it could lead to
+-- problems...users not specifying the database and accidentally operating on
+-- the wrong database.
+defaultDbConnectionStr :: ByteString
+defaultDbConnectionStr = "dbname=devsupplychainserver"
 
 createSchema :: Bool -> Connection -> IO ()
 createSchema runSilently conn = do
