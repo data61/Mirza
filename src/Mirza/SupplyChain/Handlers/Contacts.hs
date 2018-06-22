@@ -14,6 +14,7 @@ module Mirza.SupplyChain.Handlers.Contacts
 
 import           Mirza.SupplyChain.Handlers.Common
 
+import qualified Mirza.Common.Utils                       as U
 import           Mirza.SupplyChain.QueryUtils
 import qualified Mirza.SupplyChain.StorageBeam            as SB
 import           Mirza.SupplyChain.Types                  hiding (KeyInfo (..),
@@ -21,7 +22,6 @@ import           Mirza.SupplyChain.Types                  hiding (KeyInfo (..),
                                                            User (userId),
                                                            UserID)
 import qualified Mirza.SupplyChain.Types                  as ST
-import qualified Mirza.SupplyChain.Utils                  as U
 
 import           Database.Beam                            as B
 import           Database.Beam.Backend.SQL.BeamExtensions

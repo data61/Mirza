@@ -12,6 +12,7 @@ module Mirza.BusinessRegistry.Handlers.Business
 import           Mirza.BusinessRegistry.Handlers.Common
 import           Mirza.BusinessRegistry.Types           as BT
 import           Mirza.Common.Types
+import           Mirza.Common.Utils
 
 import           Data.Time.Clock                        (UTCTime)
 

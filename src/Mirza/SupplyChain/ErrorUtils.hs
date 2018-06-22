@@ -12,8 +12,8 @@ module Mirza.SupplyChain.ErrorUtils
   ) where
 
 import           Mirza.Common.Types
+import qualified Mirza.Common.Utils                  as U
 import           Mirza.SupplyChain.Types
-import qualified Mirza.SupplyChain.Utils             as U
 
 import           Control.Monad.Except                (MonadError (..),
                                                       throwError)
