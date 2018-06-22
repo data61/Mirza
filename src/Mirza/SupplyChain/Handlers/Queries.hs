@@ -10,40 +10,41 @@ module Mirza.SupplyChain.Handlers.Queries
 
 
 import           Mirza.SupplyChain.Handlers.Common
+import           Mirza.SupplyChain.Handlers.EventRegistration (findEvent,
+                                                               findLabelId,
+                                                               getEventList)
+import           Mirza.SupplyChain.Handlers.Users             (userTableToModel)
 
-import           Mirza.SupplyChain.ErrorUtils      (throwParseError)
+import           Mirza.SupplyChain.ErrorUtils                 (throwParseError)
 import           Mirza.SupplyChain.QueryUtils
-import qualified Mirza.SupplyChain.StorageBeam     as SB
-import           Mirza.SupplyChain.Types           hiding (KeyInfo (..),
-                                                    NewUser (..), User (..))
-import qualified Mirza.SupplyChain.Types           as ST
-import qualified Mirza.SupplyChain.Utils           as U
+import qualified Mirza.SupplyChain.StorageBeam                as SB
+import           Mirza.SupplyChain.Types                      hiding
+                                                               (KeyInfo (..),
+                                                               NewUser (..),
+                                                               User (..))
+import qualified Mirza.SupplyChain.Types                      as ST
+import qualified Mirza.SupplyChain.Utils                      as U
 
-import           Data.GS1.DWhat                    (LabelEPC (..), urn2LabelEPC)
-import qualified Data.GS1.Event                    as Ev
-import           Data.GS1.EventId                  as EvId
+import           Data.GS1.DWhat                               (LabelEPC (..),
+                                                               urn2LabelEPC)
+import qualified Data.GS1.Event                               as Ev
+import           Data.GS1.EventId                             as EvId
 
-import           Database.Beam                     as B
+import           Database.Beam                                as B
 
-import           Data.Bifunctor                    (bimap)
-import           Data.Maybe                        (catMaybes)
+import           Data.Bifunctor                               (bimap)
+import           Data.Maybe                                   (catMaybes)
 
 
 
--- PSUEDO:
 -- Use getLabelIDState
 epcState :: ST.User ->  LabelEPCUrn -> AppM context err EPCState
 epcState _user _str = U.notImplemented
 
 
-
 -- This takes an EPC urn,
 -- and looks up all the events related to that item. First we've got
 -- to find all the related "Whats"
--- PSEUDO:
--- (labelID, _) <- getLabelIDState
--- wholeEvents <- select * from events, dwhats, dwhy, dwhen where _whatItemID=labelID AND _eventID=_whatEventID AND _eventID=_whenEventID AND _eventID=_whyEventID ORDER BY _eventTime;
--- return map constructEvent wholeEvents
 listEvents ::  SCSApp context err => ST.User ->  LabelEPCUrn -> AppM context err [Ev.Event]
 listEvents _user = either throwParseError (runDb . listEventsQuery) . urn2LabelEPC . unLabelEPCUrn
 
@@ -97,3 +98,6 @@ eventUserSignedList (EvId.EventId eventId) = do
     guard_ (SB.user_events_user_id userEvent `references_` user)
     pure (user, SB.user_events_has_signed userEvent)
   return $ bimap userTableToModel id <$> usersSignedList
+
+
+-- Helper functions

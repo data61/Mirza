@@ -2,7 +2,7 @@
 
 module Mirza.SupplyChain.Handlers.Users
   (
-    newUser
+    newUser, userTableToModel
   ) where
 
 
@@ -15,8 +15,7 @@ import           Mirza.SupplyChain.QueryUtils
 import qualified Mirza.SupplyChain.StorageBeam            as SB
 import           Mirza.SupplyChain.Types                  hiding (KeyInfo (..),
                                                            NewUser (..),
-                                                           User (userId),
-                                                           UserID)
+                                                           User (userId))
 import qualified Mirza.SupplyChain.Types                  as ST
 
 import           Database.Beam                            as B
