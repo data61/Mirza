@@ -16,10 +16,8 @@
 module Mirza.BusinessRegistry.StorageBeam where
 
 import qualified Data.GS1.EPC           as EPC
-import qualified Data.GS1.Event         as Ev
 
 import           Control.Lens
-import           Data.Aeson             (FromJSON, ToJSON)
 import           Data.ByteString        (ByteString)
 import           Data.Text              (Text)
 
@@ -28,9 +26,6 @@ import           Data.UUID              (UUID)
 
 import           Database.Beam          as B
 import           Database.Beam.Postgres
-
-import           Data.Swagger           (ToParamSchema, ToSchema)
-import           Servant
 
 
 

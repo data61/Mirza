@@ -18,25 +18,17 @@ import           Database.Beam.Migrate.SQL.Tables
 import           Database.Beam.Migrate.Types
 import           Database.Beam.Postgres
 import qualified Database.Beam.Postgres               as BPostgres
-import           Database.Beam.Postgres.Syntax        (PgDataTypeSyntax,
-                                                       pgTextType)
+import           Database.Beam.Postgres.Syntax        (PgDataTypeSyntax)
 import           Database.PostgreSQL.Simple.FromField
 import           Database.PostgreSQL.Simple.ToField   (ToField (..))
 
-import           Data.ByteString                      (ByteString)
-import qualified Data.Text                            as T
 import           Data.UUID                            (UUID)
-import           Text.Read                            (readMaybe)
 
 
 
 
 maxLen :: Word
 maxLen = 120
-
--- length of the timezone offset
-maxTzLen :: Word
-maxTzLen = 10
 
 pkSerialType :: DataType PgDataTypeSyntax UUID
 pkSerialType = uuid
