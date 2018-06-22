@@ -27,6 +27,8 @@ import           Data.UUID              (UUID)
 import           Database.Beam          as B
 import           Database.Beam.Postgres
 
+import           Data.Swagger
+
 
 
 -- Table types and constructors are suffixed with T (for Table).
@@ -69,6 +71,10 @@ supplyChainDb = defaultDbSettings
 
 
 type PrimaryKeyType = UUID
+
+type UserID = PrimaryKey UserT Identity
+instance ToSchema UserID
+instance ToParamSchema UserID
 
 data UserT f = UserT
   { user_id       :: C f PrimaryKeyType
