@@ -369,11 +369,6 @@ newtype EventHash = EventHash String
 $(deriveJSON defaultOptions ''EventHash)
 instance ToSchema EventHash
 
--- instance Sql.FromRow EventHash where
---   fromRow = EventHash <$> field
-
-type JSONTxt = Text
-
 -- A signature is an EventHash that's been
 -- signed by one of the parties involved in the
 -- event.

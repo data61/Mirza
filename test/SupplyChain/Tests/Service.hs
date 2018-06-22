@@ -1,31 +1,39 @@
 {-# LANGUAGE DataKinds           #-}
 {-# LANGUAGE FlexibleContexts    #-}
 {-# LANGUAGE LambdaCase          #-}
+{-# LANGUAGE MonoLocalBinds      #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-
+{-# LANGUAGE TypeApplications    #-}
 
 module SupplyChain.Tests.Service
-  ( testQueries
+  ( testServiceQueries
   ) where
 
 import           SupplyChain.Tests.Common
 import           SupplyChain.Tests.Dummies
+
+-- import qualified Data.GS1.EventId                             as EvId
 
 import           Mirza.SupplyChain.Auth
 import           Mirza.SupplyChain.Handlers.Business
 import           Mirza.SupplyChain.Handlers.Contacts
 import           Mirza.SupplyChain.Handlers.EventRegistration
 import           Mirza.SupplyChain.Handlers.Queries
+-- import           Mirza.SupplyChain.Handlers.Signatures
 import           Mirza.SupplyChain.Handlers.Users
 import qualified Mirza.SupplyChain.StorageBeam                as SB
 import           Mirza.SupplyChain.Types
 
 import           Control.Monad                                (void)
+import           Data.Either                                  (isLeft)
 import           Data.Maybe                                   (fromJust,
                                                                isNothing)
+
 import qualified Data.Text                                    as T
 import           Data.Text.Encoding                           (encodeUtf8)
-import           Data.Time.Clock                              (getCurrentTime)
+
+import           Data.Time.Clock                              (addUTCTime,
+                                                               getCurrentTime)
 import           Data.Time.LocalTime                          (LocalTime, utc,
                                                                utcToLocalTime)
 import           Database.Beam
@@ -48,8 +56,8 @@ testAppM scsContext act = runAppM scsContext act >>= \case
     Left err -> fail (show err)
     Right a -> pure a
 
-testQueries :: HasCallStack => SpecWith SCSContext
-testQueries = do
+testServiceQueries :: HasCallStack => SpecWith SCSContext
+testServiceQueries = do
 
   describe "addPublicKey tests" $
     it "addPublicKey test 1" $ \scsContext -> do
@@ -98,6 +106,106 @@ testQueries = do
           isNothing (revocationTime ki)
         )
 
+  describe "revokePublicKey tests" $ do
+    it "Revoke public key with permissions" $ \scsContext -> do
+      pubKey <- rsaPubKey
+      myKeyState <- testAppM scsContext $ do
+        uid <- newUser dummyNewUser
+        storageUser <- runDb $ getUserById uid
+        let user = userTableToModel . fromJust $ storageUser
+        keyId <- addPublicKey user pubKey Nothing
+        _timeKeyRevoked <- revokePublicKey user keyId
+        keyInfo <- getPublicKeyInfo keyId
+        pure (keyState keyInfo)
+      myKeyState `shouldBe` Revoked
+
+    it "Revoke public key without permissions" $ \scsContext -> do
+      pubKey <- rsaPubKey
+      r <- runAppM @_ @ServiceError scsContext $ do
+        uid <- newUser dummyNewUser
+        storageUser <- runDb $ getUserById uid
+        let user = userTableToModel . fromJust $ storageUser
+        keyId <- addPublicKey user pubKey Nothing
+
+        -- making a fake user
+        hackerUid <- newUser $ makeDummyNewUser (EmailAddress "l33t@hacker.com")
+        storageHacker <- runDb $ getUserById hackerUid
+        let hacker = userTableToModel . fromJust $ storageHacker
+
+        revokePublicKey hacker keyId
+      r `shouldSatisfy` isLeft
+      r `shouldBe` Left UnauthorisedKeyAccess
+
+    it "Already expired AND revoked pub key" $ \scsContext -> do
+      nowish <- getCurrentTime
+      let hundredMinutes = 100 * 60
+          someTimeAgo = addUTCTime (-hundredMinutes) nowish
+      pubKey <- rsaPubKey
+      myKeyState <- testAppM scsContext $ do
+        uid <- newUser dummyNewUser
+        storageUser <- runDb $ getUserById uid
+        let user = userTableToModel . fromJust $ storageUser
+        keyId <- addPublicKey user pubKey (Just . ExpirationTime $ someTimeAgo )
+        _timeKeyRevoked <- revokePublicKey user keyId
+        keyInfo <- getPublicKeyInfo keyId
+        pure (keyState keyInfo)
+      myKeyState `shouldBe` Revoked
+
+    it "Expired but NOT revoked pub key" $ \scsContext -> do
+      nowish <- getCurrentTime
+      let hundredMinutes = 100 * 60
+          someTimeAgo = addUTCTime (-hundredMinutes) nowish
+      pubKey <- rsaPubKey
+      myKeyState <- testAppM scsContext $ do
+        uid <- newUser dummyNewUser
+        storageUser <- runDb $ getUserById uid
+        let user = userTableToModel . fromJust $ storageUser
+        keyId <- addPublicKey user pubKey (Just . ExpirationTime $ someTimeAgo )
+        keyInfo <- getPublicKeyInfo keyId
+        pure (keyState keyInfo)
+      myKeyState `shouldBe` Expired
+
+    it "Expiry date in the future" $ \scsContext -> do
+      nowish <- getCurrentTime
+      let hundredMinutes = 100 * 60
+          someTimeLater = addUTCTime hundredMinutes nowish
+      pubKey <- rsaPubKey
+      myKeyState <- testAppM scsContext $ do
+        uid <- newUser dummyNewUser
+        storageUser <- runDb $ getUserById uid
+        let user = userTableToModel . fromJust $ storageUser
+        keyId <- addPublicKey user pubKey (Just . ExpirationTime $ someTimeLater)
+        keyInfo <- getPublicKeyInfo keyId
+        pure (keyState keyInfo)
+      myKeyState `shouldBe` InEffect
+
+  -- describe "eventSign - INCOMPLETE " $ do
+  --   it "Signing an event with a revoked key" $ \scsContext -> do
+  --     nowish <- getCurrentTime
+  --     let hundredMinutes = 100 * 60
+  --         someTimeLater = addUTCTime (hundredMinutes) nowish
+  --     pubKey <- rsaPubKey
+  --     myKeyState <- testAppM scsContext $ do
+
+  --       -- Adding a user, key, and revoking the key
+  --       uid <- newUser dummyNewUser
+  --       storageUser <- runDb $ getUserById uid
+  --       let user = userTableToModel . fromJust $ storageUser
+  --       keyId <- addPublicKey user pubKey (Just . ExpirationTime $ someTimeLater)
+  --       _timeKeyRevoked <- revokePublicKey user keyId
+  --       keyInfo <- getPublicKeyInfo keyId
+
+  --       -- Adding the event
+  --       (_insertedEvent, (SB.EventId eventId)) <- insertObjectEvent dummyUser dummyObject
+  --       let myDigest = SHA256
+  --           mySign = Signature "c2FqaWRhbm93ZXIyMw=="
+  --           mySignedEvent = SignedEvent (EvId.EventId eventId) keyId mySign myDigest
+  --       -- if this test can proceed after the following statement
+  --       _eventSignId <- eventSign user mySignedEvent
+  --       -- it means the basic functionality of ``eventSign`` function is perhaps done
+  --       pure (keyState keyInfo)
+  --     myKeyState `shouldBe` InEffect
+
   describe "newUser tests" $
     it "newUser test 1" $ \scsContext -> do
       res <- testAppM scsContext $  do
@@ -133,7 +241,6 @@ testQueries = do
         user <- liftIO $ check basicAuthData
         pure (uid, user)
       case res of
-        -- (_, Nothing) -> fail "Received Nothing for user"
         (uid, Authorized user) ->
           user `shouldSatisfy`
             (\u ->
