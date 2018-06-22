@@ -168,13 +168,13 @@ testServiceQueries = do
     it "Expiry date in the future" $ \scsContext -> do
       nowish <- getCurrentTime
       let hundredMinutes = 100 * 60
-          tomorrow = addUTCTime (hundredMinutes) nowish
+          someTimeLater = addUTCTime (hundredMinutes) nowish
       pubKey <- rsaPubKey
       myKeyState <- testAppM scsContext $ do
         uid <- newUser dummyNewUser
         storageUser <- runDb $ getUserById uid
         let user = userTableToModel . fromJust $ storageUser
-        keyId <- addPublicKey user pubKey (Just . ExpirationTime $ tomorrow)
+        keyId <- addPublicKey user pubKey (Just . ExpirationTime $ someTimeLater)
         keyInfo <- getPublicKeyInfo keyId
         pure (keyState keyInfo)
       myKeyState `shouldBe` InEffect
