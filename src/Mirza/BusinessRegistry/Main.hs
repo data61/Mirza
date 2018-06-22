@@ -8,7 +8,7 @@ module Mirza.BusinessRegistry.Main where
 import           Mirza.BusinessRegistry.Types as BT
 import           Mirza.SupplyChain.API        (API, ServerAPI, api)
 import           Mirza.SupplyChain.Auth
-import           Mirza.SupplyChain.Migrate    (defConnectionStr, migrate)
+import           Mirza.SupplyChain.Migrate    (migrate)
 import           Mirza.SupplyChain.Service
 import           Mirza.SupplyChain.Types      (AppError, EnvType (..), User)
 
@@ -69,7 +69,6 @@ serverOptions = ServerOptions
         <*> switch
           (
               long "init-db"
-          <>  short 'i'
           <>  help "Put empty tables into a fresh database"
           )
         <*> option auto
@@ -79,11 +78,11 @@ serverOptions = ServerOptions
           <>  showDefault
           <>  value defaultPortNumber
           )
-        <*> option auto
+        <*> strOption
           (
               long "conn"
           <>  short 'c'
-          <>  help "Database connection string."
+          <>  help "Database connection string in libpq format. See: https://www.postgresql.org/docs/9.5/static/libpq-connect.html#LIBPQ-CONNSTRING"
           <>  showDefault
           <>  value defaultDatabaseConnectionString
           )
@@ -161,7 +160,7 @@ debugFunc = do
 runProgram :: ServerOptions -> IO ()
 runProgram options
 -- FIXME: This is definitely wrong
-  | initDatabase(options) = migrate defConnectionStr
+  | initDatabase(options) = migrate $ soDatabaseConnectionStr options
   | otherwise  = do
       let portNumber = soPortNumber options
       ctx <- initBRContext options
