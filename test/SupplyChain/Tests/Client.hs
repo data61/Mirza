@@ -29,7 +29,7 @@ import           Data.GS1.EPC                     (GS1CompanyPrefix (..))
 import           Mirza.SupplyChain.Client.Servant
 
 import           Katip                            (Severity (DebugS))
-import           Tests.Dummies
+import           SupplyChain.Tests.Dummies
 
 -- Cribbed from https://github.com/haskell-servant/servant/blob/master/servant-client/test/Servant/ClientSpec.hs
 
