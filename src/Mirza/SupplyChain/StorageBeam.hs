@@ -15,21 +15,21 @@
 -- in MigrateScript
 module Mirza.SupplyChain.StorageBeam where
 
-import qualified Mirza.SupplyChain.MigrateUtils as MU
+import qualified Mirza.Common.GS1BeamOrphans as MU
 
-import qualified Data.GS1.EPC                   as EPC
-import qualified Data.GS1.Event                 as Ev
+import qualified Data.GS1.EPC                as EPC
+import qualified Data.GS1.Event              as Ev
 
 import           Control.Lens
-import           Data.Aeson                     (FromJSON, ToJSON)
-import           Data.ByteString                (ByteString)
-import           Data.Swagger                   (ToSchema)
-import           Data.Text                      (Text)
+import           Data.Aeson                  (FromJSON, ToJSON)
+import           Data.ByteString             (ByteString)
+import           Data.Swagger                (ToSchema)
+import           Data.Text                   (Text)
 
-import           Data.Time                      (LocalTime)
-import           Data.UUID                      (UUID)
+import           Data.Time                   (LocalTime)
+import           Data.UUID                   (UUID)
 
-import           Database.Beam                  as B
+import           Database.Beam               as B
 import           Database.Beam.Postgres
 
 type PrimaryKeyType = UUID

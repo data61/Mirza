@@ -21,6 +21,7 @@ library
   exposed-modules:    Mirza.BusinessRegistry.Main
                     , Mirza.BusinessRegistry.Types
                     , Mirza.Common.Beam
+                    , Mirza.Common.GS1BeamOrphans
                     , Mirza.Common.Types
                     , Mirza.Common.Utils
                     , Mirza.SupplyChain.API
@@ -47,8 +48,7 @@ library
                     , Mirza.BusinessRegistry.Handlers.Business
                     , Mirza.BusinessRegistry.Handlers.Common
 
-  other-modules:      Mirza.SupplyChain.MigrateUtils
-                    , Mirza.SupplyChain.MigrateScript
+  other-modules:      Mirza.SupplyChain.MigrateScript
                     , Mirza.SupplyChain.ErrorUtils
   build-depends:      base >= 4.7 && < 5
                     , GS1Combinators
