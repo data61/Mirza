@@ -14,7 +14,8 @@ import           Mirza.SupplyChain.Handlers.Common
 import           Mirza.SupplyChain.Handlers.EventRegistration (hasUserCreatedEvent,
                                                                insertUserEvent)
 
-import           Mirza.SupplyChain.ErrorUtils                 (throwAppError)
+import           Mirza.SupplyChain.ErrorUtils                 (throwAppError,
+                                                               throwBackendError)
 import qualified Mirza.SupplyChain.QueryUtils                 as QU
 import qualified Mirza.SupplyChain.StorageBeam                as SB
 import           Mirza.SupplyChain.Types                      hiding
@@ -27,6 +28,7 @@ import qualified Mirza.SupplyChain.Types                      as ST
 import qualified Data.GS1.EventId                             as EvId
 
 import           Database.Beam                                as B
+import           Database.Beam.Backend.SQL.BeamExtensions
 
 import qualified OpenSSL.EVP.Digest                           as EVPDigest
 import           OpenSSL.EVP.PKey                             (toPublicKey)
@@ -94,14 +96,6 @@ eventSign _user (SignedEvent eventID keyID (Signature sigStr) digest') = runDb $
     then insertSignature eventID keyID (Signature sigStr) digest'
     else throwAppError $ InvalidSignature sigStr
 
--- eventSign user signedEvent = error "Storage module not implemented"
--- eventSign user signedEvent = do
---   result <- liftIO $ runExceptT $ Storage.eventSign user signedEvent
---   case result of
---     Left SE_NeedMoreSignatures -> return False
---     Left e -> throwError err400 { errBody = LBSC8.pack $ show e }
---     Right () -> return True
-
 -- TODO: Should this return Text or a JSON value?
 getEventJSON :: AsServiceError err => EvId.EventId -> DB context err T.Text
 getEventJSON eventID = do
@@ -126,8 +120,26 @@ getPublicKey (KeyID keyId) = do
 makeDigest :: Digest -> IO (Maybe EVPDigest.Digest)
 makeDigest = EVPDigest.getDigestByName . map toLower . show
 
-insertSignature :: EvId.EventId -> KeyID -> Signature -> Digest -> DB environmentUnused errorUnused SB.PrimaryKeyType
-insertSignature = error "Implement me"
+
+insertSignature
+  :: (AsServiceError err) =>
+     EvId.EventId
+     -> KeyID
+     -> Signature
+     -> Digest
+     -> DB environmentUnused err SB.PrimaryKeyType
+
+insertSignature eId kId (Signature sig) digest = do
+  sigId <- QU.generatePk
+  timestamp <- QU.generateTimeStamp
+  r <- pg $ runInsertReturningList (SB._signatures SB.supplyChainDb) $
+        insertValues
+        [(SB.Signature sigId) (SB.EventId $ EvId.unEventId eId)
+         (SB.KeyId $ unKeyID kId) (BSC.pack sig)
+          (BSC.pack $ show $ digest) timestamp]
+  case r of
+    [rowId] -> return ( SB.signature_id rowId)
+    _       -> throwBackendError "Failed to add signature"
 
 
 
