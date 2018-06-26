@@ -15,6 +15,7 @@ import           Mirza.SupplyChain.Handlers.EventRegistration (findEvent,
                                                                getEventList)
 import           Mirza.SupplyChain.Handlers.Users             (userTableToModel)
 
+import qualified Mirza.Common.Utils                           as U
 import           Mirza.SupplyChain.ErrorUtils                 (throwParseError)
 import           Mirza.SupplyChain.QueryUtils
 import qualified Mirza.SupplyChain.StorageBeam                as SB
@@ -23,7 +24,6 @@ import           Mirza.SupplyChain.Types                      hiding
                                                                NewUser (..),
                                                                User (..))
 import qualified Mirza.SupplyChain.Types                      as ST
-import qualified Mirza.SupplyChain.Utils                      as U
 
 import           Data.GS1.DWhat                               (LabelEPC (..),
                                                                urn2LabelEPC)

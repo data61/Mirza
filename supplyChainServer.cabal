@@ -22,6 +22,7 @@ library
                     , Mirza.BusinessRegistry.Types
                     , Mirza.Common.Beam
                     , Mirza.Common.Types
+                    , Mirza.Common.Utils
                     , Mirza.SupplyChain.API
                     , Mirza.SupplyChain.Auth
                     , Mirza.SupplyChain.Client.Servant
@@ -31,7 +32,6 @@ library
                     , Mirza.SupplyChain.Service
                     , Mirza.SupplyChain.StorageBeam
                     , Mirza.SupplyChain.Types
-                    , Mirza.SupplyChain.Utils
                     , Mirza.SupplyChain.Handlers.Common
                     , Mirza.SupplyChain.Handlers.Contacts
                     , Mirza.SupplyChain.Handlers.EventRegistration
@@ -39,6 +39,13 @@ library
                     , Mirza.SupplyChain.Handlers.Queries
                     , Mirza.SupplyChain.Handlers.Signatures
                     , Mirza.SupplyChain.Handlers.Users
+                    , Mirza.BusinessRegistry.API
+                    , Mirza.BusinessRegistry.Auth
+                    , Mirza.BusinessRegistry.MigrateScript
+                    , Mirza.BusinessRegistry.StorageBeam
+                    , Mirza.BusinessRegistry.Service
+                    , Mirza.BusinessRegistry.Handlers.Business
+                    , Mirza.BusinessRegistry.Handlers.Common
 
   other-modules:      Mirza.SupplyChain.MigrateUtils
                     , Mirza.SupplyChain.MigrateScript
