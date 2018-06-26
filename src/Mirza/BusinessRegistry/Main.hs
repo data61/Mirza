@@ -9,6 +9,7 @@ import           Mirza.BusinessRegistry.API     (API, ServerAPI, api)
 import           Mirza.BusinessRegistry.Auth
 import           Mirza.BusinessRegistry.Service
 import           Mirza.BusinessRegistry.Types   as BT
+import           Mirza.Common.Utils             (notImplemented)
 import           Mirza.SupplyChain.Migrate      (migrate)
 import           Mirza.SupplyChain.Types        (AppError, EnvType (..))
 
@@ -41,78 +42,98 @@ defaultDatabaseConnectionString :: ByteString
 defaultDatabaseConnectionString = "dbname=devMirzaBusinessRegistry"
 
 data ServerOptions = ServerOptions
-  { soEnvType                 :: EnvType
-    , debug                   :: Bool -- TODO: Remove this program option before release.
-    , initDatabase            :: Bool
-    , soPortNumber            :: Int
-    , soDatabaseConnectionStr :: ByteString
-    , soScryptN               :: Integer
-    , soScryptP               :: Integer
-    , soScryptR               :: Integer
-    , soLoggingLevel          :: K.Severity
-
+  { soGlobals  :: GlobalOptions
+  , soExecMode :: ExecMode
   }
+
+data GlobalOptions = GlobalOptions
+ { goDbConnStr    :: ByteString
+ , goScryptN      :: Integer
+ , goScryptP      :: Integer
+ , goScryptR      :: Integer
+ , goLoggingLevel :: K.Severity
+ }
+
+data ExecMode
+  = RunServer RunServerOptions
+  | InitDb
+  | AddUser
+
+data RunServerOptions = RunServerOptions
+  { rsoEnvType    :: EnvType
+  , rsoPortNumber :: Int
+  }
+
+runServer :: Parser ExecMode
+runServer = RunServer <$>
+  (RunServerOptions
+  <$>  option auto
+      ( long "env" <> short 'e'
+      <> value Dev <> showDefault
+      <> help "Environment, Dev | Prod"
+      )
+    <*> option auto
+      (
+          long "port"
+      <>  help "Port to run the service on."
+      <>  showDefault
+      <>  value defaultPortNumber
+      )
+  )
+
+-- TODO: Add flag to confirm change to database
+initDb :: Parser ExecMode
+initDb = pure InitDb
+
+addUser :: Parser ExecMode
+addUser = pure AddUser
+
+globalOptions :: Parser GlobalOptions
+globalOptions = GlobalOptions
+  <$> strOption
+      (
+          long "conn"
+      <>  short 'c'
+      <>  help "Database connection string in libpq format. See: https://www.postgresql.org/docs/9.5/static/libpq-connect.html#LIBPQ-CONNSTRING"
+      <>  showDefault
+      <>  value defaultDatabaseConnectionString
+      )
+  <*> option auto
+      (
+          long "scryptN"
+      <>  help "Scrypt N parameter (>= 14)"
+      <>  showDefault
+      <>  value 14
+      )
+  <*> option auto
+      (
+          long "scryptP"
+      <>  help "Scrypt r parameter (>= 8)"
+      <>  showDefault
+      <>  value 8
+      )
+  <*> option auto
+      (
+          long "scryptR"
+      <>  help "Scrypt r parameter (>= 1)"
+      <> showDefault
+      <> value 1
+      )
+   <*> option auto
+      (  long "log-level"
+      <> value InfoS
+      <> showDefault
+      <> help ("Logging level: " ++ show [minBound .. maxBound :: Severity])
+      )
 
 serverOptions :: Parser ServerOptions
 serverOptions = ServerOptions
-        <$> option auto
-          ( long "env" <> short 'e'
-          <> value Dev <> showDefault
-          <> help "Environment, Dev | Prod"
-          )
-        <*> switch
-          (
-              long "debug"
-          <>  short 'd'
-          <>  help "Runs the debug command."
-          )
-        <*> switch
-          (
-              long "init-db"
-          <>  help "Put empty tables into a fresh database"
-          )
-        <*> option auto
-          (
-              long "port"
-          <>  help "Port to run the service on."
-          <>  showDefault
-          <>  value defaultPortNumber
-          )
-        <*> strOption
-          (
-              long "conn"
-          <>  short 'c'
-          <>  help "Database connection string in libpq format. See: https://www.postgresql.org/docs/9.5/static/libpq-connect.html#LIBPQ-CONNSTRING"
-          <>  showDefault
-          <>  value defaultDatabaseConnectionString
-          )
-        <*> option auto
-          (
-              long "scryptN"
-          <>  help "Scrypt N parameter (>= 14)"
-          <>  showDefault
-          <>  value 14
-          )
-        <*> option auto
-          (
-              long "scryptP"
-          <>  help "Scrypt r parameter (>= 8)"
-          <>  showDefault
-          <>  value 8
-          )
-        <*> option auto
-          (
-              long "scryptR"
-          <>  help "Scrypt r parameter (>= 1)"
-          <> showDefault
-          <> value 1
-          )
-       <*> option auto
-          (  long "log-level"
-          <> value InfoS
-          <> showDefault
-          <> help ("Logging level: " ++ show [minBound .. maxBound :: Severity])
-          )
+  <$> globalOptions
+  <*> subparser
+        ( command "initdb"   (info (initDb <**> helper) (progDesc "Initialise the Database"))
+        <> command "adduser" (info (addUser <**> helper) (progDesc "Interactively add new users"))
+        <> command "server"  (info (runServer <**> helper) (progDesc "Run HTTP server"))
+        )
 
 
 
@@ -127,24 +148,24 @@ main = multiplexGlobalOptions =<< execParser opts where
 -- Handles the overriding global options (this effectively defines the point
 -- where the single binary could be split into multiple binaries.
 multiplexGlobalOptions :: ServerOptions -> IO ()
-multiplexGlobalOptions options
-  | debug(options)        = debugFunc
-  | initDatabase(options) = migrate $ soDatabaseConnectionStr options
-  | otherwise             = launchServer options
+multiplexGlobalOptions so@(ServerOptions globals mode) = case mode of
+  InitDb         -> migrate (goDbConnStr globals)
+  AddUser        -> notImplemented
+  RunServer opts -> launchServer globals opts
 
 
-launchServer :: ServerOptions -> IO ()
-launchServer options = do
-      let portNumber = soPortNumber options
-      ctx <- initBRContext options
-      app <- initApplication options ctx
-      mids <- initMiddleware options
+launchServer :: GlobalOptions -> RunServerOptions -> IO ()
+launchServer globals options = do
+      let portNumber = rsoPortNumber options
+      ctx <- initBRContext globals options
+      app <- initApplication globals options ctx
+      mids <- initMiddleware globals options
       putStrLn $ "http://localhost:" ++ show portNumber ++ "/swagger-ui/"
       Warp.run (fromIntegral portNumber) (mids app) `finally` closeScribes (BT._brKatipLogEnv ctx)
 
 
-initBRContext :: ServerOptions -> IO BT.BRContext
-initBRContext (ServerOptions envT _ _ _ dbConnStr n p r lev) = do
+initBRContext :: GlobalOptions -> RunServerOptions -> IO BT.BRContext
+initBRContext (GlobalOptions dbConnStr n p r lev) (RunServerOptions envT _port) = do
   handleScribe <- mkHandleScribe ColorIfTerminal stdout lev V3
   logEnv <- initLogEnv "businessRegistry" (Environment . pack . show $ envT)
             >>= registerScribe "stdout" handleScribe defaultScribeSettings
@@ -161,15 +182,15 @@ initBRContext (ServerOptions envT _ _ _ dbConnStr n p r lev) = do
   pure $ BRContext envT connpool params logEnv mempty mempty
 
 
-initApplication :: ServerOptions -> BT.BRContext -> IO Application
-initApplication _so ev =
+initApplication :: GlobalOptions -> RunServerOptions -> BT.BRContext -> IO Application
+initApplication _go _so ev =
   pure $ serveWithContext api
           (basicAuthServerContext ev)
           (server ev)
 
 
-initMiddleware :: ServerOptions -> IO Middleware
-initMiddleware _ = pure id
+initMiddleware :: GlobalOptions -> RunServerOptions -> IO Middleware
+initMiddleware _ _ = pure id
 
 
 -- Implementation
