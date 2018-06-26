@@ -2,7 +2,7 @@
 -- | Contains the migration function of ``supplyChainDb``
 module Mirza.SupplyChain.MigrateScript (migrationStorage) where
 
-import           Mirza.SupplyChain.MigrateUtils
+import           Mirza.Common.GS1BeamOrphans
 import           Mirza.SupplyChain.StorageBeam
 
 import           Data.UUID                        (UUID)
