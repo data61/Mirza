@@ -105,6 +105,9 @@ class HasConnPool a where
 class AsSqlError a where
   _SqlError :: Prism' a SqlError
 
+instance AsSqlError SqlError where
+  _SqlError = id
+
 -- | The class of contexts which have Scrypt parameters
 class HasScryptParams a where
   scryptParams :: Lens' a ScryptParams
