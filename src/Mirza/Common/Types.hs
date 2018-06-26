@@ -1,4 +1,5 @@
 {-# LANGUAGE ConstraintKinds            #-}
+{-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE TemplateHaskell            #-}
 
@@ -50,6 +51,7 @@ import           Control.Monad.Error.Lens
 
 import           Katip                      as K
 import           Katip.Monadic              (askLoggerIO)
+
 
 
 data EnvType = Prod | Dev
@@ -194,3 +196,6 @@ pg = DB . lift . lift
 
 runAppM :: context -> AppM context err a -> IO (Either err a)
 runAppM env aM = runExceptT $ (runReaderT . unAppM) aM env
+
+
+
