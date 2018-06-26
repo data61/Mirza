@@ -43,8 +43,8 @@ instance Database be BusinessRegistryDB
 
 -- | Everything that comes after ``withDbModification`` is primarily
 -- foreign keys that have been forced to retain their own names
-supplyChainDb :: DatabaseSettings Postgres BusinessRegistryDB
-supplyChainDb = defaultDbSettings
+businessRegistryDB :: DatabaseSettings Postgres BusinessRegistryDB
+businessRegistryDB = defaultDbSettings
   `withDbModification`
   dbModification
     {
