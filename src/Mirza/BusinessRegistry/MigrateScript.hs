@@ -13,6 +13,7 @@ module Mirza.BusinessRegistry.MigrateScript (migrationStorage) where
 
 import           Mirza.BusinessRegistry.StorageBeam
 import           Mirza.Common.Beam
+import           Mirza.Common.GS1BeamOrphans
 
 import qualified Data.GS1.EPC                         as EPC
 
@@ -74,33 +75,3 @@ migrationStorage () =
             (field "biz_lat" double)
             (field "biz_long" double)
       )
-
--- ======= EPC.GS1CompanyPrefix =======
-
-instance (BSQL.HasSqlValueSyntax be String)
-        => BSQL.HasSqlValueSyntax be EPC.GS1CompanyPrefix where
-  sqlValueSyntax = BSQL.autoSqlValueSyntax
-
-instance (BMigrate.IsSql92ColumnSchemaSyntax be) =>
-  BMigrate.HasDefaultSqlDataTypeConstraints be EPC.GS1CompanyPrefix
-
-instance  (BSQL.HasSqlValueSyntax (BSQL.Sql92ExpressionValueSyntax be) Bool
-          , BSQL.IsSql92ExpressionSyntax be)
-          => B.HasSqlEqualityCheck be EPC.GS1CompanyPrefix
-
-
-instance (BSQL.HasSqlValueSyntax (BSQL.Sql92ExpressionValueSyntax be) Bool
-        , (BSQL.IsSql92ExpressionSyntax be))
-  => B.HasSqlQuantifiedEqualityCheck be EPC.GS1CompanyPrefix
-
-instance BSQL.FromBackendRow BPostgres.Postgres EPC.GS1CompanyPrefix where
-  fromBackendRow = defaultFromBackendRow "EPC.GS1CompanyPrefix"
-
-instance FromField EPC.GS1CompanyPrefix where
-  fromField = defaultFromField "EPC.GS1CompanyPrefix"
-
-instance ToField EPC.GS1CompanyPrefix where
-  toField = toField . show
-
-gs1CompanyPrefixType :: BMigrate.DataType PgDataTypeSyntax EPC.GS1CompanyPrefix
-gs1CompanyPrefixType = textType
