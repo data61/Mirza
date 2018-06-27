@@ -20,6 +20,7 @@ module Mirza.BusinessRegistry.Service
   , privateServer
   , appMToHandler
   , serveSwaggerAPI
+  , module Handlers
  ) where
 
 import           Mirza.BusinessRegistry.API

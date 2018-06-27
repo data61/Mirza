@@ -9,9 +9,8 @@ import           Mirza.BusinessRegistry.API     (API, ServerAPI, api)
 import           Mirza.BusinessRegistry.Auth
 import           Mirza.BusinessRegistry.Service
 import           Mirza.BusinessRegistry.Types   as BT
+import           Mirza.Common.Types             as CT
 import           Mirza.Common.Utils             (notImplemented)
-import           Mirza.SupplyChain.Migrate      (migrate)
-import           Mirza.SupplyChain.Types        (AppError, EnvType (..))
 
 import           Servant                        hiding (header)
 import           Servant.Swagger.UI
@@ -51,7 +50,8 @@ data ServerOptions = ServerOptions
 data ExecMode
   = RunServer RunServerOptions
   | InitDb
-  | AddUser
+  | UserAction UserCommand
+  | BusinessAction BusinessCommand
 
 data GlobalOptions = GlobalOptions
   { goDbConnStr    :: ByteString
@@ -59,13 +59,20 @@ data GlobalOptions = GlobalOptions
   , goScryptP      :: Integer
   , goScryptR      :: Integer
   , goLoggingLevel :: K.Severity
+  , goEnvType      :: CT.EnvType
   }
 
 data RunServerOptions = RunServerOptions
-  { rsoEnvType    :: EnvType
-  , rsoPortNumber :: Int
+  { rsoPortNumber :: Int
   }
 
+data UserCommand
+  = AddUser
+
+
+data BusinessCommand
+  = BusinessAdd
+  | BusinessList
 
 
 main :: IO ()
@@ -80,32 +87,24 @@ main = multiplexGlobalOptions =<< execParser opts where
 -- where the single binary could be split into multiple binaries.
 multiplexGlobalOptions :: ServerOptions -> IO ()
 multiplexGlobalOptions (ServerOptions globals mode) = case mode of
-  InitDb         -> migrate (goDbConnStr globals)
-  AddUser        -> notImplemented
-  RunServer opts -> launchServer globals opts
-
-
--- TODO: Add flag to confirm change to database
-initDb :: Parser ExecMode
-initDb = pure InitDb
-
-
-addUser :: Parser ExecMode
-addUser = pure AddUser
+  InitDb             -> notImplemented (goDbConnStr globals)
+  RunServer opts     -> launchServer globals opts
+  UserAction AddUser -> notImplemented
+  BusinessAction bc  -> runBusinessCommand globals bc
 
 
 launchServer :: GlobalOptions -> RunServerOptions -> IO ()
 launchServer globals options = do
       let portNumber = rsoPortNumber options
-      ctx <- initBRContext globals options
+      ctx <- initBRContext globals
       app <- initApplication globals options ctx
       mids <- initMiddleware globals options
       putStrLn $ "http://localhost:" ++ show portNumber ++ "/swagger-ui/"
       Warp.run (fromIntegral portNumber) (mids app) `finally` closeScribes (BT._brKatipLogEnv ctx)
 
 
-initBRContext :: GlobalOptions -> RunServerOptions -> IO BT.BRContext
-initBRContext (GlobalOptions dbConnStr n p r lev) (RunServerOptions envT _port) = do
+initBRContext :: GlobalOptions -> IO BT.BRContext
+initBRContext (GlobalOptions dbConnStr n p r lev envT) = do
   handleScribe <- mkHandleScribe ColorIfTerminal stdout lev V3
   logEnv <- initLogEnv "businessRegistry" (Environment . pack . show $ envT)
             >>= registerScribe "stdout" handleScribe defaultScribeSettings
@@ -133,6 +132,15 @@ initMiddleware :: GlobalOptions -> RunServerOptions -> IO Middleware
 initMiddleware _ _ = pure id
 
 
+runBusinessCommand :: GlobalOptions -> BusinessCommand -> IO ()
+runBusinessCommand globals BusinessList = do
+  ctx <- initBRContext globals
+  ebizs <- runAppM ctx $ runDb listBusinessesQuery
+  either (print @BusinessRegistryError) (mapM_ print) ebizs
+
+runBusinessCommand globals BusinessAdd  = notImplemented
+
+
 -- Implementation
 server :: BRContext -> Server API
 server ev =
@@ -141,7 +149,7 @@ server ev =
         (Proxy @ServerAPI)
         (Proxy @'[BasicAuthCheck BT.AuthUser])
         (appMToHandler ev)
-        (appHandlers @BRContext @AppError)
+        (appHandlers @BRContext @BusinessRegistryError)
 
 
 
@@ -162,20 +170,20 @@ serverOptions :: Parser ServerOptions
 serverOptions = ServerOptions
   <$> globalOptions
   <*> subparser
-        ( command "initdb"   (info (initDb <**> helper) (progDesc "Initialise the Database"))
-        <> command "adduser" (info (addUser <**> helper) (progDesc "Interactively add new users"))
-        <> command "server"  (info (runServer <**> helper) (progDesc "Run HTTP server"))
+        ( mconcat
+          [ comm "initdb"   initDb "Initialise the Database"
+          , comm "adduser"  addUser "Interactively add new users"
+          , comm "server"   runServer "Run HTTP server"
+          , comm "business" businessCommand "Operations on businesses"
+          ]
         )
+  where comm name action desc =
+          command name (info (action <**> helper) (progDesc desc))
 
 runServer :: Parser ExecMode
 runServer = RunServer <$>
   (RunServerOptions
-  <$>  option auto
-      ( long "env" <> short 'e'
-      <> value Dev <> showDefault
-      <> help "Environment, Dev | Prod"
-      )
-    <*> option auto
+  <$> option auto
       (
           long "port"
       <>  help "Port to run the service on."
@@ -221,3 +229,36 @@ globalOptions = GlobalOptions
       <> showDefault
       <> help ("Logging level: " ++ show [minBound .. maxBound :: Severity])
       )
+    <*> option auto
+      ( long "env" <> short 'e'
+      <> value Dev <> showDefault
+      <> help "Environment, Dev | Prod"
+      )
+
+-- TODO: Add flag to confirm change to database
+initDb :: Parser ExecMode
+initDb = pure InitDb
+
+
+addUser :: Parser ExecMode
+addUser = pure $ UserAction AddUser
+
+
+addBusiness :: Parser BusinessCommand
+addBusiness = pure BusinessAdd
+
+listBusiness :: Parser BusinessCommand
+listBusiness = pure BusinessList
+
+businessCommand :: Parser ExecMode
+businessCommand = BusinessAction <$> businessCommands
+
+
+businessCommands :: Parser BusinessCommand
+businessCommands = subparser
+  (  command "add"  (info (addBusiness <**> helper)
+      (progDesc "Add a new business to the registry"))
+  <> command "list" (info (listBusiness <**> helper)
+      (progDesc "List all businesses and their Ids"))
+  )
+

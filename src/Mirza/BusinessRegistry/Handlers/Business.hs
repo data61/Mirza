@@ -6,15 +6,22 @@ module Mirza.BusinessRegistry.Handlers.Business
   , revokePublicKey
   , addPublicKey
   , listBusinesses
+  , listBusinessesQuery
   ) where
 
 
 import           Mirza.BusinessRegistry.Handlers.Common
-import           Mirza.BusinessRegistry.Types           as BT
+import           Mirza.BusinessRegistry.StorageBeam
+import           Mirza.BusinessRegistry.Types             as BT
+import           Mirza.Common.GS1BeamOrphans
 import           Mirza.Common.Types
 import           Mirza.Common.Utils
 
-import           Data.Time.Clock                        (UTCTime)
+
+import           Database.Beam                            as B
+import           Database.Beam.Backend.SQL.BeamExtensions
+
+import           Data.Time.Clock                          (UTCTime)
 
 
 
@@ -30,6 +37,11 @@ getPublicKeyInfo = notImplemented
 -- select * from Business;
 listBusinesses :: BRApp context err => AppM context err [BusinessResponse]
 listBusinesses = notImplemented
+
+
+listBusinessesQuery :: BRApp context err => DB context err [Business]
+listBusinessesQuery = pg $ runSelectReturningList $ select $
+  all_ (_businesses businessRegistryDB)
 
 
 addPublicKey :: BRApp context err => BT.AuthUser
