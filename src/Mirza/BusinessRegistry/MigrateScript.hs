@@ -47,7 +47,7 @@ migrationStorage () =
     (
       UserT
           (field "user_id" pkSerialType)
-          (BizId (field "user_biz_id" gs1CompanyPrefixType))
+          (BizId (field "user_biz_id" pkSerialType))
           (field "first_name" (varchar (Just maxLen)) notNull)
           (field "last_name" (varchar (Just maxLen)) notNull)
           (field "phone_number" (varchar (Just maxLen)) notNull)
@@ -67,7 +67,8 @@ migrationStorage () =
     <*> createTable "businesses"
       (
         BusinessT
-            (field "biz_gs1_company_prefix" gs1CompanyPrefixType) -- note is primary key
+            (field "business_id" pkSerialType)
+            (field "biz_gs1_company_prefix" gs1CompanyPrefixType)
             (field "biz_name" (varchar (Just maxLen)) notNull)
             (field "biz_function" (varchar (Just maxLen)) notNull)
             (field "biz_site_name" (varchar (Just maxLen)) notNull)
