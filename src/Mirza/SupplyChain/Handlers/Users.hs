@@ -6,7 +6,7 @@ module Mirza.SupplyChain.Handlers.Users
   ) where
 
 
-
+import           Mirza.Common.Utils
 import           Mirza.SupplyChain.ErrorUtils             (getSqlErrorCode,
                                                            throwBackendError,
                                                            toServerError)
@@ -59,7 +59,7 @@ newUserQuery userInfo@(ST.NewUser _ _ _ _ _ password) = do
 -}
 insertUser :: AsServiceError err => Scrypt.EncryptedPass -> ST.NewUser -> DB context err ST.UserID
 insertUser encPass (ST.NewUser phone (EmailAddress email) firstName lastName biz _) = do
-  userId <- generatePk
+  userId <- newUUID
   -- TODO: use Database.Beam.Backend.SQL.runReturningOne?
   res <- handleError errHandler $ pg $ runInsertReturningList (SB._users SB.supplyChainDb) $
     insertValues
