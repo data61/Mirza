@@ -1,36 +1,40 @@
 {-# LANGUAGE DataKinds         #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards   #-}
 {-# LANGUAGE TypeApplications  #-}
 
 module Mirza.BusinessRegistry.Main where
 
 
-import           Mirza.BusinessRegistry.API     (API, ServerAPI, api)
+import           Mirza.BusinessRegistry.API         (API, ServerAPI, api)
 import           Mirza.BusinessRegistry.Auth
 import           Mirza.BusinessRegistry.Service
-import           Mirza.BusinessRegistry.Types   as BT
-import           Mirza.Common.Types             as CT
-import           Mirza.Common.Utils             (notImplemented)
+import           Mirza.BusinessRegistry.StorageBeam
+import           Mirza.BusinessRegistry.Types       as BT
+import           Mirza.Common.Types                 as CT
+import           Mirza.Common.Utils                 (newUUID, notImplemented)
 
-import           Servant                        hiding (header)
+import           Data.GS1.EPC                       (GS1CompanyPrefix (..))
+
+import           Servant                            hiding (header)
 import           Servant.Swagger.UI
 
-import qualified Data.Pool                      as Pool
+import qualified Data.Pool                          as Pool
 import           Database.PostgreSQL.Simple
 
-import           Network.Wai                    (Middleware)
-import qualified Network.Wai.Handler.Warp       as Warp
+import           Network.Wai                        (Middleware)
+import qualified Network.Wai.Handler.Warp           as Warp
 
-import           Data.ByteString                (ByteString)
-import           Data.Semigroup                 ((<>))
-import           Data.Text                      (pack)
+import           Data.ByteString                    (ByteString)
+import           Data.Semigroup                     ((<>))
+import           Data.Text                          (pack)
 import           Options.Applicative
 
-import qualified Crypto.Scrypt                  as Scrypt
+import qualified Crypto.Scrypt                      as Scrypt
 
-import           Control.Exception              (finally)
-import           Katip                          as K
-import           System.IO                      (stdout)
+import           Control.Exception                  (finally)
+import           Katip                              as K
+import           System.IO                          (stdout)
 
 
 
@@ -138,7 +142,27 @@ runBusinessCommand globals BusinessList = do
   ebizs <- runAppM ctx $ runDb listBusinessesQuery
   either (print @BusinessRegistryError) (mapM_ print) ebizs
 
-runBusinessCommand globals BusinessAdd  = notImplemented
+runBusinessCommand globals BusinessAdd = do
+  business_id <- newUUID
+  biz_gs1_company_prefix <- GS1CompanyPrefix . pack <$>  prompt "GS1CompanyPrefix"
+  biz_name      <- pack <$> prompt "Name     "
+  biz_function  <- pack <$> prompt "Function "
+  biz_site_name <- pack <$> prompt "Site name"
+  biz_address   <- pack <$> prompt "Address  "
+  biz_lat       <- read <$> prompt "Lat      "
+  biz_long      <- read <$> prompt "Long     "
+  let newBiz = BusinessT{..}
+  print newBiz
+  ctx <- initBRContext globals
+  ebiz <- runAppM ctx $ runDb (addBusinessQuery newBiz)
+  either (print @BusinessRegistryError) print ebiz
+
+
+prompt :: String -> IO String
+prompt str = putStrLn str *> getLine
+
+
+
 
 
 -- Implementation
