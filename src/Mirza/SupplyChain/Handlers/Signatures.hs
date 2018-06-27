@@ -14,8 +14,6 @@ import           Mirza.SupplyChain.Handlers.Common
 import           Mirza.SupplyChain.Handlers.EventRegistration (hasUserCreatedEvent,
                                                                insertUserEvent)
 
-import           Mirza.SupplyChain.ErrorUtils                 (throwAppError,
-                                                               throwBackendError)
 import qualified Mirza.SupplyChain.QueryUtils                 as QU
 import qualified Mirza.SupplyChain.StorageBeam                as SB
 import           Mirza.SupplyChain.Types                      hiding
@@ -82,7 +80,7 @@ addUserToEventQuery (EventOwner lUserId@(ST.UserID loggedInUserId))
    Lets do this after we have everything compiling.
 -}
 
-eventSign :: SCSApp context err => ST.User -> SignedEvent -> AppM context err SB.PrimaryKeyType
+eventSign :: (AsServiceError err, SCSApp context err) => ST.User -> SignedEvent -> AppM context err SB.PrimaryKeyType
 eventSign _user (SignedEvent eventID keyID (Signature sigStr) digest') = runDb $ do
   event <- getEventJSON eventID
   rsaPublicKey <- getPublicKey keyID
@@ -94,7 +92,7 @@ eventSign _user (SignedEvent eventID keyID (Signature sigStr) digest') = runDb $
   verifyStatus <- liftIO $ verifyBS digest sigBS pubKey eventBS
   if verifyStatus == VerifySuccess
     then insertSignature eventID keyID (Signature sigStr) digest'
-    else throwAppError $ InvalidSignature sigStr
+    else throwing _InvalidSignature sigStr
 
 -- TODO: Should this return Text or a JSON value?
 getEventJSON :: AsServiceError err => EvId.EventId -> DB context err T.Text
@@ -139,7 +137,7 @@ insertSignature eId kId (Signature sig) digest = do
           (BSC.pack $ show $ digest) timestamp]
   case r of
     [rowId] -> return ( SB.signature_id rowId)
-    _       -> throwBackendError "Failed to add signature"
+    _       -> throwing _BackendErr "Failed to add signature"
 
 
 
