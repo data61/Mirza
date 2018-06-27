@@ -27,8 +27,9 @@ import           Mirza.SupplyChain.ErrorUtils             (appErrToHttpErr)
 
 import           Mirza.BusinessRegistry.Handlers.Business as Handlers
 import           Mirza.BusinessRegistry.Handlers.Common   as Handlers
+import           Mirza.BusinessRegistry.Types
 import           Mirza.Common.Types
-import qualified Mirza.SupplyChain.Types                  as STXXX
+import           Mirza.Common.Utils
 
 import           Servant
 import           Servant.Swagger
@@ -72,12 +73,12 @@ instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub
 
 
 
-appMToHandler :: forall x context. context -> AppM context STXXX.AppError x -> Handler x
+appMToHandler :: forall x context. context -> AppM context BusinessRegistryError x -> Handler x
 appMToHandler context act = do
   res <- liftIO $ runAppM context act
   case res of
-    Left (STXXX.AppError e) -> appErrToHttpErr e
-    Right a                 -> return a
+    Left _  -> notImplemented
+    Right a -> return a
 
 -- | Swagger spec for server API.
 serveSwaggerAPI :: Swagger

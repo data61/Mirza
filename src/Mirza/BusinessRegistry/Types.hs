@@ -48,15 +48,15 @@ instance HasKatipContext BRContext where
   katipNamespace = brKatipNamespace
 
 
-data BussinessRegistryError
+data BusinessRegistryError
   = DBError SqlError
   | KeyNotLargeEnough
   deriving (Show, Eq, Generic)
 
-$(makeClassyPrisms ''BussinessRegistryError)
+$(makeClassyPrisms ''BusinessRegistryError)
 
 
-instance AsSqlError BussinessRegistryError where
+instance AsSqlError BusinessRegistryError where
   _SqlError = _DBError
 
   -- Stubs for now...

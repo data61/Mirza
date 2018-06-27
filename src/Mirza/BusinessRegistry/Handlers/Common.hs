@@ -4,12 +4,12 @@ module Mirza.BusinessRegistry.Handlers.Common where
 
 
 
-import           Mirza.Common.Types      (DBConstraint)
-import           Mirza.SupplyChain.Types (AsServiceError)
+import           Mirza.BusinessRegistry.Types (AsBusinessRegistryError)
+import           Mirza.Common.Types           (DBConstraint)
 
 
 
 type BRApp context err =
-  ( AsServiceError err
+  ( AsBusinessRegistryError err
   , DBConstraint context err
   )
