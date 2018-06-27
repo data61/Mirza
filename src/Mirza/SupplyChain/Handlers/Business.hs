@@ -14,6 +14,7 @@ module Mirza.SupplyChain.Handlers.Business
 
 import           Mirza.SupplyChain.Handlers.Common
 
+import           Mirza.Common.Utils
 import qualified Mirza.SupplyChain.QueryUtils             as QU
 import qualified Mirza.SupplyChain.StorageBeam            as SB
 import           Mirza.SupplyChain.Types                  hiding (KeyInfo (..),
@@ -128,7 +129,7 @@ addPublicKeyQuery :: AsServiceError err => ST.User
                   -> RSAPubKey
                   -> DB context err KeyID
 addPublicKeyQuery (User (ST.UserID uid) _ _) expTime rsaPubKey = do
-  keyId <- QU.generatePk
+  keyId <- newUUID
   timeStamp <- QU.generateTimeStamp
   keyStr <- liftIO $ writePublicKey rsaPubKey
   r <- pg $ runInsertReturningList (SB._keys SB.supplyChainDb) $

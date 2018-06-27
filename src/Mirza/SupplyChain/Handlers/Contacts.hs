@@ -50,7 +50,7 @@ addContact user userId = runDb $ addContactQuery user userId
 
 addContactQuery :: ST.User -> ST.UserID -> DB context err Bool
 addContactQuery (User (ST.UserID uid1) _ _) (ST.UserID uid2) = do
-  pKey <- generatePk
+  pKey <- U.newUUID
   r <- pg $ runInsertReturningList (SB._contacts SB.supplyChainDb) $
                insertValues [SB.Contact pKey (SB.UserId uid1) (SB.UserId uid2)]
   return $ verifyContact r (SB.UserId uid1) (SB.UserId uid2)

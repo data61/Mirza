@@ -11,7 +11,6 @@
 module Mirza.SupplyChain.QueryUtils
   (
     storageToModelBusiness , storageToModelEvent, userTableToModel
-  , generatePk
   , onLocalTime , toLocalTime, toZonedTime, generateTimeStamp
   , encodeEvent, decodeEvent
   , eventTxtToBS
@@ -19,6 +18,7 @@ module Mirza.SupplyChain.QueryUtils
   , withPKey
   ) where
 
+import           Mirza.Common.Utils
 import qualified Mirza.SupplyChain.StorageBeam as SB
 import           Mirza.SupplyChain.Types       hiding (Business (..), User (..))
 import qualified Mirza.SupplyChain.Types       as ST
@@ -64,11 +64,6 @@ toZonedTime = utcToZonedTime utc
 generateTimeStamp :: MonadIO m => m LocalTime
 generateTimeStamp = utcToLocalTime utc <$> liftIO getCurrentTime
 
-
--- | shorthand for wrapping ``UUID.nextRandom`` in ``AppM``
-generatePk :: MonadIO m => m SB.PrimaryKeyType
-generatePk = liftIO nextRandom
-
 -- | Ueful for handling specific errors from, for example, database transactions
 -- @
 --  handleError errHandler $ runDb ...
@@ -88,7 +83,7 @@ handleError = flip catchError
 -- @
 withPKey :: MonadIO m => (SB.PrimaryKeyType -> m a) -> m SB.PrimaryKeyType
 withPKey f = do
-  pKey <- generatePk
+  pKey <- newUUID
   _ <- f pKey
   pure pKey
 
