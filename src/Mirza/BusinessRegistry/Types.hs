@@ -50,7 +50,7 @@ instance HasKatipContext BRContext where
 
 data BusinessRegistryError
   = DBError SqlError
-  | KeyNotLargeEnough
+  | BusinessCreationError String
   deriving (Show, Eq, Generic)
 
 $(makeClassyPrisms ''BusinessRegistryError)
