@@ -127,7 +127,8 @@ deriving instance Eq (PrimaryKey KeyT Identity)
 -- CBV-Standard-1-2-r-2016-09-29.pdf Page 11
 
 data BusinessT f = BusinessT
-  { biz_gs1_company_prefix :: C f EPC.GS1CompanyPrefix -- PrimaryKey
+  { business_id            :: C f PrimaryKeyType
+  , biz_gs1_company_prefix :: C f EPC.GS1CompanyPrefix
   , biz_name               :: C f Text
   , biz_function           :: C f Text
   , biz_site_name          :: C f Text
@@ -145,7 +146,7 @@ instance Beamable (PrimaryKey BusinessT)
 deriving instance Show (PrimaryKey BusinessT Identity)
 
 instance Table BusinessT where
-  data PrimaryKey BusinessT f = BizId (C f EPC.GS1CompanyPrefix)
+  data PrimaryKey BusinessT f = BizId (C f PrimaryKeyType)
     deriving Generic
-  primaryKey = BizId . biz_gs1_company_prefix
+  primaryKey = BizId . business_id
 deriving instance Eq (PrimaryKey BusinessT Identity)
