@@ -432,6 +432,13 @@ testServiceQueries = do
           pure (contactList, [myContact_1_user, myContact_2_user, myContact_3_user])
         contactList `shouldBe` users
 
+  describe "Business" $ do
+    it "List Business empty" $ \scsContext -> do
+      bizList <- testAppM scsContext listBusinesses
+        -- myBizList <-
+        -- pure listBusinesses
+      bizList `shouldBe` []
+
   describe "DWhere" $
     it "Insert and find DWhere" $ \scsContext -> do
       let eventId = SB.EventId dummyId
