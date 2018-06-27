@@ -41,99 +41,30 @@ defaultPortNumber = 8000
 defaultDatabaseConnectionString :: ByteString
 defaultDatabaseConnectionString = "dbname=devMirzaBusinessRegistry"
 
+
+
 data ServerOptions = ServerOptions
   { soGlobals  :: GlobalOptions
   , soExecMode :: ExecMode
   }
-
-data GlobalOptions = GlobalOptions
- { goDbConnStr    :: ByteString
- , goScryptN      :: Integer
- , goScryptP      :: Integer
- , goScryptR      :: Integer
- , goLoggingLevel :: K.Severity
- }
 
 data ExecMode
   = RunServer RunServerOptions
   | InitDb
   | AddUser
 
+data GlobalOptions = GlobalOptions
+  { goDbConnStr    :: ByteString
+  , goScryptN      :: Integer
+  , goScryptP      :: Integer
+  , goScryptR      :: Integer
+  , goLoggingLevel :: K.Severity
+  }
+
 data RunServerOptions = RunServerOptions
   { rsoEnvType    :: EnvType
   , rsoPortNumber :: Int
   }
-
-runServer :: Parser ExecMode
-runServer = RunServer <$>
-  (RunServerOptions
-  <$>  option auto
-      ( long "env" <> short 'e'
-      <> value Dev <> showDefault
-      <> help "Environment, Dev | Prod"
-      )
-    <*> option auto
-      (
-          long "port"
-      <>  help "Port to run the service on."
-      <>  showDefault
-      <>  value defaultPortNumber
-      )
-  )
-
--- TODO: Add flag to confirm change to database
-initDb :: Parser ExecMode
-initDb = pure InitDb
-
-addUser :: Parser ExecMode
-addUser = pure AddUser
-
-globalOptions :: Parser GlobalOptions
-globalOptions = GlobalOptions
-  <$> strOption
-      (
-          long "conn"
-      <>  short 'c'
-      <>  help "Database connection string in libpq format. See: https://www.postgresql.org/docs/9.5/static/libpq-connect.html#LIBPQ-CONNSTRING"
-      <>  showDefault
-      <>  value defaultDatabaseConnectionString
-      )
-  <*> option auto
-      (
-          long "scryptN"
-      <>  help "Scrypt N parameter (>= 14)"
-      <>  showDefault
-      <>  value 14
-      )
-  <*> option auto
-      (
-          long "scryptP"
-      <>  help "Scrypt r parameter (>= 8)"
-      <>  showDefault
-      <>  value 8
-      )
-  <*> option auto
-      (
-          long "scryptR"
-      <>  help "Scrypt r parameter (>= 1)"
-      <> showDefault
-      <> value 1
-      )
-   <*> option auto
-      (  long "log-level"
-      <> value InfoS
-      <> showDefault
-      <> help ("Logging level: " ++ show [minBound .. maxBound :: Severity])
-      )
-
-serverOptions :: Parser ServerOptions
-serverOptions = ServerOptions
-  <$> globalOptions
-  <*> subparser
-        ( command "initdb"   (info (initDb <**> helper) (progDesc "Initialise the Database"))
-        <> command "adduser" (info (addUser <**> helper) (progDesc "Interactively add new users"))
-        <> command "server"  (info (runServer <**> helper) (progDesc "Run HTTP server"))
-        )
 
 
 
@@ -148,10 +79,19 @@ main = multiplexGlobalOptions =<< execParser opts where
 -- Handles the overriding global options (this effectively defines the point
 -- where the single binary could be split into multiple binaries.
 multiplexGlobalOptions :: ServerOptions -> IO ()
-multiplexGlobalOptions so@(ServerOptions globals mode) = case mode of
+multiplexGlobalOptions (ServerOptions globals mode) = case mode of
   InitDb         -> migrate (goDbConnStr globals)
   AddUser        -> notImplemented
   RunServer opts -> launchServer globals opts
+
+
+-- TODO: Add flag to confirm change to database
+initDb :: Parser ExecMode
+initDb = pure InitDb
+
+
+addUser :: Parser ExecMode
+addUser = pure AddUser
 
 
 launchServer :: GlobalOptions -> RunServerOptions -> IO ()
@@ -211,3 +151,73 @@ debugFunc :: IO()
 debugFunc = do
   putStrLn ("Running Debug Option")
   -- Debug test code goes here...
+
+
+
+--------------------------------------------------------------------------------
+-- Command Line Options Argument Parsers
+--------------------------------------------------------------------------------
+
+serverOptions :: Parser ServerOptions
+serverOptions = ServerOptions
+  <$> globalOptions
+  <*> subparser
+        ( command "initdb"   (info (initDb <**> helper) (progDesc "Initialise the Database"))
+        <> command "adduser" (info (addUser <**> helper) (progDesc "Interactively add new users"))
+        <> command "server"  (info (runServer <**> helper) (progDesc "Run HTTP server"))
+        )
+
+runServer :: Parser ExecMode
+runServer = RunServer <$>
+  (RunServerOptions
+  <$>  option auto
+      ( long "env" <> short 'e'
+      <> value Dev <> showDefault
+      <> help "Environment, Dev | Prod"
+      )
+    <*> option auto
+      (
+          long "port"
+      <>  help "Port to run the service on."
+      <>  showDefault
+      <>  value defaultPortNumber
+      )
+  )
+
+globalOptions :: Parser GlobalOptions
+globalOptions = GlobalOptions
+  <$> strOption
+      (
+          long "conn"
+      <>  short 'c'
+      <>  help "Database connection string in libpq format. See: https://www.postgresql.org/docs/9.5/static/libpq-connect.html#LIBPQ-CONNSTRING"
+      <>  showDefault
+      <>  value defaultDatabaseConnectionString
+      )
+  <*> option auto
+      (
+          long "scryptN"
+      <>  help "Scrypt N parameter (>= 14)"
+      <>  showDefault
+      <>  value 14
+      )
+  <*> option auto
+      (
+          long "scryptP"
+      <>  help "Scrypt r parameter (>= 8)"
+      <>  showDefault
+      <>  value 8
+      )
+  <*> option auto
+      (
+          long "scryptR"
+      <>  help "Scrypt r parameter (>= 1)"
+      <> showDefault
+      <> value 1
+      )
+    <*> option auto
+      (  long "log-level"
+      <> value InfoS
+      <> showDefault
+      <> help ("Logging level: " ++ show [minBound .. maxBound :: Severity])
+      )
