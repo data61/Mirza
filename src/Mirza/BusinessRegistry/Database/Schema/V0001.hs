@@ -13,7 +13,7 @@
 -- The migration script has been moved to the module MigrateScript
 -- If some definition is changed here, please make the equivalent change
 -- in MigrateScript
-module Mirza.BusinessRegistry.StorageBeam where
+module Mirza.BusinessRegistry.Database.Schema.V0001 where
 
 import qualified Data.GS1.EPC           as EPC
 
