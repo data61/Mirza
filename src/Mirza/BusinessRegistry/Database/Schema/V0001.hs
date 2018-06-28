@@ -52,30 +52,30 @@ data BusinessRegistryDB f = BusinessRegistryDB
 instance Database anybackend BusinessRegistryDB
 
 
-businessRegistryDB :: DatabaseSettings Postgres BusinessRegistryDB
-businessRegistryDB = defaultDbSettings
-  `withDbModification`
-  dbModification
-    {
-      _users =
-        modifyTable (const "users") $
-        tableModification
-        {
-          user_biz_id = BizId (fieldNamed "user_biz_id")
-        }
-    , _keys =
-        modifyTable (const "keys") $
-        tableModification
-        {
-          key_user_id = UserId (fieldNamed "key_user_id")
-        }
-    , _businesses =
-        modifyTable (const "businesses") $
-        tableModification
-        -- {
-        --   biz_gs1_company_prefix = BizId (fieldNamed "biz_company_prefix")
-        -- }
-    }
+-- businessRegistryDB :: DatabaseSettings Postgres BusinessRegistryDB
+-- businessRegistryDB = defaultDbSettings
+--   `withDbModification`
+--   dbModification
+--     {
+--       _users =
+--         modifyTable (const "users") $
+--         tableModification
+--         {
+--           user_biz_id = BizId (fieldNamed "user_biz_id")
+--         }
+--     , _keys =
+--         modifyTable (const "keys") $
+--         tableModification
+--         {
+--           key_user_id = UserId (fieldNamed "key_user_id")
+--         }
+--     , _businesses =
+--         modifyTable (const "businesses") $
+--         tableModification
+--         -- {
+--         --   biz_gs1_company_prefix = BizId (fieldNamed "biz_company_prefix")
+--         -- }
+--     }
 
 
 maxLen :: Word
