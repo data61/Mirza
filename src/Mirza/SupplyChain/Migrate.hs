@@ -31,7 +31,7 @@ defaultDbConnectionStr :: ByteString
 defaultDbConnectionStr = "dbname=devsupplychainserver"
 
 createSchema :: Bool -> Connection -> IO ()
-createSchema runSilently conn = do
+createSchema runSilently conn =
   void $ dbMigrationFunc runSilently conn $ executeMigration runNoReturn migrationStorage
 
 -- dropSchema :: Connection -> IO ()
