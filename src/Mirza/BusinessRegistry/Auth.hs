@@ -11,22 +11,22 @@ module Mirza.BusinessRegistry.Auth
   ) where
 
 
-import           Database.Beam                      as B
-import           Database.PostgreSQL.Simple         (SqlError)
+import           Database.Beam                          as B
+import           Database.PostgreSQL.Simple             (SqlError)
 
 
-import           Data.ByteString                    (ByteString)
-import           Data.Text                          (Text)
-import           Data.Text.Encoding                 (decodeUtf8)
+import           Data.ByteString                        (ByteString)
+import           Data.Text                              (Text)
+import           Data.Text.Encoding                     (decodeUtf8)
 
-import           Mirza.BusinessRegistry.StorageBeam
-import           Mirza.BusinessRegistry.Types       as BT
+import           Mirza.BusinessRegistry.Database.Schema
+import           Mirza.BusinessRegistry.Types           as BT
 import           Mirza.Common.GS1BeamOrphans
-import           Mirza.Common.Types                 as CT
+import           Mirza.Common.Types                     as CT
 
 import           Servant
 
-import qualified Crypto.Scrypt                      as Scrypt
+import qualified Crypto.Scrypt                          as Scrypt
 
 import           Control.Lens
 

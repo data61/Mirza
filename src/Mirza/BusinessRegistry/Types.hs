@@ -10,21 +10,21 @@ module Mirza.BusinessRegistry.Types where
 import           Mirza.Common.Types
 import           Mirza.Common.Utils
 
-import           Mirza.BusinessRegistry.StorageBeam
+import           Mirza.BusinessRegistry.Database.Schema
 
-import           Data.Pool                          as Pool
-import           Database.PostgreSQL.Simple         (Connection, SqlError)
+import           Data.Pool                              as Pool
+import           Database.PostgreSQL.Simple             (Connection, SqlError)
 
-import           Crypto.Scrypt                      (ScryptParams)
+import           Crypto.Scrypt                          (ScryptParams)
 
 import           Control.Lens.TH
 
-import           Katip                              as K
+import           Katip                                  as K
 
 import           Data.Aeson
 import           Data.Swagger
-import           GHC.Generics                       (Generic)
-import           Servant                            (FromHttpApiData (..))
+import           GHC.Generics                           (Generic)
+import           Servant                                (FromHttpApiData (..))
 
 
 

@@ -12,8 +12,8 @@ module Mirza.BusinessRegistry.Handlers.Business
   ) where
 
 
+import           Mirza.BusinessRegistry.Database.Schema
 import           Mirza.BusinessRegistry.Handlers.Common
-import           Mirza.BusinessRegistry.StorageBeam
 import           Mirza.BusinessRegistry.Types             as BT
 import           Mirza.Common.GS1BeamOrphans
 import           Mirza.Common.Types
