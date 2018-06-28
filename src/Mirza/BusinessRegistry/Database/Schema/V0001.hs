@@ -15,20 +15,36 @@
 -- in MigrateScript
 module Mirza.BusinessRegistry.Database.Schema.V0001 where
 
-import qualified Data.GS1.EPC           as EPC
+import qualified Data.GS1.EPC                         as EPC
+
+import           Mirza.Common.GS1BeamOrphans
 
 import           Control.Lens
-import           Data.ByteString        (ByteString)
-import           Data.Text              (Text)
 
-import           Data.Time              (LocalTime)
-import           Data.UUID              (UUID)
+import           Data.ByteString                      (ByteString)
+import           Data.Text                            (Text)
+import           Data.Time                            (LocalTime)
+import           Data.UUID                            (UUID)
 
-import           Database.Beam          as B
+import           Database.Beam                        as B
+import qualified Database.Beam.Backend.SQL            as BSQL
+import qualified Database.Beam.Migrate                as BMigrate
+import           Database.Beam.Migrate.SQL            (DataType)
+import           Database.Beam.Migrate.SQL.Tables
+import           Database.Beam.Migrate.Types
 import           Database.Beam.Postgres
+import           Database.Beam.Postgres.Syntax        (PgDataTypeSyntax)
+import           Database.PostgreSQL.Simple.FromField
+import           Database.PostgreSQL.Simple.ToField   (ToField (..))
 
 import           Data.Swagger
 
+
+type PrimaryKeyType = UUID
+
+type UserID = PrimaryKey UserT Identity
+instance ToSchema UserID
+instance ToParamSchema UserID
 
 
 -- Table types and constructors are suffixed with T (for Table).
@@ -69,12 +85,49 @@ businessRegistryDB = defaultDbSettings
     }
 
 
+maxLen :: Word
+maxLen = 120
 
-type PrimaryKeyType = UUID
+pkSerialType :: DataType PgDataTypeSyntax UUID
+pkSerialType = uuid
 
-type UserID = PrimaryKey UserT Identity
-instance ToSchema UserID
-instance ToParamSchema UserID
+migrationStorage :: () -> Migration PgCommandSyntax (CheckedDatabaseSettings Postgres BusinessRegistryDB)
+migrationStorage () =
+  BusinessRegistryDB
+    <$> createTable "users"
+    (
+      UserT
+          (field "user_id" pkSerialType)
+          (BizId (field "user_biz_id" pkSerialType))
+          (field "first_name" (varchar (Just maxLen)) notNull)
+          (field "last_name" (varchar (Just maxLen)) notNull)
+          (field "phone_number" (varchar (Just maxLen)) notNull)
+          (field "password_hash" binaryLargeObject notNull)
+          (field "email_address" (varchar (Just maxLen)) unique)
+    )
+    <*> createTable "keys"
+    (
+      KeyT
+          (field "key_id" pkSerialType)
+          (UserId (field "key_user_id" pkSerialType))
+          (field "pem_str" text)
+          (field "creation_time" timestamptz)
+          (field "revocation_time" (maybeType timestamptz))
+          (field "expiration_time" (maybeType timestamptz))
+    )
+    <*> createTable "businesses"
+      (
+        BusinessT
+            (field "business_id" pkSerialType)
+            (field "biz_gs1_company_prefix" gs1CompanyPrefixType)
+            (field "biz_name" (varchar (Just maxLen)) notNull)
+            (field "biz_function" (varchar (Just maxLen)) notNull)
+            (field "biz_site_name" (varchar (Just maxLen)) notNull)
+            (field "biz_address" (varchar (Just maxLen)) notNull)
+            (field "biz_lat" double)
+            (field "biz_long" double)
+      )
+
 
 data UserT f = UserT
   { user_id       :: C f PrimaryKeyType
