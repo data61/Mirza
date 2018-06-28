@@ -1,13 +1,7 @@
-{-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE DeriveGeneric         #-}
-{-# LANGUAGE FlexibleContexts      #-}
-{-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE StandaloneDeriving    #-}
 {-# LANGUAGE TypeFamilies          #-}
-{-# LANGUAGE UndecidableInstances  #-}
-{-# OPTIONS_GHC -fno-warn-orphans  #-}
 
 -- | This module contains all the table definitions
 -- The migration script has been moved to the module MigrateScript
@@ -55,10 +49,9 @@ data BusinessRegistryDB f = BusinessRegistryDB
   , _businesses :: f (TableEntity BusinessT)
   }
   deriving Generic
-instance Database be BusinessRegistryDB
+instance Database anybackend BusinessRegistryDB
 
--- | Everything that comes after ``withDbModification`` is primarily
--- foreign keys that have been forced to retain their own names
+
 businessRegistryDB :: DatabaseSettings Postgres BusinessRegistryDB
 businessRegistryDB = defaultDbSettings
   `withDbModification`
@@ -91,8 +84,8 @@ maxLen = 120
 pkSerialType :: DataType PgDataTypeSyntax UUID
 pkSerialType = uuid
 
-migrationStorage :: () -> Migration PgCommandSyntax (CheckedDatabaseSettings Postgres BusinessRegistryDB)
-migrationStorage () =
+migration :: () -> Migration PgCommandSyntax (CheckedDatabaseSettings Postgres BusinessRegistryDB)
+migration () =
   BusinessRegistryDB
     <$> createTable "users"
     (
@@ -135,7 +128,7 @@ data UserT f = UserT
   , first_name    :: C f Text
   , last_name     :: C f Text
   , phone_number  :: C f Text
-  , password_hash :: C f ByteString --XXX - should this be blob?
+  , password_hash :: C f ByteString
   , email_address :: C f Text }
   deriving Generic
 
