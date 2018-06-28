@@ -74,10 +74,10 @@ data RunServerOptions = RunServerOptions
 data UserCommand
   = AddUser
 
-
 data BusinessCommand
   = BusinessAdd
   | BusinessList
+
 
 
 main :: IO ()
@@ -209,6 +209,7 @@ serverOptions = ServerOptions
   where comm name action desc =
           command name (info (action <**> helper) (progDesc desc))
 
+
 runServer :: Parser ExecMode
 runServer = RunServer <$>
   (RunServerOptions
@@ -220,6 +221,7 @@ runServer = RunServer <$>
       <>  value defaultPortNumber
       )
   )
+
 
 globalOptions :: Parser GlobalOptions
 globalOptions = GlobalOptions
@@ -264,6 +266,7 @@ globalOptions = GlobalOptions
       <> help "Environment, Dev | Prod"
       )
 
+
 -- TODO: Add flag to confirm change to database
 initDb :: Parser ExecMode
 initDb = pure InitDb
@@ -272,12 +275,6 @@ initDb = pure InitDb
 addUser :: Parser ExecMode
 addUser = pure $ UserAction AddUser
 
-
-addBusiness :: Parser BusinessCommand
-addBusiness = pure BusinessAdd
-
-listBusiness :: Parser BusinessCommand
-listBusiness = pure BusinessList
 
 businessCommand :: Parser ExecMode
 businessCommand = BusinessAction <$> businessCommands
@@ -291,3 +288,10 @@ businessCommands = subparser
       (progDesc "List all businesses and their Ids"))
   )
 
+
+addBusiness :: Parser BusinessCommand
+addBusiness = pure BusinessAdd
+
+
+listBusiness :: Parser BusinessCommand
+listBusiness = pure BusinessList
