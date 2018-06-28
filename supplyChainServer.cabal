@@ -57,7 +57,6 @@ library
                     , base64-bytestring
                     , beam-core
                     , beam-migrate
-                    , beam-migrate
                     , beam-postgres
                     , binary
                     , bytestring
