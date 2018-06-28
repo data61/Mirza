@@ -8,7 +8,7 @@ module Mirza.BusinessRegistry.Main where
 
 import           Mirza.BusinessRegistry.API             (API, ServerAPI, api)
 import           Mirza.BusinessRegistry.Auth
-import           Mirza.BusinessRegistry.Database.Schema
+import           Mirza.BusinessRegistry.Database.Schema as Schema
 import           Mirza.BusinessRegistry.Service
 import           Mirza.BusinessRegistry.Types           as BT
 import           Mirza.Common.Types                     as CT
@@ -92,7 +92,7 @@ main = multiplexGlobalOptions =<< execParser opts where
 -- where the single binary could be split into multiple binaries.
 multiplexGlobalOptions :: ServerOptions -> IO ()
 multiplexGlobalOptions (ServerOptions globals mode) = case mode of
-  InitDb             -> notImplemented (goDbConnStr globals)
+  InitDb             -> runMigration globals
   RunServer opts     -> launchServer globals opts
   UserAction AddUser -> notImplemented
   BusinessAction bc  -> runBusinessCommand globals bc
@@ -153,11 +153,15 @@ runBusinessCommand globals BusinessAdd = do
   biz_lat       <- read <$> prompt "Lat      "
   biz_long      <- read <$> prompt "Long     "
   let newBiz = BusinessT{..}
-  print newBiz
   ctx <- initBRContext globals
   ebiz <- runAppM ctx $ runDb (addBusinessQuery newBiz)
   either (print @BusinessRegistryError) print ebiz
 
+runMigration :: GlobalOptions -> IO ()
+runMigration opts = do
+  ctx <- initBRContext opts
+  res <- Schema.runMigrationInteractive @BRContext @SqlError ctx
+  print res
 
 prompt :: String -> IO String
 prompt str = putStrLn str *> getLine

@@ -3,6 +3,7 @@
 module Mirza.BusinessRegistry.Database.Schema
   ( module Current
     , migration
+    , runMigrationInteractive
     , businessRegistryDB ) where
 
 -- import           Control.Arrow ((>>>))
@@ -48,7 +49,14 @@ checkedBusinessRegistryDB = evaluateDatabase migration
 
 -- TODO: Use autoMigrate if possible and confirm with the user whether to do dangerous migrations explicitly
 -- TODO: Move this into Mirza.Common.Beam
-runMigration context = do
+runMigrationInteractive ::
+  (HasKatipLogEnv context
+  , HasKatipContext context
+  , HasConnPool context
+  , HasEnvType context
+  , AsSqlError err)
+  => context -> IO (Either err ())
+runMigrationInteractive context = do
    mapM_ BSL.putStr $ migrateScript migration
    putStrLn "type YES to confirm applying this migration:"
    confirm <- getLine
