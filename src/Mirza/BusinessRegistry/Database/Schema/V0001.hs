@@ -9,27 +9,23 @@
 -- in MigrateScript
 module Mirza.BusinessRegistry.Database.Schema.V0001 where
 
-import qualified Data.GS1.EPC                         as EPC
+import qualified Data.GS1.EPC                     as EPC
 
 import           Mirza.Common.GS1BeamOrphans
 
 import           Control.Lens
 
-import           Data.ByteString                      (ByteString)
-import           Data.Text                            (Text)
-import           Data.Time                            (LocalTime)
-import           Data.UUID                            (UUID)
+import           Data.ByteString                  (ByteString)
+import           Data.Text                        (Text)
+import           Data.Time                        (LocalTime)
+import           Data.UUID                        (UUID)
 
-import           Database.Beam                        as B
-import qualified Database.Beam.Backend.SQL            as BSQL
-import qualified Database.Beam.Migrate                as BMigrate
-import           Database.Beam.Migrate.SQL            (DataType)
+import           Database.Beam                    as B
+import           Database.Beam.Migrate.SQL        (DataType)
 import           Database.Beam.Migrate.SQL.Tables
 import           Database.Beam.Migrate.Types
 import           Database.Beam.Postgres
-import           Database.Beam.Postgres.Syntax        (PgDataTypeSyntax)
-import           Database.PostgreSQL.Simple.FromField
-import           Database.PostgreSQL.Simple.ToField   (ToField (..))
+import           Database.Beam.Postgres.Syntax    (PgDataTypeSyntax)
 
 import           Data.Swagger
 

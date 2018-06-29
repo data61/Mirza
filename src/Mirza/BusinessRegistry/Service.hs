@@ -23,7 +23,6 @@ module Mirza.BusinessRegistry.Service
  ) where
 
 import           Mirza.BusinessRegistry.API
-import           Mirza.SupplyChain.ErrorUtils             (appErrToHttpErr)
 
 import           Mirza.BusinessRegistry.Handlers.Business as Handlers
 import           Mirza.BusinessRegistry.Handlers.Common   as Handlers

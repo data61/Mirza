@@ -21,7 +21,6 @@ import           Data.Text.Encoding                     (decodeUtf8)
 
 import           Mirza.BusinessRegistry.Database.Schema
 import           Mirza.BusinessRegistry.Types           as BT
-import           Mirza.Common.GS1BeamOrphans
 import           Mirza.Common.Types                     as CT
 
 import           Servant
@@ -71,7 +70,7 @@ instance Show Password where
 -- TODO: How safe is this to timing attacks? Can we tell which emails are in the
 -- system easily?
 authCheckQuery :: (AsSqlError err, HasScryptParams context) =>  EmailAddress -> Password -> DB context err (Maybe AuthUser)
-authCheckQuery e@(EmailAddress email) (Password password) = do
+authCheckQuery (EmailAddress email) (Password password) = do
   let userTable = _users businessRegistryDB
   r <- pg $ runSelectReturningList $ select $ do
         user <- all_ userTable

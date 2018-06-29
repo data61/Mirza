@@ -15,7 +15,6 @@ import           Control.Monad.IO.Class                       (liftIO)
 import           Control.Lens                                 (view, _1)
 
 import           Database.Beam                                (DatabaseSettings)
-import           Database.Beam.Backend                        (runNoReturn)
 import           Database.Beam.Migrate.Simple                 (runSimpleMigration,
                                                                simpleMigration)
 import           Database.Beam.Migrate.Types                  hiding
@@ -23,8 +22,7 @@ import           Database.Beam.Migrate.Types                  hiding
 import           Database.Beam.Postgres                       (Pg,
                                                                PgCommandSyntax,
                                                                Postgres)
-import           Database.Beam.Postgres.Migrate               (migrateScript,
-                                                               migrationBackend)
+import           Database.Beam.Postgres.Migrate               (migrationBackend)
 import           Database.Beam.Postgres.Syntax                (fromPgCommand, pgRenderSyntaxScript)
 
 
@@ -60,20 +58,21 @@ runMigrationInteractive ::
 runMigrationInteractive context =
   runAppM context $ runDb $ do
     conn <- view _1
-    mcommands <- liftIO $ simpleMigration migrationBackend conn checkedBusinessRegistryDB
-    case mcommands of
-      Nothing -> fail "lol"
-      Just [] -> liftIO $ putStrLn "Already up to date"
-      Just commands -> do
-        confirm <- liftIO $ do
-          mapM_ (BSL.putStrLn . pgRenderSyntaxScript . fromPgCommand) commands
-          putStrLn "type YES to confirm applying this migration:"
-          getLine
-        case confirm of
-          "YES" -> do
-            liftIO $ runSimpleMigration
-                        @PgCommandSyntax
-                        @Postgres
-                        @_
-                        @Pg
-                        conn commands
+    liftIO $ do
+      mcommands <- simpleMigration migrationBackend conn checkedBusinessRegistryDB
+      case mcommands of
+        Nothing -> fail "lol" -- TODO: Actually implment error handling here.
+        Just [] -> putStrLn "Already up to date"
+        Just commands -> do
+            mapM_ (BSL.putStrLn . pgRenderSyntaxScript . fromPgCommand) commands
+            putStrLn "type YES to confirm applying this migration:"
+            confirm <- getLine
+            case confirm of
+              "YES" ->
+                runSimpleMigration
+                            @PgCommandSyntax
+                            @Postgres
+                            @_
+                            @Pg
+                            conn commands
+              _ ->  putStrLn "Nothing done."
