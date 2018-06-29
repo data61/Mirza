@@ -179,7 +179,7 @@ runUserCommand :: GlobalOptions -> UserCommand -> IO ()
 --   either (print @BusinessRegistryError) (mapM_ print) euser
 
 runUserCommand globals UserAdd = do
-  user <- interactivlyGetUserT
+  user <- interactivlyGetUserT globals
   ctx <- initBRContext globals
   euser <- runAppM ctx $ runDb (addUserQuery user)
   either (print @BusinessRegistryError) print euser
