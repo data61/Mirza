@@ -195,19 +195,22 @@ debugFunc = do
 -- Command Line Options Argument Parsers
 --------------------------------------------------------------------------------
 
+standardCommand :: String -> Parser a -> String -> Mod CommandFields a
+standardCommand name action desciption =
+  command name (info (action <**> helper) (progDesc desciption))
+
+
 serverOptions :: Parser ServerOptions
 serverOptions = ServerOptions
   <$> globalOptions
   <*> subparser
         ( mconcat
-          [ comm "initdb"   initDb "Initialise the Database"
-          , comm "adduser"  addUser "Interactively add new users"
-          , comm "server"   runServer "Run HTTP server"
-          , comm "business" businessCommand "Operations on businesses"
+          [ standardCommand "initdb"   initDb "Initialise the Database"
+          , standardCommand "adduser"  addUser "Interactively add new users"
+          , standardCommand "server"   runServer "Run HTTP server"
+          , standardCommand "business" businessCommand "Operations on businesses"
           ]
         )
-  where comm name action desc =
-          command name (info (action <**> helper) (progDesc desc))
 
 
 runServer :: Parser ExecMode
@@ -282,10 +285,10 @@ businessCommand = BusinessAction <$> businessCommands
 
 businessCommands :: Parser BusinessCommand
 businessCommands = subparser
-  (  command "add"  (info (addBusiness <**> helper)
-      (progDesc "Add a new business to the registry"))
-  <> command "list" (info (listBusiness <**> helper)
-      (progDesc "List all businesses and their Ids"))
+  ( mconcat
+    [ standardCommand "add"  addBusiness  "Add a new business to the registry"
+    , standardCommand "list" listBusiness "List all businesses and their Ids"
+    ]
   )
 
 
