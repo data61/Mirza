@@ -1,4 +1,5 @@
 {-# LANGUAGE DataKinds         #-}
+{-# LANGUAGE NamedFieldPuns    #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards   #-}
 {-# LANGUAGE TypeApplications  #-}
@@ -29,6 +30,7 @@ import qualified Network.Wai.Handler.Warp               as Warp
 import           Data.ByteString                        (ByteString)
 import           Data.Semigroup                         ((<>))
 import           Data.Text                              (pack)
+import           Data.Text.Encoding                     (encodeUtf8)
 import           Options.Applicative
 
 import qualified Crypto.Scrypt                          as Scrypt
@@ -72,7 +74,7 @@ data RunServerOptions = RunServerOptions
   }
 
 data UserCommand
-  = AddUser
+  = UserAdd
 
 data BusinessCommand
   = BusinessAdd
@@ -92,10 +94,10 @@ main = multiplexGlobalOptions =<< execParser opts where
 -- where the single binary could be split into multiple binaries.
 multiplexGlobalOptions :: ServerOptions -> IO ()
 multiplexGlobalOptions (ServerOptions globals mode) = case mode of
-  RunServer opts     -> launchServer globals opts
-  InitDb             -> runMigration globals
-  UserAction AddUser -> notImplemented
-  BusinessAction bc  -> runBusinessCommand globals bc
+  RunServer opts    -> launchServer globals opts
+  InitDb            -> runMigration globals
+  UserAction uc     -> runUserCommand globals uc
+  BusinessAction bc -> runBusinessCommand globals bc
 
 
 launchServer :: GlobalOptions -> RunServerOptions -> IO ()
@@ -109,15 +111,11 @@ launchServer globals options = do
 
 
 initBRContext :: GlobalOptions -> IO BT.BRContext
-initBRContext (GlobalOptions dbConnStr n p r lev envT) = do
+initBRContext opts@(GlobalOptions dbConnStr _ _ _ lev envT) = do
   handleScribe <- mkHandleScribe ColorIfTerminal stdout lev V3
   logEnv <- initLogEnv "businessRegistry" (Environment . pack . show $ envT)
             >>= registerScribe "stdout" handleScribe defaultScribeSettings
-  params <- case Scrypt.scryptParams (max n 14) (max p 8) (max r 1) of
-    Just scparams -> pure scparams
-    Nothing -> do
-      putStrLn $ "Invalid Scrypt params:" ++ show (n,p,r) ++ " using defaults"
-      pure Scrypt.defaultParams
+  params <- createScryptParams opts
   connpool <- Pool.createPool (connectPostgreSQL dbConnStr) close
                       1 -- Number of "sub-pools",
                       60 -- How long in seconds to keep a connection open for reuse
@@ -174,6 +172,42 @@ prompt str = putStrLn str *> getLine
 
 
 
+runUserCommand :: GlobalOptions -> UserCommand -> IO ()
+-- runUserCommand globals UserList = do
+--   ctx <- initBRContext globals
+--   euser <- runAppM ctx $ runDb listUseresQuery
+--   either (print @BusinessRegistryError) (mapM_ print) euser
+
+runUserCommand globals UserAdd = do
+  user <- interactivlyGetUserT
+  ctx <- initBRContext globals
+  euser <- runAppM ctx $ runDb (addUserQuery user)
+  either (print @BusinessRegistryError) print euser
+
+interactivlyGetUserT :: GlobalOptions -> IO (User)
+interactivlyGetUserT opts = do
+  params <- createScryptParams opts
+  user_id       <- newUUID
+  user_biz_id   <- BizId . read <$> prompt "user_biz_id  "
+  first_name    <- pack <$> prompt "first_name   "
+  last_name     <- pack <$> prompt "last_name    "
+  phone_number  <- pack <$> prompt "phone_number "
+  raw_password  <- pack <$> prompt "password"
+  email_address <- pack <$> prompt "email_address"
+  Scrypt.EncryptedPass password_hash
+                <- Scrypt.encryptPassIO params (Scrypt.Pass $ encodeUtf8 raw_password)
+  return UserT{..}
+
+
+createScryptParams :: GlobalOptions -> IO Scrypt.ScryptParams
+createScryptParams GlobalOptions{goScryptN,goScryptP,goScryptR} =
+  case Scrypt.scryptParams (max goScryptN 14) (max goScryptP 8) (max goScryptR 1) of
+    Just scparams -> pure scparams
+    Nothing -> do
+      putStrLn $  "Invalid Scrypt params:" ++ show (goScryptN,goScryptP,goScryptR)
+               ++ " using defaults"
+      pure Scrypt.defaultParams
+
 
 -- Implementation
 server :: BRContext -> Server API
@@ -213,7 +247,7 @@ serverOptions = ServerOptions
         ( mconcat
           [ standardCommand "server"   runServer "Run HTTP server"
           , standardCommand "initdb"   initDb "Initialise the Database"
-          , standardCommand "adduser"  addUser "Interactively add new users"
+          , standardCommand "user"     userCommand "Interactively add new users"
           , standardCommand "business" businessCommand "Operations on businesses"
           ]
         )
@@ -281,9 +315,20 @@ initDb :: Parser ExecMode
 initDb = pure InitDb
 
 
-addUser :: Parser ExecMode
-addUser = pure $ UserAction AddUser
+userCommand :: Parser ExecMode
+userCommand = UserAction <$> userCommands
 
+
+userCommands :: Parser UserCommand
+userCommands = subparser
+  ( mconcat
+    [ standardCommand "add"  addUser  "Add a new user to the registry"
+    --, standardCommand "list" listBusiness "List all user and their Ids"
+    ]
+  )
+
+addUser :: Parser UserCommand
+addUser = pure UserAdd
 
 businessCommand :: Parser ExecMode
 businessCommand = BusinessAction <$> businessCommands
