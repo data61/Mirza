@@ -25,6 +25,7 @@ import           Database.Beam.Postgres                       (Pg,
                                                                Postgres)
 import           Database.Beam.Postgres.Migrate               (migrateScript,
                                                                migrationBackend)
+import           Database.Beam.Postgres.Syntax                (fromPgCommand, pgRenderSyntaxScript)
 
 
 import           Mirza.Common.Types
@@ -56,23 +57,23 @@ runMigrationInteractive ::
   , HasEnvType context
   , AsSqlError err)
   => context -> IO (Either err ())
-runMigrationInteractive context = do
-   mapM_ BSL.putStr $ migrateScript migration
-   putStrLn "type YES to confirm applying this migration:"
-   confirm <- getLine
-   case confirm of
-    "YES" -> runAppM context $ runDb $ do
-      -- simpleMigration - needs Connection, postgresmigrationBackend, checked migration
-          conn <- view _1
-          mcommands <- liftIO $ simpleMigration migrationBackend conn checkedBusinessRegistryDB
-          case mcommands of
-            Nothing -> fail "lol"
-            Just commands -> do
-              -- TODO: Print these commands as they're just the changes needed
-              liftIO $ runSimpleMigration
-                          @PgCommandSyntax
-                          @Postgres
-                          @_
-                          @Pg
-                          conn commands
-    _ -> fail "Ok, not migrating"
+runMigrationInteractive context =
+  runAppM context $ runDb $ do
+    conn <- view _1
+    mcommands <- liftIO $ simpleMigration migrationBackend conn checkedBusinessRegistryDB
+    case mcommands of
+      Nothing -> fail "lol"
+      Just [] -> liftIO $ putStrLn "Already up to date"
+      Just commands -> do
+        confirm <- liftIO $ do
+          mapM_ (BSL.putStrLn . pgRenderSyntaxScript . fromPgCommand) commands
+          putStrLn "type YES to confirm applying this migration:"
+          getLine
+        case confirm of
+          "YES" -> do
+            liftIO $ runSimpleMigration
+                        @PgCommandSyntax
+                        @Postgres
+                        @_
+                        @Pg
+                        conn commands

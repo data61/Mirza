@@ -96,7 +96,7 @@ migration () =
           (field "last_name" (varchar (Just maxLen)) notNull)
           (field "phone_number" (varchar (Just maxLen)) notNull)
           (field "password_hash" binaryLargeObject notNull)
-          (field "email_address" (varchar (Just maxLen)) unique)
+          (field "email_address" (varchar (Just maxLen)) unique notNull)
     )
     <*> createTable "keys"
     (
