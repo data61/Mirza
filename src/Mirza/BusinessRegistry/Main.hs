@@ -205,14 +205,15 @@ standardCommand name action desciption =
   command name (info (action <**> helper) (progDesc desciption))
 
 
+-- The standard format of the main command line options is [Command] [Action], this applies to things like business and user.
 serverOptions :: Parser ServerOptions
 serverOptions = ServerOptions
   <$> globalOptions
   <*> subparser
         ( mconcat
-          [ standardCommand "initdb"   initDb "Initialise the Database"
+          [ standardCommand "server"   runServer "Run HTTP server"
+          , standardCommand "initdb"   initDb "Initialise the Database"
           , standardCommand "adduser"  addUser "Interactively add new users"
-          , standardCommand "server"   runServer "Run HTTP server"
           , standardCommand "business" businessCommand "Operations on businesses"
           ]
         )
