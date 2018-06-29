@@ -45,7 +45,19 @@ getPublicKeyInfo = notImplemented
 
 -- select * from Business;
 listBusinesses :: BRApp context err => AppM context err [BusinessResponse]
-listBusinesses = notImplemented
+listBusinesses = fmap bizToBizResponse <$> runDb listBusinessesQuery
+
+
+bizToBizResponse :: Business -> BusinessResponse
+bizToBizResponse BusinessT{..} = BusinessResponse
+  { bizID    = biz_gs1_company_prefix
+  , bizName  = biz_name
+  , function = biz_function
+  , siteName = biz_site_name
+  , address  = biz_address
+  , lat      = biz_lat
+  , lng      = biz_long
+  }
 
 
 listBusinessesQuery :: BRApp context err => DB context err [Business]
