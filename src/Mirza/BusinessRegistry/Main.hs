@@ -323,16 +323,21 @@ userCommand = UserAction <$> userCommands
 userCommands :: Parser UserCommand
 userCommands = subparser
   ( mconcat
-    [ standardCommand "add"  addUser  "Add a new user to the registry"
-    , standardCommand "list" listUsers "List all user and their Ids"
+    [ standardCommand "add"  userAdd  "Add a new user to the registry"
+    , standardCommand "list" userList "List all user and their Ids"
     ]
   )
 
-addUser :: Parser UserCommand
-addUser = pure UserAdd
 
-listUsers :: Parser UserCommand
-listUsers = pure UserList
+userAdd :: Parser UserCommand
+userAdd = pure UserAdd
+
+
+-- | List all fo the users. (notionally this is listUser, but we use the name
+-- userList to perserve the command action format in fucntion names) .
+userList :: Parser UserCommand
+userList = pure UserList
+
 
 businessCommand :: Parser ExecMode
 businessCommand = BusinessAction <$> businessCommands
@@ -341,15 +346,17 @@ businessCommand = BusinessAction <$> businessCommands
 businessCommands :: Parser BusinessCommand
 businessCommands = subparser
   ( mconcat
-    [ standardCommand "add"  addBusiness  "Add a new business to the registry"
-    , standardCommand "list" listBusiness "List all businesses and their Ids"
+    [ standardCommand "add"  businessAdd  "Add a new business to the registry"
+    , standardCommand "list" businessList "List all businesses and their Ids"
     ]
   )
 
 
-addBusiness :: Parser BusinessCommand
-addBusiness = pure BusinessAdd
+businessAdd :: Parser BusinessCommand
+businessAdd = pure BusinessAdd
 
 
-listBusiness :: Parser BusinessCommand
-listBusiness = pure BusinessList
+-- | List all fo the users. (notionally this is listUser, but we use the name
+-- userList to perserve the command action format in fucntion names) .
+businessList :: Parser BusinessCommand
+businessList = pure BusinessList
