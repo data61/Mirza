@@ -92,8 +92,8 @@ main = multiplexGlobalOptions =<< execParser opts where
 -- where the single binary could be split into multiple binaries.
 multiplexGlobalOptions :: ServerOptions -> IO ()
 multiplexGlobalOptions (ServerOptions globals mode) = case mode of
-  InitDb             -> runMigration globals
   RunServer opts     -> launchServer globals opts
+  InitDb             -> runMigration globals
   UserAction AddUser -> notImplemented
   BusinessAction bc  -> runBusinessCommand globals bc
 
@@ -137,6 +137,13 @@ initMiddleware :: GlobalOptions -> RunServerOptions -> IO Middleware
 initMiddleware _ _ = pure id
 
 
+runMigration :: GlobalOptions -> IO ()
+runMigration opts = do
+  ctx <- initBRContext opts
+  res <- Schema.runMigrationInteractive @BRContext @SqlError ctx
+  print res
+
+
 runBusinessCommand :: GlobalOptions -> BusinessCommand -> IO ()
 runBusinessCommand globals BusinessList = do
   ctx <- initBRContext globals
@@ -157,11 +164,6 @@ runBusinessCommand globals BusinessAdd = do
   ebiz <- runAppM ctx $ runDb (addBusinessQuery newBiz)
   either (print @BusinessRegistryError) print ebiz
 
-runMigration :: GlobalOptions -> IO ()
-runMigration opts = do
-  ctx <- initBRContext opts
-  res <- Schema.runMigrationInteractive @BRContext @SqlError ctx
-  print res
 
 prompt :: String -> IO String
 prompt str = putStrLn str *> getLine
