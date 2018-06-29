@@ -9,6 +9,7 @@ module Mirza.BusinessRegistry.Handlers.Business
   , listBusinesses
   , listBusinessesQuery
   , addBusinessQuery
+  , addUserQuery
   ) where
 
 
@@ -64,6 +65,10 @@ revokePublicKey = notImplemented
 -- | Will _always_ create a new UUID for the BizId
 addBusinessQuery :: BRApp context err => Business -> DB context err Business
 addBusinessQuery biz'@BusinessT{..} = do
+  -- The id is updated inside here to that it is generated as part of the
+  -- transaction so if the transaction happens to fail because the UUID
+  -- generated already exists it can be rerun in entirity hopefully with a
+  -- better outcome.
   bizid <- newUUID
   let biz = biz'{business_id = bizid}
 
@@ -83,3 +88,29 @@ addBusinessQuery biz'@BusinessT{..} = do
   --         -> throwing_ _BusinessExists
   --       _ -> throwing _InsertionFail (toServerError (Just . sqlState) sqlErr, email)
 
+
+-- | Will _always_ create a new UUID for the UserId
+addUserQuery :: BRApp context err => User -> DB context err User
+addUserQuery user'@UserT{..} = do
+  -- The id is updated inside here to that it is generated as part of the
+  -- transaction so if the transaction happens to fail because the UUID
+  -- generated already exists it can be rerun in entirity hopefully with a
+  -- better outcome.
+  userId <- newUUID
+  let user = user'{user_id = userId}
+
+  res <- -- handleError errHandler $
+         pg $ runInsertReturningList (_users businessRegistryDB) $
+            insertValues [user]
+  case res of
+        [r] -> return r
+        -- TODO: Have a proper error response
+        _   -> throwing _BusinessCreationError (show res)
+  -- where
+  --   errHandler :: (AsSqlError err, MonadError err m) => err -> m a
+  --   errHandler e = case e ^? _DatabaseError of
+  --     Nothing -> throwError e
+  --     Just sqlErr -> case constraintViolation sqlErr of
+  --       Just (UniqueViolation "users_email_address_key")
+  --         -> throwing_ _UserExists
+  --       _ -> throwing _InsertionFail (toServerError (Just . sqlState) sqlErr, email)
