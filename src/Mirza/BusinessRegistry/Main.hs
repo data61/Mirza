@@ -75,6 +75,7 @@ data RunServerOptions = RunServerOptions
 
 data UserCommand
   = UserAdd
+  | UserList
 
 data BusinessCommand
   = BusinessAdd
@@ -173,10 +174,10 @@ prompt str = putStrLn str *> getLine
 
 
 runUserCommand :: GlobalOptions -> UserCommand -> IO ()
--- runUserCommand globals UserList = do
---   ctx <- initBRContext globals
---   euser <- runAppM ctx $ runDb listUseresQuery
---   either (print @BusinessRegistryError) (mapM_ print) euser
+runUserCommand globals UserList = do
+   ctx <- initBRContext globals
+   euser <- runAppM ctx $ runDb listUsersQuery
+   either (print @BusinessRegistryError) (mapM_ print) euser
 
 runUserCommand globals UserAdd = do
   user <- interactivlyGetUserT globals
@@ -323,12 +324,15 @@ userCommands :: Parser UserCommand
 userCommands = subparser
   ( mconcat
     [ standardCommand "add"  addUser  "Add a new user to the registry"
-    --, standardCommand "list" listBusiness "List all user and their Ids"
+    , standardCommand "list" listUsers "List all user and their Ids"
     ]
   )
 
 addUser :: Parser UserCommand
 addUser = pure UserAdd
+
+listUsers :: Parser UserCommand
+listUsers = pure UserList
 
 businessCommand :: Parser ExecMode
 businessCommand = BusinessAction <$> businessCommands

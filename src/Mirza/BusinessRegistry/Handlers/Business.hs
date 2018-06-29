@@ -10,6 +10,7 @@ module Mirza.BusinessRegistry.Handlers.Business
   , listBusinessesQuery
   , addBusinessQuery
   , addUserQuery
+  , listUsersQuery
   ) where
 
 
@@ -88,6 +89,11 @@ addBusinessQuery biz'@BusinessT{..} = do
   --         -> throwing_ _BusinessExists
   --       _ -> throwing _InsertionFail (toServerError (Just . sqlState) sqlErr, email)
 
+
+
+listUsersQuery :: BRApp context err => DB context err [User]
+listUsersQuery = pg $ runSelectReturningList $ select $
+    all_ (_users businessRegistryDB)
 
 -- | Will _always_ create a new UUID for the UserId
 addUserQuery :: BRApp context err => User -> DB context err User
