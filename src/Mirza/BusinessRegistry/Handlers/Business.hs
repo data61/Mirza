@@ -17,20 +17,17 @@ module Mirza.BusinessRegistry.Handlers.Business
 import           Mirza.BusinessRegistry.Database.Schema
 import           Mirza.BusinessRegistry.Handlers.Common
 import           Mirza.BusinessRegistry.Types             as BT
-import           Mirza.Common.GS1BeamOrphans
 import           Mirza.Common.Types
 import           Mirza.Common.Utils
 
 
 import           Database.Beam                            as B
 import           Database.Beam.Backend.SQL.BeamExtensions
-import           Database.PostgreSQL.Simple.Errors        (ConstraintViolation (..),
-                                                           constraintViolation)
+--import           Database.PostgreSQL.Simple.Errors     -   (constraintViolation)
 
 import           Data.Time.Clock                          (UTCTime)
 
-import           Control.Monad.Except                     (MonadError,
-                                                           throwError)
+--import           Control.Monad.Except                     (throwError)
 
 
 

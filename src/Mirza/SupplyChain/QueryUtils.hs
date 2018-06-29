@@ -40,7 +40,6 @@ import           Data.Time                     (UTCTime, ZonedTime (..),
 import           Data.Time.Clock               (getCurrentTime)
 import           Data.Time.LocalTime           (LocalTime, localTimeToUTC, utc,
                                                 utcToLocalTime)
-import           Data.UUID.V4                  (nextRandom)
 import           Database.Beam                 as B
 
 import           Control.Monad.Except          (MonadError, catchError)

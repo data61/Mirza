@@ -13,8 +13,7 @@ import           Mirza.BusinessRegistry.Database.Schema as Schema
 import           Mirza.BusinessRegistry.Service
 import           Mirza.BusinessRegistry.Types           as BT
 import           Mirza.Common.Types                     as CT
-import           Mirza.Common.Utils                     (newUUID,
-                                                         notImplemented)
+import           Mirza.Common.Utils                     (newUUID)
 
 import           Data.GS1.EPC                           (GS1CompanyPrefix (..))
 
@@ -31,7 +30,7 @@ import           Data.ByteString                        (ByteString)
 import           Data.Semigroup                         ((<>))
 import           Data.Text                              (pack)
 import           Data.Text.Encoding                     (encodeUtf8)
-import           Options.Applicative
+import           Options.Applicative                    hiding (action)
 
 import qualified Crypto.Scrypt                          as Scrypt
 
@@ -168,7 +167,7 @@ interactivlyGetBusinessT = do
   return BusinessT{..}
 
 prompt :: String -> IO String
-prompt str = putStrLn str *> getLine
+prompt message = putStrLn message *> getLine
 
 
 
