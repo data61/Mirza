@@ -151,19 +151,22 @@ runBusinessCommand globals BusinessList = do
   either (print @BusinessRegistryError) (mapM_ print) ebizs
 
 runBusinessCommand globals BusinessAdd = do
-  business_id <- newUUID
-  biz_gs1_company_prefix <- GS1CompanyPrefix . pack <$>  prompt "GS1CompanyPrefix"
-  biz_name      <- pack <$> prompt "Name     "
-  biz_function  <- pack <$> prompt "Function "
-  biz_site_name <- pack <$> prompt "Site name"
-  biz_address   <- pack <$> prompt "Address  "
-  biz_lat       <- read <$> prompt "Lat      "
-  biz_long      <- read <$> prompt "Long     "
-  let newBiz = BusinessT{..}
+  business <- interactivlyGetBusinessT
   ctx <- initBRContext globals
-  ebiz <- runAppM ctx $ runDb (addBusinessQuery newBiz)
+  ebiz <- runAppM ctx $ runDb (addBusinessQuery business)
   either (print @BusinessRegistryError) print ebiz
 
+interactivlyGetBusinessT :: IO (Business)
+interactivlyGetBusinessT = do
+  business_id <- newUUID
+  biz_gs1_company_prefix <- GS1CompanyPrefix . pack <$>  prompt "GS1CompanyPrefix"
+  biz_name      <- pack <$> prompt "Name"
+  biz_function  <- pack <$> prompt "Function"
+  biz_site_name <- pack <$> prompt "Site name"
+  biz_address   <- pack <$> prompt "Address"
+  biz_lat       <- read <$> prompt "Lat"
+  biz_long      <- read <$> prompt "Long"
+  return BusinessT{..}
 
 prompt :: String -> IO String
 prompt str = putStrLn str *> getLine
