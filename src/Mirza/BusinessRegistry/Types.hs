@@ -12,6 +12,9 @@ import           Mirza.Common.Utils
 
 import           Mirza.BusinessRegistry.Database.Schema
 
+import           Data.GS1.EPC                           as EPC
+
+
 import           Data.Pool                              as Pool
 import           Database.PostgreSQL.Simple             (Connection, SqlError)
 
@@ -23,6 +26,8 @@ import           Katip                                  as K
 
 import           Data.Aeson
 import           Data.Swagger
+import           Data.Text                              (Text)
+
 import           GHC.Generics                           (Generic)
 import           Servant                                (FromHttpApiData (..))
 
@@ -81,12 +86,19 @@ instance ToParamSchema PEM_RSAPubKey
 instance FromHttpApiData PEM_RSAPubKey where
   parseUrlPiece t = fmap PEM_RSAPubKey (parseUrlPiece t)
 
-newtype BusinessResponse = BusinessResponse()
-  deriving (Generic, ToJSON, FromJSON)
+data BusinessResponse = BusinessResponse {
+  bizID    :: EPC.GS1CompanyPrefix,
+  bizName  :: Text,
+  function :: Text,
+  siteName :: Text,
+  address  :: Text,
+  lat      :: Double,
+  lng      :: Double
+  }
+  deriving (Generic)
 instance ToSchema BusinessResponse
-instance ToParamSchema BusinessResponse
-instance FromHttpApiData BusinessResponse where
-  parseUrlPiece t = fmap BusinessResponse (parseUrlPiece t)
+instance ToJSON BusinessResponse
+instance FromJSON BusinessResponse
 
 newtype KeyInfo = KeyInfo ()
   deriving (Generic, ToJSON, FromJSON)
