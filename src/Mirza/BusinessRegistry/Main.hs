@@ -40,6 +40,11 @@ import           System.IO                              (stdout)
 
 
 
+--------------------------------------------------------------------------------
+-- Constants
+--------------------------------------------------------------------------------
+
+
 defaultPortNumber :: Int
 defaultPortNumber = 8000
 
@@ -47,6 +52,9 @@ defaultDatabaseConnectionString :: ByteString
 defaultDatabaseConnectionString = "dbname=devMirzaBusinessRegistry"
 
 
+--------------------------------------------------------------------------------
+-- Command Line Options Data Types
+--------------------------------------------------------------------------------
 
 data ServerOptions = ServerOptions
   { soGlobals  :: GlobalOptions
@@ -81,6 +89,9 @@ data BusinessCommand
   | BusinessList
 
 
+--------------------------------------------------------------------------------
+-- Main
+--------------------------------------------------------------------------------
 
 main :: IO ()
 main = multiplexGlobalOptions =<< execParser opts where
@@ -99,6 +110,10 @@ multiplexGlobalOptions (ServerOptions globals mode) = case mode of
   UserAction uc     -> runUserCommand globals uc
   BusinessAction bc -> runBusinessCommand globals bc
 
+
+--------------------------------------------------------------------------------
+-- Service
+--------------------------------------------------------------------------------
 
 launchServer :: GlobalOptions -> RunServerOptions -> IO ()
 launchServer globals options = do
@@ -134,6 +149,20 @@ initApplication _go _so ev =
 initMiddleware :: GlobalOptions -> RunServerOptions -> IO Middleware
 initMiddleware _ _ = pure id
 
+-- Implementation
+server :: BRContext -> Server API
+server ev =
+  swaggerSchemaUIServer serveSwaggerAPI
+  :<|> hoistServerWithContext
+        (Proxy @ServerAPI)
+        (Proxy @'[BasicAuthCheck BT.AuthUser])
+        (appMToHandler ev)
+        (appHandlers @BRContext @BusinessRegistryError)
+
+
+--------------------------------------------------------------------------------
+-- Migration Command
+--------------------------------------------------------------------------------
 
 runMigration :: GlobalOptions -> IO ()
 runMigration opts = do
@@ -142,35 +171,9 @@ runMigration opts = do
   print res
 
 
-runBusinessCommand :: GlobalOptions -> BusinessCommand -> IO ()
-runBusinessCommand globals BusinessList = do
-  ctx <- initBRContext globals
-  ebizs <- runAppM ctx $ runDb listBusinessesQuery
-  either (print @BusinessRegistryError) (mapM_ print) ebizs
-
-runBusinessCommand globals BusinessAdd = do
-  business <- interactivlyGetBusinessT
-  ctx <- initBRContext globals
-  ebiz <- runAppM ctx $ runDb (addBusinessQuery business)
-  either (print @BusinessRegistryError) print ebiz
-
-interactivlyGetBusinessT :: IO (Business)
-interactivlyGetBusinessT = do
-  business_id <- newUUID
-  biz_gs1_company_prefix <- GS1CompanyPrefix . pack <$>  prompt "GS1CompanyPrefix"
-  biz_name      <- pack <$> prompt "Name"
-  biz_function  <- pack <$> prompt "Function"
-  biz_site_name <- pack <$> prompt "Site name"
-  biz_address   <- pack <$> prompt "Address"
-  biz_lat       <- read <$> prompt "Lat"
-  biz_long      <- read <$> prompt "Long"
-  return BusinessT{..}
-
-prompt :: String -> IO String
-prompt message = putStrLn message *> getLine
-
-
-
+--------------------------------------------------------------------------------
+-- User Command
+--------------------------------------------------------------------------------
 
 runUserCommand :: GlobalOptions -> UserCommand -> IO ()
 runUserCommand globals UserList = do
@@ -183,6 +186,7 @@ runUserCommand globals UserAdd = do
   ctx <- initBRContext globals
   euser <- runAppM ctx $ runDb (addUserQuery user)
   either (print @BusinessRegistryError) print euser
+
 
 interactivlyGetUserT :: GlobalOptions -> IO (User)
 interactivlyGetUserT opts = do
@@ -209,17 +213,42 @@ createScryptParams GlobalOptions{goScryptN,goScryptP,goScryptR} =
       pure Scrypt.defaultParams
 
 
--- Implementation
-server :: BRContext -> Server API
-server ev =
-  swaggerSchemaUIServer serveSwaggerAPI
-  :<|> hoistServerWithContext
-        (Proxy @ServerAPI)
-        (Proxy @'[BasicAuthCheck BT.AuthUser])
-        (appMToHandler ev)
-        (appHandlers @BRContext @BusinessRegistryError)
+--------------------------------------------------------------------------------
+-- Business Command
+--------------------------------------------------------------------------------
+
+runBusinessCommand :: GlobalOptions -> BusinessCommand -> IO ()
+runBusinessCommand globals BusinessList = do
+  ctx <- initBRContext globals
+  ebizs <- runAppM ctx $ runDb listBusinessesQuery
+  either (print @BusinessRegistryError) (mapM_ print) ebizs
+
+runBusinessCommand globals BusinessAdd = do
+  business <- interactivlyGetBusinessT
+  ctx <- initBRContext globals
+  ebiz <- runAppM ctx $ runDb (addBusinessQuery business)
+  either (print @BusinessRegistryError) print ebiz
 
 
+interactivlyGetBusinessT :: IO (Business)
+interactivlyGetBusinessT = do
+  business_id <- newUUID
+  biz_gs1_company_prefix <- GS1CompanyPrefix . pack <$>  prompt "GS1CompanyPrefix"
+  biz_name      <- pack <$> prompt "Name"
+  biz_function  <- pack <$> prompt "Function"
+  biz_site_name <- pack <$> prompt "Site name"
+  biz_address   <- pack <$> prompt "Address"
+  biz_lat       <- read <$> prompt "Lat"
+  biz_long      <- read <$> prompt "Long"
+  return BusinessT{..}
+
+prompt :: String -> IO String
+prompt message = putStrLn message *> getLine
+
+
+--------------------------------------------------------------------------------
+-- Debug Command
+--------------------------------------------------------------------------------
 
 -- This is a debug function for activating development test stub functions.
 -- TODO: Remove this stub before release.
@@ -227,7 +256,6 @@ debugFunc :: IO()
 debugFunc = do
   putStrLn ("Running Debug Option")
   -- Debug test code goes here...
-
 
 
 --------------------------------------------------------------------------------
