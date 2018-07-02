@@ -25,6 +25,7 @@ library
                     , Mirza.BusinessRegistry.Handlers.Business
                     , Mirza.BusinessRegistry.Handlers.Common
                     , Mirza.BusinessRegistry.Handlers.Keys
+                    , Mirza.BusinessRegistry.Interactive
                     , Mirza.BusinessRegistry.Main
                     , Mirza.BusinessRegistry.Service
                     , Mirza.BusinessRegistry.Types
