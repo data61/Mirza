@@ -21,8 +21,11 @@ module Mirza.Common.Types
   , DBConstraint
   , ask
   , asks
+  , MonadError
   , throwing
   , throwing_
+  , MonadIO
+  , liftIO
   ) where
 
 
@@ -34,9 +37,9 @@ import qualified Database.PostgreSQL.Simple as DB
 import qualified Control.Exception          as Exc
 import           Control.Monad.Except       (ExceptT (..), MonadError,
                                              runExceptT, throwError)
-import           Control.Monad.IO.Class     (MonadIO)
+import           Control.Monad.IO.Class     (MonadIO, liftIO)
 import           Control.Monad.Reader       (MonadReader, ReaderT, ask, asks,
-                                             liftIO, local, runReaderT)
+                                             local, runReaderT)
 import           Control.Monad.Trans        (lift)
 
 import qualified Control.Exception          as E
