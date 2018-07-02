@@ -123,10 +123,8 @@ data UserT f = UserT
   , email_address :: C f Text }
   deriving Generic
 
-type UserId = PrimaryKey UserT Identity
-deriving instance Show (PrimaryKey UserT Identity)
-
 type UserID = PrimaryKey UserT Identity
+deriving instance Show (PrimaryKey UserT Identity)
 instance ToSchema UserID
 instance ToParamSchema UserID
 
