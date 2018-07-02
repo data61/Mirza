@@ -35,7 +35,6 @@ getPublicKey ::  BRApp context err => KeyID -> AppM context err PEM_RSAPubKey
 getPublicKey = notImplemented
 
 
-
 getPublicKeyInfo ::  BRApp context err => KeyID -> AppM context err BT.KeyInfo
 getPublicKeyInfo = notImplemented
 
@@ -72,6 +71,7 @@ addPublicKey = notImplemented
 revokePublicKey :: BRApp context err => BT.AuthUser -> KeyID -> AppM context err UTCTime
 revokePublicKey = notImplemented
 
+
 -- | Will _always_ create a new UUID for the BizId
 addBusinessQuery :: BRApp context err => Business -> DB context err Business
 addBusinessQuery biz'@BusinessT{..} = do
@@ -99,10 +99,10 @@ addBusinessQuery biz'@BusinessT{..} = do
   --       _ -> throwing _InsertionFail (toServerError (Just . sqlState) sqlErr, email)
 
 
-
 listUsersQuery :: BRApp context err => DB context err [User]
 listUsersQuery = pg $ runSelectReturningList $ select $
     all_ (_users businessRegistryDB)
+
 
 -- | Will _always_ create a new UUID for the UserId
 addUserQuery :: BRApp context err => User -> DB context err User
