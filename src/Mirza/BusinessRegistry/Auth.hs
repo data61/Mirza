@@ -37,6 +37,18 @@ import           Control.Lens
 
 
 
+newtype EmailAddress = EmailAddress Text
+
+newtype Password = Password ByteString
+  -- Is Eq something we want?
+  -- We do not want Show
+  deriving (Eq)
+
+instance Show Password where
+  show _ = "Password <redacted>"
+
+
+
 -- | We need to supply our handlers with the right Context. In this case,
 -- Basic Authentication requires a Context Entry with the 'BasicAuthCheck' value
 -- tagged with "foo-tag" This context is then supplied to 'server' and threaded
@@ -60,17 +72,6 @@ authCheck context =
           _                 -> return Unauthorized
   in BasicAuthCheck check
 
-
-
-newtype EmailAddress = EmailAddress Text
-
-newtype Password = Password ByteString
-  -- Is Eq something we want?
-  -- We do not want Show
-  deriving (Eq)
-
-instance Show Password where
-  show _ = "Password <redacted>"
 
 -- Basic Auth check using Scrypt hashes.
 -- TODO: How safe is this to timing attacks? Can we tell which emails are in the
@@ -96,6 +97,7 @@ authCheckQuery (EmailAddress email) (Password password) = do
                     (\u -> user_id u ==. val_ (user_id user))
             pure $ Just (userToAuthUser user)
     _ -> pure Nothing
+
 
 userToAuthUser :: User -> AuthUser
 userToAuthUser user = AuthUser (primaryKey user)
