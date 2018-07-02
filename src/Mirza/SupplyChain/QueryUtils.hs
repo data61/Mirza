@@ -1,6 +1,5 @@
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE TupleSections         #-}
 
 -- | Following are a bunch of utility functions to do household stuff like
 -- generating primary keys, timestamps - stuff that almost every function
@@ -11,7 +10,7 @@
 module Mirza.SupplyChain.QueryUtils
   (
     storageToModelBusiness , storageToModelEvent, userTableToModel
-  , onLocalTime , toLocalTime, toZonedTime, generateTimeStamp
+  , onLocalTime , epcisTimeToLocalTime, toZonedTime, generateTimestamp
   , encodeEvent, decodeEvent
   , eventTxtToBS
   , handleError
@@ -27,7 +26,6 @@ import           Data.GS1.EPC                  as EPC
 import           Data.GS1.Event                (Event (..))
 import qualified Data.GS1.Event                as Ev
 
-import           Control.Monad.IO.Class        (liftIO)
 import           Data.Aeson                    (decode)
 import           Data.Aeson.Text               (encodeToLazyText)
 import           Data.ByteString               (ByteString)
@@ -35,33 +33,14 @@ import qualified Data.Text                     as T
 import qualified Data.Text.Encoding            as En
 import qualified Data.Text.Lazy                as TxtL
 import qualified Data.Text.Lazy.Encoding       as LEn
-import           Data.Time                     (UTCTime, ZonedTime (..),
-                                                utcToZonedTime)
-import           Data.Time.Clock               (getCurrentTime)
-import           Data.Time.LocalTime           (LocalTime, localTimeToUTC, utc,
-                                                utcToLocalTime)
-import           Database.Beam                 as B
+import           Data.Time.LocalTime           (LocalTime, utc, utcToLocalTime)
 
 import           Control.Monad.Except          (MonadError, catchError)
 
 
--- | Reads back the ``LocalTime`` in UTCTime (with an offset of 0)
--- And wraps it in a custom constructor (newtype wrappers around UTCTime)
-onLocalTime :: (UTCTime -> t) -> LocalTime -> t
-onLocalTime c t = c (localTimeToUTC utc t)
-
 -- | Shorthand for type-casting UTCTime to LocalTime before storing them in DB
-toLocalTime :: EPCISTime -> LocalTime
-toLocalTime = utcToLocalTime utc . unEPCISTime
-
--- | Shorthand for type-casting UTCTime to LocalTime before storing them in DB
-toZonedTime :: UTCTime -> ZonedTime
-toZonedTime = utcToZonedTime utc
-
--- | Generates a timestamp in LocalTime + 0:00 offset
--- which is a UTCTime
-generateTimeStamp :: MonadIO m => m LocalTime
-generateTimeStamp = utcToLocalTime utc <$> liftIO getCurrentTime
+epcisTimeToLocalTime :: EPCISTime -> LocalTime
+epcisTimeToLocalTime = utcToLocalTime utc . unEPCISTime
 
 -- | Ueful for handling specific errors from, for example, database transactions
 -- @
