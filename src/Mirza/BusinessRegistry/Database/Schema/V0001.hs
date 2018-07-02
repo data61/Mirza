@@ -38,8 +38,8 @@ import           Data.Swagger
 -- Constants
 --------------------------------------------------------------------------------
 
-maxLen :: Word
-maxLen = 120
+defaultFieldMaxLength :: Word
+defaultFieldMaxLength = 120
 
 
 --------------------------------------------------------------------------------
@@ -76,21 +76,21 @@ migration () =
       UserT
           (field "user_id" pkSerialType)
           (BizId (field "user_biz_id" pkSerialType))
-          (field "first_name" (varchar (Just maxLen)) notNull)
-          (field "last_name" (varchar (Just maxLen)) notNull)
-          (field "phone_number" (varchar (Just maxLen)) notNull)
+          (field "first_name" (varchar (Just defaultFieldMaxLength)) notNull)
+          (field "last_name" (varchar (Just defaultFieldMaxLength)) notNull)
+          (field "phone_number" (varchar (Just defaultFieldMaxLength)) notNull)
           (field "password_hash" binaryLargeObject notNull)
-          (field "email_address" (varchar (Just maxLen)) unique notNull)
+          (field "email_address" (varchar (Just defaultFieldMaxLength)) unique notNull)
     )
     <*> createTable "businesses"
       (
         BusinessT
             (field "business_id" pkSerialType)
             (field "biz_gs1_company_prefix" gs1CompanyPrefixType)
-            (field "biz_name" (varchar (Just maxLen)) notNull)
-            (field "biz_function" (varchar (Just maxLen)) notNull)
-            (field "biz_site_name" (varchar (Just maxLen)) notNull)
-            (field "biz_address" (varchar (Just maxLen)) notNull)
+            (field "biz_name" (varchar (Just defaultFieldMaxLength)) notNull)
+            (field "biz_function" (varchar (Just defaultFieldMaxLength)) notNull)
+            (field "biz_site_name" (varchar (Just defaultFieldMaxLength)) notNull)
+            (field "biz_address" (varchar (Just defaultFieldMaxLength)) notNull)
             (field "biz_lat" double)
             (field "biz_long" double)
       )
