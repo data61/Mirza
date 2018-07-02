@@ -26,6 +26,7 @@ import           Mirza.BusinessRegistry.API
 
 import           Mirza.BusinessRegistry.Handlers.Business as Handlers
 import           Mirza.BusinessRegistry.Handlers.Common   as Handlers
+import           Mirza.BusinessRegistry.Handlers.Keys     as Keys
 import           Mirza.BusinessRegistry.Types
 import           Mirza.Common.Types
 import           Mirza.Common.Utils
@@ -45,6 +46,7 @@ import           Data.Swagger
 appHandlers :: (BRApp context err, HasScryptParams context) => ServerT ServerAPI (AppM context err)
 appHandlers = publicServer :<|> privateServer
 
+
 publicServer :: (BRApp context err, HasScryptParams context) => ServerT PublicAPI (AppM context err)
 publicServer =
   -- Business
@@ -52,12 +54,12 @@ publicServer =
   :<|> getPublicKeyInfo
   :<|> listBusinesses
 
+
 privateServer :: (BRApp context err) => ServerT ProtectedAPI (AppM context err)
 privateServer =
 -- Business
        addPublicKey
   :<|> revokePublicKey
-
 
 
 instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub) where
@@ -71,13 +73,13 @@ instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub
       & allOperations . security .~ securityRequirements
 
 
-
 appMToHandler :: forall x context. context -> AppM context BusinessRegistryError x -> Handler x
 appMToHandler context act = do
   res <- liftIO $ runAppM context act
   case res of
     Left _  -> notImplemented
     Right a -> return a
+
 
 -- | Swagger spec for server API.
 serveSwaggerAPI :: Swagger
