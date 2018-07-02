@@ -30,56 +30,44 @@ import           Database.Beam.Postgres.Syntax    (PgDataTypeSyntax)
 import           Data.Swagger
 
 
+
+-- Convention: Table types and constructors are suffixed with T (for Table).
+
+
+--------------------------------------------------------------------------------
+-- Constants
+--------------------------------------------------------------------------------
+
+maxLen :: Word
+maxLen = 120
+
+
+--------------------------------------------------------------------------------
+-- Datatypes
+--------------------------------------------------------------------------------
+
 type PrimaryKeyType = UUID
 
-type UserID = PrimaryKey UserT Identity
-instance ToSchema UserID
-instance ToParamSchema UserID
+
+--------------------------------------------------------------------------------
+-- Database
+--------------------------------------------------------------------------------
+
+pkSerialType :: DataType PgDataTypeSyntax UUID
+pkSerialType = uuid
 
 
--- Table types and constructors are suffixed with T (for Table).
-
+-- Database
 data BusinessRegistryDB f = BusinessRegistryDB
   { _users      :: f (TableEntity UserT)
-  , _keys       :: f (TableEntity KeyT)
   , _businesses :: f (TableEntity BusinessT)
+  , _keys       :: f (TableEntity KeyT)
   }
   deriving Generic
 instance Database anybackend BusinessRegistryDB
 
 
--- businessRegistryDB :: DatabaseSettings Postgres BusinessRegistryDB
--- businessRegistryDB = defaultDbSettings
---   `withDbModification`
---   dbModification
---     {
---       _users =
---         modifyTable (const "users") $
---         tableModification
---         {
---           user_biz_id = BizId (fieldNamed "user_biz_id")
---         }
---     , _keys =
---         modifyTable (const "keys") $
---         tableModification
---         {
---           key_user_id = UserId (fieldNamed "key_user_id")
---         }
---     , _businesses =
---         modifyTable (const "businesses") $
---         tableModification
---         -- {
---         --   biz_gs1_company_prefix = BizId (fieldNamed "biz_company_prefix")
---         -- }
---     }
-
-
-maxLen :: Word
-maxLen = 120
-
-pkSerialType :: DataType PgDataTypeSyntax UUID
-pkSerialType = uuid
-
+-- Migration: Intialisation -> V1.
 migration :: () -> Migration PgCommandSyntax (CheckedDatabaseSettings Postgres BusinessRegistryDB)
 migration () =
   BusinessRegistryDB
@@ -94,16 +82,6 @@ migration () =
           (field "password_hash" binaryLargeObject notNull)
           (field "email_address" (varchar (Just maxLen)) unique notNull)
     )
-    <*> createTable "keys"
-    (
-      KeyT
-          (field "key_id" pkSerialType)
-          (UserId (field "key_user_id" pkSerialType))
-          (field "pem_str" text)
-          (field "creation_time" timestamptz)
-          (field "revocation_time" (maybeType timestamptz))
-          (field "expiration_time" (maybeType timestamptz))
-    )
     <*> createTable "businesses"
       (
         BusinessT
@@ -116,7 +94,24 @@ migration () =
             (field "biz_lat" double)
             (field "biz_long" double)
       )
+    <*> createTable "keys"
+    (
+      KeyT
+          (field "key_id" pkSerialType)
+          (UserId (field "key_user_id" pkSerialType))
+          (field "pem_str" text)
+          (field "creation_time" timestamptz)
+          (field "revocation_time" (maybeType timestamptz))
+          (field "expiration_time" (maybeType timestamptz))
+    )
 
+
+--------------------------------------------------------------------------------
+-- User table.
+--------------------------------------------------------------------------------
+
+type User = UserT Identity
+deriving instance Show User
 
 data UserT f = UserT
   { user_id       :: C f PrimaryKeyType
@@ -128,11 +123,12 @@ data UserT f = UserT
   , email_address :: C f Text }
   deriving Generic
 
-type User = UserT Identity
 type UserId = PrimaryKey UserT Identity
-
-deriving instance Show User
 deriving instance Show (PrimaryKey UserT Identity)
+
+type UserID = PrimaryKey UserT Identity
+instance ToSchema UserID
+instance ToParamSchema UserID
 
 instance Beamable UserT
 instance Beamable (PrimaryKey UserT)
@@ -143,30 +139,15 @@ instance Table UserT where
   primaryKey = UserId . user_id
 deriving instance Eq (PrimaryKey UserT Identity)
 
-data KeyT f = KeyT
-  { key_id          :: C f PrimaryKeyType
-  , key_user_id     :: PrimaryKey UserT f
-  , pem_str         :: C f Text
-  , creation_time   :: C f LocalTime -- UTCTime
-  , revocation_time :: C f (Maybe LocalTime) -- UTCTime
-  , expiration_time :: C f (Maybe LocalTime) -- UTCTime
-  }
-  deriving Generic
-type Key = KeyT Identity
-type KeyId = PrimaryKey KeyT Identity
 
-deriving instance Show Key
-
-instance Beamable KeyT
-instance Beamable (PrimaryKey KeyT)
-
-instance Table KeyT where
-  data PrimaryKey KeyT f = KeyId (C f PrimaryKeyType)
-    deriving Generic
-  primaryKey = KeyId . key_id
-deriving instance Eq (PrimaryKey KeyT Identity)
+--------------------------------------------------------------------------------
+-- Business Table
+--------------------------------------------------------------------------------
 
 -- CBV-Standard-1-2-r-2016-09-29.pdf Page 11
+
+type Business = BusinessT Identity
+deriving instance Show Business
 
 data BusinessT f = BusinessT
   { business_id            :: C f PrimaryKeyType
@@ -176,19 +157,47 @@ data BusinessT f = BusinessT
   , biz_site_name          :: C f Text
   , biz_address            :: C f Text
   , biz_lat                :: C f Double
-  , biz_long               :: C f Double }
+  , biz_long               :: C f Double
+  }
   deriving Generic
-type Business = BusinessT Identity
-type BizId = PrimaryKey BusinessT Identity
 
-deriving instance Show Business
+type BizId = PrimaryKey BusinessT Identity
+deriving instance Show (PrimaryKey BusinessT Identity)
 
 instance Beamable BusinessT
 instance Beamable (PrimaryKey BusinessT)
-deriving instance Show (PrimaryKey BusinessT Identity)
 
 instance Table BusinessT where
   data PrimaryKey BusinessT f = BizId (C f PrimaryKeyType)
     deriving Generic
   primaryKey = BizId . business_id
 deriving instance Eq (PrimaryKey BusinessT Identity)
+
+
+--------------------------------------------------------------------------------
+-- Keys Table
+--------------------------------------------------------------------------------
+
+type Key = KeyT Identity
+deriving instance Show Key
+
+data KeyT f = KeyT
+  { key_id          :: C f PrimaryKeyType
+  , key_user_id     :: PrimaryKey UserT f
+  , pem_str         :: C f Text
+  , creation_time   :: C f LocalTime -- UTCTime
+  , revocation_time :: C f (Maybe LocalTime) -- UTCTime
+  , expiration_time :: C f (Maybe LocalTime) -- UTCTime
+  }
+  deriving Generic
+
+type KeyId = PrimaryKey KeyT Identity
+
+instance Beamable KeyT
+instance Beamable (PrimaryKey KeyT)
+
+instance Table KeyT where
+  data PrimaryKey KeyT f = KeyId (C f PrimaryKeyType)
+    deriving Generic
+  primaryKey = KeyId . key_id
+deriving instance Eq (PrimaryKey KeyT Identity)
