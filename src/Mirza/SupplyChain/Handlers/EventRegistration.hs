@@ -378,8 +378,8 @@ toStorageDWhen :: SB.WhenId
                -> SB.When
 toStorageDWhen (SB.WhenId pKey) (DWhen eventTime mRecordTime tZone) =
   SB.When pKey
-    (QU.toLocalTime eventTime)
-    (QU.toLocalTime <$> mRecordTime)
+    (QU.epcisTimeToLocalTime eventTime)
+    (QU.epcisTimeToLocalTime <$> mRecordTime)
     (T.pack . timeZoneOffsetString $ tZone)
 
 toStorageDWhy :: SB.WhyId -> DWhy -> SB.EventId -> SB.Why

@@ -130,7 +130,7 @@ addPublicKeyQuery :: AsServiceError err => ST.User
                   -> DB context err KeyID
 addPublicKeyQuery (User (ST.UserID uid) _ _) expTime rsaPubKey = do
   keyId <- newUUID
-  timeStamp <- QU.generateTimeStamp
+  timeStamp <- QU.generateTimestamp
   keyStr <- liftIO $ writePublicKey rsaPubKey
   r <- pg $ runInsertReturningList (SB._keys SB.supplyChainDb) $
         insertValues
@@ -158,7 +158,7 @@ revokePublicKeyQuery userId k@(KeyID keyId) = do
   unless userOwnsKey $ throwing_ _UnauthorisedKeyAccess
   keyRevoked <- isKeyRevoked k
   when keyRevoked $ throwing_ _KeyAlreadyRevoked
-  timeStamp <- QU.generateTimeStamp
+  timeStamp <- QU.generateTimestamp
   _r <- pg $ runUpdate $ update
                 (SB._keys SB.supplyChainDb)
                 (\key -> [SB.revocation_time key <-. val_ (Just timeStamp)])
