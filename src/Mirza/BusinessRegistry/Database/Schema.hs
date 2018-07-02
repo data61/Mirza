@@ -1,5 +1,3 @@
-{-# LANGUAGE TypeApplications #-}
-
 module Mirza.BusinessRegistry.Database.Schema
   ( module Current
     , migration
