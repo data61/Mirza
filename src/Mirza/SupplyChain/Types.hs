@@ -467,6 +467,7 @@ instance ToSchema HashedEvent
 -- constructors will be added.
 newtype AppError = AppError ServiceError deriving (Show)
 
+-- DELETEMEBR
 newtype Bit  = Bit  {unBit :: Int} deriving (Show, Eq, Read, Ord)
 newtype Byte = Byte {unByte :: Int} deriving (Show, Eq, Read, Ord)
 
@@ -485,7 +486,7 @@ data ServiceError
   | InvalidUserID         UserID
   | InvalidRSAKeyInDB     Text -- when the key already existing in the DB is wrong
   | InvalidRSAKey         PEM_RSAPubKey
-  | InvalidRSAKeySize     Expected Received
+  | InvalidRSAKeySize     Expected Received -- DELETEMEBR after split
   | InvalidDigest         Digest
   | KeyAlreadyRevoked
   | UnauthorisedKeyAccess

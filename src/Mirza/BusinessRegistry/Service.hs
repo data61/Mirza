@@ -42,10 +42,15 @@ import qualified Data.HashMap.Strict.InsOrd               as IOrd
 import           Data.Swagger
 
 
+-- All possible error types that could be thrown through the handlers.
+type PossibleErrors err
+  = (AsKeyError err
+    )
 
-appHandlers :: (BRApp context err, HasScryptParams context) => ServerT ServerAPI (AppM context err)
+
+appHandlers :: (BRApp context err, HasScryptParams context, PossibleErrors err)
+            => ServerT ServerAPI (AppM context err)
 appHandlers = publicServer :<|> privateServer
-
 
 publicServer :: (BRApp context err, HasScryptParams context) => ServerT PublicAPI (AppM context err)
 publicServer =
@@ -55,7 +60,8 @@ publicServer =
   :<|> listBusinesses
 
 
-privateServer :: (BRApp context err) => ServerT ProtectedAPI (AppM context err)
+privateServer :: (BRApp context err, PossibleErrors err)
+              => ServerT ProtectedAPI (AppM context err)
 privateServer =
 -- Business
        addPublicKey

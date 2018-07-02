@@ -190,6 +190,7 @@ data KeyT f = KeyT
   deriving Generic
 
 type KeyId = PrimaryKey KeyT Identity
+deriving instance Show (PrimaryKey KeyT Identity)
 
 instance Beamable KeyT
 instance Beamable (PrimaryKey KeyT)

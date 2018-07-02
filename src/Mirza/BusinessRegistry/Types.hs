@@ -27,6 +27,9 @@ import           Katip                                  as K
 import           Data.Aeson
 import           Data.Swagger
 import           Data.Text                              (Text)
+import           Data.Time                              (UTCTime)
+import           Data.UUID                              (UUID)
+
 
 import           GHC.Generics                           (Generic)
 import           Servant                                (FromHttpApiData (..))
@@ -52,35 +55,23 @@ instance HasKatipContext BRContext where
   katipContexts = brKatipLogContexts
   katipNamespace = brKatipNamespace
 
-
-data BusinessRegistryError
-  = DBError SqlError
-  | BusinessCreationError String
-  deriving (Show, Eq, Generic)
-
-$(makeClassyPrisms ''BusinessRegistryError)
-
-
-instance AsSqlError BusinessRegistryError where
-  _SqlError = _DBError
-
   -- Stubs for now...
-newtype KeyID = KeyID ()
-  deriving (Generic, ToJSON, FromJSON)
+newtype KeyID = KeyID UUID
+  deriving (Show, Eq, Generic, ToJSON, FromJSON)
 instance ToSchema KeyID
 instance ToParamSchema KeyID
 instance FromHttpApiData KeyID where
   parseUrlPiece t = fmap KeyID (parseUrlPiece t)
 
-newtype ExpirationTime = ExpirationTime ()
+newtype ExpirationTime = ExpirationTime {unExpirationTime :: UTCTime}
   deriving (Generic, ToJSON, FromJSON)
 instance ToSchema ExpirationTime
 instance ToParamSchema ExpirationTime
 instance FromHttpApiData ExpirationTime where
   parseUrlPiece t = fmap ExpirationTime (parseUrlPiece t)
 
-newtype PEM_RSAPubKey = PEM_RSAPubKey ()
-  deriving (Generic, ToJSON, FromJSON)
+newtype PEM_RSAPubKey = PEM_RSAPubKey Text
+  deriving (Eq, Show, Generic, ToJSON, FromJSON)
 instance ToSchema PEM_RSAPubKey
 instance ToParamSchema PEM_RSAPubKey
 instance FromHttpApiData PEM_RSAPubKey where
@@ -116,3 +107,34 @@ instance ToSchema AuthUser
 instance ToParamSchema AuthUser
 instance FromHttpApiData AuthUser where
   parseUrlPiece = notImplemented
+
+
+
+data BusinessRegistryError
+  = DBErrorBRE SqlError
+  | BusinessCreationErrorBRE String
+  | UserCreationErrorBRE String
+  | KeyErrorBRE KeyError
+  deriving (Show, Eq, Generic)
+
+
+newtype Bit  = Bit  {unBit :: Int} deriving (Show, Eq, Read, Ord)
+newtype Expected = Expected {unExpected :: Bit} deriving (Show, Eq, Read, Ord)
+newtype Received = Received {unReceived :: Bit} deriving (Show, Eq, Read, Ord)
+
+
+data KeyError
+  = InvalidRSAKey PEM_RSAPubKey
+  | InvalidRSAKeySize Expected Received
+  | PublicKeyInsertionError [KeyId]
+  deriving (Show, Eq)
+
+
+
+
+$(makeClassyPrisms ''BusinessRegistryError)
+$(makeClassyPrisms ''KeyError)
+
+
+instance AsSqlError BusinessRegistryError where  _SqlError = _DBErrorBRE
+instance AsKeyError BusinessRegistryError where _KeyError = _KeyErrorBRE
