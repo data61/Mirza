@@ -52,7 +52,8 @@ appHandlers :: (BRApp context err, HasScryptParams context, PossibleErrors err)
             => ServerT ServerAPI (AppM context err)
 appHandlers = publicServer :<|> privateServer
 
-publicServer :: (BRApp context err, HasScryptParams context) => ServerT PublicAPI (AppM context err)
+publicServer :: (BRApp context err, HasScryptParams context, PossibleErrors err)
+             => ServerT PublicAPI (AppM context err)
 publicServer =
   -- Business
        getPublicKey

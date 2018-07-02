@@ -32,11 +32,19 @@ import           OpenSSL.RSA                              (RSAPubKey, rsaSize)
 minPubKeySize :: Bit
 minPubKeySize = Bit 2048
 
-getPublicKey ::  BRApp context err => KeyID -> AppM context err PEM_RSAPubKey
-getPublicKey = notImplemented
+getPublicKey :: (BRApp context err, AsKeyError err) => KeyID -> AppM context err PEM_RSAPubKey
+getPublicKey kid = do
+  mpem <- runDb $ getPublicKeyQuery kid
+  maybe (throwing _KeyNotFound kid) pure mpem
 
+getPublicKeyQuery :: BRApp context err => KeyID -> DB context err (Maybe PEM_RSAPubKey)
+getPublicKeyQuery (KeyID uuid) = fmap (fmap PEM_RSAPubKey) $ pg $ runSelectReturningOne $
+  select $ do
+    keys <- all_ (_keys businessRegistryDB)
+    guard_ (primaryKey keys ==. val_ (KeyId uuid))
+    pure (pem_str keys)
 
-getPublicKeyInfo ::  BRApp context err => KeyID -> AppM context err BT.KeyInfo
+getPublicKeyInfo :: BRApp context err => KeyID -> AppM context err BT.KeyInfo
 getPublicKeyInfo = notImplemented
 
 
