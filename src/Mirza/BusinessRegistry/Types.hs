@@ -91,7 +91,13 @@ instance ToSchema BusinessResponse
 instance ToJSON BusinessResponse
 instance FromJSON BusinessResponse
 
-newtype KeyInfo = KeyInfo ()
+data KeyInfo = KeyInfo
+  { keyInfoUserId  :: UserID
+  , creationTime   :: CreationTime
+  , revocationTime :: Maybe RevocationTime
+  , keyState       :: KeyState
+  , expirationTime :: Maybe ExpirationTime
+  }
   deriving (Generic, ToJSON, FromJSON)
 instance ToSchema KeyInfo
 instance ToParamSchema KeyInfo
