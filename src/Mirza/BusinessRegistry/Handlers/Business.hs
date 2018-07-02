@@ -60,7 +60,7 @@ addBusinessQuery biz'@BusinessT{..} = do
   case res of
         [r] -> return r
         -- TODO: Have a proper error response
-        _   -> throwing _BusinessCreationError (show res)
+        _   -> throwing _BusinessCreationErrorBRE (show res)
   -- where
   --   errHandler :: (AsSqlError err, MonadError err m) => err -> m a
   --   errHandler e = case e ^? _DatabaseError of

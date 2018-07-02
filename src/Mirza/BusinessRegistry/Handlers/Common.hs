@@ -10,6 +10,6 @@ import           Mirza.Common.Types           (DBConstraint)
 
 
 type BRApp context err =
-  ( AsBusinessRegistryError err
+  ( AsBusinessRegistryError err -- TODO: Remove this
   , DBConstraint context err
   )
