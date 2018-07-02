@@ -10,6 +10,7 @@ module Mirza.BusinessRegistry.Main where
 import           Mirza.BusinessRegistry.API             (API, ServerAPI, api)
 import           Mirza.BusinessRegistry.Auth
 import           Mirza.BusinessRegistry.Database.Schema as Schema
+import           Mirza.BusinessRegistry.Interactive
 import           Mirza.BusinessRegistry.Service
 import           Mirza.BusinessRegistry.Types           as BT
 import           Mirza.Common.Types                     as CT
@@ -167,7 +168,7 @@ server ev =
 runMigration :: GlobalOptions -> IO ()
 runMigration opts = do
   ctx <- initBRContext opts
-  res <- Schema.runMigrationInteractive @BRContext @SqlError ctx
+  res <- runMigrationInteractive @BRContext @SqlError ctx
   print res
 
 
