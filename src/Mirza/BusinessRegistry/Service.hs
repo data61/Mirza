@@ -90,7 +90,7 @@ appMToHandler context act = do
 -- | Swagger spec for server API.
 serveSwaggerAPI :: Swagger
 serveSwaggerAPI = toSwagger serverAPI
-  & info.title   .~ "Supplychain Server API"
+  & info.title   .~ "Business Registry Server API"
   & info.version .~ "1.0"
   & info.description ?~ "This is an API that tests swagger integration"
   & info.license ?~ ("MIT" & url ?~ URL "https://opensource.org/licenses/MIT")
