@@ -19,7 +19,8 @@ import           Database.Beam                            as B
 import           Database.Beam.Backend.SQL.BeamExtensions
 
 import           Data.Text                                (pack, unpack)
-import           Data.Time.Clock                          (UTCTime)
+import           Data.Time.Clock                          (UTCTime,
+                                                           getCurrentTime)
 
 import           OpenSSL.EVP.PKey                         (SomePublicKey,
                                                            toPublicKey)
@@ -44,9 +45,32 @@ getPublicKeyQuery (KeyID uuid) = fmap (fmap PEM_RSAPubKey) $ pg $ runSelectRetur
     guard_ (primaryKey keys ==. val_ (KeyId uuid))
     pure (pem_str keys)
 
-getPublicKeyInfo :: BRApp context err => KeyID -> AppM context err BT.KeyInfo
-getPublicKeyInfo = notImplemented
+getPublicKeyInfo :: (BRApp context err, AsKeyError err) => KeyID -> AppM context err BT.KeyInfo
+getPublicKeyInfo kid = do
+  currTime <- liftIO getCurrentTime
+  mkey <- runDb $ getPublicKeyInfoQuery kid
+  maybe (throwing _KeyNotFound kid)
+    (\(KeyT keyId keyUserId pemStr creation revocation expiration ) ->
+      pure (KeyInfo (KeyID keyId) keyUserId
+                    (onLocalTime CreationTime creation)
+                    (onLocalTime RevocationTime <$> revocation)
+                    (getKeyState currTime
+                      (onLocalTime RevocationTime <$> revocation)
+                      (onLocalTime ExpirationTime <$> expiration)
+                    )
+                    (onLocalTime ExpirationTime <$> expiration)
+                    (PEM_RSAPubKey pemStr)
+            )
+    )
+    mkey
 
+
+getPublicKeyInfoQuery :: BRApp context err => KeyID -> DB context err (Maybe Key)
+getPublicKeyInfoQuery (KeyID uuid) = pg $ runSelectReturningOne $
+  select $ do
+    keys <- all_ (_keys businessRegistryDB)
+    guard_ (primaryKey keys ==. val_ (KeyId uuid))
+    pure keys
 
 addPublicKey :: (BRApp context err, AsKeyError err) => BT.AuthUser
              -> PEM_RSAPubKey
@@ -94,3 +118,22 @@ addPublicKeyQuery (AuthUser uid) expTime rsaPubKey = do
 
 revokePublicKey :: BRApp context err => BT.AuthUser -> KeyID -> AppM context err UTCTime
 revokePublicKey = notImplemented
+
+
+getKeyState :: UTCTime
+            -> Maybe RevocationTime
+            -> Maybe ExpirationTime
+            -> KeyState
+-- order of precedence - Revoked > Expired
+getKeyState currTime (Just (RevocationTime rTime)) (Just (ExpirationTime eTime))
+  | currTime > rTime = Revoked
+  | currTime > eTime = Expired
+  | otherwise        = InEffect
+getKeyState currTime Nothing (Just (ExpirationTime eTime))
+  | currTime > eTime = Expired
+  | otherwise        = InEffect
+getKeyState currTime (Just (RevocationTime rTime)) Nothing
+  | currTime > rTime = Revoked
+  | otherwise        = InEffect
+getKeyState _ Nothing Nothing = InEffect
+

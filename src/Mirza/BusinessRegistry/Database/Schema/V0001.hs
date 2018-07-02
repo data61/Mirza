@@ -27,6 +27,7 @@ import           Database.Beam.Migrate.Types
 import           Database.Beam.Postgres
 import           Database.Beam.Postgres.Syntax    (PgDataTypeSyntax)
 
+import           Data.Aeson
 import           Data.Swagger
 
 
@@ -127,6 +128,10 @@ type UserID = PrimaryKey UserT Identity
 deriving instance Show (PrimaryKey UserT Identity)
 instance ToSchema UserID
 instance ToParamSchema UserID
+instance ToJSON (PrimaryKey UserT Identity) where
+  toJSON (UserId uid) = toJSON uid
+instance FromJSON (PrimaryKey UserT Identity) where
+  parseJSON = fmap UserId . parseJSON
 
 instance Beamable UserT
 instance Beamable (PrimaryKey UserT)

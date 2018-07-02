@@ -25,6 +25,7 @@ import           Control.Lens.TH
 import           Katip                                  as K
 
 import           Data.Aeson
+import           Data.Aeson.TH
 import           Data.Swagger
 import           Data.Text                              (Text)
 import           Data.Time                              (UTCTime)
@@ -32,7 +33,8 @@ import           Data.UUID                              (UUID)
 
 
 import           GHC.Generics                           (Generic)
-import           Servant                                (FromHttpApiData (..))
+import           Servant                                (FromHttpApiData (..),
+                                                         ToHttpApiData (..))
 
 
 
@@ -63,13 +65,6 @@ instance ToParamSchema KeyID
 instance FromHttpApiData KeyID where
   parseUrlPiece t = fmap KeyID (parseUrlPiece t)
 
-newtype ExpirationTime = ExpirationTime {unExpirationTime :: UTCTime}
-  deriving (Generic, ToJSON, FromJSON)
-instance ToSchema ExpirationTime
-instance ToParamSchema ExpirationTime
-instance FromHttpApiData ExpirationTime where
-  parseUrlPiece t = fmap ExpirationTime (parseUrlPiece t)
-
 newtype PEM_RSAPubKey = PEM_RSAPubKey Text
   deriving (Eq, Show, Generic, ToJSON, FromJSON)
 instance ToSchema PEM_RSAPubKey
@@ -91,18 +86,53 @@ instance ToSchema BusinessResponse
 instance ToJSON BusinessResponse
 instance FromJSON BusinessResponse
 
+newtype CreationTime = CreationTime {unCreationTime :: UTCTime}
+  deriving (Show, Eq, Generic, Read, FromJSON, ToJSON)
+instance ToSchema CreationTime
+instance ToParamSchema CreationTime
+deriving instance FromHttpApiData CreationTime
+deriving instance ToHttpApiData CreationTime
+
+
+newtype RevocationTime = RevocationTime {unRevocationTime :: UTCTime}
+  deriving (Show, Eq, Generic, Read, FromJSON, ToJSON)
+instance ToSchema RevocationTime
+instance ToParamSchema RevocationTime
+deriving instance FromHttpApiData RevocationTime
+deriving instance ToHttpApiData RevocationTime
+
+
+newtype ExpirationTime = ExpirationTime {unExpirationTime :: UTCTime}
+  deriving (Show, Eq, Read, Generic, FromJSON, ToJSON)
+instance ToSchema ExpirationTime
+instance ToParamSchema ExpirationTime
+deriving instance FromHttpApiData ExpirationTime
+deriving instance ToHttpApiData ExpirationTime
+
+data KeyState
+  = InEffect -- Can be used
+  | Revoked -- Key passed the revocation time
+  | Expired -- Key passed the expiration time
+  deriving (Show, Eq, Read, Generic)
+$(deriveJSON defaultOptions ''KeyState)
+instance ToSchema KeyState
+instance ToParamSchema KeyState
+
 data KeyInfo = KeyInfo
-  { keyInfoUserId  :: UserID
+  { keyID          :: KeyID
+  , keyInfoUserId  :: UserID
   , creationTime   :: CreationTime
   , revocationTime :: Maybe RevocationTime
   , keyState       :: KeyState
   , expirationTime :: Maybe ExpirationTime
+  , keyPEMString   :: PEM_RSAPubKey
   }
-  deriving (Generic, ToJSON, FromJSON)
+  deriving (Generic)
+$(deriveJSON defaultOptions ''KeyInfo)
+
 instance ToSchema KeyInfo
-instance ToParamSchema KeyInfo
-instance FromHttpApiData KeyInfo where
-  parseUrlPiece t = fmap KeyInfo (parseUrlPiece t)
+
+
 
 
 newtype AuthUser = AuthUser {
