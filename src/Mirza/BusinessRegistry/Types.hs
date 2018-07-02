@@ -127,6 +127,7 @@ data KeyError
   = InvalidRSAKey PEM_RSAPubKey
   | InvalidRSAKeySize Expected Received
   | PublicKeyInsertionError [KeyId]
+  | KeyNotFound KeyID
   deriving (Show, Eq)
 
 
