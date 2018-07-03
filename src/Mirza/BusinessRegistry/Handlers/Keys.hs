@@ -28,7 +28,7 @@ import           OpenSSL.PEM                              (readPublicKey,
                                                            writePublicKey)
 import           OpenSSL.RSA                              (RSAPubKey, rsaSize)
 
-
+import           Control.Monad                            (unless, when)
 
 minPubKeySize :: Bit
 minPubKeySize = Bit 2048
@@ -50,19 +50,39 @@ getPublicKeyInfo kid = do
   currTime <- liftIO getCurrentTime
   mkey <- runDb $ getPublicKeyInfoQuery kid
   maybe (throwing _KeyNotFound kid)
-    (\(KeyT keyId keyUserId pemStr creation revocation expiration ) ->
-      pure (KeyInfoResponse (KeyID keyId) keyUserId
-                    (getKeyState currTime
-                      (onLocalTime RevocationTime <$> revocation)
-                      (onLocalTime ExpirationTime <$> expiration)
-                    )
-                    (onLocalTime CreationTime creation)
-                    (onLocalTime RevocationTime <$> revocation)
-                    (onLocalTime ExpirationTime <$> expiration)
-                    (PEM_RSAPubKey pemStr)
-            )
+        (pure . keyToKeyInfo currTime)
+        mkey
+
+keyToKeyInfo :: UTCTime -> Key -> KeyInfoResponse
+keyToKeyInfo currTime (KeyT keyId keyUserId pemStr creation revocation expiration ) =
+  (KeyInfoResponse (KeyID keyId) keyUserId
+    (getKeyState
+      (onLocalTime RevocationTime <$> revocation)
+      (onLocalTime ExpirationTime <$> expiration)
     )
-    mkey
+    (onLocalTime CreationTime creation)
+    (onLocalTime RevocationTime <$> revocation)
+    (onLocalTime ExpirationTime <$> expiration)
+    (PEM_RSAPubKey pemStr)
+  )
+  where
+    getKeyState :: Maybe RevocationTime
+                -> Maybe ExpirationTime
+                -> KeyState
+    -- order of precedence - Revoked > Expired
+    getKeyState (Just (RevocationTime rTime)) (Just (ExpirationTime eTime))
+      | currTime > rTime = Revoked
+      | currTime > eTime = Expired
+      | otherwise        = InEffect
+    getKeyState Nothing (Just (ExpirationTime eTime))
+      | currTime > eTime = Expired
+      | otherwise        = InEffect
+    getKeyState (Just (RevocationTime rTime)) Nothing
+      | currTime > rTime = Revoked
+      | otherwise        = InEffect
+    getKeyState Nothing Nothing = InEffect
+
+
 
 
 getPublicKeyInfoQuery :: BRApp context err => KeyID -> DB context err (Maybe Key)
@@ -116,24 +136,39 @@ addPublicKeyQuery (AuthUser uid) expTime rsaPubKey = do
 
 
 
-revokePublicKey :: BRApp context err => BT.AuthUser -> KeyID -> AppM context err UTCTime
-revokePublicKey = notImplemented
+revokePublicKey :: (BRApp context err, AsKeyError err) => BT.AuthUser -> KeyID -> AppM context err UTCTime
+revokePublicKey (AuthUser uId) keyId =
+    runDb $ revokePublicKeyQuery uId keyId
 
+isKeyRevoked :: (BRApp context err, AsKeyError err) => KeyID -> DB context err Bool
+isKeyRevoked kid = do
+  currTime <- liftIO getCurrentTime
+  mkeyInfo <- fmap (keyToKeyInfo currTime) <$> getPublicKeyInfoQuery kid
+  maybe (throwing _KeyNotFound kid)
+        (\ki -> pure $ keyState ki == Revoked)
+        mkeyInfo
 
-getKeyState :: UTCTime
-            -> Maybe RevocationTime
-            -> Maybe ExpirationTime
-            -> KeyState
--- order of precedence - Revoked > Expired
-getKeyState currTime (Just (RevocationTime rTime)) (Just (ExpirationTime eTime))
-  | currTime > rTime = Revoked
-  | currTime > eTime = Expired
-  | otherwise        = InEffect
-getKeyState currTime Nothing (Just (ExpirationTime eTime))
-  | currTime > eTime = Expired
-  | otherwise        = InEffect
-getKeyState currTime (Just (RevocationTime rTime)) Nothing
-  | currTime > rTime = Revoked
-  | otherwise        = InEffect
-getKeyState _ Nothing Nothing = InEffect
+revokePublicKeyQuery :: (BRApp context err, AsKeyError err)
+                     => UserID -> KeyID -> DB context err UTCTime
+revokePublicKeyQuery uId k@(KeyID keyId) = do
+  userOwnsKey <- doesUserOwnKey uId k
+  unless userOwnsKey $ throwing_ _UnauthorisedKeyAccess
+  keyRevoked <- isKeyRevoked k
+  when keyRevoked $ throwing_ _KeyAlreadyRevoked
+  timeStamp <- generateTimestamp
+  _r <- pg $ runUpdate $ update
+                (_keys businessRegistryDB)
+                (\key -> [revocation_time key <-. val_ (Just timeStamp)])
+                (\key -> key_id key ==. (val_ keyId))
+  return $ onLocalTime id timeStamp
 
+doesUserOwnKey :: AsKeyError err => UserID -> KeyID -> DB context err Bool
+doesUserOwnKey (UserId uId) (KeyID keyId) = do
+  r <- pg $ runSelectReturningList $ select $ do
+          key <- all_ (_keys businessRegistryDB)
+          guard_ (key_id key ==. val_ keyId)
+          guard_ (val_ (UserId uId) ==. (key_user_id key))
+          pure key
+  return $ case r of
+    [_key] -> True
+    _      -> False
