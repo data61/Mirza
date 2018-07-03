@@ -146,18 +146,19 @@ instance FromHttpApiData AuthUser where
 
 
 
+
+
+
+-- *****************************************************************************
+-- Error Types
+-- *****************************************************************************
+
 data BusinessRegistryError
   = DBErrorBRE SqlError
   | BusinessCreationErrorBRE String
   | UserCreationErrorBRE String
   | KeyErrorBRE KeyError
   deriving (Show, Eq, Generic)
-
-
-newtype Bit  = Bit  {unBit :: Int} deriving (Show, Eq, Read, Ord)
-newtype Expected = Expected {unExpected :: Bit} deriving (Show, Eq, Read, Ord)
-newtype Received = Received {unReceived :: Bit} deriving (Show, Eq, Read, Ord)
-
 
 data KeyError
   = InvalidRSAKey PEM_RSAPubKey
@@ -166,12 +167,14 @@ data KeyError
   | KeyNotFound KeyID
   deriving (Show, Eq)
 
+newtype Bit  = Bit  {unBit :: Int} deriving (Show, Eq, Read, Ord)
+newtype Expected = Expected {unExpected :: Bit} deriving (Show, Eq, Read, Ord)
+newtype Received = Received {unReceived :: Bit} deriving (Show, Eq, Read, Ord)
 
 
-
+-- Lens definitions for Error Types.
 $(makeClassyPrisms ''BusinessRegistryError)
 $(makeClassyPrisms ''KeyError)
 
-
-instance AsSqlError BusinessRegistryError where  _SqlError = _DBErrorBRE
+instance AsSqlError BusinessRegistryError where _SqlError = _DBErrorBRE
 instance AsKeyError BusinessRegistryError where _KeyError = _KeyErrorBRE
