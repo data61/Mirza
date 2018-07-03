@@ -38,6 +38,10 @@ import           Servant                                (FromHttpApiData (..),
 
 
 
+-- *****************************************************************************
+-- Context Types
+-- *****************************************************************************
+
 data BRContext = BRContext
   { _brEnvType          :: EnvType
   , _brDbConnPool       :: Pool Connection
@@ -57,21 +61,31 @@ instance HasKatipContext BRContext where
   katipContexts = brKatipLogContexts
   katipNamespace = brKatipNamespace
 
-  -- Stubs for now...
-newtype KeyID = KeyID UUID
-  deriving (Show, Eq, Generic, ToJSON, FromJSON)
-instance ToSchema KeyID
-instance ToParamSchema KeyID
-instance FromHttpApiData KeyID where
-  parseUrlPiece t = fmap KeyID (parseUrlPiece t)
 
-newtype PEM_RSAPubKey = PEM_RSAPubKey Text
-  deriving (Eq, Show, Generic, ToJSON, FromJSON)
-instance ToSchema PEM_RSAPubKey
-instance ToParamSchema PEM_RSAPubKey
-instance FromHttpApiData PEM_RSAPubKey where
-  parseUrlPiece t = fmap PEM_RSAPubKey (parseUrlPiece t)
 
+-- *****************************************************************************
+-- Service Responce Types
+-- *****************************************************************************
+
+-- Note: The definitions in this section are reverse order defined(more specific
+--       to more general rather then overview to more detail) because the
+--       template haskell used defines that they must be ordered in this way, so
+--       they are grouped by theme and commented as such, but the order within
+--       a section appears logically bottom to top, rather then the normal top
+--       to bottom.
+
+-- Auth User Types:
+newtype AuthUser = AuthUser {
+  userId        :: UserID
+  }
+  deriving (Generic)
+instance ToSchema AuthUser
+instance ToParamSchema AuthUser
+instance FromHttpApiData AuthUser where
+  parseUrlPiece = notImplemented
+
+
+-- Business Response Types:
 data BusinessResponse = BusinessResponse {
   bizID    :: EPC.GS1CompanyPrefix,
   bizName  :: Text,
@@ -85,6 +99,25 @@ data BusinessResponse = BusinessResponse {
 instance ToSchema BusinessResponse
 instance ToJSON BusinessResponse
 instance FromJSON BusinessResponse
+
+
+-- Key Response Types:
+newtype KeyID = KeyID UUID
+  deriving (Show, Eq, Generic, ToJSON, FromJSON)
+instance ToSchema KeyID
+instance ToParamSchema KeyID
+instance FromHttpApiData KeyID where
+  parseUrlPiece t = fmap KeyID (parseUrlPiece t)
+
+data KeyState
+  = InEffect -- Can be used
+  | Revoked -- Key passed the revocation time
+  | Expired -- Key passed the expiration time
+  deriving (Show, Eq, Read, Generic)
+$(deriveJSON defaultOptions ''KeyState)
+instance ToSchema KeyState
+instance ToParamSchema KeyState
+
 
 newtype CreationTime = CreationTime {unCreationTime :: UTCTime}
   deriving (Show, Eq, Generic, Read, FromJSON, ToJSON)
@@ -109,14 +142,14 @@ instance ToParamSchema ExpirationTime
 deriving instance FromHttpApiData ExpirationTime
 deriving instance ToHttpApiData ExpirationTime
 
-data KeyState
-  = InEffect -- Can be used
-  | Revoked -- Key passed the revocation time
-  | Expired -- Key passed the expiration time
-  deriving (Show, Eq, Read, Generic)
-$(deriveJSON defaultOptions ''KeyState)
-instance ToSchema KeyState
-instance ToParamSchema KeyState
+
+newtype PEM_RSAPubKey = PEM_RSAPubKey Text
+  deriving (Eq, Show, Generic, ToJSON, FromJSON)
+instance ToSchema PEM_RSAPubKey
+instance ToParamSchema PEM_RSAPubKey
+instance FromHttpApiData PEM_RSAPubKey where
+  parseUrlPiece t = fmap PEM_RSAPubKey (parseUrlPiece t)
+
 
 data KeyInfoResponse = KeyInfoResponse
   { keyID          :: KeyID
@@ -129,24 +162,7 @@ data KeyInfoResponse = KeyInfoResponse
   }
   deriving (Generic)
 $(deriveJSON defaultOptions ''KeyInfoResponse)
-
 instance ToSchema KeyInfoResponse
-
-
-
-
-newtype AuthUser = AuthUser {
-  userId        :: UserID
-  }
-  deriving (Generic)
-instance ToSchema AuthUser
-instance ToParamSchema AuthUser
-instance FromHttpApiData AuthUser where
-  parseUrlPiece = notImplemented
-
-
-
-
 
 
 -- *****************************************************************************
