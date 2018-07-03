@@ -45,13 +45,13 @@ getPublicKeyQuery (KeyID uuid) = fmap (fmap PEM_RSAPubKey) $ pg $ runSelectRetur
     guard_ (primaryKey keys ==. val_ (KeyId uuid))
     pure (pem_str keys)
 
-getPublicKeyInfo :: (BRApp context err, AsKeyError err) => KeyID -> AppM context err BT.KeyInfo
+getPublicKeyInfo :: (BRApp context err, AsKeyError err) => KeyID -> AppM context err BT.KeyInfoResponse
 getPublicKeyInfo kid = do
   currTime <- liftIO getCurrentTime
   mkey <- runDb $ getPublicKeyInfoQuery kid
   maybe (throwing _KeyNotFound kid)
     (\(KeyT keyId keyUserId pemStr creation revocation expiration ) ->
-      pure (KeyInfo (KeyID keyId) keyUserId
+      pure (KeyInfoResponse (KeyID keyId) keyUserId
                     (getKeyState currTime
                       (onLocalTime RevocationTime <$> revocation)
                       (onLocalTime ExpirationTime <$> expiration)

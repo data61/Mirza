@@ -118,7 +118,7 @@ $(deriveJSON defaultOptions ''KeyState)
 instance ToSchema KeyState
 instance ToParamSchema KeyState
 
-data KeyInfo = KeyInfo
+data KeyInfoResponse = KeyInfoResponse
   { keyID          :: KeyID
   , keyInfoUserId  :: UserID                -- TODO: There should be a forien key for Business in here....not sure that user is relevant...
   , keyState       :: KeyState
@@ -128,9 +128,9 @@ data KeyInfo = KeyInfo
   , keyPEMString   :: PEM_RSAPubKey
   }
   deriving (Generic)
-$(deriveJSON defaultOptions ''KeyInfo)
+$(deriveJSON defaultOptions ''KeyInfoResponse)
 
-instance ToSchema KeyInfo
+instance ToSchema KeyInfoResponse
 
 
 
