@@ -52,12 +52,12 @@ getPublicKeyInfo kid = do
   maybe (throwing _KeyNotFound kid)
     (\(KeyT keyId keyUserId pemStr creation revocation expiration ) ->
       pure (KeyInfo (KeyID keyId) keyUserId
-                    (onLocalTime CreationTime creation)
-                    (onLocalTime RevocationTime <$> revocation)
                     (getKeyState currTime
                       (onLocalTime RevocationTime <$> revocation)
                       (onLocalTime ExpirationTime <$> expiration)
                     )
+                    (onLocalTime CreationTime creation)
+                    (onLocalTime RevocationTime <$> revocation)
                     (onLocalTime ExpirationTime <$> expiration)
                     (PEM_RSAPubKey pemStr)
             )
