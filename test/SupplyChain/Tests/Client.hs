@@ -87,7 +87,7 @@ clientSpec =
 startWaiApp :: Wai.Application -> IO (ThreadId, BaseUrl)
 startWaiApp app = do
     (prt, sock) <- openTestSocket
-    let settings = setPort prt $ defaultSettings
+    let settings = setPort prt defaultSettings
     thread <- forkIO $ runSettingsSocket settings sock app
     return (thread, BaseUrl Http "localhost" prt "")
 

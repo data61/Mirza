@@ -13,7 +13,7 @@ import           Test.Tasty.Hspec           (around, testSpec)
 import           Test.Tasty.Runners         (NumThreads (..))
 
 import           SupplyChain.Tests.Client
-import           SupplyChain.Tests.Service
+import           SupplyChain.Tests.Service  (testServiceQueries)
 
 import           Control.Exception          (bracket)
 import           Data.Int
@@ -72,10 +72,10 @@ withDatabaseConnection = bracket openConnection closeConnection
 
 main :: IO ()
 main = do
-  hspecTests <- testSpec "HSpec" (sequential $ around withDatabaseConnection testQueries)
+  serviceTests <- testSpec "HSpec" (sequential $ around withDatabaseConnection testServiceQueries)
   clientTests <- testSpec "Client HSpec" clientSpec
 
   defaultMain $ localOption (NumThreads 1) $ testGroup "tests"
-    [ hspecTests
+    [ serviceTests
     , clientTests
     ]
