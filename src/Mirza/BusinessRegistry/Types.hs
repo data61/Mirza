@@ -120,10 +120,10 @@ instance ToParamSchema KeyState
 
 data KeyInfo = KeyInfo
   { keyID          :: KeyID
-  , keyInfoUserId  :: UserID
+  , keyInfoUserId  :: UserID                -- TODO: There should be a forien key for Business in here....not sure that user is relevant...
+  , keyState       :: KeyState
   , creationTime   :: CreationTime
   , revocationTime :: Maybe RevocationTime
-  , keyState       :: KeyState
   , expirationTime :: Maybe ExpirationTime
   , keyPEMString   :: PEM_RSAPubKey
   }

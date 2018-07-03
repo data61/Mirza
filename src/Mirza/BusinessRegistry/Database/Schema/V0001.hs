@@ -186,7 +186,7 @@ deriving instance Show Key
 
 data KeyT f = KeyT
   { key_id          :: C f PrimaryKeyType
-  , key_user_id     :: PrimaryKey UserT f
+  , key_user_id     :: PrimaryKey UserT f    -- TODO: We should record the business that is associated with the key...not sure if there is any need to store the user...
   , pem_str         :: C f Text
   , creation_time   :: C f LocalTime -- UTCTime
   , revocation_time :: C f (Maybe LocalTime) -- UTCTime
