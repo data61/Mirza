@@ -44,7 +44,7 @@ serverAPI = Proxy
 type PublicAPI =
   -- Business
          "key"      :> "get"                  :> Capture "keyID" KeyID                                          :> Get '[JSON] PEM_RSAPubKey
-    :<|> "key"      :> "getInfo"              :> Capture "keyID" KeyID                                          :> Get '[JSON] KeyInfo
+    :<|> "key"      :> "getInfo"              :> Capture "keyID" KeyID                                          :> Get '[JSON] KeyInfoResponse
     :<|> "business" :> "list"                                                                                   :> Get '[JSON] [BusinessResponse]
 
 
