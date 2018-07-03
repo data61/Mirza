@@ -181,6 +181,8 @@ data KeyError
   | InvalidRSAKeySize Expected Received
   | PublicKeyInsertionError [KeyId]
   | KeyNotFound KeyID
+  | UnauthorisedKeyAccess
+  | KeyAlreadyRevoked
   deriving (Show, Eq)
 
 newtype Bit  = Bit  {unBit :: Int} deriving (Show, Eq, Read, Ord)
