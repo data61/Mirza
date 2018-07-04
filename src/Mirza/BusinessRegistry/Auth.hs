@@ -62,7 +62,6 @@ basicAuthServerContext context = authCheck context :. EmptyContext
 -- authCheck :: SCSContext -> BasicAuthCheck ST.User
 authCheck :: (HasScryptParams context, DBConstraint context SqlError)
           => context -> BasicAuthCheck AuthUser
--- TODO: The following implementation is dummy only and needs to be correctly replaced before this is deployed.
 authCheck context =
   let check (BasicAuthData useremail pass) = do
         eitherUser <- runAppM @_ @SqlError context . runDb $
