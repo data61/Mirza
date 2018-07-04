@@ -18,44 +18,46 @@ library
                     , FlexibleContexts
                     , FlexibleInstances
   hs-source-dirs:     src
-  exposed-modules:    Mirza.BusinessRegistry.Main
+  exposed-modules:    Mirza.BusinessRegistry.API
+                    , Mirza.BusinessRegistry.Auth
+                    , Mirza.BusinessRegistry.Database.Schema
+                    , Mirza.BusinessRegistry.Database.Schema.V0001
+                    , Mirza.BusinessRegistry.Handlers.Business
+                    , Mirza.BusinessRegistry.Handlers.Common
+                    , Mirza.BusinessRegistry.Handlers.Keys
+                    , Mirza.BusinessRegistry.Interactive
+                    , Mirza.BusinessRegistry.Main
+                    , Mirza.BusinessRegistry.Service
                     , Mirza.BusinessRegistry.Types
                     , Mirza.Common.Beam
+                    , Mirza.Common.GS1BeamOrphans
                     , Mirza.Common.Types
                     , Mirza.Common.Utils
                     , Mirza.SupplyChain.API
                     , Mirza.SupplyChain.Auth
                     , Mirza.SupplyChain.Client.Servant
+                    , Mirza.SupplyChain.Handlers.Business
+                    , Mirza.SupplyChain.Handlers.Common
+                    , Mirza.SupplyChain.Handlers.Contacts
+                    , Mirza.SupplyChain.Handlers.EventRegistration
+                    , Mirza.SupplyChain.Handlers.Queries
+                    , Mirza.SupplyChain.Handlers.Signatures
+                    , Mirza.SupplyChain.Handlers.Users
                     , Mirza.SupplyChain.Main
                     , Mirza.SupplyChain.Migrate
                     , Mirza.SupplyChain.QueryUtils
                     , Mirza.SupplyChain.Service
                     , Mirza.SupplyChain.StorageBeam
                     , Mirza.SupplyChain.Types
-                    , Mirza.SupplyChain.Handlers.Common
-                    , Mirza.SupplyChain.Handlers.Contacts
-                    , Mirza.SupplyChain.Handlers.EventRegistration
-                    , Mirza.SupplyChain.Handlers.Business
-                    , Mirza.SupplyChain.Handlers.Queries
-                    , Mirza.SupplyChain.Handlers.Signatures
-                    , Mirza.SupplyChain.Handlers.Users
-                    , Mirza.BusinessRegistry.API
-                    , Mirza.BusinessRegistry.Auth
-                    , Mirza.BusinessRegistry.MigrateScript
-                    , Mirza.BusinessRegistry.StorageBeam
-                    , Mirza.BusinessRegistry.Service
-                    , Mirza.BusinessRegistry.Handlers.Business
-                    , Mirza.BusinessRegistry.Handlers.Common
 
-  other-modules:      Mirza.SupplyChain.MigrateUtils
-                    , Mirza.SupplyChain.MigrateScript
+
+  other-modules:      Mirza.SupplyChain.MigrateScript
                     , Mirza.SupplyChain.ErrorUtils
   build-depends:      base >= 4.7 && < 5
                     , GS1Combinators
                     , aeson
                     , base64-bytestring
                     , beam-core
-                    , beam-migrate
                     , beam-migrate
                     , beam-postgres
                     , binary

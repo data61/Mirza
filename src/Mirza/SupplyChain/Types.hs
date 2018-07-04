@@ -318,6 +318,7 @@ fromTransactEvent
 -- Signing and Hashing Types
 -- *****************************************************************************
 
+-- DELETEMEBR
 newtype CreationTime = CreationTime {unCreationTime :: UTCTime}
   deriving (Show, Eq, Generic, Read, FromJSON, ToJSON)
 instance ToSchema CreationTime
@@ -325,7 +326,7 @@ instance ToParamSchema CreationTime
 deriving instance FromHttpApiData CreationTime
 deriving instance ToHttpApiData CreationTime
 
-
+-- DELETEMEBR
 newtype RevocationTime = RevocationTime {unRevocationTime :: UTCTime}
   deriving (Show, Eq, Generic, Read, FromJSON, ToJSON)
 instance ToSchema RevocationTime
@@ -333,7 +334,7 @@ instance ToParamSchema RevocationTime
 deriving instance FromHttpApiData RevocationTime
 deriving instance ToHttpApiData RevocationTime
 
-
+-- DELETEMEBR
 newtype ExpirationTime = ExpirationTime {unExpirationTime :: UTCTime}
   deriving (Show, Eq, Read, Generic, FromJSON, ToJSON)
 instance ToSchema ExpirationTime
@@ -341,7 +342,7 @@ instance ToParamSchema ExpirationTime
 deriving instance FromHttpApiData ExpirationTime
 deriving instance ToHttpApiData ExpirationTime
 
-
+-- DELETEMEBR
 data KeyState
   = InEffect -- Can be used
   | Revoked -- Key passed the revocation time
@@ -462,6 +463,7 @@ instance ToSchema HashedEvent
 -- constructors will be added.
 newtype AppError = AppError ServiceError deriving (Show)
 
+-- DELETEMEBR
 newtype Bit  = Bit  {unBit :: Int} deriving (Show, Eq, Read, Ord)
 newtype Byte = Byte {unByte :: Int} deriving (Show, Eq, Read, Ord)
 
@@ -480,7 +482,7 @@ data ServiceError
   | InvalidUserID         UserID
   | InvalidRSAKeyInDB     Text -- when the key already existing in the DB is wrong
   | InvalidRSAKey         PEM_RSAPubKey
-  | InvalidRSAKeySize     Expected Received
+  | InvalidRSAKeySize     Expected Received -- DELETEMEBR after split
   | InvalidDigest         Digest
   | KeyAlreadyRevoked
   | UnauthorisedKeyAccess
