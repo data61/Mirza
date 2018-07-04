@@ -66,19 +66,20 @@ keyToKeyInfo currTime (KeyT keyId keyUserId pemStr creation revocation expiratio
     (PEM_RSAPubKey pemStr)
   )
   where
+    -- TODO: After migrating to JOSE, there should always be an expiration time.
     getKeyState :: Maybe RevocationTime
                 -> Maybe ExpirationTime
                 -> KeyState
     -- order of precedence - Revoked > Expired
     getKeyState (Just (RevocationTime rTime)) (Just (ExpirationTime eTime))
-      | currTime > rTime = Revoked
-      | currTime > eTime = Expired
+      | currTime >= rTime = Revoked
+      | currTime >= eTime = Expired
       | otherwise        = InEffect
     getKeyState Nothing (Just (ExpirationTime eTime))
-      | currTime > eTime = Expired
+      | currTime >= eTime = Expired
       | otherwise        = InEffect
     getKeyState (Just (RevocationTime rTime)) Nothing
-      | currTime > rTime = Revoked
+      | currTime >= rTime = Revoked
       | otherwise        = InEffect
     getKeyState Nothing Nothing = InEffect
 
@@ -140,8 +141,8 @@ revokePublicKey :: (BRApp context err, AsKeyError err) => BT.AuthUser -> KeyID -
 revokePublicKey (AuthUser uId) keyId =
     runDb $ revokePublicKeyQuery uId keyId
 
-isKeyRevoked :: (BRApp context err, AsKeyError err) => KeyID -> DB context err Bool
-isKeyRevoked kid = do
+isKeyRevokedQuery :: (BRApp context err, AsKeyError err) => KeyID -> DB context err Bool
+isKeyRevokedQuery kid = do
   currTime <- liftIO getCurrentTime
   mkeyInfo <- fmap (keyToKeyInfo currTime) <$> getPublicKeyInfoQuery kid
   maybe (throwing _KeyNotFound kid)
@@ -151,9 +152,9 @@ isKeyRevoked kid = do
 revokePublicKeyQuery :: (BRApp context err, AsKeyError err)
                      => UserID -> KeyID -> DB context err UTCTime
 revokePublicKeyQuery uId k@(KeyID keyId) = do
-  userOwnsKey <- doesUserOwnKey uId k
+  userOwnsKey <- doesUserOwnKeyQuery uId k
   unless userOwnsKey $ throwing_ _UnauthorisedKeyAccess
-  keyRevoked <- isKeyRevoked k
+  keyRevoked <- isKeyRevokedQuery k
   when keyRevoked $ throwing_ _KeyAlreadyRevoked
   timeStamp <- generateTimestamp
   _r <- pg $ runUpdate $ update
@@ -162,8 +163,8 @@ revokePublicKeyQuery uId k@(KeyID keyId) = do
                 (\key -> key_id key ==. (val_ keyId))
   return $ onLocalTime id timeStamp
 
-doesUserOwnKey :: AsKeyError err => UserID -> KeyID -> DB context err Bool
-doesUserOwnKey (UserId uId) (KeyID keyId) = do
+doesUserOwnKeyQuery :: AsKeyError err => UserID -> KeyID -> DB context err Bool
+doesUserOwnKeyQuery (UserId uId) (KeyID keyId) = do
   r <- pg $ runSelectReturningList $ select $ do
           key <- all_ (_keys businessRegistryDB)
           guard_ (key_id key ==. val_ keyId)
