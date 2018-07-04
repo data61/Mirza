@@ -1,4 +1,3 @@
-{-# LANGUAGE DeriveAnyClass        #-}
 {-# LANGUAGE DeriveGeneric         #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
@@ -7,11 +6,12 @@
 {-# LANGUAGE UndecidableInstances  #-}
 {-# OPTIONS_GHC -fno-warn-orphans  #-}
 
+-- | This module includes all of the orphaned instances for GS1 types for use with Beam.
 -- | This module contains the
 -- Database.Beam.BPostgres.Postgres.Syntax.BMigrate.DataType definitions
 -- At the moment, if Database.Beam.BPostgres.Postgres.Syntax is a hidden module
 -- So it is not possible to implement the types yet
-module Mirza.SupplyChain.MigrateUtils
+module Mirza.Common.GS1BeamOrphans
   ( LabelType(..)
   , labelType
   , LocationField(..)

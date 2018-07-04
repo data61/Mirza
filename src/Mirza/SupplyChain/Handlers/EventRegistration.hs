@@ -18,8 +18,8 @@ module Mirza.SupplyChain.Handlers.EventRegistration
 
 import           Mirza.SupplyChain.Handlers.Common
 
+import qualified Mirza.Common.GS1BeamOrphans       as MU
 import           Mirza.SupplyChain.ErrorUtils      (throwBackendError)
-import qualified Mirza.SupplyChain.MigrateUtils    as MU
 import qualified Mirza.SupplyChain.StorageBeam     as SB
 import           Mirza.SupplyChain.Types           hiding (Business (..),
                                                     User (..))
@@ -378,8 +378,8 @@ toStorageDWhen :: SB.WhenId
                -> SB.When
 toStorageDWhen (SB.WhenId pKey) (DWhen eventTime mRecordTime tZone) =
   SB.When pKey
-    (QU.toLocalTime eventTime)
-    (QU.toLocalTime <$> mRecordTime)
+    (QU.epcisTimeToLocalTime eventTime)
+    (QU.epcisTimeToLocalTime <$> mRecordTime)
     (T.pack . timeZoneOffsetString $ tZone)
 
 toStorageDWhy :: SB.WhyId -> DWhy -> SB.EventId -> SB.Why

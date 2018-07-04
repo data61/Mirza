@@ -4,16 +4,12 @@ packages:
 - location:
     # git: https://github.com/sajidanower23/beam.git
     git: https://github.com/tathougies/beam.git
-    commit: ba7c05a743d1924588a436d34c741a949adb2cdd
+    commit: 01bbb89c03b93daa2500877a511159df9d91002a # Head on 2018-07-02
   extra-dep: true
   subdirs:
     - beam-core
     - beam-migrate
     - beam-postgres
-- location:
-    git: https://github.com/qfpl/hs-hoist-error.git
-    commit: f1f7b181bcd6969a2f502823d329dc4f050b9a9e
-  extra-dep: true
 extra-deps:
 - git: git@github.csiro.au:Blockchain/GS1Combinators.git
   commit: a96c9fc1c14ddf7ef69756d7504feca9ff667c65
@@ -22,6 +18,7 @@ extra-deps:
 - hspec-core-2.5.0
 - hspec-discover-2.5.0
 - katip-0.5.5.0
+- hoist-error-0.2.1.0
 
 resolver: lts-11.6
 # allow-newer: true

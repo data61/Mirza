@@ -6,7 +6,6 @@
 {-# LANGUAGE OverloadedStrings     #-}
 {-# LANGUAGE PolyKinds             #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
-{-# LANGUAGE TypeApplications      #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
 {-# OPTIONS_GHC -fno-warn-orphans       #-}
@@ -20,15 +19,17 @@ module Mirza.BusinessRegistry.Service
   , privateServer
   , appMToHandler
   , serveSwaggerAPI
+  , module Handlers
  ) where
 
 import           Mirza.BusinessRegistry.API
-import           Mirza.SupplyChain.ErrorUtils             (appErrToHttpErr)
 
 import           Mirza.BusinessRegistry.Handlers.Business as Handlers
 import           Mirza.BusinessRegistry.Handlers.Common   as Handlers
+import           Mirza.BusinessRegistry.Handlers.Keys     as Keys
+import           Mirza.BusinessRegistry.Types
 import           Mirza.Common.Types
-import qualified Mirza.SupplyChain.Types                  as STXXX
+import           Mirza.Common.Utils
 
 import           Servant
 import           Servant.Swagger
@@ -41,23 +42,31 @@ import qualified Data.HashMap.Strict.InsOrd               as IOrd
 import           Data.Swagger
 
 
+-- All possible error types that could be thrown through the handlers.
+type PossibleErrors err
+  = (AsKeyError err
+    )
 
-appHandlers :: (BRApp context err, HasScryptParams context) => ServerT ServerAPI (AppM context err)
+
+appHandlers :: (BRApp context err, HasScryptParams context, PossibleErrors err)
+            => ServerT ServerAPI (AppM context err)
 appHandlers = publicServer :<|> privateServer
 
-publicServer :: (BRApp context err, HasScryptParams context) => ServerT PublicAPI (AppM context err)
+publicServer :: (BRApp context err, HasScryptParams context, PossibleErrors err)
+             => ServerT PublicAPI (AppM context err)
 publicServer =
   -- Business
        getPublicKey
   :<|> getPublicKeyInfo
   :<|> listBusinesses
 
-privateServer :: (BRApp context err) => ServerT ProtectedAPI (AppM context err)
+
+privateServer :: (BRApp context err, PossibleErrors err)
+              => ServerT ProtectedAPI (AppM context err)
 privateServer =
 -- Business
        addPublicKey
   :<|> revokePublicKey
-
 
 
 instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub) where
@@ -71,18 +80,18 @@ instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub
       & allOperations . security .~ securityRequirements
 
 
-
-appMToHandler :: forall x context. context -> AppM context STXXX.AppError x -> Handler x
+appMToHandler :: forall x context. context -> AppM context BusinessRegistryError x -> Handler x
 appMToHandler context act = do
   res <- liftIO $ runAppM context act
   case res of
-    Left (STXXX.AppError e) -> appErrToHttpErr e
-    Right a                 -> return a
+    Left _  -> notImplemented
+    Right a -> return a
+
 
 -- | Swagger spec for server API.
 serveSwaggerAPI :: Swagger
 serveSwaggerAPI = toSwagger serverAPI
-  & info.title   .~ "Supplychain Server API"
+  & info.title   .~ "Business Registry Server API"
   & info.version .~ "1.0"
   & info.description ?~ "This is an API that tests swagger integration"
   & info.license ?~ ("MIT" & url ?~ URL "https://opensource.org/licenses/MIT")
