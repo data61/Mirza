@@ -1,8 +1,10 @@
 module Mirza.BusinessRegistry.Database.Schema
   ( module Current
-    , migration
-    , businessRegistryDB
-    , checkedBusinessRegistryDB ) where
+  , migration
+  , businessRegistryDB
+  , checkedBusinessRegistryDB
+  , primaryKey
+  ) where
 
 -- import           Control.Arrow ((>>>))
 
@@ -11,7 +13,7 @@ import           Database.Beam.Migrate.Types                  hiding
                                                                (migrateScript)
 import           Database.Beam.Postgres                       (PgCommandSyntax,
                                                                Postgres)
-
+import           Database.Beam.Schema.Tables                  (primaryKey)
 
 import           Mirza.BusinessRegistry.Database.Schema.V0001 as Current hiding (migration)
 
