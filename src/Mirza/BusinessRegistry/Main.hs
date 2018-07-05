@@ -192,7 +192,7 @@ runUserCommand globals UserAdd = do
   either (print @BusinessRegistryError) print euser
 
 
-interactivlyGetUserT :: GlobalOptions -> IO (User)
+interactivlyGetUserT :: GlobalOptions -> IO User
 interactivlyGetUserT opts = do
   params <- createScryptParams opts
   user_id       <- newUUID
@@ -234,7 +234,7 @@ runBusinessCommand globals BusinessAdd = do
   either (print @BusinessRegistryError) print ebiz
 
 
-interactivlyGetBusinessT :: IO (Business)
+interactivlyGetBusinessT :: IO Business
 interactivlyGetBusinessT = do
   business_id <- newUUID
   biz_gs1_company_prefix <- GS1CompanyPrefix . pack <$>  prompt "GS1CompanyPrefix"
@@ -256,13 +256,36 @@ prompt message = putStrLn message *> getLine
 
 runPopulateDatabase :: GlobalOptions -> IO ()
 runPopulateDatabase globals = do
-  business <- dummyBusiness "1"
-  ctx <- initBRContext globals
-  ebiz <- runAppM ctx $ runDb (addBusinessQuery business)
-  either (print @BusinessRegistryError) print ebiz
+  ctx     <- initBRContext globals
+  biz1    <- dummyBusiness "1"
+  ebiz1    <- runAppM ctx $ runDb (addBusinessQuery biz1)
+  bizid1  <- f . fmap primaryKey $ ebiz1
+  user1A' <- dummyUser "A1" bizid1 globals
+  user1B' <- dummyUser "B1" bizid1 globals
+  eusers  <- runAppM ctx $ runDb (mapM addUserQuery [user1A', user1B'])
+  users1@[user1A, user1B] <- f . fmap (map primaryKey) $ eusers
+
+  biz2    <- dummyBusiness "2"
+  ebiz2    <- runAppM ctx $ runDb (addBusinessQuery biz2)
+  bizid2  <- f . fmap primaryKey $ ebiz2
+  user2A' <- dummyUser "A2" bizid2 globals
+  user2B' <- dummyUser "B2" bizid2 globals
+  eusers  <- runAppM ctx $ runDb (mapM addUserQuery [user2A', user2B'])
+  users2@[user2A, user2B] <- f . fmap (map primaryKey) $ eusers
+
+  print biz1
+  print user1A'
+  print user1B'
+
+  print biz2
+  print user2A'
+  print user2B'
+
+  where f :: Either BusinessRegistryError a -> IO a
+        f = either (error . show) pure
 
 
-dummyBusiness :: Text -> IO (Business)
+dummyBusiness :: Text -> IO Business
 dummyBusiness unique = do
   business_id <- newUUID
   let biz_gs1_company_prefix = GS1CompanyPrefix ("Business" <> unique <> "Prefix")
@@ -275,7 +298,7 @@ dummyBusiness unique = do
   return BusinessT{..}
 
 
-dummyUser :: Text -> PrimaryKey BusinessT Identity -> GlobalOptions -> IO (User)
+dummyUser :: Text -> BizId -> GlobalOptions -> IO User
 dummyUser unique business_uid opts = do
   params <- createScryptParams opts
   user_id       <- newUUID
@@ -284,9 +307,9 @@ dummyUser unique business_uid opts = do
   let last_name     = "User" <> unique <> "LastName"
   let phone_number  = "User" <> unique <> "PhoneNumber"
   let raw_password  = "User" <> unique <> "Password"
-  let email_address = "User" <> unique <> "EmailAddress"
+  let email_address = unique <> "@example.com"
   Scrypt.EncryptedPass password_hash
-                <- Scrypt.encryptPassIO params (Scrypt.Pass $ encodeUtf8 raw_password)
+      <- Scrypt.encryptPassIO params (Scrypt.Pass $ encodeUtf8 raw_password)
   return UserT{..}
 
 
@@ -298,7 +321,7 @@ dummyUser unique business_uid opts = do
 -- TODO: Remove this stub before release.
 debugFunc :: IO()
 debugFunc = do
-  putStrLn ("Running Debug Option")
+  putStrLn "Running Debug Option"
   -- Debug test code goes here...
 
 
