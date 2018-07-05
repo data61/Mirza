@@ -28,8 +28,9 @@ import           Network.Wai                            (Middleware)
 import qualified Network.Wai.Handler.Warp               as Warp
 
 import           Data.ByteString                        (ByteString)
+import           Data.Functor.Identity                  (Identity)
 import           Data.Semigroup                         ((<>))
-import           Data.Text                              (pack)
+import           Data.Text                              (Text, pack)
 import           Data.Text.Encoding                     (encodeUtf8)
 import           Options.Applicative                    hiding (action)
 
@@ -67,6 +68,7 @@ data ExecMode
   | InitDb
   | UserAction UserCommand
   | BusinessAction BusinessCommand
+  | PopulateDatabase
 
 data GlobalOptions = GlobalOptions
   { goDbConnStr    :: ByteString
@@ -110,6 +112,7 @@ multiplexGlobalOptions (ServerOptions globals mode) = case mode of
   InitDb            -> runMigration globals
   UserAction uc     -> runUserCommand globals uc
   BusinessAction bc -> runBusinessCommand globals bc
+  PopulateDatabase  -> runPopulateDatabase globals -- TODO: This option should be removed....this is for testing and debugging only.
 
 
 --------------------------------------------------------------------------------
@@ -248,6 +251,46 @@ prompt message = putStrLn message *> getLine
 
 
 --------------------------------------------------------------------------------
+-- Populate Database Command : TODO: This is for testing and debugging only and should be removed.
+--------------------------------------------------------------------------------
+
+runPopulateDatabase :: GlobalOptions -> IO ()
+runPopulateDatabase globals = do
+  business <- dummyBusiness "1"
+  ctx <- initBRContext globals
+  ebiz <- runAppM ctx $ runDb (addBusinessQuery business)
+  either (print @BusinessRegistryError) print ebiz
+
+
+dummyBusiness :: Text -> IO (Business)
+dummyBusiness unique = do
+  business_id <- newUUID
+  let biz_gs1_company_prefix = GS1CompanyPrefix ("Business" <> unique <> "Prefix")
+  let biz_name               = "Business" <> unique <> "Name"
+  let biz_function           = "Business" <> unique <> "Function"
+  let biz_site_name          = "Business" <> unique <> "Site"
+  let biz_address            = "Business" <> unique <> "Address"
+  let biz_lat                = 5
+  let biz_long               = 7
+  return BusinessT{..}
+
+
+dummyUser :: Text -> PrimaryKey BusinessT Identity -> GlobalOptions -> IO (User)
+dummyUser unique business_uid opts = do
+  params <- createScryptParams opts
+  user_id       <- newUUID
+  let user_biz_id   = business_uid
+  let first_name    = "User" <> unique <> "FirstName"
+  let last_name     = "User" <> unique <> "LastName"
+  let phone_number  = "User" <> unique <> "PhoneNumber"
+  let raw_password  = "User" <> unique <> "Password"
+  let email_address = "User" <> unique <> "EmailAddress"
+  Scrypt.EncryptedPass password_hash
+                <- Scrypt.encryptPassIO params (Scrypt.Pass $ encodeUtf8 raw_password)
+  return UserT{..}
+
+
+--------------------------------------------------------------------------------
 -- Debug Command
 --------------------------------------------------------------------------------
 
@@ -278,6 +321,7 @@ serverOptions = ServerOptions
           , standardCommand "initdb"   initDb "Initialise the Database"
           , standardCommand "user"     userCommand "Interactively add new users"
           , standardCommand "business" businessCommand "Operations on businesses"
+          , standardCommand "populate" populateDb "Populate the database with dummy test data"
           ]
         )
 
@@ -343,6 +387,9 @@ globalOptions = GlobalOptions
 initDb :: Parser ExecMode
 initDb = pure InitDb
 
+
+populateDb :: Parser ExecMode
+populateDb = pure PopulateDatabase
 
 userCommand :: Parser ExecMode
 userCommand = UserAction <$> userCommands
