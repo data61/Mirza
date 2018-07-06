@@ -68,7 +68,7 @@ data ExecMode
   | InitDb
   | UserAction UserCommand
   | BusinessAction BusinessCommand
-  | PopulateDatabase
+  | PopulateDatabase  -- TODO: This option should be removed....this is for testing and debugging only.
 
 data GlobalOptions = GlobalOptions
   { goDbConnStr    :: ByteString
@@ -112,7 +112,7 @@ multiplexGlobalOptions (ServerOptions globals mode) = case mode of
   InitDb            -> runMigration globals
   UserAction uc     -> runUserCommand globals uc
   BusinessAction bc -> runBusinessCommand globals bc
-  PopulateDatabase  -> runPopulateDatabase globals -- TODO: This option should be removed....this is for testing and debugging only.
+  PopulateDatabase  -> runPopulateDatabase globals
 
 
 --------------------------------------------------------------------------------
