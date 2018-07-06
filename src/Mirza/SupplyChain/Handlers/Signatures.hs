@@ -9,7 +9,7 @@ module Mirza.SupplyChain.Handlers.Signatures
 
 
 
-
+import           Mirza.Common.Utils
 import           Mirza.SupplyChain.Handlers.Common
 import           Mirza.SupplyChain.Handlers.EventRegistration (hasUserCreatedEvent,
                                                                insertUserEvent)
@@ -128,8 +128,8 @@ insertSignature
      -> DB environmentUnused err SB.PrimaryKeyType
 
 insertSignature eId kId (Signature sig) digest = do
-  sigId <- QU.generatePk
-  timestamp <- QU.generateTimeStamp
+  sigId <- newUUID
+  timestamp <- generateTimestamp
   r <- pg $ runInsertReturningList (SB._signatures SB.supplyChainDb) $
         insertValues
         [(SB.Signature sigId) (SB.EventId $ EvId.unEventId eId)
