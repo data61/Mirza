@@ -22,7 +22,7 @@ import           Database.Beam.Postgres.Syntax          (fromPgCommand,
                                                          pgRenderSyntaxScript)
 
 
-
+-- Note: Migrations are currently broken, this function can only be used to initalise the database from scratch.
 -- TODO: Use autoMigrate if possible and confirm with the user whether to do dangerous migrations explicitly
 -- TODO: Move this into Mirza.Common.Beam
 runMigrationInteractive ::
