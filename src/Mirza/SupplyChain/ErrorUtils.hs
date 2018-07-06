@@ -120,7 +120,7 @@ throwParseError = throwing _ParseError
 parseFailureToErrorMsg :: ParseFailure -> LBSC8.ByteString
 -- TODO: Include XML Snippet in the error
 parseFailureToErrorMsg e = case e of
-  InvalidLength -> "The length of one of your URN's is not correct"
+  InvalidLength -> "The length of one of your URNs is not correct"
   InvalidFormat -> "Incorrectly formatted XML. Possible Causes: Some components \
                    \of the URN missing,Incorrectly structured, Wrong payload"
   InvalidAction -> "Could not parse the Action provided"

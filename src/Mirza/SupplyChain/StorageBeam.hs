@@ -426,6 +426,30 @@ instance Table UserEventT where
     deriving Generic
   primaryKey = UserEventId . user_events_id
 
+
+data SignatureT f = Signature
+  { signature_id         :: C f PrimaryKeyType
+  , signature_event_id   :: PrimaryKey EventT f
+  , signature_key_id     :: PrimaryKey KeyT f
+  , signature_signature  :: C f ByteString
+  , signature_digest     :: C f ByteString
+  , signature_timestamp  :: C f LocalTime -- UTCTime
+  }
+  deriving Generic
+
+type Signature = SignatureT Identity
+type SignatureId = PrimaryKey SignatureT Identity
+deriving instance Show (PrimaryKey SignatureT Identity)
+--deriving instance Show Signature
+instance Beamable SignatureT
+instance Beamable (PrimaryKey SignatureT)
+
+instance Table SignatureT where
+  data PrimaryKey SignatureT f = SignatureId (C f PrimaryKeyType)
+    deriving Generic
+  primaryKey = SignatureId . signature_id
+
+
 {-
     hashTable   =  "CREATE TABLE IF NOT EXISTS Hashes (id INTEGER PRIMARY KEY AUTOINCREMENT, eventID INTEGER NOT NULL, hash BLOB NOT NULL, isSigned INTEGER DEFAULT 0, signedByUserID INTEGER, keyID INTEGER DEFAULT -1,timestamp INTEGER NOT NULL);"
 
@@ -476,6 +500,9 @@ instance Table BlockChainT where
     deriving Generic
   primaryKey = BlockChainId . blockchain_id
 
+
+
+
 data SupplyChainDb f = SupplyChainDb
   { _users            :: f (TableEntity UserT)
   , _keys             :: f (TableEntity KeyT)
@@ -494,6 +521,7 @@ data SupplyChainDb f = SupplyChainDb
   , _whens            :: f (TableEntity WhenT)
   , _label_events     :: f (TableEntity LabelEventT)
   , _user_events      :: f (TableEntity UserEventT)
+  , _signatures       :: f (TableEntity SignatureT)
   , _hashes           :: f (TableEntity HashesT)
   , _blockchain       :: f (TableEntity BlockChainT)
   }
@@ -601,6 +629,12 @@ supplyChainDb = defaultDbSettings
           user_events_event_id = EventId (fieldNamed "user_events_event_id")
         , user_events_user_id = UserId (fieldNamed "user_events_user_id")
         , user_events_owner = UserId (fieldNamed "user_events_added_by")
+        }
+    , _signatures =
+        modifyTable (const "signature") $
+        tableModification {
+          signature_event_id = EventId (fieldNamed "signature_event_id")
+        , signature_key_id = KeyId (fieldNamed "signature_key_id")
         }
     , _hashes =
         modifyTable (const "hashes") $
