@@ -28,8 +28,9 @@ import           Network.Wai                            (Middleware)
 import qualified Network.Wai.Handler.Warp               as Warp
 
 import           Data.ByteString                        (ByteString)
+import           Data.Functor.Identity                  (Identity)
 import           Data.Semigroup                         ((<>))
-import           Data.Text                              (pack)
+import           Data.Text                              (Text, pack)
 import           Data.Text.Encoding                     (encodeUtf8)
 import           Options.Applicative                    hiding (action)
 
@@ -67,6 +68,7 @@ data ExecMode
   | InitDb
   | UserAction UserCommand
   | BusinessAction BusinessCommand
+  | PopulateDatabase  -- TODO: This option should be removed....this is for testing and debugging only.
 
 data GlobalOptions = GlobalOptions
   { goDbConnStr    :: ByteString
@@ -110,6 +112,7 @@ multiplexGlobalOptions (ServerOptions globals mode) = case mode of
   InitDb            -> runMigration globals
   UserAction uc     -> runUserCommand globals uc
   BusinessAction bc -> runBusinessCommand globals bc
+  PopulateDatabase  -> runPopulateDatabase globals
 
 
 --------------------------------------------------------------------------------
@@ -189,7 +192,7 @@ runUserCommand globals UserAdd = do
   either (print @BusinessRegistryError) print euser
 
 
-interactivlyGetUserT :: GlobalOptions -> IO (User)
+interactivlyGetUserT :: GlobalOptions -> IO User
 interactivlyGetUserT opts = do
   params <- createScryptParams opts
   user_id       <- newUUID
@@ -231,7 +234,7 @@ runBusinessCommand globals BusinessAdd = do
   either (print @BusinessRegistryError) print ebiz
 
 
-interactivlyGetBusinessT :: IO (Business)
+interactivlyGetBusinessT :: IO Business
 interactivlyGetBusinessT = do
   business_id <- newUUID
   biz_gs1_company_prefix <- GS1CompanyPrefix . pack <$>  prompt "GS1CompanyPrefix"
@@ -248,6 +251,69 @@ prompt message = putStrLn message *> getLine
 
 
 --------------------------------------------------------------------------------
+-- Populate Database Command : TODO: This is for testing and debugging only and should be removed.
+--------------------------------------------------------------------------------
+
+runPopulateDatabase :: GlobalOptions -> IO ()
+runPopulateDatabase globals = do
+  ctx     <- initBRContext globals
+  biz1    <- dummyBusiness "1"
+  ebiz1    <- runAppM ctx $ runDb (addBusinessQuery biz1)
+  bizid1  <- f . fmap primaryKey $ ebiz1
+  user1A' <- dummyUser "A1" bizid1 globals
+  user1B' <- dummyUser "B1" bizid1 globals
+  eusers  <- runAppM @_ @BusinessRegistryError ctx $
+              runDb (mapM addUserQuery [user1A', user1B'])
+
+  biz2    <- dummyBusiness "2"
+  ebiz2    <- runAppM ctx $ runDb (addBusinessQuery biz2)
+  bizid2  <- f . fmap primaryKey $ ebiz2
+  user2A' <- dummyUser "A2" bizid2 globals
+  user2B' <- dummyUser "B2" bizid2 globals
+  eusers  <- runAppM @_ @BusinessRegistryError ctx $
+              runDb (mapM addUserQuery [user2A', user2B'])
+
+  print biz1
+  print user1A'
+  print user1B'
+
+  print biz2
+  print user2A'
+  print user2B'
+
+  where f :: Either BusinessRegistryError a -> IO a
+        f = either (error . show) pure
+
+
+dummyBusiness :: Text -> IO Business
+dummyBusiness unique = do
+  business_id <- newUUID
+  let biz_gs1_company_prefix = GS1CompanyPrefix ("Business" <> unique <> "Prefix")
+  let biz_name               = "Business" <> unique <> "Name"
+  let biz_function           = "Business" <> unique <> "Function"
+  let biz_site_name          = "Business" <> unique <> "Site"
+  let biz_address            = "Business" <> unique <> "Address"
+  let biz_lat                = 5
+  let biz_long               = 7
+  return BusinessT{..}
+
+
+dummyUser :: Text -> BizId -> GlobalOptions -> IO User
+dummyUser unique business_uid opts = do
+  params <- createScryptParams opts
+  user_id       <- newUUID
+  let user_biz_id   = business_uid
+  let first_name    = "User" <> unique <> "FirstName"
+  let last_name     = "User" <> unique <> "LastName"
+  let phone_number  = "User" <> unique <> "PhoneNumber"
+  let raw_password  = "User" <> unique <> "Password"
+  let email_address = unique <> "@example.com"
+  Scrypt.EncryptedPass password_hash
+      <- Scrypt.encryptPassIO params (Scrypt.Pass $ encodeUtf8 raw_password)
+  return UserT{..}
+
+
+--------------------------------------------------------------------------------
 -- Debug Command
 --------------------------------------------------------------------------------
 
@@ -255,7 +321,7 @@ prompt message = putStrLn message *> getLine
 -- TODO: Remove this stub before release.
 debugFunc :: IO()
 debugFunc = do
-  putStrLn ("Running Debug Option")
+  putStrLn "Running Debug Option"
   -- Debug test code goes here...
 
 
@@ -275,9 +341,12 @@ serverOptions = ServerOptions
   <*> subparser
         ( mconcat
           [ standardCommand "server"   runServer "Run HTTP server"
-          , standardCommand "initdb"   initDb "Initialise the Database"
+          , standardCommand "initdb"   initDb "Initialise the Database (Note: This command only works if the database \
+                                              \is empty and can't be used for migrations or if the database already \
+                                              \contains the schema."
           , standardCommand "user"     userCommand "Interactively add new users"
           , standardCommand "business" businessCommand "Operations on businesses"
+          , standardCommand "populate" populateDb "Populate the database with dummy test data"
           ]
         )
 
@@ -339,10 +408,13 @@ globalOptions = GlobalOptions
       )
 
 
--- TODO: Add flag to confirm change to database
+-- TODO: Add flag to change from interactive confirmation to instead be automatic operation (so this command can be used from scripts or whatnot) (e.g. runIfSafe) .
 initDb :: Parser ExecMode
 initDb = pure InitDb
 
+
+populateDb :: Parser ExecMode
+populateDb = pure PopulateDatabase
 
 userCommand :: Parser ExecMode
 userCommand = UserAction <$> userCommands
