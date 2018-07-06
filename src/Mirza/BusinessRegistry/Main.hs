@@ -262,16 +262,16 @@ runPopulateDatabase globals = do
   bizid1  <- f . fmap primaryKey $ ebiz1
   user1A' <- dummyUser "A1" bizid1 globals
   user1B' <- dummyUser "B1" bizid1 globals
-  eusers  <- runAppM ctx $ runDb (mapM addUserQuery [user1A', user1B'])
-  users1@[user1A, user1B] <- f . fmap (map primaryKey) $ eusers
+  eusers  <- runAppM @_ @BusinessRegistryError ctx $
+              runDb (mapM addUserQuery [user1A', user1B'])
 
   biz2    <- dummyBusiness "2"
   ebiz2    <- runAppM ctx $ runDb (addBusinessQuery biz2)
   bizid2  <- f . fmap primaryKey $ ebiz2
   user2A' <- dummyUser "A2" bizid2 globals
   user2B' <- dummyUser "B2" bizid2 globals
-  eusers  <- runAppM ctx $ runDb (mapM addUserQuery [user2A', user2B'])
-  users2@[user2A, user2B] <- f . fmap (map primaryKey) $ eusers
+  eusers  <- runAppM @_ @BusinessRegistryError ctx $
+              runDb (mapM addUserQuery [user2A', user2B'])
 
   print biz1
   print user1A'
@@ -341,9 +341,9 @@ serverOptions = ServerOptions
   <*> subparser
         ( mconcat
           [ standardCommand "server"   runServer "Run HTTP server"
-          , standardCommand "initdb"   initDb "Initialise the Database (Note: This command only works if the database\
-                                              \ is empty and can't be used for migrations or if the data already\
-                                              \ contains the schema."
+          , standardCommand "initdb"   initDb "Initialise the Database (Note: This command only works if the database \
+                                              \is empty and can't be used for migrations or if the database already \
+                                              \contains the schema."
           , standardCommand "user"     userCommand "Interactively add new users"
           , standardCommand "business" businessCommand "Operations on businesses"
           , standardCommand "populate" populateDb "Populate the database with dummy test data"
