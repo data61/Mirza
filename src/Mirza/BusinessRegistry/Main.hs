@@ -341,7 +341,9 @@ serverOptions = ServerOptions
   <*> subparser
         ( mconcat
           [ standardCommand "server"   runServer "Run HTTP server"
-          , standardCommand "initdb"   initDb "Initialise the Database"
+          , standardCommand "initdb"   initDb "Initialise the Database (Note: This command only works if the database\
+                                              \ is empty and can't be used for migrations or if the data already\
+                                              \ contains the schema."
           , standardCommand "user"     userCommand "Interactively add new users"
           , standardCommand "business" businessCommand "Operations on businesses"
           , standardCommand "populate" populateDb "Populate the database with dummy test data"
@@ -406,7 +408,7 @@ globalOptions = GlobalOptions
       )
 
 
--- TODO: Add flag to confirm change to database
+-- TODO: Add flag to change from interactive confirmation to instead be automatic operation (so this command can be used from scripts or whatnot) (e.g. runIfSafe) .
 initDb :: Parser ExecMode
 initDb = pure InitDb
 
