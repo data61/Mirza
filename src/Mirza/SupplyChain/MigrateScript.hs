@@ -182,6 +182,16 @@ migrationStorage =
           (UserId (field "user_events_added_by" pkSerialType notNull))
           (field "user_events_signedHash" (maybeType bytea))
     )
+    <*> createTable "signatures"
+    (
+     Signature
+          (field "signature_id" pkSerialType)
+          (EventId (field "signature_event_id" pkSerialType notNull))
+          (KeyId (field "signature_key_id" pkSerialType notNull))
+          (field "signature_signature" bytea notNull)
+          (field "signature_digest" bytea notNull)
+          (field "signature_timestamp" timestamptz notNull)
+    )
     <*> createTable "hashes"
     (
       Hashes
