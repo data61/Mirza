@@ -20,7 +20,7 @@ extra-deps:
 - katip-0.5.5.0
 - hoist-error-0.2.1.0
 
-resolver: lts-11.6
+resolver: lts-12.0
 # allow-newer: true
 ghc-options:
   $locals: -Wall
