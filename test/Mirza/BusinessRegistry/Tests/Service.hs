@@ -5,12 +5,12 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications    #-}
 
-module Mirza.SupplyChain.Tests.Service
+module Mirza.BusinessRegistry.Tests.Service
   ( testServiceQueries
   ) where
 
-import           Mirza.SupplyChain.Tests.Dummies
-import           Mirza.SupplyChain.Tests.Settings
+import           Mirza.BusinessRegistry.Tests.Dummies
+import           Mirza.BusinessRegistry.Tests.Settings
 
 -- import qualified Data.GS1.EventId                             as EvId
 

@@ -1,35 +1,36 @@
-module Mirza.SupplyChain.Tests.Client where
+module Mirza.BusinessRegistry.Tests.Client where
 
-import           Mirza.SupplyChain.Tests.Settings
+import           Mirza.BusinessRegistry.Tests.Settings
 
-import           Control.Concurrent               (ThreadId, forkIO, killThread)
-import           System.IO.Unsafe                 (unsafePerformIO)
+import           Control.Concurrent                    (ThreadId, forkIO,
+                                                        killThread)
+import           System.IO.Unsafe                      (unsafePerformIO)
 
-import qualified Network.HTTP.Client              as C
+import qualified Network.HTTP.Client                   as C
 import           Network.Socket
-import qualified Network.Wai                      as Wai
+import qualified Network.Wai                           as Wai
 import           Network.Wai.Handler.Warp
 
 import           Servant.API.BasicAuth
 import           Servant.Client
 
 import           Data.Bifunctor
-import           Data.Either                      (isLeft, isRight)
-import           Data.Text.Encoding               (encodeUtf8)
+import           Data.Either                           (isLeft, isRight)
+import           Data.Text.Encoding                    (encodeUtf8)
 
 import           Test.Tasty.Hspec
 
-import           Mirza.SupplyChain.Main           (ServerOptions (..),
-                                                   initApplication,
-                                                   initSCSContext)
+import           Mirza.SupplyChain.Main                (ServerOptions (..),
+                                                        initApplication,
+                                                        initSCSContext)
 import           Mirza.SupplyChain.Types
 
-import           Data.GS1.EPC                     (GS1CompanyPrefix (..))
+import           Data.GS1.EPC                          (GS1CompanyPrefix (..))
 
 import           Mirza.SupplyChain.Client.Servant
 
-import           Katip                            (Severity (DebugS))
-import           Mirza.SupplyChain.Tests.Dummies
+import           Katip                                 (Severity (DebugS))
+import           Mirza.BusinessRegistry.Tests.Dummies
 
 -- Cribbed from https://github.com/haskell-servant/servant/blob/master/servant-client/test/Servant/ClientSpec.hs
 
