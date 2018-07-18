@@ -1,7 +1,7 @@
 
 module Main where
 
-import           SupplyChain.Tests.Common
+import           SupplyChain.Tests.Settings
 
 import           Mirza.SupplyChain.Main     hiding (main)
 import           Mirza.SupplyChain.Migrate

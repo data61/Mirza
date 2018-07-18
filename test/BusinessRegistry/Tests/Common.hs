@@ -1,4 +1,4 @@
-module SupplyChain.Tests.Common where
+module SupplyChain.Tests.Settings where
 -- Note: This is probably a bad name for this module, but its not yet clear to me
 --       yet what else will go in here. Feel free to name it more appropraitely
 --       as it becomes clear what else fits.

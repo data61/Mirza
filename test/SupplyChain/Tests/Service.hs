@@ -9,8 +9,8 @@ module SupplyChain.Tests.Service
   ( testServiceQueries
   ) where
 
-import           SupplyChain.Tests.Common
 import           SupplyChain.Tests.Dummies
+import           SupplyChain.Tests.Settings
 
 -- import qualified Data.GS1.EventId                             as EvId
 
