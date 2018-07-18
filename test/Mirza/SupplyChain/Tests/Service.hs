@@ -5,7 +5,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications    #-}
 
-module SupplyChain.Tests.Service
+module Mirza.SupplyChain.Tests.Service
   ( testServiceQueries
   ) where
 
@@ -49,7 +49,7 @@ timeStampIO :: MonadIO m => m LocalTime
 timeStampIO = liftIO $ (utcToLocalTime utc) <$> getCurrentTime
 
 rsaPubKey :: IO PEM_RSAPubKey
-rsaPubKey = PEMString <$> Prelude.readFile "./test/SupplyChain/Tests/testKeys/goodKeys/test.pub"
+rsaPubKey = PEMString <$> Prelude.readFile "./test/Mirza/SupplyChain/Tests/testKeys/goodKeys/test.pub"
 
 testAppM :: context -> AppM context AppError a -> IO a
 testAppM scsContext act = runAppM scsContext act >>= \case
