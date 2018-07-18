@@ -9,8 +9,8 @@ module SupplyChain.Tests.Service
   ( testServiceQueries
   ) where
 
-import           SupplyChain.Tests.Dummies
-import           SupplyChain.Tests.Settings
+import           Mirza.SupplyChain.Tests.Dummies
+import           Mirza.SupplyChain.Tests.Settings
 
 -- import qualified Data.GS1.EventId                             as EvId
 
@@ -59,6 +59,7 @@ testAppM scsContext act = runAppM scsContext act >>= \case
 testServiceQueries :: HasCallStack => SpecWith SCSContext
 testServiceQueries = do
 
+-- BR
   describe "addPublicKey tests" $
     it "addPublicKey test 1" $ \scsContext -> do
       pubKey <- rsaPubKey
@@ -178,6 +179,7 @@ testServiceQueries = do
         keyInfo <- getPublicKeyInfo keyId
         pure (keyState keyInfo)
       myKeyState `shouldBe` InEffect
+-- END BR
 
   -- describe "eventSign - INCOMPLETE " $ do
   --   it "Signing an event with a revoked key" $ \scsContext -> do
@@ -431,13 +433,14 @@ testServiceQueries = do
           contactList <- listContacts user
           pure (contactList, [myContact_1_user, myContact_2_user, myContact_3_user])
         contactList `shouldBe` users
-
+-- BR
   describe "Business" $ do
     it "List Business empty" $ \scsContext -> do
       bizList <- testAppM scsContext listBusinesses
         -- myBizList <-
         -- pure listBusinesses
       bizList `shouldBe` []
+-- END BR
 
   describe "DWhere" $
     it "Insert and find DWhere" $ \scsContext -> do
