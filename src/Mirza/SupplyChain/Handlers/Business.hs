@@ -14,6 +14,7 @@ module Mirza.SupplyChain.Handlers.Business
 
 import           Mirza.SupplyChain.Handlers.Common
 
+import           Mirza.BusinessRegistry.Types             as BRT
 import           Mirza.Common.Utils
 import qualified Mirza.SupplyChain.QueryUtils             as QU
 import qualified Mirza.SupplyChain.StorageBeam            as SB
@@ -43,15 +44,14 @@ import           Data.Time.LocalTime                      (utc, utcToLocalTime)
 
 
 
-minPubKeySize :: Bit
-minPubKeySize = Bit 2048 -- 256 Bytes
+minPubKeySize :: BRT.Bit
+minPubKeySize = BRT.Bit 2048 -- 256 Bytes
 
 
-
-getPublicKey ::  SCSApp context err => KeyID -> AppM context err PEM_RSAPubKey
+getPublicKey ::  SCSApp context err => KeyID -> AppM context err BRT.PEM_RSAPubKey
 getPublicKey = runDb . getPublicKeyQuery
 
-getPublicKeyQuery :: AsServiceError err => KeyID -> DB context err PEM_RSAPubKey
+getPublicKeyQuery :: AsServiceError err => KeyID -> DB context err BRT.PEM_RSAPubKey
 getPublicKeyQuery (KeyID keyId) = do
   r <- pg $ runSelectReturningList $ select $ do
     allKeys <- all_ (SB._keys SB.supplyChainDb)
@@ -62,10 +62,10 @@ getPublicKeyQuery (KeyID keyId) = do
     _   -> throwing _InvalidKeyID . KeyID $ keyId
 
 
-getPublicKeyInfo ::  SCSApp context err => KeyID -> AppM context err ST.KeyInfo
+getPublicKeyInfo ::  SCSApp context err => KeyID -> AppM context err BRT.KeyInfoResponse
 getPublicKeyInfo = runDb . getPublicKeyInfoQuery
 
-getPublicKeyInfoQuery :: AsServiceError err => KeyID -> DB context err ST.KeyInfo
+getPublicKeyInfoQuery :: AsServiceError err => KeyID -> DB context err BRT.KeyInfoResponse
 getPublicKeyInfoQuery (KeyID keyId) = do
   r <- pg $ runSelectReturningList $ select $ do
     allKeys <- all_ (SB._keys SB.supplyChainDb)
@@ -74,7 +74,7 @@ getPublicKeyInfoQuery (KeyID keyId) = do
   currTime <- liftIO getCurrentTime
   case r of
     [(SB.Key _ (SB.UserId uId) _  creationTime revocationTime mExpTime)] ->
-       return $ ST.KeyInfo (ST.UserID uId)
+       return $ BRT.KeyInfoResponse (ST.UserID uId)
                 (QU.onLocalTime CreationTime creationTime)
                 (QU.onLocalTime RevocationTime <$> revocationTime)
                 (getKeyState currTime
@@ -87,12 +87,12 @@ getPublicKeyInfoQuery (KeyID keyId) = do
 
 
 -- select * from Business;
-listBusinesses :: SCSApp context err => AppM context err [Business]
+listBusinesses :: SCSApp context err => AppM context err [BRT.BusinessResponse]
 listBusinesses = runDb $ fmap QU.storageToModelBusiness <$> listBusinessesQuery
 -- ^ one fmap for Functor AppM, one for Functor []
 
 -- TODO: Write tests
-listBusinessesQuery :: DB context err [SB.Business]
+listBusinessesQuery :: DB context err [BRT.BusinessResponse]
 listBusinessesQuery = do
   pg $ runSelectReturningList $ select $
       all_ (SB._businesses SB.supplyChainDb)
@@ -100,10 +100,10 @@ listBusinessesQuery = do
 
 
 addPublicKey :: SCSApp context err => ST.User
-             -> PEM_RSAPubKey
-             -> Maybe ExpirationTime
+             -> BRT.PEM_RSAPubKey
+             -> Maybe BRT.ExpirationTime
              -> AppM context err KeyID
-addPublicKey user pemKey@(PEMString pemStr) mExp = do
+addPublicKey user pemKey@(BRT.PEM_RSAPubKey pemStr) mExp = do
   somePubKey <- liftIO $ readPublicKey pemStr
   either (throwing _ServiceError)
          (runDb . addPublicKeyQuery user mExp)
@@ -111,7 +111,7 @@ addPublicKey user pemKey@(PEMString pemStr) mExp = do
 
 
 
-checkPubKey :: SomePublicKey -> PEM_RSAPubKey-> Either ServiceError RSAPubKey
+checkPubKey :: SomePublicKey -> BRT.PEM_RSAPubKey-> Either ServiceError RSAPubKey
 checkPubKey spKey pemKey =
   maybe (Left $ InvalidRSAKey pemKey)
   (\pubKey ->
@@ -125,7 +125,7 @@ checkPubKey spKey pemKey =
 
 
 addPublicKeyQuery :: AsServiceError err => ST.User
-                  -> Maybe ExpirationTime
+                  -> Maybe BRT.ExpirationTime
                   -> RSAPubKey
                   -> DB context err KeyID
 addPublicKeyQuery (User (ST.UserID uid) _ _) expTime rsaPubKey = do
@@ -150,14 +150,14 @@ revokePublicKey (ST.User userId _ _) keyId =
 isKeyRevoked :: AsServiceError err => KeyID -> DB context err Bool
 isKeyRevoked k = do
   keyInfo <- getPublicKeyInfoQuery k
-  return $ ST.keyState keyInfo == Revoked
+  return $ BRT.keyState keyInfo == Revoked
 
 revokePublicKeyQuery :: AsServiceError err => ST.UserID -> KeyID -> DB context err UTCTime
 revokePublicKeyQuery userId k@(KeyID keyId) = do
   userOwnsKey <- doesUserOwnKey userId k
-  unless userOwnsKey $ throwing_ _UnauthorisedKeyAccess
+  unless userOwnsKey $ throwing_ BRT._UnauthorisedKeyAccess
   keyRevoked <- isKeyRevoked k
-  when keyRevoked $ throwing_ _KeyAlreadyRevoked
+  when keyRevoked $ throwing_ BRT._KeyAlreadyRevoked
   timeStamp <- QU.generateTimestamp
   _r <- pg $ runUpdate $ update
                 (SB._keys SB.supplyChainDb)
@@ -192,19 +192,19 @@ getKeyById (ST.KeyID keyId) = do
 
 
 getKeyState :: UTCTime
-            -> Maybe ST.RevocationTime
-            -> Maybe ST.ExpirationTime
-            -> ST.KeyState
+            -> Maybe BRT.RevocationTime
+            -> Maybe BRT.ExpirationTime
+            -> BRT.KeyState
 -- order of precedence - Revoked > Expired
-getKeyState currTime (Just (ST.RevocationTime rTime)) (Just (ST.ExpirationTime eTime))
-  | currTime > rTime = ST.Revoked
-  | currTime > eTime = ST.Expired
-  | otherwise        = ST.InEffect
-getKeyState currTime Nothing (Just (ST.ExpirationTime eTime))
-  | currTime > eTime = ST.Expired
-  | otherwise        = ST.InEffect
-getKeyState currTime (Just (ST.RevocationTime rTime)) Nothing
-  | currTime > rTime = ST.Revoked
-  | otherwise        = ST.InEffect
-getKeyState _ Nothing Nothing = ST.InEffect
+getKeyState currTime (Just (BRT.RevocationTime rTime)) (Just (BRT.ExpirationTime eTime))
+  | currTime > rTime = BRT.Revoked
+  | currTime > eTime = BRT.Expired
+  | otherwise        = BRT.InEffect
+getKeyState currTime Nothing (Just (BRT.ExpirationTime eTime))
+  | currTime > eTime = BRT.Expired
+  | otherwise        = BRT.InEffect
+getKeyState currTime (Just (BRT.RevocationTime rTime)) Nothing
+  | currTime > rTime = BRT.Revoked
+  | otherwise        = BRT.InEffect
+getKeyState _ Nothing Nothing = BRT.InEffect
 

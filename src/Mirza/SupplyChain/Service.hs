@@ -53,10 +53,6 @@ publicServer :: (SCSApp context err, HasScryptParams context) => ServerT PublicA
 publicServer =
   -- Users
        newUser
-  -- Business
-  :<|> getPublicKey
-  :<|> getPublicKeyInfo
-  :<|> listBusinesses
 
 privateServer :: (SCSApp context err) => ServerT ProtectedAPI (AppM context err)
 privateServer =
@@ -81,10 +77,6 @@ privateServer =
   :<|> insertAggEvent
   :<|> insertTransactEvent
   :<|> insertTransfEvent
--- Business
-  :<|> addPublicKey
-  :<|> revokePublicKey
-
 
 
 instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub) where

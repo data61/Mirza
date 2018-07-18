@@ -1,12 +1,15 @@
 {-# LANGUAGE ConstraintKinds            #-}
+{-# LANGUAGE DeriveGeneric              #-}
 {-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE MultiParamTypeClasses      #-}
+{-# LANGUAGE StandaloneDeriving         #-}
 {-# LANGUAGE TemplateHaskell            #-}
 
 
-
 module Mirza.Common.Types
-  ( EnvType(..)
+  ( KeyID(..)
+  , EnvType(..)
   , AppM(..)
   , runAppM
   , DB(..)
@@ -28,34 +31,46 @@ module Mirza.Common.Types
   , liftIO
   ) where
 
+import qualified Database.Beam                 as B
+import           Database.Beam.Postgres        (Pg)
+import           Database.PostgreSQL.Simple    (Connection, SqlError)
+import qualified Database.PostgreSQL.Simple    as DB
 
-import qualified Database.Beam              as B
-import           Database.Beam.Postgres     (Pg)
-import           Database.PostgreSQL.Simple (Connection, SqlError)
-import qualified Database.PostgreSQL.Simple as DB
+import qualified Control.Exception             as Exc
+import           Control.Monad.Except          (ExceptT (..), MonadError,
+                                                runExceptT, throwError)
+import           Control.Monad.IO.Class        (MonadIO, liftIO)
+import           Control.Monad.Reader          (MonadReader, ReaderT, ask, asks,
+                                                local, runReaderT)
+import           Control.Monad.Trans           (lift)
 
-import qualified Control.Exception          as Exc
-import           Control.Monad.Except       (ExceptT (..), MonadError,
-                                             runExceptT, throwError)
-import           Control.Monad.IO.Class     (MonadIO, liftIO)
-import           Control.Monad.Reader       (MonadReader, ReaderT, ask, asks,
-                                             local, runReaderT)
-import           Control.Monad.Trans        (lift)
+import qualified Control.Exception             as E
 
-import qualified Control.Exception          as E
+import           Data.Pool                     as Pool
 
-import           Data.Pool                  as Pool
+import           Crypto.Scrypt                 (ScryptParams)
 
-import           Crypto.Scrypt              (ScryptParams)
-
+import           Data.Aeson
+import           Data.Aeson.TH
 
 import           Control.Lens
 import           Control.Monad.Error.Lens
 
-import           Katip                      as K
-import           Katip.Monadic              (askLoggerIO)
+import           Data.Swagger
+import           GHC.Generics                  (Generic)
+import           Katip                         as K
+import           Katip.Monadic                 (askLoggerIO)
+import qualified Mirza.SupplyChain.StorageBeam as SB
+import           Servant                       (FromHttpApiData (..),
+                                                ToHttpApiData (..))
 
-
+newtype KeyID = KeyID {unKeyID :: SB.PrimaryKeyType}
+  deriving (Show, Eq, Generic, Read, FromJSON, ToJSON)
+instance ToSchema KeyID
+instance ToParamSchema KeyID
+instance FromHttpApiData KeyID where
+  parseUrlPiece t = fmap KeyID (parseUrlPiece t)
+deriving instance ToHttpApiData KeyID
 
 data EnvType = Prod | Dev
   deriving (Show, Eq, Read)

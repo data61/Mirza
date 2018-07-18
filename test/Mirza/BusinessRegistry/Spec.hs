@@ -76,7 +76,7 @@ main = do
   serviceTests <- testSpec "HSpec" (sequential $ around withDatabaseConnection testServiceQueries)
   clientTests <- testSpec "Client HSpec" clientSpec
 
-  defaultMain $ localOption (NumThreads 1) $ testGroup "tests"
+  defaultMain $ localOption (NumThreads 10) $ testGroup "tests"
     [ serviceTests
     , clientTests
     ]

@@ -122,32 +122,6 @@ instance ToSchema NewUser
 
 
 
--- *****************************************************************************
--- Business Types
--- *****************************************************************************
-
-data SearchFields = SearchFields {
-  sUser             :: User,
-  sbizName          :: Maybe Text,
-  sBizId            :: Maybe UUID,
-  sGS1CompanyPrefix :: Maybe Text,
-  sFunction         :: Maybe Text,
-  sAddress          :: Maybe Text
-}
-
-data Business = Business {
-  bizID    :: EPC.GS1CompanyPrefix,
-  bizName  :: Text,
-  function :: Text,
-  siteName :: Text,
-  address  :: Text,
-  lat      :: Double,
-  lng      :: Double
-} deriving (Generic, Eq, Show)
-$(deriveJSON defaultOptions ''Business)
-instance ToSchema Business
-
-
 
 -- *****************************************************************************
 -- GS1 Types
@@ -313,57 +287,7 @@ fromTransactEvent
     dwhen dwhy dwhere
 
 
-
--- *****************************************************************************
--- Signing and Hashing Types
--- *****************************************************************************
-
--- DELETEMEBR
-newtype CreationTime = CreationTime {unCreationTime :: UTCTime}
-  deriving (Show, Eq, Generic, Read, FromJSON, ToJSON)
-instance ToSchema CreationTime
-instance ToParamSchema CreationTime
-deriving instance FromHttpApiData CreationTime
-deriving instance ToHttpApiData CreationTime
-
--- DELETEMEBR
-newtype RevocationTime = RevocationTime {unRevocationTime :: UTCTime}
-  deriving (Show, Eq, Generic, Read, FromJSON, ToJSON)
-instance ToSchema RevocationTime
-instance ToParamSchema RevocationTime
-deriving instance FromHttpApiData RevocationTime
-deriving instance ToHttpApiData RevocationTime
-
--- DELETEMEBR
-newtype ExpirationTime = ExpirationTime {unExpirationTime :: UTCTime}
-  deriving (Show, Eq, Read, Generic, FromJSON, ToJSON)
-instance ToSchema ExpirationTime
-instance ToParamSchema ExpirationTime
-deriving instance FromHttpApiData ExpirationTime
-deriving instance ToHttpApiData ExpirationTime
-
--- DELETEMEBR
-data KeyState
-  = InEffect -- Can be used
-  | Revoked -- Key passed the revocation time
-  | Expired -- Key passed the expiration time
-  deriving (Show, Eq, Read, Generic)
-$(deriveJSON defaultOptions ''KeyState)
-instance ToSchema KeyState
-instance ToParamSchema KeyState
-
-
 newtype SigningUser = SigningUser UserID deriving(Generic, Show, Eq, Read)
-
-data KeyInfo = KeyInfo {
-  keyInfoUserId  :: UserID,
-  creationTime   :: CreationTime,
-  revocationTime :: Maybe RevocationTime,
-  keyState       :: KeyState,
-  expirationTime :: Maybe ExpirationTime
-}deriving (Generic, Eq, Show)
-$(deriveJSON defaultOptions ''KeyInfo)
-instance ToSchema KeyInfo
 
 newtype EventHash = EventHash String
   deriving (Generic, Show, Read, Eq)
@@ -426,12 +350,6 @@ instance FromField Digest where
       Just x -> pure x
 -}
 
-newtype KeyID = KeyID {unKeyID :: PrimaryKeyType}
-  deriving (Show, Eq, Generic, Read, FromJSON, ToJSON)
-instance ToSchema KeyID
-instance ToParamSchema KeyID
-deriving instance FromHttpApiData KeyID
-deriving instance ToHttpApiData KeyID
 
 data SignedEvent = SignedEvent {
   signed_eventID   :: EventId,
@@ -463,13 +381,6 @@ instance ToSchema HashedEvent
 -- constructors will be added.
 newtype AppError = AppError ServiceError deriving (Show)
 
--- DELETEMEBR
-newtype Bit  = Bit  {unBit :: Int} deriving (Show, Eq, Read, Ord)
-newtype Byte = Byte {unByte :: Int} deriving (Show, Eq, Read, Ord)
-
-newtype Expected = Expected {unExpected :: Bit} deriving (Show, Eq, Read, Ord)
-newtype Received = Received {unReceived :: Bit} deriving (Show, Eq, Read, Ord)
-
 data ServerError = ServerError (Maybe BS.ByteString) Text
                    deriving (Show, Eq, Generic, Read)
 
@@ -481,11 +392,7 @@ data ServiceError
   | InvalidKeyID          KeyID
   | InvalidUserID         UserID
   | InvalidRSAKeyInDB     Text -- when the key already existing in the DB is wrong
-  | InvalidRSAKey         PEM_RSAPubKey
-  | InvalidRSAKeySize     Expected Received -- DELETEMEBR after split
   | InvalidDigest         Digest
-  | KeyAlreadyRevoked
-  | UnauthorisedKeyAccess
   | InsertionFail         ServerError Text
   | EventPermissionDenied UserID EvId.EventId
   | EmailExists           ServerError EmailAddress

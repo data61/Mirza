@@ -27,7 +27,7 @@ import           Mirza.SupplyChain.Types
 
 import           Data.GS1.EPC                          (GS1CompanyPrefix (..))
 
-import           Mirza.SupplyChain.Client.Servant
+import           Mirza.BusinessRegistry.Client.Servant
 
 import           Katip                                 (Severity (DebugS))
 import           Mirza.BusinessRegistry.Tests.Dummies

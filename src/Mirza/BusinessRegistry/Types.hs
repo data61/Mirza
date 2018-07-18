@@ -100,15 +100,6 @@ instance ToSchema BusinessResponse
 instance ToJSON BusinessResponse
 instance FromJSON BusinessResponse
 
-
--- Key Response Types:
-newtype KeyID = KeyID UUID
-  deriving (Show, Eq, Generic, ToJSON, FromJSON)
-instance ToSchema KeyID
-instance ToParamSchema KeyID
-instance FromHttpApiData KeyID where
-  parseUrlPiece t = fmap KeyID (parseUrlPiece t)
-
 data KeyState
   = InEffect -- Can be used
   | Revoked -- Key passed the revocation time
@@ -118,6 +109,9 @@ $(deriveJSON defaultOptions ''KeyState)
 instance ToSchema KeyState
 instance ToParamSchema KeyState
 
+-- *****************************************************************************
+-- Signing and Hashing Types
+-- *****************************************************************************
 
 newtype CreationTime = CreationTime {unCreationTime :: UTCTime}
   deriving (Show, Eq, Generic, Read, FromJSON, ToJSON)
@@ -143,7 +137,7 @@ deriving instance FromHttpApiData ExpirationTime
 deriving instance ToHttpApiData ExpirationTime
 
 
-newtype PEM_RSAPubKey = PEM_RSAPubKey Text
+newtype PEM_RSAPubKey = PEM_RSAPubKey String
   deriving (Eq, Show, Generic, ToJSON, FromJSON)
 instance ToSchema PEM_RSAPubKey
 instance ToParamSchema PEM_RSAPubKey
@@ -164,6 +158,19 @@ data KeyInfoResponse = KeyInfoResponse
 $(deriveJSON defaultOptions ''KeyInfoResponse)
 instance ToSchema KeyInfoResponse
 
+
+-- *****************************************************************************
+-- Business Types
+-- *****************************************************************************
+
+data SearchFields = SearchFields {
+  sUser             :: User,
+  sbizName          :: Maybe Text,
+  sBizId            :: Maybe UUID,
+  sGS1CompanyPrefix :: Maybe Text,
+  sFunction         :: Maybe Text,
+  sAddress          :: Maybe Text
+}
 
 -- *****************************************************************************
 -- Error Types

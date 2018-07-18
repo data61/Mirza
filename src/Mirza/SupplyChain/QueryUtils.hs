@@ -17,6 +17,7 @@ module Mirza.SupplyChain.QueryUtils
   , withPKey
   ) where
 
+import qualified Mirza.BusinessRegistry.Types  as BRT
 import           Mirza.Common.Utils
 import qualified Mirza.SupplyChain.StorageBeam as SB
 import           Mirza.SupplyChain.Types       hiding (Business (..), User (..))
@@ -66,9 +67,9 @@ withPKey f = do
   pure pKey
 
 
-storageToModelBusiness :: SB.Business -> ST.Business
+storageToModelBusiness :: SB.Business -> BRT.BusinessResponse
 storageToModelBusiness (SB.Business pfix name f site addr lat long)
-  = ST.Business pfix name f site addr lat long
+  = BRT.BusinessResponse pfix name f site addr lat long
 
 storageToModelEvent :: SB.Event -> Maybe Ev.Event
 storageToModelEvent = decodeEvent . SB.json_event
