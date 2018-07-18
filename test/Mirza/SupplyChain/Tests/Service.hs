@@ -12,30 +12,19 @@ module Mirza.SupplyChain.Tests.Service
 import           Mirza.SupplyChain.Tests.Dummies
 import           Mirza.SupplyChain.Tests.Settings
 
--- import qualified Data.GS1.EventId                             as EvId
-
 import           Mirza.SupplyChain.Auth
-import           Mirza.SupplyChain.Handlers.Business
 import           Mirza.SupplyChain.Handlers.Contacts
 import           Mirza.SupplyChain.Handlers.EventRegistration
 import           Mirza.SupplyChain.Handlers.Queries
--- import           Mirza.SupplyChain.Handlers.Signatures
 import           Mirza.SupplyChain.Handlers.Users
 import qualified Mirza.SupplyChain.StorageBeam                as SB
 import           Mirza.SupplyChain.Types
 
 import           Control.Monad                                (void)
-import           Data.Either                                  (isLeft)
-import           Data.Maybe                                   (fromJust,
-                                                               isNothing)
+import           Data.Maybe                                   (fromJust)
 
-import qualified Data.Text                                    as T
 import           Data.Text.Encoding                           (encodeUtf8)
 
-import           Data.Time.Clock                              (addUTCTime,
-                                                               getCurrentTime)
-import           Data.Time.LocalTime                          (LocalTime, utc,
-                                                               utcToLocalTime)
 import           Database.Beam
 import           Database.PostgreSQL.Simple                   (connectPostgreSQL,
                                                                execute_)
@@ -45,12 +34,6 @@ import           Test.Hspec
 
 import qualified Crypto.Scrypt                                as Scrypt
 
-timeStampIO :: MonadIO m => m LocalTime
-timeStampIO = liftIO $ (utcToLocalTime utc) <$> getCurrentTime
-
-rsaPubKey :: IO PEM_RSAPubKey
-rsaPubKey = PEMString <$> Prelude.readFile "./test/Mirza/SupplyChain/Tests/testKeys/goodKeys/test.pub"
-
 testAppM :: context -> AppM context AppError a -> IO a
 testAppM scsContext act = runAppM scsContext act >>= \case
     Left err -> fail (show err)
@@ -58,128 +41,6 @@ testAppM scsContext act = runAppM scsContext act >>= \case
 
 testServiceQueries :: HasCallStack => SpecWith SCSContext
 testServiceQueries = do
-
--- BR
-  describe "addPublicKey tests" $
-    it "addPublicKey test 1" $ \scsContext -> do
-      pubKey <- rsaPubKey
-      tStart <- timeStampIO
-      res <- testAppM scsContext $ do
-        uid <- newUser dummyNewUser
-        storageUser <- runDb $ getUserById uid
-        let user = userTableToModel . fromJust $ storageUser
-        let (PEMString keyStr) = pubKey
-        keyId <- addPublicKey user pubKey Nothing
-        tEnd <- timeStampIO
-        insertedKey <- getPublicKey keyId
-        storageKey <- runDb $ getKeyById keyId
-        pure (storageKey, keyStr, keyId, uid, tEnd, insertedKey)
-      case res of
-        (Nothing, _, _, _, _, _) -> fail "Received Nothing for key"
-        (Just key, keyStr, (KeyID keyId), (UserID uid), tEnd, insertedKey) -> do
-          key `shouldSatisfy`
-            (\k ->
-              T.unpack (SB.pem_str k) == keyStr &&
-              (SB.key_id k) == keyId &&
-              (SB.key_user_id k) == (SB.UserId uid) &&
-              (SB.creation_time k) > tStart &&
-              (SB.creation_time k) < tEnd &&
-              isNothing (SB.revocation_time k)
-            )
-          insertedKey `shouldBe` pubKey
-  describe "getPublicKeyInfo tests" $
-    it "getPublicKeyInfo test 1" $ \scsContext -> do
-      tStart <- liftIO getCurrentTime
-      pubKey <- rsaPubKey
-      (keyInfo, uid, tEnd) <- testAppM scsContext $ do
-        uid <- newUser dummyNewUser
-        storageUser <- runDb $ getUserById uid
-        let user = userTableToModel . fromJust $ storageUser
-        keyId <- addPublicKey user pubKey Nothing
-        keyInfo <- getPublicKeyInfo keyId
-        tEnd <- liftIO getCurrentTime
-        pure (keyInfo, uid, tEnd)
-      keyInfo `shouldSatisfy`
-        (\ki ->
-          (keyInfoUserId ki == uid) &&
-          ((unCreationTime . creationTime $ ki) > tStart &&
-           (unCreationTime . creationTime $ ki) < tEnd) &&
-          isNothing (revocationTime ki)
-        )
-
-  describe "revokePublicKey tests" $ do
-    it "Revoke public key with permissions" $ \scsContext -> do
-      pubKey <- rsaPubKey
-      myKeyState <- testAppM scsContext $ do
-        uid <- newUser dummyNewUser
-        storageUser <- runDb $ getUserById uid
-        let user = userTableToModel . fromJust $ storageUser
-        keyId <- addPublicKey user pubKey Nothing
-        _timeKeyRevoked <- revokePublicKey user keyId
-        keyInfo <- getPublicKeyInfo keyId
-        pure (keyState keyInfo)
-      myKeyState `shouldBe` Revoked
-
-    it "Revoke public key without permissions" $ \scsContext -> do
-      pubKey <- rsaPubKey
-      r <- runAppM @_ @ServiceError scsContext $ do
-        uid <- newUser dummyNewUser
-        storageUser <- runDb $ getUserById uid
-        let user = userTableToModel . fromJust $ storageUser
-        keyId <- addPublicKey user pubKey Nothing
-
-        -- making a fake user
-        hackerUid <- newUser $ makeDummyNewUser (EmailAddress "l33t@hacker.com")
-        storageHacker <- runDb $ getUserById hackerUid
-        let hacker = userTableToModel . fromJust $ storageHacker
-
-        revokePublicKey hacker keyId
-      r `shouldSatisfy` isLeft
-      r `shouldBe` Left UnauthorisedKeyAccess
-
-    it "Already expired AND revoked pub key" $ \scsContext -> do
-      nowish <- getCurrentTime
-      let hundredMinutes = 100 * 60
-          someTimeAgo = addUTCTime (-hundredMinutes) nowish
-      pubKey <- rsaPubKey
-      myKeyState <- testAppM scsContext $ do
-        uid <- newUser dummyNewUser
-        storageUser <- runDb $ getUserById uid
-        let user = userTableToModel . fromJust $ storageUser
-        keyId <- addPublicKey user pubKey (Just . ExpirationTime $ someTimeAgo )
-        _timeKeyRevoked <- revokePublicKey user keyId
-        keyInfo <- getPublicKeyInfo keyId
-        pure (keyState keyInfo)
-      myKeyState `shouldBe` Revoked
-
-    it "Expired but NOT revoked pub key" $ \scsContext -> do
-      nowish <- getCurrentTime
-      let hundredMinutes = 100 * 60
-          someTimeAgo = addUTCTime (-hundredMinutes) nowish
-      pubKey <- rsaPubKey
-      myKeyState <- testAppM scsContext $ do
-        uid <- newUser dummyNewUser
-        storageUser <- runDb $ getUserById uid
-        let user = userTableToModel . fromJust $ storageUser
-        keyId <- addPublicKey user pubKey (Just . ExpirationTime $ someTimeAgo )
-        keyInfo <- getPublicKeyInfo keyId
-        pure (keyState keyInfo)
-      myKeyState `shouldBe` Expired
-
-    it "Expiry date in the future" $ \scsContext -> do
-      nowish <- getCurrentTime
-      let hundredMinutes = 100 * 60
-          someTimeLater = addUTCTime hundredMinutes nowish
-      pubKey <- rsaPubKey
-      myKeyState <- testAppM scsContext $ do
-        uid <- newUser dummyNewUser
-        storageUser <- runDb $ getUserById uid
-        let user = userTableToModel . fromJust $ storageUser
-        keyId <- addPublicKey user pubKey (Just . ExpirationTime $ someTimeLater)
-        keyInfo <- getPublicKeyInfo keyId
-        pure (keyState keyInfo)
-      myKeyState `shouldBe` InEffect
--- END BR
 
   -- describe "eventSign - INCOMPLETE " $ do
   --   it "Signing an event with a revoked key" $ \scsContext -> do
@@ -433,14 +294,6 @@ testServiceQueries = do
           contactList <- listContacts user
           pure (contactList, [myContact_1_user, myContact_2_user, myContact_3_user])
         contactList `shouldBe` users
--- BR
-  describe "Business" $ do
-    it "List Business empty" $ \scsContext -> do
-      bizList <- testAppM scsContext listBusinesses
-        -- myBizList <-
-        -- pure listBusinesses
-      bizList `shouldBe` []
--- END BR
 
   describe "DWhere" $
     it "Insert and find DWhere" $ \scsContext -> do
@@ -454,5 +307,3 @@ clearContact :: IO ()
 clearContact = do
   conn <- connectPostgreSQL testDbConnStr
   void $ execute_ conn "DELETE FROM contacts;"
-
-
