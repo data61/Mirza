@@ -1,6 +1,6 @@
 module SupplyChain.Tests.Client where
 
-import           SupplyChain.Tests.Common
+import           SupplyChain.Tests.Settings
 
 import           Control.Concurrent               (ThreadId, forkIO, killThread)
 import           System.IO.Unsafe                 (unsafePerformIO)
