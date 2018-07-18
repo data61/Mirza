@@ -1,6 +1,6 @@
-module SupplyChain.Tests.Client where
+module Mirza.SupplyChain.Tests.Client where
 
-import           SupplyChain.Tests.Settings
+import           Mirza.SupplyChain.Tests.Settings
 
 import           Control.Concurrent               (ThreadId, forkIO, killThread)
 import           System.IO.Unsafe                 (unsafePerformIO)
@@ -29,7 +29,7 @@ import           Data.GS1.EPC                     (GS1CompanyPrefix (..))
 import           Mirza.SupplyChain.Client.Servant
 
 import           Katip                            (Severity (DebugS))
-import           SupplyChain.Tests.Dummies
+import           Mirza.SupplyChain.Tests.Dummies
 
 -- Cribbed from https://github.com/haskell-servant/servant/blob/master/servant-client/test/Servant/ClientSpec.hs
 

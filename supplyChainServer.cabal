@@ -114,11 +114,11 @@ executable businessRegistry
 test-suite supplyChainServer-test
   type:               exitcode-stdio-1.0
   hs-source-dirs:     test
-  main-is:            SupplyChain/Spec.hs
-  other-modules:      SupplyChain.Tests.Service
-                    , SupplyChain.Tests.Dummies
-                    , SupplyChain.Tests.Client
-                    , SupplyChain.Tests.Settings
+  main-is:            Mirza/SupplyChain/Spec.hs
+  other-modules:      Mirza.SupplyChain.Tests.Service
+                    , Mirza.SupplyChain.Tests.Dummies
+                    , Mirza.SupplyChain.Tests.Client
+                    , Mirza.SupplyChain.Tests.Settings
   default-extensions:  OverloadedStrings
   build-depends:       base
                      , GS1Combinators
