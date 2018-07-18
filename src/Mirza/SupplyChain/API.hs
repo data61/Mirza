@@ -26,8 +26,6 @@ import           Mirza.SupplyChain.Types       as ST
 import qualified Data.GS1.Event                as Ev
 import           Data.GS1.EventId
 
-import           Data.Time.Clock               (UTCTime)
-
 import           Servant
 import           Servant.API.Flatten
 import           Servant.Swagger.UI
@@ -51,11 +49,6 @@ serverAPI = Proxy
 type PublicAPI =
   -- Users
          "newUser"                            :> ReqBody '[JSON] NewUser                                        :> Post '[JSON] UserID
-  -- Business
-    :<|> "key"      :> "get"                  :> Capture "keyID" KeyID                                          :> Get '[JSON] PEM_RSAPubKey
-    :<|> "key"      :> "getInfo"              :> Capture "keyID" KeyID                                          :> Get '[JSON] KeyInfo
-    :<|> "business" :> "list"                                                                                   :> Get '[JSON] [Business]
-
 
 type PrivateAPI =
 -- Contacts
@@ -78,6 +71,3 @@ type PrivateAPI =
   :<|> "event"    :> "aggregateEvent"       :> ReqBody '[JSON] AggregationEvent                               :> Post '[JSON] (Ev.Event, SB.EventId)
   :<|> "event"    :> "transactionEvent"     :> ReqBody '[JSON] TransactionEvent                               :> Post '[JSON] (Ev.Event, SB.EventId)
   :<|> "event"    :> "transformationEvent"  :> ReqBody '[JSON] TransformationEvent                            :> Post '[JSON] (Ev.Event, SB.EventId)
--- Business
-  :<|> "key"      :> "add" :> ReqBody '[JSON] PEM_RSAPubKey :> QueryParam "expirationTime" ExpirationTime :> Post '[JSON] KeyID
-  :<|> "key"      :> "revoke"              :> Capture "keyID" KeyID               :> Post '[JSON] UTCTime

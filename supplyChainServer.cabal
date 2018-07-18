@@ -19,6 +19,7 @@ library
                     , FlexibleInstances
   hs-source-dirs:     src
   exposed-modules:    Mirza.BusinessRegistry.API
+                    , Mirza.BusinessRegistry.Client.Servant
                     , Mirza.BusinessRegistry.Auth
                     , Mirza.BusinessRegistry.Database.Schema
                     , Mirza.BusinessRegistry.Database.Schema.V0001
