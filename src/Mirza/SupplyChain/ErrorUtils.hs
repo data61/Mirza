@@ -20,7 +20,6 @@ import           Control.Monad.Except                (MonadError (..),
 import           Data.ByteString                     (ByteString)
 import qualified Data.ByteString.Lazy.Char8          as LBSC8
 import           Data.Text.Encoding                  (encodeUtf8)
-import           Text.Printf                         (printf)
 
 import           Data.GS1.EPC
 import           Database.PostgreSQL.Simple.Internal (SqlError (..))
@@ -48,14 +47,16 @@ appErrToHttpErr (InvalidUserID _) =
   throwError $ err400 {
     errBody = "No such user."
   }
-appErrToHttpErr (InvalidRSAKey _) =
-  throwError $ err400 {
-    errBody = "Failed to parse RSA Public key."
-  }
-appErrToHttpErr (InvalidRSAKeySize (Expected (Bit expSize)) (Received (Bit recSize))) =
-  throwError $ err400 {
-    errBody = LBSC8.pack $ printf "Invalid RSA Key size. Expected: %d Bits, Received: %d Bits\n" expSize recSize
-  }
+-- Move to BR
+-- appErrToHttpErr (InvalidRSAKey _) =
+--   throwError $ err400 {
+--     errBody = "Failed to parse RSA Public key."
+--   }
+-- Move to BR
+-- appErrToHttpErr (InvalidRSAKeySize (Expected (Bit expSize)) (Received (Bit recSize))) =
+--   throwError $ err400 {
+--     errBody = LBSC8.pack $ printf "Invalid RSA Key size. Expected: %d Bits, Received: %d Bits\n" expSize recSize
+--   }
 appErrToHttpErr (InvalidDigest _) =
   throwError $ err400 {
     errBody = "Invalid Key ID entered."
@@ -66,10 +67,11 @@ appErrToHttpErr (ParseError err) =
                   "We could not parse the input provided. Error(s) encountered"
                   (parseFailureToErrorMsg err)
   }
-appErrToHttpErr KeyAlreadyRevoked =
-  throwError $ err400 { errBody = "Public Key already revoked" }
-appErrToHttpErr UnauthorisedKeyAccess =
-  throwError $ err403 { errBody = "Not authorised to access this key." }
+-- Move to BR
+-- appErrToHttpErr KeyAlreadyRevoked =
+--   throwError $ err400 { errBody = "Public Key already revoked" }
+-- appErrToHttpErr UnauthorisedKeyAccess =
+--   throwError $ err403 { errBody = "Not authorised to access this key." }
 appErrToHttpErr (AuthFailed _) =
   throwError $ err403 { errBody = "Authentication failed. Invalid username or password." }
 appErrToHttpErr (EventPermissionDenied _ _) =

@@ -8,7 +8,8 @@
 
 
 module Mirza.Common.Types
-  ( KeyID(..)
+  ( NewUser(..) , User(..) , EmailAddress(..) , Password(..)  , UserID(..)
+  , KeyID(..)
   , EnvType(..)
   , AppM(..)
   , runAppM
@@ -50,12 +51,16 @@ import           Data.Pool                     as Pool
 
 import           Crypto.Scrypt                 (ScryptParams)
 
+import qualified Data.ByteString               as BS
+import           Data.Text                     (Text)
+
 import           Data.Aeson
 import           Data.Aeson.TH
 
 import           Control.Lens
 import           Control.Monad.Error.Lens
 
+import           Data.GS1.EPC                  as EPC
 import           Data.Swagger
 import           GHC.Generics                  (Generic)
 import           Katip                         as K
@@ -64,6 +69,58 @@ import qualified Mirza.SupplyChain.StorageBeam as SB
 import           Servant                       (FromHttpApiData (..),
                                                 ToHttpApiData (..))
 
+
+
+-- *****************************************************************************
+-- User Types
+-- *****************************************************************************
+
+-- TODO: Handwrite these instances to comply with their defined syntax
+-- For example, emails have their own format, as do LabelEPCUrn
+newtype UserID = UserID {unUserID :: SB.PrimaryKeyType}
+  deriving (Show, Eq, Generic, Read, FromJSON, ToJSON)
+instance ToSchema UserID
+instance ToParamSchema UserID
+deriving instance FromHttpApiData UserID
+deriving instance ToHttpApiData UserID
+
+newtype Password = Password BS.ByteString
+  -- Is Eq something we want?
+  -- We do not want Show
+  deriving (Eq)
+
+instance Show Password where
+  show _ = "Password <redacted>"
+
+
+newtype EmailAddress = EmailAddress {unEmailAddress :: Text}
+  deriving (Show, Eq, Generic, Read, FromJSON, ToJSON)
+instance ToSchema EmailAddress
+instance ToParamSchema EmailAddress
+deriving instance FromHttpApiData EmailAddress
+deriving instance ToHttpApiData EmailAddress
+
+data User = User {
+  userId        :: UserID,
+  userFirstName :: Text,
+  userLastName  :: Text
+} deriving (Generic, Eq, Show)
+$(deriveJSON defaultOptions ''User)
+instance ToSchema User
+
+data NewUser = NewUser {
+  phoneNumber  :: Text,
+  emailAddress :: EmailAddress,
+  firstName    :: Text,
+  lastName     :: Text,
+  company      :: GS1CompanyPrefix,
+  password     :: Text
+} deriving (Generic, Eq, Show)
+$(deriveJSON defaultOptions ''NewUser)
+instance ToSchema NewUser
+
+
+
 newtype KeyID = KeyID {unKeyID :: SB.PrimaryKeyType}
   deriving (Show, Eq, Generic, Read, FromJSON, ToJSON)
 instance ToSchema KeyID
@@ -71,6 +128,8 @@ instance ToParamSchema KeyID
 instance FromHttpApiData KeyID where
   parseUrlPiece t = fmap KeyID (parseUrlPiece t)
 deriving instance ToHttpApiData KeyID
+
+
 
 data EnvType = Prod | Dev
   deriving (Show, Eq, Read)

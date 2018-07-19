@@ -58,7 +58,7 @@ getPublicKeyQuery (KeyID keyId) = do
     guard_ (SB.key_id allKeys ==. val_ keyId)
     pure (SB.pem_str allKeys)
   case r of
-    [k] -> return $ PEMString $ T.unpack k
+    [k] -> return $ BRT.PEM_RSAPubKey k
     _   -> throwing _InvalidKeyID . KeyID $ keyId
 
 
@@ -66,24 +66,25 @@ getPublicKeyInfo ::  SCSApp context err => KeyID -> AppM context err BRT.KeyInfo
 getPublicKeyInfo = runDb . getPublicKeyInfoQuery
 
 getPublicKeyInfoQuery :: AsServiceError err => KeyID -> DB context err BRT.KeyInfoResponse
-getPublicKeyInfoQuery (KeyID keyId) = do
+getPublicKeyInfoQuery k@(KeyID keyId) = do
   r <- pg $ runSelectReturningList $ select $ do
     allKeys <- all_ (SB._keys SB.supplyChainDb)
     guard_ (SB.key_id allKeys ==. val_ keyId)
     pure allKeys
   currTime <- liftIO getCurrentTime
   case r of
-    [(SB.Key _ (SB.UserId uId) _  creationTime revocationTime mExpTime)] ->
-       return $ BRT.KeyInfoResponse (ST.UserID uId)
-                (QU.onLocalTime CreationTime creationTime)
-                (QU.onLocalTime RevocationTime <$> revocationTime)
-                (getKeyState currTime
-                    (QU.onLocalTime RevocationTime <$> revocationTime)
-                    ((QU.onLocalTime ExpirationTime <$> mExpTime))
-                )
-                (QU.onLocalTime ExpirationTime <$> mExpTime)
+    [(SB.Key _ (SB.UserId uId) pemStr creationTime revocationTime mExpTime)] ->
+       return $ BRT.KeyInfoResponse
+                  k (ST.UserID uId)
+                  (getKeyState currTime
+                      (QU.onLocalTime RevocationTime <$> revocationTime)
+                      (QU.onLocalTime ExpirationTime <$> mExpTime)
+                  )
+                  (QU.onLocalTime CreationTime creationTime)
+                  (QU.onLocalTime RevocationTime <$> revocationTime)
+                  (QU.onLocalTime ExpirationTime <$> mExpTime)
+                  (BRT.PEM_RSAPubKey pemStr)
     _ -> throwing _InvalidKeyID . KeyID $ keyId
-
 
 
 -- select * from Business;
@@ -92,26 +93,26 @@ listBusinesses = runDb $ fmap QU.storageToModelBusiness <$> listBusinessesQuery
 -- ^ one fmap for Functor AppM, one for Functor []
 
 -- TODO: Write tests
-listBusinessesQuery :: DB context err [BRT.BusinessResponse]
+-- listBusinessesQuery :: DB context err [BRT.BusinessResponse]
 listBusinessesQuery = do
   pg $ runSelectReturningList $ select $
       all_ (SB._businesses SB.supplyChainDb)
 
 
 
-addPublicKey :: SCSApp context err => ST.User
+addPublicKey :: (AsServiceError err, AsKeyError err, SCSApp context err) => ST.User
              -> BRT.PEM_RSAPubKey
              -> Maybe BRT.ExpirationTime
              -> AppM context err KeyID
 addPublicKey user pemKey@(BRT.PEM_RSAPubKey pemStr) mExp = do
-  somePubKey <- liftIO $ readPublicKey pemStr
-  either (throwing _ServiceError)
+  somePubKey <- liftIO $ readPublicKey (T.unpack pemStr)
+  either (throwing _KeyError)
          (runDb . addPublicKeyQuery user mExp)
          (checkPubKey somePubKey pemKey)
 
 
 
-checkPubKey :: SomePublicKey -> BRT.PEM_RSAPubKey-> Either ServiceError RSAPubKey
+checkPubKey :: SomePublicKey -> BRT.PEM_RSAPubKey-> Either KeyError RSAPubKey
 checkPubKey spKey pemKey =
   maybe (Left $ InvalidRSAKey pemKey)
   (\pubKey ->
@@ -143,16 +144,20 @@ addPublicKeyQuery (User (ST.UserID uid) _ _) expTime rsaPubKey = do
 
 
 
-revokePublicKey :: SCSApp context err => ST.User -> KeyID -> AppM context err UTCTime
+revokePublicKey :: (AsServiceError err, AsKeyError err, SCSApp context err) => ST.User
+                -> KeyID
+                -> AppM context err UTCTime
 revokePublicKey (ST.User userId _ _) keyId =
     runDb $ revokePublicKeyQuery userId keyId
 
-isKeyRevoked :: AsServiceError err => KeyID -> DB context err Bool
+isKeyRevoked :: (AsServiceError err, AsKeyError err) => KeyID -> DB context err Bool
 isKeyRevoked k = do
   keyInfo <- getPublicKeyInfoQuery k
   return $ BRT.keyState keyInfo == Revoked
 
-revokePublicKeyQuery :: AsServiceError err => ST.UserID -> KeyID -> DB context err UTCTime
+revokePublicKeyQuery :: (AsServiceError err, AsKeyError err) => ST.UserID
+                     -> KeyID
+                     -> DB context err UTCTime
 revokePublicKeyQuery userId k@(KeyID keyId) = do
   userOwnsKey <- doesUserOwnKey userId k
   unless userOwnsKey $ throwing_ BRT._UnauthorisedKeyAccess
