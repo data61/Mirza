@@ -7,10 +7,10 @@ module Mirza.BusinessRegistry.Types where
 
 
 
-import           Mirza.Common.Types
+import           Mirza.Common.Types                     as CT
 import           Mirza.Common.Utils
 
-import           Mirza.BusinessRegistry.Database.Schema
+import           Mirza.BusinessRegistry.Database.Schema hiding (UserID)
 
 import           Data.GS1.EPC                           as EPC
 
@@ -137,7 +137,7 @@ deriving instance FromHttpApiData ExpirationTime
 deriving instance ToHttpApiData ExpirationTime
 
 
-newtype PEM_RSAPubKey = PEM_RSAPubKey String
+newtype PEM_RSAPubKey = PEM_RSAPubKey Text
   deriving (Eq, Show, Generic, ToJSON, FromJSON)
 instance ToSchema PEM_RSAPubKey
 instance ToParamSchema PEM_RSAPubKey
@@ -164,7 +164,7 @@ instance ToSchema KeyInfoResponse
 -- *****************************************************************************
 
 data SearchFields = SearchFields {
-  sUser             :: User,
+  sUser             :: CT.User,
   sbizName          :: Maybe Text,
   sBizId            :: Maybe UUID,
   sGS1CompanyPrefix :: Maybe Text,

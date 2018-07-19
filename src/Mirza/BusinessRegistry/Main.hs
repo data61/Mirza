@@ -192,7 +192,7 @@ runUserCommand globals UserAdd = do
   either (print @BusinessRegistryError) print euser
 
 
-interactivlyGetUserT :: GlobalOptions -> IO User
+interactivlyGetUserT :: GlobalOptions -> IO Schema.User
 interactivlyGetUserT opts = do
   params <- createScryptParams opts
   user_id       <- newUUID
@@ -298,7 +298,7 @@ dummyBusiness unique = do
   return BusinessT{..}
 
 
-dummyUser :: Text -> BizId -> GlobalOptions -> IO User
+dummyUser :: Text -> BizId -> GlobalOptions -> IO Schema.User
 dummyUser unique business_uid opts = do
   params <- createScryptParams opts
   user_id       <- newUUID
