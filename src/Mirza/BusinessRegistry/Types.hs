@@ -154,7 +154,7 @@ data KeyInfoResponse = KeyInfoResponse
   , expirationTime :: Maybe ExpirationTime
   , keyPEMString   :: PEM_RSAPubKey
   }
-  deriving (Generic)
+  deriving (Generic, Show, Eq)
 $(deriveJSON defaultOptions ''KeyInfoResponse)
 instance ToSchema KeyInfoResponse
 

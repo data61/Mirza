@@ -270,6 +270,8 @@ instance ToSchema BlockchainPackage
 
 newtype PEM_RSAPubKey = PEMString String
   deriving (Show, Read, Eq, Generic)
+$(deriveJSON defaultOptions ''PEM_RSAPubKey)
+instance ToSchema PEM_RSAPubKey
 -- These are orphaned instances
 --
 --instance Sql.FromRow PEM_RSAPubKey where
@@ -282,8 +284,6 @@ newtype PEM_RSAPubKey = PEMString String
 --  declareNamedSchema _ = pure $ NamedSchema (Just "PublicKey") $ binarySchema
 
 --orphaned instances, I know
-$(deriveJSON defaultOptions ''PEM_RSAPubKey)
-instance ToSchema PEM_RSAPubKey
 
 data Digest = SHA256 | SHA384 | SHA512
   deriving (Show, Generic, Eq, Read)
@@ -347,6 +347,8 @@ data ServiceError
   | InvalidUserID         UserID
   | InvalidRSAKeyInDB     Text -- when the key already existing in the DB is wrong
   | InvalidDigest         Digest
+  | KeyAlreadyRevoked
+  | UnauthorisedKeyAccess
   | InsertionFail         ServerError Text
   | EventPermissionDenied UserID EvId.EventId
   | EmailExists           ServerError EmailAddress
@@ -357,7 +359,6 @@ data ServiceError
   | BackendErr            Text -- fallback
   | DatabaseError         SqlError
   deriving (Show, Eq, Generic)
-
 $(makeClassyPrisms ''ServiceError)
 
 instance AsServiceError AppError where
