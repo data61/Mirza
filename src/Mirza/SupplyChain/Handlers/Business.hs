@@ -1,5 +1,6 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 
+-- | This file is a duplicate of BusinessRegistry.Keys, and should be deleted
 module Mirza.SupplyChain.Handlers.Business
   (
     getPublicKey, getPublicKeyInfo
@@ -10,10 +11,9 @@ module Mirza.SupplyChain.Handlers.Business
   , getKeyById
   ) where
 
-
-
 import           Mirza.SupplyChain.Handlers.Common
 
+import           Mirza.Common.Time
 import           Mirza.Common.Utils
 import qualified Mirza.SupplyChain.QueryUtils             as QU
 import qualified Mirza.SupplyChain.StorageBeam            as SB
@@ -38,10 +38,8 @@ import qualified Data.Text                                as T
 
 import           Data.Time.Clock                          (UTCTime,
                                                            getCurrentTime)
-import           Data.Time.LocalTime                      (utc, utcToLocalTime)
-
-
-
+import           Data.Time.LocalTime                      (localTimeToUTC, utc,
+                                                           utcToLocalTime)
 
 minPubKeySize :: Bit
 minPubKeySize = Bit 2048 -- 256 Bytes
@@ -75,13 +73,13 @@ getPublicKeyInfoQuery (KeyID keyId) = do
   case r of
     [(SB.Key _ (SB.UserId uId) _  creationTime revocationTime mExpTime)] ->
        return $ ST.KeyInfo (ST.UserID uId)
-                (QU.onLocalTime CreationTime creationTime)
-                (QU.onLocalTime RevocationTime <$> revocationTime)
+                (fromDbTimestamp creationTime)
+                (fromDbTimestamp <$> revocationTime)
                 (getKeyState currTime
-                    (QU.onLocalTime RevocationTime <$> revocationTime)
-                    ((QU.onLocalTime ExpirationTime <$> mExpTime))
+                    (fromDbTimestamp <$> revocationTime)
+                    ((fromDbTimestamp <$> mExpTime))
                 )
-                (QU.onLocalTime ExpirationTime <$> mExpTime)
+                (fromDbTimestamp <$> mExpTime)
     _ -> throwing _InvalidKeyID . KeyID $ keyId
 
 
@@ -130,12 +128,12 @@ addPublicKeyQuery :: AsServiceError err => ST.User
                   -> DB context err KeyID
 addPublicKeyQuery (User (ST.UserID uid) _ _) expTime rsaPubKey = do
   keyId <- newUUID
-  timeStamp <- QU.generateTimestamp
+  timestamp <- generateTimestamp
   keyStr <- liftIO $ writePublicKey rsaPubKey
   r <- pg $ runInsertReturningList (SB._keys SB.supplyChainDb) $
         insertValues
         [ SB.Key keyId (SB.UserId uid) (T.pack keyStr)
-            timeStamp Nothing ((utcToLocalTime utc) . unExpirationTime <$> expTime)
+            (toDbTimestamp timestamp) Nothing ((utcToLocalTime utc) . unExpirationTime <$> expTime)
         ]
   case r of
     [rowId] -> return (KeyID $ SB.key_id rowId)
@@ -158,13 +156,12 @@ revokePublicKeyQuery userId k@(KeyID keyId) = do
   unless userOwnsKey $ throwing_ _UnauthorisedKeyAccess
   keyRevoked <- isKeyRevoked k
   when keyRevoked $ throwing_ _KeyAlreadyRevoked
-  timeStamp <- QU.generateTimestamp
+  timestamp <- generateTimestamp
   _r <- pg $ runUpdate $ update
                 (SB._keys SB.supplyChainDb)
-                (\key -> [SB.revocation_time key <-. val_ (Just timeStamp)])
+                (\key -> [SB.revocation_time key <-. val_ (Just $ toDbTimestamp timestamp)])
                 (\key -> SB.key_id key ==. (val_ keyId))
-  return $ QU.onLocalTime id timeStamp
-
+  return timestamp
 
 
 -- Helper functions
@@ -192,18 +189,18 @@ getKeyById (ST.KeyID keyId) = do
 
 
 getKeyState :: UTCTime
-            -> Maybe ST.RevocationTime
-            -> Maybe ST.ExpirationTime
+            -> Maybe RevocationTime
+            -> Maybe ExpirationTime
             -> ST.KeyState
 -- order of precedence - Revoked > Expired
-getKeyState currTime (Just (ST.RevocationTime rTime)) (Just (ST.ExpirationTime eTime))
+getKeyState currTime (Just (RevocationTime rTime)) (Just (ExpirationTime eTime))
   | currTime > rTime = ST.Revoked
   | currTime > eTime = ST.Expired
   | otherwise        = ST.InEffect
-getKeyState currTime Nothing (Just (ST.ExpirationTime eTime))
+getKeyState currTime Nothing (Just (ExpirationTime eTime))
   | currTime > eTime = ST.Expired
   | otherwise        = ST.InEffect
-getKeyState currTime (Just (ST.RevocationTime rTime)) Nothing
+getKeyState currTime (Just (RevocationTime rTime)) Nothing
   | currTime > rTime = ST.Revoked
   | otherwise        = ST.InEffect
 getKeyState _ Nothing Nothing = ST.InEffect

@@ -8,10 +8,10 @@ module Mirza.BusinessRegistry.Handlers.Keys
   , addPublicKey
   ) where
 
-
 import           Mirza.BusinessRegistry.Database.Schema
 import           Mirza.BusinessRegistry.Handlers.Common
 import           Mirza.BusinessRegistry.Types             as BT
+import           Mirza.Common.Time
 import           Mirza.Common.Types
 import           Mirza.Common.Utils
 
@@ -57,12 +57,12 @@ keyToKeyInfo :: UTCTime -> Key -> KeyInfoResponse
 keyToKeyInfo currTime (KeyT keyId keyUserId pemStr creation revocation expiration ) =
   (KeyInfoResponse (KeyID keyId) keyUserId
     (getKeyState
-      (onLocalTime RevocationTime <$> revocation)
-      (onLocalTime ExpirationTime <$> expiration)
+      (fromDbTimestamp <$> revocation)
+      (fromDbTimestamp <$> expiration)
     )
-    (onLocalTime CreationTime creation)
-    (onLocalTime RevocationTime <$> revocation)
-    (onLocalTime ExpirationTime <$> expiration)
+    (fromDbTimestamp creation)
+    (fromDbTimestamp <$> revocation)
+    (fromDbTimestamp <$> expiration)
     (PEM_RSAPubKey pemStr)
   )
   where
@@ -82,8 +82,6 @@ keyToKeyInfo currTime (KeyT keyId keyUserId pemStr creation revocation expiratio
       | currTime >= rTime = Revoked
       | otherwise        = InEffect
     getKeyState Nothing Nothing = InEffect
-
-
 
 
 getPublicKeyInfoQuery :: BRApp context err => KeyID -> DB context err (Maybe Key)
@@ -125,11 +123,11 @@ addPublicKeyQuery :: AsKeyError err => AuthUser
 addPublicKeyQuery (AuthUser uid) expTime rsaPubKey = do
   keyStr <- liftIO $ pack <$> writePublicKey rsaPubKey
   keyId <- newUUID
-  timeStamp <- generateTimestamp
+  timestamp <- generateTimestamp
   ks <- pg $ runInsertReturningList (_keys businessRegistryDB) $
         insertValues
         [ KeyT keyId uid keyStr
-            timeStamp Nothing (toLocalTime . unExpirationTime <$> expTime)
+            (toDbTimestamp timestamp) Nothing (toDbTimestamp <$> expTime)
         ]
   case ks of
     [rowId] -> return (KeyID $ key_id rowId)
@@ -137,7 +135,9 @@ addPublicKeyQuery (AuthUser uid) expTime rsaPubKey = do
 
 
 
-revokePublicKey :: (BRApp context err, AsKeyError err) => BT.AuthUser -> KeyID -> AppM context err UTCTime
+revokePublicKey :: (BRApp context err, AsKeyError err) => BT.AuthUser
+                -> KeyID
+                -> AppM context err RevocationTime
 revokePublicKey (AuthUser uId) keyId =
     runDb $ revokePublicKeyQuery uId keyId
 
@@ -149,19 +149,20 @@ isKeyRevokedQuery kid = do
         (\ki -> pure $ keyState ki == Revoked)
         mkeyInfo
 
-revokePublicKeyQuery :: (BRApp context err, AsKeyError err)
-                     => UserID -> KeyID -> DB context err UTCTime
+revokePublicKeyQuery :: (BRApp context err, AsKeyError err) => UserID
+                     -> KeyID
+                     -> DB context err RevocationTime
 revokePublicKeyQuery uId k@(KeyID keyId) = do
   userOwnsKey <- doesUserOwnKeyQuery uId k
   unless userOwnsKey $ throwing_ _UnauthorisedKeyAccess
   keyRevoked <- isKeyRevokedQuery k
   when keyRevoked $ throwing_ _KeyAlreadyRevoked
-  timeStamp <- generateTimestamp
+  timestamp <- generateTimestamp
   _r <- pg $ runUpdate $ update
                 (_keys businessRegistryDB)
-                (\key -> [revocation_time key <-. val_ (Just timeStamp)])
+                (\key -> [revocation_time key <-. val_ (Just $ toDbTimestamp timestamp)])
                 (\key -> key_id key ==. (val_ keyId))
-  return $ onLocalTime id timeStamp
+  return $ RevocationTime timestamp
 
 doesUserOwnKeyQuery :: AsKeyError err => UserID -> KeyID -> DB context err Bool
 doesUserOwnKeyQuery (UserId uId) (KeyID keyId) = do
