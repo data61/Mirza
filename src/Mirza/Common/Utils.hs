@@ -18,9 +18,6 @@ import           GHC.Stack              (HasCallStack)
 
 import           Control.Monad.IO.Class (MonadIO, liftIO)
 
-import           Data.Time              (UTCTime, utcToZonedTime)
-import           Data.Time.Clock        (getCurrentTime)
-
 -- | Converts anything to a ``Text``
 toText :: Show a => a -> T.Text
 toText = T.pack . show

@@ -4,20 +4,32 @@
 {-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE StandaloneDeriving         #-}
 
+
+-- | Times cannot be stored as UTC Time by Postgres
+-- See this discussion for details:
+-- https://groups.google.com/forum/#!topic/beam-discussion/DcC0yik7Pxc
+-- However, all times are converted to UTCTime using methods from typeclasses
+-- defined in this module
 module Mirza.Common.Time
   ( CreationTime(..), RevocationTime(..), ExpirationTime(..)
   , DBTimestamp, ModelTimestamp, fromDbTimestamp, toDbTimestamp
+  , generateTimestamp
   ) where
 
-import           GHC.Generics        (Generic)
-import           Servant             (FromHttpApiData (..), ToHttpApiData (..))
+import           GHC.Generics           (Generic)
+import           Servant                (FromHttpApiData (..),
+                                         ToHttpApiData (..))
 
 import           Data.Aeson
 import           Data.Swagger
 
-import           Data.Time           (LocalTime, UTCTime)
-import           Data.Time.LocalTime (localTimeToUTC, utc, utcToLocalTime)
+import           Data.GS1.EPC           as EPC
 
+import           Data.Time              (LocalTime, UTCTime)
+import           Data.Time.Clock        (getCurrentTime)
+import           Data.Time.LocalTime    (localTimeToUTC, utc, utcToLocalTime)
+
+import           Control.Monad.IO.Class (MonadIO, liftIO)
 
 class DBTimestamp t where
   toDbTimestamp :: t -> LocalTime
