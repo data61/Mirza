@@ -26,6 +26,7 @@ module Mirza.SupplyChain.Client.Servant
   ,addUserToEvent
   ) where
 
+import           Mirza.Common.Time             (ExpirationTime)
 import           Mirza.SupplyChain.API
 import qualified Mirza.SupplyChain.StorageBeam as SB
 import           Mirza.SupplyChain.Types       as T

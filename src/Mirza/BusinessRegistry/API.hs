@@ -18,6 +18,8 @@ module Mirza.BusinessRegistry.API
   ) where
 
 import           Mirza.BusinessRegistry.Types as ST
+import           Mirza.Common.Time            (CreationTime, ExpirationTime,
+                                               RevocationTime)
 
 import           Data.Time.Clock              (UTCTime)
 
@@ -51,4 +53,4 @@ type PublicAPI =
 type PrivateAPI =
 -- Business
        "key"      :> "add" :> ReqBody '[JSON] PEM_RSAPubKey :> QueryParam "expirationTime" ExpirationTime :> Post '[JSON] KeyID
-  :<|> "key"      :> "revoke"              :> Capture "keyID" KeyID               :> Post '[JSON] UTCTime
+  :<|> "key"      :> "revoke"              :> Capture "keyID" KeyID               :> Post '[JSON] RevocationTime

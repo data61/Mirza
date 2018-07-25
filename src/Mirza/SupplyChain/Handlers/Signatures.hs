@@ -9,6 +9,7 @@ module Mirza.SupplyChain.Handlers.Signatures
 
 
 
+import           Mirza.Common.Time
 import           Mirza.Common.Utils
 import           Mirza.SupplyChain.Handlers.Common
 import           Mirza.SupplyChain.Handlers.EventRegistration (hasUserCreatedEvent,
@@ -134,11 +135,10 @@ insertSignature eId kId (Signature sig) digest = do
         insertValues
         [(SB.Signature sigId) (SB.EventId $ EvId.unEventId eId)
          (SB.KeyId $ unKeyID kId) (BSC.pack sig)
-          (BSC.pack $ show $ digest) timestamp]
+          (BSC.pack $ show digest) (toDbTimestamp timestamp)]
   case r of
     [rowId] -> return ( SB.signature_id rowId)
     _       -> throwing _BackendErr "Failed to add signature"
-
 
 
 -- do we need this?

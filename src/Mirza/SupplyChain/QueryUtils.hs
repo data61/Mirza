@@ -10,7 +10,6 @@
 module Mirza.SupplyChain.QueryUtils
   (
     storageToModelBusiness , storageToModelEvent, userTableToModel
-  , onLocalTime , epcisTimeToLocalTime, toZonedTime, generateTimestamp
   , encodeEvent, decodeEvent
   , eventTxtToBS
   , handleError
@@ -33,14 +32,9 @@ import qualified Data.Text                     as T
 import qualified Data.Text.Encoding            as En
 import qualified Data.Text.Lazy                as TxtL
 import qualified Data.Text.Lazy.Encoding       as LEn
-import           Data.Time.LocalTime           (LocalTime, utc, utcToLocalTime)
 
 import           Control.Monad.Except          (MonadError, catchError)
 
-
--- | Shorthand for type-casting UTCTime to LocalTime before storing them in DB
-epcisTimeToLocalTime :: EPCISTime -> LocalTime
-epcisTimeToLocalTime = utcToLocalTime utc . unEPCISTime
 
 -- | Ueful for handling specific errors from, for example, database transactions
 -- @
