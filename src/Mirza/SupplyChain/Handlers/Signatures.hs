@@ -80,7 +80,7 @@ addUserToEventQuery (EventOwner lUserId@(ST.UserID loggedInUserId))
    Lets do this after we have everything compiling.
 -}
 
-eventSign :: (AsServiceError err, SCSApp context err) => ST.User -> SignedEvent -> AppM context err SB.PrimaryKeyType
+eventSign :: (AsServiceError err, SCSApp context err) => ST.User -> SignedEvent -> AppM context err PrimaryKeyType
 eventSign _user (SignedEvent eventID keyID (Signature sigStr) digest') = runDb $ do
   event <- getEventJSON eventID
   rsaPublicKey <- getPublicKey keyID
@@ -125,7 +125,7 @@ insertSignature
      -> KeyID
      -> Signature
      -> Digest
-     -> DB environmentUnused err SB.PrimaryKeyType
+     -> DB environmentUnused err PrimaryKeyType
 
 insertSignature eId kId (Signature sig) digest = do
   sigId <- newUUID

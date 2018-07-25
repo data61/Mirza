@@ -13,38 +13,37 @@ module Mirza.SupplyChain.Types
   )
   where
 
-import           Mirza.Common.Types            as Common
-import           Mirza.SupplyChain.StorageBeam (PrimaryKeyType)
+import           Mirza.Common.Types         as Common
 
 import           Data.GS1.DWhat
 import           Data.GS1.DWhen
 import           Data.GS1.DWhere
 import           Data.GS1.DWhy
-import           Data.GS1.EPC                  as EPC
-import qualified Data.GS1.Event                as Ev
-import           Data.GS1.EventId              as EvId
-import           Data.Time                     (UTCTime)
+import           Data.GS1.EPC               as EPC
+import qualified Data.GS1.Event             as Ev
+import           Data.GS1.EventId           as EvId
+import           Data.Time                  (UTCTime)
 
-import           Database.PostgreSQL.Simple    (Connection, SqlError)
+import           Database.PostgreSQL.Simple (Connection, SqlError)
 
-import           Crypto.Scrypt                 (ScryptParams)
+import           Crypto.Scrypt              (ScryptParams)
 
-import           Servant                       (FromHttpApiData, ToHttpApiData)
+import           Servant                    (FromHttpApiData, ToHttpApiData)
 
 import           Control.Lens
 
-import           GHC.Generics                  (Generic)
+import           GHC.Generics               (Generic)
 
 import           Data.Aeson
 import           Data.Aeson.TH
-import qualified Data.ByteString               as BS
-import           Data.List.NonEmpty            (NonEmpty)
-import           Data.Pool                     as Pool
+import qualified Data.ByteString            as BS
+import           Data.List.NonEmpty         (NonEmpty)
+import           Data.Pool                  as Pool
 import           Data.Swagger
-import           Data.Text                     (Text)
-import           Data.UUID                     (UUID)
+import           Data.Text                  (Text)
+import           Data.UUID                  (UUID)
 
-import           Katip                         as K
+import           Katip                      as K
 
 
 -- *****************************************************************************

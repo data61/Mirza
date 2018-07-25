@@ -21,8 +21,7 @@ import           Mirza.SupplyChain.Handlers.Common
 import qualified Mirza.Common.GS1BeamOrphans       as MU
 import           Mirza.SupplyChain.ErrorUtils      (throwBackendError)
 import qualified Mirza.SupplyChain.StorageBeam     as SB
-import           Mirza.SupplyChain.Types           hiding (Business (..),
-                                                    User (..))
+import           Mirza.SupplyChain.Types           hiding (User (..))
 import qualified Mirza.SupplyChain.Types           as ST
 
 import qualified Mirza.SupplyChain.QueryUtils      as QU
@@ -275,9 +274,9 @@ getQuantityUom (Just (ItemCount _))          = Nothing
 
 -- | GS1 DWhat to Storage DWhat
 -- For an object event
-toStorageDWhat :: SB.PrimaryKeyType
-               -> Maybe SB.PrimaryKeyType
-               -> Maybe SB.PrimaryKeyType
+toStorageDWhat :: PrimaryKeyType
+               -> Maybe PrimaryKeyType
+               -> Maybe PrimaryKeyType
                -> SB.EventId
                -> DWhat
                -> SB.What
@@ -302,7 +301,7 @@ getAction (TransactWhat (TransactionDWhat act _ _ _)) = Just act
 getAction (AggWhat (AggregationDWhat act _ _))        = Just act
 
 
-findInstLabelId :: InstanceLabelEPC -> DB context err (Maybe SB.PrimaryKeyType)
+findInstLabelId :: InstanceLabelEPC -> DB context err (Maybe PrimaryKeyType)
 findInstLabelId (GIAI cp sn) = findInstLabelId' cp sn Nothing Nothing Nothing
 findInstLabelId (SSCC cp sn) = findInstLabelId' cp sn Nothing Nothing Nothing
 findInstLabelId (SGTIN cp msfv ir sn) = findInstLabelId' cp sn msfv (Just ir) Nothing
@@ -314,7 +313,7 @@ findInstLabelId' :: GS1CompanyPrefix
                  -> Maybe SGTINFilterValue
                  -> Maybe ItemReference
                  -> Maybe AssetType
-                 -> DB context err (Maybe SB.PrimaryKeyType)
+                 -> DB context err (Maybe PrimaryKeyType)
 findInstLabelId' cp sn msfv mir mat = do
   r <- pg $ runSelectReturningList $ select $ do
     labels <- all_ (SB._labels SB.supplyChainDb)
@@ -339,7 +338,7 @@ getUser (EmailAddress email) = do
     [u] -> Just . QU.userTableToModel $ u
     _   -> Nothing
 
-findClassLabelId :: ClassLabelEPC -> DB context err (Maybe SB.PrimaryKeyType)
+findClassLabelId :: ClassLabelEPC -> DB context err (Maybe PrimaryKeyType)
 findClassLabelId (LGTIN cp ir lot)  = findClassLabelId' cp Nothing ir (Just lot)
 findClassLabelId (CSGTIN cp msfv ir) = findClassLabelId' cp msfv ir Nothing
 
@@ -347,7 +346,7 @@ findClassLabelId' :: GS1CompanyPrefix
                   -> Maybe SGTINFilterValue
                   -> ItemReference
                   -> Maybe Lot
-                  -> DB context err (Maybe SB.PrimaryKeyType)
+                  -> DB context err (Maybe PrimaryKeyType)
 findClassLabelId' cp msfv ir lot = do
   r <- pg $ runSelectReturningList $ select $ do
     labels <- all_ (SB._labels SB.supplyChainDb)
@@ -363,11 +362,11 @@ findClassLabelId' cp msfv ir lot = do
     _   -> return Nothing
 
 
-findLabelId :: LabelEPC -> DB context err (Maybe SB.PrimaryKeyType)
+findLabelId :: LabelEPC -> DB context err (Maybe PrimaryKeyType)
 findLabelId (IL l)   = findInstLabelId l
 findLabelId (CL c _) = findClassLabelId c
 
-getParentId :: DWhat -> DB context err (Maybe SB.PrimaryKeyType)
+getParentId :: DWhat -> DB context err (Maybe PrimaryKeyType)
 getParentId (TransactWhat (TransactionDWhat _ (Just p) _ _)) = findInstLabelId . unParentLabel $ p
 getParentId (AggWhat (AggregationDWhat _ (Just p) _) )  = findInstLabelId . unParentLabel $ p
 getParentId _                                 = return Nothing
@@ -394,23 +393,23 @@ toStorageEvent :: SB.EventId
 toStorageEvent (SB.EventId pKey) userId jsonEvent mEventId =
   SB.Event pKey (EvId.unEventId <$> mEventId) userId jsonEvent
 
-insertDWhat :: Maybe SB.PrimaryKeyType
+insertDWhat :: Maybe PrimaryKeyType
             -> DWhat
             -> SB.EventId
-            -> DB context err SB.PrimaryKeyType
+            -> DB context err PrimaryKeyType
 insertDWhat mBizTranId dwhat eventId = QU.withPKey $ \pKey ->  do
     mParentId <- getParentId dwhat
     pg $ B.runInsert $ B.insert (SB._whats SB.supplyChainDb)
           $ insertValues [toStorageDWhat pKey mParentId mBizTranId eventId dwhat]
 
 
-insertDWhen :: DWhen -> SB.EventId -> DB context err SB.PrimaryKeyType
+insertDWhen :: DWhen -> SB.EventId -> DB context err PrimaryKeyType
 insertDWhen dwhen eventId = QU.withPKey $ \pKey ->
   pg $ B.runInsert $ B.insert (SB._whens SB.supplyChainDb)
              $ insertValues [toStorageDWhen (SB.WhenId pKey) dwhen eventId]
 
 
-insertDWhy :: DWhy -> SB.EventId -> DB context err SB.PrimaryKeyType
+insertDWhy :: DWhy -> SB.EventId -> DB context err PrimaryKeyType
 insertDWhy dwhy eventId = QU.withPKey $ \pKey ->
   pg $ B.runInsert $ B.insert (SB._whys SB.supplyChainDb)
              $ insertValues [toStorageDWhy (SB.WhyId pKey) dwhy eventId]
@@ -418,7 +417,7 @@ insertDWhy dwhy eventId = QU.withPKey $ \pKey ->
 insertSrcDestType :: MU.LocationField
                   -> SB.EventId
                   -> SrcDestLocation
-                  -> DB context err SB.PrimaryKeyType
+                  -> DB context err PrimaryKeyType
 insertSrcDestType locField eventId
   (SrcDestLocation (sdType, SGLN pfix locationRef ext)) =
   QU.withPKey $ \pKey -> do
@@ -429,7 +428,7 @@ insertSrcDestType locField eventId
 insertLocationEPC :: MU.LocationField
                   -> SB.EventId
                   -> LocationEPC
-                  -> DB context err SB.PrimaryKeyType
+                  -> DB context err PrimaryKeyType
 insertLocationEPC locField eventId (SGLN pfix locationRef ext) =
   QU.withPKey $ \pKey -> do
     let stWhere = SB.Where pKey pfix Nothing locationRef locField ext eventId
@@ -511,7 +510,7 @@ insertUserEvent eventId userId addedByUserId signed signedHash =
 
 insertWhatLabel :: SB.WhatId
                 -> SB.LabelId
-                -> DB context err SB.PrimaryKeyType
+                -> DB context err PrimaryKeyType
 insertWhatLabel (SB.WhatId whatId) (SB.LabelId labelId) = QU.withPKey $ \pKey ->
   pg $ B.runInsert $ B.insert (SB._what_labels SB.supplyChainDb)
         $ insertValues
@@ -526,7 +525,7 @@ insertWhatLabel (SB.WhatId whatId) (SB.LabelId labelId) = QU.withPKey $ \pKey ->
 insertLabel :: Maybe MU.LabelType
             -> SB.WhatId
             -> LabelEPC
-            -> DB context err SB.PrimaryKeyType
+            -> DB context err PrimaryKeyType
 insertLabel labelType whatId labelEpc = QU.withPKey $ \pKey ->
   pg $ B.runInsert $ B.insert (SB._labels SB.supplyChainDb)
         $ insertValues
@@ -535,7 +534,7 @@ insertLabel labelType whatId labelEpc = QU.withPKey $ \pKey ->
 -- | Ties up a label and an event entry in the database
 insertLabelEvent :: SB.EventId
                  -> SB.LabelId
-                 -> DB context err SB.PrimaryKeyType
+                 -> DB context err PrimaryKeyType
 insertLabelEvent (SB.EventId eventId) (SB.LabelId labelId) = QU.withPKey $ \pKey ->
   pg $ B.runInsert $ B.insert (SB._label_events SB.supplyChainDb)
         $ insertValues
