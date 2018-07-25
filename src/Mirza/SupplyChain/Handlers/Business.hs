@@ -77,13 +77,13 @@ getPublicKeyInfoQuery (KeyID keyId) = do
   case r of
     [(SB.Key _ (SB.UserId uId) _  creationTime revocationTime mExpTime)] ->
        return $ ST.KeyInfo (ST.UserID uId)
-                (fromDbTimeStamp creationTime)
-                (fromDbTimeStamp <$> revocationTime)
+                (fromDbTimestamp creationTime)
+                (fromDbTimestamp <$> revocationTime)
                 (getKeyState currTime
-                    (fromDbTimeStamp <$> revocationTime)
-                    ((fromDbTimeStamp <$> mExpTime))
+                    (fromDbTimestamp <$> revocationTime)
+                    ((fromDbTimestamp <$> mExpTime))
                 )
-                (fromDbTimeStamp <$> mExpTime)
+                (fromDbTimestamp <$> mExpTime)
     _ -> throwing _InvalidKeyID . KeyID $ keyId
 
 
@@ -132,12 +132,12 @@ addPublicKeyQuery :: AsServiceError err => ST.User
                   -> DB context err KeyID
 addPublicKeyQuery (User (ST.UserID uid) _ _) expTime rsaPubKey = do
   keyId <- newUUID
-  timeStamp <- QU.generateTimestamp
+  timestamp <- QU.generateTimestamp
   keyStr <- liftIO $ writePublicKey rsaPubKey
   r <- pg $ runInsertReturningList (SB._keys SB.supplyChainDb) $
         insertValues
         [ SB.Key keyId (SB.UserId uid) (T.pack keyStr)
-            timeStamp Nothing ((utcToLocalTime utc) . unExpirationTime <$> expTime)
+            timestamp Nothing ((utcToLocalTime utc) . unExpirationTime <$> expTime)
         ]
   case r of
     [rowId] -> return (KeyID $ SB.key_id rowId)
@@ -160,12 +160,12 @@ revokePublicKeyQuery userId k@(KeyID keyId) = do
   unless userOwnsKey $ throwing_ _UnauthorisedKeyAccess
   keyRevoked <- isKeyRevoked k
   when keyRevoked $ throwing_ _KeyAlreadyRevoked
-  timeStamp <- QU.generateTimestamp
+  timestamp <- QU.generateTimestamp
   _r <- pg $ runUpdate $ update
                 (SB._keys SB.supplyChainDb)
-                (\key -> [SB.revocation_time key <-. val_ (Just timeStamp)])
+                (\key -> [SB.revocation_time key <-. val_ (Just timestamp)])
                 (\key -> SB.key_id key ==. (val_ keyId))
-  return $ localTimeToUTC utc timeStamp
+  return $ localTimeToUTC utc timestamp
 
 
 -- Helper functions

@@ -58,12 +58,12 @@ keyToKeyInfo :: UTCTime -> Key -> KeyInfoResponse
 keyToKeyInfo currTime (KeyT keyId keyUserId pemStr creation revocation expiration ) =
   (KeyInfoResponse (KeyID keyId) keyUserId
     (getKeyState
-      (fromDbTimeStamp <$> revocation)
-      (fromDbTimeStamp <$> expiration)
+      (fromDbTimestamp <$> revocation)
+      (fromDbTimestamp <$> expiration)
     )
-    (fromDbTimeStamp creation)
-    (fromDbTimeStamp <$> revocation)
-    (fromDbTimeStamp <$> expiration)
+    (fromDbTimestamp creation)
+    (fromDbTimestamp <$> revocation)
+    (fromDbTimestamp <$> expiration)
     (PEM_RSAPubKey pemStr)
   )
   where
@@ -124,11 +124,11 @@ addPublicKeyQuery :: AsKeyError err => AuthUser
 addPublicKeyQuery (AuthUser uid) expTime rsaPubKey = do
   keyStr <- liftIO $ pack <$> writePublicKey rsaPubKey
   keyId <- newUUID
-  timeStamp <- generateTimestamp
+  timestamp <- generateTimestamp
   ks <- pg $ runInsertReturningList (_keys businessRegistryDB) $
         insertValues
         [ KeyT keyId uid keyStr
-            timeStamp Nothing (toDbTimeStamp <$> expTime)
+            timestamp Nothing (toDbTimestamp <$> expTime)
         ]
   case ks of
     [rowId] -> return (KeyID $ key_id rowId)
@@ -155,12 +155,12 @@ revokePublicKeyQuery uId k@(KeyID keyId) = do
   unless userOwnsKey $ throwing_ _UnauthorisedKeyAccess
   keyRevoked <- isKeyRevokedQuery k
   when keyRevoked $ throwing_ _KeyAlreadyRevoked
-  timeStamp <- generateTimestamp
+  timestamp <- generateTimestamp
   _r <- pg $ runUpdate $ update
                 (_keys businessRegistryDB)
-                (\key -> [revocation_time key <-. val_ (Just timeStamp)])
+                (\key -> [revocation_time key <-. val_ (Just timestamp)])
                 (\key -> key_id key ==. (val_ keyId))
-  return $ localTimeToUTC utc timeStamp
+  return $ localTimeToUTC utc timestamp
 
 doesUserOwnKeyQuery :: AsKeyError err => UserID -> KeyID -> DB context err Bool
 doesUserOwnKeyQuery (UserId uId) (KeyID keyId) = do

@@ -6,7 +6,7 @@
 
 module Mirza.Common.TimeUtils (
     CreationTime(..), RevocationTime(..), ExpirationTime(..)
-  , DBTimeStamp, ModelTimeStamp, fromDbTimeStamp, toDbTimeStamp
+  , DBTimestamp, ModelTimestamp, fromDbTimestamp, toDbTimestamp
   ) where
 
 import           GHC.Generics        (Generic)
@@ -25,10 +25,10 @@ import           Data.Time.LocalTime (LocalTime, localTimeToUTC, utc,
                                       utcToLocalTime)
 
 
-class DBTimeStamp t where
-  toDbTimeStamp :: t -> LocalTime
-class ModelTimeStamp t where
-  fromDbTimeStamp :: LocalTime -> t
+class DBTimestamp t where
+  toDbTimestamp :: t -> LocalTime
+class ModelTimestamp t where
+  fromDbTimestamp :: LocalTime -> t
 
 -- | Reads back the ``LocalTime`` in UTCTime (with an offset of 0)
 -- And wraps it in a custom constructor (newtype wrappers around UTCTime)
@@ -49,10 +49,10 @@ instance ToSchema CreationTime
 instance ToParamSchema CreationTime
 deriving instance FromHttpApiData CreationTime
 deriving instance ToHttpApiData CreationTime
-instance DBTimeStamp CreationTime where
-  toDbTimeStamp (CreationTime t) = toLocalTime t
-instance ModelTimeStamp CreationTime where
-  fromDbTimeStamp = onLocalTime CreationTime
+instance DBTimestamp CreationTime where
+  toDbTimestamp (CreationTime t) = toLocalTime t
+instance ModelTimestamp CreationTime where
+  fromDbTimestamp = onLocalTime CreationTime
 
 
 newtype RevocationTime = RevocationTime {unRevocationTime :: UTCTime}
@@ -61,10 +61,10 @@ instance ToSchema RevocationTime
 instance ToParamSchema RevocationTime
 deriving instance FromHttpApiData RevocationTime
 deriving instance ToHttpApiData RevocationTime
-instance DBTimeStamp RevocationTime where
-  toDbTimeStamp (RevocationTime t) = toLocalTime t
-instance ModelTimeStamp RevocationTime where
-  fromDbTimeStamp = onLocalTime RevocationTime
+instance DBTimestamp RevocationTime where
+  toDbTimestamp (RevocationTime t) = toLocalTime t
+instance ModelTimestamp RevocationTime where
+  fromDbTimestamp = onLocalTime RevocationTime
 
 
 newtype ExpirationTime = ExpirationTime {unExpirationTime :: UTCTime}
@@ -73,7 +73,7 @@ instance ToSchema ExpirationTime
 instance ToParamSchema ExpirationTime
 deriving instance FromHttpApiData ExpirationTime
 deriving instance ToHttpApiData ExpirationTime
-instance DBTimeStamp ExpirationTime where
-  toDbTimeStamp (ExpirationTime t) = toLocalTime t
-instance ModelTimeStamp ExpirationTime where
-  fromDbTimeStamp = onLocalTime ExpirationTime
+instance DBTimestamp ExpirationTime where
+  toDbTimestamp (ExpirationTime t) = toLocalTime t
+instance ModelTimestamp ExpirationTime where
+  fromDbTimestamp = onLocalTime ExpirationTime
