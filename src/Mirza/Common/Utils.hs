@@ -18,11 +18,8 @@ import           GHC.Stack              (HasCallStack)
 
 import           Control.Monad.IO.Class (MonadIO, liftIO)
 
-import           Data.Time              (UTCTime, ZonedTime (..),
-                                         utcToZonedTime)
+import           Data.Time              (UTCTime, utcToZonedTime)
 import           Data.Time.Clock        (getCurrentTime)
-import           Data.Time.LocalTime    (LocalTime, localTimeToUTC, utc,
-                                         utcToLocalTime)
 
 -- | Converts anything to a ``Text``
 toText :: Show a => a -> T.Text
@@ -41,5 +38,5 @@ newUUID = liftIO nextRandom
 
 -- | Generates a timestamp in LocalTime + 0:00 offset
 -- which is a UTCTime
-generateTimestamp :: MonadIO m => m LocalTime
-generateTimestamp = utcToLocalTime utc <$> liftIO getCurrentTime
+generateTimestamp :: MonadIO m => m UTCTime
+generateTimestamp = liftIO getCurrentTime

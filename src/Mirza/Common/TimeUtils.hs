@@ -13,16 +13,11 @@ import           GHC.Generics        (Generic)
 import           Servant             (FromHttpApiData (..), ToHttpApiData (..))
 
 import           Data.Aeson
-import           Data.Aeson.TH
 import           Data.Swagger
-
-import           Data.Text           (Text)
 
 import           Data.Time           (LocalTime, UTCTime, ZonedTime (..),
                                       utcToZonedTime)
-import           Data.Time.Clock     (getCurrentTime)
-import           Data.Time.LocalTime (LocalTime, localTimeToUTC, utc,
-                                      utcToLocalTime)
+import           Data.Time.LocalTime (localTimeToUTC, utc, utcToLocalTime)
 
 
 class DBTimestamp t where
@@ -42,6 +37,10 @@ _toZonedTime = utcToZonedTime utc
 toLocalTime :: UTCTime -> LocalTime
 toLocalTime = utcToLocalTime utc
 
+instance DBTimestamp UTCTime where
+  toDbTimestamp = toLocalTime
+instance ModelTimestamp UTCTime where
+  fromDbTimestamp = onLocalTime id
 
 newtype CreationTime = CreationTime {unCreationTime :: UTCTime}
   deriving (Show, Eq, Generic, Read, FromJSON, ToJSON, Ord)

@@ -137,7 +137,7 @@ addPublicKeyQuery (User (ST.UserID uid) _ _) expTime rsaPubKey = do
   r <- pg $ runInsertReturningList (SB._keys SB.supplyChainDb) $
         insertValues
         [ SB.Key keyId (SB.UserId uid) (T.pack keyStr)
-            timestamp Nothing ((utcToLocalTime utc) . unExpirationTime <$> expTime)
+            (toDbTimestamp timestamp) Nothing ((utcToLocalTime utc) . unExpirationTime <$> expTime)
         ]
   case r of
     [rowId] -> return (KeyID $ SB.key_id rowId)
@@ -163,9 +163,9 @@ revokePublicKeyQuery userId k@(KeyID keyId) = do
   timestamp <- QU.generateTimestamp
   _r <- pg $ runUpdate $ update
                 (SB._keys SB.supplyChainDb)
-                (\key -> [SB.revocation_time key <-. val_ (Just timestamp)])
+                (\key -> [SB.revocation_time key <-. val_ (Just $ toDbTimestamp timestamp)])
                 (\key -> SB.key_id key ==. (val_ keyId))
-  return $ localTimeToUTC utc timestamp
+  return timestamp
 
 
 -- Helper functions
