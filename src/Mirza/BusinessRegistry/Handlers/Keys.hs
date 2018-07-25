@@ -21,6 +21,7 @@ import           Database.Beam.Backend.SQL.BeamExtensions
 import           Data.Text                                (pack, unpack)
 import           Data.Time.Clock                          (UTCTime,
                                                            getCurrentTime)
+import           Data.Time.LocalTime                      (localTimeToUTC, utc)
 
 import           OpenSSL.EVP.PKey                         (SomePublicKey,
                                                            toPublicKey)
@@ -127,7 +128,7 @@ addPublicKeyQuery (AuthUser uid) expTime rsaPubKey = do
   ks <- pg $ runInsertReturningList (_keys businessRegistryDB) $
         insertValues
         [ KeyT keyId uid keyStr
-            timeStamp Nothing (toLocalTime . unExpirationTime <$> expTime)
+            timeStamp Nothing (toDbTimeStamp <$> expTime)
         ]
   case ks of
     [rowId] -> return (KeyID $ key_id rowId)
@@ -159,7 +160,7 @@ revokePublicKeyQuery uId k@(KeyID keyId) = do
                 (_keys businessRegistryDB)
                 (\key -> [revocation_time key <-. val_ (Just timeStamp)])
                 (\key -> key_id key ==. (val_ keyId))
-  return $ onLocalTime id timeStamp
+  return $ localTimeToUTC utc timeStamp
 
 doesUserOwnKeyQuery :: AsKeyError err => UserID -> KeyID -> DB context err Bool
 doesUserOwnKeyQuery (UserId uId) (KeyID keyId) = do

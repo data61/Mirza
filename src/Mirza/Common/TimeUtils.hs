@@ -7,7 +7,6 @@
 module Mirza.Common.TimeUtils (
     CreationTime(..), RevocationTime(..), ExpirationTime(..)
   , DBTimeStamp, ModelTimeStamp, fromDbTimeStamp, toDbTimeStamp
-  , onLocalTime, toLocalTime, toZonedTime
   ) where
 
 import           GHC.Generics        (Generic)
@@ -37,8 +36,8 @@ onLocalTime :: (UTCTime -> t) -> LocalTime -> t
 onLocalTime c t = c (localTimeToUTC utc t)
 
 -- | Shorthand for type-casting UTCTime to LocalTime before storing them in DB
-toZonedTime :: UTCTime -> ZonedTime
-toZonedTime = utcToZonedTime utc
+_toZonedTime :: UTCTime -> ZonedTime
+_toZonedTime = utcToZonedTime utc
 
 toLocalTime :: UTCTime -> LocalTime
 toLocalTime = utcToLocalTime utc
