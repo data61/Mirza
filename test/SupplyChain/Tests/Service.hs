@@ -32,8 +32,7 @@ import           Data.Text.Encoding                           (encodeUtf8)
 
 import           Data.Time.Clock                              (addUTCTime,
                                                                getCurrentTime)
-import           Data.Time.LocalTime                          (LocalTime, utc,
-                                                               utcToLocalTime)
+
 import           Database.Beam
 import           Database.PostgreSQL.Simple                   (connectPostgreSQL,
                                                                execute_)
@@ -42,9 +41,6 @@ import           Servant
 import           Test.Hspec
 
 import qualified Crypto.Scrypt                                as Scrypt
-
-timestampIO :: MonadIO m => m LocalTime
-timestampIO = liftIO $ (utcToLocalTime utc) <$> getCurrentTime
 
 rsaPubKey :: IO PEM_RSAPubKey
 rsaPubKey = PEMString <$> Prelude.readFile "./test/SupplyChain/Tests/testKeys/goodKeys/test.pub"
@@ -60,14 +56,14 @@ testServiceQueries = do
   describe "addPublicKey tests" $
     it "addPublicKey test 1" $ \scsContext -> do
       pubKey <- rsaPubKey
-      tStart <- timestampIO
+      tStart <- generateTimestamp
       res <- testAppM scsContext $ do
         uid <- newUser dummyNewUser
         storageUser <- runDb $ getUserById uid
         let user = userTableToModel . fromJust $ storageUser
         let (PEMString keyStr) = pubKey
         keyId <- addPublicKey user pubKey Nothing
-        tEnd <- timestampIO
+        tEnd <- generateTimestamp
         insertedKey <- getPublicKey keyId
         storageKey <- runDb $ getKeyById keyId
         pure (storageKey, keyStr, keyId, uid, tEnd, insertedKey)
@@ -79,8 +75,8 @@ testServiceQueries = do
               T.unpack (SB.pem_str k) == keyStr &&
               (SB.key_id k) == keyId &&
               (SB.key_user_id k) == (SB.UserId uid) &&
-              (SB.creation_time k) > tStart &&
-              (SB.creation_time k) < tEnd &&
+              (SB.creation_time k) > (toDbTimestamp tStart) &&
+              (SB.creation_time k) < (toDbTimestamp tEnd) &&
               isNothing (SB.revocation_time k)
             )
           insertedKey `shouldBe` pubKey
@@ -99,8 +95,8 @@ testServiceQueries = do
       keyInfo `shouldSatisfy`
         (\ki ->
           (keyInfoUserId ki == uid) &&
-          ((unCreationTime . creationTime $ ki) > tStart &&
-           (unCreationTime . creationTime $ ki) < tEnd) &&
+          ((creationTime ki) > (CreationTime tStart) &&
+           (creationTime ki) < (CreationTime tEnd)) &&
           isNothing (revocationTime ki)
         )
 
