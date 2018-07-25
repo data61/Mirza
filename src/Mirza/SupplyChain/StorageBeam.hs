@@ -440,7 +440,7 @@ data SignatureT f = Signature
   , signature_key_id    :: PrimaryKey KeyT f
   , signature_signature :: C f ByteString
   , signature_digest    :: C f ByteString
-  , signature_timestamp :: C f LocalTime -- UTCTime
+  , signature_timestamp :: C f LocalTime -- Stored as UTC Time
   }
   deriving Generic
 
