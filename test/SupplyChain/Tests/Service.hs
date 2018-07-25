@@ -12,7 +12,7 @@ module SupplyChain.Tests.Service
 import           SupplyChain.Tests.Common
 import           SupplyChain.Tests.Dummies
 
-import           Mirza.Common.TimeUtils
+import           Mirza.Common.Time
 import           Mirza.SupplyChain.Auth
 import           Mirza.SupplyChain.Handlers.Business
 import           Mirza.SupplyChain.Handlers.Contacts

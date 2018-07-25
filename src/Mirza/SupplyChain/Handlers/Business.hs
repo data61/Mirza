@@ -14,7 +14,7 @@ module Mirza.SupplyChain.Handlers.Business
 
 import           Mirza.SupplyChain.Handlers.Common
 
-import           Mirza.Common.TimeUtils
+import           Mirza.Common.Time
 import           Mirza.Common.Utils
 import qualified Mirza.SupplyChain.QueryUtils             as QU
 import qualified Mirza.SupplyChain.StorageBeam            as SB

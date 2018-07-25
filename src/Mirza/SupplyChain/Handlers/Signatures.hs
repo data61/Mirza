@@ -9,7 +9,7 @@ module Mirza.SupplyChain.Handlers.Signatures
 
 
 
-import           Mirza.Common.TimeUtils
+import           Mirza.Common.Time
 import           Mirza.Common.Utils
 import           Mirza.SupplyChain.Handlers.Common
 import           Mirza.SupplyChain.Handlers.EventRegistration (hasUserCreatedEvent,

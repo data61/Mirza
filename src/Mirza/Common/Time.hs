@@ -4,8 +4,8 @@
 {-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE StandaloneDeriving         #-}
 
-module Mirza.Common.TimeUtils (
-    CreationTime(..), RevocationTime(..), ExpirationTime(..)
+module Mirza.Common.Time
+  ( CreationTime(..), RevocationTime(..), ExpirationTime(..)
   , DBTimestamp, ModelTimestamp, fromDbTimestamp, toDbTimestamp
   ) where
 

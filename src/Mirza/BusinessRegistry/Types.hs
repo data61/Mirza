@@ -7,7 +7,7 @@ module Mirza.BusinessRegistry.Types where
 
 
 
-import           Mirza.Common.TimeUtils                 (CreationTime,
+import           Mirza.Common.Time                      (CreationTime,
                                                          ExpirationTime,
                                                          RevocationTime)
 import           Mirza.Common.Types

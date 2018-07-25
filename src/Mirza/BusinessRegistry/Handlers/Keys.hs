@@ -11,7 +11,7 @@ module Mirza.BusinessRegistry.Handlers.Keys
 import           Mirza.BusinessRegistry.Database.Schema
 import           Mirza.BusinessRegistry.Handlers.Common
 import           Mirza.BusinessRegistry.Types             as BT
-import           Mirza.Common.TimeUtils
+import           Mirza.Common.Time
 import           Mirza.Common.Types
 import           Mirza.Common.Utils
 
