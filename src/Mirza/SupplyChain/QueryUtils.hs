@@ -10,7 +10,7 @@
 module Mirza.SupplyChain.QueryUtils
   (
     storageToModelBusiness , storageToModelEvent, userTableToModel
-  , onLocalTime , epcisTimeToLocalTime, toZonedTime, generateTimestamp
+  , epcisTimeToLocalTime, generateTimestamp
   , encodeEvent, decodeEvent
   , eventTxtToBS
   , handleError

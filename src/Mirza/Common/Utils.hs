@@ -6,9 +6,6 @@ module Mirza.Common.Utils
     toText
   , notImplemented
   , newUUID
-  , onLocalTime
-  , toZonedTime
-  , toLocalTime
   , generateTimestamp
   ) where
 
@@ -41,20 +38,6 @@ notImplemented = error "FIXME"
 -- is retried a new UUID will be generated.
 newUUID :: MonadIO m => m UUID
 newUUID = liftIO nextRandom
-
-
-
--- | Reads back the ``LocalTime`` in UTCTime (with an offset of 0)
--- And wraps it in a custom constructor (newtype wrappers around UTCTime)
-onLocalTime :: (UTCTime -> t) -> LocalTime -> t
-onLocalTime c t = c (localTimeToUTC utc t)
-
--- | Shorthand for type-casting UTCTime to LocalTime before storing them in DB
-toZonedTime :: UTCTime -> ZonedTime
-toZonedTime = utcToZonedTime utc
-
-toLocalTime :: UTCTime -> LocalTime
-toLocalTime = utcToLocalTime utc
 
 -- | Generates a timestamp in LocalTime + 0:00 offset
 -- which is a UTCTime
