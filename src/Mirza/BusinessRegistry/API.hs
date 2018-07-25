@@ -53,4 +53,4 @@ type PublicAPI =
 type PrivateAPI =
 -- Business
        "key"      :> "add" :> ReqBody '[JSON] PEM_RSAPubKey :> QueryParam "expirationTime" ExpirationTime :> Post '[JSON] KeyID
-  :<|> "key"      :> "revoke"              :> Capture "keyID" KeyID               :> Post '[JSON] UTCTime
+  :<|> "key"      :> "revoke"              :> Capture "keyID" KeyID               :> Post '[JSON] RevocationTime
