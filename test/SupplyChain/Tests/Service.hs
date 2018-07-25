@@ -43,8 +43,8 @@ import           Test.Hspec
 
 import qualified Crypto.Scrypt                                as Scrypt
 
-timeStampIO :: MonadIO m => m LocalTime
-timeStampIO = liftIO $ (utcToLocalTime utc) <$> getCurrentTime
+timestampIO :: MonadIO m => m LocalTime
+timestampIO = liftIO $ (utcToLocalTime utc) <$> getCurrentTime
 
 rsaPubKey :: IO PEM_RSAPubKey
 rsaPubKey = PEMString <$> Prelude.readFile "./test/SupplyChain/Tests/testKeys/goodKeys/test.pub"
@@ -60,14 +60,14 @@ testServiceQueries = do
   describe "addPublicKey tests" $
     it "addPublicKey test 1" $ \scsContext -> do
       pubKey <- rsaPubKey
-      tStart <- timeStampIO
+      tStart <- timestampIO
       res <- testAppM scsContext $ do
         uid <- newUser dummyNewUser
         storageUser <- runDb $ getUserById uid
         let user = userTableToModel . fromJust $ storageUser
         let (PEMString keyStr) = pubKey
         keyId <- addPublicKey user pubKey Nothing
-        tEnd <- timeStampIO
+        tEnd <- timestampIO
         insertedKey <- getPublicKey keyId
         storageKey <- runDb $ getKeyById keyId
         pure (storageKey, keyStr, keyId, uid, tEnd, insertedKey)
