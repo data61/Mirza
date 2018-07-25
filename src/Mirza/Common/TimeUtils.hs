@@ -27,6 +27,8 @@ class ModelTimestamp t where
 
 -- | Reads back the ``LocalTime`` in UTCTime (with an offset of 0)
 -- And wraps it in a custom constructor (newtype wrappers around UTCTime)
+-- This utility function is primarily used to implement
+-- the method(s) of ModelTimestamp
 onLocalTime :: (UTCTime -> t) -> LocalTime -> t
 onLocalTime c t = c (localTimeToUTC utc t)
 
