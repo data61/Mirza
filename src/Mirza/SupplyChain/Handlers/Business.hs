@@ -1,5 +1,6 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 
+-- | This file is a duplicate of BusinessRegistry.Keys, and should be deleted
 module Mirza.SupplyChain.Handlers.Business
   (
     getPublicKey, getPublicKeyInfo
@@ -9,8 +10,6 @@ module Mirza.SupplyChain.Handlers.Business
   , listBusinesses
   , getKeyById
   ) where
-
-
 
 import           Mirza.SupplyChain.Handlers.Common
 
@@ -41,9 +40,6 @@ import           Data.Time.Clock                          (UTCTime,
                                                            getCurrentTime)
 import           Data.Time.LocalTime                      (localTimeToUTC, utc,
                                                            utcToLocalTime)
-
-
-
 
 minPubKeySize :: Bit
 minPubKeySize = Bit 2048 -- 256 Bytes

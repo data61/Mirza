@@ -59,13 +59,18 @@ instance Table UserT where
   primaryKey = UserId . user_id
 deriving instance Eq (PrimaryKey UserT Identity)
 
+-- The types are not ``UTCTime`` because beam does not support UTCTime
+-- See this discussion for details:
+-- https://groups.google.com/forum/#!topic/beam-discussion/DcC0yik7Pxc
+-- However, all times are converted to UTCTime using methods from typeclasses
+-- defined in Mirza.Common.Time
 data KeyT f = Key
   { key_id          :: C f PrimaryKeyType
   , key_user_id     :: PrimaryKey UserT f
   , pem_str         :: C f Text
-  , creation_time   :: C f LocalTime -- UTCTime
-  , revocation_time :: C f (Maybe LocalTime) -- UTCTime
-  , expiration_time :: C f (Maybe LocalTime) -- UTCTime
+  , creation_time   :: C f LocalTime -- Stored as UTC Time
+  , revocation_time :: C f (Maybe LocalTime) -- Stored as UTC Time
+  , expiration_time :: C f (Maybe LocalTime) -- Stored as UTC Time
   }
   deriving Generic
 type Key = KeyT Identity
@@ -365,10 +370,12 @@ instance Table WhereT where
 
 type TzOffsetString = Text
 
+-- EPCISTime is stored as LocalTime with utc timezone.
+-- See Mirza.Common.Time for details on how it is done
 data WhenT f = When
   { when_id       :: C f PrimaryKeyType
-  , event_time    :: C f LocalTime
-  , record_time   :: C f (Maybe LocalTime)
+  , event_time    :: C f LocalTime -- Stored as EPCISTime
+  , record_time   :: C f (Maybe LocalTime) -- Stored as EPCISTime
   , time_zone     :: C f TzOffsetString -- TimeZone
   , when_event_id :: PrimaryKey EventT f }
   deriving Generic
