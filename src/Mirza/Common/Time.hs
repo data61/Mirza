@@ -46,10 +46,22 @@ onLocalTime c t = c (localTimeToUTC utc t)
 toLocalTime :: UTCTime -> LocalTime
 toLocalTime = utcToLocalTime utc
 
+-- | Shortcut to generate timestamp in AppM
+generateTimestamp :: MonadIO m => m UTCTime
+generateTimestamp = liftIO getCurrentTime
+
+
 instance DBTimestamp UTCTime where
   toDbTimestamp = toLocalTime
 instance ModelTimestamp UTCTime where
   fromDbTimestamp = onLocalTime id
+
+
+instance DBTimestamp EPCISTime where
+  toDbTimestamp (EPCISTime t) = toLocalTime t
+instance ModelTimestamp EPCISTime where
+  fromDbTimestamp = onLocalTime EPCISTime
+
 
 newtype CreationTime = CreationTime {unCreationTime :: UTCTime}
   deriving (Show, Eq, Generic, Read, FromJSON, ToJSON, Ord)
