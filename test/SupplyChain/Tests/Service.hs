@@ -12,14 +12,12 @@ module SupplyChain.Tests.Service
 import           SupplyChain.Tests.Common
 import           SupplyChain.Tests.Dummies
 
--- import qualified Data.GS1.EventId                             as EvId
-
+import           Mirza.Common.TimeUtils
 import           Mirza.SupplyChain.Auth
 import           Mirza.SupplyChain.Handlers.Business
 import           Mirza.SupplyChain.Handlers.Contacts
 import           Mirza.SupplyChain.Handlers.EventRegistration
 import           Mirza.SupplyChain.Handlers.Queries
--- import           Mirza.SupplyChain.Handlers.Signatures
 import           Mirza.SupplyChain.Handlers.Users
 import qualified Mirza.SupplyChain.StorageBeam                as SB
 import           Mirza.SupplyChain.Types
