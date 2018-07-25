@@ -15,10 +15,10 @@
 -- in MigrateScript
 module Mirza.SupplyChain.StorageBeam where
 
-import qualified Mirza.Common.GS1BeamOrphans as MU
-
 import qualified Data.GS1.EPC                as EPC
 import qualified Data.GS1.Event              as Ev
+import qualified Mirza.Common.GS1BeamOrphans as MU
+import           Mirza.Common.Types          (PrimaryKeyType)
 
 import           Control.Lens
 import           Data.Aeson                  (FromJSON, ToJSON)
@@ -27,12 +27,10 @@ import           Data.Swagger                (ToSchema)
 import           Data.Text                   (Text)
 
 import           Data.Time                   (LocalTime)
-import           Data.UUID                   (UUID)
 
 import           Database.Beam               as B
 import           Database.Beam.Postgres
 
-type PrimaryKeyType = UUID
 
 data UserT f = User
   { user_id       :: C f PrimaryKeyType
@@ -428,12 +426,12 @@ instance Table UserEventT where
 
 
 data SignatureT f = Signature
-  { signature_id         :: C f PrimaryKeyType
-  , signature_event_id   :: PrimaryKey EventT f
-  , signature_key_id     :: PrimaryKey KeyT f
-  , signature_signature  :: C f ByteString
-  , signature_digest     :: C f ByteString
-  , signature_timestamp  :: C f LocalTime -- UTCTime
+  { signature_id        :: C f PrimaryKeyType
+  , signature_event_id  :: PrimaryKey EventT f
+  , signature_key_id    :: PrimaryKey KeyT f
+  , signature_signature :: C f ByteString
+  , signature_digest    :: C f ByteString
+  , signature_timestamp :: C f LocalTime -- UTCTime
   }
   deriving Generic
 

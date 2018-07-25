@@ -30,29 +30,30 @@ module Mirza.Common.Types
   , throwing_
   , MonadIO
   , liftIO
+  , PrimaryKeyType
   ) where
 
-import qualified Database.Beam                 as B
-import           Database.Beam.Postgres        (Pg)
-import           Database.PostgreSQL.Simple    (Connection, SqlError)
-import qualified Database.PostgreSQL.Simple    as DB
+import qualified Database.Beam              as B
+import           Database.Beam.Postgres     (Pg)
+import           Database.PostgreSQL.Simple (Connection, SqlError)
+import qualified Database.PostgreSQL.Simple as DB
 
-import qualified Control.Exception             as Exc
-import           Control.Monad.Except          (ExceptT (..), MonadError,
-                                                runExceptT, throwError)
-import           Control.Monad.IO.Class        (MonadIO, liftIO)
-import           Control.Monad.Reader          (MonadReader, ReaderT, ask, asks,
-                                                local, runReaderT)
-import           Control.Monad.Trans           (lift)
+import qualified Control.Exception          as Exc
+import           Control.Monad.Except       (ExceptT (..), MonadError,
+                                             runExceptT, throwError)
+import           Control.Monad.IO.Class     (MonadIO, liftIO)
+import           Control.Monad.Reader       (MonadReader, ReaderT, ask, asks,
+                                             local, runReaderT)
+import           Control.Monad.Trans        (lift)
 
-import qualified Control.Exception             as E
+import qualified Control.Exception          as E
 
-import           Data.Pool                     as Pool
+import           Data.Pool                  as Pool
 
-import           Crypto.Scrypt                 (ScryptParams)
+import           Crypto.Scrypt              (ScryptParams)
 
-import qualified Data.ByteString               as BS
-import           Data.Text                     (Text)
+import qualified Data.ByteString            as BS
+import           Data.Text                  (Text)
 
 import           Data.Aeson
 import           Data.Aeson.TH
@@ -60,15 +61,17 @@ import           Data.Aeson.TH
 import           Control.Lens
 import           Control.Monad.Error.Lens
 
-import           Data.GS1.EPC                  as EPC
+import           Data.GS1.EPC               as EPC
 import           Data.Swagger
-import           GHC.Generics                  (Generic)
-import           Katip                         as K
-import           Katip.Monadic                 (askLoggerIO)
-import qualified Mirza.SupplyChain.StorageBeam as SB
-import           Servant                       (FromHttpApiData (..),
-                                                ToHttpApiData (..))
+import           GHC.Generics               (Generic)
+import           Katip                      as K
+import           Katip.Monadic              (askLoggerIO)
+import           Servant                    (FromHttpApiData (..),
+                                             ToHttpApiData (..))
 
+import           Data.UUID                  (UUID)
+
+type PrimaryKeyType = UUID
 
 
 -- *****************************************************************************
@@ -77,7 +80,7 @@ import           Servant                       (FromHttpApiData (..),
 
 -- TODO: Handwrite these instances to comply with their defined syntax
 -- For example, emails have their own format, as do LabelEPCUrn
-newtype UserID = UserID {unUserID :: SB.PrimaryKeyType}
+newtype UserID = UserID {unUserID :: PrimaryKeyType}
   deriving (Show, Eq, Generic, Read, FromJSON, ToJSON)
 instance ToSchema UserID
 instance ToParamSchema UserID
@@ -121,7 +124,7 @@ instance ToSchema NewUser
 
 
 
-newtype KeyID = KeyID {unKeyID :: SB.PrimaryKeyType}
+newtype KeyID = KeyID {unKeyID :: PrimaryKeyType}
   deriving (Show, Eq, Generic, Read, FromJSON, ToJSON)
 instance ToSchema KeyID
 instance ToParamSchema KeyID

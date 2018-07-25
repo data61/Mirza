@@ -60,7 +60,7 @@ handleError = flip catchError
 --   insertFoo arg = withPKey $ \pKey -> do
 --     runDb ... pKey ...
 -- @
-withPKey :: MonadIO m => (SB.PrimaryKeyType -> m a) -> m SB.PrimaryKeyType
+withPKey :: MonadIO m => (PrimaryKeyType -> m a) -> m PrimaryKeyType
 withPKey f = do
   pKey <- newUUID
   _ <- f pKey
