@@ -39,7 +39,8 @@ import qualified Data.Text                                as T
 
 import           Data.Time.Clock                          (UTCTime,
                                                            getCurrentTime)
-import           Data.Time.LocalTime                      (utc, utcToLocalTime)
+import           Data.Time.LocalTime                      (localTimeToUTC, utc,
+                                                           utcToLocalTime)
 
 
 
@@ -164,8 +165,7 @@ revokePublicKeyQuery userId k@(KeyID keyId) = do
                 (SB._keys SB.supplyChainDb)
                 (\key -> [SB.revocation_time key <-. val_ (Just timeStamp)])
                 (\key -> SB.key_id key ==. (val_ keyId))
-  return $ onLocalTime id timeStamp
-
+  return $ localTimeToUTC utc timeStamp
 
 
 -- Helper functions
