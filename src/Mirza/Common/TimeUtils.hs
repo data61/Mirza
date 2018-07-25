@@ -15,8 +15,7 @@ import           Servant             (FromHttpApiData (..), ToHttpApiData (..))
 import           Data.Aeson
 import           Data.Swagger
 
-import           Data.Time           (LocalTime, UTCTime, ZonedTime (..),
-                                      utcToZonedTime)
+import           Data.Time           (LocalTime, UTCTime)
 import           Data.Time.LocalTime (localTimeToUTC, utc, utcToLocalTime)
 
 
@@ -31,10 +30,6 @@ class ModelTimestamp t where
 -- the method(s) of ModelTimestamp
 onLocalTime :: (UTCTime -> t) -> LocalTime -> t
 onLocalTime c t = c (localTimeToUTC utc t)
-
--- | Shorthand for type-casting UTCTime to LocalTime before storing them in DB
-_toZonedTime :: UTCTime -> ZonedTime
-_toZonedTime = utcToZonedTime utc
 
 toLocalTime :: UTCTime -> LocalTime
 toLocalTime = utcToLocalTime utc
