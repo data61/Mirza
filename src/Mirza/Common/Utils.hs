@@ -6,7 +6,6 @@ module Mirza.Common.Utils
     toText
   , notImplemented
   , newUUID
-  , generateTimestamp
   ) where
 
 
@@ -32,8 +31,3 @@ notImplemented = error "FIXME"
 -- is retried a new UUID will be generated.
 newUUID :: MonadIO m => m UUID
 newUUID = liftIO nextRandom
-
--- | Generates a timestamp in LocalTime + 0:00 offset
--- which is a UTCTime
-generateTimestamp :: MonadIO m => m UTCTime
-generateTimestamp = liftIO getCurrentTime

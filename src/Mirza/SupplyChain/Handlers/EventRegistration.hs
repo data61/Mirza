@@ -16,10 +16,10 @@ module Mirza.SupplyChain.Handlers.EventRegistration
   , insertDWhere, findDWhere
   ) where
 
-import           Mirza.SupplyChain.Handlers.Common
-
 import qualified Mirza.Common.GS1BeamOrphans       as MU
+import           Mirza.Common.Time                 (toDbTimestamp)
 import           Mirza.SupplyChain.ErrorUtils      (throwBackendError)
+import           Mirza.SupplyChain.Handlers.Common
 import qualified Mirza.SupplyChain.StorageBeam     as SB
 import           Mirza.SupplyChain.Types           hiding (Business (..),
                                                     User (..))
@@ -378,8 +378,8 @@ toStorageDWhen :: SB.WhenId
                -> SB.When
 toStorageDWhen (SB.WhenId pKey) (DWhen eventTime mRecordTime tZone) =
   SB.When pKey
-    (QU.epcisTimeToLocalTime eventTime)
-    (QU.epcisTimeToLocalTime <$> mRecordTime)
+    (toDbTimestamp eventTime)
+    (toDbTimestamp <$> mRecordTime)
     (T.pack . timeZoneOffsetString $ tZone)
 
 toStorageDWhy :: SB.WhyId -> DWhy -> SB.EventId -> SB.Why

@@ -435,12 +435,12 @@ instance Table UserEventT where
 
 
 data SignatureT f = Signature
-  { signature_id         :: C f PrimaryKeyType
-  , signature_event_id   :: PrimaryKey EventT f
-  , signature_key_id     :: PrimaryKey KeyT f
-  , signature_signature  :: C f ByteString
-  , signature_digest     :: C f ByteString
-  , signature_timestamp  :: C f LocalTime -- UTCTime
+  { signature_id        :: C f PrimaryKeyType
+  , signature_event_id  :: PrimaryKey EventT f
+  , signature_key_id    :: PrimaryKey KeyT f
+  , signature_signature :: C f ByteString
+  , signature_digest    :: C f ByteString
+  , signature_timestamp :: C f LocalTime -- UTCTime
   }
   deriving Generic
 
