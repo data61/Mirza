@@ -11,9 +11,7 @@ module Mirza.BusinessRegistry.Handlers.Keys
 import           Mirza.BusinessRegistry.Database.Schema
 import           Mirza.BusinessRegistry.Handlers.Common
 import           Mirza.BusinessRegistry.Types             as BT
-import           Mirza.Common.TimeUtils                   (CreationTime (..),
-                                                           ExpirationTime (..),
-                                                           RevocationTime (..))
+import           Mirza.Common.TimeUtils
 import           Mirza.Common.Types
 import           Mirza.Common.Utils
 
@@ -59,12 +57,12 @@ keyToKeyInfo :: UTCTime -> Key -> KeyInfoResponse
 keyToKeyInfo currTime (KeyT keyId keyUserId pemStr creation revocation expiration ) =
   (KeyInfoResponse (KeyID keyId) keyUserId
     (getKeyState
-      (onLocalTime RevocationTime <$> revocation)
-      (onLocalTime ExpirationTime <$> expiration)
+      (fromDbTimeStamp <$> revocation)
+      (fromDbTimeStamp <$> expiration)
     )
-    (onLocalTime CreationTime creation)
-    (onLocalTime RevocationTime <$> revocation)
-    (onLocalTime ExpirationTime <$> expiration)
+    (fromDbTimeStamp creation)
+    (fromDbTimeStamp <$> revocation)
+    (fromDbTimeStamp <$> expiration)
     (PEM_RSAPubKey pemStr)
   )
   where
@@ -84,8 +82,6 @@ keyToKeyInfo currTime (KeyT keyId keyUserId pemStr creation revocation expiratio
       | currTime >= rTime = Revoked
       | otherwise        = InEffect
     getKeyState Nothing Nothing = InEffect
-
-
 
 
 getPublicKeyInfoQuery :: BRApp context err => KeyID -> DB context err (Maybe Key)

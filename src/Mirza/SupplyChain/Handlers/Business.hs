@@ -14,6 +14,7 @@ module Mirza.SupplyChain.Handlers.Business
 
 import           Mirza.SupplyChain.Handlers.Common
 
+import           Mirza.Common.TimeUtils
 import           Mirza.Common.Utils
 import qualified Mirza.SupplyChain.QueryUtils             as QU
 import qualified Mirza.SupplyChain.StorageBeam            as SB
@@ -75,13 +76,13 @@ getPublicKeyInfoQuery (KeyID keyId) = do
   case r of
     [(SB.Key _ (SB.UserId uId) _  creationTime revocationTime mExpTime)] ->
        return $ ST.KeyInfo (ST.UserID uId)
-                (QU.onLocalTime CreationTime creationTime)
-                (QU.onLocalTime RevocationTime <$> revocationTime)
+                (fromDbTimeStamp creationTime)
+                (fromDbTimeStamp <$> revocationTime)
                 (getKeyState currTime
-                    (QU.onLocalTime RevocationTime <$> revocationTime)
-                    ((QU.onLocalTime ExpirationTime <$> mExpTime))
+                    (fromDbTimeStamp <$> revocationTime)
+                    ((fromDbTimeStamp <$> mExpTime))
                 )
-                (QU.onLocalTime ExpirationTime <$> mExpTime)
+                (fromDbTimeStamp <$> mExpTime)
     _ -> throwing _InvalidKeyID . KeyID $ keyId
 
 
@@ -163,7 +164,7 @@ revokePublicKeyQuery userId k@(KeyID keyId) = do
                 (SB._keys SB.supplyChainDb)
                 (\key -> [SB.revocation_time key <-. val_ (Just timeStamp)])
                 (\key -> SB.key_id key ==. (val_ keyId))
-  return $ QU.onLocalTime id timeStamp
+  return $ onLocalTime id timeStamp
 
 
 
@@ -192,18 +193,18 @@ getKeyById (ST.KeyID keyId) = do
 
 
 getKeyState :: UTCTime
-            -> Maybe ST.RevocationTime
-            -> Maybe ST.ExpirationTime
+            -> Maybe RevocationTime
+            -> Maybe ExpirationTime
             -> ST.KeyState
 -- order of precedence - Revoked > Expired
-getKeyState currTime (Just (ST.RevocationTime rTime)) (Just (ST.ExpirationTime eTime))
+getKeyState currTime (Just (RevocationTime rTime)) (Just (ExpirationTime eTime))
   | currTime > rTime = ST.Revoked
   | currTime > eTime = ST.Expired
   | otherwise        = ST.InEffect
-getKeyState currTime Nothing (Just (ST.ExpirationTime eTime))
+getKeyState currTime Nothing (Just (ExpirationTime eTime))
   | currTime > eTime = ST.Expired
   | otherwise        = ST.InEffect
-getKeyState currTime (Just (ST.RevocationTime rTime)) Nothing
+getKeyState currTime (Just (RevocationTime rTime)) Nothing
   | currTime > rTime = ST.Revoked
   | otherwise        = ST.InEffect
 getKeyState _ Nothing Nothing = ST.InEffect
