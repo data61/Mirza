@@ -13,7 +13,7 @@ module Mirza.SupplyChain.Types
   )
   where
 
-import           Mirza.Common.TimeUtils
+import           Mirza.Common.Time
 import           Mirza.Common.Types            as Common
 import           Mirza.SupplyChain.StorageBeam (PrimaryKeyType)
 
