@@ -34,6 +34,7 @@ library
                     , Mirza.Common.GS1BeamOrphans
                     , Mirza.Common.Types
                     , Mirza.Common.Utils
+                    , Mirza.Common.Time
                     , Mirza.SupplyChain.API
                     , Mirza.SupplyChain.Auth
                     , Mirza.SupplyChain.Client.Servant

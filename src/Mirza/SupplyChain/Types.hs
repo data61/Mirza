@@ -13,6 +13,7 @@ module Mirza.SupplyChain.Types
   )
   where
 
+import           Mirza.Common.Time
 import           Mirza.Common.Types         as Common
 
 import           Data.GS1.DWhat

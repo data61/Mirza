@@ -12,6 +12,7 @@ module Mirza.SupplyChain.Tests.Service
 import           Mirza.SupplyChain.Tests.Dummies
 import           Mirza.SupplyChain.Tests.Settings
 
+import           Mirza.Common.Time
 import           Mirza.SupplyChain.Auth
 import           Mirza.SupplyChain.Handlers.Contacts
 import           Mirza.SupplyChain.Handlers.EventRegistration

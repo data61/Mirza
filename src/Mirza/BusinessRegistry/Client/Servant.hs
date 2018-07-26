@@ -11,6 +11,7 @@ module Mirza.BusinessRegistry.Client.Servant
 
 import           Mirza.BusinessRegistry.API
 import           Mirza.BusinessRegistry.Types  as BRT
+import           Mirza.Common.Time             (ExpirationTime, RevocationTime)
 import           Mirza.Common.Types            (KeyID)
 import qualified Mirza.SupplyChain.StorageBeam as SB
 
@@ -30,7 +31,7 @@ getKeyInfo   :: KeyID -> ClientM KeyInfoResponse
 businessList :: ClientM [BusinessResponse]
 
 addPublicKey        :: BasicAuthData -> PEM_RSAPubKey -> Maybe ExpirationTime -> ClientM KeyID
-revokePublicKey     :: BasicAuthData -> KeyID -> ClientM UTCTime
+revokePublicKey     :: BasicAuthData -> KeyID -> ClientM RevocationTime
 
 _api     :: Client ClientM ServerAPI
 _privAPI :: Client ClientM ProtectedAPI

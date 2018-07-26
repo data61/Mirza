@@ -184,13 +184,18 @@ deriving instance Eq (PrimaryKey BusinessT Identity)
 type Key = KeyT Identity
 deriving instance Show Key
 
+-- The types are not ``UTCTime`` because beam does not support UTCTime
+-- See this discussion for details:
+-- https://groups.google.com/forum/#!topic/beam-discussion/DcC0yik7Pxc
+-- However, all times are converted to UTCTime using methods from typeclasses
+-- defined in Mirza.Common.Time
 data KeyT f = KeyT
   { key_id          :: C f PrimaryKeyType
   , key_user_id     :: PrimaryKey UserT f    -- TODO: We should record the business that is associated with the key...not sure if there is any need to store the user...
   , pem_str         :: C f Text
-  , creation_time   :: C f LocalTime -- UTCTime
-  , revocation_time :: C f (Maybe LocalTime) -- UTCTime
-  , expiration_time :: C f (Maybe LocalTime) -- UTCTime
+  , creation_time   :: C f LocalTime -- Stored as UTC Time
+  , revocation_time :: C f (Maybe LocalTime) -- Stored as UTC Time
+  , expiration_time :: C f (Maybe LocalTime) -- Stored as UTC Time
   }
   deriving Generic
 
