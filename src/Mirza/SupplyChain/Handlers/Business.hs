@@ -1,5 +1,6 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 
+-- | This file is a duplicate of BusinessRegistry.Keys, and should be deleted
 module Mirza.SupplyChain.Handlers.Business
   (
     getPublicKey, getPublicKeyInfo
@@ -10,11 +11,10 @@ module Mirza.SupplyChain.Handlers.Business
   , getKeyById
   ) where
 
-
-
 import           Mirza.SupplyChain.Handlers.Common
 
 import           Mirza.BusinessRegistry.Types             as BRT
+import           Mirza.Common.Time
 import           Mirza.Common.Utils
 import qualified Mirza.SupplyChain.QueryUtils             as QU
 import qualified Mirza.SupplyChain.StorageBeam            as SB
@@ -39,10 +39,8 @@ import qualified Data.Text                                as T
 
 import           Data.Time.Clock                          (UTCTime,
                                                            getCurrentTime)
-import           Data.Time.LocalTime                      (utc, utcToLocalTime)
-
-
-
+import           Data.Time.LocalTime                      (localTimeToUTC, utc,
+                                                           utcToLocalTime)
 
 minPubKeySize :: BRT.Bit
 minPubKeySize = BRT.Bit 2048 -- 256 Bytes
@@ -77,12 +75,12 @@ getPublicKeyInfoQuery k@(KeyID keyId) = do
        return $ BRT.KeyInfoResponse
                   k (ST.UserID uId)
                   (getKeyState currTime
-                      (QU.onLocalTime RevocationTime <$> revocationTime)
-                      (QU.onLocalTime ExpirationTime <$> mExpTime)
+                      (fromDbTimestamp <$> revocationTime)
+                      (fromDbTimestamp <$> mExpTime)
                   )
-                  (QU.onLocalTime CreationTime creationTime)
-                  (QU.onLocalTime RevocationTime <$> revocationTime)
-                  (QU.onLocalTime ExpirationTime <$> mExpTime)
+                  (fromDbTimestamp creationTime)
+                  (fromDbTimestamp <$> revocationTime)
+                  (fromDbTimestamp <$> mExpTime)
                   (BRT.PEM_RSAPubKey pemStr)
     _ -> throwing _InvalidKeyID . KeyID $ keyId
 
@@ -102,7 +100,7 @@ listBusinessesQuery = do
 
 addPublicKey :: (AsServiceError err, AsKeyError err, SCSApp context err) => ST.User
              -> BRT.PEM_RSAPubKey
-             -> Maybe BRT.ExpirationTime
+             -> Maybe ExpirationTime
              -> AppM context err KeyID
 addPublicKey user pemKey@(BRT.PEM_RSAPubKey pemStr) mExp = do
   somePubKey <- liftIO $ readPublicKey (T.unpack pemStr)
@@ -126,17 +124,17 @@ checkPubKey spKey pemKey =
 
 
 addPublicKeyQuery :: AsServiceError err => ST.User
-                  -> Maybe BRT.ExpirationTime
+                  -> Maybe ExpirationTime
                   -> RSAPubKey
                   -> DB context err KeyID
 addPublicKeyQuery (User (ST.UserID uid) _ _) expTime rsaPubKey = do
   keyId <- newUUID
-  timeStamp <- QU.generateTimestamp
+  timestamp <- generateTimestamp
   keyStr <- liftIO $ writePublicKey rsaPubKey
   r <- pg $ runInsertReturningList (SB._keys SB.supplyChainDb) $
         insertValues
         [ SB.Key keyId (SB.UserId uid) (T.pack keyStr)
-            timeStamp Nothing ((utcToLocalTime utc) . unExpirationTime <$> expTime)
+            (toDbTimestamp timestamp) Nothing ((utcToLocalTime utc) . unExpirationTime <$> expTime)
         ]
   case r of
     [rowId] -> return (KeyID $ SB.key_id rowId)
@@ -163,13 +161,12 @@ revokePublicKeyQuery userId k@(KeyID keyId) = do
   unless userOwnsKey $ throwing_ BRT._UnauthorisedKeyAccess
   keyRevoked <- isKeyRevoked k
   when keyRevoked $ throwing_ BRT._KeyAlreadyRevoked
-  timeStamp <- QU.generateTimestamp
+  timestamp <- generateTimestamp
   _r <- pg $ runUpdate $ update
                 (SB._keys SB.supplyChainDb)
-                (\key -> [SB.revocation_time key <-. val_ (Just timeStamp)])
+                (\key -> [SB.revocation_time key <-. val_ (Just $ toDbTimestamp timestamp)])
                 (\key -> SB.key_id key ==. (val_ keyId))
-  return $ QU.onLocalTime id timeStamp
-
+  return timestamp
 
 
 -- Helper functions
@@ -197,18 +194,18 @@ getKeyById (ST.KeyID keyId) = do
 
 
 getKeyState :: UTCTime
-            -> Maybe BRT.RevocationTime
-            -> Maybe BRT.ExpirationTime
+            -> Maybe RevocationTime
+            -> Maybe ExpirationTime
             -> BRT.KeyState
 -- order of precedence - Revoked > Expired
-getKeyState currTime (Just (BRT.RevocationTime rTime)) (Just (BRT.ExpirationTime eTime))
+getKeyState currTime (Just (RevocationTime rTime)) (Just (ExpirationTime eTime))
   | currTime > rTime = BRT.Revoked
   | currTime > eTime = BRT.Expired
   | otherwise        = BRT.InEffect
-getKeyState currTime Nothing (Just (BRT.ExpirationTime eTime))
+getKeyState currTime Nothing (Just (ExpirationTime eTime))
   | currTime > eTime = BRT.Expired
   | otherwise        = BRT.InEffect
-getKeyState currTime (Just (BRT.RevocationTime rTime)) Nothing
+getKeyState currTime (Just (RevocationTime rTime)) Nothing
   | currTime > rTime = BRT.Revoked
   | otherwise        = BRT.InEffect
 getKeyState _ Nothing Nothing = BRT.InEffect
