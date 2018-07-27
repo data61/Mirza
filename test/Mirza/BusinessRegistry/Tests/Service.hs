@@ -11,21 +11,20 @@ module Mirza.BusinessRegistry.Tests.Service
   ) where
 
 import           Mirza.BusinessRegistry.Auth
+import           Mirza.BusinessRegistry.Database.Schema as BSchema
 import           Mirza.BusinessRegistry.Handlers.Common
 import           Mirza.BusinessRegistry.Handlers.Keys   as BKey
+import           Mirza.BusinessRegistry.Handlers.Users
+import           Mirza.BusinessRegistry.Tests.Dummies
 import           Mirza.BusinessRegistry.Types           as BT
 import           Mirza.Common.Time                      (CreationTime (..),
                                                          ExpirationTime (..),
                                                          RevocationTime (..))
 import           Mirza.Common.Types
--- import           Mirza.SupplyChain.Handlers.Business
--- import           Mirza.SupplyChain.Handlers.EventRegistration
--- import           Mirza.SupplyChain.Handlers.Users
--- import qualified Mirza.SupplyChain.StorageBeam                as SB
--- import           Mirza.SupplyChain.Types                      as ST
+
 import           Data.Either                            (isLeft)
 import           Data.Maybe                             (fromJust, isNothing)
-import           Mirza.BusinessRegistry.Tests.Dummies
+
 
 import qualified Data.Text                              as T
 
