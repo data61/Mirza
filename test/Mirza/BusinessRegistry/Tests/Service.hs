@@ -10,30 +10,30 @@ module Mirza.BusinessRegistry.Tests.Service
   ( testServiceQueries
   ) where
 
+import           Mirza.BusinessRegistry.Auth
+import           Mirza.BusinessRegistry.Handlers.Common
+import           Mirza.BusinessRegistry.Handlers.Keys   as BKey
+import           Mirza.BusinessRegistry.Types           as BT
+import           Mirza.Common.Time                      (CreationTime (..),
+                                                         ExpirationTime (..),
+                                                         RevocationTime (..))
+import           Mirza.Common.Types
+-- import           Mirza.SupplyChain.Handlers.Business
+-- import           Mirza.SupplyChain.Handlers.EventRegistration
+-- import           Mirza.SupplyChain.Handlers.Users
+-- import qualified Mirza.SupplyChain.StorageBeam                as SB
+-- import           Mirza.SupplyChain.Types                      as ST
+import           Data.Either                            (isLeft)
+import           Data.Maybe                             (fromJust, isNothing)
 import           Mirza.BusinessRegistry.Tests.Dummies
 
-import           Mirza.BusinessRegistry.Handlers.Common
-import           Mirza.BusinessRegistry.Types                 as BT
-import           Mirza.Common.Time                            (CreationTime (..),
-                                                               ExpirationTime (..),
-                                                               RevocationTime (..))
-import           Mirza.SupplyChain.Handlers.Business
-import           Mirza.SupplyChain.Handlers.EventRegistration
-import           Mirza.SupplyChain.Handlers.Users
-import qualified Mirza.SupplyChain.StorageBeam                as SB
-import           Mirza.SupplyChain.Types                      as ST
+import qualified Data.Text                              as T
 
-import           Data.Either                                  (isLeft)
-import           Data.Maybe                                   (fromJust,
-                                                               isNothing)
-
-import qualified Data.Text                                    as T
-
-import           Data.Time.Clock                              (addUTCTime,
-                                                               getCurrentTime)
-import           Data.Time.LocalTime                          (LocalTime, utc,
-                                                               utcToLocalTime)
-import           GHC.Stack                                    (HasCallStack)
+import           Data.Time.Clock                        (addUTCTime,
+                                                         getCurrentTime)
+import           Data.Time.LocalTime                    (LocalTime, utc,
+                                                         utcToLocalTime)
+import           GHC.Stack                              (HasCallStack)
 import           Test.Hspec
 
 timeStampIO :: MonadIO m => m LocalTime
@@ -57,7 +57,7 @@ testServiceQueries = do
       pubKey <- rsaPubKey
       tStart <- timeStampIO
       res <- testAppM brContext $ do
-        uid <- newUser dummyNewUser
+        uid <- makeDummyNewUser dummyNewUser
         storageUser <- runDb $ getUserById uid
         let user = userTableToModel . fromJust $ storageUser
         let (BT.PEM_RSAPubKey keyStr) = pubKey
@@ -71,12 +71,12 @@ testServiceQueries = do
         (Just key, keyStr, (KeyID keyId), (UserID uid), tEnd, insertedKey) -> do
           key `shouldSatisfy`
             (\k ->
-              (SB.pem_str k) == keyStr &&
-              (SB.key_id k) == keyId &&
-              (SB.key_user_id k) == (SB.UserId uid) &&
-              (SB.creation_time k) > tStart &&
-              (SB.creation_time k) < tEnd &&
-              isNothing (SB.revocation_time k)
+              (BSchema.pem_str k) == keyStr &&
+              (BSchema.key_id k) == keyId &&
+              (BSchema.key_user_id k) == (BSchema.UserId uid) &&
+              (BSchema.creation_time k) > tStart &&
+              (BSchema.creation_time k) < tEnd &&
+              isNothing (BSchema.revocation_time k)
             )
           insertedKey `shouldBe` pubKey
   describe "getPublicKeyInfo tests" $
@@ -103,7 +103,7 @@ testServiceQueries = do
     it "Revoke public key with permissions" $ \brContext -> do
       pubKey <- rsaPubKey
       myKeyState <- testAppM brContext $ do
-        uid <- newUser dummyNewUser
+        uid <- addUserQuery dummyNewUser
         storageUser <- runDb $ getUserById uid
         let user = userTableToModel . fromJust $ storageUser
         keyId <- addPublicKey user pubKey Nothing
@@ -114,7 +114,7 @@ testServiceQueries = do
 
     it "Revoke public key without permissions" $ \brContext -> do
       pubKey <- rsaPubKey
-      r <- runAppM @_ @ServiceError brContext $ do
+      r <- testAppM brContext $ do
         uid <- newUser dummyNewUser
         storageUser <- runDb $ getUserById uid
         let user = userTableToModel . fromJust $ storageUser

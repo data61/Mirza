@@ -29,6 +29,7 @@ library
                     , Mirza.BusinessRegistry.Interactive
                     , Mirza.BusinessRegistry.Main
                     , Mirza.BusinessRegistry.Service
+                    , Mirza.BusinessRegistry.Handlers.Users
                     , Mirza.BusinessRegistry.Types
                     , Mirza.Common.Beam
                     , Mirza.Common.GS1BeamOrphans

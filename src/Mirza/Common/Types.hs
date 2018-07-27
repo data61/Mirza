@@ -8,7 +8,7 @@
 
 
 module Mirza.Common.Types
-  ( NewUser(..) , User(..) , EmailAddress(..) , Password(..)  , UserID(..)
+  ( EmailAddress(..) , Password(..)  , UserID(..)
   , KeyID(..)
   , EnvType(..)
   , AppM(..)
@@ -102,26 +102,6 @@ instance ToSchema EmailAddress
 instance ToParamSchema EmailAddress
 deriving instance FromHttpApiData EmailAddress
 deriving instance ToHttpApiData EmailAddress
-
-data User = User {
-  userId        :: UserID,
-  userFirstName :: Text,
-  userLastName  :: Text
-} deriving (Generic, Eq, Show)
-$(deriveJSON defaultOptions ''User)
-instance ToSchema User
-
-data NewUser = NewUser {
-  phoneNumber  :: Text,
-  emailAddress :: EmailAddress,
-  firstName    :: Text,
-  lastName     :: Text,
-  company      :: GS1CompanyPrefix,
-  password     :: Text
-} deriving (Generic, Eq, Show)
-$(deriveJSON defaultOptions ''NewUser)
-instance ToSchema NewUser
-
 
 
 newtype KeyID = KeyID {unKeyID :: PrimaryKeyType}
