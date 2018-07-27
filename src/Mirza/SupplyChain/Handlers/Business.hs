@@ -1,9 +1,8 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 -- | This file is a duplicate of BusinessRegistry.Keys, and should be deleted
-module Mirza.SupplyChain.Handlers.Business where
-{-
-  (
-    getPublicKey, getPublicKeyInfo
+module Mirza.SupplyChain.Handlers.Business
+where
+{-   ( getPublicKey, getPublicKeyInfo
   , revokePublicKey, isKeyRevoked
   , checkPubKey
   , addPublicKey
@@ -207,5 +206,6 @@ getKeyState currTime (Just (RevocationTime rTime)) Nothing
   | currTime > rTime = BRT.Revoked
   | otherwise        = BRT.InEffect
 getKeyState _ Nothing Nothing = BRT.InEffect
+
 
  -}

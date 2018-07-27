@@ -177,3 +177,14 @@ doesUserOwnKeyQuery (UserID uId) (KeyID keyId) = do
   return $ case r of
     [_key] -> True
     _      -> False
+
+
+getKeyById :: KeyID -> DB context err (Maybe Key)
+getKeyById (KeyID keyId) = do
+  r <- pg $ runSelectReturningList $ select $ do
+          key <- all_ (_keys businessRegistryDB)
+          guard_ (key_id key ==. val_ keyId)
+          pure key
+  case r of
+    [key] -> return $ Just key
+    _     -> return Nothing
