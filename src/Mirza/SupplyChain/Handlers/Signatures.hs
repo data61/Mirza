@@ -18,8 +18,7 @@ import           Mirza.SupplyChain.Handlers.EventRegistration (hasUserCreatedEve
 import qualified Mirza.SupplyChain.QueryUtils                 as QU
 import qualified Mirza.SupplyChain.StorageBeam                as SB
 import           Mirza.SupplyChain.Types                      hiding
-                                                               (KeyInfo (..),
-                                                               NewUser (..),
+                                                               (NewUser (..),
                                                                User (userId),
                                                                UserID)
 import qualified Mirza.SupplyChain.Types                      as ST

@@ -10,21 +10,14 @@ module Mirza.BusinessRegistry.Client.Servant
   ) where
 
 import           Mirza.BusinessRegistry.API
-import           Mirza.BusinessRegistry.Types  as BRT
-import           Mirza.Common.Time             (ExpirationTime, RevocationTime)
-import           Mirza.Common.Types            (KeyID)
-import qualified Mirza.SupplyChain.StorageBeam as SB
+import           Mirza.BusinessRegistry.Types as BRT
+import           Mirza.Common.Time            (ExpirationTime, RevocationTime)
+import           Mirza.Common.Types           (KeyID)
 
 import           Servant.API
 import           Servant.Client
 
-import           Data.Proxy                    (Proxy (..))
-
-import qualified Data.GS1.Event                as Ev
-import           Data.GS1.EventId
-
-import           Data.Time.Clock               (UTCTime)
-import           Data.UUID.Types
+import           Data.Proxy                   (Proxy (..))
 
 getKey       :: KeyID -> ClientM PEM_RSAPubKey
 getKeyInfo   :: KeyID -> ClientM KeyInfoResponse

@@ -20,8 +20,7 @@ import           Mirza.SupplyChain.ErrorUtils                 (throwParseError)
 import           Mirza.SupplyChain.QueryUtils
 import qualified Mirza.SupplyChain.StorageBeam                as SB
 import           Mirza.SupplyChain.Types                      hiding
-                                                               (KeyInfo (..),
-                                                               NewUser (..),
+                                                               (NewUser (..),
                                                                User (..))
 import qualified Mirza.SupplyChain.Types                      as ST
 

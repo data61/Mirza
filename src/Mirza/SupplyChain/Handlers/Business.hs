@@ -18,8 +18,7 @@ import           Mirza.Common.Time
 import           Mirza.Common.Utils
 import qualified Mirza.SupplyChain.QueryUtils             as QU
 import qualified Mirza.SupplyChain.StorageBeam            as SB
-import           Mirza.SupplyChain.Types                  hiding (KeyInfo (..),
-                                                           NewUser (..),
+import           Mirza.SupplyChain.Types                  hiding (NewUser (..),
                                                            User (userId),
                                                            UserID)
 import qualified Mirza.SupplyChain.Types                  as ST
@@ -39,8 +38,7 @@ import qualified Data.Text                                as T
 
 import           Data.Time.Clock                          (UTCTime,
                                                            getCurrentTime)
-import           Data.Time.LocalTime                      (localTimeToUTC, utc,
-                                                           utcToLocalTime)
+import           Data.Time.LocalTime                      (utc, utcToLocalTime)
 
 minPubKeySize :: BRT.Bit
 minPubKeySize = BRT.Bit 2048 -- 256 Bytes
@@ -92,6 +90,7 @@ listBusinesses = runDb $ fmap QU.storageToModelBusiness <$> listBusinessesQuery
 
 -- TODO: Write tests
 -- listBusinessesQuery :: DB context err [BRT.BusinessResponse]
+listBusinessesQuery :: DB context err [SB.BusinessT Identity]
 listBusinessesQuery = do
   pg $ runSelectReturningList $ select $
       all_ (SB._businesses SB.supplyChainDb)

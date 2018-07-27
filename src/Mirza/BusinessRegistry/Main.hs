@@ -28,7 +28,6 @@ import           Network.Wai                            (Middleware)
 import qualified Network.Wai.Handler.Warp               as Warp
 
 import           Data.ByteString                        (ByteString)
-import           Data.Functor.Identity                  (Identity)
 import           Data.Semigroup                         ((<>))
 import           Data.Text                              (Text, pack)
 import           Data.Text.Encoding                     (encodeUtf8)
@@ -262,7 +261,7 @@ runPopulateDatabase globals = do
   bizid1  <- f . fmap primaryKey $ ebiz1
   user1A' <- dummyUser "A1" bizid1 globals
   user1B' <- dummyUser "B1" bizid1 globals
-  eusers  <- runAppM @_ @BusinessRegistryError ctx $
+  _eusers  <- runAppM @_ @BusinessRegistryError ctx $
               runDb (mapM addUserQuery [user1A', user1B'])
 
   biz2    <- dummyBusiness "2"
@@ -270,7 +269,7 @@ runPopulateDatabase globals = do
   bizid2  <- f . fmap primaryKey $ ebiz2
   user2A' <- dummyUser "A2" bizid2 globals
   user2B' <- dummyUser "B2" bizid2 globals
-  eusers  <- runAppM @_ @BusinessRegistryError ctx $
+  _eusers  <- runAppM @_ @BusinessRegistryError ctx $
               runDb (mapM addUserQuery [user2A', user2B'])
 
   print biz1
