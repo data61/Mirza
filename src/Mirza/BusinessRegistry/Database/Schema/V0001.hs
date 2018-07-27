@@ -10,8 +10,8 @@
 module Mirza.BusinessRegistry.Database.Schema.V0001 where
 
 import qualified Data.GS1.EPC                     as EPC
-
 import           Mirza.Common.GS1BeamOrphans
+import           Mirza.Common.Types               (PrimaryKeyType)
 
 import           Control.Lens
 
@@ -42,14 +42,6 @@ import           Data.Swagger
 defaultFieldMaxLength :: Word
 defaultFieldMaxLength = 120
 
-
---------------------------------------------------------------------------------
--- Datatypes
---------------------------------------------------------------------------------
-
-type PrimaryKeyType = UUID
-
-
 --------------------------------------------------------------------------------
 -- Database
 --------------------------------------------------------------------------------
@@ -76,7 +68,7 @@ migration () =
     (
       UserT
           (field "user_id" pkSerialType)
-          (BizId (field "user_biz_id" pkSerialType))
+          (BizId (field "user_biz_id" gs1CompanyPrefixType))
           (field "first_name" (varchar (Just defaultFieldMaxLength)) notNull)
           (field "last_name" (varchar (Just defaultFieldMaxLength)) notNull)
           (field "phone_number" (varchar (Just defaultFieldMaxLength)) notNull)
@@ -86,7 +78,6 @@ migration () =
     <*> createTable "businesses"
       (
         BusinessT
-            (field "business_id" pkSerialType)
             (field "biz_gs1_company_prefix" gs1CompanyPrefixType)
             (field "biz_name" (varchar (Just defaultFieldMaxLength)) notNull)
             (field "biz_function" (varchar (Just defaultFieldMaxLength)) notNull)
@@ -153,8 +144,7 @@ type Business = BusinessT Identity
 deriving instance Show Business
 
 data BusinessT f = BusinessT
-  { business_id            :: C f PrimaryKeyType
-  , biz_gs1_company_prefix :: C f EPC.GS1CompanyPrefix
+  { biz_gs1_company_prefix :: C f EPC.GS1CompanyPrefix
   , biz_name               :: C f Text
   , biz_function           :: C f Text
   , biz_site_name          :: C f Text
@@ -171,9 +161,9 @@ instance Beamable BusinessT
 instance Beamable (PrimaryKey BusinessT)
 
 instance Table BusinessT where
-  data PrimaryKey BusinessT f = BizId (C f PrimaryKeyType)
+  data PrimaryKey BusinessT f = BizId (C f EPC.GS1CompanyPrefix)
     deriving Generic
-  primaryKey = BizId . business_id
+  primaryKey = BizId . biz_gs1_company_prefix
 deriving instance Eq (PrimaryKey BusinessT Identity)
 
 

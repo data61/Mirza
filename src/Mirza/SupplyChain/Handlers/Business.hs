@@ -1,7 +1,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
-
 -- | This file is a duplicate of BusinessRegistry.Keys, and should be deleted
-module Mirza.SupplyChain.Handlers.Business
+module Mirza.SupplyChain.Handlers.Business where
+{-
   (
     getPublicKey, getPublicKeyInfo
   , revokePublicKey, isKeyRevoked
@@ -9,11 +9,10 @@ module Mirza.SupplyChain.Handlers.Business
   , addPublicKey
   , listBusinesses
   , getKeyById
-  ) where
+  )
 
 import           Mirza.SupplyChain.Handlers.Common
 
-import           Mirza.BusinessRegistry.Types             as BRT
 import           Mirza.Common.Time
 import           Mirza.Common.Utils
 import qualified Mirza.SupplyChain.QueryUtils             as QU
@@ -126,7 +125,7 @@ addPublicKeyQuery :: AsServiceError err => ST.User
                   -> Maybe ExpirationTime
                   -> RSAPubKey
                   -> DB context err KeyID
-addPublicKeyQuery (User (ST.UserID uid) _ _) expTime rsaPubKey = do
+addPublicKeyQuery (ST.User (ST.UserID uid) _ _) expTime rsaPubKey = do
   keyId <- newUUID
   timestamp <- generateTimestamp
   keyStr <- liftIO $ writePublicKey rsaPubKey
@@ -209,3 +208,4 @@ getKeyState currTime (Just (RevocationTime rTime)) Nothing
   | otherwise        = BRT.InEffect
 getKeyState _ Nothing Nothing = BRT.InEffect
 
+ -}

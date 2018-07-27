@@ -3,9 +3,10 @@
 {-# LANGUAGE StandaloneDeriving         #-}
 {-# LANGUAGE TemplateHaskell            #-}
 
-module Mirza.BusinessRegistry.Types where
-
-
+module Mirza.BusinessRegistry.Types (
+    module Mirza.BusinessRegistry.Types
+  , module CT
+  ) where
 
 import           Mirza.Common.Time                      (CreationTime,
                                                          ExpirationTime,
@@ -13,7 +14,7 @@ import           Mirza.Common.Time                      (CreationTime,
 import           Mirza.Common.Types                     as CT
 import           Mirza.Common.Utils
 
-import           Mirza.BusinessRegistry.Database.Schema hiding (UserID)
+import           Mirza.BusinessRegistry.Database.Schema hiding (User, UserID)
 
 import           Data.GS1.EPC                           as EPC
 
@@ -65,7 +66,7 @@ instance HasKatipContext BRContext where
 
 
 -- *****************************************************************************
--- Service Responce Types
+-- Service Response Types
 -- *****************************************************************************
 
 -- Note: The definitions in this section are reverse order defined(more specific
@@ -75,10 +76,31 @@ instance HasKatipContext BRContext where
 --       a section appears logically bottom to top, rather then the normal top
 --       to bottom.
 
+
+data User = User {
+  userId        :: UserID,
+  userFirstName :: Text,
+  userLastName  :: Text
+} deriving (Generic, Eq, Show)
+$(deriveJSON defaultOptions ''User)
+instance ToSchema User
+
+-- | Note that SupplyChainServer.NewUser is expected to become different in the
+-- future, and hence this duplication
+data NewUser = NewUser {
+  phoneNumber      :: Text,
+  userEmailAddress :: EmailAddress,
+  firstName        :: Text,
+  lastName         :: Text,
+  company          :: GS1CompanyPrefix,
+  password         :: Text
+} deriving (Generic, Eq, Show)
+$(deriveJSON defaultOptions ''NewUser)
+instance ToSchema NewUser
+
 -- Auth User Types:
-newtype AuthUser = AuthUser {
-  authUserId        :: UserID
-  }
+
+newtype AuthUser = AuthUser { authUserId :: UserID }
   deriving (Show, Eq, Read, Generic)
 instance ToSchema AuthUser
 instance ToParamSchema AuthUser
@@ -141,7 +163,7 @@ instance ToSchema KeyInfoResponse
 -- *****************************************************************************
 
 data SearchFields = SearchFields {
-  sUser             :: CT.User,
+  sUser             :: User,
   sbizName          :: Maybe Text,
   sBizId            :: Maybe UUID,
   sGS1CompanyPrefix :: Maybe Text,

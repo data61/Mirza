@@ -73,6 +73,30 @@ instance HasKatipContext SCSContext where
   katipNamespace = scsKatipNamespace
 
 
+-- *****************************************************************************
+-- User Types
+-- *****************************************************************************
+
+data User = User {
+  userId        :: UserID,
+  userFirstName :: Text,
+  userLastName  :: Text
+} deriving (Generic, Eq, Show)
+$(deriveJSON defaultOptions ''User)
+instance ToSchema User
+
+data NewUser = NewUser {
+  phoneNumber      :: Text,
+  userEmailAddress :: EmailAddress,
+  firstName        :: Text,
+  lastName         :: Text,
+  company          :: GS1CompanyPrefix,
+  password         :: Text
+} deriving (Generic, Eq, Show)
+$(deriveJSON defaultOptions ''NewUser)
+instance ToSchema NewUser
+
+
 
 -- *****************************************************************************
 -- GS1 Types

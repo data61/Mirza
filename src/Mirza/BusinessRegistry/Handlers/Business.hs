@@ -46,13 +46,13 @@ listBusinessesQuery = pg $ runSelectReturningList $ select $
 
 -- | Will _always_ create a new UUID for the BizId
 addBusinessQuery :: BRApp context err => Business -> DB context err Business
-addBusinessQuery biz'@BusinessT{..} = do
+addBusinessQuery biz@BusinessT{..} = do
   -- The id is updated inside here to that it is generated as part of the
   -- transaction so if the transaction happens to fail because the UUID
   -- generated already exists it can be rerun in entirity hopefully with a
   -- better outcome.
-  bizid <- newUUID
-  let biz = biz'{business_id = bizid}
+  -- bizid <- newUUID
+  -- let biz = biz'{business_id = bizid}
 
   res <- -- handleError errHandler $
          pg $ runInsertReturningList (_businesses businessRegistryDB) $
