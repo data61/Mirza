@@ -81,7 +81,7 @@ instance HasKatipContext BRContext where
 newtype AuthUser = AuthUser {
   userId        :: UserID
   }
-  deriving (Generic)
+  deriving (Show, Eq, Read, Generic)
 instance ToSchema AuthUser
 instance ToParamSchema AuthUser
 instance FromHttpApiData AuthUser where
@@ -98,7 +98,7 @@ data BusinessResponse = BusinessResponse {
   lat      :: Double,
   lng      :: Double
   }
-  deriving (Generic)
+  deriving (Show, Eq, Read, Generic)
 instance ToSchema BusinessResponse
 instance ToJSON BusinessResponse
 instance FromJSON BusinessResponse
