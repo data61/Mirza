@@ -42,12 +42,14 @@ timeStampIO = liftIO $ (utcToLocalTime utc) <$> getCurrentTime
 rsaPubKey :: IO BT.PEM_RSAPubKey
 rsaPubKey = BT.PEM_RSAPubKey . T.pack <$> Prelude.readFile "./test/Mirza/BusinessRegistry/Tests/testKeys/goodKeys/test.pub"
 
-testAppM :: context -> AppM context BusinessRegistryError a -> IO a
+testAppM :: context
+         -> AppM context BusinessRegistryError a
+         -> IO a
 testAppM brContext act = runAppM brContext act >>= \case
     Left err -> fail (show err)
     Right a -> pure a
 
-testServiceQueries :: HasCallStack => SpecWith BT.BRContext
+testServiceQueries :: (HasCallStack) => SpecWith BT.BRContext
 testServiceQueries = do
 
   describe "addPublicKey tests" $
@@ -92,9 +94,9 @@ testServiceQueries = do
       keyInfo `shouldSatisfy`
         (\ki ->
           (keyInfoUserId ki == uid) &&
-          ((creationTime ki) > (CreationTime tStart) &&
-           (creationTime ki) < (CreationTime tEnd)) &&
-          isNothing (revocationTime ki)
+          ((keyCreationTime ki) > (CreationTime tStart) &&
+           (keyCreationTime ki) < (CreationTime tEnd)) &&
+          isNothing (keyRevocationTime ki)
         )
 
   describe "revokePublicKey tests" $ do
