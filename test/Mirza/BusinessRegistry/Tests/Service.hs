@@ -56,7 +56,7 @@ testServiceQueries = do
       pubKey <- rsaPubKey
       tStart <- timeStampIO
       res <- testAppM brContext $ do
-        uid <- makeDummyNewUser dummyNewUser
+        uid <- newUser dummyNewUser
         storageUser <- runDb $ getUserById uid
         let user = userTableToModel . fromJust $ storageUser
         let (BT.PEM_RSAPubKey keyStr) = pubKey
