@@ -31,13 +31,11 @@ import           Data.Aeson
 import           Data.Aeson.TH
 import           Data.Swagger
 import           Data.Text                              (Text)
-import           Data.Time                              (UTCTime)
 import           Data.UUID                              (UUID)
 
 
 import           GHC.Generics                           (Generic)
-import           Servant                                (FromHttpApiData (..),
-                                                         ToHttpApiData (..))
+import           Servant                                (FromHttpApiData (..))
 
 
 
@@ -79,7 +77,7 @@ instance HasKatipContext BRContext where
 
 -- Auth User Types:
 newtype AuthUser = AuthUser {
-  userId        :: UserID
+  authUserId        :: UserID
   }
   deriving (Show, Eq, Read, Generic)
 instance ToSchema AuthUser
@@ -125,13 +123,13 @@ instance FromHttpApiData PEM_RSAPubKey where
 
 
 data KeyInfoResponse = KeyInfoResponse
-  { keyID          :: KeyID
-  , keyInfoUserId  :: UserID                -- TODO: There should be a forien key for Business in here....not sure that user is relevant...
-  , keyState       :: KeyState
-  , creationTime   :: CreationTime
-  , revocationTime :: Maybe RevocationTime
-  , expirationTime :: Maybe ExpirationTime
-  , keyPEMString   :: PEM_RSAPubKey
+  { keyID             :: KeyID
+  , keyInfoUserId     :: UserID                -- TODO: There should be a forien key for Business in here....not sure that user is relevant...
+  , keyState          :: KeyState
+  , keyCreationTime   :: CreationTime
+  , keyRevocationTime :: Maybe RevocationTime
+  , keyExpirationTime :: Maybe ExpirationTime
+  , keyPEMString      :: PEM_RSAPubKey
   }
   deriving (Generic, Show, Eq)
 $(deriveJSON defaultOptions ''KeyInfoResponse)

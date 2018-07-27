@@ -21,7 +21,6 @@ module Mirza.SupplyChain.Client.Servant
   ,addUserToEvent
   ) where
 
-import           Mirza.Common.Time             (ExpirationTime)
 import           Mirza.SupplyChain.API
 import qualified Mirza.SupplyChain.StorageBeam as SB
 import           Mirza.SupplyChain.Types       as T
@@ -34,7 +33,6 @@ import           Data.Proxy                    (Proxy (..))
 import qualified Data.GS1.Event                as Ev
 import           Data.GS1.EventId
 
-import           Data.Time.Clock               (UTCTime)
 import           Data.UUID.Types
 
 newUser      :: NewUser -> ClientM UserID

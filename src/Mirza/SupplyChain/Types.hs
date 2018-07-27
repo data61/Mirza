@@ -13,7 +13,6 @@ module Mirza.SupplyChain.Types
   )
   where
 
-import           Mirza.Common.Time
 import           Mirza.Common.Types         as Common
 
 import           Data.GS1.DWhat
@@ -23,7 +22,6 @@ import           Data.GS1.DWhy
 import           Data.GS1.EPC               as EPC
 import qualified Data.GS1.Event             as Ev
 import           Data.GS1.EventId           as EvId
-import           Data.Time                  (UTCTime)
 
 import           Database.PostgreSQL.Simple (Connection, SqlError)
 
@@ -42,7 +40,6 @@ import           Data.List.NonEmpty         (NonEmpty)
 import           Data.Pool                  as Pool
 import           Data.Swagger
 import           Data.Text                  (Text)
-import           Data.UUID                  (UUID)
 
 import           Katip                      as K
 

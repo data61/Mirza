@@ -13,8 +13,7 @@ import           Mirza.SupplyChain.ErrorUtils             (getSqlErrorCode,
 import           Mirza.SupplyChain.Handlers.Common
 import           Mirza.SupplyChain.QueryUtils
 import qualified Mirza.SupplyChain.StorageBeam            as SB
-import           Mirza.SupplyChain.Types                  hiding (KeyInfo (..),
-                                                           NewUser (..),
+import           Mirza.SupplyChain.Types                  hiding (NewUser (..),
                                                            User (userId))
 import qualified Mirza.SupplyChain.Types                  as ST
 

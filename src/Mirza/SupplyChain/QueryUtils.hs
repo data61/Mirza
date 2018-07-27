@@ -19,10 +19,9 @@ module Mirza.SupplyChain.QueryUtils
 import qualified Mirza.BusinessRegistry.Types  as BRT
 import           Mirza.Common.Utils
 import qualified Mirza.SupplyChain.StorageBeam as SB
-import           Mirza.SupplyChain.Types       hiding (Business (..), User (..))
+import           Mirza.SupplyChain.Types       hiding (User (..))
 import qualified Mirza.SupplyChain.Types       as ST
 
-import           Data.GS1.EPC                  as EPC
 import           Data.GS1.Event                (Event (..))
 import qualified Data.GS1.Event                as Ev
 

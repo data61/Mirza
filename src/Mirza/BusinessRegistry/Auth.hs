@@ -20,9 +20,6 @@ import           Database.Beam                            as B
 import           Database.Beam.Backend.SQL.BeamExtensions
 import           Database.PostgreSQL.Simple               (SqlError)
 
-
-import           Data.ByteString                          (ByteString)
-import           Data.Text                                (Text)
 import           Data.Text.Encoding                       (decodeUtf8)
 
 import           Mirza.BusinessRegistry.Database.Schema   as Schema
