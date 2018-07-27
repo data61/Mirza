@@ -14,6 +14,9 @@ import           Mirza.BusinessRegistry.Tests.Dummies
 
 import           Mirza.BusinessRegistry.Handlers.Common
 import           Mirza.BusinessRegistry.Types                 as BT
+import           Mirza.Common.Time                            (CreationTime (..),
+                                                               ExpirationTime (..),
+                                                               RevocationTime (..))
 import           Mirza.SupplyChain.Handlers.Business
 import           Mirza.SupplyChain.Handlers.EventRegistration
 import           Mirza.SupplyChain.Handlers.Users
@@ -89,8 +92,8 @@ testServiceQueries = do
       keyInfo `shouldSatisfy`
         (\ki ->
           (keyInfoUserId ki == uid) &&
-          ((unCreationTime . creationTime $ ki) > tStart &&
-           (unCreationTime . creationTime $ ki) < tEnd) &&
+          ((creationTime ki) > (CreationTime tStart) &&
+           (creationTime ki) < (CreationTime tEnd)) &&
           isNothing (revocationTime ki)
         )
 
