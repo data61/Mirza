@@ -6,6 +6,7 @@ module Mirza.BusinessRegistry.Handlers.Keys
   , getPublicKeyInfo
   , revokePublicKey
   , addPublicKey
+  , getKeyById
   ) where
 
 
