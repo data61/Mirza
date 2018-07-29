@@ -57,7 +57,7 @@ testServiceQueries = do
       tStart <- timeStampIO
       res <- testAppM brContext $ do
         uid <- newUser dummyNewUser
-        storageUser <- runDb $ getUserById uid
+        storageUser <- runDb $ getUserByIdQuery uid
         let user = userTableToModel . fromJust $ storageUser
         let (BT.PEM_RSAPubKey keyStr) = pubKey
         keyId <- addPublicKey user pubKey Nothing
@@ -84,7 +84,7 @@ testServiceQueries = do
       pubKey <- rsaPubKey
       (keyInfo, uid, tEnd) <- testAppM brContext $ do
         uid <- newUser dummyNewUser
-        storageUser <- runDb $ getUserById uid
+        storageUser <- runDb $ getUserByIdQuery uid
         let user = userTableToModel . fromJust $ storageUser
         keyId <- addPublicKey user pubKey Nothing
         keyInfo <- getPublicKeyInfo keyId
@@ -103,7 +103,7 @@ testServiceQueries = do
       pubKey <- rsaPubKey
       myKeyState <- testAppM brContext $ do
         uid <- addUserQuery dummyNewUser
-        storageUser <- runDb $ getUserById uid
+        storageUser <- runDb $ getUserByIdQuery uid
         let user = userTableToModel . fromJust $ storageUser
         keyId <- addPublicKey user pubKey Nothing
         _timeKeyRevoked <- revokePublicKey user keyId
@@ -115,13 +115,13 @@ testServiceQueries = do
       pubKey <- rsaPubKey
       r <- testAppM brContext $ do
         uid <- newUser dummyNewUser
-        storageUser <- runDb $ getUserById uid
+        storageUser <- runDb $ getUserByIdQuery uid
         let user = userTableToModel . fromJust $ storageUser
         keyId <- addPublicKey user pubKey Nothing
 
         -- making a fake user
         hackerUid <- newUser $ makeDummyNewUser (EmailAddress "l33t@hacker.com")
-        storageHacker <- runDb $ getUserById hackerUid
+        storageHacker <- runDb $ getUserByIdQuery hackerUid
         let hacker = userTableToModel . fromJust $ storageHacker
 
         revokePublicKey hacker keyId
@@ -135,7 +135,7 @@ testServiceQueries = do
       pubKey <- rsaPubKey
       myKeyState <- testAppM brContext $ do
         uid <- newUser dummyNewUser
-        storageUser <- runDb $ getUserById uid
+        storageUser <- runDb $ getUserByIdQuery uid
         let user = userTableToModel . fromJust $ storageUser
         keyId <- addPublicKey user pubKey (Just . ExpirationTime $ someTimeAgo )
         _timeKeyRevoked <- revokePublicKey user keyId
@@ -150,7 +150,7 @@ testServiceQueries = do
       pubKey <- rsaPubKey
       myKeyState <- testAppM brContext $ do
         uid <- newUser dummyNewUser
-        storageUser <- runDb $ getUserById uid
+        storageUser <- runDb $ getUserByIdQuery uid
         let user = userTableToModel . fromJust $ storageUser
         keyId <- addPublicKey user pubKey (Just . ExpirationTime $ someTimeAgo)
         keyInfo <- getPublicKeyInfo keyId
@@ -164,7 +164,7 @@ testServiceQueries = do
       pubKey <- rsaPubKey
       myKeyState <- testAppM brContext $ do
         uid <- newUser dummyNewUser
-        storageUser <- runDb $ getUserById uid
+        storageUser <- runDb $ getUserByIdQuery uid
         let user = userTableToModel . fromJust $ storageUser
         keyId <- addPublicKey user pubKey (Just . ExpirationTime $ someTimeLater)
         keyInfo <- getPublicKeyInfo keyId
