@@ -3,6 +3,8 @@
 module Mirza.BusinessRegistry.Handlers.Users
   (
     newUser
+    ,getUserByIdQuery
+    ,userTableToModel
   ) where
 
 import           Mirza.BusinessRegistry.Database.Schema   hiding (UserID)
@@ -14,15 +16,10 @@ import           Mirza.Common.Utils
 
 import           Database.Beam                            as B
 import           Database.Beam.Backend.SQL.BeamExtensions
-import           Database.PostgreSQL.Simple.Errors        (ConstraintViolation (..),
-                                                           constraintViolation)
-import           Database.PostgreSQL.Simple.Internal      (SqlError (..))
 
 import qualified Crypto.Scrypt                            as Scrypt
 
-import           Control.Lens                             (view, (^?), _2)
-import           Control.Monad.Except                     (MonadError,
-                                                           throwError)
+import           Control.Lens                             (view, _2)
 import           Control.Monad.IO.Class                   (liftIO)
 import           Data.Text.Encoding                       (encodeUtf8)
 
@@ -56,3 +53,21 @@ insertUser encPass (BT.NewUser phone (EmailAddress email) firstName lastName biz
       [r] -> return $ BT.UserID $ user_id r
       -- TODO: Have a proper error response
       _   -> throwing _UserCreationErrorBRE (show res)
+
+
+getUserByIdQuery :: BT.UserID -> DB context err (Maybe Schema.User)
+getUserByIdQuery (BT.UserID uid) = do
+  r <- pg $ runSelectReturningList $ select $ do
+          user <- all_ (Schema._users Schema.businessRegistryDB)
+          guard_ (user_id user ==. val_ uid)
+          pure user
+  case r of
+    [user] -> return $ Just user
+    _      -> return Nothing
+
+
+-- | Converts a DB representation of ``User`` to a Model representation
+-- SB.User = SB.User uid bizId fName lName phNum passHash email
+userTableToModel :: Schema.User -> BT.User
+userTableToModel (Schema.UserT uid _ fName lName _ _ _) = BT.User (BT.UserID uid) fName lName
+
