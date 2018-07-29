@@ -68,6 +68,7 @@ getUserByIdQuery (BT.UserID uid) = do
 
 -- | Converts a DB representation of ``User`` to a Model representation
 -- SB.User = SB.User uid bizId fName lName phNum passHash email
-userTableToModel :: Schema.User -> BT.User
-userTableToModel (Schema.UserT uid _ fName lName _ _ _) = BT.User (BT.UserID uid) fName lName
+userTableToModel :: Schema.User -> AuthUser
+userTableToModel (Schema.UserT uid _ fName lName _ _ _) = AuthUser (BT.UserID uid)
+
 
