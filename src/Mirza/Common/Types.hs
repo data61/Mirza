@@ -10,7 +10,7 @@
 module Mirza.Common.Types
   ( EmailAddress(..) , Password(..)  , UserID(..)
   , KeyID(..)
-  , EnvType(..)
+  , EnvType(..), mkEnvType
   , AppM(..)
   , runAppM
   , DB(..)
@@ -120,6 +120,9 @@ data EnvType = Prod | Dev
 -- | The class of contexts which include an 'EnvType'
 $(makeClassy ''EnvType)
 
+mkEnvType :: Bool -> EnvType
+mkEnvType False = Prod
+mkEnvType _     = Dev
 
 -- runReaderT :: r -> m a
 -- ReaderT r m a
