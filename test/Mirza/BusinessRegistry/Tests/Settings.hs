@@ -13,4 +13,4 @@ import           Data.ByteString.Char8 (ByteString)
 -- this construct as it could lead to problems...users not specifying the
 -- database and accidentally operating on the wrong database.
 testDbConnStr :: ByteString
-testDbConnStr = "dbname=testsupplychainserver"
+testDbConnStr = "dbname=testbusinessregistry"
