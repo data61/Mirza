@@ -1,6 +1,5 @@
 module Mirza.BusinessRegistry.Tests.Client where
 
-import           Mirza.BusinessRegistry.Client.Servant
 import           Mirza.BusinessRegistry.Tests.Settings (testDbConnStr)
 
 import           Control.Concurrent                    (ThreadId, forkIO,
