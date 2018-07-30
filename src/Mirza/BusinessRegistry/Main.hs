@@ -50,7 +50,7 @@ defaultPortNumber :: Int
 defaultPortNumber = 8000
 
 defaultDatabaseConnectionString :: ByteString
-defaultDatabaseConnectionString = "dbname=devMirzaBusinessRegistry"
+defaultDatabaseConnectionString = "dbname=devmirzabusinessregistry"
 
 
 --------------------------------------------------------------------------------
