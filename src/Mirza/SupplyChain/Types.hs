@@ -48,11 +48,6 @@ import           Katip                      as K
 -- Context Types
 -- *****************************************************************************
 
-
-mkEnvType :: Bool -> EnvType
-mkEnvType False = Prod
-mkEnvType _     = Dev
-
 data SCSContext = SCSContext
   { _scsEnvType          :: EnvType
   , _scsDbConnPool       :: Pool Connection
