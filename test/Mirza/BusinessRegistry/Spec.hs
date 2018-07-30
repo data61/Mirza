@@ -3,9 +3,9 @@ module Main where
 
 import           Mirza.BusinessRegistry.Tests.Settings
 
-import           Mirza.SupplyChain.Main                hiding (main)
-import           Mirza.SupplyChain.Migrate
-import           Mirza.SupplyChain.Types               as AC
+import           Mirza.BusinessRegistry.Main           hiding (main)
+import           Mirza.BusinessRegistry.Types          as BRT
+import           Mirza.SupplyChain.Migrate             (tryCreateSchema)
 
 import           Test.Hspec.Core.Spec                  (sequential)
 import           Test.Tasty                            hiding (withResource)
@@ -20,9 +20,7 @@ import           Data.Int
 import           Database.Beam.Postgres
 import           Database.PostgreSQL.Simple
 
-import           Data.Pool                             (Pool,
-                                                        destroyAllResources,
-                                                        withResource)
+import           Data.Pool                             (withResource)
 import qualified Data.Pool                             as Pool
 
 import           Katip                                 (Severity (DebugS))
@@ -49,7 +47,7 @@ dropTables conn =
                \ END $$;                                                                                    "
 
 
-defaultPool :: IO (Pool Connection)
+defaultPool :: IO (Pool.Pool Connection)
 defaultPool = Pool.createPool (connectPostgreSQL testDbConnStr) close
                 1 -- Number of "sub-pools",
                 60 -- How long in seconds to keep a connection open for reuse
@@ -57,18 +55,18 @@ defaultPool = Pool.createPool (connectPostgreSQL testDbConnStr) close
 
 
 
-openConnection :: IO SCSContext
+openConnection :: IO BRContext
 openConnection = do
   connpool <- defaultPool
   _ <- withResource connpool dropTables -- drop tables before so if already exist no problems... means tables get overwritten though
   withResource connpool (tryCreateSchema True)
-  let envT = AC.mkEnvType True
-  initSCSContext (ServerOptions envT False testDbConnStr 8000 14 8 1 DebugS)
+  let envT = BRT.mkEnvType True
+  initBRContext (GlobalOptions defaultDatabaseConnectionString 16 10 4 DebugS envT)
 
-closeConnection :: SCSContext -> IO ()
-closeConnection = destroyAllResources . AC._scsDbConnPool
+closeConnection :: BRContext -> IO ()
+closeConnection = Pool.destroyAllResources . BRT._brDbConnPool
 
-withDatabaseConnection :: (SCSContext -> IO ()) -> IO ()
+withDatabaseConnection :: (BRContext -> IO ()) -> IO ()
 withDatabaseConnection = bracket openConnection closeConnection
 
 main :: IO ()
