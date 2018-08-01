@@ -1,7 +1,7 @@
 
 module Main where
 
-import           Mirza.BusinessRegistry.Tests.Settings
+import           Mirza.BusinessRegistry.Tests.Settings (testDbConnStr)
 
 import           Mirza.BusinessRegistry.Main           hiding (main)
 import           Mirza.BusinessRegistry.Types          as BRT
