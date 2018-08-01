@@ -61,8 +61,8 @@ withPKey f = do
 
 
 storageToModelBusiness :: SB.Business -> BRT.BusinessResponse
-storageToModelBusiness (SB.Business pfix name f site addr lat long)
-  = BRT.BusinessResponse pfix name f site addr lat long
+storageToModelBusiness (SB.Business pfix name)
+  = BRT.BusinessResponse pfix name
 
 storageToModelEvent :: SB.Event -> Maybe Ev.Event
 storageToModelEvent = decodeEvent . SB.json_event
@@ -83,4 +83,3 @@ eventTxtToBS = En.encodeUtf8
 
 decodeEvent :: T.Text -> Maybe Ev.Event
 decodeEvent = decode . LEn.encodeUtf8 . TxtL.fromStrict
-
