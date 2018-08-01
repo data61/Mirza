@@ -3,15 +3,15 @@
 module Mirza.BusinessRegistry.Handlers.Users
   (
     newUser
-    ,getUserByIdQuery
-    ,userTableToModel
+  , getUserByIdQuery
+  , tableToAuthUser
   ) where
 
 import           Mirza.BusinessRegistry.Database.Schema   hiding (UserID)
 import           Mirza.BusinessRegistry.Database.Schema   as Schema
 
 import           Mirza.BusinessRegistry.Handlers.Common
-import           Mirza.BusinessRegistry.Types             as BT
+import qualified Mirza.BusinessRegistry.Types             as BRT
 import           Mirza.Common.Utils
 
 import           Database.Beam                            as B
@@ -25,39 +25,40 @@ import           Data.Text.Encoding                       (encodeUtf8)
 
 
 
-newUser ::  (BRApp context err, HasScryptParams context)=> BT.NewUser -> AppM context err BT.UserID
-newUser = runDb . newUserQuery
+newUser ::  (BRApp context err, BRT.HasScryptParams context) => BRT.NewUser
+        -> BRT.AppM context err BRT.UserID
+newUser = BRT.runDb . newUserQuery
 
 
--- | Hashes the password of the BT.NewUser and inserts the user into the database
-newUserQuery :: (AsBusinessRegistryError err, HasScryptParams context) => BT.NewUser -> DB context err BT.UserID
-newUserQuery userInfo@(BT.NewUser _ _ _ _ _ password) = do
-  params <- view $ _2 . scryptParams
+-- | Hashes the password of the BRT.NewUser and inserts the user into the database
+newUserQuery :: (BRT.AsBusinessRegistryError err, BRT.HasScryptParams context) => BRT.NewUser
+             -> BRT.DB context err BRT.UserID
+newUserQuery userInfo@(BRT.NewUser _ _ _ _ _ password) = do
+  params <- view $ _2 . BRT.scryptParams
   hash <- liftIO $ Scrypt.encryptPassIO params (Scrypt.Pass $ encodeUtf8 password)
   insertUser hash userInfo
 
 
-insertUser :: AsBusinessRegistryError err => Scrypt.EncryptedPass
-           -> BT.NewUser
-           -> DB context err BT.UserID
-insertUser encPass (BT.NewUser phone (EmailAddress email) firstName lastName biz _) = do
+insertUser :: BRT.AsBusinessRegistryError err => Scrypt.EncryptedPass
+           -> BRT.NewUser
+           -> BRT.DB context err BRT.UserID
+insertUser encPass (BRT.NewUser phone (BRT.EmailAddress email) firstName lastName biz _) = do
   userId <- newUUID
   -- TODO: use Database.Beam.Backend.SQL.runReturningOne?
-  res <- --handleError errHandler $
-    pg $ runInsertReturningList (Schema._users Schema.businessRegistryDB) $
+  res <- BRT.pg $ runInsertReturningList (Schema._users Schema.businessRegistryDB) $
       insertValues
        [Schema.UserT userId (Schema.BizId  biz) firstName lastName
                phone (Scrypt.getEncryptedPass encPass) email
         ]
   case res of
-      [r] -> return $ BT.UserID $ user_id r
+      [r] -> return $ BRT.UserID $ user_id r
       -- TODO: Have a proper error response
-      _   -> throwing _UserCreationErrorBRE (show res)
+      _   -> BRT.throwing BRT._UserCreationErrorBRE (show res)
 
 
-getUserByIdQuery :: BT.UserID -> DB context err (Maybe Schema.User)
-getUserByIdQuery (BT.UserID uid) = do
-  r <- pg $ runSelectReturningList $ select $ do
+getUserByIdQuery :: BRT.UserID -> BRT.DB context err (Maybe Schema.User)
+getUserByIdQuery (BRT.UserID uid) = do
+  r <- BRT.pg $ runSelectReturningList $ select $ do
           user <- all_ (Schema._users Schema.businessRegistryDB)
           guard_ (user_id user ==. val_ uid)
           pure user
@@ -66,9 +67,6 @@ getUserByIdQuery (BT.UserID uid) = do
     _      -> return Nothing
 
 
--- | Converts a DB representation of ``User`` to a Model representation
--- SB.User = SB.User uid bizId fName lName phNum passHash email
-userTableToModel :: Schema.User -> AuthUser
-userTableToModel (Schema.UserT uid _ fName lName _ _ _) = AuthUser (BT.UserID uid)
-
-
+-- | Converts a BRT.DB representation of ``User`` to ``AuthUser``
+tableToAuthUser :: Schema.User -> BRT.AuthUser
+tableToAuthUser tUser = BRT.AuthUser (BRT.UserID $ Schema.user_id tUser)
