@@ -39,14 +39,13 @@ import           Database.PostgreSQL.Simple (Connection, SqlError)
 import qualified Database.PostgreSQL.Simple as DB
 
 import qualified Control.Exception          as Exc
+import qualified Control.Exception          as E
 import           Control.Monad.Except       (ExceptT (..), MonadError,
                                              runExceptT, throwError)
 import           Control.Monad.IO.Class     (MonadIO, liftIO)
 import           Control.Monad.Reader       (MonadReader, ReaderT, ask, asks,
                                              local, runReaderT)
 import           Control.Monad.Trans        (lift)
-
-import qualified Control.Exception          as E
 
 import           Data.Pool                  as Pool
 
@@ -56,16 +55,17 @@ import qualified Data.ByteString            as BS
 import           Data.Text                  (Text)
 
 import           Data.Aeson
-import           Data.Aeson.TH
 
 import           Control.Lens
 import           Control.Monad.Error.Lens
 
-import           Data.GS1.EPC               as EPC
 import           Data.Swagger
+
 import           GHC.Generics               (Generic)
+
 import           Katip                      as K
 import           Katip.Monadic              (askLoggerIO)
+
 import           Servant                    (FromHttpApiData (..),
                                              ToHttpApiData (..))
 
