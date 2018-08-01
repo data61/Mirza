@@ -12,8 +12,9 @@ import           Test.Tasty                            hiding (withResource)
 import           Test.Tasty.Hspec                      (around, testSpec)
 import           Test.Tasty.Runners                    (NumThreads (..))
 
+import           Mirza.BusinessRegistry.Tests.Business (testBizQueries)
 import           Mirza.BusinessRegistry.Tests.Client
-import           Mirza.BusinessRegistry.Tests.Service  (testServiceQueries)
+import           Mirza.BusinessRegistry.Tests.Keys     (testKeyQueries)
 
 import           Control.Exception                     (bracket)
 import           Data.Int
@@ -71,10 +72,12 @@ withDatabaseConnection = bracket openConnection closeConnection
 
 main :: IO ()
 main = do
-  serviceTests <- testSpec "HSpec" (sequential $ around withDatabaseConnection testServiceQueries)
+  keyTests <- testSpec "HSpec" (sequential $ around withDatabaseConnection testKeyQueries)
+  bizTests <- testSpec "HSpec" (sequential $ around withDatabaseConnection testBizQueries)
   clientTests <- testSpec "Client HSpec" clientSpec
 
   defaultMain $ localOption (NumThreads 10) $ testGroup "tests"
-    [ serviceTests
+    [ keyTests
+    , bizTests
     , clientTests
     ]
