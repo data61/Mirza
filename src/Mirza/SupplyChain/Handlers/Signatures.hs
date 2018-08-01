@@ -100,7 +100,7 @@ getEventJSON eventID = do
   r <- pg $ runSelectReturningList $ select $ do
     allEvents <- all_ (SB._events SB.supplyChainDb)
     guard_ ((SB.event_id allEvents) ==. val_ (EvId.unEventId eventID))
-    pure (SB.json_event allEvents)
+    pure (SB.event_json allEvents)
   case r of
     [jsonEvent] -> return jsonEvent
     _           -> throwing _InvalidEventID eventID
@@ -110,7 +110,7 @@ getPublicKey (KeyID keyId) = do
   r <- pg $ runSelectReturningList $ select $ do
     allKeys <- all_ (SB._keys SB.supplyChainDb)
     guard_ (SB.key_id allKeys ==. val_ keyId)
-    pure (SB.pem_str allKeys)
+    pure (SB.key_pem_str allKeys)
   case r of
     [k] -> return $ PEMString $ T.unpack k
     _   -> throwing _InvalidKeyID . KeyID $ keyId

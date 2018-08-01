@@ -318,10 +318,10 @@ findInstLabelId' cp sn msfv mir mat = do
   r <- pg $ runSelectReturningList $ select $ do
     labels <- all_ (SB._labels SB.supplyChainDb)
     guard_ (SB.label_gs1_company_prefix labels ==. val_ cp &&.
-            SB.serial_number labels ==. val_ (Just sn) &&.
-            (SB.sgtin_filter_value labels) ==. (val_ msfv) &&.
-            SB.asset_type labels ==. val_ mat &&.
-            SB.item_reference labels ==. val_ mir)
+            SB.label_serial_number labels ==. val_ (Just sn) &&.
+            (SB.label_sgtin_filter_value labels) ==. (val_ msfv) &&.
+            SB.label_asset_type labels ==. val_ mat &&.
+            SB.label_item_reference labels ==. val_ mir)
     pure labels
   return $ case r of
     [l] -> Just (SB.label_id l)
@@ -332,7 +332,7 @@ getUser :: EmailAddress -> DB context err (Maybe ST.User)
 getUser (EmailAddress email) = do
   r <- pg $ runSelectReturningList $ select $ do
     allUsers <- all_ (SB._users SB.supplyChainDb)
-    guard_ (SB.email_address allUsers ==. val_ email)
+    guard_ (SB.user_email_address allUsers ==. val_ email)
     pure allUsers
   return $ case r of
     [u] -> Just . QU.userTableToModel $ u
@@ -352,9 +352,9 @@ findClassLabelId' cp msfv ir lot = do
     labels <- all_ (SB._labels SB.supplyChainDb)
     guard_ (
              SB.label_gs1_company_prefix labels ==. val_ cp &&.
-             (SB.sgtin_filter_value labels) ==. (val_ msfv) &&.
-             SB.lot labels ==. (val_ lot) &&.
-             SB.item_reference labels ==. (val_ . Just $ ir)
+             (SB.label_sgtin_filter_value labels) ==. (val_ msfv) &&.
+             SB.label_lot labels ==. (val_ lot) &&.
+             SB.label_item_reference labels ==. (val_ . Just $ ir)
            )
     pure labels
   case r of
