@@ -81,12 +81,12 @@ $(deriveJSON defaultOptions ''User)
 instance ToSchema User
 
 data NewUser = NewUser {
-  phoneNumber      :: Text,
+  newFirstName     :: Text,
   userEmailAddress :: EmailAddress,
-  firstName        :: Text,
-  lastName         :: Text,
-  company          :: GS1CompanyPrefix,
-  password         :: Text
+  newPhoneNumber   :: Text,
+  newLastName      :: Text,
+  newCompany       :: GS1CompanyPrefix,
+  newPassword      :: Text
 } deriving (Generic, Eq, Show)
 $(deriveJSON defaultOptions ''NewUser)
 instance ToSchema NewUser
@@ -164,8 +164,6 @@ data AggregationEvent = AggregationEvent {
   agg_parent_label     :: Maybe ParentLabel,
   agg_child_epc_list   :: [LabelEPC],
   agg_when             :: DWhen,
-  -- agg_timestamp     :: EPCISTime,
-  -- agg_timezone      :: TimeZone,
   agg_why              :: DWhy,
   agg_where            :: DWhere
 } deriving (Show, Generic)
@@ -322,8 +320,8 @@ instance FromField Digest where
 
 
 data SignedEvent = SignedEvent {
-  signed_eventID   :: EventId,
-  signed_keyID     :: KeyID,
+  signed_eventId   :: EventId,
+  signed_keyId     :: KeyID,
   signed_signature :: Signature,
   signed_digest    :: Digest
 } deriving (Generic)
