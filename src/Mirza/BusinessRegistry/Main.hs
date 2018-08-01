@@ -99,7 +99,7 @@ main :: IO ()
 main = multiplexGlobalOptions =<< execParser opts where
   opts = Options.Applicative.info (serverOptions <**> helper)
     (fullDesc
-    <> progDesc "todo some description"
+    <> progDesc "Here to meet all your business registry needs"
     <> header "Supply Chain Business Registry Service")
 
 
@@ -388,9 +388,8 @@ globalOptions = GlobalOptions
       <>  value 8
       )
   <*> option auto
-      (
-          long "scryptR"
-      <>  help "Scrypt r parameter (>= 1)"
+      (  long "scryptR"
+      <> help "Scrypt r parameter (>= 1)"
       <> showDefault
       <> value 1
       )
