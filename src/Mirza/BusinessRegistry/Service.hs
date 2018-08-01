@@ -28,7 +28,6 @@ import           Mirza.BusinessRegistry.Handlers.Business as Handlers
 import           Mirza.BusinessRegistry.Handlers.Common   as Handlers
 import           Mirza.BusinessRegistry.Handlers.Keys     as Keys
 import           Mirza.BusinessRegistry.Types
-import           Mirza.Common.Types
 import           Mirza.Common.Utils
 
 import           Servant
@@ -43,9 +42,7 @@ import           Data.Swagger
 
 
 -- All possible error types that could be thrown through the handlers.
-type PossibleErrors err
-  = (AsKeyError err
-    )
+type PossibleErrors err = (AsKeyError err)
 
 
 appHandlers :: (BRApp context err, HasScryptParams context, PossibleErrors err)
