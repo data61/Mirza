@@ -39,7 +39,6 @@ library
                     , Mirza.SupplyChain.API
                     , Mirza.SupplyChain.Auth
                     , Mirza.SupplyChain.Client.Servant
-                    , Mirza.SupplyChain.Handlers.Business
                     , Mirza.SupplyChain.Handlers.Common
                     , Mirza.SupplyChain.Handlers.Contacts
                     , Mirza.SupplyChain.Handlers.EventRegistration
