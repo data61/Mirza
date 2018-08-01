@@ -85,7 +85,7 @@ data User = User {
 $(deriveJSON defaultOptions ''User)
 instance ToSchema User
 
--- | Note that SupplyChainServer.NewUser is expected to become different in the
+-- | Note that BusinessRegistry.NewUser is expected to become different in the
 -- future, and hence this duplication
 data NewUser = NewUser {
   phoneNumber      :: Text,
