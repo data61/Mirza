@@ -10,29 +10,29 @@ module Mirza.BusinessRegistry.Tests.Service
   ( testServiceQueries
   ) where
 
+import           Mirza.BusinessRegistry.Database.Schema   as BSchema
 --import           Mirza.BusinessRegistry.Auth
-import           Mirza.BusinessRegistry.Database.Schema as BSchema
 --import           Mirza.BusinessRegistry.Handlers.Common
-import           Mirza.BusinessRegistry.Handlers.Keys   as BKey
+import           Mirza.BusinessRegistry.Handlers.Business
+import           Mirza.BusinessRegistry.Handlers.Keys     as BKey
 import           Mirza.BusinessRegistry.Handlers.Users
 import           Mirza.BusinessRegistry.Tests.Dummies
-import           Mirza.BusinessRegistry.Types           as BT
-import           Mirza.BusinessRegistry.Handlers.Business
-import           Mirza.Common.Time                      (CreationTime (..),
-                                                         ExpirationTime (..))
+import           Mirza.BusinessRegistry.Types             as BT
+import           Mirza.Common.Time                        (CreationTime (..),
+                                                           ExpirationTime (..))
 --import           Mirza.Common.Types
 
 --import           Data.Either                            (isLeft)
-import           Data.Maybe                             (fromJust, isNothing)
+import           Data.Maybe                               (fromJust, isNothing)
 
 
-import qualified Data.Text                              as T
+import qualified Data.Text                                as T
 
-import           Data.Time.Clock                        (addUTCTime,
-                                                         getCurrentTime)
-import           Data.Time.LocalTime                    (LocalTime, utc,
-                                                         utcToLocalTime)
-import           GHC.Stack                              (HasCallStack)
+import           Data.Time.Clock                          (addUTCTime,
+                                                           getCurrentTime)
+import           Data.Time.LocalTime                      (LocalTime, utc,
+                                                           utcToLocalTime)
+import           GHC.Stack                                (HasCallStack)
 import           Test.Hspec
 
 timeStampIO :: MonadIO m => m LocalTime
