@@ -110,13 +110,8 @@ instance FromHttpApiData AuthUser where
 
 -- Business Response Types:
 data BusinessResponse = BusinessResponse {
-  bizID    :: EPC.GS1CompanyPrefix,
-  bizName  :: Text,
-  function :: Text,
-  siteName :: Text,
-  address  :: Text,
-  lat      :: Double,
-  lng      :: Double
+  bizID   :: EPC.GS1CompanyPrefix,
+  bizName :: Text
   }
   deriving (Show, Eq, Read, Generic)
 instance ToSchema BusinessResponse

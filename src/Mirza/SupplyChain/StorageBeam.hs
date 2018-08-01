@@ -89,12 +89,7 @@ deriving instance Eq (PrimaryKey KeyT Identity)
 
 data BusinessT f = Business
   { biz_gs1_company_prefix :: C f EPC.GS1CompanyPrefix -- PrimaryKey
-  , biz_name               :: C f Text
-  , biz_function           :: C f Text
-  , biz_site_name          :: C f Text
-  , biz_address            :: C f Text
-  , biz_lat                :: C f Double
-  , biz_long               :: C f Double }
+  , biz_name               :: C f Text }
   deriving Generic
 type Business = BusinessT Identity
 type BizId = PrimaryKey BusinessT Identity
@@ -224,11 +219,14 @@ instance Table TransformationT where
 deriving instance Eq (PrimaryKey TransformationT Identity)
 
 data LocationT f = Location
-  { location_id     :: C f EPC.LocationReference
-  , location_biz_id :: PrimaryKey BusinessT f
+  { location_id        :: C f EPC.LocationReference
+  , location_biz_id    :: PrimaryKey BusinessT f
+  , location_site_name :: C f Text
+  , location_address   :: C f Text
+  , location_function  :: C f Text
   -- this needs to be locationReferenceNum
-  , location_lat    :: C f Double
-  , location_long   :: C f Double }
+  , location_lat       :: C f Double
+  , location_long      :: C f Double }
   deriving Generic
 
 type Location = LocationT Identity

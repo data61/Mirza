@@ -51,11 +51,6 @@ migrationStorage =
       Business
           (field "biz_gs1_company_prefix" gs1CompanyPrefixType) -- note is primary key
           (field "biz_name" (varchar (Just maxLen)) notNull)
-          (field "biz_function" (varchar (Just maxLen)) notNull)
-          (field "biz_site_name" (varchar (Just maxLen)) notNull)
-          (field "biz_address" (varchar (Just maxLen)) notNull)
-          (field "biz_lat" double)
-          (field "biz_long" double)
     )
     <*> createTable "contacts"
     (
@@ -106,6 +101,9 @@ migrationStorage =
       Location
           (field "location_id" locationRefType)
           (BizId (field "location_biz_id" gs1CompanyPrefixType))
+          (field "location_function" (varchar (Just maxLen)) notNull)
+          (field "location_site_name" (varchar (Just maxLen)) notNull)
+          (field "location_address" (varchar (Just maxLen)) notNull)
           -- this needs to be locationReferenceNum
           (field "location_lat" double)
           (field "location_long" double)
