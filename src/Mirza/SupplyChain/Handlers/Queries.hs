@@ -70,7 +70,7 @@ eventsByUser (ST.UserID userId) = do
     event <- all_ (SB._events SB.supplyChainDb)
     guard_ (SB.user_events_event_id userEvent `references_` event &&.
             SB.user_events_user_id userEvent ==. val_ (SB.UserId userId))
-    pure (SB.json_event event)
+    pure (SB.event_json event)
   return $ catMaybes $ decodeEvent <$> events
 
 

@@ -31,11 +31,6 @@ bizToBizResponse :: Business -> BusinessResponse
 bizToBizResponse BusinessT{..} = BusinessResponse
   { bizID    = biz_gs1_company_prefix
   , bizName  = biz_name
-  , function = biz_function
-  , siteName = biz_site_name
-  , address  = biz_address
-  , lat      = biz_lat
-  , lng      = biz_long
   }
 
 

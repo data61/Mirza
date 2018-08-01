@@ -65,7 +65,7 @@ storageToModelBusiness (SB.Business pfix name)
   = BRT.BusinessResponse pfix name
 
 storageToModelEvent :: SB.Event -> Maybe Ev.Event
-storageToModelEvent = decodeEvent . SB.json_event
+storageToModelEvent = decodeEvent . SB.event_json
 
 -- | Converts a DB representation of ``User`` to a Model representation
 -- SB.User = SB.User uid bizId fName lName phNum passHash email

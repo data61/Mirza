@@ -80,15 +80,15 @@ testServiceQueries = do
         ((UserID uid), Just user :: Maybe (SB.UserT Identity)) ->
           user `shouldSatisfy`
             (\u ->
-              (SB.phone_number u) == (phoneNumber dummyNewUser) &&
-              (SB.email_address u) == (unEmailAddress . userEmailAddress $ dummyNewUser) &&
-              (SB.first_name u) == (firstName dummyNewUser) &&
-              (SB.last_name u) == (lastName dummyNewUser) &&
+              (SB.user_phone_number u) == (phoneNumber dummyNewUser) &&
+              (SB.user_email_address u) == (unEmailAddress . userEmailAddress $ dummyNewUser) &&
+              (SB.user_first_name u) == (firstName dummyNewUser) &&
+              (SB.user_last_name u) == (lastName dummyNewUser) &&
               (SB.user_biz_id u) == (SB.BizId (company dummyNewUser)) &&
               -- note database bytestring includes the salt, this checks password
               (Scrypt.verifyPass'
                 (Scrypt.Pass $ encodeUtf8 $ password dummyNewUser)
-                (Scrypt.EncryptedPass $ SB.password_hash u)) &&
+                (Scrypt.EncryptedPass $ SB.user_password_hash u)) &&
               (SB.user_id u) == uid
             )
 

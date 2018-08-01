@@ -169,7 +169,7 @@ test-suite businessRegistry-test
   main-is:            Mirza/BusinessRegistry/Spec.hs
   other-modules:      Mirza.BusinessRegistry.Tests.Keys
                     , Mirza.BusinessRegistry.Tests.Dummies
-                    -- , Mirza.BusinessRegistry.Tests.Business
+                    , Mirza.BusinessRegistry.Tests.Business
                     , Mirza.BusinessRegistry.Tests.Client
                     , Mirza.BusinessRegistry.Tests.Settings
   default-extensions:  OverloadedStrings

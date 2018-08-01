@@ -595,7 +595,7 @@ supplyChainDb = defaultDbSettings
     , _whats =
         modifyTable (const "whats") $
         tableModification {
-          parent = LabelId (fieldNamed "parent")
+          what_parent = LabelId (fieldNamed "what_parent")
         , what_biz_transaction_id = BizTransactionId (fieldNamed "what_biz_transaction_id")
         , what_transformation_id = TransformationId (fieldNamed "what_transformation_id")
         , what_event_id = EventId (fieldNamed "what_event_id")
