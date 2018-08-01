@@ -167,8 +167,9 @@ test-suite businessRegistry-test
   type:               exitcode-stdio-1.0
   hs-source-dirs:     test
   main-is:            Mirza/BusinessRegistry/Spec.hs
-  other-modules:      Mirza.BusinessRegistry.Tests.Service
+  other-modules:      Mirza.BusinessRegistry.Tests.Keys
                     , Mirza.BusinessRegistry.Tests.Dummies
+                    -- , Mirza.BusinessRegistry.Tests.Business
                     , Mirza.BusinessRegistry.Tests.Client
                     , Mirza.BusinessRegistry.Tests.Settings
   default-extensions:  OverloadedStrings

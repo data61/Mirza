@@ -6,8 +6,8 @@
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TypeApplications      #-}
 
-module Mirza.BusinessRegistry.Tests.Service
-  ( testServiceQueries
+module Mirza.BusinessRegistry.Tests.Keys
+  ( testKeyQueries
   ) where
 
 import           Mirza.BusinessRegistry.Database.Schema   as BSchema
@@ -48,8 +48,8 @@ testAppM brContext act = runAppM brContext act >>= \case
     Left err -> fail (show err)
     Right a -> pure a
 
-testServiceQueries :: (HasCallStack) => SpecWith BT.BRContext
-testServiceQueries = do
+testKeyQueries :: (HasCallStack) => SpecWith BT.BRContext
+testKeyQueries = do
 
   describe "addPublicKey tests" $
     it "addPublicKey test 1" $ \brContext -> do
