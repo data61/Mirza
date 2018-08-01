@@ -33,13 +33,13 @@ import           Database.Beam.Postgres
 
 
 data UserT f = User
-  { user_id       :: C f PrimaryKeyType
-  , user_biz_id   :: PrimaryKey BusinessT f
-  , first_name    :: C f Text
-  , last_name     :: C f Text
-  , phone_number  :: C f Text
-  , password_hash :: C f ByteString --XXX - should this be blob?
-  , email_address :: C f Text }
+  { user_id            :: C f PrimaryKeyType
+  , user_biz_id        :: PrimaryKey BusinessT f
+  , user_first_name    :: C f Text
+  , user_last_name     :: C f Text
+  , user_phone_number  :: C f Text
+  , user_password_hash :: C f ByteString --XXX - should this be blob?
+  , user_email_address :: C f Text }
   deriving Generic
 
 type User = UserT Identity
@@ -63,12 +63,12 @@ deriving instance Eq (PrimaryKey UserT Identity)
 -- However, all times are converted to UTCTime using methods from typeclasses
 -- defined in Mirza.Common.Time
 data KeyT f = Key
-  { key_id          :: C f PrimaryKeyType
-  , key_user_id     :: PrimaryKey UserT f
-  , pem_str         :: C f Text
-  , creation_time   :: C f LocalTime -- Stored as UTC Time
-  , revocation_time :: C f (Maybe LocalTime) -- Stored as UTC Time
-  , expiration_time :: C f (Maybe LocalTime) -- Stored as UTC Time
+  { key_id              :: C f PrimaryKeyType
+  , key_user_id         :: PrimaryKey UserT f
+  , key_pem_str         :: C f Text
+  , key_creation_time   :: C f LocalTime -- Stored as UTC Time
+  , key_revocation_time :: C f (Maybe LocalTime) -- Stored as UTC Time
+  , key_expiration_time :: C f (Maybe LocalTime) -- Stored as UTC Time
   }
   deriving Generic
 type Key = KeyT Identity
@@ -131,14 +131,14 @@ data LabelT f = Label
   , label_type               :: C f (Maybe MU.LabelType)
   , label_what_id            :: PrimaryKey WhatT f
   , label_gs1_company_prefix :: C f EPC.GS1CompanyPrefix --should this be bizId instead?
-  , item_reference           :: C f (Maybe EPC.ItemReference)
-  , serial_number            :: C f (Maybe EPC.SerialNumber)
-  , state                    :: C f (Maybe Text)
-  , lot                      :: C f (Maybe EPC.Lot)
-  , sgtin_filter_value       :: C f (Maybe EPC.SGTINFilterValue)
-  , asset_type               :: C f (Maybe EPC.AssetType)
-  , quantity_amount          :: C f (Maybe EPC.Amount)
-  , quantity_uom             :: C f (Maybe EPC.Uom)
+  , label_item_reference     :: C f (Maybe EPC.ItemReference)
+  , label_serial_number      :: C f (Maybe EPC.SerialNumber)
+  , label_state              :: C f (Maybe Text)
+  , label_lot                :: C f (Maybe EPC.Lot)
+  , label_sgtin_filter_value :: C f (Maybe EPC.SGTINFilterValue)
+  , label_asset_type         :: C f (Maybe EPC.AssetType)
+  , label_quantity_amount    :: C f (Maybe EPC.Amount)
+  , label_quantity_uom       :: C f (Maybe EPC.Uom)
   }
   deriving Generic
 type Label = LabelT Identity
@@ -244,10 +244,10 @@ instance Table LocationT where
   primaryKey = LocationId . location_id
 
 data EventT f = Event
-  { event_id         :: C f PrimaryKeyType
-  , foreign_event_id :: C f (Maybe PrimaryKeyType) -- Event ID from XML from foreign systems.
-  , event_created_by :: PrimaryKey UserT f
-  , json_event       :: C f Text }
+  { event_id               :: C f PrimaryKeyType
+  , event_foreign_event_id :: C f (Maybe PrimaryKeyType) -- Event ID from XML from foreign systems.
+  , event_created_by       :: PrimaryKey UserT f
+  , event_json             :: C f Text }
   deriving Generic
 type Event = EventT Identity
 type EventId = PrimaryKey EventT Identity
@@ -275,8 +275,8 @@ deriving instance Eq (PrimaryKey EventT Identity)
 data WhatT f = What
   { what_id                 :: C f PrimaryKeyType
   , what_event_type         :: C f (Maybe Ev.EventType)
-  , action                  :: C f (Maybe EPC.Action)
-  , parent                  :: PrimaryKey LabelT (Nullable f)
+  , what_action             :: C f (Maybe EPC.Action)
+  , what_parent             :: PrimaryKey LabelT (Nullable f)
   , what_biz_transaction_id :: PrimaryKey BizTransactionT (Nullable f)
   , what_transformation_id  :: PrimaryKey TransformationT (Nullable f)
   , what_event_id           :: PrimaryKey EventT f }
@@ -323,10 +323,10 @@ instance Table BizTransactionT where
 deriving instance Eq (PrimaryKey BizTransactionT Identity)
 
 data WhyT f = Why
-  { why_id       :: C f PrimaryKeyType
-  , biz_step     :: C f (Maybe Text) -- EPC.BizStep
-  , disposition  :: C f (Maybe Text) -- EPC.Disposition
-  , why_event_id :: PrimaryKey EventT f }
+  { why_id          :: C f PrimaryKeyType
+  , why_biz_step    :: C f (Maybe Text) -- EPC.BizStep
+  , why_disposition :: C f (Maybe Text) -- EPC.Disposition
+  , why_event_id    :: PrimaryKey EventT f }
 
   deriving Generic
 
@@ -369,11 +369,11 @@ type TzOffsetString = Text
 -- EPCISTime is stored as LocalTime with utc timezone.
 -- See Mirza.Common.Time for details on how it is done
 data WhenT f = When
-  { when_id       :: C f PrimaryKeyType
-  , event_time    :: C f LocalTime -- Stored as EPCISTime
-  , record_time   :: C f (Maybe LocalTime) -- Stored as EPCISTime
-  , time_zone     :: C f TzOffsetString -- TimeZone
-  , when_event_id :: PrimaryKey EventT f }
+  { when_id          :: C f PrimaryKeyType
+  , when_event_time  :: C f LocalTime -- Stored as EPCISTime
+  , when_record_time :: C f (Maybe LocalTime) -- Stored as EPCISTime
+  , when_time_zone   :: C f TzOffsetString -- TimeZone
+  , when_event_id    :: PrimaryKey EventT f }
   deriving Generic
 
 type When = WhenT Identity
@@ -408,12 +408,12 @@ instance Table LabelEventT where
 
 
 data UserEventT f = UserEvent
-  { user_events_id         :: C f PrimaryKeyType
-  , user_events_event_id   :: PrimaryKey EventT f
-  , user_events_user_id    :: PrimaryKey UserT f
-  , user_events_has_signed :: C f Bool
-  , user_events_owner      :: PrimaryKey UserT f
-  , user_events_signedHash :: C f (Maybe ByteString)
+  { user_events_id          :: C f PrimaryKeyType
+  , user_events_event_id    :: PrimaryKey EventT f
+  , user_events_user_id     :: PrimaryKey UserT f
+  , user_events_has_signed  :: C f Bool
+  , user_events_owner       :: PrimaryKey UserT f
+  , user_events_signed_hash :: C f (Maybe ByteString)
   }
   deriving Generic
 
