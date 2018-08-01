@@ -105,6 +105,8 @@ getEventJSON eventID = do
     [jsonEvent] -> return jsonEvent
     _           -> throwing _InvalidEventID eventID
 
+-- TODO: ``getPublicKey`` should come from BR.Client
+-- import the client in the file
 getPublicKey :: AsServiceError err =>  KeyID -> DB context err PEM_RSAPubKey
 getPublicKey (KeyID keyId) = do
   r <- pg $ runSelectReturningList $ select $ do

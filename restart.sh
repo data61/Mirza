@@ -67,4 +67,6 @@ curl -X POST "http://localhost:8000/newUser" \
     -H "Content-Type: application/json;charset=utf-8"\
     -d "{ \"phoneNumber\": \"0412\", \"userEmailAddress\": \"abc@gmail.com\", \"firstName\": \"sajid\", \"lastName\": \"anower\", \"company\": \"4000001\", \"password\": \"password\"}")&
 
+# TODO: Run an instance of businessRegistry as well
+
 stack exec supplyChainServer-exe -- -e Dev # running in Dev
