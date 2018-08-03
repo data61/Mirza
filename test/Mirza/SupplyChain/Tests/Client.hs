@@ -37,17 +37,17 @@ import           Mirza.SupplyChain.Tests.Dummies
 
 userABC :: NewUser
 userABC = NewUser
-  { phoneNumber = "0400 111 222"
-  , userEmailAddress = EmailAddress "abc@example.com"
-  , firstName = "Johnny"
-  , lastName = "Smith"
-  , company = GS1CompanyPrefix "something"
-  , password = "re4lly$ecret14!"}
+  { newUserPhoneNumber = "0400 111 222"
+  , newUserEmailAddress = EmailAddress "abc@example.com"
+  , newUserFirstName = "Biz Johnny"
+  , newUserLastName = "Smith Biz"
+  , newUserCompany = GS1CompanyPrefix "something"
+  , newUserPassword = "re4lly$ecret14!"}
 
 authABC :: BasicAuthData
 authABC = BasicAuthData
-  (encodeUtf8 . unEmailAddress . userEmailAddress $ userABC)
-  (encodeUtf8 . password                          $ userABC)
+  (encodeUtf8 . unEmailAddress . newUserEmailAddress $ userABC)
+  (encodeUtf8 . newUserPassword                      $ userABC)
 
 runApp :: IO (ThreadId, BaseUrl)
 runApp = do

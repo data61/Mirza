@@ -80,14 +80,14 @@ testServiceQueries = do
         ((UserID uid), Just user :: Maybe (SB.UserT Identity)) ->
           user `shouldSatisfy`
             (\u ->
-              (SB.user_phone_number u) == (phoneNumber dummyNewUser) &&
-              (SB.user_email_address u) == (unEmailAddress . userEmailAddress $ dummyNewUser) &&
-              (SB.user_first_name u) == (firstName dummyNewUser) &&
-              (SB.user_last_name u) == (lastName dummyNewUser) &&
-              (SB.user_biz_id u) == (SB.BizId (company dummyNewUser)) &&
+              (SB.user_phone_number u) == (newUserPhoneNumber dummyNewUser) &&
+              (SB.user_email_address u) == (unEmailAddress . newUserEmailAddress $ dummyNewUser) &&
+              (SB.user_first_name u) == (newUserFirstName dummyNewUser) &&
+              (SB.user_last_name u) == (newUserLastName dummyNewUser) &&
+              (SB.user_biz_id u) == (SB.BizId (newUserCompany dummyNewUser)) &&
               -- note database bytestring includes the salt, this checks password
               (Scrypt.verifyPass'
-                (Scrypt.Pass $ encodeUtf8 $ password dummyNewUser)
+                (Scrypt.Pass $ encodeUtf8 $ newUserPassword dummyNewUser)
                 (Scrypt.EncryptedPass $ SB.user_password_hash u)) &&
               (SB.user_id u) == uid
             )
@@ -98,8 +98,8 @@ testServiceQueries = do
         uid <- newUser dummyNewUser
         let check = unBasicAuthCheck $ authCheck scsContext
         let basicAuthData = BasicAuthData
-                          (encodeUtf8 $ unEmailAddress $ userEmailAddress dummyNewUser)
-                          (encodeUtf8 $ password dummyNewUser)
+                          (encodeUtf8 $ unEmailAddress $ newUserEmailAddress dummyNewUser)
+                          (encodeUtf8 $ newUserPassword dummyNewUser)
 
         user <- liftIO $ check basicAuthData
         pure (uid, user)
@@ -108,8 +108,8 @@ testServiceQueries = do
           user `shouldSatisfy`
             (\u ->
               (userId u) == uid &&
-              (userFirstName u) == (firstName dummyNewUser) &&
-              (userLastName u) == (lastName dummyNewUser)
+              (userFirstName u) == (newUserFirstName dummyNewUser) &&
+              (userLastName u) == (newUserLastName dummyNewUser)
             )
         _ -> fail "Could not authenticate user"
 
@@ -177,7 +177,7 @@ testServiceQueries = do
     it "getUser test 1" $ \scsContext -> do
       res <- testAppM scsContext $ do
         uid <- newUser dummyNewUser
-        user <- runDb $ getUser $ userEmailAddress dummyNewUser
+        user <- runDb $ getUser $ newUserEmailAddress dummyNewUser
         pure (uid, user)
       case res of
         (_, Nothing) -> fail "Received Nothing for user"
@@ -185,8 +185,8 @@ testServiceQueries = do
           user `shouldSatisfy`
             (\u ->
               (userId u == uid) &&
-              (userFirstName u == firstName dummyNewUser) &&
-              (userLastName u == lastName dummyNewUser)
+              (userFirstName u == newUserFirstName dummyNewUser) &&
+              (userLastName u == newUserLastName dummyNewUser)
             )
 
   describe "Contacts" $ do
@@ -196,7 +196,7 @@ testServiceQueries = do
           let myContact = makeDummyNewUser (EmailAddress "first@gmail.com")
           (hasBeenAdded, isContact) <- testAppM scsContext $ do
             uid <- newUser dummyNewUser
-            user <- runDb $ getUser . userEmailAddress $ dummyNewUser
+            user <- runDb $ getUser . newUserEmailAddress $ dummyNewUser
             myContactUid <- newUser myContact
             hasBeenAdded <- addContact (fromJust user) myContactUid
             isContact <- runDb $ isExistingContact uid myContactUid
@@ -209,7 +209,7 @@ testServiceQueries = do
         -- Adding the contact first
         (hasBeenAdded, hasBeenRemoved) <- testAppM scsContext $ do
           void $ newUser dummyNewUser
-          mUser <- runDb $ getUser $ userEmailAddress dummyNewUser
+          mUser <- runDb $ getUser $ newUserEmailAddress dummyNewUser
           let myContact = makeDummyNewUser (EmailAddress "first@gmail.com")
               user = fromJust mUser
           myContactUid <- newUser myContact
@@ -223,7 +223,7 @@ testServiceQueries = do
         -- Adding the contact first
         (hasBeenAdded, hasBeenRemoved) <- testAppM scsContext $ do
           void $ newUser dummyNewUser
-          mUser <- runDb $ getUser $ userEmailAddress dummyNewUser
+          mUser <- runDb $ getUser $ newUserEmailAddress dummyNewUser
         -- Add a new user who is NOT a contact
           otherUserId <- newUser $ makeDummyNewUser (EmailAddress "other@gmail.com")
           let myContact = makeDummyNewUser (EmailAddress "first@gmail.com")
@@ -241,7 +241,7 @@ testServiceQueries = do
         -- Adding the contact first
         (hasBeenAdded, contactList, users) <- testAppM scsContext $ do
           void $ newUser dummyNewUser
-          mUser <- runDb $ getUser $ userEmailAddress dummyNewUser
+          mUser <- runDb $ getUser $ newUserEmailAddress dummyNewUser
           let myContact = makeDummyNewUser (EmailAddress "first@gmail.com")
               user = fromJust mUser
           myContactUid <- newUser myContact
@@ -267,7 +267,7 @@ testServiceQueries = do
           myContactUid_4 <- newUser myContact_4
 
           -- Getting the users
-          mUser <- runDb $ getUser $ userEmailAddress dummyNewUser
+          mUser <- runDb $ getUser $ newUserEmailAddress dummyNewUser
           mMyContact_1 <- runDb $ getUser (EmailAddress "first@gmail.com")
           mMyContact_2 <- runDb $ getUser (EmailAddress "second@gmail.com")
           mMyContact_3 <- runDb $ getUser (EmailAddress "third@gmail.com")

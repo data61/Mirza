@@ -57,8 +57,8 @@ testKeyQueries = do
       tStart <- timeStampIO
       res <- testAppM brContext $ do
         uid <- newUser dummyNewUser
-        storageUser <- runDb $ getUserByIdQuery uid
-        let user = userTableToModel . fromJust $ storageUser
+        tableUser <- runDb $ getUserByIdQuery uid
+        let user = tableToAuthUser . fromJust $ tableUser
         let (BT.PEM_RSAPubKey keyStr) = pubKey
         keyId <- addPublicKey user pubKey Nothing
         tEnd <- timeStampIO
@@ -84,8 +84,8 @@ testKeyQueries = do
       pubKey <- rsaPubKey
       (keyInfo, uid, tEnd) <- testAppM brContext $ do
         uid <- newUser dummyNewUser
-        storageUser <- runDb $ getUserByIdQuery uid
-        let user = userTableToModel . fromJust $ storageUser
+        tableUser <- runDb $ getUserByIdQuery uid
+        let user = tableToAuthUser . fromJust $ tableUser
         keyId <- addPublicKey user pubKey Nothing
         keyInfo <- getPublicKeyInfo keyId
         tEnd <- liftIO getCurrentTime
@@ -103,8 +103,8 @@ testKeyQueries = do
       pubKey <- rsaPubKey
       myKeyState <- testAppM brContext $ do
         uid <- newUser dummyNewUser
-        storageUser <- runDb $ getUserByIdQuery uid
-        let user = userTableToModel . fromJust $ storageUser
+        tableUser <- runDb $ getUserByIdQuery uid
+        let user = tableToAuthUser . fromJust $ tableUser
         keyId <- addPublicKey user pubKey Nothing
         _timeKeyRevoked <- revokePublicKey user keyId
         keyInfo <- getPublicKeyInfo keyId
@@ -116,14 +116,14 @@ testKeyQueries = do
       pubKey <- rsaPubKey
       r <- testAppM brContext $ do
         uid <- newUser dummyNewUser
-        storageUser <- runDb $ getUserByIdQuery uid
-        let user = userTableToModel . fromJust $ storageUser
+        tableUser <- runDb $ getUserByIdQuery uid
+        let user = tableToAuthUser . fromJust $ tableUser
         keyId <- addPublicKey user pubKey Nothing
 
         -- making a fake user
         hackerUid <- newUser $ makeDummyNewUser (EmailAddress "l33t@hacker.com")
         storageHacker <- runDb $ getUserByIdQuery hackerUid
-        let hacker = userTableToModel . fromJust $ storageHacker
+        let hacker = tableToAuthUser . fromJust $ storageHacker
 
         revokePublicKey hacker keyId
       r `shouldSatisfy` isLeft
@@ -137,8 +137,8 @@ testKeyQueries = do
       pubKey <- rsaPubKey
       myKeyState <- testAppM brContext $ do
         uid <- newUser dummyNewUser
-        storageUser <- runDb $ getUserByIdQuery uid
-        let user = userTableToModel . fromJust $ storageUser
+        tableUser <- runDb $ getUserByIdQuery uid
+        let user = tableToAuthUser . fromJust $ tableUser
         keyId <- addPublicKey user pubKey (Just . ExpirationTime $ someTimeAgo )
         _timeKeyRevoked <- revokePublicKey user keyId
         keyInfo <- getPublicKeyInfo keyId
@@ -152,8 +152,8 @@ testKeyQueries = do
       pubKey <- rsaPubKey
       myKeyState <- testAppM brContext $ do
         uid <- newUser dummyNewUser
-        storageUser <- runDb $ getUserByIdQuery uid
-        let user = userTableToModel . fromJust $ storageUser
+        tableUser <- runDb $ getUserByIdQuery uid
+        let user = tableToAuthUser . fromJust $ tableUser
         keyId <- addPublicKey user pubKey (Just . ExpirationTime $ someTimeAgo)
         keyInfo <- getPublicKeyInfo keyId
         pure (keyState keyInfo)
@@ -166,8 +166,8 @@ testKeyQueries = do
       pubKey <- rsaPubKey
       myKeyState <- testAppM brContext $ do
         uid <- newUser dummyNewUser
-        storageUser <- runDb $ getUserByIdQuery uid
-        let user = userTableToModel . fromJust $ storageUser
+        tableUser <- runDb $ getUserByIdQuery uid
+        let user = tableToAuthUser . fromJust $ tableUser
         keyId <- addPublicKey user pubKey (Just . ExpirationTime $ someTimeLater)
         keyInfo <- getPublicKeyInfo keyId
         pure (keyState keyInfo)

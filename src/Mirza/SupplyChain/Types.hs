@@ -81,12 +81,12 @@ $(deriveJSON defaultOptions ''User)
 instance ToSchema User
 
 data NewUser = NewUser {
-  newFirstName     :: Text,
-  userEmailAddress :: EmailAddress,
-  newPhoneNumber   :: Text,
-  newLastName      :: Text,
-  newCompany       :: GS1CompanyPrefix,
-  newPassword      :: Text
+  newUserFirstName    :: Text,
+  newUserEmailAddress :: EmailAddress,
+  newUserPhoneNumber  :: Text,
+  newUserLastName     :: Text,
+  newUserCompany      :: GS1CompanyPrefix,
+  newUserPassword     :: Text
 } deriving (Generic, Eq, Show)
 $(deriveJSON defaultOptions ''NewUser)
 instance ToSchema NewUser
