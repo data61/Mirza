@@ -33,23 +33,16 @@ newUser = BRT.runDb . newUserQuery
 -- | Hashes the password of the BRT.NewUser and inserts the user into the database
 newUserQuery :: (BRT.AsBusinessRegistryError err, BRT.HasScryptParams context) => BRT.NewUser
              -> BRT.DB context err BRT.UserID
-newUserQuery userInfo@(BRT.NewUser _ _ _ _ _ password) = do
+newUserQuery newUser@(BRT.NewUser phone (BRT.EmailAddress email) firstName lastName biz password) = do
   params <- view $ _2 . BRT.scryptParams
-  hash <- liftIO $ Scrypt.encryptPassIO params (Scrypt.Pass $ encodeUtf8 password)
-  insertUser hash userInfo
-
-
-insertUser :: BRT.AsBusinessRegistryError err => Scrypt.EncryptedPass
-           -> BRT.NewUser
-           -> BRT.DB context err BRT.UserID
-insertUser encPass (BRT.NewUser phone (BRT.EmailAddress email) firstName lastName biz _) = do
+  encPass <- liftIO $ Scrypt.encryptPassIO params (Scrypt.Pass $ encodeUtf8 password)
   userId <- newUUID
   -- TODO: use Database.Beam.Backend.SQL.runReturningOne?
   res <- BRT.pg $ runInsertReturningList (Schema._users Schema.businessRegistryDB) $
       insertValues
        [Schema.UserT userId (Schema.BizId  biz) firstName lastName
                phone (Scrypt.getEncryptedPass encPass) email
-        ]
+       ]
   case res of
       [r] -> return $ BRT.UserID $ user_id r
       -- TODO: Have a proper error response
