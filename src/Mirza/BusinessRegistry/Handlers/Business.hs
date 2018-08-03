@@ -22,7 +22,7 @@ listBusinesses = fmap bizToBizResponse <$> runDb listBusinessesQuery
 
 bizToBizResponse :: Business -> BusinessResponse
 bizToBizResponse BusinessT{..} = BusinessResponse
-  { bizID    = biz_gs1_company_prefix
+  { bizId    = biz_gs1_company_prefix
   , bizName  = biz_name
   }
 
