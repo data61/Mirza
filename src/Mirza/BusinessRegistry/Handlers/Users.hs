@@ -33,7 +33,7 @@ newUser = BRT.runDb . newUserQuery
 -- | Hashes the password of the BRT.NewUser and inserts the user into the database
 newUserQuery :: (BRT.AsBusinessRegistryError err, BRT.HasScryptParams context) => BRT.NewUser
              -> BRT.DB context err BRT.UserID
-newUserQuery newUser@(BRT.NewUser phone (BRT.EmailAddress email) firstName lastName biz password) = do
+newUserQuery (BRT.NewUser phone (BRT.EmailAddress email) firstName lastName biz password) = do
   params <- view $ _2 . BRT.scryptParams
   encPass <- liftIO $ Scrypt.encryptPassIO params (Scrypt.Pass $ encodeUtf8 password)
   userId <- newUUID
