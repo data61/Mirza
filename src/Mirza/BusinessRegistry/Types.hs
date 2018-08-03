@@ -110,7 +110,7 @@ instance FromHttpApiData AuthUser where
 
 -- Business Response Types:
 data BusinessResponse = BusinessResponse {
-  bizID   :: EPC.GS1CompanyPrefix,
+  bizId   :: EPC.GS1CompanyPrefix,
   bizName :: Text
   }
   deriving (Show, Eq, Read, Generic)
