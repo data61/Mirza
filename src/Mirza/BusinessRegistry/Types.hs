@@ -107,6 +107,9 @@ instance ToParamSchema AuthUser
 instance FromHttpApiData AuthUser where
   parseUrlPiece = notImplemented
 
+-- *****************************************************************************
+-- Business Types
+-- *****************************************************************************
 
 -- Business Response Types:
 data BusinessResponse = BusinessResponse {
@@ -152,19 +155,6 @@ data KeyInfoResponse = KeyInfoResponse
 $(deriveJSON defaultOptions ''KeyInfoResponse)
 instance ToSchema KeyInfoResponse
 
-
--- *****************************************************************************
--- Business Types
--- *****************************************************************************
-
-data SearchFields = SearchFields {
-  sUser             :: User,
-  sbizName          :: Maybe Text,
-  sBizId            :: Maybe UUID,
-  sGS1CompanyPrefix :: Maybe Text,
-  sFunction         :: Maybe Text,
-  sAddress          :: Maybe Text
-}
 
 -- *****************************************************************************
 -- Error Types
