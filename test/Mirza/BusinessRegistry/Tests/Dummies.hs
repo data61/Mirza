@@ -1,6 +1,5 @@
 
--- | Sample data types. Serves as a good example of the types defined
--- in GS1Combinators
+-- | Dummy data used for tests
 module Mirza.BusinessRegistry.Tests.Dummies where
 
 -- import           Mirza.SupplyChain.Types hiding (InProgress, NewUser (..))
@@ -10,9 +9,6 @@ import           Data.GS1.EPC                 (GS1CompanyPrefix (..))
 import           Mirza.BusinessRegistry.Types as BRT
 import           Mirza.Common.Types           as CT
 
--- add function to generate and take dummyLabelEpc
-
--- General Utils
 dummyNewUser :: BRT.NewUser
 dummyNewUser = makeDummyNewUser (EmailAddress "fake@gmail.com")
 
