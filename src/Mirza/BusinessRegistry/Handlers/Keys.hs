@@ -170,22 +170,22 @@ revokePublicKeyQuery uId k@(KeyID keyId) = do
 
 doesUserOwnKeyQuery :: AsKeyError err => CT.UserID -> KeyID -> DB context err Bool
 doesUserOwnKeyQuery (UserID uId) (KeyID keyId) = do
-  r <- pg $ runSelectReturningList $ select $ do
+  r <- pg $ runSelectReturningOne $ select $ do
           key <- all_ (_keys businessRegistryDB)
           guard_ (key_id key ==. val_ keyId)
           guard_ (val_ (UserId uId) ==. (key_user_id key))
           pure key
   return $ case r of
-    [_key] -> True
-    _      -> False
+    (Just _key) -> True
+    _           -> False
 
 
 getKeyById :: KeyID -> DB context err (Maybe Key)
 getKeyById (KeyID keyId) = do
-  r <- pg $ runSelectReturningList $ select $ do
+  r <- pg $ runSelectReturningOne $ select $ do
           key <- all_ (_keys businessRegistryDB)
           guard_ (key_id key ==. val_ keyId)
           pure key
   case r of
-    [key] -> return $ Just key
-    _     -> return Nothing
+    (Just key) -> return $ Just key
+    Nothing    -> return Nothing
