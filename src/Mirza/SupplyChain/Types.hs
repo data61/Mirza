@@ -361,8 +361,6 @@ data ServiceError
   | InvalidUserID         UserID
   | InvalidRSAKeyInDB     Text -- when the key already existing in the DB is wrong
   | InvalidDigest         Digest
-  | KeyAlreadyRevoked
-  | UnauthorisedKeyAccess
   | InsertionFail         ServerError Text
   | EventPermissionDenied UserID EvId.EventId
   | EmailExists           ServerError EmailAddress

@@ -37,7 +37,11 @@ import           GHC.TypeLits                             (KnownSymbol)
 
 import           Control.Lens                             hiding ((.=))
 import           Control.Monad.IO.Class                   (liftIO)
+
+import           Data.ByteString.Lazy.Char8               as BSL8
 import qualified Data.HashMap.Strict.InsOrd               as IOrd
+import           Text.Printf                              (printf)
+
 import           Data.Swagger
 
 
@@ -81,8 +85,8 @@ appMToHandler :: forall x context. context -> AppM context BusinessRegistryError
 appMToHandler context act = do
   res <- liftIO $ runAppM context act
   case res of
-    Left _  -> notImplemented
-    Right a -> return a
+    Left err -> appErrToHttpErr err
+    Right a  -> return a
 
 
 -- | Swagger spec for server API.
@@ -92,3 +96,23 @@ serveSwaggerAPI = toSwagger serverAPI
   & info.version .~ "1.0"
   & info.description ?~ "This is an API that tests swagger integration"
   & info.license ?~ ("MIT" & url ?~ URL "https://opensource.org/licenses/MIT")
+
+
+appErrToHttpErr :: BusinessRegistryError -> Handler a
+appErrToHttpErr (KeyErrorBRE kError) = keyErrToHttpErr kError
+appErrToHttpErr _                    = notImplemented
+
+-- | Takes in a BusinessRegistryError and converts it to an HTTP error (eg. err400)
+keyErrToHttpErr :: KeyError -> Handler a
+keyErrToHttpErr (InvalidRSAKey _) =
+   throwError $ err400 {
+     errBody = "Failed to parse RSA Public key."
+   }
+keyErrToHttpErr (InvalidRSAKeySize (Expected (Bit expSize)) (Received (Bit recSize))) =
+   throwError $ err400 {
+     errBody = BSL8.pack $ printf "Invalid RSA Key size. Expected: %d Bits, Received: %d Bits\n" expSize recSize
+   }
+keyErrToHttpErr KeyAlreadyRevoked =
+   throwError $ err400 { errBody = "Public Key already revoked" }
+keyErrToHttpErr UnauthorisedKeyAccess =
+   throwError $ err403 { errBody = "Not authorised to access this key." }
