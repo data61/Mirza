@@ -49,7 +49,7 @@ migrationStorage =
     <*> createTable "businesses"
     (
       Business
-          (field "biz_gs1_company_prefix" gs1CompanyPrefixType) -- note is primary key
+          (field "biz_gs1_company_prefix" gs1CompanyPrefixType)
           (field "biz_name" (varchar (Just maxLen)) notNull)
     )
     <*> createTable "contacts"

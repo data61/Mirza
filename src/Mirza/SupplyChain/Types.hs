@@ -4,9 +4,6 @@
 {-# LANGUAGE TemplateHaskell            #-}
 {-# OPTIONS_GHC -Wno-orphans            #-}
 
-
-
--- | Contains the definition of our ReaderT AppM
 module Mirza.SupplyChain.Types
   ( module Mirza.SupplyChain.Types
   , module Common
