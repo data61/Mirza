@@ -98,11 +98,14 @@ serveSwaggerAPI = toSwagger serverAPI
   & info.license ?~ ("MIT" & url ?~ URL "https://opensource.org/licenses/MIT")
 
 
-appErrToHttpErr :: BusinessRegistryError -> Handler a
-appErrToHttpErr (KeyErrorBRE kError) = keyErrToHttpErr kError
-appErrToHttpErr _                    = notImplemented
-
 -- | Takes in a BusinessRegistryError and converts it to an HTTP error (eg. err400)
+appErrToHttpErr :: BusinessRegistryError -> Handler a
+appErrToHttpErr (KeyErrorBRE kError)               = keyErrToHttpErr kError
+appErrToHttpErr (DBErrorBRE _sqlError)             = notImplemented
+appErrToHttpErr (BusinessCreationErrorBRE _reason) = notImplemented
+appErrToHttpErr (UserCreationErrorBRE _reason)     = notImplemented
+
+
 keyErrToHttpErr :: KeyError -> Handler a
 keyErrToHttpErr (InvalidRSAKey _) =
    throwError $ err400 {
