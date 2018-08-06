@@ -7,8 +7,6 @@ module Mirza.SupplyChain.Handlers.Signatures
   , eventSign, getEventJSON, makeDigest, insertSignature, eventHashed
   ) where
 
-
-
 import           Mirza.Common.Time
 import           Mirza.Common.Utils
 import           Mirza.SupplyChain.Handlers.Common
@@ -46,11 +44,19 @@ import qualified Data.Text                                    as T
 
 -- | A function to tie a user to an event
 -- Populates the ``UserEvents`` table
-addUserToEvent :: SCSApp context err => ST.User -> ST.UserID -> EvId.EventId -> AppM context err ()
+addUserToEvent :: SCSApp context err
+               => ST.User
+               -> ST.UserID
+               -> EvId.EventId
+               -> AppM context err ()
 addUserToEvent (User loggedInUserId _ _) anotherUserId eventId =
     runDb $ addUserToEventQuery (EventOwner loggedInUserId) (SigningUser anotherUserId) eventId
 
-addUserToEventQuery :: AsServiceError err => EventOwner -> SigningUser -> EvId.EventId -> DB context err ()
+addUserToEventQuery :: AsServiceError err
+                    => EventOwner
+                    -> SigningUser
+                    -> EvId.EventId
+                    -> DB context err ()
 addUserToEventQuery (EventOwner lUserId@(ST.UserID loggedInUserId))
                 (SigningUser (ST.UserID otherUserId))
                 evId@(EvId.EventId eventId) = do
@@ -80,7 +86,8 @@ addUserToEventQuery (EventOwner lUserId@(ST.UserID loggedInUserId))
    Lets do this after we have everything compiling.
 -}
 
-eventSign :: (AsServiceError err, SCSApp context err) => ST.User
+eventSign :: (AsServiceError err, SCSApp context err)
+          => ST.User
           -> SignedEvent
           -> AppM context err PrimaryKeyType
 eventSign _user (SignedEvent eventID keyID (Signature sigStr) digest') = runDb $ do
