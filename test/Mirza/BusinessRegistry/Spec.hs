@@ -61,8 +61,7 @@ openConnection = do
   connpool <- defaultPool
   _ <- withResource connpool dropTables -- drop tables before so if already exist no problems... means tables get overwritten though
   withResource connpool (tryCreateSchema True)
-  let envT = BRT.mkEnvType True
-  initBRContext (GlobalOptions defaultDatabaseConnectionString 16 10 4 DebugS envT)
+  initBRContext (GlobalOptions defaultDatabaseConnectionString 16 10 4 DebugS Dev)
 
 closeConnection :: BRContext -> IO ()
 closeConnection = Pool.destroyAllResources . BRT._brDbConnPool
