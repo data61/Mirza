@@ -33,8 +33,6 @@ import           Data.Aeson.TH
 import           Data.Swagger
 import           Data.Text                              (Text)
 
--- import           Data.UUID                              (UUID)
-
 import           GHC.Generics                           (Generic)
 import           Servant                                (FromHttpApiData (..))
 
