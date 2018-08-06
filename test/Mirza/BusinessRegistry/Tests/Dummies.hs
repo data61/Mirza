@@ -2,9 +2,6 @@
 -- | Dummy data used for tests
 module Mirza.BusinessRegistry.Tests.Dummies where
 
--- import           Mirza.SupplyChain.Types hiding (InProgress, NewUser (..))
--- import qualified Mirza.SupplyChain.Types as ST
-
 import           Data.GS1.EPC                 (GS1CompanyPrefix (..))
 import           Mirza.BusinessRegistry.Types as BRT
 import           Mirza.Common.Types           as CT
