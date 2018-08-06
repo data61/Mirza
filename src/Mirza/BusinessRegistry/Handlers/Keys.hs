@@ -31,6 +31,7 @@ import           OpenSSL.PEM                              (readPublicKey,
 import           OpenSSL.RSA                              (RSAPubKey, rsaSize)
 
 import           Control.Monad                            (unless, when)
+import           Data.Maybe                               (isJust)
 
 minPubKeySize :: Bit
 minPubKeySize = Bit 2048
@@ -175,17 +176,10 @@ doesUserOwnKeyQuery (UserID uId) (KeyID keyId) = do
           guard_ (key_id key ==. val_ keyId)
           guard_ (val_ (UserId uId) ==. (key_user_id key))
           pure key
-  return $ case r of
-    (Just _key) -> True
-    _           -> False
-
+  return $ isJust r
 
 getKeyById :: KeyID -> DB context err (Maybe Key)
-getKeyById (KeyID keyId) = do
-  r <- pg $ runSelectReturningOne $ select $ do
+getKeyById (KeyID keyId) = pg $ runSelectReturningOne $ select $ do
           key <- all_ (_keys businessRegistryDB)
           guard_ (key_id key ==. val_ keyId)
           pure key
-  case r of
-    (Just key) -> return $ Just key
-    Nothing    -> return Nothing
