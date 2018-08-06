@@ -235,7 +235,6 @@ runBusinessCommand globals BusinessAdd = do
 
 interactivlyGetBusinessT :: IO Business
 interactivlyGetBusinessT = do
-  business_id <- newUUID
   biz_gs1_company_prefix <- GS1CompanyPrefix . pack <$>  prompt "GS1CompanyPrefix"
   biz_name      <- pack <$> prompt "Name"
   biz_function  <- pack <$> prompt "Function"
@@ -286,7 +285,6 @@ runPopulateDatabase globals = do
 
 dummyBusiness :: Text -> IO Business
 dummyBusiness unique = do
-  business_id <- newUUID
   let biz_gs1_company_prefix = GS1CompanyPrefix ("Business" <> unique <> "Prefix")
   let biz_name               = "Business" <> unique <> "Name"
   let biz_function           = "Business" <> unique <> "Function"
