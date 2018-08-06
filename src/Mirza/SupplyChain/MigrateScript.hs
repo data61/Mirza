@@ -112,7 +112,7 @@ migrationStorage =
     (
       Event
           (field "event_id" pkSerialType)
-          (field "event_foreign_event_id" (maybeType pkSerialType))
+          (field "event_foreign_event_id" (maybeType uuid))
           (UserId (field "event_created_by" pkSerialType))
           (field "event_json" text notNull)
     )

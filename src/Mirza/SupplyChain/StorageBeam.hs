@@ -28,6 +28,8 @@ import           Data.Text                   (Text)
 
 import           Data.Time                   (LocalTime)
 
+import           Data.UUID                   (UUID)
+
 import           Database.Beam               as B
 import           Database.Beam.Postgres
 
@@ -245,7 +247,7 @@ instance Table LocationT where
 
 data EventT f = Event
   { event_id               :: C f PrimaryKeyType
-  , event_foreign_event_id :: C f (Maybe PrimaryKeyType) -- Event ID from XML from foreign systems.
+  , event_foreign_event_id :: C f (Maybe UUID) -- Event ID from XML from foreign systems.
   , event_created_by       :: PrimaryKey UserT f
   , event_json             :: C f Text }
   deriving Generic
