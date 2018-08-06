@@ -78,9 +78,9 @@ $(deriveJSON defaultOptions ''User)
 instance ToSchema User
 
 data NewUser = NewUser {
-  newUserFirstName    :: Text,
-  newUserEmailAddress :: EmailAddress,
   newUserPhoneNumber  :: Text,
+  newUserEmailAddress :: EmailAddress,
+  newUserFirstName    :: Text,
   newUserLastName     :: Text,
   newUserCompany      :: GS1CompanyPrefix,
   newUserPassword     :: Text
