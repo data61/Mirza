@@ -57,10 +57,6 @@ clientSpec :: Spec
 clientSpec =
   beforeAll runApp $
   afterAll endWaiApp $ do
-    {-- FIXME - there is no API function newUser in BR, there probably should be!!
-    describe "SupplyChain.Client new user" $ do
-    describe "BasicAuth" $ do
-        --}
     it "Stub" $ \(_,_baseurl) -> do
       pending
 
