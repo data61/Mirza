@@ -22,8 +22,10 @@ import           Mirza.Common.Types          (PrimaryKeyType)
 
 import           Control.Lens
 import           Data.Aeson                  (FromJSON, ToJSON)
-import           Data.ByteString             (ByteString)
+
 import           Data.Swagger                (ToSchema)
+
+import           Data.ByteString             (ByteString)
 import           Data.Text                   (Text)
 
 import           Data.Time                   (LocalTime)
