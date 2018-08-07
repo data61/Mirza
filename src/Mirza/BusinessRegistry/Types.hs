@@ -102,9 +102,6 @@ instance ToParamSchema AuthUser
 instance FromHttpApiData AuthUser where
   parseUrlPiece = notImplemented
 
--- *****************************************************************************
--- Business Types
--- *****************************************************************************
 
 -- Business Response Types:
 data BusinessResponse = BusinessResponse {
