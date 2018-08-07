@@ -1,11 +1,13 @@
+{-# LANGUAGE TypeApplications #-}
+
 
 module Main where
 
 import           Mirza.BusinessRegistry.Tests.Settings (testDbConnStr)
 
+import           Mirza.BusinessRegistry.Interactive
 import           Mirza.BusinessRegistry.Main           hiding (main)
 import           Mirza.BusinessRegistry.Types          as BRT
-import           Mirza.SupplyChain.Migrate             (tryCreateSchema)
 
 import           Test.Hspec.Core.Spec                  (sequential)
 import           Test.Tasty                            hiding (withResource)
@@ -60,8 +62,13 @@ openConnection :: IO BRContext
 openConnection = do
   connpool <- defaultPool
   _ <- withResource connpool dropTables -- drop tables before so if already exist no problems... means tables get overwritten though
-  withResource connpool (tryCreateSchema True)
-  initBRContext (GlobalOptions defaultDatabaseConnectionString 16 10 4 DebugS Dev)
+
+  ctx <- initBRContext (GlobalOptions testDbConnStr 16 10 4 DebugS Dev)
+  initRes <- runMigrationInteractive ctx (const (pure Execute))
+  case initRes of
+    Left err -> print @SqlError err >> error "Database initialisation failed"
+    Right () -> pure ctx
+
 
 closeConnection :: BRContext -> IO ()
 closeConnection = Pool.destroyAllResources . BRT._brDbConnPool
