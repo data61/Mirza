@@ -25,7 +25,6 @@ module Mirza.SupplyChain.Service
 import           Mirza.SupplyChain.API
 import           Mirza.SupplyChain.ErrorUtils                 (appErrToHttpErr)
 
-import           Mirza.SupplyChain.Handlers.Business          as Handlers
 import           Mirza.SupplyChain.Handlers.Common            as Handlers
 import           Mirza.SupplyChain.Handlers.Contacts          as Handlers
 import           Mirza.SupplyChain.Handlers.EventRegistration as Handlers
@@ -53,10 +52,6 @@ publicServer :: (SCSApp context err, HasScryptParams context) => ServerT PublicA
 publicServer =
   -- Users
        newUser
-  -- Business
-  :<|> getPublicKey
-  :<|> getPublicKeyInfo
-  :<|> listBusinesses
 
 privateServer :: (SCSApp context err) => ServerT ProtectedAPI (AppM context err)
 privateServer =
@@ -81,10 +76,6 @@ privateServer =
   :<|> insertAggEvent
   :<|> insertTransactEvent
   :<|> insertTransfEvent
--- Business
-  :<|> addPublicKey
-  :<|> revokePublicKey
-
 
 
 instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub) where

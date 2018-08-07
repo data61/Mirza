@@ -18,10 +18,8 @@ module Mirza.BusinessRegistry.API
   ) where
 
 import           Mirza.BusinessRegistry.Types as ST
-import           Mirza.Common.Time            (CreationTime, ExpirationTime,
-                                               RevocationTime)
-
-import           Data.Time.Clock              (UTCTime)
+import           Mirza.Common.Time            (ExpirationTime, RevocationTime)
+import           Mirza.Common.Types           (KeyID)
 
 import           Servant
 import           Servant.API.Flatten

@@ -14,9 +14,8 @@ import           Mirza.SupplyChain.ErrorUtils  (throwAppError,
                                                 throwBackendError)
 import           Mirza.SupplyChain.QueryUtils
 import qualified Mirza.SupplyChain.StorageBeam as SB
-import           Mirza.SupplyChain.Types       hiding (KeyInfo (..),
-                                                NewUser (..), User (userId),
-                                                UserID)
+import           Mirza.SupplyChain.Types       hiding (NewUser (..),
+                                                User (userId), UserID)
 import qualified Mirza.SupplyChain.Types       as ST
 
 import           Database.Beam                 as B
@@ -59,19 +58,19 @@ authCheckQuery :: (AsServiceError err, HasScryptParams context) =>  EmailAddress
 authCheckQuery e@(EmailAddress email) (Password password) = do
   r <- pg $ runSelectReturningList $ select $ do
         user <- all_ (SB._users SB.supplyChainDb)
-        guard_ (SB.email_address user  ==. val_ email)
+        guard_ (SB.user_email_address user  ==. val_ email)
         pure user
   params <- view $ _2 . scryptParams
   case r of
     [user] ->
         case Scrypt.verifyPass params (Scrypt.Pass password)
-              (Scrypt.EncryptedPass $ SB.password_hash user)
+              (Scrypt.EncryptedPass $ SB.user_password_hash user)
         of
           (False, _     ) -> throwAppError $ AuthFailed (EmailAddress email)
           (True, Nothing) -> pure $ Just (userTableToModel user)
           (True, Just (Scrypt.EncryptedPass password')) -> do
             _ <- pg $ runUpdate $ update (SB._users SB.supplyChainDb)
-                    (\u -> [SB.password_hash u <-. val_ password'])
+                    (\u -> [SB.user_password_hash u <-. val_ password'])
                     (\u -> SB.user_id u ==. val_ (SB.user_id user))
             pure $ Just (userTableToModel user)
     [] -> throwAppError $ EmailNotFound e

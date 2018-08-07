@@ -1,6 +1,6 @@
-module SupplyChain.Tests.Client where
+module Mirza.SupplyChain.Tests.Client where
 
-import           SupplyChain.Tests.Common
+import           Mirza.SupplyChain.Tests.Settings
 
 import           Control.Concurrent               (ThreadId, forkIO, killThread)
 import           System.IO.Unsafe                 (unsafePerformIO)
@@ -29,7 +29,7 @@ import           Data.GS1.EPC                     (GS1CompanyPrefix (..))
 import           Mirza.SupplyChain.Client.Servant
 
 import           Katip                            (Severity (DebugS))
-import           SupplyChain.Tests.Dummies
+import           Mirza.SupplyChain.Tests.Dummies
 
 -- Cribbed from https://github.com/haskell-servant/servant/blob/master/servant-client/test/Servant/ClientSpec.hs
 
@@ -37,17 +37,17 @@ import           SupplyChain.Tests.Dummies
 
 userABC :: NewUser
 userABC = NewUser
-  { phoneNumber = "0400 111 222"
-  , emailAddress = EmailAddress "abc@example.com"
-  , firstName = "Johnny"
-  , lastName = "Smith"
-  , company = GS1CompanyPrefix "something"
-  , password = "re4lly$ecret14!"}
+  { newUserPhoneNumber = "0400 111 222"
+  , newUserEmailAddress = EmailAddress "abc@example.com"
+  , newUserFirstName = "Biz Johnny"
+  , newUserLastName = "Smith Biz"
+  , newUserCompany = GS1CompanyPrefix "something"
+  , newUserPassword = "re4lly$ecret14!"}
 
 authABC :: BasicAuthData
 authABC = BasicAuthData
-  (encodeUtf8 . unEmailAddress . emailAddress $ userABC)
-  (encodeUtf8 . password                      $ userABC)
+  (encodeUtf8 . unEmailAddress . newUserEmailAddress $ userABC)
+  (encodeUtf8 . newUserPassword                      $ userABC)
 
 runApp :: IO (ThreadId, BaseUrl)
 runApp = do

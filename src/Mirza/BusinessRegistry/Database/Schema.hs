@@ -30,6 +30,3 @@ businessRegistryDB = unCheckDatabase checkedBusinessRegistryDB
 
 checkedBusinessRegistryDB :: CheckedDatabaseSettings Postgres Current.BusinessRegistryDB
 checkedBusinessRegistryDB = evaluateDatabase migration
-
-
-

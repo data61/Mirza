@@ -4,10 +4,11 @@
 # and rerun the server
 # Ideally to be run during testing phase
 
-export DBNAME="devsupplychainserver"
+export SCS_DBNAME="devsupplychainserver"
+export BR_DBNAME="devmirzabusinessregistry"
 
 echo Recreating the database
-./manage_db.sh $DBNAME
+./manage_db.sh $SCS_DBNAME
 
 # Defaulting opt to avoid error
 GIVEN_OPT=$1
@@ -21,7 +22,7 @@ fi
 
 stack build --fast
 stack exec supplyChainServer-exe -- -i
-
+stack exec businessRegistry -- initdb
 
 # eventuially, we will get an updated list from ASIC and populate the db
 echo "Now inserting some dummy companies"
@@ -31,7 +32,7 @@ psql \
     --echo-all \
     --set AUTOCOMMIT=on \
     --set ON_ERROR_STOP=on \
-    $DBNAME \
+    $BR_DBNAME \
     << EOF
 INSERT INTO businesses \
     (biz_gs1_company_prefix, biz_name, biz_function, biz_site_name, biz_address, biz_lat, biz_long) \
@@ -64,6 +65,8 @@ echo "Inserting a user. Username: abc@gmail.com, Password: password"
 curl -X POST "http://localhost:8000/newUser" \
     -H "accept: application/json;charset=utf-8"\
     -H "Content-Type: application/json;charset=utf-8"\
-    -d "{ \"phoneNumber\": \"0412\", \"emailAddress\": \"abc@gmail.com\", \"firstName\": \"sajid\", \"lastName\": \"anower\", \"company\": \"4000001\", \"password\": \"password\"}")&
+    -d "{ \"phoneNumber\": \"0412\", \"userEmailAddress\": \"abc@gmail.com\", \"firstName\": \"sajid\", \"lastName\": \"anower\", \"company\": \"4000001\", \"password\": \"password\"}")&
+
+# TODO: Run an instance of businessRegistry as well
 
 stack exec supplyChainServer-exe -- -e Dev # running in Dev

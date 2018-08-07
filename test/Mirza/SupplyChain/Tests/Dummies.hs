@@ -1,23 +1,22 @@
 
 -- | Sample data types. Serves as a good example of the types defined
 -- in GS1Combinators
-module SupplyChain.Tests.Dummies where
+module Mirza.SupplyChain.Tests.Dummies where
 
-import qualified Mirza.SupplyChain.StorageBeam as SB
-import           Mirza.SupplyChain.Types       hiding (InProgress, NewUser (..))
-import qualified Mirza.SupplyChain.Types       as ST
+import           Mirza.SupplyChain.Types hiding (InProgress, NewUser (..))
+import qualified Mirza.SupplyChain.Types as ST
 
 import           Data.GS1.DWhat
 import           Data.GS1.DWhen
 import           Data.GS1.DWhere
 import           Data.GS1.DWhy
 import           Data.GS1.EPC
-import qualified Data.GS1.Event                as Ev
+import qualified Data.GS1.Event          as Ev
 
-import           Data.Maybe                    (fromJust)
-import qualified Data.Text                     as T
+import           Data.Maybe              (fromJust)
+import qualified Data.Text               as T
 import           Data.Time
-import           Data.UUID                     (nil)
+import           Data.UUID               (nil)
 
 -- add function to generate and take dummyLabelEpc
 
@@ -39,7 +38,7 @@ sampleObjectFile = "../GS1Combinators/test/test-xml/ObjectEvent.xml"
 dummyUser :: User
 dummyUser = User (UserID nil) "Sajid" "Anower"
 
-dummyId :: SB.PrimaryKeyType
+dummyId :: ST.PrimaryKeyType
 dummyId = nil
 
 dummyEpcList :: [LabelEPC]

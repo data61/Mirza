@@ -16,12 +16,12 @@ module Mirza.SupplyChain.QueryUtils
   , withPKey
   ) where
 
+import qualified Mirza.BusinessRegistry.Types  as BRT
 import           Mirza.Common.Utils
 import qualified Mirza.SupplyChain.StorageBeam as SB
-import           Mirza.SupplyChain.Types       hiding (Business (..), User (..))
+import           Mirza.SupplyChain.Types       hiding (User (..))
 import qualified Mirza.SupplyChain.Types       as ST
 
-import           Data.GS1.EPC                  as EPC
 import           Data.GS1.Event                (Event (..))
 import qualified Data.GS1.Event                as Ev
 
@@ -53,19 +53,19 @@ handleError = flip catchError
 --   insertFoo arg = withPKey $ \pKey -> do
 --     runDb ... pKey ...
 -- @
-withPKey :: MonadIO m => (SB.PrimaryKeyType -> m a) -> m SB.PrimaryKeyType
+withPKey :: MonadIO m => (PrimaryKeyType -> m a) -> m PrimaryKeyType
 withPKey f = do
   pKey <- newUUID
   _ <- f pKey
   pure pKey
 
 
-storageToModelBusiness :: SB.Business -> ST.Business
-storageToModelBusiness (SB.Business pfix name f site addr lat long)
-  = ST.Business pfix name f site addr lat long
+storageToModelBusiness :: SB.Business -> BRT.BusinessResponse
+storageToModelBusiness (SB.Business pfix name)
+  = BRT.BusinessResponse pfix name
 
 storageToModelEvent :: SB.Event -> Maybe Ev.Event
-storageToModelEvent = decodeEvent . SB.json_event
+storageToModelEvent = decodeEvent . SB.event_json
 
 -- | Converts a DB representation of ``User`` to a Model representation
 -- SB.User = SB.User uid bizId fName lName phNum passHash email
@@ -83,4 +83,3 @@ eventTxtToBS = En.encodeUtf8
 
 decodeEvent :: T.Text -> Maybe Ev.Event
 decodeEvent = decode . LEn.encodeUtf8 . TxtL.fromStrict
-

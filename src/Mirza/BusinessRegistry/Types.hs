@@ -3,17 +3,18 @@
 {-# LANGUAGE StandaloneDeriving         #-}
 {-# LANGUAGE TemplateHaskell            #-}
 
-module Mirza.BusinessRegistry.Types where
-
-
+module Mirza.BusinessRegistry.Types (
+    module Mirza.BusinessRegistry.Types
+  , module CT
+  ) where
 
 import           Mirza.Common.Time                      (CreationTime,
                                                          ExpirationTime,
                                                          RevocationTime)
-import           Mirza.Common.Types
+import           Mirza.Common.Types                     as CT
 import           Mirza.Common.Utils
 
-import           Mirza.BusinessRegistry.Database.Schema
+import           Mirza.BusinessRegistry.Database.Schema hiding (User, UserID)
 
 import           Data.GS1.EPC                           as EPC
 
@@ -31,13 +32,9 @@ import           Data.Aeson
 import           Data.Aeson.TH
 import           Data.Swagger
 import           Data.Text                              (Text)
-import           Data.Time                              (UTCTime)
-import           Data.UUID                              (UUID)
-
 
 import           GHC.Generics                           (Generic)
-import           Servant                                (FromHttpApiData (..),
-                                                         ToHttpApiData (..))
+import           Servant                                (FromHttpApiData (..))
 
 
 
@@ -67,7 +64,7 @@ instance HasKatipContext BRContext where
 
 
 -- *****************************************************************************
--- Service Responce Types
+-- Service Response Types
 -- *****************************************************************************
 
 -- Note: The definitions in this section are reverse order defined(more specific
@@ -77,40 +74,50 @@ instance HasKatipContext BRContext where
 --       a section appears logically bottom to top, rather then the normal top
 --       to bottom.
 
+
+data User = User {
+  userId        :: UserID,
+  userFirstName :: Text,
+  userLastName  :: Text
+} deriving (Generic, Eq, Show)
+$(deriveJSON defaultOptions ''User)
+instance ToSchema User
+
+-- | Note that BusinessRegistry.NewUser is expected to become different in the
+-- future, and hence this duplication
+data NewUser = NewUser {
+  newUserPhoneNumber  :: Text,
+  newUserEmailAddress :: EmailAddress,
+  newUserFirstName    :: Text,
+  newUserLastName     :: Text,
+  newUserCompany      :: GS1CompanyPrefix,
+  newUserPassword     :: Text
+} deriving (Generic, Eq, Show)
+$(deriveJSON defaultOptions ''NewUser)
+instance ToSchema NewUser
+
 -- Auth User Types:
-newtype AuthUser = AuthUser {
-  userId        :: UserID
-  }
-  deriving (Generic)
+
+newtype AuthUser = AuthUser { authUserId :: UserID }
+  deriving (Show, Eq, Read, Generic)
 instance ToSchema AuthUser
 instance ToParamSchema AuthUser
 instance FromHttpApiData AuthUser where
   parseUrlPiece = notImplemented
 
+-- *****************************************************************************
+-- Business Types
+-- *****************************************************************************
 
 -- Business Response Types:
 data BusinessResponse = BusinessResponse {
-  bizID    :: EPC.GS1CompanyPrefix,
-  bizName  :: Text,
-  function :: Text,
-  siteName :: Text,
-  address  :: Text,
-  lat      :: Double,
-  lng      :: Double
+  bizId   :: EPC.GS1CompanyPrefix,
+  bizName :: Text
   }
-  deriving (Generic)
+  deriving (Show, Eq, Read, Generic)
 instance ToSchema BusinessResponse
 instance ToJSON BusinessResponse
 instance FromJSON BusinessResponse
-
-
--- Key Response Types:
-newtype KeyID = KeyID UUID
-  deriving (Show, Eq, Generic, ToJSON, FromJSON)
-instance ToSchema KeyID
-instance ToParamSchema KeyID
-instance FromHttpApiData KeyID where
-  parseUrlPiece t = fmap KeyID (parseUrlPiece t)
 
 data KeyState
   = InEffect -- Can be used
@@ -121,6 +128,9 @@ $(deriveJSON defaultOptions ''KeyState)
 instance ToSchema KeyState
 instance ToParamSchema KeyState
 
+-- *****************************************************************************
+-- Signing and Hashing Types
+-- *****************************************************************************
 
 newtype PEM_RSAPubKey = PEM_RSAPubKey Text
   deriving (Eq, Show, Generic, ToJSON, FromJSON)
@@ -131,15 +141,15 @@ instance FromHttpApiData PEM_RSAPubKey where
 
 
 data KeyInfoResponse = KeyInfoResponse
-  { keyID          :: KeyID
-  , keyInfoUserId  :: UserID                -- TODO: There should be a forien key for Business in here....not sure that user is relevant...
-  , keyState       :: KeyState
-  , creationTime   :: CreationTime
-  , revocationTime :: Maybe RevocationTime
-  , expirationTime :: Maybe ExpirationTime
-  , keyPEMString   :: PEM_RSAPubKey
+  { keyID             :: KeyID
+  , keyInfoUserId     :: UserID                -- TODO: There should be a forien key for Business in here....not sure that user is relevant...
+  , keyState          :: KeyState
+  , keyCreationTime   :: CreationTime
+  , keyRevocationTime :: Maybe RevocationTime
+  , keyExpirationTime :: Maybe ExpirationTime
+  , keyPEMString      :: PEM_RSAPubKey
   }
-  deriving (Generic)
+  deriving (Generic, Show, Eq)
 $(deriveJSON defaultOptions ''KeyInfoResponse)
 instance ToSchema KeyInfoResponse
 

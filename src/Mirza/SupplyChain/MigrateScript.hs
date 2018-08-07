@@ -30,32 +30,27 @@ migrationStorage =
       User
           (field "user_id" pkSerialType)
           (BizId (field "user_biz_id" gs1CompanyPrefixType))
-          (field "first_name" (varchar (Just maxLen)) notNull)
-          (field "last_name" (varchar (Just maxLen)) notNull)
-          (field "phone_number" (varchar (Just maxLen)) notNull)
-          (field "password_hash" binaryLargeObject notNull)
-          (field "email_address" (varchar (Just maxLen)) unique)
+          (field "user_first_name" (varchar (Just maxLen)) notNull)
+          (field "user_last_name" (varchar (Just maxLen)) notNull)
+          (field "user_phone_number" (varchar (Just maxLen)) notNull)
+          (field "user_password_hash" binaryLargeObject notNull)
+          (field "user_email_address" (varchar (Just maxLen)) unique)
     )
     <*> createTable "keys"
     (
       Key
           (field "key_id" pkSerialType)
           (UserId (field "key_user_id" pkSerialType))
-          (field "pem_str" text)
-          (field "creation_time" timestamptz)
-          (field "revocation_time" (maybeType timestamptz))
-          (field "expiration_time" (maybeType timestamptz))
+          (field "key_pem_str" text)
+          (field "key_creation_time" timestamptz)
+          (field "key_revocation_time" (maybeType timestamptz))
+          (field "key_expiration_time" (maybeType timestamptz))
     )
     <*> createTable "businesses"
     (
       Business
-          (field "biz_gs1_company_prefix" gs1CompanyPrefixType) -- note is primary key
+          (field "biz_gs1_company_prefix" gs1CompanyPrefixType)
           (field "biz_name" (varchar (Just maxLen)) notNull)
-          (field "biz_function" (varchar (Just maxLen)) notNull)
-          (field "biz_site_name" (varchar (Just maxLen)) notNull)
-          (field "biz_address" (varchar (Just maxLen)) notNull)
-          (field "biz_lat" double)
-          (field "biz_long" double)
     )
     <*> createTable "contacts"
     (
@@ -71,14 +66,14 @@ migrationStorage =
           (field "label_type" (maybeType labelType))
           (WhatId (field "label_what_id" pkSerialType))
           (field "label_gs1_company_prefix" gs1CompanyPrefixType notNull)
-          (field "item_reference" (maybeType itemRefType))
-          (field "serial_number" (maybeType serialNumType))
-          (field "state" (maybeType $ varchar (Just maxLen)))
-          (field "lot" (maybeType lotType))
-          (field "sgtin_filter_value" (maybeType sgtinFilterValue))
-          (field "asset_type" (maybeType assetType))
-          (field "quantity_amount" (maybeType amountType))
-          (field "quantity_uom" (maybeType uomType))
+          (field "label_item_reference" (maybeType itemRefType))
+          (field "label_serial_number" (maybeType serialNumType))
+          (field "label_state" (maybeType $ varchar (Just maxLen)))
+          (field "label_lot" (maybeType lotType))
+          (field "label_sgtin_filter_value" (maybeType sgtinFilterValue))
+          (field "label_asset_type" (maybeType assetType))
+          (field "label_quantity_amount" (maybeType amountType))
+          (field "label_quantity_uom" (maybeType uomType))
     )
     <*> createTable "what_labels"
     (
@@ -106,6 +101,9 @@ migrationStorage =
       Location
           (field "location_id" locationRefType)
           (BizId (field "location_biz_id" gs1CompanyPrefixType))
+          (field "location_function" (varchar (Just maxLen)) notNull)
+          (field "location_site_name" (varchar (Just maxLen)) notNull)
+          (field "location_address" (varchar (Just maxLen)) notNull)
           -- this needs to be locationReferenceNum
           (field "location_lat" double)
           (field "location_long" double)
@@ -114,17 +112,17 @@ migrationStorage =
     (
       Event
           (field "event_id" pkSerialType)
-          (field "foreign_event_id" (maybeType pkSerialType))
+          (field "event_foreign_event_id" (maybeType uuid))
           (UserId (field "event_created_by" pkSerialType))
-          (field "json_event" text notNull)
+          (field "event_json" text notNull)
     )
     <*> createTable "whats"
     (
       What
           (field "what_id" pkSerialType)
           (field "what_event_type" (maybeType eventType))
-          (field "action" (maybeType actionType))
-          (LabelId (field "parent" (maybeType pkSerialType)))
+          (field "what_action" (maybeType actionType))
+          (LabelId (field "what_parent" (maybeType pkSerialType)))
           (BizTransactionId (field "what_biz_transaction_id" (maybeType pkSerialType)))
           (TransformationId (field "what_transformation_id" (maybeType pkSerialType)))
           (EventId (field "what_event_id" pkSerialType))
@@ -141,8 +139,8 @@ migrationStorage =
     (
       Why
           (field "why_id" pkSerialType)
-          (field "biz_step" (maybeType text))
-          (field "disposition" (maybeType text))
+          (field "why_biz_step" (maybeType text))
+          (field "why_disposition" (maybeType text))
           (EventId (field "why_event_id" pkSerialType))
     )
     <*> createTable "wheres"
@@ -160,9 +158,9 @@ migrationStorage =
     (
       When
           (field "when_id" pkSerialType)
-          (field "event_time" timestamptz notNull)
-          (field "record_time" (maybeType timestamptz))
-          (field "time_zone" (varchar (Just maxTzLen)) notNull)
+          (field "when_event_time" timestamptz notNull)
+          (field "when_record_time" (maybeType timestamptz))
+          (field "when_time_zone" (varchar (Just maxTzLen)) notNull)
           (EventId (field "when_event_id" pkSerialType))
     )
     <*> createTable "label_events"
@@ -180,7 +178,7 @@ migrationStorage =
           (UserId (field "user_events_user_id" pkSerialType notNull))
           (field "user_events_has_signed" boolean notNull)
           (UserId (field "user_events_added_by" pkSerialType notNull))
-          (field "user_events_signedHash" (maybeType bytea))
+          (field "user_events_signed_hash" (maybeType bytea))
     )
     <*> createTable "signatures"
     (
