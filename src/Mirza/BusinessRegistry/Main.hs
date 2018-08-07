@@ -170,7 +170,7 @@ server ev =
 runMigration :: GlobalOptions -> IO ()
 runMigration opts = do
   ctx <- initBRContext opts
-  res <- runMigrationInteractive @BRContext @SqlError ctx
+  res <- runMigrationInteractive @BRContext @SqlError ctx interactiveConfirm
   print res
 
 
