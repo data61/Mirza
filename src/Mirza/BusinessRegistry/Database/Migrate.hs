@@ -1,11 +1,12 @@
 {-# LANGUAGE TypeApplications #-}
 
-module Mirza.BusinessRegistry.Interactive
-  ( runMigrationInteractive
-  , interactiveConfirm
+-- This module runs database migrations for our application.
+
+module Mirza.BusinessRegistry.Database.Migrate
+  ( interactiveMigrationConfirm
+  , runMigrationWithConfirmation
   , Confirmation(..)
   ) where
-
 
 import           Mirza.BusinessRegistry.Database.Schema
 import           Mirza.Common.Types
@@ -26,34 +27,28 @@ import           Database.Beam.Postgres.Syntax          (fromPgCommand,
 
 
 
+--------------------------------------------------------------------------------
+-- Datatypes
+--------------------------------------------------------------------------------
 
+-- | Datatype to encode whether the migration should be completed or aborted.
 data Confirmation =
   Abort
   | Execute
 
 
 
-interactiveConfirm :: [PgCommandSyntax] -> IO Confirmation
-interactiveConfirm commands = do
-  mapM_ (BSL.putStrLn . pgRenderSyntaxScript . fromPgCommand) commands
-  putStrLn "type YES to confirm applying this migration:"
-  confirm <- getLine
-  case confirm of
-    "YES" -> pure Execute
-    _     -> pure Abort
-
-
 -- Note: Migrations are currently broken, this function can only be used to initalise the database from scratch.
 -- TODO: Use autoMigrate if possible and confirm with the user whether to do dangerous migrations explicitly
 -- TODO: Move this into Mirza.Common.Beam
-runMigrationInteractive ::
+runMigrationWithConfirmation ::
   (HasKatipLogEnv context
   , HasKatipContext context
   , HasConnPool context
   , HasEnvType context
   , AsSqlError err)
   => context -> ([PgCommandSyntax] -> IO Confirmation) -> IO (Either err ())
-runMigrationInteractive context confirmationCheck =
+runMigrationWithConfirmation context confirmationCheck =
   runAppM context $ runDb $ do
     conn <- view _1
     liftIO $ do
@@ -73,5 +68,18 @@ runMigrationInteractive context confirmationCheck =
                       @_
                       @Pg
                       conn commands
+
+
+
+interactiveMigrationConfirm :: [PgCommandSyntax] -> IO Confirmation
+interactiveMigrationConfirm commands = do
+  mapM_ (BSL.putStrLn . pgRenderSyntaxScript . fromPgCommand) commands
+  putStrLn "type YES to confirm applying this migration:"
+  confirm <- getLine
+  case confirm of
+    "YES" -> pure Execute
+    _     -> pure Abort
+
+
 
 

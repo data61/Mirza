@@ -21,12 +21,12 @@ library
   exposed-modules:    Mirza.BusinessRegistry.API
                     , Mirza.BusinessRegistry.Client.Servant
                     , Mirza.BusinessRegistry.Auth
+                    , Mirza.BusinessRegistry.Database.Migrate
                     , Mirza.BusinessRegistry.Database.Schema
                     , Mirza.BusinessRegistry.Database.Schema.V0001
                     , Mirza.BusinessRegistry.Handlers.Business
                     , Mirza.BusinessRegistry.Handlers.Common
                     , Mirza.BusinessRegistry.Handlers.Keys
-                    , Mirza.BusinessRegistry.Interactive
                     , Mirza.BusinessRegistry.Main
                     , Mirza.BusinessRegistry.Service
                     , Mirza.BusinessRegistry.Handlers.Users
