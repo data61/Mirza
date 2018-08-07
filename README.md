@@ -89,20 +89,10 @@ as:
 
 Some common acronyms used in the project.
 
-SCS: Supply Chain Service
-BR:  Business Registry
+**SCS**: Supply Chain Service
+
+**BR**:  Business Registry
 
 ### Useful Tools
 
 - [GS1 Company Database](https://www.gs1us.org/tools/gs1-company-database-gepir) - You can search for GLN (Global Location Number) of GS1 Companies here
-
-Things to do before next release:
-
-- [x] Integrate ReaderT Monad
-- [ ] Add tests for all the endpoints
-- [ ] Finish backend implementation (queries) for all endpoints
-- [x] Decide on a `PrimaryKeyType`
-- [x] Define instances for selected `PrimaryKeyType`
-- [x] Add remaining tables (`EventHash`, etc)
-- [ ] (Unlikely) Write a `setup.sh` for new developers coming in
-- [x] Add exception handling using ExceptT
