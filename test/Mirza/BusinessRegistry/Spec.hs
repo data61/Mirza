@@ -3,30 +3,30 @@
 
 module Main where
 
-import           Mirza.BusinessRegistry.Tests.Settings (testDbConnStr)
+import           Mirza.BusinessRegistry.Tests.Settings   (testDbConnStr)
 
-import           Mirza.BusinessRegistry.Interactive
-import           Mirza.BusinessRegistry.Main           hiding (main)
-import           Mirza.BusinessRegistry.Types          as BRT
+import           Mirza.BusinessRegistry.Database.Migrate
+import           Mirza.BusinessRegistry.Main             hiding (main)
+import           Mirza.BusinessRegistry.Types            as BRT
 
-import           Test.Hspec.Core.Spec                  (sequential)
-import           Test.Tasty                            hiding (withResource)
-import           Test.Tasty.Hspec                      (around, testSpec)
-import           Test.Tasty.Runners                    (NumThreads (..))
+import           Test.Hspec.Core.Spec                    (sequential)
+import           Test.Tasty                              hiding (withResource)
+import           Test.Tasty.Hspec                        (around, testSpec)
+import           Test.Tasty.Runners                      (NumThreads (..))
 
-import           Mirza.BusinessRegistry.Tests.Business (testBizQueries)
+import           Mirza.BusinessRegistry.Tests.Business   (testBizQueries)
 import           Mirza.BusinessRegistry.Tests.Client
-import           Mirza.BusinessRegistry.Tests.Keys     (testKeyQueries)
+import           Mirza.BusinessRegistry.Tests.Keys       (testKeyQueries)
 
-import           Control.Exception                     (bracket)
+import           Control.Exception                       (bracket)
 import           Data.Int
 import           Database.Beam.Postgres
 import           Database.PostgreSQL.Simple
 
-import           Data.Pool                             (withResource)
-import qualified Data.Pool                             as Pool
+import           Data.Pool                               (withResource)
+import qualified Data.Pool                               as Pool
 
-import           Katip                                 (Severity (DebugS))
+import           Katip                                   (Severity (DebugS))
 
 -- dbFunc = withDatabaseDebug putStrLn
 
@@ -64,7 +64,7 @@ openConnection = do
   _ <- withResource connpool dropTables -- drop tables before so if already exist no problems... means tables get overwritten though
 
   ctx <- initBRContext (GlobalOptions testDbConnStr 16 10 4 DebugS Dev)
-  initRes <- runMigrationInteractive ctx (const (pure Execute))
+  initRes <- runMigrationWithConfirmation ctx (const (pure Execute))
   case initRes of
     Left err -> print @SqlError err >> error "Database initialisation failed"
     Right () -> pure ctx

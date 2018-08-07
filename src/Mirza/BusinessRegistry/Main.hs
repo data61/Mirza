@@ -7,37 +7,37 @@
 module Mirza.BusinessRegistry.Main where
 
 
-import           Mirza.BusinessRegistry.API             (API, ServerAPI, api)
+import           Mirza.BusinessRegistry.API              (API, ServerAPI, api)
 import           Mirza.BusinessRegistry.Auth
-import           Mirza.BusinessRegistry.Database.Schema as Schema
-import           Mirza.BusinessRegistry.Interactive
+import           Mirza.BusinessRegistry.Database.Migrate
+import           Mirza.BusinessRegistry.Database.Schema  as Schema
 import           Mirza.BusinessRegistry.Service
-import           Mirza.BusinessRegistry.Types           as BT
-import           Mirza.Common.Types                     as CT
-import           Mirza.Common.Utils                     (newUUID)
+import           Mirza.BusinessRegistry.Types            as BT
+import           Mirza.Common.Types                      as CT
+import           Mirza.Common.Utils                      (newUUID)
 
-import           Data.GS1.EPC                           (GS1CompanyPrefix (..))
+import           Data.GS1.EPC                            (GS1CompanyPrefix (..))
 
-import           Servant                                hiding (header)
+import           Servant                                 hiding (header)
 import           Servant.Swagger.UI
 
-import qualified Data.Pool                              as Pool
+import qualified Data.Pool                               as Pool
 import           Database.PostgreSQL.Simple
 
-import           Network.Wai                            (Middleware)
-import qualified Network.Wai.Handler.Warp               as Warp
+import           Network.Wai                             (Middleware)
+import qualified Network.Wai.Handler.Warp                as Warp
 
-import           Data.ByteString                        (ByteString)
-import           Data.Semigroup                         ((<>))
-import           Data.Text                              (Text, pack)
-import           Data.Text.Encoding                     (encodeUtf8)
-import           Options.Applicative                    hiding (action)
+import           Data.ByteString                         (ByteString)
+import           Data.Semigroup                          ((<>))
+import           Data.Text                               (Text, pack)
+import           Data.Text.Encoding                      (encodeUtf8)
+import           Options.Applicative                     hiding (action)
 
-import qualified Crypto.Scrypt                          as Scrypt
+import qualified Crypto.Scrypt                           as Scrypt
 
-import           Control.Exception                      (finally)
-import           Katip                                  as K
-import           System.IO                              (stdout)
+import           Control.Exception                       (finally)
+import           Katip                                   as K
+import           System.IO                               (stdout)
 
 
 
@@ -170,7 +170,7 @@ server ev =
 runMigration :: GlobalOptions -> IO ()
 runMigration opts = do
   ctx <- initBRContext opts
-  res <- runMigrationInteractive @BRContext @SqlError ctx interactiveConfirm
+  res <- runMigrationWithConfirmation @BRContext @SqlError ctx interactiveMigrationConfirm
   print res
 
 
