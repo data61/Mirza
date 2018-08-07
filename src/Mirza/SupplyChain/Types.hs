@@ -4,58 +4,46 @@
 {-# LANGUAGE TemplateHaskell            #-}
 {-# OPTIONS_GHC -Wno-orphans            #-}
 
-
-
--- | Contains the definition of our ReaderT AppM
 module Mirza.SupplyChain.Types
   ( module Mirza.SupplyChain.Types
   , module Common
   )
   where
 
-import           Mirza.Common.Time
-import           Mirza.Common.Types            as Common
-import           Mirza.SupplyChain.StorageBeam (PrimaryKeyType)
+import           Mirza.Common.Types         as Common
 
 import           Data.GS1.DWhat
 import           Data.GS1.DWhen
 import           Data.GS1.DWhere
 import           Data.GS1.DWhy
-import           Data.GS1.EPC                  as EPC
-import qualified Data.GS1.Event                as Ev
-import           Data.GS1.EventId              as EvId
-import           Data.Time                     (UTCTime)
+import           Data.GS1.EPC               as EPC
+import qualified Data.GS1.Event             as Ev
+import           Data.GS1.EventId           as EvId
 
-import           Database.PostgreSQL.Simple    (Connection, SqlError)
+import           Database.PostgreSQL.Simple (Connection, SqlError)
 
-import           Crypto.Scrypt                 (ScryptParams)
+import           Crypto.Scrypt              (ScryptParams)
 
-import           Servant                       (FromHttpApiData, ToHttpApiData)
+import           Servant                    (FromHttpApiData, ToHttpApiData)
 
 import           Control.Lens
 
-import           GHC.Generics                  (Generic)
+import           GHC.Generics               (Generic)
 
 import           Data.Aeson
 import           Data.Aeson.TH
-import qualified Data.ByteString               as BS
-import           Data.List.NonEmpty            (NonEmpty)
-import           Data.Pool                     as Pool
+import qualified Data.ByteString            as BS
+import           Data.List.NonEmpty         (NonEmpty)
+import           Data.Pool                  as Pool
 import           Data.Swagger
-import           Data.Text                     (Text)
-import           Data.UUID                     (UUID)
+import           Data.Text                  (Text)
 
-import           Katip                         as K
+import           Katip                      as K
 
 
 -- *****************************************************************************
 -- Context Types
 -- *****************************************************************************
-
-
-mkEnvType :: Bool -> EnvType
-mkEnvType False = Prod
-mkEnvType _     = Dev
 
 data SCSContext = SCSContext
   { _scsEnvType          :: EnvType
@@ -77,30 +65,9 @@ instance HasKatipContext SCSContext where
   katipNamespace = scsKatipNamespace
 
 
-
-
 -- *****************************************************************************
 -- User Types
 -- *****************************************************************************
-
--- TODO: Handwrite these instances to comply with their defined syntax
--- For example, emails have their own format, as do LabelEPCUrn
-newtype UserID = UserID {unUserID :: PrimaryKeyType}
-  deriving (Show, Eq, Generic, Read, FromJSON, ToJSON)
-instance ToSchema UserID
-instance ToParamSchema UserID
-deriving instance FromHttpApiData UserID
-deriving instance ToHttpApiData UserID
-
-newtype Password = Password {unPassword :: BS.ByteString}
-  deriving (Show, Eq, Generic)
-
-newtype EmailAddress = EmailAddress {unEmailAddress :: Text}
-  deriving (Show, Eq, Generic, Read, FromJSON, ToJSON)
-instance ToSchema EmailAddress
-instance ToParamSchema EmailAddress
-deriving instance FromHttpApiData EmailAddress
-deriving instance ToHttpApiData EmailAddress
 
 data User = User {
   userId        :: UserID,
@@ -111,42 +78,15 @@ $(deriveJSON defaultOptions ''User)
 instance ToSchema User
 
 data NewUser = NewUser {
-  phoneNumber  :: Text,
-  emailAddress :: EmailAddress,
-  firstName    :: Text,
-  lastName     :: Text,
-  company      :: GS1CompanyPrefix,
-  password     :: Text
+  newUserPhoneNumber  :: Text,
+  newUserEmailAddress :: EmailAddress,
+  newUserFirstName    :: Text,
+  newUserLastName     :: Text,
+  newUserCompany      :: GS1CompanyPrefix,
+  newUserPassword     :: Text
 } deriving (Generic, Eq, Show)
 $(deriveJSON defaultOptions ''NewUser)
 instance ToSchema NewUser
-
-
-
--- *****************************************************************************
--- Business Types
--- *****************************************************************************
-
-data SearchFields = SearchFields {
-  sUser             :: User,
-  sbizName          :: Maybe Text,
-  sBizId            :: Maybe UUID,
-  sGS1CompanyPrefix :: Maybe Text,
-  sFunction         :: Maybe Text,
-  sAddress          :: Maybe Text
-}
-
-data Business = Business {
-  bizID    :: EPC.GS1CompanyPrefix,
-  bizName  :: Text,
-  function :: Text,
-  siteName :: Text,
-  address  :: Text,
-  lat      :: Double,
-  lng      :: Double
-} deriving (Generic, Eq, Show)
-$(deriveJSON defaultOptions ''Business)
-instance ToSchema Business
 
 
 
@@ -221,8 +161,6 @@ data AggregationEvent = AggregationEvent {
   agg_parent_label     :: Maybe ParentLabel,
   agg_child_epc_list   :: [LabelEPC],
   agg_when             :: DWhen,
-  -- agg_timestamp     :: EPCISTime,
-  -- agg_timezone      :: TimeZone,
   agg_why              :: DWhy,
   agg_where            :: DWhere
 } deriving (Show, Generic)
@@ -314,33 +252,7 @@ fromTransactEvent
     dwhen dwhy dwhere
 
 
-
--- *****************************************************************************
--- Signing and Hashing Types
--- *****************************************************************************
-
--- DELETEMEBR
-data KeyState
-  = InEffect -- Can be used
-  | Revoked -- Key passed the revocation time
-  | Expired -- Key passed the expiration time
-  deriving (Show, Eq, Read, Generic)
-$(deriveJSON defaultOptions ''KeyState)
-instance ToSchema KeyState
-instance ToParamSchema KeyState
-
-
 newtype SigningUser = SigningUser UserID deriving(Generic, Show, Eq, Read)
-
-data KeyInfo = KeyInfo {
-  keyInfoUserId  :: UserID,
-  creationTime   :: CreationTime,
-  revocationTime :: Maybe RevocationTime,
-  keyState       :: KeyState,
-  expirationTime :: Maybe ExpirationTime
-}deriving (Generic, Eq, Show)
-$(deriveJSON defaultOptions ''KeyInfo)
-instance ToSchema KeyInfo
 
 newtype EventHash = EventHash String
   deriving (Generic, Show, Read, Eq)
@@ -369,6 +281,8 @@ instance ToSchema BlockchainPackage
 
 newtype PEM_RSAPubKey = PEMString String
   deriving (Show, Read, Eq, Generic)
+$(deriveJSON defaultOptions ''PEM_RSAPubKey)
+instance ToSchema PEM_RSAPubKey
 -- These are orphaned instances
 --
 --instance Sql.FromRow PEM_RSAPubKey where
@@ -381,8 +295,6 @@ newtype PEM_RSAPubKey = PEMString String
 --  declareNamedSchema _ = pure $ NamedSchema (Just "PublicKey") $ binarySchema
 
 --orphaned instances, I know
-$(deriveJSON defaultOptions ''PEM_RSAPubKey)
-instance ToSchema PEM_RSAPubKey
 
 data Digest = SHA256 | SHA384 | SHA512
   deriving (Show, Generic, Eq, Read)
@@ -403,16 +315,10 @@ instance FromField Digest where
       Just x -> pure x
 -}
 
-newtype KeyID = KeyID {unKeyID :: PrimaryKeyType}
-  deriving (Show, Eq, Generic, Read, FromJSON, ToJSON)
-instance ToSchema KeyID
-instance ToParamSchema KeyID
-deriving instance FromHttpApiData KeyID
-deriving instance ToHttpApiData KeyID
 
 data SignedEvent = SignedEvent {
-  signed_eventID   :: EventId,
-  signed_keyID     :: KeyID,
+  signed_eventId   :: EventId,
+  signed_keyId     :: KeyID,
   signed_signature :: Signature,
   signed_digest    :: Digest
 } deriving (Generic)
@@ -440,13 +346,6 @@ instance ToSchema HashedEvent
 -- constructors will be added.
 newtype AppError = AppError ServiceError deriving (Show)
 
--- DELETEMEBR
-newtype Bit  = Bit  {unBit :: Int} deriving (Show, Eq, Read, Ord)
-newtype Byte = Byte {unByte :: Int} deriving (Show, Eq, Read, Ord)
-
-newtype Expected = Expected {unExpected :: Bit} deriving (Show, Eq, Read, Ord)
-newtype Received = Received {unReceived :: Bit} deriving (Show, Eq, Read, Ord)
-
 data ServerError = ServerError (Maybe BS.ByteString) Text
                    deriving (Show, Eq, Generic, Read)
 
@@ -458,11 +357,7 @@ data ServiceError
   | InvalidKeyID          KeyID
   | InvalidUserID         UserID
   | InvalidRSAKeyInDB     Text -- when the key already existing in the DB is wrong
-  | InvalidRSAKey         PEM_RSAPubKey
-  | InvalidRSAKeySize     Expected Received -- DELETEMEBR after split
   | InvalidDigest         Digest
-  | KeyAlreadyRevoked
-  | UnauthorisedKeyAccess
   | InsertionFail         ServerError Text
   | EventPermissionDenied UserID EvId.EventId
   | EmailExists           ServerError EmailAddress
@@ -473,7 +368,6 @@ data ServiceError
   | BackendErr            Text -- fallback
   | DatabaseError         SqlError
   deriving (Show, Eq, Generic)
-
 $(makeClassyPrisms ''ServiceError)
 
 instance AsServiceError AppError where

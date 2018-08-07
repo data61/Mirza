@@ -7,8 +7,6 @@ module Mirza.SupplyChain.Handlers.Signatures
   , eventSign, getEventJSON, makeDigest, insertSignature, eventHashed
   ) where
 
-
-
 import           Mirza.Common.Time
 import           Mirza.Common.Utils
 import           Mirza.SupplyChain.Handlers.Common
@@ -18,8 +16,7 @@ import           Mirza.SupplyChain.Handlers.EventRegistration (hasUserCreatedEve
 import qualified Mirza.SupplyChain.QueryUtils                 as QU
 import qualified Mirza.SupplyChain.StorageBeam                as SB
 import           Mirza.SupplyChain.Types                      hiding
-                                                               (KeyInfo (..),
-                                                               NewUser (..),
+                                                               (NewUser (..),
                                                                User (userId),
                                                                UserID)
 import qualified Mirza.SupplyChain.Types                      as ST
@@ -47,11 +44,19 @@ import qualified Data.Text                                    as T
 
 -- | A function to tie a user to an event
 -- Populates the ``UserEvents`` table
-addUserToEvent :: SCSApp context err => ST.User -> ST.UserID -> EvId.EventId -> AppM context err ()
+addUserToEvent :: SCSApp context err
+               => ST.User
+               -> ST.UserID
+               -> EvId.EventId
+               -> AppM context err ()
 addUserToEvent (User loggedInUserId _ _) anotherUserId eventId =
     runDb $ addUserToEventQuery (EventOwner loggedInUserId) (SigningUser anotherUserId) eventId
 
-addUserToEventQuery :: AsServiceError err => EventOwner -> SigningUser -> EvId.EventId -> DB context err ()
+addUserToEventQuery :: AsServiceError err
+                    => EventOwner
+                    -> SigningUser
+                    -> EvId.EventId
+                    -> DB context err ()
 addUserToEventQuery (EventOwner lUserId@(ST.UserID loggedInUserId))
                 (SigningUser (ST.UserID otherUserId))
                 evId@(EvId.EventId eventId) = do
@@ -81,7 +86,10 @@ addUserToEventQuery (EventOwner lUserId@(ST.UserID loggedInUserId))
    Lets do this after we have everything compiling.
 -}
 
-eventSign :: (AsServiceError err, SCSApp context err) => ST.User -> SignedEvent -> AppM context err SB.PrimaryKeyType
+eventSign :: (AsServiceError err, SCSApp context err)
+          => ST.User
+          -> SignedEvent
+          -> AppM context err PrimaryKeyType
 eventSign _user (SignedEvent eventID keyID (Signature sigStr) digest') = runDb $ do
   event <- getEventJSON eventID
   rsaPublicKey <- getPublicKey keyID
@@ -101,17 +109,19 @@ getEventJSON eventID = do
   r <- pg $ runSelectReturningList $ select $ do
     allEvents <- all_ (SB._events SB.supplyChainDb)
     guard_ ((SB.event_id allEvents) ==. val_ (EvId.unEventId eventID))
-    pure (SB.json_event allEvents)
+    pure (SB.event_json allEvents)
   case r of
     [jsonEvent] -> return jsonEvent
     _           -> throwing _InvalidEventID eventID
 
+-- TODO: ``getPublicKey`` should come from BR.Client
+-- import the client in the file
 getPublicKey :: AsServiceError err =>  KeyID -> DB context err PEM_RSAPubKey
 getPublicKey (KeyID keyId) = do
   r <- pg $ runSelectReturningList $ select $ do
     allKeys <- all_ (SB._keys SB.supplyChainDb)
     guard_ (SB.key_id allKeys ==. val_ keyId)
-    pure (SB.pem_str allKeys)
+    pure (SB.key_pem_str allKeys)
   case r of
     [k] -> return $ PEMString $ T.unpack k
     _   -> throwing _InvalidKeyID . KeyID $ keyId
@@ -120,13 +130,11 @@ makeDigest :: Digest -> IO (Maybe EVPDigest.Digest)
 makeDigest = EVPDigest.getDigestByName . map toLower . show
 
 
-insertSignature
-  :: (AsServiceError err) =>
-     EvId.EventId
-     -> KeyID
-     -> Signature
-     -> Digest
-     -> DB environmentUnused err SB.PrimaryKeyType
+insertSignature :: (AsServiceError err) => EvId.EventId
+                -> KeyID
+                -> Signature
+                -> Digest
+                -> DB environmentUnused err PrimaryKeyType
 
 insertSignature eId kId (Signature sig) digest = do
   sigId <- newUUID

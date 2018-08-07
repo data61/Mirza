@@ -13,19 +13,16 @@ module Mirza.BusinessRegistry.Auth
   , listUsersQuery
   ) where
 
+import           Database.Beam                            as B
+import           Mirza.BusinessRegistry.Database.Schema   as Schema
 import           Mirza.BusinessRegistry.Handlers.Common
 import           Mirza.Common.Utils
 
-import           Database.Beam                            as B
 import           Database.Beam.Backend.SQL.BeamExtensions
 import           Database.PostgreSQL.Simple               (SqlError)
 
-
-import           Data.ByteString                          (ByteString)
-import           Data.Text                                (Text)
 import           Data.Text.Encoding                       (decodeUtf8)
 
-import           Mirza.BusinessRegistry.Database.Schema
 import           Mirza.BusinessRegistry.Types             as BT
 import           Mirza.Common.Types                       as CT
 
@@ -34,19 +31,6 @@ import           Servant
 import qualified Crypto.Scrypt                            as Scrypt
 
 import           Control.Lens
-
-
-
-newtype EmailAddress = EmailAddress Text
-
-newtype Password = Password ByteString
-  -- Is Eq something we want?
-  -- We do not want Show
-  deriving (Eq)
-
-instance Show Password where
-  show _ = "Password <redacted>"
-
 
 
 -- | We need to supply our handlers with the right Context. In this case,
@@ -98,17 +82,17 @@ authCheckQuery (EmailAddress email) (Password password) = do
     _ -> pure Nothing
 
 
-userToAuthUser :: User -> AuthUser
-userToAuthUser user = AuthUser (primaryKey user)
+userToAuthUser :: Schema.User -> AuthUser
+userToAuthUser user = AuthUser (CT.UserID $ user_id user)
 
 
-listUsersQuery :: BRApp context err => DB context err [User]
+listUsersQuery :: BRApp context err => DB context err [Schema.User]
 listUsersQuery = pg $ runSelectReturningList $ select $
     all_ (_users businessRegistryDB)
 
 
 -- | Will _always_ create a new UUID for the UserId
-addUserQuery :: BRApp context err => User -> DB context err User
+addUserQuery :: BRApp context err => Schema.User -> DB context err Schema.User
 addUserQuery user'@UserT{..} = do
   -- The id is updated inside here to that it is generated as part of the
   -- transaction so if the transaction happens to fail because the UUID

@@ -7,38 +7,37 @@
 module Mirza.BusinessRegistry.Main where
 
 
-import           Mirza.BusinessRegistry.API             (API, ServerAPI, api)
+import           Mirza.BusinessRegistry.API              (API, ServerAPI, api)
 import           Mirza.BusinessRegistry.Auth
-import           Mirza.BusinessRegistry.Database.Schema as Schema
-import           Mirza.BusinessRegistry.Interactive
+import           Mirza.BusinessRegistry.Database.Migrate
+import           Mirza.BusinessRegistry.Database.Schema  as Schema
 import           Mirza.BusinessRegistry.Service
-import           Mirza.BusinessRegistry.Types           as BT
-import           Mirza.Common.Types                     as CT
-import           Mirza.Common.Utils                     (newUUID)
+import           Mirza.BusinessRegistry.Types            as BT
+import           Mirza.Common.Types                      as CT
+import           Mirza.Common.Utils                      (newUUID)
 
-import           Data.GS1.EPC                           (GS1CompanyPrefix (..))
+import           Data.GS1.EPC                            (GS1CompanyPrefix (..))
 
-import           Servant                                hiding (header)
+import           Servant                                 hiding (header)
 import           Servant.Swagger.UI
 
-import qualified Data.Pool                              as Pool
+import qualified Data.Pool                               as Pool
 import           Database.PostgreSQL.Simple
 
-import           Network.Wai                            (Middleware)
-import qualified Network.Wai.Handler.Warp               as Warp
+import           Network.Wai                             (Middleware)
+import qualified Network.Wai.Handler.Warp                as Warp
 
-import           Data.ByteString                        (ByteString)
-import           Data.Functor.Identity                  (Identity)
-import           Data.Semigroup                         ((<>))
-import           Data.Text                              (Text, pack)
-import           Data.Text.Encoding                     (encodeUtf8)
-import           Options.Applicative                    hiding (action)
+import           Data.ByteString                         (ByteString)
+import           Data.Semigroup                          ((<>))
+import           Data.Text                               (Text, pack)
+import           Data.Text.Encoding                      (encodeUtf8)
+import           Options.Applicative                     hiding (action)
 
-import qualified Crypto.Scrypt                          as Scrypt
+import qualified Crypto.Scrypt                           as Scrypt
 
-import           Control.Exception                      (finally)
-import           Katip                                  as K
-import           System.IO                              (stdout)
+import           Control.Exception                       (finally)
+import           Katip                                   as K
+import           System.IO                               (stdout)
 
 
 
@@ -46,12 +45,12 @@ import           System.IO                              (stdout)
 -- Constants
 --------------------------------------------------------------------------------
 
-
+-- | Port number changed so that BR and SCS can be run at the same time
 defaultPortNumber :: Int
-defaultPortNumber = 8000
+defaultPortNumber = 8200
 
 defaultDatabaseConnectionString :: ByteString
-defaultDatabaseConnectionString = "dbname=devMirzaBusinessRegistry"
+defaultDatabaseConnectionString = "dbname=devmirzabusinessregistry"
 
 
 --------------------------------------------------------------------------------
@@ -100,7 +99,7 @@ main :: IO ()
 main = multiplexGlobalOptions =<< execParser opts where
   opts = Options.Applicative.info (serverOptions <**> helper)
     (fullDesc
-    <> progDesc "todo some description"
+    <> progDesc "Here to meet all your business registry needs"
     <> header "Supply Chain Business Registry Service")
 
 
@@ -171,7 +170,7 @@ server ev =
 runMigration :: GlobalOptions -> IO ()
 runMigration opts = do
   ctx <- initBRContext opts
-  res <- runMigrationInteractive @BRContext @SqlError ctx
+  res <- runMigrationWithConfirmation @BRContext @SqlError ctx interactiveMigrationConfirm
   print res
 
 
@@ -192,7 +191,7 @@ runUserCommand globals UserAdd = do
   either (print @BusinessRegistryError) print euser
 
 
-interactivlyGetUserT :: GlobalOptions -> IO User
+interactivlyGetUserT :: GlobalOptions -> IO Schema.User
 interactivlyGetUserT opts = do
   params <- createScryptParams opts
   user_id       <- newUUID
@@ -236,7 +235,6 @@ runBusinessCommand globals BusinessAdd = do
 
 interactivlyGetBusinessT :: IO Business
 interactivlyGetBusinessT = do
-  business_id <- newUUID
   biz_gs1_company_prefix <- GS1CompanyPrefix . pack <$>  prompt "GS1CompanyPrefix"
   biz_name      <- pack <$> prompt "Name"
   biz_function  <- pack <$> prompt "Function"
@@ -262,7 +260,7 @@ runPopulateDatabase globals = do
   bizid1  <- f . fmap primaryKey $ ebiz1
   user1A' <- dummyUser "A1" bizid1 globals
   user1B' <- dummyUser "B1" bizid1 globals
-  eusers  <- runAppM @_ @BusinessRegistryError ctx $
+  _eusers  <- runAppM @_ @BusinessRegistryError ctx $
               runDb (mapM addUserQuery [user1A', user1B'])
 
   biz2    <- dummyBusiness "2"
@@ -270,7 +268,7 @@ runPopulateDatabase globals = do
   bizid2  <- f . fmap primaryKey $ ebiz2
   user2A' <- dummyUser "A2" bizid2 globals
   user2B' <- dummyUser "B2" bizid2 globals
-  eusers  <- runAppM @_ @BusinessRegistryError ctx $
+  _eusers  <- runAppM @_ @BusinessRegistryError ctx $
               runDb (mapM addUserQuery [user2A', user2B'])
 
   print biz1
@@ -287,7 +285,6 @@ runPopulateDatabase globals = do
 
 dummyBusiness :: Text -> IO Business
 dummyBusiness unique = do
-  business_id <- newUUID
   let biz_gs1_company_prefix = GS1CompanyPrefix ("Business" <> unique <> "Prefix")
   let biz_name               = "Business" <> unique <> "Name"
   let biz_function           = "Business" <> unique <> "Function"
@@ -298,7 +295,7 @@ dummyBusiness unique = do
   return BusinessT{..}
 
 
-dummyUser :: Text -> BizId -> GlobalOptions -> IO User
+dummyUser :: Text -> BizId -> GlobalOptions -> IO Schema.User
 dummyUser unique business_uid opts = do
   params <- createScryptParams opts
   user_id       <- newUUID
@@ -389,9 +386,8 @@ globalOptions = GlobalOptions
       <>  value 8
       )
   <*> option auto
-      (
-          long "scryptR"
-      <>  help "Scrypt r parameter (>= 1)"
+      (  long "scryptR"
+      <> help "Scrypt r parameter (>= 1)"
       <> showDefault
       <> value 1
       )

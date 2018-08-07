@@ -1,30 +1,30 @@
 
 module Main where
 
-import           SupplyChain.Tests.Common
+import           Mirza.SupplyChain.Tests.Settings
 
-import           Mirza.SupplyChain.Main     hiding (main)
+import           Mirza.SupplyChain.Main           hiding (main)
 import           Mirza.SupplyChain.Migrate
-import           Mirza.SupplyChain.Types    as AC
+import           Mirza.SupplyChain.Types          as ST
 
-import           Test.Hspec.Core.Spec       (sequential)
-import           Test.Tasty                 hiding (withResource)
-import           Test.Tasty.Hspec           (around, testSpec)
-import           Test.Tasty.Runners         (NumThreads (..))
+import           Test.Hspec.Core.Spec             (sequential)
+import           Test.Tasty                       hiding (withResource)
+import           Test.Tasty.Hspec                 (around, testSpec)
+import           Test.Tasty.Runners               (NumThreads (..))
 
-import           SupplyChain.Tests.Client
-import           SupplyChain.Tests.Service  (testServiceQueries)
+import           Mirza.SupplyChain.Tests.Client
+import           Mirza.SupplyChain.Tests.Service  (testServiceQueries)
 
-import           Control.Exception          (bracket)
+import           Control.Exception                (bracket)
 import           Data.Int
 import           Database.Beam.Postgres
 import           Database.PostgreSQL.Simple
 
-import           Data.Pool                  (Pool, destroyAllResources,
-                                             withResource)
-import qualified Data.Pool                  as Pool
+import           Data.Pool                        (Pool, destroyAllResources,
+                                                   withResource)
+import qualified Data.Pool                        as Pool
 
-import           Katip                      (Severity (DebugS))
+import           Katip                            (Severity (DebugS))
 
 -- dbFunc = withDatabaseDebug putStrLn
 
@@ -61,11 +61,10 @@ openConnection = do
   connpool <- defaultPool
   _ <- withResource connpool dropTables -- drop tables before so if already exist no problems... means tables get overwritten though
   withResource connpool (tryCreateSchema True)
-  let envT = AC.mkEnvType True
-  initSCSContext (ServerOptions envT False testDbConnStr 8000 14 8 1 DebugS)
+  initSCSContext (ServerOptions Dev False testDbConnStr 8000 14 8 1 DebugS)
 
 closeConnection :: SCSContext -> IO ()
-closeConnection = destroyAllResources . AC._scsDbConnPool
+closeConnection = destroyAllResources . ST._scsDbConnPool
 
 withDatabaseConnection :: (SCSContext -> IO ()) -> IO ()
 withDatabaseConnection = bracket openConnection closeConnection

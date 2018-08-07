@@ -17,8 +17,7 @@ import           Mirza.SupplyChain.Handlers.Common
 import qualified Mirza.Common.Utils                       as U
 import           Mirza.SupplyChain.QueryUtils
 import qualified Mirza.SupplyChain.StorageBeam            as SB
-import           Mirza.SupplyChain.Types                  hiding (KeyInfo (..),
-                                                           NewUser (..),
+import           Mirza.SupplyChain.Types                  hiding (NewUser (..),
                                                            User (userId),
                                                            UserID)
 import qualified Mirza.SupplyChain.Types                  as ST
@@ -41,7 +40,6 @@ listContactsQuery  (User (ST.UserID uid) _ _) = do
             SB.contact_user2_id contact ==. (SB.UserId $ SB.user_id user))
     pure user
   return $ userTableToModel <$> userList
-
 
 
 addContact :: SCSApp context err => ST.User -> ST.UserID -> AppM context err Bool
