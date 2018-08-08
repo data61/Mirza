@@ -20,7 +20,6 @@ module Mirza.SupplyChain.Service
   , privateServer
   , appMToHandler
   , serveSwaggerAPI
-  , runClientFunc
  ) where
 
 import           Mirza.SupplyChain.API
@@ -35,8 +34,6 @@ import           Mirza.SupplyChain.Handlers.Users             as Handlers
 import           Mirza.SupplyChain.Types
 
 import           Servant
-import           Servant.Client                               (ClientM,
-                                                               runClientM)
 import           Servant.Swagger
 
 import           GHC.TypeLits                                 (KnownSymbol)
@@ -108,11 +105,3 @@ serveSwaggerAPI = toSwagger serverAPI
   & info.description ?~ "This is an API that tests swagger integration"
   & info.license ?~ ("MIT" & url ?~ URL "https://opensource.org/licenses/MIT")
 
-
-
-runClientFunc :: (AsServantError err, HasClientEnv context)
-              => ClientM a
-              -> AppM context err a
-runClientFunc func = do
-  cEnv <- view clientEnv
-  either (throwing _ServantError) pure =<< liftIO (runClientM func cEnv)
