@@ -519,11 +519,6 @@ supplyChainDb = defaultDbSettings
         {
           user_biz_id = BizId (fieldNamed "user_biz_id")
         }
-    -- , _businesses =
-    --     modifyTable (const "businesses") $
-    --     tableModification {
-    --       someField = Id (fieldNamed "short_name")
-    --     }
     , _contacts =
         modifyTable (const "contacts") $
         tableModification {
