@@ -31,28 +31,35 @@ module Mirza.Common.Types
   , MonadIO
   , liftIO
   , PrimaryKeyType
+  , keyId
   ) where
 
-import qualified Database.Beam              as B
-import           Database.Beam.Postgres     (Pg)
-import           Database.PostgreSQL.Simple (Connection, SqlError)
-import qualified Database.PostgreSQL.Simple as DB
+import qualified Database.Beam                        as B
+import           Database.Beam.Migrate.SQL            (DataType (..))
+import           Database.Beam.Postgres               (Pg, Postgres)
+import           Database.Beam.Postgres.Syntax        (PgDataTypeSyntax,
+                                                       pgUuidType)
+import           Database.PostgreSQL.Simple           (Connection, SqlError)
+import qualified Database.PostgreSQL.Simple           as DB
+import           Database.PostgreSQL.Simple.FromField (FromField, fromField)
+import           Database.PostgreSQL.Simple.ToField   (ToField, toField)
 
-import qualified Control.Exception          as Exc
-import qualified Control.Exception          as E
-import           Control.Monad.Except       (ExceptT (..), MonadError,
-                                             runExceptT, throwError)
-import           Control.Monad.IO.Class     (MonadIO, liftIO)
-import           Control.Monad.Reader       (MonadReader, ReaderT, ask, asks,
-                                             local, runReaderT)
-import           Control.Monad.Trans        (lift)
+import qualified Control.Exception                    as Exc
+import qualified Control.Exception                    as E
+import           Control.Monad.Except                 (ExceptT (..), MonadError,
+                                                       runExceptT, throwError)
+import           Control.Monad.IO.Class               (MonadIO, liftIO)
+import           Control.Monad.Reader                 (MonadReader, ReaderT,
+                                                       ask, asks, local,
+                                                       runReaderT)
+import           Control.Monad.Trans                  (lift)
 
-import           Data.Pool                  as Pool
+import           Data.Pool                            as Pool
 
-import           Crypto.Scrypt              (ScryptParams)
+import           Crypto.Scrypt                        (ScryptParams)
 
-import qualified Data.ByteString            as BS
-import           Data.Text                  (Text)
+import qualified Data.ByteString                      as BS
+import           Data.Text                            (Text)
 
 import           Data.Aeson
 
@@ -61,15 +68,15 @@ import           Control.Monad.Error.Lens
 
 import           Data.Swagger
 
-import           GHC.Generics               (Generic)
+import           GHC.Generics                         (Generic)
 
-import           Katip                      as K
-import           Katip.Monadic              (askLoggerIO)
+import           Katip                                as K
+import           Katip.Monadic                        (askLoggerIO)
 
-import           Servant                    (FromHttpApiData (..),
-                                             ToHttpApiData (..))
+import           Servant                              (FromHttpApiData (..),
+                                                       ToHttpApiData (..))
 
-import           Data.UUID                  (UUID)
+import           Data.UUID                            (UUID)
 
 type PrimaryKeyType = UUID
 
@@ -111,6 +118,15 @@ instance ToParamSchema KeyId
 instance FromHttpApiData KeyId where
   parseUrlPiece t = fmap KeyId (parseUrlPiece t)
 deriving instance ToHttpApiData KeyId
+
+instance FromField KeyId where
+  fromField field mbs = KeyId <$> fromField field mbs
+
+instance ToField KeyId where
+  toField = toField . getKeyId
+
+keyId :: DataType PgDataTypeSyntax KeyId
+keyId = DataType pgUuidType
 
 
 
