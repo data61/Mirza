@@ -57,10 +57,6 @@ serverOptions = ServerOptions
       <*> switch
           ( long "init-db"
          <> help "Put empty tables into a fresh database" )
-    --   <*> switch
-    --       ( long "clear-db"
-    --      <> short 'e'
-    --      <> help "Erase the database - DROP ALL TABLES" )
       <*> strOption
           ( long "conn" <> short 'c' <> showDefault
           <> help "Database connection string in libpq format. See: https://www.postgresql.org/docs/9.5/static/libpq-connect.html#LIBPQ-CONNSTRING"
@@ -91,14 +87,6 @@ main = runProgram =<< execParser opts
       <> progDesc "Run a supply chain server"
       <> header "SupplyChainServer - A server for capturing GS1 events and recording them on a blockchain")
 
-
--- Sara's
--- runProgram :: ServerOptions -> IO ()
--- runProgram (ServerOptions isDebug False _connStr portNum flavour) =
---     startApp connStr isDebug (fromIntegral portNum) flavour
--- runProgram (ServerOptions _ _ True connStr portNum flavour) =
---     startApp connStr isDebug (fromIntegral portNum) flavour
--- runProgram _ = migrate defConnectionStr
 runProgram :: ServerOptions -> IO ()
 runProgram so@ServerOptions{initDB = False, port} = do
   ctx <- initSCSContext so
