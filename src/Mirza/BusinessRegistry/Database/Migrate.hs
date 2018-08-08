@@ -32,8 +32,8 @@ import           Database.Beam.Postgres.Syntax          (fromPgCommand,
 --------------------------------------------------------------------------------
 
 -- | Datatype to encode whether the migration should be completed or aborted.
-data Confirmation =
-  Abort
+data Confirmation
+  = Abort
   | Execute
 
 
