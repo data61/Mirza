@@ -14,17 +14,18 @@ import           Mirza.SupplyChain.Types    (AppError, EnvType (..),
 import qualified Mirza.SupplyChain.Types    as ST
 
 import           Servant                    hiding (header)
+import           Servant.Client
 import           Servant.Swagger.UI
 
 import qualified Data.Pool                  as Pool
 import           Database.PostgreSQL.Simple
 
+import           Network.HTTP.Client        (defaultManagerSettings, newManager)
 import           Network.Wai                (Middleware)
 import qualified Network.Wai.Handler.Warp   as Warp
 
 import           Data.ByteString            (ByteString)
 import           Data.Semigroup             ((<>))
-import           Data.Text                  (pack)
 import           Options.Applicative
 
 import           Control.Lens
@@ -38,14 +39,17 @@ import           System.IO                  (stdout)
 data ServerOptions = ServerOptions
   { env           :: EnvType
   , initDB        :: Bool
---  , clearDB       :: Bool
   , connectionStr :: ByteString
+  , hostName      :: String
   , port          :: Int
   , sScryptN      :: Integer
   , sScryptP      :: Integer
   , sScryptR      :: Integer
   , loggingLevel  :: K.Severity
   }
+
+localhost :: String
+localhost = "127.0.0.1"
 
 serverOptions :: Parser ServerOptions
 serverOptions = ServerOptions
@@ -61,22 +65,26 @@ serverOptions = ServerOptions
           ( long "conn" <> short 'c' <> showDefault
           <> help "Database connection string in libpq format. See: https://www.postgresql.org/docs/9.5/static/libpq-connect.html#LIBPQ-CONNSTRING"
           <> value defaultDbConnectionStr)
-       <*> option auto
+      <*> strOption
+          ( long "host" <> showDefault
+          <> help "The host to run the server on"
+          <> value localhost)
+      <*> option auto
           ( long "port" <> short 'p' <> showDefault <> value 8000
           <> help "Port to run database on"
           )
-       <*> option auto
-            (long "scryptN" <> value 14 <> showDefault
-            <> help "Scrypt N parameter (>= 14)")
-       <*> option auto
-            (long "scryptP" <> value 8 <> showDefault
-            <> help "Scrypt r parameter (>= 8)")
-       <*> option auto
-            (long "scryptR" <> value 1 <> showDefault
-            <> help "Scrypt r parameter (>= 1)")
       <*> option auto
-            (long "log-level" <> value InfoS <> showDefault
-            <> help ("Logging level: " ++ show [minBound .. maxBound :: Severity]))
+          (long "scryptN" <> value 14 <> showDefault
+          <> help "Scrypt N parameter (>= 14)")
+      <*> option auto
+          (long "scryptP" <> value 8 <> showDefault
+          <> help "Scrypt r parameter (>= 8)")
+      <*> option auto
+          (long "scryptR" <> value 1 <> showDefault
+          <> help "Scrypt r parameter (>= 1)")
+      <*> option auto
+          (long "log-level" <> value InfoS <> showDefault
+          <> help ("Logging level: " ++ show [minBound .. maxBound :: Severity]))
 
 
 main :: IO ()
@@ -101,7 +109,7 @@ initMiddleware _ = pure id
 
 
 initSCSContext :: ServerOptions -> IO ST.SCSContext
-initSCSContext (ServerOptions envT _ dbConnStr _ n p r lev) = do
+initSCSContext (ServerOptions envT _ dbConnStr host prt n p r lev) = do
   handleScribe <- mkHandleScribe ColorIfTerminal stdout lev V3
   logEnv <- initLogEnv "supplyChainServer" (Environment . pack . show $ envT)
             >>= registerScribe "stdout" handleScribe defaultScribeSettings
@@ -115,9 +123,17 @@ initSCSContext (ServerOptions envT _ dbConnStr _ n p r lev) = do
                       60 -- How long in seconds to keep a connection open for reuse
                       10 -- Max number of connections to have open at any one time
                       -- TODO: Make this a config paramete
-
-  pure $ SCSContext envT connpool params logEnv mempty mempty
-
+  manager <- newManager defaultManagerSettings
+  let scheme = if envT == Prod then Https else Http
+      baseUrl = BaseUrl scheme host prt ""
+  pure $ SCSContext
+          envT
+          connpool
+          params
+          logEnv
+          mempty
+          mempty
+          (mkClientEnv manager baseUrl)
 
 initApplication :: ServerOptions -> ST.SCSContext -> IO Application
 initApplication _so ev =
@@ -130,7 +146,7 @@ initApplication _so ev =
 -- easily start the app in ghci, no command line arguments required.
 startAppSimple :: ByteString -> IO ()
 startAppSimple dbConnStr = do
-  let so = (ServerOptions ST.Dev False dbConnStr 8000 14 8 1 DebugS)
+  let so = (ServerOptions ST.Dev False dbConnStr localhost 8000 14 8 1 DebugS)
   ctx <- initSCSContext so
   initApplication so ctx >>= Warp.run 8000
 
