@@ -9,7 +9,7 @@
 -- Model type and its Storage equivalent
 module Mirza.SupplyChain.QueryUtils
   (
-    storageToModelBusiness , storageToModelEvent, userTableToModel
+    storageToModelEvent, userTableToModel
   , encodeEvent, decodeEvent
   , eventTxtToBS
   , handleError
@@ -59,10 +59,6 @@ withPKey f = do
   _ <- f pKey
   pure pKey
 
-
-storageToModelBusiness :: SB.Business -> BRT.BusinessResponse
-storageToModelBusiness (SB.Business pfix name)
-  = BRT.BusinessResponse pfix name
 
 storageToModelEvent :: SB.Event -> Maybe Ev.Event
 storageToModelEvent = decodeEvent . SB.event_json
