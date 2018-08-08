@@ -36,7 +36,7 @@ sampleObjectFile :: FilePath
 sampleObjectFile = "../GS1Combinators/test/test-xml/ObjectEvent.xml"
 
 dummyUser :: User
-dummyUser = User (UserID nil) "Sajid" "Anower"
+dummyUser = User (UserId nil) "Sajid" "Anower"
 
 dummyId :: ST.PrimaryKeyType
 dummyId = nil

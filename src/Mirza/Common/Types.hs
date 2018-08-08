@@ -8,8 +8,8 @@
 
 
 module Mirza.Common.Types
-  ( EmailAddress(..) , Password(..)  , UserID(..)
-  , KeyID(..)
+  ( EmailAddress(..) , Password(..)  , UserId(..)
+  , KeyId(..)
   , EnvType(..)
   , AppM(..)
   , runAppM
@@ -80,12 +80,12 @@ type PrimaryKeyType = UUID
 
 -- TODO: Handwrite these instances to comply with their defined syntax
 -- For example, emails have their own format, as do LabelEPCUrn
-newtype UserID = UserID {unUserID :: PrimaryKeyType}
+newtype UserId = UserId {unUserId :: PrimaryKeyType}
   deriving (Show, Eq, Generic, Read, FromJSON, ToJSON)
-instance ToSchema UserID
-instance ToParamSchema UserID
-deriving instance FromHttpApiData UserID
-deriving instance ToHttpApiData UserID
+instance ToSchema UserId
+instance ToParamSchema UserId
+deriving instance FromHttpApiData UserId
+deriving instance ToHttpApiData UserId
 
 newtype Password = Password BS.ByteString
   -- Is Eq something we want?
@@ -104,13 +104,13 @@ deriving instance FromHttpApiData EmailAddress
 deriving instance ToHttpApiData EmailAddress
 
 
-newtype KeyID = KeyID {unKeyID :: PrimaryKeyType}
+newtype KeyId = KeyId {unKeyId :: PrimaryKeyType}
   deriving (Show, Eq, Generic, Read, FromJSON, ToJSON)
-instance ToSchema KeyID
-instance ToParamSchema KeyID
-instance FromHttpApiData KeyID where
-  parseUrlPiece t = fmap KeyID (parseUrlPiece t)
-deriving instance ToHttpApiData KeyID
+instance ToSchema KeyId
+instance ToParamSchema KeyId
+instance FromHttpApiData KeyId where
+  parseUrlPiece t = fmap KeyId (parseUrlPiece t)
+deriving instance ToHttpApiData KeyId
 
 
 

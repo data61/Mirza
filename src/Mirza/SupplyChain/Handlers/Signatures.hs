@@ -18,7 +18,7 @@ import qualified Mirza.SupplyChain.StorageBeam                as SB
 import           Mirza.SupplyChain.Types                      hiding
                                                                (NewUser (..),
                                                                User (userId),
-                                                               UserID)
+                                                               UserId)
 import qualified Mirza.SupplyChain.Types                      as ST
 
 import qualified Data.GS1.EventId                             as EvId
@@ -46,7 +46,7 @@ import qualified Data.Text                                    as T
 -- Populates the ``UserEvents`` table
 addUserToEvent :: SCSApp context err
                => ST.User
-               -> ST.UserID
+               -> ST.UserId
                -> EvId.EventId
                -> AppM context err ()
 addUserToEvent (User loggedInUserId _ _) anotherUserId eventId =
@@ -57,8 +57,8 @@ addUserToEventQuery :: AsServiceError err
                     -> SigningUser
                     -> EvId.EventId
                     -> DB context err ()
-addUserToEventQuery (EventOwner lUserId@(ST.UserID loggedInUserId))
-                (SigningUser (ST.UserID otherUserId))
+addUserToEventQuery (EventOwner lUserId@(ST.UserId loggedInUserId))
+                (SigningUser (ST.UserId otherUserId))
                 evId@(EvId.EventId eventId) = do
   userCreatedEvent <- hasUserCreatedEvent lUserId evId
   if userCreatedEvent
@@ -90,9 +90,9 @@ eventSign :: (AsServiceError err, SCSApp context err)
           => ST.User
           -> SignedEvent
           -> AppM context err PrimaryKeyType
-eventSign _user (SignedEvent eventID keyID (Signature sigStr) digest') = runDb $ do
-  event <- getEventJSON eventID
-  rsaPublicKey <- getPublicKey keyID
+eventSign _user (SignedEvent eventId keyId (Signature sigStr) digest') = runDb $ do
+  event <- getEventJSON eventId
+  rsaPublicKey <- getPublicKey keyId
   sigBS <- BS64.decode (BSC.pack sigStr) <%?> review _InvalidSignature
   let (PEMString keyStr) = rsaPublicKey
   (pubKey :: RSAPubKey) <- liftIO (toPublicKey <$> readPublicKey keyStr) <!?> review _InvalidRSAKeyInDB (pack keyStr)
@@ -100,38 +100,38 @@ eventSign _user (SignedEvent eventID keyID (Signature sigStr) digest') = runDb $
   digest <- liftIO (makeDigest digest') <!?> review _InvalidDigest digest'
   verifyStatus <- liftIO $ verifyBS digest sigBS pubKey eventBS
   if verifyStatus == VerifySuccess
-    then insertSignature eventID keyID (Signature sigStr) digest'
+    then insertSignature eventId keyId (Signature sigStr) digest'
     else throwing _InvalidSignature sigStr
 
 -- TODO: Should this return Text or a JSON value?
 getEventJSON :: AsServiceError err => EvId.EventId -> DB context err T.Text
-getEventJSON eventID = do
+getEventJSON eventId = do
   r <- pg $ runSelectReturningList $ select $ do
     allEvents <- all_ (SB._events SB.supplyChainDb)
-    guard_ ((SB.event_id allEvents) ==. val_ (EvId.unEventId eventID))
+    guard_ ((SB.event_id allEvents) ==. val_ (EvId.unEventId eventId))
     pure (SB.event_json allEvents)
   case r of
     [jsonEvent] -> return jsonEvent
-    _           -> throwing _InvalidEventID eventID
+    _           -> throwing _InvalidEventId eventId
 
 -- TODO: ``getPublicKey`` should come from BR.Client
 -- import the client in the file
-getPublicKey :: AsServiceError err =>  KeyID -> DB context err PEM_RSAPubKey
-getPublicKey (KeyID keyId) = do
+getPublicKey :: AsServiceError err =>  KeyId -> DB context err PEM_RSAPubKey
+getPublicKey (KeyId keyId) = do
   r <- pg $ runSelectReturningList $ select $ do
     allKeys <- all_ (SB._keys SB.supplyChainDb)
     guard_ (SB.key_id allKeys ==. val_ keyId)
     pure (SB.key_pem_str allKeys)
   case r of
     [k] -> return $ PEMString $ T.unpack k
-    _   -> throwing _InvalidKeyID . KeyID $ keyId
+    _   -> throwing _InvalidKeyId . KeyId $ keyId
 
 makeDigest :: Digest -> IO (Maybe EVPDigest.Digest)
 makeDigest = EVPDigest.getDigestByName . map toLower . show
 
 
 insertSignature :: (AsServiceError err) => EvId.EventId
-                -> KeyID
+                -> KeyId
                 -> Signature
                 -> Digest
                 -> DB environmentUnused err PrimaryKeyType
@@ -142,7 +142,7 @@ insertSignature eId kId (Signature sig) digest = do
   r <- pg $ runInsertReturningList (SB._signatures SB.supplyChainDb) $
         insertValues
         [(SB.Signature sigId) (SB.EventId $ EvId.unEventId eId)
-         (SB.KeyId $ unKeyID kId) (BSC.pack sig)
+         (SB.KeyId $ unKeyId kId) (BSC.pack sig)
           (BSC.pack $ show digest) (toDbTimestamp timestamp)]
   case r of
     [rowId] -> return ( SB.signature_id rowId)
@@ -153,12 +153,12 @@ insertSignature eId kId (Signature sig) digest = do
 --
 eventHashed :: ST.User -> EvId.EventId -> AppM context err HashedEvent
 eventHashed _user _eventId = error "not implemented yet"
--- return (HashedEvent eventID (EventHash "Blob"))
+-- return (HashedEvent eventId (EventHash "Blob"))
 
 {-
-eventHashed user eventID = do
-  mHash <- liftIO $ Storage.eventHashed user eventID
+eventHashed user eventId = do
+  mHash <- liftIO $ Storage.eventHashed user eventId
   case mHash of
-    Nothing -> throwError err404 { errBody = "Unknown eventID" }
+    Nothing -> throwError err404 { errBody = "Unknown eventId" }
     Just i -> return i
 -}

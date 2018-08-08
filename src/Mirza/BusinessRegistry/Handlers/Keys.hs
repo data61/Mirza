@@ -36,19 +36,25 @@ import           Data.Maybe                               (isJust)
 minPubKeySize :: Bit
 minPubKeySize = Bit 2048
 
-getPublicKey :: (BRApp context err, AsKeyError err) => KeyID -> AppM context err PEM_RSAPubKey
+getPublicKey :: (BRApp context err, AsKeyError err)
+             => CT.KeyId
+             -> AppM context err PEM_RSAPubKey
 getPublicKey kid = do
   mpem <- runDb $ getPublicKeyQuery kid
   maybe (throwing _KeyNotFound kid) pure mpem
 
-getPublicKeyQuery :: BRApp context err => KeyID -> DB context err (Maybe PEM_RSAPubKey)
-getPublicKeyQuery (KeyID uuid) = fmap (fmap PEM_RSAPubKey) $ pg $ runSelectReturningOne $
+getPublicKeyQuery :: BRApp context err
+                  => CT.KeyId
+                  -> DB context err (Maybe PEM_RSAPubKey)
+getPublicKeyQuery (CT.KeyId uuid) = fmap (fmap PEM_RSAPubKey) $ pg $ runSelectReturningOne $
   select $ do
     keys <- all_ (_keys businessRegistryDB)
-    guard_ (primaryKey keys ==. val_ (KeyId uuid))
+    guard_ (primaryKey keys ==. val_ (Schema.KeyId uuid))
     pure (pem_str keys)
 
-getPublicKeyInfo :: (BRApp context err, AsKeyError err) => KeyID -> AppM context err BT.KeyInfoResponse
+getPublicKeyInfo :: (BRApp context err, AsKeyError err)
+                 => CT.KeyId
+                 -> AppM context err BT.KeyInfoResponse
 getPublicKeyInfo kid = do
   currTime <- liftIO getCurrentTime
   mkey <- runDb $ getPublicKeyInfoQuery kid
@@ -58,7 +64,7 @@ getPublicKeyInfo kid = do
 
 keyToKeyInfo :: UTCTime -> Schema.Key -> KeyInfoResponse
 keyToKeyInfo currTime (Schema.KeyT keyId (Schema.UserId keyUserId) pemStr creation revocation expiration ) =
-  (KeyInfoResponse (KeyID keyId) (CT.UserID keyUserId)
+  (KeyInfoResponse (CT.KeyId keyId) (CT.UserId keyUserId)
     (getKeyState
       (fromDbTimestamp <$> revocation)
       (fromDbTimestamp <$> expiration)
@@ -89,17 +95,17 @@ keyToKeyInfo currTime (Schema.KeyT keyId (Schema.UserId keyUserId) pemStr creati
 
 
 
-getPublicKeyInfoQuery :: BRApp context err => KeyID -> DB context err (Maybe Schema.Key)
-getPublicKeyInfoQuery (KeyID uuid) = pg $ runSelectReturningOne $
+getPublicKeyInfoQuery :: BRApp context err => CT.KeyId -> DB context err (Maybe Schema.Key)
+getPublicKeyInfoQuery (CT.KeyId uuid) = pg $ runSelectReturningOne $
   select $ do
     keys <- all_ (_keys businessRegistryDB)
-    guard_ (primaryKey keys ==. val_ (KeyId uuid))
+    guard_ (primaryKey keys ==. val_ (Schema.KeyId uuid))
     pure keys
 
 addPublicKey :: (BRApp context err, AsKeyError err) => BT.AuthUser
              -> PEM_RSAPubKey
              -> Maybe ExpirationTime
-             -> AppM context err KeyID
+             -> AppM context err CT.KeyId
 addPublicKey user pemKey@(PEM_RSAPubKey pemStr) mExp = do
   somePubKey <- liftIO $ readPublicKey (unpack pemStr) -- TODO: Catch exception from OpenSSL - any invalid PEM string causes exception
   rsaKey <- checkPubKey somePubKey pemKey              -- Input: "x"
@@ -124,8 +130,8 @@ checkPubKey spKey pemKey =
 addPublicKeyQuery :: AsKeyError err => AuthUser
                   -> Maybe ExpirationTime
                   -> RSAPubKey
-                  -> DB context err KeyID
-addPublicKeyQuery (AuthUser (CT.UserID uid)) expTime rsaPubKey = do
+                  -> DB context err CT.KeyId
+addPublicKeyQuery (AuthUser (CT.UserId uid)) expTime rsaPubKey = do
   keyStr <- liftIO $ pack <$> writePublicKey rsaPubKey
   keyId <- newUUID
   timestamp <- generateTimestamp
@@ -135,29 +141,30 @@ addPublicKeyQuery (AuthUser (CT.UserID uid)) expTime rsaPubKey = do
             (toDbTimestamp timestamp) Nothing (toDbTimestamp <$> expTime)
         ]
   case ks of
-    [rowId] -> return (KeyID $ key_id rowId)
-    _       -> throwing _PublicKeyInsertionError (map primaryKey ks)
-
+    [rowId] -> return (CT.KeyId $ key_id rowId)
+    _       -> throwing _PublicKeyInsertionError (map (CT.KeyId . key_id) ks)
 
 
 revokePublicKey :: (BRApp context err, AsKeyError err) => BT.AuthUser
-                -> KeyID
+                -> CT.KeyId
                 -> AppM context err RevocationTime
 revokePublicKey (AuthUser uId) keyId =
     runDb $ revokePublicKeyQuery uId keyId
 
-isKeyRevokedQuery :: (BRApp context err, AsKeyError err) => KeyID -> DB context err Bool
+isKeyRevokedQuery :: (BRApp context err, AsKeyError err)
+                  => CT.KeyId
+                  -> DB context err Bool
 isKeyRevokedQuery kid = do
   currTime <- liftIO getCurrentTime
   mkeyInfo <- fmap (keyToKeyInfo currTime) <$> getPublicKeyInfoQuery kid
   maybe (throwing _KeyNotFound kid)
-        (\ki -> pure $ keyState ki == Revoked)
+        (\ki -> pure $ keyInfoState ki == Revoked)
         mkeyInfo
 
-revokePublicKeyQuery :: (BRApp context err, AsKeyError err) => CT.UserID
-                     -> CT.KeyID
+revokePublicKeyQuery :: (BRApp context err, AsKeyError err) => CT.UserId
+                     -> CT.KeyId
                      -> DB context err RevocationTime
-revokePublicKeyQuery uId k@(KeyID keyId) = do
+revokePublicKeyQuery uId k@(CT.KeyId keyId) = do
   userOwnsKey <- doesUserOwnKeyQuery uId k
   unless userOwnsKey $ throwing_ _UnauthorisedKeyAccess
   keyRevoked <- isKeyRevokedQuery k
@@ -169,17 +176,20 @@ revokePublicKeyQuery uId k@(KeyID keyId) = do
                 (\key -> key_id key ==. (val_ keyId))
   return $ RevocationTime timestamp
 
-doesUserOwnKeyQuery :: AsKeyError err => CT.UserID -> KeyID -> DB context err Bool
-doesUserOwnKeyQuery (UserID uId) (KeyID keyId) = do
+doesUserOwnKeyQuery :: AsKeyError err
+                    => CT.UserId
+                    -> CT.KeyId
+                    -> DB context err Bool
+doesUserOwnKeyQuery (CT.UserId uId) (CT.KeyId keyId) = do
   r <- pg $ runSelectReturningOne $ select $ do
           key <- all_ (_keys businessRegistryDB)
           guard_ (key_id key ==. val_ keyId)
-          guard_ (val_ (UserId uId) ==. (key_user_id key))
+          guard_ (val_ (Schema.UserId uId) ==. (key_user_id key))
           pure key
   return $ isJust r
 
-getKeyById :: KeyID -> DB context err (Maybe Key)
-getKeyById (KeyID keyId) = pg $ runSelectReturningOne $ select $ do
+getKeyById :: CT.KeyId -> DB context err (Maybe Key)
+getKeyById (CT.KeyId keyId) = pg $ runSelectReturningOne $ select $ do
           key <- all_ (_keys businessRegistryDB)
           guard_ (key_id key ==. val_ keyId)
           pure key

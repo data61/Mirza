@@ -77,7 +77,7 @@ testServiceQueries = do
         pure (uid, user)
       case res of
         (_, Nothing) -> fail "Received Nothing for user"
-        ((UserID uid), Just user :: Maybe (SB.UserT Identity)) ->
+        ((UserId uid), Just user :: Maybe (SB.UserT Identity)) ->
           user `shouldSatisfy`
             (\u ->
               (SB.user_phone_number u) == (newUserPhoneNumber dummyNewUser) &&
