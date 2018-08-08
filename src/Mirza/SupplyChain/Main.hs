@@ -25,6 +25,8 @@ import           Network.Wai                (Middleware)
 import qualified Network.Wai.Handler.Warp   as Warp
 
 import           Data.ByteString            (ByteString)
+import           Data.Text                  (pack)
+
 import           Data.Semigroup             ((<>))
 import           Options.Applicative
 
