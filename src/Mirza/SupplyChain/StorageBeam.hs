@@ -656,16 +656,3 @@ supplyChainDb = defaultDbSettings
           blockchain_event_id = EventId (fieldNamed "blockchain_event_id")
         }
     }
-
-
-
--- Add ClientEnv to SCSContext
--- Add cmd line options for the host and port in SCS
--- In SCS, allocate an HTTP Manager during start-up
--- Create a BaseUrl from the host + port and assign that to the context
--- Use the manager and the BaseUrl to make a ClientEnv (Hint: Use mkClientEnv)
--- Wherever SCS needs to talk to BR, use runClientM to call the appropriate function
--- Might be useful to write a function with the type signature:
--- runClient :: (AsServantError err, HasClientEnv context) => ClientM a -> AppM context err a`
--- using `runClientM :: ClientM a -> ClientEnv -> IO (Either ServantError a)`
--- from servant-client, and handling the IO and error handling, and grabbing the ClientEnv from the SCSContext
