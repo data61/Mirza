@@ -15,7 +15,7 @@ import           Mirza.SupplyChain.ErrorUtils  (throwAppError,
 import           Mirza.SupplyChain.QueryUtils
 import qualified Mirza.SupplyChain.StorageBeam as SB
 import           Mirza.SupplyChain.Types       hiding (NewUser (..),
-                                                User (userId), UserID)
+                                                User (userId), UserId)
 import qualified Mirza.SupplyChain.Types       as ST
 
 import           Database.Beam                 as B

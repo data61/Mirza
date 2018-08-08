@@ -11,8 +11,7 @@ module Mirza.BusinessRegistry.Tests.Keys
   ) where
 
 import           Mirza.BusinessRegistry.Database.Schema   as BSchema
---import           Mirza.BusinessRegistry.Auth
---import           Mirza.BusinessRegistry.Handlers.Common
+
 import           Mirza.BusinessRegistry.Handlers.Business
 import           Mirza.BusinessRegistry.Handlers.Keys     as BKey
 import           Mirza.BusinessRegistry.Handlers.Users
@@ -20,9 +19,7 @@ import           Mirza.BusinessRegistry.Tests.Dummies
 import           Mirza.BusinessRegistry.Types             as BT
 import           Mirza.Common.Time                        (CreationTime (..),
                                                            ExpirationTime (..))
---import           Mirza.Common.Types
 
---import           Data.Either                            (isLeft)
 import           Data.Maybe                               (fromJust, isNothing)
 
 
@@ -67,7 +64,7 @@ testKeyQueries = do
         pure (storageKey, keyStr, keyId, uid, tEnd, insertedKey)
       case res of
         (Nothing, _, _, _, _, _) -> fail "Received Nothing for key"
-        (Just key, keyStr, (KeyID keyId), (UserID uid), tEnd, insertedKey) -> do
+        (Just key, keyStr, (BT.KeyId keyId), (BT.UserId uid), tEnd, insertedKey) -> do
           key `shouldSatisfy`
             (\k ->
               (BSchema.pem_str k) == keyStr &&
@@ -93,9 +90,9 @@ testKeyQueries = do
       keyInfo `shouldSatisfy`
         (\ki ->
           (keyInfoUserId ki == uid) &&
-          ((keyCreationTime ki) > (CreationTime tStart) &&
-           (keyCreationTime ki) < (CreationTime tEnd)) &&
-          isNothing (keyRevocationTime ki)
+          ((keyInfoCreationTime ki) > (CreationTime tStart) &&
+           (keyInfoCreationTime ki) < (CreationTime tEnd)) &&
+          isNothing (keyInfoRevocationTime ki)
         )
 
   describe "revokePublicKey tests" $ do
@@ -108,7 +105,7 @@ testKeyQueries = do
         keyId <- addPublicKey user pubKey Nothing
         _timeKeyRevoked <- revokePublicKey user keyId
         keyInfo <- getPublicKeyInfo keyId
-        pure (keyState keyInfo)
+        pure (keyInfoState keyInfo)
       myKeyState `shouldBe` Revoked
 
 {-- XXX - FIXME!!! Need to catch UnAuthorisedKeyAccess error
@@ -142,7 +139,7 @@ testKeyQueries = do
         keyId <- addPublicKey user pubKey (Just . ExpirationTime $ someTimeAgo )
         _timeKeyRevoked <- revokePublicKey user keyId
         keyInfo <- getPublicKeyInfo keyId
-        pure (keyState keyInfo)
+        pure (keyInfoState keyInfo)
       myKeyState `shouldBe` Revoked
 
     it "Expired but NOT revoked pub key" $ \brContext -> do
@@ -156,7 +153,7 @@ testKeyQueries = do
         let user = tableToAuthUser . fromJust $ tableUser
         keyId <- addPublicKey user pubKey (Just . ExpirationTime $ someTimeAgo)
         keyInfo <- getPublicKeyInfo keyId
-        pure (keyState keyInfo)
+        pure (keyInfoState keyInfo)
       myKeyState `shouldBe` Expired
 
     it "Expiry date in the future" $ \brContext -> do
@@ -170,7 +167,7 @@ testKeyQueries = do
         let user = tableToAuthUser . fromJust $ tableUser
         keyId <- addPublicKey user pubKey (Just . ExpirationTime $ someTimeLater)
         keyInfo <- getPublicKeyInfo keyId
-        pure (keyState keyInfo)
+        pure (keyInfoState keyInfo)
       myKeyState `shouldBe` InEffect
 
   describe "Business" $ do

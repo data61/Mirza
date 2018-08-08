@@ -35,16 +35,16 @@ import           Data.GS1.EventId
 
 import           Data.UUID.Types
 
-newUser      :: NewUser -> ClientM UserID
+newUser      :: NewUser -> ClientM UserId
 
 epcState            :: BasicAuthData -> LabelEPCUrn -> ClientM EPCState
 listEvents          :: BasicAuthData -> LabelEPCUrn -> ClientM [Ev.Event]
 eventInfo           :: BasicAuthData -> EventId -> ClientM (Maybe Ev.Event)
 contactsInfo        :: BasicAuthData -> ClientM [T.User]
-addContact          :: BasicAuthData -> UserID -> ClientM Bool
-removeContact       :: BasicAuthData -> UserID -> ClientM Bool
+addContact          :: BasicAuthData -> UserId -> ClientM Bool
+removeContact       :: BasicAuthData -> UserId -> ClientM Bool
 userSearch          :: BasicAuthData -> String -> ClientM [T.User]
-eventList           :: BasicAuthData -> UserID -> ClientM [Ev.Event]
+eventList           :: BasicAuthData -> UserId -> ClientM [Ev.Event]
 eventUserList       :: BasicAuthData -> EventId -> ClientM [(T.User, Bool)]
 eventSign           :: BasicAuthData -> SignedEvent -> ClientM UUID
 eventHashed         :: BasicAuthData -> EventId -> ClientM HashedEvent
@@ -52,7 +52,7 @@ insertObjectEvent   :: BasicAuthData -> ObjectEvent -> ClientM (Ev.Event, SB.Eve
 insertAggEvent      :: BasicAuthData -> AggregationEvent -> ClientM (Ev.Event, SB.EventId)
 insertTransactEvent :: BasicAuthData -> TransactionEvent -> ClientM (Ev.Event, SB.EventId)
 insertTransfEvent   :: BasicAuthData -> TransformationEvent -> ClientM (Ev.Event, SB.EventId)
-addUserToEvent      :: BasicAuthData -> UserID -> EventId -> ClientM ()
+addUserToEvent      :: BasicAuthData -> UserId -> EventId -> ClientM ()
 
 _api     :: Client ClientM ServerAPI
 _privAPI :: Client ClientM ProtectedAPI

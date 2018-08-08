@@ -105,18 +105,3 @@ serveSwaggerAPI = toSwagger serverAPI
   & info.description ?~ "This is an API that tests swagger integration"
   & info.license ?~ ("MIT" & url ?~ URL "https://opensource.org/licenses/MIT")
 
-
-
-
-
-
-
-
--- PSUEDO:
--- In BeamQueries, implement a function getLabelIDState :: LabelEPCUrn -> IO (_labelID, State)
--- use readLabelEPC in EPC.hs to do it.
--- SELECT * FROM Labels WHERE _labelGs1CompanyPrefix=gs1CompanyPrefix AND _labelType=type AND ...
-
-
---eventHash :: EventId -> AppM context err SignedEvent
---eventHash eID = return (SignedEvent eID (BinaryBlob ByteString.empty) [(BinaryBlob ByteString.empty)] [1,2])

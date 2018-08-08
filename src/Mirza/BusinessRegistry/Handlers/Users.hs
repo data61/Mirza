@@ -7,7 +7,7 @@ module Mirza.BusinessRegistry.Handlers.Users
   , tableToAuthUser
   ) where
 
-import           Mirza.BusinessRegistry.Database.Schema   hiding (UserID)
+import           Mirza.BusinessRegistry.Database.Schema   hiding (UserId)
 import           Mirza.BusinessRegistry.Database.Schema   as Schema
 
 import           Mirza.BusinessRegistry.Handlers.Common
@@ -25,14 +25,16 @@ import           Data.Text.Encoding                       (encodeUtf8)
 
 
 
-newUser ::  (BRApp context err, BRT.HasScryptParams context) => BRT.NewUser
-        -> BRT.AppM context err BRT.UserID
+newUser ::  (BRApp context err, BRT.HasScryptParams context)
+        => BRT.NewUser
+        -> BRT.AppM context err BRT.UserId
 newUser = BRT.runDb . newUserQuery
 
 
 -- | Hashes the password of the BRT.NewUser and inserts the user into the database
-newUserQuery :: (BRT.AsBusinessRegistryError err, BRT.HasScryptParams context) => BRT.NewUser
-             -> BRT.DB context err BRT.UserID
+newUserQuery :: (BRT.AsBusinessRegistryError err, BRT.HasScryptParams context)
+             => BRT.NewUser
+             -> BRT.DB context err BRT.UserId
 newUserQuery (BRT.NewUser phone (BRT.EmailAddress email) firstName lastName biz password) = do
   params <- view $ _2 . BRT.scryptParams
   encPass <- liftIO $ Scrypt.encryptPassIO params (Scrypt.Pass $ encodeUtf8 password)
@@ -44,13 +46,13 @@ newUserQuery (BRT.NewUser phone (BRT.EmailAddress email) firstName lastName biz 
                phone (Scrypt.getEncryptedPass encPass) email
        ]
   case res of
-      [r] -> return $ BRT.UserID $ user_id r
+      [r] -> return $ BRT.UserId $ user_id r
       -- TODO: Have a proper error response
       _   -> BRT.throwing BRT._UserCreationErrorBRE (show res)
 
 
-getUserByIdQuery :: BRT.UserID -> BRT.DB context err (Maybe Schema.User)
-getUserByIdQuery (BRT.UserID uid) = do
+getUserByIdQuery :: BRT.UserId -> BRT.DB context err (Maybe Schema.User)
+getUserByIdQuery (BRT.UserId uid) = do
   r <- BRT.pg $ runSelectReturningList $ select $ do
           user <- all_ (Schema._users Schema.businessRegistryDB)
           guard_ (user_id user ==. val_ uid)
@@ -62,4 +64,4 @@ getUserByIdQuery (BRT.UserID uid) = do
 
 -- | Converts a BRT.DB representation of ``User`` to ``AuthUser``
 tableToAuthUser :: Schema.User -> BRT.AuthUser
-tableToAuthUser tUser = BRT.AuthUser (BRT.UserID $ Schema.user_id tUser)
+tableToAuthUser tUser = BRT.AuthUser (BRT.UserId $ Schema.user_id tUser)
