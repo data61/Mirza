@@ -22,6 +22,8 @@ module Mirza.Common.Types
   , HasScryptParams(..)
   , HasKatipContext(..)
   , HasKatipLogEnv(..)
+  , HasClientEnv(..)
+  , AsServantError (..)
   , DBConstraint
   , ask
   , asks
@@ -68,6 +70,7 @@ import           Katip.Monadic              (askLoggerIO)
 
 import           Servant                    (FromHttpApiData (..),
                                              ToHttpApiData (..))
+import           Servant.Client             (ClientEnv (..), ServantError (..))
 
 import           Data.UUID                  (UUID)
 
@@ -178,6 +181,11 @@ class HasKatipContext a where
   katipContexts :: Lens' a K.LogContexts
   katipNamespace :: Lens' a K.Namespace
 
+class HasClientEnv a where
+  clientEnv :: Lens' a ClientEnv
+
+class AsServantError a where
+    _ServantError :: Prism' a ServantError
 
 instance HasKatipLogEnv context => Katip (AppM context err) where
   getLogEnv = view katipLogEnv
@@ -258,6 +266,3 @@ pg = DB . lift . lift
 
 runAppM :: context -> AppM context err a -> IO (Either err a)
 runAppM env aM = runExceptT $ (runReaderT . unAppM) aM env
-
-
-

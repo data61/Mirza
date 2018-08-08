@@ -20,6 +20,7 @@ module Mirza.SupplyChain.Service
   , privateServer
   , appMToHandler
   , serveSwaggerAPI
+  , runClientFunc
  ) where
 
 import           Mirza.SupplyChain.API
@@ -109,9 +110,9 @@ serveSwaggerAPI = toSwagger serverAPI
 
 
 
-runClientFunc :: SCSApp context err => ClientM a -> AppM context err a
+runClientFunc :: (AsServantError err, HasClientEnv context)
+              => ClientM a
+              -> AppM context err a
 runClientFunc func = do
-  ctx <- ask
-  let cEnv = _scsClientEnv . ctx
-  error "not implemented yet"
-  -- return $ runClientM cEnv func
+  cEnv <- view clientEnv
+  either (throwing _ServantError) pure =<< liftIO (runClientM func cEnv)
