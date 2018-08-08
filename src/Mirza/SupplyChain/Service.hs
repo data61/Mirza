@@ -34,6 +34,8 @@ import           Mirza.SupplyChain.Handlers.Users             as Handlers
 import           Mirza.SupplyChain.Types
 
 import           Servant
+import           Servant.Client                               (ClientM,
+                                                               runClientM)
 import           Servant.Swagger
 
 import           GHC.TypeLits                                 (KnownSymbol)
@@ -105,3 +107,11 @@ serveSwaggerAPI = toSwagger serverAPI
   & info.description ?~ "This is an API that tests swagger integration"
   & info.license ?~ ("MIT" & url ?~ URL "https://opensource.org/licenses/MIT")
 
+
+
+runClientFunc :: SCSApp context err => ClientM a -> AppM context err a
+runClientFunc func = do
+  ctx <- ask
+  let cEnv = _scsClientEnv . ctx
+  error "not implemented yet"
+  -- return $ runClientM cEnv func
