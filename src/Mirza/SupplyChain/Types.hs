@@ -25,6 +25,7 @@ import           Database.PostgreSQL.Simple (Connection, SqlError)
 import           Crypto.Scrypt              (ScryptParams)
 
 import           Servant                    (FromHttpApiData, ToHttpApiData)
+import           Servant.Client             (ClientEnv (..))
 
 import           Control.Lens
 
@@ -52,7 +53,7 @@ data SCSContext = SCSContext
   , _scsKatipLogEnv      :: K.LogEnv
   , _scsKatipLogContexts :: K.LogContexts
   , _scsKatipNamespace   :: K.Namespace
-  -- , port    :: Word16
+  , _scsClientEnv        :: ClientEnv
   }
 $(makeLenses ''SCSContext)
 
