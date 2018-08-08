@@ -25,7 +25,7 @@ import           Database.PostgreSQL.Simple (Connection, SqlError)
 import           Crypto.Scrypt              (ScryptParams)
 
 import           Servant                    (FromHttpApiData, ToHttpApiData)
-import           Servant.Client             (ClientEnv (..))
+import           Servant.Client             (ClientEnv (..), ServantError (..))
 
 import           Control.Lens
 
@@ -60,6 +60,7 @@ $(makeLenses ''SCSContext)
 instance HasEnvType SCSContext where envType = scsEnvType
 instance HasConnPool SCSContext where connPool = scsDbConnPool
 instance HasScryptParams SCSContext where scryptParams = scsScryptPs
+instance HasClientEnv SCSContext where clientEnv = scsClientEnv
 instance HasKatipLogEnv SCSContext where katipLogEnv = scsKatipLogEnv
 instance HasKatipContext SCSContext where
   katipContexts = scsKatipLogContexts
@@ -368,6 +369,7 @@ data ServiceError
   | ParseError            EPC.ParseFailure
   | BackendErr            Text -- fallback
   | DatabaseError         SqlError
+  | ServantErr            ServantError
   deriving (Show, Eq, Generic)
 $(makeClassyPrisms ''ServiceError)
 
@@ -379,3 +381,9 @@ instance AsSqlError ServiceError where
 
 instance AsSqlError AppError where
   _SqlError = _DatabaseError
+
+instance AsServantError ServantError where
+    _ServantError = id
+
+instance AsServantError ServiceError where
+    _ServantError = _ServantErr
