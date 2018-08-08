@@ -83,7 +83,7 @@ authCheckQuery (EmailAddress email) (Password password) = do
 
 
 userToAuthUser :: Schema.User -> AuthUser
-userToAuthUser user = AuthUser (CT.UserID $ user_id user)
+userToAuthUser user = AuthUser (CT.UserId $ user_id user)
 
 
 listUsersQuery :: BRApp context err => DB context err [Schema.User]

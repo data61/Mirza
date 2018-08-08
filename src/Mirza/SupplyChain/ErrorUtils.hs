@@ -31,25 +31,25 @@ appErrToHttpErr (EmailExists _ (EmailAddress email)) =
   throwError $ err400 {
     errBody = LBSC8.fromChunks ["User email ", encodeUtf8 email, " exists."]
   }
-appErrToHttpErr (InvalidKeyID _) =
+appErrToHttpErr (InvalidKeyId _) =
   throwError $ err400 {
-    errBody = "Invalid Key ID entered."
+    errBody = "Invalid Key Id entered."
   }
 appErrToHttpErr (InvalidSignature _) =
   throwError $ err400 {
     errBody = "Invalid Signature entered."
   }
-appErrToHttpErr (InvalidEventID _) =
+appErrToHttpErr (InvalidEventId _) =
   throwError $ err400 {
     errBody = "No such event."
   }
-appErrToHttpErr (InvalidUserID _) =
+appErrToHttpErr (InvalidUserId _) =
   throwError $ err400 {
     errBody = "No such user."
   }
 appErrToHttpErr (InvalidDigest _) =
   throwError $ err400 {
-    errBody = "Invalid Key ID entered."
+    errBody = "Invalid Key Id entered."
   }
 appErrToHttpErr (ParseError err) =
   throwError $ err400 {

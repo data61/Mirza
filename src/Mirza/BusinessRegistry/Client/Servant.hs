@@ -12,19 +12,19 @@ module Mirza.BusinessRegistry.Client.Servant
 import           Mirza.BusinessRegistry.API
 import           Mirza.BusinessRegistry.Types as BRT
 import           Mirza.Common.Time            (ExpirationTime, RevocationTime)
-import           Mirza.Common.Types           (KeyID)
+import           Mirza.Common.Types           (KeyId)
 
 import           Servant.API
 import           Servant.Client
 
 import           Data.Proxy                   (Proxy (..))
 
-getKey       :: KeyID -> ClientM PEM_RSAPubKey
-getKeyInfo   :: KeyID -> ClientM KeyInfoResponse
+getKey       :: KeyId -> ClientM PEM_RSAPubKey
+getKeyInfo   :: KeyId -> ClientM KeyInfoResponse
 businessList :: ClientM [BusinessResponse]
 
-addPublicKey        :: BasicAuthData -> PEM_RSAPubKey -> Maybe ExpirationTime -> ClientM KeyID
-revokePublicKey     :: BasicAuthData -> KeyID -> ClientM RevocationTime
+addPublicKey        :: BasicAuthData -> PEM_RSAPubKey -> Maybe ExpirationTime -> ClientM KeyId
+revokePublicKey     :: BasicAuthData -> KeyId -> ClientM RevocationTime
 
 _api     :: Client ClientM ServerAPI
 _privAPI :: Client ClientM ProtectedAPI

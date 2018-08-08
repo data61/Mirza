@@ -70,7 +70,7 @@ storageToModelEvent = decodeEvent . SB.event_json
 -- | Converts a DB representation of ``User`` to a Model representation
 -- SB.User = SB.User uid bizId fName lName phNum passHash email
 userTableToModel :: SB.User -> ST.User
-userTableToModel (SB.User uid _ fName lName _ _ _) = ST.User (UserID uid) fName lName
+userTableToModel (SB.User uid _ fName lName _ _ _) = ST.User (UserId uid) fName lName
 
 
 encodeEvent :: Event -> T.Text
