@@ -61,7 +61,7 @@ openConnection = do
   connpool <- defaultPool
   _ <- withResource connpool dropTables -- drop tables before so if already exist no problems... means tables get overwritten though
   withResource connpool (tryCreateSchema True)
-  initSCSContext (ServerOptions Dev False testDbConnStr 8000 14 8 1 DebugS)
+  initSCSContext (ServerOptions Dev False testDbConnStr "127.0.0.1" 8000 14 8 1 DebugS)
 
 closeConnection :: SCSContext -> IO ()
 closeConnection = destroyAllResources . ST._scsDbConnPool

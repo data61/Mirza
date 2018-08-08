@@ -51,7 +51,7 @@ authABC = BasicAuthData
 
 runApp :: IO (ThreadId, BaseUrl)
 runApp = do
-  let so = (ServerOptions Dev False testDbConnStr 8000 14 8 1 DebugS)
+  let so = (ServerOptions Dev False testDbConnStr "127.0.0.1" 8000 14 8 1 DebugS)
   ctx <- initSCSContext so
   startWaiApp =<< initApplication so ctx
 
