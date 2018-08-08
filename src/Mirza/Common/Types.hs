@@ -33,6 +33,7 @@ module Mirza.Common.Types
   , MonadIO
   , liftIO
   , PrimaryKeyType
+  , runClientFunc
   ) where
 
 import qualified Database.Beam              as B
@@ -70,7 +71,8 @@ import           Katip.Monadic              (askLoggerIO)
 
 import           Servant                    (FromHttpApiData (..),
                                              ToHttpApiData (..))
-import           Servant.Client             (ClientEnv (..), ServantError (..))
+import           Servant.Client             (ClientEnv (..), ClientM,
+                                             ServantError (..), runClientM)
 
 import           Data.UUID                  (UUID)
 
@@ -266,3 +268,11 @@ pg = DB . lift . lift
 
 runAppM :: context -> AppM context err a -> IO (Either err a)
 runAppM env aM = runExceptT $ (runReaderT . unAppM) aM env
+
+
+runClientFunc :: (AsServantError err, HasClientEnv context)
+              => ClientM a
+              -> AppM context err a
+runClientFunc func = do
+  cEnv <- view clientEnv
+  either (throwing _ServantError) pure =<< liftIO (runClientM func cEnv)
