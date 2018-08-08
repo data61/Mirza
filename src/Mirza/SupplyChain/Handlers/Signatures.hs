@@ -142,7 +142,7 @@ insertSignature eId kId (Signature sig) digest = do
   r <- pg $ runInsertReturningList (SB._signatures SB.supplyChainDb) $
         insertValues
         [(SB.Signature sigId) (SB.EventId $ EvId.unEventId eId)
-         (SB.KeyId $ unKeyId kId) (BSC.pack sig)
+         (SB.KeyId $ getKeyId kId) (BSC.pack sig)
           (BSC.pack $ show digest) (toDbTimestamp timestamp)]
   case r of
     [rowId] -> return ( SB.signature_id rowId)

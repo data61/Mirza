@@ -98,7 +98,7 @@ instance ToSchema NewUser
 deriving instance ToHttpApiData EventId
 
 -- Should this be in GS1Combinators?
-newtype LabelEPCUrn = LabelEPCUrn {unLabelEPCUrn :: Text}
+newtype LabelEPCUrn = LabelEPCUrn {getLabelEPCUrn :: Text}
   deriving (Show, Eq, Generic, Read, FromJSON, ToJSON)
 instance ToSchema LabelEPCUrn
 instance ToParamSchema LabelEPCUrn
