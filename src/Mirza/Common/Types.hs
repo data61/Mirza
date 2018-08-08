@@ -80,7 +80,7 @@ type PrimaryKeyType = UUID
 
 -- TODO: Handwrite these instances to comply with their defined syntax
 -- For example, emails have their own format, as do LabelEPCUrn
-newtype UserId = UserId {unUserId :: PrimaryKeyType}
+newtype UserId = UserId {getUserId :: PrimaryKeyType}
   deriving (Show, Eq, Generic, Read, FromJSON, ToJSON)
 instance ToSchema UserId
 instance ToParamSchema UserId
@@ -96,7 +96,7 @@ instance Show Password where
   show _ = "Password <redacted>"
 
 
-newtype EmailAddress = EmailAddress {unEmailAddress :: Text}
+newtype EmailAddress = EmailAddress {getEmailAddress :: Text}
   deriving (Show, Eq, Generic, Read, FromJSON, ToJSON)
 instance ToSchema EmailAddress
 instance ToParamSchema EmailAddress
@@ -104,7 +104,7 @@ deriving instance FromHttpApiData EmailAddress
 deriving instance ToHttpApiData EmailAddress
 
 
-newtype KeyId = KeyId {unKeyId :: PrimaryKeyType}
+newtype KeyId = KeyId {getKeyId :: PrimaryKeyType}
   deriving (Show, Eq, Generic, Read, FromJSON, ToJSON)
 instance ToSchema KeyId
 instance ToParamSchema KeyId
@@ -125,7 +125,7 @@ $(makeClassy ''EnvType)
 -- type Handler a = ExceptT ServantErr IO a
 -- newtype ExceptT e m a :: * -> (* -> *) -> * -> *
 newtype AppM context err a = AppM
-  { unAppM :: ReaderT context (ExceptT err IO) a
+  { getAppM :: ReaderT context (ExceptT err IO) a
   } deriving
     ( Functor
     , Applicative
@@ -257,7 +257,7 @@ pg :: Pg a -> DB context err a
 pg = DB . lift . lift
 
 runAppM :: context -> AppM context err a -> IO (Either err a)
-runAppM env aM = runExceptT $ (runReaderT . unAppM) aM env
+runAppM env aM = runExceptT $ (runReaderT . getAppM) aM env
 
 
 

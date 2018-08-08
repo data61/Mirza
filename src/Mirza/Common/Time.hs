@@ -63,7 +63,7 @@ instance ModelTimestamp EPCISTime where
   fromDbTimestamp = onLocalTime EPCISTime
 
 
-newtype CreationTime = CreationTime {unCreationTime :: UTCTime}
+newtype CreationTime = CreationTime {getCreationTime :: UTCTime}
   deriving (Show, Eq, Generic, Read, FromJSON, ToJSON, Ord)
 instance ToSchema CreationTime
 instance ToParamSchema CreationTime
@@ -75,7 +75,7 @@ instance ModelTimestamp CreationTime where
   fromDbTimestamp = onLocalTime CreationTime
 
 
-newtype RevocationTime = RevocationTime {unRevocationTime :: UTCTime}
+newtype RevocationTime = RevocationTime {getRevocationTime :: UTCTime}
   deriving (Show, Eq, Generic, Read, FromJSON, ToJSON, Ord)
 instance ToSchema RevocationTime
 instance ToParamSchema RevocationTime
@@ -87,7 +87,7 @@ instance ModelTimestamp RevocationTime where
   fromDbTimestamp = onLocalTime RevocationTime
 
 
-newtype ExpirationTime = ExpirationTime {unExpirationTime :: UTCTime}
+newtype ExpirationTime = ExpirationTime {getExpirationTime :: UTCTime}
   deriving (Show, Eq, Read, Generic, FromJSON, ToJSON, Ord)
 instance ToSchema ExpirationTime
 instance ToParamSchema ExpirationTime

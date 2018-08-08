@@ -46,7 +46,7 @@ listEvents :: SCSApp context err
            => ST.User
            ->  LabelEPCUrn
            -> AppM context err [Ev.Event]
-listEvents _user = either throwParseError (runDb . listEventsQuery) . urn2LabelEPC . unLabelEPCUrn
+listEvents _user = either throwParseError (runDb . listEventsQuery) . urn2LabelEPC . getLabelEPCUrn
 
 listEventsQuery :: AsServiceError err => LabelEPC -> DB context err [Ev.Event]
 listEventsQuery labelEpc =
