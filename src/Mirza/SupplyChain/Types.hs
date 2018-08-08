@@ -349,3 +349,5 @@ instance AsServantError ServantError where
 
 instance AsServantError ServiceError where
     _ServantError = _ServantErr
+
+instance AsServantError AppError where _ServantError = _ServantErr
