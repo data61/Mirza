@@ -81,7 +81,7 @@ testServiceQueries = do
           user `shouldSatisfy`
             (\u ->
               (SB.user_phone_number u) == (newUserPhoneNumber dummyNewUser) &&
-              (SB.user_email_address u) == (unEmailAddress . newUserEmailAddress $ dummyNewUser) &&
+              (SB.user_email_address u) == (getEmailAddress . newUserEmailAddress $ dummyNewUser) &&
               (SB.user_first_name u) == (newUserFirstName dummyNewUser) &&
               (SB.user_last_name u) == (newUserLastName dummyNewUser) &&
               (SB.user_biz_id u) == (SB.BizId (newUserCompany dummyNewUser)) &&
@@ -98,7 +98,7 @@ testServiceQueries = do
         uid <- newUser dummyNewUser
         let check = unBasicAuthCheck $ authCheck scsContext
         let basicAuthData = BasicAuthData
-                          (encodeUtf8 $ unEmailAddress $ newUserEmailAddress dummyNewUser)
+                          (encodeUtf8 $ getEmailAddress $ newUserEmailAddress dummyNewUser)
                           (encodeUtf8 $ newUserPassword dummyNewUser)
 
         user <- liftIO $ check basicAuthData

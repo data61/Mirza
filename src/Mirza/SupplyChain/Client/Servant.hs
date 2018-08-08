@@ -1,24 +1,24 @@
 module Mirza.SupplyChain.Client.Servant
   (
   -- * Public API
-   newUser
+    newUser
   -- * Authenticated API
-  ,epcState
-  ,listEvents
-  ,eventInfo
-  ,contactsInfo
-  ,addContact
-  ,removeContact
-  ,userSearch
-  ,eventList
-  ,eventUserList
-  ,eventSign
-  ,eventHashed
-  ,insertObjectEvent
-  ,insertAggEvent
-  ,insertTransactEvent
-  ,insertTransfEvent
-  ,addUserToEvent
+  , contactsInfo
+  , addContact
+  , removeContact
+  , userSearch
+  , addUserToEvent
+  , eventSign
+  , eventHashed
+  , epcState
+  , listEvents
+  , eventInfo
+  , eventList
+  , eventUserList
+  , insertObjectEvent
+  , insertAggEvent
+  , insertTransactEvent
+  , insertTransfEvent
   ) where
 
 import           Mirza.SupplyChain.API
@@ -35,24 +35,33 @@ import           Data.GS1.EventId
 
 import           Data.UUID.Types
 
+
+
+-- * Public API
 newUser      :: NewUser -> ClientM UserId
 
-epcState            :: BasicAuthData -> LabelEPCUrn -> ClientM EPCState
-listEvents          :: BasicAuthData -> LabelEPCUrn -> ClientM [Ev.Event]
-eventInfo           :: BasicAuthData -> EventId -> ClientM (Maybe Ev.Event)
+
+-- * Authenticated API
 contactsInfo        :: BasicAuthData -> ClientM [T.User]
 addContact          :: BasicAuthData -> UserId -> ClientM Bool
 removeContact       :: BasicAuthData -> UserId -> ClientM Bool
 userSearch          :: BasicAuthData -> String -> ClientM [T.User]
-eventList           :: BasicAuthData -> UserId -> ClientM [Ev.Event]
-eventUserList       :: BasicAuthData -> EventId -> ClientM [(T.User, Bool)]
+
+addUserToEvent      :: BasicAuthData -> UserId -> EventId -> ClientM ()
 eventSign           :: BasicAuthData -> SignedEvent -> ClientM UUID
 eventHashed         :: BasicAuthData -> EventId -> ClientM HashedEvent
+
+epcState            :: BasicAuthData -> LabelEPCUrn -> ClientM EPCState
+listEvents          :: BasicAuthData -> LabelEPCUrn -> ClientM [Ev.Event]
+eventInfo           :: BasicAuthData -> EventId -> ClientM (Maybe Ev.Event)
+eventList           :: BasicAuthData -> UserId -> ClientM [Ev.Event]
+eventUserList       :: BasicAuthData -> EventId -> ClientM [(T.User, Bool)]
+
 insertObjectEvent   :: BasicAuthData -> ObjectEvent -> ClientM (Ev.Event, SB.EventId)
 insertAggEvent      :: BasicAuthData -> AggregationEvent -> ClientM (Ev.Event, SB.EventId)
 insertTransactEvent :: BasicAuthData -> TransactionEvent -> ClientM (Ev.Event, SB.EventId)
 insertTransfEvent   :: BasicAuthData -> TransformationEvent -> ClientM (Ev.Event, SB.EventId)
-addUserToEvent      :: BasicAuthData -> UserId -> EventId -> ClientM ()
+
 
 _api     :: Client ClientM ServerAPI
 _privAPI :: Client ClientM ProtectedAPI
@@ -82,6 +91,5 @@ _api@(
     :<|> insertAggEvent
     :<|> insertTransactEvent
     :<|> insertTransfEvent
-
   )
  ) = client (Proxy :: Proxy ServerAPI)

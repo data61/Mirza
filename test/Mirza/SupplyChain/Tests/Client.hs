@@ -46,7 +46,7 @@ userABC = NewUser
 
 authABC :: BasicAuthData
 authABC = BasicAuthData
-  (encodeUtf8 . unEmailAddress . newUserEmailAddress $ userABC)
+  (encodeUtf8 . getEmailAddress . newUserEmailAddress $ userABC)
   (encodeUtf8 . newUserPassword                      $ userABC)
 
 runApp :: IO (ThreadId, BaseUrl)

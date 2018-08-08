@@ -267,8 +267,8 @@ instance Beamable (PrimaryKey EventT)
 deriving instance Show (PrimaryKey EventT Identity)
 
 -- | Utility function to extract ``eventId``
-unEventId :: PrimaryKey EventT f -> C f PrimaryKeyType
-unEventId (EventId eventId) = eventId
+getEventId :: PrimaryKey EventT f -> C f PrimaryKeyType
+getEventId (EventId eventId) = eventId
 
 instance Table EventT where
   data PrimaryKey EventT f = EventId (C f PrimaryKeyType)
@@ -554,11 +554,6 @@ supplyChainDb = defaultDbSettings
         {
           key_user_id = UserId (fieldNamed "key_user_id")
         }
-    -- , _businesses =
-    --     modifyTable (const "businesses") $
-    --     tableModification {
-    --       someField = Id (fieldNamed "short_name")
-    --     }
     , _contacts =
         modifyTable (const "contacts") $
         tableModification {

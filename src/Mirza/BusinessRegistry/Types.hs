@@ -167,9 +167,9 @@ data KeyError
   | KeyAlreadyRevoked
   deriving (Show, Eq)
 
-newtype Bit  = Bit  {unBit :: Int} deriving (Show, Eq, Read, Ord)
-newtype Expected = Expected {unExpected :: Bit} deriving (Show, Eq, Read, Ord)
-newtype Received = Received {unReceived :: Bit} deriving (Show, Eq, Read, Ord)
+newtype Bit  = Bit  {getBit :: Int} deriving (Show, Eq, Read, Ord)
+newtype Expected = Expected {getExpected :: Bit} deriving (Show, Eq, Read, Ord)
+newtype Received = Received {getReceived :: Bit} deriving (Show, Eq, Read, Ord)
 
 
 -- Lens definitions for Error Types.
