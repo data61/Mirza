@@ -68,7 +68,7 @@ insertObjectEventQuery :: ST.User
                        -> ObjectEvent
                        -> DB context err (Ev.Event, SB.EventId)
 insertObjectEventQuery
-  (ST.User (ST.UserID tUserId) _ _ )
+  (ST.User (ST.UserId tUserId) _ _ )
   (ObjectEvent
     foreignEventId
     act
@@ -107,7 +107,7 @@ insertAggEventQuery :: ST.User
                     -> AggregationEvent
                     -> DB context err (Ev.Event, SB.EventId)
 insertAggEventQuery
-  (ST.User (ST.UserID tUserId) _ _ )
+  (ST.User (ST.UserId tUserId) _ _ )
   (AggregationEvent
     foreignEventId
     act
@@ -148,7 +148,7 @@ insertTransactEventQuery :: ST.User
                          -> TransactionEvent
                          -> DB context err (Ev.Event, SB.EventId)
 insertTransactEventQuery
-  (ST.User (ST.UserID tUserId) _ _ )
+  (ST.User (ST.UserId tUserId) _ _ )
   (TransactionEvent
     foreignEventId
     act
@@ -190,7 +190,7 @@ insertTransfEventQuery :: ST.User
                        -> TransformationEvent
                        -> DB context err (Ev.Event, SB.EventId)
 insertTransfEventQuery
-  (ST.User (ST.UserID tUserId) _ _ )
+  (ST.User (ST.UserId tUserId) _ _ )
   (TransformationEvent
     foreignEventId
     mTransfId
@@ -541,8 +541,8 @@ insertLabelEvent (SB.EventId eventId) (SB.LabelId labelId) = QU.withPKey $ \pKey
           [ SB.LabelEvent pKey (SB.LabelId labelId) (SB.EventId eventId)
         ]
 
-getUserById :: UserID -> DB context err (Maybe SB.User)
-getUserById (UserID uid) = do
+getUserById :: UserId -> DB context err (Maybe SB.User)
+getUserById (UserId uid) = do
   r <- pg $ runSelectReturningList $ select $ do
           user <- all_ (SB._users SB.supplyChainDb)
           guard_ (SB.user_id user ==. val_ uid)
@@ -574,8 +574,8 @@ findEvent (SB.EventId eventId) = do
     _       -> throwBackendError r
 
 -- | Checks if a user is associated with an event
-hasUserCreatedEvent :: UserID -> EvId.EventId -> DB context err Bool
-hasUserCreatedEvent (UserID userId) (EvId.EventId eventId) = do
+hasUserCreatedEvent :: UserId -> EvId.EventId -> DB context err Bool
+hasUserCreatedEvent (UserId userId) (EvId.EventId eventId) = do
   r <- pg $ runSelectReturningList $ select $ do
         userEvent <- all_ (SB._user_events SB.supplyChainDb)
         guard_ (SB.user_events_owner userEvent ==. (val_ . SB.UserId $ userId) &&.

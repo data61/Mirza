@@ -8,33 +8,30 @@ module Mirza.BusinessRegistry.Types (
   , module CT
   ) where
 
-import           Mirza.Common.Time                      (CreationTime,
-                                                         ExpirationTime,
-                                                         RevocationTime)
-import           Mirza.Common.Types                     as CT
+import           Mirza.Common.Time          (CreationTime, ExpirationTime,
+                                             RevocationTime)
+import           Mirza.Common.Types         as CT
 import           Mirza.Common.Utils
 
-import           Mirza.BusinessRegistry.Database.Schema hiding (User, UserID)
-
-import           Data.GS1.EPC                           as EPC
+import           Data.GS1.EPC               as EPC
 
 
-import           Data.Pool                              as Pool
-import           Database.PostgreSQL.Simple             (Connection, SqlError)
+import           Data.Pool                  as Pool
+import           Database.PostgreSQL.Simple (Connection, SqlError)
 
-import           Crypto.Scrypt                          (ScryptParams)
+import           Crypto.Scrypt              (ScryptParams)
 
 import           Control.Lens.TH
 
-import           Katip                                  as K
+import           Katip                      as K
 
 import           Data.Aeson
 import           Data.Aeson.TH
 import           Data.Swagger
-import           Data.Text                              (Text)
+import           Data.Text                  (Text)
 
-import           GHC.Generics                           (Generic)
-import           Servant                                (FromHttpApiData (..))
+import           GHC.Generics               (Generic)
+import           Servant                    (FromHttpApiData (..))
 
 
 
@@ -76,7 +73,7 @@ instance HasKatipContext BRContext where
 
 
 data User = User {
-  userId        :: UserID,
+  userId        :: UserId,
   userFirstName :: Text,
   userLastName  :: Text
 } deriving (Generic, Eq, Show)
@@ -98,16 +95,13 @@ instance ToSchema NewUser
 
 -- Auth User Types:
 
-newtype AuthUser = AuthUser { authUserId :: UserID }
+newtype AuthUser = AuthUser { authUserId :: UserId }
   deriving (Show, Eq, Read, Generic)
 instance ToSchema AuthUser
 instance ToParamSchema AuthUser
 instance FromHttpApiData AuthUser where
   parseUrlPiece = notImplemented
 
--- *****************************************************************************
--- Business Types
--- *****************************************************************************
 
 -- Business Response Types:
 data BusinessResponse = BusinessResponse {
@@ -141,13 +135,13 @@ instance FromHttpApiData PEM_RSAPubKey where
 
 
 data KeyInfoResponse = KeyInfoResponse
-  { keyID             :: KeyID
-  , keyInfoUserId     :: UserID                -- TODO: There should be a forien key for Business in here....not sure that user is relevant...
-  , keyState          :: KeyState
-  , keyCreationTime   :: CreationTime
-  , keyRevocationTime :: Maybe RevocationTime
-  , keyExpirationTime :: Maybe ExpirationTime
-  , keyPEMString      :: PEM_RSAPubKey
+  { keyInfoId             :: CT.KeyId
+  , keyInfoUserId         :: UserId  -- TODO: There should be a forien key for Business in here....not sure that user is relevant...
+  , keyInfoState          :: KeyState
+  , keyInfoCreationTime   :: CreationTime
+  , keyInfoRevocationTime :: Maybe RevocationTime
+  , keyInfoExpirationTime :: Maybe ExpirationTime
+  , keyInfoPEMString      :: PEM_RSAPubKey
   }
   deriving (Generic, Show, Eq)
 $(deriveJSON defaultOptions ''KeyInfoResponse)
@@ -168,8 +162,8 @@ data BusinessRegistryError
 data KeyError
   = InvalidRSAKey PEM_RSAPubKey
   | InvalidRSAKeySize Expected Received
-  | PublicKeyInsertionError [KeyId]
-  | KeyNotFound KeyID
+  | PublicKeyInsertionError [CT.KeyId]
+  | KeyNotFound CT.KeyId
   | UnauthorisedKeyAccess
   | KeyAlreadyRevoked
   deriving (Show, Eq)

@@ -33,12 +33,16 @@ import           Data.Text.Encoding                       (encodeUtf8)
 
 
 
-newUser ::  (SCSApp context err, HasScryptParams context)=> ST.NewUser -> AppM context err ST.UserID
+newUser :: (SCSApp context err, HasScryptParams context)
+        => ST.NewUser
+        -> AppM context err ST.UserId
 newUser = runDb . newUserQuery
 
 
 -- | Hashes the password of the ST.NewUser and inserts the user into the database
-newUserQuery :: (AsServiceError err, HasScryptParams context) => ST.NewUser -> DB context err ST.UserID
+newUserQuery :: (AsServiceError err, HasScryptParams context)
+             => ST.NewUser
+             -> DB context err ST.UserId
 newUserQuery userInfo@(ST.NewUser _ _ _ _ _ password) = do
   params <- view $ _2 . scryptParams
   hash <- liftIO $ Scrypt.encryptPassIO params (Scrypt.Pass $ encodeUtf8 password)
@@ -56,7 +60,10 @@ newUserQuery userInfo@(ST.NewUser _ _ _ _ _ password) = do
     "password": "password"
   }
 -}
-insertUser :: AsServiceError err => Scrypt.EncryptedPass -> ST.NewUser -> DB context err ST.UserID
+insertUser :: AsServiceError err
+           => Scrypt.EncryptedPass
+           -> ST.NewUser
+           -> DB context err ST.UserId
 insertUser encPass (ST.NewUser phone (EmailAddress email) firstName lastName biz _) = do
   userId <- newUUID
   -- TODO: use Database.Beam.Backend.SQL.runReturningOne?
@@ -66,7 +73,7 @@ insertUser encPass (ST.NewUser phone (EmailAddress email) firstName lastName biz
                phone (Scrypt.getEncryptedPass encPass) email
       ]
   case res of
-        [r] -> return . ST.UserID . SB.user_id $ r
+        [r] -> return . ST.UserId . SB.user_id $ r
         -- TODO: Have a proper error response
         _   -> throwBackendError res
   where

@@ -19,7 +19,7 @@ import           Mirza.SupplyChain.QueryUtils
 import qualified Mirza.SupplyChain.StorageBeam            as SB
 import           Mirza.SupplyChain.Types                  hiding (NewUser (..),
                                                            User (userId),
-                                                           UserID)
+                                                           UserId)
 import qualified Mirza.SupplyChain.Types                  as ST
 
 import           Database.Beam                            as B
@@ -32,7 +32,7 @@ listContacts = runDb . listContactsQuery
 
 -- | Lists all the contacts associated with the given user
 listContactsQuery :: ST.User -> DB context err [ST.User]
-listContactsQuery  (User (ST.UserID uid) _ _) = do
+listContactsQuery  (User (ST.UserId uid) _ _) = do
   userList <- pg $ runSelectReturningList $ select $ do
     user <- all_ (SB._users SB.supplyChainDb)
     contact <- all_ (SB._contacts SB.supplyChainDb)
@@ -42,12 +42,12 @@ listContactsQuery  (User (ST.UserID uid) _ _) = do
   return $ userTableToModel <$> userList
 
 
-addContact :: SCSApp context err => ST.User -> ST.UserID -> AppM context err Bool
+addContact :: SCSApp context err => ST.User -> ST.UserId -> AppM context err Bool
 addContact user userId = runDb $ addContactQuery user userId
 
 
-addContactQuery :: ST.User -> ST.UserID -> DB context err Bool
-addContactQuery (User (ST.UserID uid1) _ _) (ST.UserID uid2) = do
+addContactQuery :: ST.User -> ST.UserId -> DB context err Bool
+addContactQuery (User (ST.UserId uid1) _ _) (ST.UserId uid2) = do
   pKey <- U.newUUID
   r <- pg $ runInsertReturningList (SB._contacts SB.supplyChainDb) $
                insertValues [SB.Contact pKey (SB.UserId uid1) (SB.UserId uid2)]
@@ -55,7 +55,7 @@ addContactQuery (User (ST.UserID uid1) _ _) (ST.UserID uid2) = do
 
 
 
-removeContact :: SCSApp context err => ST.User -> ST.UserID -> AppM context err Bool
+removeContact :: SCSApp context err => ST.User -> ST.UserId -> AppM context err Bool
 removeContact user userId = runDb $ removeContactQuery user userId
 
 -- | The current behaviour is, if the users were not contacts in the first
@@ -63,8 +63,8 @@ removeContact user userId = runDb $ removeContactQuery user userId
 -- otherwise, removes the user. Checks that the user has been removed,
 -- and returns (not. userExists)
 -- @todo Make ContactErrors = NotAContact | DoesntExist | ..
-removeContactQuery :: ST.User -> ST.UserID -> DB context err Bool
-removeContactQuery (User firstId@(ST.UserID uid1) _ _) secondId@(ST.UserID uid2) = do
+removeContactQuery :: ST.User -> ST.UserId -> DB context err Bool
+removeContactQuery (User firstId@(ST.UserId uid1) _ _) secondId@(ST.UserId uid2) = do
   contactExists <- isExistingContact firstId secondId
   if contactExists
     then do
@@ -95,8 +95,8 @@ userSearch _user _term = error "Storage module not implemented"
 
 -- | Checks if a pair of userIds are recorded as a contact.
 -- __Must be run in a transaction!__
-isExistingContact :: ST.UserID -> ST.UserID -> DB context err Bool
-isExistingContact (ST.UserID uid1) (ST.UserID uid2) = do
+isExistingContact :: ST.UserId -> ST.UserId -> DB context err Bool
+isExistingContact (ST.UserId uid1) (ST.UserId uid2) = do
   r <- pg $ runSelectReturningList $ select $ do
         contact <- all_ (SB._contacts SB.supplyChainDb)
         guard_ (SB.contact_user1_id contact  ==. (val_ . SB.UserId $ uid1) &&.

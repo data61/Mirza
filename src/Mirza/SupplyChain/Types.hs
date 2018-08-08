@@ -71,7 +71,7 @@ instance HasKatipContext SCSContext where
 -- *****************************************************************************
 
 data User = User {
-  userId        :: UserID,
+  userId        :: UserId,
   userFirstName :: Text,
   userLastName  :: Text
 } deriving (Generic, Eq, Show)
@@ -125,7 +125,7 @@ instance ToSchema EPCInfo
 -- *****************************************************************************
 -- TODO: The factory functions should probably be removed from here.
 
-newtype EventOwner  = EventOwner UserID deriving(Generic, Show, Eq, Read)
+newtype EventOwner  = EventOwner UserId deriving(Generic, Show, Eq, Read)
 
 data ObjectEvent = ObjectEvent {
   obj_foreign_event_id :: Maybe EventId,
@@ -220,7 +220,7 @@ data TransactionEvent = TransactionEvent {
   transaction_parent_label         :: Maybe ParentLabel,
   transaction_biz_transaction_list :: [BizTransaction],
   transaction_epc_list             :: [LabelEPC],
-  transaction_user_ids             :: [UserID],
+  transaction_user_ids             :: [UserId],
   transaction_when                 :: DWhen,
   transaction_why                  :: DWhy,
   transaction_where                :: DWhere
@@ -253,7 +253,7 @@ fromTransactEvent
     dwhen dwhy dwhere
 
 
-newtype SigningUser = SigningUser UserID deriving(Generic, Show, Eq, Read)
+newtype SigningUser = SigningUser UserId deriving(Generic, Show, Eq, Read)
 
 newtype EventHash = EventHash String
   deriving (Generic, Show, Read, Eq)
@@ -269,7 +269,7 @@ newtype Signature = Signature String
 $(deriveJSON defaultOptions ''Signature)
 instance ToSchema Signature
 
-data BlockchainPackage = BlockchainPackage EventHash (NonEmpty (Signature, UserID))
+data BlockchainPackage = BlockchainPackage EventHash (NonEmpty (Signature, UserId))
   deriving (Show, Read, Eq, Generic)
 $(deriveJSON defaultOptions ''BlockchainPackage)
 instance ToSchema BlockchainPackage
@@ -319,7 +319,7 @@ instance FromField Digest where
 
 data SignedEvent = SignedEvent {
   signed_eventId   :: EventId,
-  signed_keyId     :: KeyID,
+  signed_keyId     :: KeyId,
   signed_signature :: Signature,
   signed_digest    :: Digest
 } deriving (Generic)
@@ -329,7 +329,7 @@ instance ToSchema SignedEvent
 --  toParamSchema _ = binaryParamSchema
 
 data HashedEvent = HashedEvent {
-  hashed_eventID :: EventId,
+  hashed_eventId :: EventId,
   hashed_event   :: EventHash
 } deriving (Generic)
 $(deriveJSON defaultOptions ''HashedEvent)
@@ -354,13 +354,13 @@ data ServerError = ServerError (Maybe BS.ByteString) Text
 data ServiceError
   = InvalidSignature      String
   | BlockchainSendFailed  ServerError
-  | InvalidEventID        EventId
-  | InvalidKeyID          KeyID
-  | InvalidUserID         UserID
+  | InvalidEventId        EventId
+  | InvalidKeyId          KeyId
+  | InvalidUserId         UserId
   | InvalidRSAKeyInDB     Text -- when the key already existing in the DB is wrong
   | InvalidDigest         Digest
   | InsertionFail         ServerError Text
-  | EventPermissionDenied UserID EvId.EventId
+  | EventPermissionDenied UserId EvId.EventId
   | EmailExists           ServerError EmailAddress
   | EmailNotFound         EmailAddress
   | AuthFailed            EmailAddress

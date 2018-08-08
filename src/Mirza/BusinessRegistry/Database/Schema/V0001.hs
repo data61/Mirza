@@ -115,10 +115,10 @@ data UserT f = UserT
   , email_address :: C f Text }
   deriving Generic
 
-type UserID = PrimaryKey UserT Identity
+type UserId = PrimaryKey UserT Identity
 deriving instance Show (PrimaryKey UserT Identity)
-instance ToSchema UserID
-instance ToParamSchema UserID
+instance ToSchema UserId
+instance ToParamSchema UserId
 instance ToJSON (PrimaryKey UserT Identity) where
   toJSON (UserId uid) = toJSON uid
 instance FromJSON (PrimaryKey UserT Identity) where
