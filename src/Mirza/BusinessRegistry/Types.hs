@@ -31,8 +31,9 @@ import           Data.Swagger
 import           Data.Text                  (Text)
 
 import           GHC.Generics               (Generic)
-import           Servant                    (FromHttpApiData (..))
 
+import           Servant                    (FromHttpApiData (..))
+import           Servant.Client             (ClientM)
 
 
 -- *****************************************************************************
@@ -179,3 +180,8 @@ $(makeClassyPrisms ''KeyError)
 
 instance AsSqlError BusinessRegistryError where _SqlError = _DBErrorBRE
 instance AsKeyError BusinessRegistryError where _KeyError = _KeyErrorBRE
+
+runClientFunc :: (AsServantError err, HasClientEnv context)
+              => ClientM a
+              -> AppM context err a
+runClientFunc = error "aa"
