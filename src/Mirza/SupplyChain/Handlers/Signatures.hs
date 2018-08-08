@@ -9,10 +9,12 @@ module Mirza.SupplyChain.Handlers.Signatures
 
 import           Mirza.Common.Time
 import           Mirza.Common.Utils
+
+import qualified Mirza.BusinessRegistry.Types                 as BT
+
 import           Mirza.SupplyChain.Handlers.Common
 import           Mirza.SupplyChain.Handlers.EventRegistration (hasUserCreatedEvent,
                                                                insertUserEvent)
-
 import qualified Mirza.SupplyChain.QueryUtils                 as QU
 import qualified Mirza.SupplyChain.StorageBeam                as SB
 import           Mirza.SupplyChain.Types                      hiding
@@ -39,8 +41,10 @@ import           Control.Monad.Error.Hoist                    ((<!?>), (<%?>))
 import qualified Data.ByteString.Base64                       as BS64
 import qualified Data.ByteString.Char8                        as BSC
 import           Data.Char                                    (toLower)
-import           Data.Text                                    (pack)
+import           Data.Text                                    (unpack)
 import qualified Data.Text                                    as T
+
+import           Mirza.BusinessRegistry.Client.Servant        (getKey)
 
 -- | A function to tie a user to an event
 -- Populates the ``UserEvents`` table
@@ -86,22 +90,25 @@ addUserToEventQuery (EventOwner lUserId@(ST.UserId loggedInUserId))
    Lets do this after we have everything compiling.
 -}
 
-eventSign :: (AsServiceError err, SCSApp context err)
+eventSign :: (HasClientEnv context, AsServantError err, SCSApp context err)
           => ST.User
           -> SignedEvent
           -> AppM context err PrimaryKeyType
-eventSign _user (SignedEvent eventId keyId (Signature sigStr) digest') = runDb $ do
-  event <- getEventJSON eventId
-  rsaPublicKey <- getPublicKey keyId
+eventSign _user (SignedEvent eventId keyId (Signature sigStr) digest') = do
+  rsaPublicKey <- runClientFunc $ getKey keyId
+  let (BT.PEM_RSAPubKey keyStr) = rsaPublicKey
+  (pubKey :: RSAPubKey) <- liftIO
+      (toPublicKey <$> (readPublicKey . unpack $ keyStr))
+      <!?> review _InvalidRSAKeyInDB keyStr
   sigBS <- BS64.decode (BSC.pack sigStr) <%?> review _InvalidSignature
-  let (PEMString keyStr) = rsaPublicKey
-  (pubKey :: RSAPubKey) <- liftIO (toPublicKey <$> readPublicKey keyStr) <!?> review _InvalidRSAKeyInDB (pack keyStr)
-  let eventBS = QU.eventTxtToBS event
   digest <- liftIO (makeDigest digest') <!?> review _InvalidDigest digest'
-  verifyStatus <- liftIO $ verifyBS digest sigBS pubKey eventBS
-  if verifyStatus == VerifySuccess
-    then insertSignature eventId keyId (Signature sigStr) digest'
-    else throwing _InvalidSignature sigStr
+  runDb $ do
+    event <- getEventJSON eventId
+    let eventBS = QU.eventTxtToBS event
+    verifyStatus <- liftIO $ verifyBS digest sigBS pubKey eventBS
+    if verifyStatus == VerifySuccess
+      then insertSignature eventId keyId (Signature sigStr) digest'
+      else throwing _InvalidSignature sigStr
 
 -- TODO: Should this return Text or a JSON value?
 getEventJSON :: AsServiceError err => EvId.EventId -> DB context err T.Text
@@ -114,17 +121,6 @@ getEventJSON eventId = do
     [jsonEvent] -> return jsonEvent
     _           -> throwing _InvalidEventId eventId
 
--- TODO: ``getPublicKey`` should come from BR.Client
--- import the client in the file
-getPublicKey :: AsServiceError err =>  KeyId -> DB context err PEM_RSAPubKey
-getPublicKey (KeyId keyId) = do
-  r <- pg $ runSelectReturningList $ select $ do
-    allKeys <- all_ (SB._keys SB.supplyChainDb)
-    guard_ (SB.key_id allKeys ==. val_ keyId)
-    pure (SB.key_pem_str allKeys)
-  case r of
-    [k] -> return $ PEMString $ T.unpack k
-    _   -> throwing _InvalidKeyId . KeyId $ keyId
 
 makeDigest :: Digest -> IO (Maybe EVPDigest.Digest)
 makeDigest = EVPDigest.getDigestByName . map toLower . show
