@@ -25,6 +25,7 @@ import           Database.PostgreSQL.Simple (Connection, SqlError)
 import           Crypto.Scrypt              (ScryptParams)
 
 import           Servant                    (FromHttpApiData, ToHttpApiData)
+import           Servant.Client             (ClientEnv (..), ServantError (..))
 
 import           Control.Lens
 
@@ -52,13 +53,14 @@ data SCSContext = SCSContext
   , _scsKatipLogEnv      :: K.LogEnv
   , _scsKatipLogContexts :: K.LogContexts
   , _scsKatipNamespace   :: K.Namespace
-  -- , port    :: Word16
+  , _scsClientEnv        :: ClientEnv
   }
 $(makeLenses ''SCSContext)
 
 instance HasEnvType SCSContext where envType = scsEnvType
 instance HasConnPool SCSContext where connPool = scsDbConnPool
 instance HasScryptParams SCSContext where scryptParams = scsScryptPs
+instance HasClientEnv SCSContext where clientEnv = scsClientEnv
 instance HasKatipLogEnv SCSContext where katipLogEnv = scsKatipLogEnv
 instance HasKatipContext SCSContext where
   katipContexts = scsKatipLogContexts
@@ -262,7 +264,6 @@ instance ToSchema EventHash
 -- A signature is an EventHash that's been
 -- signed by one of the parties involved in the
 -- event.
-
 newtype Signature = Signature String
   deriving (Generic, Show, Read, Eq)
 $(deriveJSON defaultOptions ''Signature)
@@ -273,48 +274,11 @@ data BlockchainPackage = BlockchainPackage EventHash (NonEmpty (Signature, UserI
 $(deriveJSON defaultOptions ''BlockchainPackage)
 instance ToSchema BlockchainPackage
 
--- instance Sql.FromRow Signature where
---   fromRow = Signature <$> field
-
--- instance Sql.ToRow Signature where
---   toRow (Signature s) = toRow $ Only s
-
-newtype PEM_RSAPubKey = PEMString String
-  deriving (Show, Read, Eq, Generic)
-$(deriveJSON defaultOptions ''PEM_RSAPubKey)
-instance ToSchema PEM_RSAPubKey
--- These are orphaned instances
---
---instance Sql.FromRow PEM_RSAPubKey where
---  fromRow = PEM_RSAPubKey <$> field <$> field
-
---instance ToParamSchema PublicKey where
---  toParamSchema _ = binaryParamSchema
-
---instance ToSchema PublicKey where
---  declareNamedSchema _ = pure $ NamedSchema (Just "PublicKey") $ binarySchema
-
---orphaned instances, I know
 
 data Digest = SHA256 | SHA384 | SHA512
   deriving (Show, Generic, Eq, Read)
 $(deriveJSON defaultOptions ''Digest)
 instance ToSchema Digest
-
--- XXX - move to the right place
-{-
-instance HasSqlValueSyntax be String => HasSqlValueSyntax be Digest where
-  sqlValueSyntax = autoSqlValueSyntax
-instance (IsSql92ColumnSchemaSyntax be) => HasDefaultSqlDataTypeConstraints be Digest
-
-instance FromField Digest where
-  fromField f bs = do
-    mDigest <- readMaybe <$> fromField f bs
-    case mDigest of
-      Nothing -> returnError ConversionFailed f "Could not 'read' value for 'Digest"
-      Just x -> pure x
--}
-
 
 data SignedEvent = SignedEvent {
   signed_eventId   :: EventId,
@@ -367,6 +331,7 @@ data ServiceError
   | ParseError            EPC.ParseFailure
   | BackendErr            Text -- fallback
   | DatabaseError         SqlError
+  | ServantErr            ServantError
   deriving (Show, Eq, Generic)
 $(makeClassyPrisms ''ServiceError)
 
@@ -378,3 +343,11 @@ instance AsSqlError ServiceError where
 
 instance AsSqlError AppError where
   _SqlError = _DatabaseError
+
+instance AsServantError ServantError where
+    _ServantError = id
+
+instance AsServantError ServiceError where
+    _ServantError = _ServantErr
+
+instance AsServantError AppError where _ServantError = _ServantErr

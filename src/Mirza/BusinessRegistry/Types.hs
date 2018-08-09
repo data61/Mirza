@@ -1,5 +1,6 @@
 {-# LANGUAGE DeriveGeneric              #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE StandaloneDeriving         #-}
 {-# LANGUAGE TemplateHaskell            #-}
 
@@ -14,7 +15,6 @@ import           Mirza.Common.Types         as CT
 import           Mirza.Common.Utils
 
 import           Data.GS1.EPC               as EPC
-
 
 import           Data.Pool                  as Pool
 import           Database.PostgreSQL.Simple (Connection, SqlError)
@@ -31,8 +31,8 @@ import           Data.Swagger
 import           Data.Text                  (Text)
 
 import           GHC.Generics               (Generic)
-import           Servant                    (FromHttpApiData (..))
 
+import           Servant                    (FromHttpApiData (..))
 
 
 -- *****************************************************************************
@@ -46,7 +46,6 @@ data BRContext = BRContext
   , _brKatipLogEnv      :: K.LogEnv
   , _brKatipLogContexts :: K.LogContexts
   , _brKatipNamespace   :: K.Namespace
-  -- , port    :: Word16
   }
 $(makeLenses ''BRContext)
 

@@ -18,7 +18,7 @@ module Mirza.SupplyChain.StorageBeam where
 import qualified Data.GS1.EPC                as EPC
 import qualified Data.GS1.Event              as Ev
 import qualified Mirza.Common.GS1BeamOrphans as MU
-import           Mirza.Common.Types          (PrimaryKeyType)
+import           Mirza.Common.Types          (KeyId (..), PrimaryKeyType)
 
 import           Control.Lens
 import           Data.Aeson                  (FromJSON, ToJSON)
@@ -60,34 +60,6 @@ instance Table UserT where
     deriving Generic
   primaryKey = UserId . user_id
 deriving instance Eq (PrimaryKey UserT Identity)
-
--- The types are not ``UTCTime`` because beam does not support UTCTime
--- See this discussion for details:
--- https://groups.google.com/forum/#!topic/beam-discussion/DcC0yik7Pxc
--- However, all times are converted to UTCTime using methods from typeclasses
--- defined in Mirza.Common.Time
-data KeyT f = Key
-  { key_id              :: C f PrimaryKeyType
-  , key_user_id         :: PrimaryKey UserT f
-  , key_pem_str         :: C f Text
-  , key_creation_time   :: C f LocalTime -- Stored as UTC Time
-  , key_revocation_time :: C f (Maybe LocalTime) -- Stored as UTC Time
-  , key_expiration_time :: C f (Maybe LocalTime) -- Stored as UTC Time
-  }
-  deriving Generic
-type Key = KeyT Identity
-type KeyId = PrimaryKey KeyT Identity
-
-deriving instance Show Key
-
-instance Beamable KeyT
-instance Beamable (PrimaryKey KeyT)
-
-instance Table KeyT where
-  data PrimaryKey KeyT f = KeyId (C f PrimaryKeyType)
-    deriving Generic
-  primaryKey = KeyId . key_id
-deriving instance Eq (PrimaryKey KeyT Identity)
 
 -- CBV-Standard-1-2-r-2016-09-29.pdf Page 11
 
@@ -437,7 +409,7 @@ instance Table UserEventT where
 data SignatureT f = Signature
   { signature_id        :: C f PrimaryKeyType
   , signature_event_id  :: PrimaryKey EventT f
-  , signature_key_id    :: PrimaryKey KeyT f
+  , signature_key_id    :: C f KeyId
   , signature_signature :: C f ByteString
   , signature_digest    :: C f ByteString
   , signature_timestamp :: C f LocalTime -- Stored as UTC Time
@@ -467,7 +439,7 @@ data HashesT f = Hashes
   , hashes_hash              :: C f ByteString
   , hashes_is_signed         :: C f Bool
   , hashes_signed_by_user_id :: PrimaryKey UserT f
-  , hashes_key_id            :: PrimaryKey KeyT f
+  , hashes_key_id            :: C f KeyId
   }
   deriving Generic
 type Hashes = HashesT Identity
@@ -512,7 +484,6 @@ instance Table BlockChainT where
 
 data SupplyChainDb f = SupplyChainDb
   { _users            :: f (TableEntity UserT)
-  , _keys             :: f (TableEntity KeyT)
   , _businesses       :: f (TableEntity BusinessT)
   , _contacts         :: f (TableEntity ContactT)
   , _labels           :: f (TableEntity LabelT)
@@ -547,12 +518,6 @@ supplyChainDb = defaultDbSettings
         tableModification
         {
           user_biz_id = BizId (fieldNamed "user_biz_id")
-        }
-    , _keys =
-        modifyTable (const "keys") $
-        tableModification
-        {
-          key_user_id = UserId (fieldNamed "key_user_id")
         }
     , _contacts =
         modifyTable (const "contacts") $
@@ -636,14 +601,12 @@ supplyChainDb = defaultDbSettings
         modifyTable (const "signature") $
         tableModification {
           signature_event_id = EventId (fieldNamed "signature_event_id")
-        , signature_key_id = KeyId (fieldNamed "signature_key_id")
         }
     , _hashes =
         modifyTable (const "hashes") $
         tableModification {
           hashes_event_id = EventId (fieldNamed "hashes_event_id")
         , hashes_signed_by_user_id = UserId (fieldNamed "hashes_signed_by_user_id")
-        , hashes_key_id = KeyId (fieldNamed "hashes_key_id")
         }
     , _blockchain =
         modifyTable (const "blockchain") $

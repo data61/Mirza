@@ -23,8 +23,8 @@ getKey       :: KeyId -> ClientM PEM_RSAPubKey
 getKeyInfo   :: KeyId -> ClientM KeyInfoResponse
 businessList :: ClientM [BusinessResponse]
 
-addPublicKey        :: BasicAuthData -> PEM_RSAPubKey -> Maybe ExpirationTime -> ClientM KeyId
-revokePublicKey     :: BasicAuthData -> KeyId -> ClientM RevocationTime
+addPublicKey    :: BasicAuthData -> PEM_RSAPubKey -> Maybe ExpirationTime -> ClientM KeyId
+revokePublicKey :: BasicAuthData -> KeyId -> ClientM RevocationTime
 
 _api     :: Client ClientM ServerAPI
 _privAPI :: Client ClientM ProtectedAPI
