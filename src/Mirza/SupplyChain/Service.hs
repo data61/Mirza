@@ -45,15 +45,18 @@ import           Data.Swagger
 
 
 
-appHandlers :: (SCSApp context err, HasScryptParams context) => ServerT ServerAPI (AppM context err)
+appHandlers :: (HasClientEnv context, AsServantError err, SCSApp context err, HasScryptParams context)
+            => ServerT ServerAPI (AppM context err)
 appHandlers = publicServer :<|> privateServer
 
-publicServer :: (SCSApp context err, HasScryptParams context) => ServerT PublicAPI (AppM context err)
+publicServer :: (SCSApp context err, HasScryptParams context)
+             => ServerT PublicAPI (AppM context err)
 publicServer =
   -- Users
        newUser
 
-privateServer :: (SCSApp context err) => ServerT ProtectedAPI (AppM context err)
+privateServer :: (AsServantError err, HasClientEnv context, SCSApp context err)
+              => ServerT ProtectedAPI (AppM context err)
 privateServer =
 -- Contacts
        listContacts

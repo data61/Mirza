@@ -65,6 +65,7 @@ library
                     , bytestring
                     , hoist-error >= 0.2
                     , HsOpenSSL
+                    , http-client
                     , insert-ordered-containers
                     , katip >= 0.5.4
                     , lens
