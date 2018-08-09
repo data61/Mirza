@@ -36,7 +36,7 @@ timeStampIO :: MonadIO m => m LocalTime
 timeStampIO = liftIO $ (utcToLocalTime utc) <$> getCurrentTime
 
 rsaPubKey :: IO BT.PEM_RSAPubKey
-rsaPubKey = BT.PEM_RSAPubKey . T.pack <$> Prelude.readFile "./test/Mirza/BusinessRegistry/Tests/testKeys/goodKeys/test.pub"
+rsaPubKey = BT.PEM_RSAPubKey . T.pack <$> Prelude.readFile "./test/Mirza/Common/testKeys/goodKeys/test.pub"
 
 testAppM :: context
          -> AppM context BusinessRegistryError a
