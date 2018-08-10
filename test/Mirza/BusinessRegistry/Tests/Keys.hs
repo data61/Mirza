@@ -64,7 +64,7 @@ testKeyQueries = do
         pure (storageKey, keyStr, keyId, uid, tEnd, insertedKey)
       case res of
         (Nothing, _, _, _, _, _) -> fail "Received Nothing for key"
-        (Just key, keyStr, (BT.KeyId keyId), (BT.UserId uid), tEnd, insertedKey) -> do
+        (Just key, keyStr, (BRKeyId keyId), (BT.UserId uid), tEnd, insertedKey) -> do
           key `shouldSatisfy`
             (\k ->
               (BSchema.pem_str k) == keyStr &&

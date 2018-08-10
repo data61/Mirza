@@ -19,7 +19,7 @@ module Mirza.BusinessRegistry.API
 
 import           Mirza.BusinessRegistry.Types as ST
 import           Mirza.Common.Time            (ExpirationTime, RevocationTime)
-import           Mirza.Common.Types           (KeyId)
+import           Mirza.Common.Types           (BRKeyId)
 
 import           Servant
 import           Servant.API.Flatten
@@ -43,12 +43,12 @@ serverAPI = Proxy
 
 type PublicAPI =
   -- Business
-         "key"      :> "get"                  :> Capture "keyId" KeyId                                          :> Get '[JSON] PEM_RSAPubKey
-    :<|> "key"      :> "getInfo"              :> Capture "keyId" KeyId                                          :> Get '[JSON] KeyInfoResponse
+         "key"      :> "get"                  :> Capture "keyId" BRKeyId                                          :> Get '[JSON] PEM_RSAPubKey
+    :<|> "key"      :> "getInfo"              :> Capture "keyId" BRKeyId                                          :> Get '[JSON] KeyInfoResponse
     :<|> "business" :> "list"                                                                                   :> Get '[JSON] [BusinessResponse]
 
 
 type PrivateAPI =
 -- Business
-       "key"      :> "add" :> ReqBody '[JSON] PEM_RSAPubKey :> QueryParam "expirationTime" ExpirationTime :> Post '[JSON] KeyId
-  :<|> "key"      :> "revoke"              :> Capture "keyId" KeyId               :> Post '[JSON] RevocationTime
+       "key"      :> "add" :> ReqBody '[JSON] PEM_RSAPubKey :> QueryParam "expirationTime" ExpirationTime :> Post '[JSON] BRKeyId
+  :<|> "key"      :> "revoke"              :> Capture "keyId" BRKeyId               :> Post '[JSON] RevocationTime

@@ -18,7 +18,7 @@ module Mirza.SupplyChain.StorageBeam where
 import qualified Data.GS1.EPC                as EPC
 import qualified Data.GS1.Event              as Ev
 import qualified Mirza.Common.GS1BeamOrphans as MU
-import           Mirza.Common.Types          (KeyId (..), PrimaryKeyType)
+import           Mirza.Common.Types          (BRKeyId (..), PrimaryKeyType)
 
 import           Control.Lens
 import           Data.Aeson                  (FromJSON, ToJSON)
@@ -409,7 +409,7 @@ instance Table UserEventT where
 data SignatureT f = Signature
   { signature_id        :: C f PrimaryKeyType
   , signature_event_id  :: PrimaryKey EventT f
-  , signature_key_id    :: C f KeyId
+  , signature_key_id    :: C f BRKeyId
   , signature_signature :: C f ByteString
   , signature_digest    :: C f ByteString
   , signature_timestamp :: C f LocalTime -- Stored as UTC Time
@@ -439,7 +439,7 @@ data HashesT f = Hashes
   , hashes_hash              :: C f ByteString
   , hashes_is_signed         :: C f Bool
   , hashes_signed_by_user_id :: PrimaryKey UserT f
-  , hashes_key_id            :: C f KeyId
+  , hashes_key_id            :: C f BRKeyId
   }
   deriving Generic
 type Hashes = HashesT Identity

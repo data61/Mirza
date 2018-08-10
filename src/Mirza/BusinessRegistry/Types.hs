@@ -134,7 +134,7 @@ instance FromHttpApiData PEM_RSAPubKey where
 
 
 data KeyInfoResponse = KeyInfoResponse
-  { keyInfoId             :: CT.KeyId
+  { keyInfoId             :: CT.BRKeyId
   , keyInfoUserId         :: UserId  -- TODO: There should be a forien key for Business in here....not sure that user is relevant...
   , keyInfoState          :: KeyState
   , keyInfoCreationTime   :: CreationTime
@@ -161,8 +161,8 @@ data BusinessRegistryError
 data KeyError
   = InvalidRSAKey PEM_RSAPubKey
   | InvalidRSAKeySize Expected Received
-  | PublicKeyInsertionError [CT.KeyId]
-  | KeyNotFound CT.KeyId
+  | PublicKeyInsertionError [CT.BRKeyId]
+  | KeyNotFound CT.BRKeyId
   | UnauthorisedKeyAccess
   | KeyAlreadyRevoked
   deriving (Show, Eq)

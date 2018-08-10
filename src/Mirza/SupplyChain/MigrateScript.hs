@@ -176,7 +176,7 @@ migrationStorage =
      Signature
           (field "signature_id" pkSerialType)
           (EventId (field "signature_event_id" pkSerialType notNull))
-          (field "signature_key_id" keyId notNull)
+          (field "signature_key_id" brKeyIdType notNull)
           (field "signature_signature" bytea notNull)
           (field "signature_digest" bytea notNull)
           (field "signature_timestamp" timestamptz notNull)
@@ -189,7 +189,7 @@ migrationStorage =
           (field "hashes_hash" bytea notNull)
           (field "hashes_is_signed" boolean notNull)
           (UserId (field "hashes_signed_by_user_id" pkSerialType notNull))
-          (field "hashes_key_id" keyId notNull)
+          (field "hashes_key_id" brKeyIdType notNull)
     )
     <*> createTable "blockchain"
     (

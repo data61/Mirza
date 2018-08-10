@@ -5,11 +5,13 @@
 {-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE StandaloneDeriving         #-}
 {-# LANGUAGE TemplateHaskell            #-}
+{-# LANGUAGE TypeApplications           #-}
+{-# LANGUAGE UndecidableInstances       #-}
 
 
 module Mirza.Common.Types
   ( EmailAddress(..) , Password(..)  , UserId(..)
-  , KeyId(..)
+  , BRKeyId(..)
   , EnvType(..)
   , AppM(..)
   , runAppM
@@ -33,19 +35,24 @@ module Mirza.Common.Types
   , MonadIO
   , liftIO
   , PrimaryKeyType
-  , keyId
+  , brKeyIdType
   , runClientFunc
   ) where
 
 import qualified Database.Beam                        as B
+import           Database.Beam.Backend.SQL            (FromBackendRow,
+                                                       HasSqlValueSyntax)
+import qualified Database.Beam.Backend.SQL            as BSQL
 import           Database.Beam.Migrate.SQL            (DataType (..))
-import           Database.Beam.Postgres               (Pg, Postgres)
+import           Database.Beam.Postgres               (Pg)
 import           Database.Beam.Postgres.Syntax        (PgDataTypeSyntax,
                                                        pgUuidType)
 import           Database.PostgreSQL.Simple           (Connection, SqlError)
 import qualified Database.PostgreSQL.Simple           as DB
 import           Database.PostgreSQL.Simple.FromField (FromField, fromField)
 import           Database.PostgreSQL.Simple.ToField   (ToField, toField)
+
+import           Data.Proxy                           (Proxy (..))
 
 import qualified Control.Exception                    as Exc
 import qualified Control.Exception                    as E
@@ -117,22 +124,30 @@ deriving instance FromHttpApiData EmailAddress
 deriving instance ToHttpApiData EmailAddress
 
 
-newtype KeyId = KeyId {getKeyId :: PrimaryKeyType}
+newtype BRKeyId = BRKeyId {getBRKeyId :: UUID}
   deriving (Show, Eq, Generic, Read, FromJSON, ToJSON)
-instance ToSchema KeyId
-instance ToParamSchema KeyId
-instance FromHttpApiData KeyId where
-  parseUrlPiece t = fmap KeyId (parseUrlPiece t)
-deriving instance ToHttpApiData KeyId
+instance ToSchema BRKeyId
+instance ToParamSchema BRKeyId
+instance FromHttpApiData BRKeyId where
+  parseUrlPiece t = fmap BRKeyId (parseUrlPiece t)
+deriving instance ToHttpApiData BRKeyId
 
-instance FromField KeyId where
-  fromField field mbs = KeyId <$> fromField field mbs
+instance FromField BRKeyId where
+  fromField field mbs = BRKeyId <$> fromField field mbs
 
-instance ToField KeyId where
-  toField = toField . getKeyId
+instance ToField BRKeyId where
+  toField = toField . getBRKeyId
 
-keyId :: DataType PgDataTypeSyntax KeyId
-keyId = DataType pgUuidType
+instance HasSqlValueSyntax be UUID => HasSqlValueSyntax be BRKeyId where
+    sqlValueSyntax (BRKeyId uuid) = BSQL.sqlValueSyntax uuid
+
+instance (BSQL.BeamBackend be, FromBackendRow be UUID)
+        => FromBackendRow be BRKeyId where
+  fromBackendRow = BRKeyId <$> BSQL.fromBackendRow
+  valuesNeeded proxyBE _proxyKID = BSQL.valuesNeeded proxyBE (Proxy :: Proxy UUID)
+
+brKeyIdType :: DataType PgDataTypeSyntax BRKeyId
+brKeyIdType = DataType pgUuidType
 
 
 data EnvType = Prod | Dev
