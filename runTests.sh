@@ -1,3 +1,3 @@
 #! /usr/bin/env sh
 
-stack test --fast --ta "$@" -j1
+stack test --coverage --fast --ta "$@" -j1
