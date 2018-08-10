@@ -3,6 +3,7 @@
 module Mirza.SupplyChain.MigrateScript (migrationStorage) where
 
 import           Mirza.Common.GS1BeamOrphans
+import           Mirza.Common.Types               hiding (UserId)
 import           Mirza.SupplyChain.StorageBeam
 
 import           Data.UUID                        (UUID)
@@ -35,16 +36,6 @@ migrationStorage =
           (field "user_phone_number" (varchar (Just maxLen)) notNull)
           (field "user_password_hash" binaryLargeObject notNull)
           (field "user_email_address" (varchar (Just maxLen)) unique)
-    )
-    <*> createTable "keys"
-    (
-      Key
-          (field "key_id" pkSerialType)
-          (UserId (field "key_user_id" pkSerialType))
-          (field "key_pem_str" text)
-          (field "key_creation_time" timestamptz)
-          (field "key_revocation_time" (maybeType timestamptz))
-          (field "key_expiration_time" (maybeType timestamptz))
     )
     <*> createTable "businesses"
     (
@@ -185,7 +176,7 @@ migrationStorage =
      Signature
           (field "signature_id" pkSerialType)
           (EventId (field "signature_event_id" pkSerialType notNull))
-          (KeyId (field "signature_key_id" pkSerialType notNull))
+          (field "signature_key_id" brKeyIdType notNull)
           (field "signature_signature" bytea notNull)
           (field "signature_digest" bytea notNull)
           (field "signature_timestamp" timestamptz notNull)
@@ -198,7 +189,7 @@ migrationStorage =
           (field "hashes_hash" bytea notNull)
           (field "hashes_is_signed" boolean notNull)
           (UserId (field "hashes_signed_by_user_id" pkSerialType notNull))
-          (KeyId (field "hashes_key_id" pkSerialType notNull))
+          (field "hashes_key_id" brKeyIdType notNull)
     )
     <*> createTable "blockchain"
     (

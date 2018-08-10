@@ -8,6 +8,7 @@ module Mirza.SupplyChain.Handlers.Signatures
   ) where
 
 import           Mirza.Common.Time
+import           Mirza.Common.Types                           (BRKeyId)
 import           Mirza.Common.Utils
 
 import qualified Mirza.BusinessRegistry.Types                 as BT
@@ -127,7 +128,7 @@ makeDigest = EVPDigest.getDigestByName . map toLower . show
 
 
 insertSignature :: (AsServiceError err) => EvId.EventId
-                -> KeyId
+                -> BRKeyId
                 -> Signature
                 -> Digest
                 -> DB environmentUnused err PrimaryKeyType
@@ -138,7 +139,7 @@ insertSignature eId kId (Signature sig) digest = do
   r <- pg $ runInsertReturningList (SB._signatures SB.supplyChainDb) $
         insertValues
         [(SB.Signature sigId) (SB.EventId $ EvId.unEventId eId)
-         (SB.KeyId $ getKeyId kId) (BSC.pack sig)
+         (BRKeyId $ getBRKeyId kId) (BSC.pack sig)
           (BSC.pack $ show digest) (toDbTimestamp timestamp)]
   case r of
     [rowId] -> return ( SB.signature_id rowId)

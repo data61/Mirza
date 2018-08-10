@@ -5,11 +5,13 @@
 {-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE StandaloneDeriving         #-}
 {-# LANGUAGE TemplateHaskell            #-}
+{-# LANGUAGE TypeApplications           #-}
+{-# LANGUAGE UndecidableInstances       #-}
 
 
 module Mirza.Common.Types
   ( EmailAddress(..) , Password(..)  , UserId(..)
-  , KeyId(..)
+  , BRKeyId(..)
   , EnvType(..)
   , AppM(..)
   , runAppM
@@ -33,29 +35,41 @@ module Mirza.Common.Types
   , MonadIO
   , liftIO
   , PrimaryKeyType
+  , brKeyIdType
   , runClientFunc
   ) where
 
-import qualified Database.Beam              as B
-import           Database.Beam.Postgres     (Pg)
-import           Database.PostgreSQL.Simple (Connection, SqlError)
-import qualified Database.PostgreSQL.Simple as DB
+import qualified Database.Beam                        as B
+import           Database.Beam.Backend.SQL            (FromBackendRow,
+                                                       HasSqlValueSyntax)
+import qualified Database.Beam.Backend.SQL            as BSQL
+import           Database.Beam.Migrate.SQL            (DataType (..))
+import           Database.Beam.Postgres               (Pg)
+import           Database.Beam.Postgres.Syntax        (PgDataTypeSyntax,
+                                                       pgUuidType)
+import           Database.PostgreSQL.Simple           (Connection, SqlError)
+import qualified Database.PostgreSQL.Simple           as DB
+import           Database.PostgreSQL.Simple.FromField (FromField, fromField)
+import           Database.PostgreSQL.Simple.ToField   (ToField, toField)
 
-import qualified Control.Exception          as Exc
-import qualified Control.Exception          as E
-import           Control.Monad.Except       (ExceptT (..), MonadError,
-                                             runExceptT, throwError)
-import           Control.Monad.IO.Class     (MonadIO, liftIO)
-import           Control.Monad.Reader       (MonadReader, ReaderT, ask, asks,
-                                             local, runReaderT)
-import           Control.Monad.Trans        (lift)
+import           Data.Proxy                           (Proxy (..))
 
-import           Data.Pool                  as Pool
+import qualified Control.Exception                    as Exc
+import qualified Control.Exception                    as E
+import           Control.Monad.Except                 (ExceptT (..), MonadError,
+                                                       runExceptT, throwError)
+import           Control.Monad.IO.Class               (MonadIO, liftIO)
+import           Control.Monad.Reader                 (MonadReader, ReaderT,
+                                                       ask, asks, local,
+                                                       runReaderT)
+import           Control.Monad.Trans                  (lift)
 
-import           Crypto.Scrypt              (ScryptParams)
+import           Data.Pool                            as Pool
 
-import qualified Data.ByteString            as BS
-import           Data.Text                  (Text)
+import           Crypto.Scrypt                        (ScryptParams)
+
+import qualified Data.ByteString                      as BS
+import           Data.Text                            (Text)
 
 import           Data.Aeson
 
@@ -64,17 +78,18 @@ import           Control.Monad.Error.Lens
 
 import           Data.Swagger
 
-import           GHC.Generics               (Generic)
+import           GHC.Generics                         (Generic)
 
-import           Katip                      as K
-import           Katip.Monadic              (askLoggerIO)
+import           Katip                                as K
+import           Katip.Monadic                        (askLoggerIO)
 
-import           Servant                    (FromHttpApiData (..),
-                                             ToHttpApiData (..))
-import           Servant.Client             (ClientEnv (..), ClientM,
-                                             ServantError (..), runClientM)
+import           Servant                              (FromHttpApiData (..),
+                                                       ToHttpApiData (..))
+import           Servant.Client                       (ClientEnv (..), ClientM,
+                                                       ServantError (..),
+                                                       runClientM)
 
-import           Data.UUID                  (UUID)
+import           Data.UUID                            (UUID)
 
 type PrimaryKeyType = UUID
 
@@ -109,14 +124,30 @@ deriving instance FromHttpApiData EmailAddress
 deriving instance ToHttpApiData EmailAddress
 
 
-newtype KeyId = KeyId {getKeyId :: PrimaryKeyType}
+newtype BRKeyId = BRKeyId {getBRKeyId :: UUID}
   deriving (Show, Eq, Generic, Read, FromJSON, ToJSON)
-instance ToSchema KeyId
-instance ToParamSchema KeyId
-instance FromHttpApiData KeyId where
-  parseUrlPiece t = fmap KeyId (parseUrlPiece t)
-deriving instance ToHttpApiData KeyId
+instance ToSchema BRKeyId
+instance ToParamSchema BRKeyId
+instance FromHttpApiData BRKeyId where
+  parseUrlPiece t = fmap BRKeyId (parseUrlPiece t)
+deriving instance ToHttpApiData BRKeyId
 
+instance FromField BRKeyId where
+  fromField field mbs = BRKeyId <$> fromField field mbs
+
+instance ToField BRKeyId where
+  toField = toField . getBRKeyId
+
+instance HasSqlValueSyntax be UUID => HasSqlValueSyntax be BRKeyId where
+    sqlValueSyntax (BRKeyId uuid) = BSQL.sqlValueSyntax uuid
+
+instance (BSQL.BeamBackend be, FromBackendRow be UUID)
+        => FromBackendRow be BRKeyId where
+  fromBackendRow = BRKeyId <$> BSQL.fromBackendRow
+  valuesNeeded proxyBE _proxyKID = BSQL.valuesNeeded proxyBE (Proxy :: Proxy UUID)
+
+brKeyIdType :: DataType PgDataTypeSyntax BRKeyId
+brKeyIdType = DataType pgUuidType
 
 
 data EnvType = Prod | Dev

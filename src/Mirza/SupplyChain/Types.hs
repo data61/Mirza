@@ -282,7 +282,7 @@ instance ToSchema Digest
 
 data SignedEvent = SignedEvent {
   signed_eventId   :: EventId,
-  signed_keyId     :: KeyId,
+  signed_keyId     :: BRKeyId,
   signed_signature :: Signature,
   signed_digest    :: Digest
 } deriving (Generic)
@@ -318,7 +318,7 @@ data ServiceError
   = InvalidSignature      String
   | BlockchainSendFailed  ServerError
   | InvalidEventId        EventId
-  | InvalidKeyId          KeyId
+  | InvalidKeyId          BRKeyId
   | InvalidUserId         UserId
   | InvalidRSAKeyInDB     Text -- when the key already existing in the DB is wrong
   | InvalidDigest         Digest
