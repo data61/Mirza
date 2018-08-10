@@ -2,81 +2,38 @@
 
 -- This module runs database migrations for our application.
 
-module Mirza.SupplyChain.Database.Migrate
-  ( interactiveMigrationConfirm
-  , runMigrationWithConfirmation
-  , Confirmation(..)
-  ) where
+module Mirza.SupplyChain.Database.Migrate where
 
-import           Mirza.Common.Types
-import           Mirza.SupplyChain.Database.Schema
+import           Mirza.SupplyChain.Database.Schema.V0001 (migration)
 
-import qualified Data.ByteString.Lazy.Char8        as BSL
+import qualified Control.Exception                       as E
+import           Control.Monad                           (void)
+import           Data.ByteString.Char8                   (ByteString)
+import           Database.Beam                           (withDatabase,
+                                                          withDatabaseDebug)
+import           Database.Beam.Backend                   (runNoReturn)
+import           Database.Beam.Migrate.Types             (executeMigration)
+import           Database.Beam.Postgres                  (Connection, Pg)
+import           Database.PostgreSQL.Simple              (SqlError,
+                                                          connectPostgreSQL)
 
-import           Control.Monad.IO.Class            (liftIO)
+-- | Whether or not to run silently
+dbMigrationFunc :: Bool -> Connection -> Pg a -> IO a
+dbMigrationFunc False = withDatabaseDebug putStrLn
+dbMigrationFunc _     = withDatabase
 
-import           Control.Lens                      (view, _1)
+createSchema :: Bool -> Connection -> IO ()
+createSchema runSilently conn =
+  void $ dbMigrationFunc runSilently conn $ executeMigration runNoReturn (migration ())
 
-import           Database.Beam.Migrate.Simple      (runSimpleMigration,
-                                                    simpleMigration)
-import           Database.Beam.Postgres            (Pg, PgCommandSyntax,
-                                                    Postgres)
-import           Database.Beam.Postgres.Migrate    (migrationBackend)
-import           Database.Beam.Postgres.Syntax     (fromPgCommand,
-                                                    pgRenderSyntaxScript)
+tryCreateSchema :: Bool -> Connection -> IO ()
+tryCreateSchema runSilently conn = E.catch (createSchema runSilently conn) handleErr
+  where
+    handleErr :: SqlError -> IO ()
+    handleErr  str = putStrLn $ "XXXXXX " ++ show str ++ " XXXXXX"
 
-
-
---------------------------------------------------------------------------------
--- Datatypes
---------------------------------------------------------------------------------
-
--- | Datatype to encode whether the migration should be completed or aborted.
-data Confirmation
-  = Abort
-  | Execute
-
-
-
--- Note: Migrations are currently broken, this function can only be used to initalise the database from scratch.
--- TODO: Use autoMigrate if possible and confirm with the user whether to do dangerous migrations explicitly
--- TODO: Move this into Mirza.Common.Beam
-runMigrationWithConfirmation ::
-  (HasKatipLogEnv context
-  , HasKatipContext context
-  , HasConnPool context
-  , HasEnvType context
-  , AsSqlError err)
-  => context -> ([PgCommandSyntax] -> IO Confirmation) -> IO (Either err ())
-runMigrationWithConfirmation context confirmationCheck =
-  runAppM context $ runDb $ do
-    conn <- view _1
-    liftIO $ do
-      mcommands <- simpleMigration migrationBackend conn checkedSupplyChainDb
-      case mcommands of
-        Nothing -> fail "lol" -- TODO: Actually implment error handling here.
-        Just [] -> putStrLn "Already up to date"
-        Just commands -> do
-          result <- confirmationCheck commands
-          case result of
-            Abort ->
-              pure ()
-            Execute ->
-              runSimpleMigration
-                      @PgCommandSyntax
-                      @Postgres
-                      @_
-                      @Pg
-                      conn commands
-
-
-
-interactiveMigrationConfirm :: [PgCommandSyntax] -> IO Confirmation
-interactiveMigrationConfirm commands = do
-  mapM_ (BSL.putStrLn . pgRenderSyntaxScript . fromPgCommand) commands
-  putStrLn "type YES to confirm applying this migration:"
-  confirm <- getLine
-  case confirm of
-    "YES" -> pure Execute
-    _     -> pure Abort
-
+migrate :: ByteString -> IO ()
+migrate connStr = do
+  conn <- connectPostgreSQL connStr
+  tryCreateSchema False conn
+  print $ "Successfully created table. ConnectionStr was " ++ show connStr
