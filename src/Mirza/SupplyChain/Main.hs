@@ -54,10 +54,6 @@ data ServerOptions = ServerOptions
 localhost :: String
 localhost = "127.0.0.1"
 
--- | Port number changed so that BR and SCS can be run at the same time
-defaultPortNumber :: Int
-defaultPortNumber = 8000
-
 defaultDbConnectionStr :: ByteString
 defaultDbConnectionStr = "dbname=devsupplychainserver"
 
