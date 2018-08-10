@@ -1,11 +1,12 @@
 
 -- | Module containing functions to run the migration function
-module Mirza.SupplyChain.Migrate
-  (
+module Mirza.SupplyChain.Migrate where
+{-
+(
     defaultDbConnectionStr
   , migrate
   , tryCreateSchema
-  ) where
+  )
 
 import           Mirza.SupplyChain.MigrateScript (migrationStorage)
 
@@ -63,3 +64,4 @@ migrate connStr = do
 --   conn <- connectPostgreSQL connStr
 --   tryDrop conn
 --   print $ "Dropped all tables. Constr was: " ++ show connStr
+ -}

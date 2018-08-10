@@ -15,9 +15,9 @@ import           Mirza.SupplyChain.Handlers.EventRegistration (findEvent,
 import           Mirza.SupplyChain.Handlers.Users             (userTableToModel)
 
 import qualified Mirza.Common.Utils                           as U
+import           Mirza.SupplyChain.Database.Schema            as Schema
 import           Mirza.SupplyChain.ErrorUtils                 (throwParseError)
 import           Mirza.SupplyChain.QueryUtils
-import qualified Mirza.SupplyChain.StorageBeam                as SB
 import           Mirza.SupplyChain.Types                      hiding
                                                                (NewUser (..),
                                                                User (..))
@@ -50,7 +50,7 @@ listEvents _user = either throwParseError (runDb . listEventsQuery) . urn2LabelE
 
 listEventsQuery :: AsServiceError err => LabelEPC -> DB context err [Ev.Event]
 listEventsQuery labelEpc =
-  maybe (return []) (getEventList . SB.LabelId) =<< findLabelId labelEpc
+  maybe (return []) (getEventList . Schema.LabelId) =<< findLabelId labelEpc
 
 
 
@@ -58,7 +58,7 @@ eventInfo :: SCSApp context err
           => ST.User
           -> EvId.EventId
           -> AppM context err (Maybe Ev.Event)
-eventInfo _user = runDb . findEvent . SB.EventId . EvId.unEventId
+eventInfo _user = runDb . findEvent . Schema.EventId . EvId.unEventId
 
 
 
@@ -66,18 +66,18 @@ eventInfo _user = runDb . findEvent . SB.EventId . EvId.unEventId
 -- use BizTransactions and events (createdby) tables
 eventList :: SCSApp context err
           => ST.User
-          -> UserId
+          -> ST.UserId
           -> AppM context err [Ev.Event]
 eventList _user = runDb . eventsByUser
 
 eventsByUser :: ST.UserId -> DB context err [Ev.Event]
 eventsByUser (ST.UserId userId) = do
   events <- pg $ runSelectReturningList $ select $ do
-    userEvent <- all_ (SB._user_events SB.supplyChainDb)
-    event <- all_ (SB._events SB.supplyChainDb)
-    guard_ (SB.user_events_event_id userEvent `references_` event &&.
-            SB.user_events_user_id userEvent ==. val_ (SB.UserId userId))
-    pure (SB.event_json event)
+    userEvent <- all_ (Schema._user_events Schema.supplyChainDb)
+    event <- all_ (Schema._events Schema.supplyChainDb)
+    guard_ (Schema.user_events_event_id userEvent `references_` event &&.
+            Schema.user_events_user_id userEvent ==. val_ (Schema.UserId userId))
+    pure (Schema.event_json event)
   return $ catMaybes $ decodeEvent <$> events
 
 
@@ -95,9 +95,9 @@ eventUserList _user = runDb . eventUserSignedList
 eventUserSignedList :: EvId.EventId -> DB context err [(ST.User, Bool)]
 eventUserSignedList (EvId.EventId eventId) = do
   usersSignedList <- pg $ runSelectReturningList $ select $ do
-    userEvent <- all_ (SB._user_events SB.supplyChainDb)
-    user <- all_ (SB._users SB.supplyChainDb)
-    guard_ (SB.user_events_event_id userEvent ==. val_ (SB.EventId eventId))
-    guard_ (SB.user_events_user_id userEvent `references_` user)
-    pure (user, SB.user_events_has_signed userEvent)
+    userEvent <- all_ (Schema._user_events Schema.supplyChainDb)
+    user <- all_ (Schema._users Schema.supplyChainDb)
+    guard_ (Schema.user_events_event_id userEvent ==. val_ (Schema.EventId eventId))
+    guard_ (Schema.user_events_user_id userEvent `references_` user)
+    pure (user, Schema.user_events_has_signed userEvent)
   return $ bimap userTableToModel id <$> usersSignedList

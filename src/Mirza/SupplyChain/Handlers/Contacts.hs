@@ -15,8 +15,8 @@ module Mirza.SupplyChain.Handlers.Contacts
 import           Mirza.SupplyChain.Handlers.Common
 
 import qualified Mirza.Common.Utils                       as U
+import           Mirza.SupplyChain.Database.Schema        as Schema
 import           Mirza.SupplyChain.QueryUtils
-import qualified Mirza.SupplyChain.StorageBeam            as SB
 import           Mirza.SupplyChain.Types                  hiding (NewUser (..),
                                                            User (userId),
                                                            UserId)
@@ -32,12 +32,12 @@ listContacts = runDb . listContactsQuery
 
 -- | Lists all the contacts associated with the given user
 listContactsQuery :: ST.User -> DB context err [ST.User]
-listContactsQuery  (User (ST.UserId uid) _ _) = do
+listContactsQuery  (ST.User (ST.UserId uid) _ _) = do
   userList <- pg $ runSelectReturningList $ select $ do
-    user <- all_ (SB._users SB.supplyChainDb)
-    contact <- all_ (SB._contacts SB.supplyChainDb)
-    guard_ (SB.contact_user1_id contact ==. val_ (SB.UserId uid) &&.
-            SB.contact_user2_id contact ==. (SB.UserId $ SB.user_id user))
+    user <- all_ (Schema._users Schema.supplyChainDb)
+    contact <- all_ (Schema._contacts Schema.supplyChainDb)
+    guard_ (Schema.contact_user1_id contact ==. val_ (Schema.UserId uid) &&.
+            Schema.contact_user2_id contact ==. (Schema.UserId $ Schema.user_id user))
     pure user
   return $ userTableToModel <$> userList
 
@@ -47,11 +47,11 @@ addContact user userId = runDb $ addContactQuery user userId
 
 
 addContactQuery :: ST.User -> ST.UserId -> DB context err Bool
-addContactQuery (User (ST.UserId uid1) _ _) (ST.UserId uid2) = do
+addContactQuery (ST.User (ST.UserId uid1) _ _) (ST.UserId uid2) = do
   pKey <- U.newUUID
-  r <- pg $ runInsertReturningList (SB._contacts SB.supplyChainDb) $
-               insertValues [SB.Contact pKey (SB.UserId uid1) (SB.UserId uid2)]
-  return $ verifyContact r (SB.UserId uid1) (SB.UserId uid2)
+  r <- pg $ runInsertReturningList (Schema._contacts Schema.supplyChainDb) $
+               insertValues [Schema.Contact pKey (Schema.UserId uid1) (Schema.UserId uid2)]
+  return $ verifyContact r (Schema.UserId uid1) (Schema.UserId uid2)
 
 
 
@@ -64,14 +64,14 @@ removeContact user userId = runDb $ removeContactQuery user userId
 -- and returns (not. userExists)
 -- @todo Make ContactErrors = NotAContact | DoesntExist | ..
 removeContactQuery :: ST.User -> ST.UserId -> DB context err Bool
-removeContactQuery (User firstId@(ST.UserId uid1) _ _) secondId@(ST.UserId uid2) = do
+removeContactQuery (ST.User firstId@(ST.UserId uid1) _ _) secondId@(ST.UserId uid2) = do
   contactExists <- isExistingContact firstId secondId
   if contactExists
     then do
-      pg $ runDelete $ delete (SB._contacts SB.supplyChainDb)
+      pg $ runDelete $ delete (Schema._contacts Schema.supplyChainDb)
               (\ contact ->
-                SB.contact_user1_id contact ==. val_ (SB.UserId uid1) &&.
-                SB.contact_user2_id contact ==. val_ (SB.UserId uid2))
+                Schema.contact_user1_id contact ==. val_ (Schema.UserId uid1) &&.
+                Schema.contact_user2_id contact ==. val_ (Schema.UserId uid2))
       not <$> isExistingContact firstId secondId
   else return False
 
@@ -98,22 +98,22 @@ userSearch _user _term = error "Storage module not implemented"
 isExistingContact :: ST.UserId -> ST.UserId -> DB context err Bool
 isExistingContact (ST.UserId uid1) (ST.UserId uid2) = do
   r <- pg $ runSelectReturningList $ select $ do
-        contact <- all_ (SB._contacts SB.supplyChainDb)
-        guard_ (SB.contact_user1_id contact  ==. (val_ . SB.UserId $ uid1) &&.
-                SB.contact_user2_id contact  ==. (val_ . SB.UserId $ uid2))
+        contact <- all_ (Schema._contacts Schema.supplyChainDb)
+        guard_ (Schema.contact_user1_id contact  ==. (val_ . Schema.UserId $ uid1) &&.
+                Schema.contact_user2_id contact  ==. (val_ . Schema.UserId $ uid2))
         pure contact
-  return $ verifyContact r (SB.UserId uid1) (SB.UserId uid2)
+  return $ verifyContact r (Schema.UserId uid1) (Schema.UserId uid2)
 
 
 -- | Simple utility function to check that the users are part of the contact
 -- typically used with the result of a query
-verifyContact :: Eq (PrimaryKey SB.UserT f) =>
-                 [SB.ContactT f] ->
-                 PrimaryKey SB.UserT f ->
-                 PrimaryKey SB.UserT f ->
+verifyContact :: Eq (PrimaryKey Schema.UserT f) =>
+                 [Schema.ContactT f] ->
+                 PrimaryKey Schema.UserT f ->
+                 PrimaryKey Schema.UserT f ->
                  Bool
 verifyContact [insertedContact] uid1 uid2 =
-                  (SB.contact_user1_id insertedContact == uid1) &&
-                  (SB.contact_user2_id insertedContact == uid2)
+                  (Schema.contact_user1_id insertedContact == uid1) &&
+                  (Schema.contact_user2_id insertedContact == uid2)
 verifyContact _ _ _ = False
 

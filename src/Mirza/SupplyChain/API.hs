@@ -19,11 +19,11 @@ module Mirza.SupplyChain.API
   , API, api
   ) where
 
-import qualified Mirza.SupplyChain.StorageBeam as SB
-import           Mirza.SupplyChain.Types       as ST
+import qualified Mirza.SupplyChain.Database.Schema as Schema
+import           Mirza.SupplyChain.Types           as ST
 
-import qualified Data.GS1.Event                as Ev
-import           Data.GS1.EventId
+import qualified Data.GS1.Event                    as Ev
+import           Data.GS1.EventId                  as EvId
 
 import           Servant
 import           Servant.API.Flatten
@@ -47,7 +47,7 @@ serverAPI = Proxy
 
 type PublicAPI =
   -- Users
-         "newUser"                            :> ReqBody '[JSON] NewUser                                        :> Post '[JSON] UserId
+         "newUser"                            :> ReqBody '[JSON] NewUser                                      :> Post '[JSON] UserId
 
 type PrivateAPI =
 -- Contacts
@@ -56,17 +56,17 @@ type PrivateAPI =
   :<|> "contacts" :> "remove"               :> Capture "userId" ST.UserId                                     :> Get '[JSON] Bool
   :<|> "contacts" :> "search"               :> Capture "term" String                                          :> Get '[JSON] [User]
 -- Signatures
-  :<|> "event"    :> "addUser"              :> Capture "userId" ST.UserId       :> Capture "eventId" EventId  :> Post '[JSON] ()
+  :<|> "event"    :> "addUser"              :> Capture "userId" UserId       :> Capture "eventId" EventId     :> Post '[JSON] ()
   :<|> "event"    :> "sign"                 :> ReqBody '[JSON] SignedEvent                                    :> Post '[JSON] PrimaryKeyType
   :<|> "event"    :> "getHash"              :> ReqBody '[JSON] EventId                                        :> Post '[JSON] HashedEvent
 -- Queries
   :<|> "epc"                                :> Capture "urn" ST.LabelEPCUrn     :> "info"                     :> Get '[JSON] EPCState
   :<|> "epc"                                :> Capture "urn" ST.LabelEPCUrn     :> "events"                   :> Get '[JSON] [Ev.Event]
   :<|> "event"                              :> Capture "eventId" EventId        :> "info"                     :> Get '[JSON] (Maybe Ev.Event)
-  :<|> "event"    :> "list"                 :> Capture "userId" ST.UserId                                     :> Get '[JSON] [Ev.Event]
+  :<|> "event"    :> "list"                 :> Capture "userId" UserId                                        :> Get '[JSON] [Ev.Event]
   :<|> "event"    :> "listUsers"            :> Capture "eventId" EventId                                      :> Get '[JSON] [(User, Bool)]
 -- Event Registration
-  :<|> "event"    :> "objectEvent"          :> ReqBody '[JSON] ObjectEvent                                    :> Post '[JSON] (Ev.Event, SB.EventId)
-  :<|> "event"    :> "aggregateEvent"       :> ReqBody '[JSON] AggregationEvent                               :> Post '[JSON] (Ev.Event, SB.EventId)
-  :<|> "event"    :> "transactionEvent"     :> ReqBody '[JSON] TransactionEvent                               :> Post '[JSON] (Ev.Event, SB.EventId)
-  :<|> "event"    :> "transformationEvent"  :> ReqBody '[JSON] TransformationEvent                            :> Post '[JSON] (Ev.Event, SB.EventId)
+  :<|> "event"    :> "objectEvent"          :> ReqBody '[JSON] ObjectEvent                                    :> Post '[JSON] (Ev.Event, Schema.EventId)
+  :<|> "event"    :> "aggregateEvent"       :> ReqBody '[JSON] AggregationEvent                               :> Post '[JSON] (Ev.Event, Schema.EventId)
+  :<|> "event"    :> "transactionEvent"     :> ReqBody '[JSON] TransactionEvent                               :> Post '[JSON] (Ev.Event, Schema.EventId)
+  :<|> "event"    :> "transformationEvent"  :> ReqBody '[JSON] TransformationEvent                            :> Post '[JSON] (Ev.Event, Schema.EventId)
