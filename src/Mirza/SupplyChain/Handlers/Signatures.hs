@@ -13,11 +13,11 @@ import           Mirza.Common.Utils
 
 import qualified Mirza.BusinessRegistry.Types                 as BT
 
+import           Mirza.SupplyChain.Database.Schema            as Schema
 import           Mirza.SupplyChain.Handlers.Common
 import           Mirza.SupplyChain.Handlers.EventRegistration (hasUserCreatedEvent,
                                                                insertUserEvent)
 import qualified Mirza.SupplyChain.QueryUtils                 as QU
-import qualified Mirza.SupplyChain.StorageBeam                as SB
 import           Mirza.SupplyChain.Types                      hiding
                                                                (NewUser (..),
                                                                User (userId),
@@ -54,7 +54,7 @@ addUserToEvent :: SCSApp context err
                -> ST.UserId
                -> EvId.EventId
                -> AppM context err ()
-addUserToEvent (User loggedInUserId _ _) anotherUserId eventId =
+addUserToEvent (ST.User loggedInUserId _ _) anotherUserId eventId =
     runDb $ addUserToEventQuery (EventOwner loggedInUserId) (SigningUser anotherUserId) eventId
 
 addUserToEventQuery :: AsServiceError err
@@ -68,9 +68,9 @@ addUserToEventQuery (EventOwner lUserId@(ST.UserId loggedInUserId))
   userCreatedEvent <- hasUserCreatedEvent lUserId evId
   if userCreatedEvent
     then insertUserEvent
-            (SB.EventId eventId)
-            (SB.UserId loggedInUserId)
-            (SB.UserId otherUserId)
+            (Schema.EventId eventId)
+            (Schema.UserId loggedInUserId)
+            (Schema.UserId otherUserId)
             False Nothing
     else throwing _EventPermissionDenied (lUserId, evId)
 
@@ -95,7 +95,7 @@ eventSign :: (HasClientEnv context, AsServantError err, SCSApp context err)
           => ST.User
           -> SignedEvent
           -> AppM context err PrimaryKeyType
-eventSign _user (SignedEvent eventId keyId (Signature sigStr) digest') = do
+eventSign _user (SignedEvent eventId keyId (ST.Signature sigStr) digest') = do
   rsaPublicKey <- runClientFunc $ getKey keyId
   let (BT.PEM_RSAPubKey keyStr) = rsaPublicKey
   (pubKey :: RSAPubKey) <- liftIO
@@ -108,16 +108,16 @@ eventSign _user (SignedEvent eventId keyId (Signature sigStr) digest') = do
     let eventBS = QU.eventTxtToBS event
     verifyStatus <- liftIO $ verifyBS digest sigBS pubKey eventBS
     if verifyStatus == VerifySuccess
-      then insertSignature eventId keyId (Signature sigStr) digest'
+      then insertSignature eventId keyId (ST.Signature sigStr) digest'
       else throwing _InvalidSignature sigStr
 
 -- TODO: Should this return Text or a JSON value?
 getEventJSON :: AsServiceError err => EvId.EventId -> DB context err T.Text
 getEventJSON eventId = do
   r <- pg $ runSelectReturningList $ select $ do
-    allEvents <- all_ (SB._events SB.supplyChainDb)
-    guard_ ((SB.event_id allEvents) ==. val_ (EvId.unEventId eventId))
-    pure (SB.event_json allEvents)
+    allEvents <- all_ (Schema._events Schema.supplyChainDb)
+    guard_ ((Schema.event_id allEvents) ==. val_ (EvId.unEventId eventId))
+    pure (Schema.event_json allEvents)
   case r of
     [jsonEvent] -> return jsonEvent
     _           -> throwing _InvalidEventId eventId
@@ -129,20 +129,20 @@ makeDigest = EVPDigest.getDigestByName . map toLower . show
 
 insertSignature :: (AsServiceError err) => EvId.EventId
                 -> BRKeyId
-                -> Signature
+                -> ST.Signature
                 -> Digest
                 -> DB environmentUnused err PrimaryKeyType
 
-insertSignature eId kId (Signature sig) digest = do
+insertSignature eId kId (ST.Signature sig) digest = do
   sigId <- newUUID
   timestamp <- generateTimestamp
-  r <- pg $ runInsertReturningList (SB._signatures SB.supplyChainDb) $
+  r <- pg $ runInsertReturningList (Schema._signatures Schema.supplyChainDb) $
         insertValues
-        [(SB.Signature sigId) (SB.EventId $ EvId.unEventId eId)
+        [(Schema.Signature sigId) (Schema.EventId $ EvId.unEventId eId)
          (BRKeyId $ getBRKeyId kId) (BSC.pack sig)
           (BSC.pack $ show digest) (toDbTimestamp timestamp)]
   case r of
-    [rowId] -> return ( SB.signature_id rowId)
+    [rowId] -> return ( Schema.signature_id rowId)
     _       -> throwing _BackendErr "Failed to add signature"
 
 

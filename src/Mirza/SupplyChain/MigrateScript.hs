@@ -1,17 +1,17 @@
 
 -- | Contains the migration function of ``supplyChainDb``
-module Mirza.SupplyChain.MigrateScript (migrationStorage) where
-
+module Mirza.SupplyChain.MigrateScript where
+{-
 import           Mirza.Common.GS1BeamOrphans
-import           Mirza.Common.Types               hiding (UserId)
-import           Mirza.SupplyChain.StorageBeam
+import           Mirza.Common.Types                hiding (UserId)
+import           Mirza.SupplyChain.Database.Schema as Schema
 
-import           Data.UUID                        (UUID)
-import           Database.Beam.Migrate.SQL        (DataType)
+import           Data.UUID                         (UUID)
+import           Database.Beam.Migrate.SQL         (DataType)
 import           Database.Beam.Migrate.SQL.Tables
 import           Database.Beam.Migrate.Types
 import           Database.Beam.Postgres
-import           Database.Beam.Postgres.Syntax    (PgDataTypeSyntax)
+import           Database.Beam.Postgres.Syntax     (PgDataTypeSyntax)
 
 maxLen :: Word
 maxLen = 120
@@ -23,8 +23,8 @@ maxTzLen = 10
 pkSerialType :: DataType PgDataTypeSyntax UUID
 pkSerialType = uuid
 
-migrationStorage :: Migration PgCommandSyntax (CheckedDatabaseSettings Postgres SupplyChainDb)
-migrationStorage =
+migration :: Migration PgCommandSyntax (CheckedDatabaseSettings Postgres SupplyChainDb)
+migration =
   SupplyChainDb
     <$> createTable "users"
     (
@@ -200,3 +200,4 @@ migrationStorage =
           (field "blockchain_address" text notNull)
           (field "blockchain_foreign_id" int notNull)
     )
+ -}

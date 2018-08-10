@@ -17,22 +17,21 @@ module Mirza.SupplyChain.QueryUtils
   ) where
 
 import           Mirza.Common.Utils
-import qualified Mirza.SupplyChain.StorageBeam as SB
-import           Mirza.SupplyChain.Types       hiding (User (..))
-import qualified Mirza.SupplyChain.Types       as ST
+import           Mirza.SupplyChain.Database.Schema as Schema
+import           Mirza.SupplyChain.Types           hiding (User (..))
+import qualified Mirza.SupplyChain.Types           as ST
 
-import           Data.GS1.Event                (Event (..))
-import qualified Data.GS1.Event                as Ev
+import qualified Data.GS1.Event                    as Ev
 
-import           Data.Aeson                    (decode)
-import           Data.Aeson.Text               (encodeToLazyText)
-import           Data.ByteString               (ByteString)
-import qualified Data.Text                     as T
-import qualified Data.Text.Encoding            as En
-import qualified Data.Text.Lazy                as TxtL
-import qualified Data.Text.Lazy.Encoding       as LEn
+import           Data.Aeson                        (decode)
+import           Data.Aeson.Text                   (encodeToLazyText)
+import           Data.ByteString                   (ByteString)
+import qualified Data.Text                         as T
+import qualified Data.Text.Encoding                as En
+import qualified Data.Text.Lazy                    as TxtL
+import qualified Data.Text.Lazy.Encoding           as LEn
 
-import           Control.Monad.Except          (MonadError, catchError)
+import           Control.Monad.Except              (MonadError, catchError)
 
 
 -- | Ueful for handling specific errors from, for example, database transactions
@@ -59,16 +58,17 @@ withPKey f = do
   pure pKey
 
 
-storageToModelEvent :: SB.Event -> Maybe Ev.Event
-storageToModelEvent = decodeEvent . SB.event_json
+storageToModelEvent :: Schema.Event -> Maybe Ev.Event
+storageToModelEvent = decodeEvent . Schema.event_json
 
 -- | Converts a DB representation of ``User`` to a Model representation
--- SB.User = SB.User uid bizId fName lName phNum passHash email
-userTableToModel :: SB.User -> ST.User
-userTableToModel (SB.User uid _ fName lName _ _ _) = ST.User (UserId uid) fName lName
+-- Schema.User = Schema.User uid bizId fName lName phNum passHash email
+userTableToModel :: Schema.User -> ST.User
+userTableToModel (Schema.User uid _ fName lName _ _ _)
+    = ST.User (ST.UserId uid) fName lName
 
 
-encodeEvent :: Event -> T.Text
+encodeEvent :: Ev.Event -> T.Text
 encodeEvent event = TxtL.toStrict  (encodeToLazyText event)
 
 -- XXX is this the right encoding to use? It's used for checking signatures

@@ -6,37 +6,38 @@ module Mirza.SupplyChain.Main where
 
 import           Mirza.SupplyChain.API
 import           Mirza.SupplyChain.Auth
-import           Mirza.SupplyChain.Migrate  (defaultDbConnectionStr, migrate)
+import           Mirza.SupplyChain.Database.Migrate
 import           Mirza.SupplyChain.Service
-import           Mirza.SupplyChain.Types    (AppError, EnvType (..),
-                                             SCSContext (..), User)
+import           Mirza.SupplyChain.Types            (AppError, EnvType (..),
+                                                     SCSContext (..), User)
 
-import qualified Mirza.SupplyChain.Types    as ST
+import qualified Mirza.SupplyChain.Types            as ST
 
-import           Servant                    hiding (header)
+import           Servant                            hiding (header)
 import           Servant.Client
 import           Servant.Swagger.UI
 
-import qualified Data.Pool                  as Pool
+import qualified Data.Pool                          as Pool
 import           Database.PostgreSQL.Simple
 
-import           Network.HTTP.Client        (defaultManagerSettings, newManager)
-import           Network.Wai                (Middleware)
-import qualified Network.Wai.Handler.Warp   as Warp
+import           Network.HTTP.Client                (defaultManagerSettings,
+                                                     newManager)
+import           Network.Wai                        (Middleware)
+import qualified Network.Wai.Handler.Warp           as Warp
 
-import           Data.ByteString            (ByteString)
-import           Data.Text                  (pack)
+import           Data.ByteString                    (ByteString)
+import           Data.Text                          (pack)
 
-import           Data.Semigroup             ((<>))
+import           Data.Semigroup                     ((<>))
 import           Options.Applicative
 
 import           Control.Lens
 
-import qualified Crypto.Scrypt              as Scrypt
+import qualified Crypto.Scrypt                      as Scrypt
 
-import           Control.Exception          (finally)
-import           Katip                      as K
-import           System.IO                  (stdout)
+import           Control.Exception                  (finally)
+import           Katip                              as K
+import           System.IO                          (stdout)
 
 data ServerOptions = ServerOptions
   { env           :: EnvType
@@ -52,6 +53,13 @@ data ServerOptions = ServerOptions
 
 localhost :: String
 localhost = "127.0.0.1"
+
+-- | Port number changed so that BR and SCS can be run at the same time
+defaultPortNumber :: Int
+defaultPortNumber = 8000
+
+defaultDbConnectionStr :: ByteString
+defaultDbConnectionStr = "dbname=devsupplychainserver"
 
 serverOptions :: Parser ServerOptions
 serverOptions = ServerOptions
