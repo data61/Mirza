@@ -18,7 +18,7 @@ import           Mirza.SupplyChain.Handlers.Contacts
 import           Mirza.SupplyChain.Handlers.EventRegistration
 import           Mirza.SupplyChain.Handlers.Queries
 import           Mirza.SupplyChain.Handlers.Users
-import           Mirza.SupplyChain.Types
+import           Mirza.SupplyChain.Types                      as ST
 
 import           Control.Monad                                (void)
 import           Data.Maybe                                   (fromJust)
@@ -77,7 +77,7 @@ testServiceQueries = do
         pure (uid, user)
       case res of
         (_, Nothing) -> fail "Received Nothing for user"
-        ((UserId uid), Just user :: Maybe (Schema.UserT Identity)) ->
+        ((ST.UserId uid), Just user :: Maybe (Schema.UserT Identity)) ->
           user `shouldSatisfy`
             (\u ->
               (Schema.user_phone_number u) == (newUserPhoneNumber dummyNewUser) &&

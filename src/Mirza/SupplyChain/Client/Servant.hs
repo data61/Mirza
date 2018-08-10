@@ -22,7 +22,7 @@ module Mirza.SupplyChain.Client.Servant
   ) where
 
 import           Mirza.SupplyChain.API
-import           Mirza.SupplyChain.Database.Schema as Schema
+import qualified Mirza.SupplyChain.Database.Schema as Schema
 import           Mirza.SupplyChain.Types           as T
 
 import           Servant.API

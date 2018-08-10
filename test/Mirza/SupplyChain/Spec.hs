@@ -3,28 +3,28 @@ module Main where
 
 import           Mirza.SupplyChain.Tests.Settings
 
-import           Mirza.SupplyChain.Main           hiding (main)
-import           Mirza.SupplyChain.Migrate
-import           Mirza.SupplyChain.Types          as ST
+import           Mirza.SupplyChain.Database.Migrate
+import           Mirza.SupplyChain.Main             hiding (main)
+import           Mirza.SupplyChain.Types            as ST
 
-import           Test.Hspec.Core.Spec             (sequential)
-import           Test.Tasty                       hiding (withResource)
-import           Test.Tasty.Hspec                 (around, testSpec)
-import           Test.Tasty.Runners               (NumThreads (..))
+import           Test.Hspec.Core.Spec               (sequential)
+import           Test.Tasty                         hiding (withResource)
+import           Test.Tasty.Hspec                   (around, testSpec)
+import           Test.Tasty.Runners                 (NumThreads (..))
 
 import           Mirza.SupplyChain.Tests.Client
-import           Mirza.SupplyChain.Tests.Service  (testServiceQueries)
+import           Mirza.SupplyChain.Tests.Service    (testServiceQueries)
 
-import           Control.Exception                (bracket)
+import           Control.Exception                  (bracket)
 import           Data.Int
 import           Database.Beam.Postgres
 import           Database.PostgreSQL.Simple
 
-import           Data.Pool                        (Pool, destroyAllResources,
-                                                   withResource)
-import qualified Data.Pool                        as Pool
+import           Data.Pool                          (Pool, destroyAllResources,
+                                                     withResource)
+import qualified Data.Pool                          as Pool
 
-import           Katip                            (Severity (DebugS))
+import           Katip                              (Severity (DebugS))
 
 -- dbFunc = withDatabaseDebug putStrLn
 
