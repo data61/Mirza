@@ -16,7 +16,6 @@ module Mirza.SupplyChain.QueryUtils
   , withPKey
   ) where
 
-import qualified Mirza.BusinessRegistry.Types  as BRT
 import           Mirza.Common.Utils
 import qualified Mirza.SupplyChain.StorageBeam as SB
 import           Mirza.SupplyChain.Types       hiding (User (..))

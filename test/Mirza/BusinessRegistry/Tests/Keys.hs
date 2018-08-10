@@ -36,7 +36,7 @@ timeStampIO :: MonadIO m => m LocalTime
 timeStampIO = liftIO $ (utcToLocalTime utc) <$> getCurrentTime
 
 rsaPubKey :: IO BT.PEM_RSAPubKey
-rsaPubKey = BT.PEM_RSAPubKey . T.pack <$> Prelude.readFile "./test/Mirza/BusinessRegistry/Tests/testKeys/goodKeys/test.pub"
+rsaPubKey = BT.PEM_RSAPubKey . T.pack <$> Prelude.readFile "./test/Mirza/Common/testKeys/goodKeys/test.pub"
 
 testAppM :: context
          -> AppM context BusinessRegistryError a
@@ -64,7 +64,7 @@ testKeyQueries = do
         pure (storageKey, keyStr, keyId, uid, tEnd, insertedKey)
       case res of
         (Nothing, _, _, _, _, _) -> fail "Received Nothing for key"
-        (Just key, keyStr, (BT.KeyId keyId), (BT.UserId uid), tEnd, insertedKey) -> do
+        (Just key, keyStr, (BRKeyId keyId), (BT.UserId uid), tEnd, insertedKey) -> do
           key `shouldSatisfy`
             (\k ->
               (BSchema.pem_str k) == keyStr &&
