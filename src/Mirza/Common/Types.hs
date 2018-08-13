@@ -8,16 +8,11 @@
 {-# LANGUAGE TypeApplications           #-}
 {-# LANGUAGE UndecidableInstances       #-}
 
-
 module Mirza.Common.Types
-  ( EmailAddress(..) , Password(..)  , UserId(..)
+  ( EmailAddress, Password(..)  , UserId(..)
   , BRKeyId(..)
-  , EnvType(..)
-  , AppM(..)
-  , runAppM
-  , DB(..)
-  , runDb
-  , pg
+  , AppM(..), runAppM, EnvType(..)
+  , DB(..), runDb, pg
   , AsSqlError(..)
   , HasConnPool(..)
   , HasEnvType(..)
@@ -27,13 +22,10 @@ module Mirza.Common.Types
   , HasClientEnv(..)
   , AsServantError (..)
   , DBConstraint
-  , ask
-  , asks
+  , ask, asks
   , MonadError
-  , throwing
-  , throwing_
-  , MonadIO
-  , liftIO
+  , throwing, throwing_
+  , MonadIO, liftIO
   , PrimaryKeyType
   , brKeyIdType
   , runClientFunc
@@ -69,7 +61,10 @@ import           Data.Pool                            as Pool
 import           Crypto.Scrypt                        (ScryptParams)
 
 import qualified Data.ByteString                      as BS
-import           Data.Text                            (Text)
+
+import           Data.Text.Encoding                   as T
+import           Text.Email.Validate                  (EmailAddress,
+                                                       toByteString, validate)
 
 import           Data.Aeson
 
@@ -94,6 +89,19 @@ import           Data.UUID                            (UUID)
 type PrimaryKeyType = UUID
 
 
+
+-- *****************************************************************************
+-- Orphan Instances
+-- *****************************************************************************
+
+instance ToJSON EmailAddress where
+  toJSON = toJSON . T.decodeUtf8 . toByteString
+
+instance FromJSON EmailAddress where
+  parseJSON = withText "EmailAddress" $ \t -> case validate (T.encodeUtf8 t) of
+    Left err -> fail err
+    Right e  -> pure e
+
 -- *****************************************************************************
 -- User Types
 -- *****************************************************************************
@@ -108,20 +116,17 @@ deriving instance FromHttpApiData UserId
 deriving instance ToHttpApiData UserId
 
 newtype Password = Password BS.ByteString
-  -- Is Eq something we want?
-  -- We do not want Show
-  deriving (Eq)
 
 instance Show Password where
   show _ = "Password <redacted>"
 
 
-newtype EmailAddress = EmailAddress {getEmailAddress :: Text}
-  deriving (Show, Eq, Generic, Read, FromJSON, ToJSON)
-instance ToSchema EmailAddress
-instance ToParamSchema EmailAddress
-deriving instance FromHttpApiData EmailAddress
-deriving instance ToHttpApiData EmailAddress
+-- newtype EmailAddress = EmailAddress {getEmailAddress :: Text}
+--   deriving (Show, Eq, Generic, Read, FromJSON, ToJSON)
+-- instance ToSchema EmailAddress
+-- instance ToParamSchema EmailAddress
+-- deriving instance FromHttpApiData EmailAddress
+-- deriving instance ToHttpApiData EmailAddress
 
 
 newtype BRKeyId = BRKeyId {getBRKeyId :: UUID}
