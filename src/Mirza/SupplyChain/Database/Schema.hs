@@ -40,8 +40,7 @@ supplyChainDb = defaultDbSettings
     {
       _users =
         modifyTable (const "users") $
-        tableModification
-        {
+        tableModification {
           user_biz_id = BizId (fieldNamed "user_biz_id")
         }
     , _contacts =
