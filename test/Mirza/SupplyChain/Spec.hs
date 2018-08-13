@@ -26,13 +26,6 @@ import qualified Data.Pool                          as Pool
 
 import           Katip                              (Severity (DebugS))
 
--- dbFunc = withDatabaseDebug putStrLn
-
--- INTERESTING NOTE ON MIGRATION
--- receive this error if the tables already exist (not in tests anymore since delete them beforehand)
---  uncaught exception: ErrorCall (Data.Either.Combinators.fromRight: Argument takes form 'Left _'
---  CallStack (from HasCallStack):
---    error, called at src/Data/Either/Combinators.hs:106:24 in either-4.4.1.1-6PiwKYkn4v6B4KO2R2Fu1b:Data.Either.Combinators)
 
 -- drop all tables created by migration. Equivalent to, at the time of writing;
 -- execute_ conn "DROP TABLE IF EXISTS users, keys, businesses, contacts, labels, what_labels, items, transformations, locations, events, whats, \"bizTransactions\", whys, wheres, whens, \"labelEvents\", \"userEvents\", hashes, blockchain;"

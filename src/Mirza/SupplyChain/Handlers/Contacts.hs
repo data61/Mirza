@@ -10,8 +10,6 @@ module Mirza.SupplyChain.Handlers.Contacts
   , userSearch
   ) where
 
-
-
 import           Mirza.SupplyChain.Handlers.Common
 
 import qualified Mirza.Common.Utils                       as U
