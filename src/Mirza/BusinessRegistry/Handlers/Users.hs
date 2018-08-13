@@ -2,7 +2,7 @@
 
 module Mirza.BusinessRegistry.Handlers.Users
   (
-    newUser
+    addUser
   , getUserByIdQuery
   , tableToAuthUser
   ) where
@@ -25,17 +25,17 @@ import           Data.Text.Encoding                       (encodeUtf8)
 
 
 
-newUser ::  (BRApp context err, BRT.HasScryptParams context)
+addUser ::  (BRApp context err, BRT.HasScryptParams context)
         => BRT.NewUser
         -> BRT.AppM context err BRT.UserId
-newUser = BRT.runDb . newUserQuery
+addUser = BRT.runDb . addUserQuery
 
 
 -- | Hashes the password of the BRT.NewUser and inserts the user into the database
-newUserQuery :: (BRT.AsBusinessRegistryError err, BRT.HasScryptParams context)
+addUserQuery :: (BRT.AsBusinessRegistryError err, BRT.HasScryptParams context)
              => BRT.NewUser
              -> BRT.DB context err BRT.UserId
-newUserQuery (BRT.NewUser phone (BRT.EmailAddress email) firstName lastName biz password) = do
+addUserQuery (BRT.NewUser phone (BRT.EmailAddress email) firstName lastName biz password) = do
   params <- view $ _2 . BRT.scryptParams
   encPass <- liftIO $ Scrypt.encryptPassIO params (Scrypt.Pass $ encodeUtf8 password)
   userId <- newUUID

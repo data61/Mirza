@@ -4,6 +4,7 @@
 module Mirza.BusinessRegistry.Handlers.Business
   ( listBusinesses
   , listBusinessesQuery
+  , addBusiness
   , addBusinessQuery
   ) where
 
@@ -11,6 +12,8 @@ module Mirza.BusinessRegistry.Handlers.Business
 import           Mirza.BusinessRegistry.Database.Schema
 import           Mirza.BusinessRegistry.Handlers.Common
 import           Mirza.BusinessRegistry.Types             as BT
+
+import           Data.GS1.EPC                             as EPC
 
 import           Database.Beam                            as B
 import           Database.Beam.Backend.SQL.BeamExtensions
@@ -22,14 +25,26 @@ listBusinesses = fmap bizToBizResponse <$> runDb listBusinessesQuery
 
 bizToBizResponse :: Business -> BusinessResponse
 bizToBizResponse BusinessT{..} = BusinessResponse
-  { bizId    = biz_gs1_company_prefix
-  , bizName  = biz_name
+  { businessGs1CompanyPrefix = biz_gs1_company_prefix
+  , businessName             = biz_name
   }
 
 
 listBusinessesQuery :: BRApp context err => DB context err [Business]
 listBusinessesQuery = pg $ runSelectReturningList $ select $
   all_ (_businesses businessRegistryDB)
+
+
+addBusiness ::  (BRApp context err) => NewBusiness -> AppM context err GS1CompanyPrefix
+addBusiness = (fmap biz_gs1_company_prefix) . runDb . addBusinessQuery . newBusinessToBusiness
+
+
+newBusinessToBusiness :: NewBusiness -> Business
+newBusinessToBusiness NewBusiness{..} =
+  BusinessT
+    { biz_gs1_company_prefix = newBusinessGs1CompanyPrefix
+    , biz_name               = newBusinessName
+    }
 
 
 -- | Will _always_ create a new UUID for the BizId

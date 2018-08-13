@@ -21,6 +21,8 @@ import           Mirza.BusinessRegistry.Types as ST
 import           Mirza.Common.Time            (ExpirationTime, RevocationTime)
 import           Mirza.Common.Types           (BRKeyId)
 
+import           Data.GS1.EPC                 as EPC
+
 import           Servant
 import           Servant.API.Flatten
 import           Servant.Swagger.UI
@@ -46,6 +48,9 @@ type PublicAPI =
        "key"      :> "get"     :> Capture "keyId" BRKeyId :> Get '[JSON] PEM_RSAPubKey
   :<|> "key"      :> "getInfo" :> Capture "keyId" BRKeyId :> Get '[JSON] KeyInfoResponse
   :<|> "business" :> "list"                               :> Get '[JSON] [BusinessResponse]
+  -- TODO: These should not be publically exposed, fix this:
+  :<|> "user"     :> "new"     :> ReqBody '[JSON] NewUser     :> Post '[JSON] UserId
+  :<|> "business" :> "new"     :> ReqBody '[JSON] NewBusiness :> Post '[JSON] GS1CompanyPrefix
 
 
 type PrivateAPI =

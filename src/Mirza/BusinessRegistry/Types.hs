@@ -94,10 +94,17 @@ instance FromHttpApiData AuthUser where
   parseUrlPiece = notImplemented
 
 
+data NewBusiness = NewBusiness
+  { newBusinessGs1CompanyPrefix :: GS1CompanyPrefix
+  , newBusinessName             :: Text
+  } deriving (Generic, Eq, Show)
+$(deriveJSON defaultOptions ''NewBusiness)
+instance ToSchema NewBusiness
+
 -- Business Response Types:
-data BusinessResponse = BusinessResponse {
-  bizId   :: EPC.GS1CompanyPrefix,
-  bizName :: Text
+data BusinessResponse = BusinessResponse
+  { businessGs1CompanyPrefix :: EPC.GS1CompanyPrefix
+  , businessName             :: Text
   }
   deriving (Show, Eq, Read, Generic)
 instance ToSchema BusinessResponse
