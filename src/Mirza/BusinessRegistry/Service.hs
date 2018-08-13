@@ -26,7 +26,8 @@ import           Mirza.BusinessRegistry.API
 
 import           Mirza.BusinessRegistry.Handlers.Business as Handlers
 import           Mirza.BusinessRegistry.Handlers.Common   as Handlers
-import           Mirza.BusinessRegistry.Handlers.Keys     as Keys
+import           Mirza.BusinessRegistry.Handlers.Keys     as Handlers
+import           Mirza.BusinessRegistry.Handlers.Users    as Handlers
 import           Mirza.BusinessRegistry.Types
 import           Mirza.Common.Utils
 
@@ -60,6 +61,8 @@ publicServer =
        getPublicKey
   :<|> getPublicKeyInfo
   :<|> listBusinesses
+  :<|> addUser
+  :<|> addBusiness
 
 
 privateServer :: (BRApp context err, PossibleErrors err)
@@ -100,10 +103,10 @@ serveSwaggerAPI = toSwagger serverAPI
 
 -- | Takes in a BusinessRegistryError and converts it to an HTTP error (eg. err400)
 appErrToHttpErr :: BusinessRegistryError -> Handler a
-appErrToHttpErr (KeyErrorBRE kError)               = keyErrToHttpErr kError
-appErrToHttpErr (DBErrorBRE _sqlError)             = notImplemented
-appErrToHttpErr (BusinessCreationErrorBRE _reason) = notImplemented
-appErrToHttpErr (UserCreationErrorBRE _reason)     = notImplemented
+appErrToHttpErr (KeyErrorBRE kError) = keyErrToHttpErr kError
+appErrToHttpErr x@(DBErrorBRE _sqlError)             = liftIO (print x) >> notImplemented
+appErrToHttpErr x@(BusinessCreationErrorBRE _reason) = liftIO (print x) >> notImplemented
+appErrToHttpErr x@(UserCreationErrorBRE _reason)     = liftIO (print x) >> notImplemented
 
 
 keyErrToHttpErr :: KeyError -> Handler a

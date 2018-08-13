@@ -53,7 +53,7 @@ testKeyQueries = do
       pubKey <- rsaPubKey
       tStart <- timeStampIO
       res <- testAppM brContext $ do
-        uid <- newUser dummyNewUser
+        uid <- addUser dummyNewUser
         tableUser <- runDb $ getUserByIdQuery uid
         let user = tableToAuthUser . fromJust $ tableUser
         let (BT.PEM_RSAPubKey keyStr) = pubKey
@@ -80,7 +80,7 @@ testKeyQueries = do
       tStart <- liftIO getCurrentTime
       pubKey <- rsaPubKey
       (keyInfo, uid, tEnd) <- testAppM brContext $ do
-        uid <- newUser dummyNewUser
+        uid <- addUser dummyNewUser
         tableUser <- runDb $ getUserByIdQuery uid
         let user = tableToAuthUser . fromJust $ tableUser
         keyId <- addPublicKey user pubKey Nothing
@@ -99,7 +99,7 @@ testKeyQueries = do
     it "Revoke public key with permissions" $ \brContext -> do
       pubKey <- rsaPubKey
       myKeyState <- testAppM brContext $ do
-        uid <- newUser dummyNewUser
+        uid <- addUser dummyNewUser
         tableUser <- runDb $ getUserByIdQuery uid
         let user = tableToAuthUser . fromJust $ tableUser
         keyId <- addPublicKey user pubKey Nothing
@@ -112,13 +112,13 @@ testKeyQueries = do
     it "Revoke public key without permissions" $ \brContext -> do
       pubKey <- rsaPubKey
       r <- testAppM brContext $ do
-        uid <- newUser dummyNewUser
+        uid <- addUser dummyNewUser
         tableUser <- runDb $ getUserByIdQuery uid
         let user = tableToAuthUser . fromJust $ tableUser
         keyId <- addPublicKey user pubKey Nothing
 
         -- making a fake user
-        hackerUid <- newUser $ makeDummyNewUser (EmailAddress "l33t@hacker.com")
+        hackerUid <- addUser $ makeDummyNewUser (EmailAddress "l33t@hacker.com")
         storageHacker <- runDb $ getUserByIdQuery hackerUid
         let hacker = tableToAuthUser . fromJust $ storageHacker
 
@@ -133,7 +133,7 @@ testKeyQueries = do
           someTimeAgo = addUTCTime (-hundredMinutes) nowish
       pubKey <- rsaPubKey
       myKeyState <- testAppM brContext $ do
-        uid <- newUser dummyNewUser
+        uid <- addUser dummyNewUser
         tableUser <- runDb $ getUserByIdQuery uid
         let user = tableToAuthUser . fromJust $ tableUser
         keyId <- addPublicKey user pubKey (Just . ExpirationTime $ someTimeAgo )
@@ -148,7 +148,7 @@ testKeyQueries = do
           someTimeAgo = addUTCTime (-hundredMinutes) nowish
       pubKey <- rsaPubKey
       myKeyState <- testAppM brContext $ do
-        uid <- newUser dummyNewUser
+        uid <- addUser dummyNewUser
         tableUser <- runDb $ getUserByIdQuery uid
         let user = tableToAuthUser . fromJust $ tableUser
         keyId <- addPublicKey user pubKey (Just . ExpirationTime $ someTimeAgo)
@@ -162,7 +162,7 @@ testKeyQueries = do
           someTimeLater = addUTCTime hundredMinutes nowish
       pubKey <- rsaPubKey
       myKeyState <- testAppM brContext $ do
-        uid <- newUser dummyNewUser
+        uid <- addUser dummyNewUser
         tableUser <- runDb $ getUserByIdQuery uid
         let user = tableToAuthUser . fromJust $ tableUser
         keyId <- addPublicKey user pubKey (Just . ExpirationTime $ someTimeLater)
