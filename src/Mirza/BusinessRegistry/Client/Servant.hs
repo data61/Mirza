@@ -32,8 +32,8 @@ _pubAPI  :: Client ClientM PublicAPI
 _api@(
   _pubAPI@(
         getKey
-    :<|>getKeyInfo
-    :<|>businessList
+    :<|> getKeyInfo
+    :<|> businessList
   )
   :<|>
   _privAPI@(
