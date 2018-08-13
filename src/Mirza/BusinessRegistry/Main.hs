@@ -237,11 +237,6 @@ interactivlyGetBusinessT :: IO Business
 interactivlyGetBusinessT = do
   biz_gs1_company_prefix <- GS1CompanyPrefix . pack <$>  prompt "GS1CompanyPrefix"
   biz_name      <- pack <$> prompt "Name"
-  biz_function  <- pack <$> prompt "Function"
-  biz_site_name <- pack <$> prompt "Site name"
-  biz_address   <- pack <$> prompt "Address"
-  biz_lat       <- read <$> prompt "Lat"
-  biz_long      <- read <$> prompt "Long"
   return BusinessT{..}
 
 prompt :: String -> IO String
@@ -287,11 +282,6 @@ dummyBusiness :: Text -> IO Business
 dummyBusiness unique = do
   let biz_gs1_company_prefix = GS1CompanyPrefix ("Business" <> unique <> "Prefix")
   let biz_name               = "Business" <> unique <> "Name"
-  let biz_function           = "Business" <> unique <> "Function"
-  let biz_site_name          = "Business" <> unique <> "Site"
-  let biz_address            = "Business" <> unique <> "Address"
-  let biz_lat                = 5
-  let biz_long               = 7
   return BusinessT{..}
 
 
