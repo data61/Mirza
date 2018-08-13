@@ -5,6 +5,7 @@ module Mirza.SupplyChain.Handlers.Queries
     epcState
   , listEvents, eventInfo, eventList, eventUserList, eventsByUser
   , eventUserSignedList
+  , queryUserId
   ) where
 
 
@@ -101,3 +102,6 @@ eventUserSignedList (EvId.EventId eventId) = do
     guard_ (SB.user_events_user_id userEvent `references_` user)
     pure (user, SB.user_events_has_signed userEvent)
   return $ bimap userTableToModel id <$> usersSignedList
+
+queryUserId :: SCSApp context err => ST.User -> AppM context err UserId
+queryUserId = return . ST.userId

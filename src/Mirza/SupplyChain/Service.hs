@@ -74,6 +74,7 @@ privateServer =
   :<|> eventInfo
   :<|> eventList
   :<|> eventUserList
+  :<|> queryUserId
 -- Event Registration
   :<|> insertObjectEvent
   :<|> insertAggEvent

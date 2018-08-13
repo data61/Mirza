@@ -15,6 +15,7 @@ module Mirza.SupplyChain.Client.Servant
   , eventInfo
   , eventList
   , eventUserList
+  , queryUserId
   , insertObjectEvent
   , insertAggEvent
   , insertTransactEvent
@@ -56,11 +57,13 @@ listEvents          :: BasicAuthData -> LabelEPCUrn -> ClientM [Ev.Event]
 eventInfo           :: BasicAuthData -> EventId -> ClientM (Maybe Ev.Event)
 eventList           :: BasicAuthData -> UserId -> ClientM [Ev.Event]
 eventUserList       :: BasicAuthData -> EventId -> ClientM [(T.User, Bool)]
+queryUserId         :: BasicAuthData -> ClientM UserId
 
 insertObjectEvent   :: BasicAuthData -> ObjectEvent -> ClientM (Ev.Event, SB.EventId)
 insertAggEvent      :: BasicAuthData -> AggregationEvent -> ClientM (Ev.Event, SB.EventId)
 insertTransactEvent :: BasicAuthData -> TransactionEvent -> ClientM (Ev.Event, SB.EventId)
 insertTransfEvent   :: BasicAuthData -> TransformationEvent -> ClientM (Ev.Event, SB.EventId)
+
 
 
 _api     :: Client ClientM ServerAPI
@@ -86,6 +89,7 @@ _api@(
     :<|> eventInfo
     :<|> eventList
     :<|> eventUserList
+    :<|> queryUserId
 
     :<|> insertObjectEvent
     :<|> insertAggEvent
