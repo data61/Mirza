@@ -71,13 +71,6 @@ instance HasKatipContext BRContext where
 --       to bottom.
 
 
-data User = User {
-  userId        :: UserId,
-  userFirstName :: Text,
-  userLastName  :: Text
-} deriving (Generic, Eq, Show)
-$(deriveJSON defaultOptions ''User)
-instance ToSchema User
 
 -- | Note that BusinessRegistry.NewUser is expected to become different in the
 -- future, and hence this duplication
