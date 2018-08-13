@@ -63,6 +63,7 @@ library
                     , beam-migrate
                     , beam-postgres
                     , bytestring
+                    , email-validate
                     , hoist-error >= 0.2
                     , HsOpenSSL
                     , http-client
