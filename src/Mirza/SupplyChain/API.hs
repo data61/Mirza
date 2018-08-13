@@ -65,6 +65,7 @@ type PrivateAPI =
   :<|> "event"                              :> Capture "eventId" EventId        :> "info"                     :> Get '[JSON] (Maybe Ev.Event)
   :<|> "event"    :> "list"                 :> Capture "userId" ST.UserId                                     :> Get '[JSON] [Ev.Event]
   :<|> "event"    :> "listUsers"            :> Capture "eventId" EventId                                      :> Get '[JSON] [(User, Bool)]
+  :<|> "user"     :> "getId"                                                                                  :> Get '[JSON] UserId
 -- Event Registration
   :<|> "event"    :> "objectEvent"          :> ReqBody '[JSON] ObjectEvent                                    :> Post '[JSON] (Ev.Event, SB.EventId)
   :<|> "event"    :> "aggregateEvent"       :> ReqBody '[JSON] AggregationEvent                               :> Post '[JSON] (Ev.Event, SB.EventId)
