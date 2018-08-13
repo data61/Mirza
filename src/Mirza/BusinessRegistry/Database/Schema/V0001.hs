@@ -80,11 +80,6 @@ migration () =
         BusinessT
             (field "biz_gs1_company_prefix" gs1CompanyPrefixType)
             (field "biz_name" (varchar (Just defaultFieldMaxLength)) notNull)
-            (field "biz_function" (varchar (Just defaultFieldMaxLength)) notNull)
-            (field "biz_site_name" (varchar (Just defaultFieldMaxLength)) notNull)
-            (field "biz_address" (varchar (Just defaultFieldMaxLength)) notNull)
-            (field "biz_lat" double)
-            (field "biz_long" double)
       )
     <*> createTable "keys"
     (
@@ -146,11 +141,6 @@ deriving instance Show Business
 data BusinessT f = BusinessT
   { biz_gs1_company_prefix :: C f EPC.GS1CompanyPrefix
   , biz_name               :: C f Text
-  , biz_function           :: C f Text
-  , biz_site_name          :: C f Text
-  , biz_address            :: C f Text
-  , biz_lat                :: C f Double
-  , biz_long               :: C f Double
   }
   deriving Generic
 
