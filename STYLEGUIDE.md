@@ -110,18 +110,32 @@ put in the migration function, this seemed like the way to go.
 
 ### Database transactions
 
-The `transaction` function defined in `QueryUtils.hs` should be used whenever
-multiple database actions are performed which must occur atomically:
+`Mirza.Common.Types` defines a `DB` monad, and some functions
 
 ```haskell
+runDb ::  DBConstraint context err => DB context err a -> AppM context err a
+pg    :: Pg a -> DB context err a
+```
 
-(foo,bar) <- transaction $ do
-  insertUser user
-  insertEvent event
-  ...
-  pure (foo,bar) -- for any results which are needed by the code
-                 -- surrounding the transaction.
-...
+which will execute the given `DB` value within a transaction. Generally, any
+single handler should only have a single call to `runDb` unless there is a good
+reason why you _do not_ want transactional semantics.
+
+```haskell
+foo a b c = do
+  thing <- getThing a
+  runDb $ do
+    -- Everything within this do block happens within a single database transaction
+    users <- pg $ runSelectReturningList $ select $ do
+      user <- all_ userTable
+      guard_ (email_address user ==. val_ email)
+      pure user
+    things <- pg $ runSelectReturningList $ select $ do
+        thing <- all_ thingTable
+        guard_ (thingField ==. val athing)
+        pure thing
+    pg $ runInsertReturningList (otherThing theDB) $
+        insertValues [...]
 ```
 
 ## Naming tables in migration
@@ -142,15 +156,24 @@ If you want to make style tweaks to some modules
 
 ## Qualified imports
 
-It is imperative that you make imports as explicit as possible.
-With this end in view, we make a somewhat liberal use of `qualified` imports. If
-you only need to import small number of functions or types from a module and
+It is imperative that you make imports as explicit as possible, but also aim to
+not clutter the course code too much. Most definitions defined within this
+project can be imported without explicitly listing the imports or making them
+qualified - this is our domain specific language. Modules from base or third
+party libraries should always be imported using qualified names or explicit
+import (or both, see below - this is very common in Haskell code bases).
+
+If you only need to import small number of functions or types from a module and
 they do not conflict with other imports, they may be imported explicitly by
 name, for example:
 
 ```haskell
 import Foo (Foo(..),toFoo, FooClass(..))
 ```
+
+This should usually be preferred to importing qualified, as it is as explicit as
+the qualified import, but without making the code more noisy by introducing
+prefixes all over the place.
 
 A common idiom used in Haskell code when for example a specific type is used a
 lot in a module is to import it unqualified for those common types or functions,
@@ -160,6 +183,13 @@ and qualified with a short name for the rest of the module:
 import           Data.Text (Text, pack)
 import qualified Data.Text as T
 ```
+
+Modules this is commonly done for include:
+
+* `Data.Text{.Lazy}` (qualified import as `T` and `TL`, importing `Text` unqualified)
+* `Data.ByteString{.Lazy}` (qualified import as BS and BSL, importing `ByteString` unqualified)
+* `Data.Map` (qualified import M, importing `Map` unqualified)
+* `Data.HashMap` (qualified import HM, importing `HashMap` unqualified)
 
 > Hint: The following snippet can be added to your Haskell language snippets in
 > Visual Studio Code to make typing these imports easier (ask Alex if you need help):
