@@ -82,7 +82,10 @@ threaded because the tests depend on previous tests), it should usually be run
 as:
 
 ```shell
-./runTests.sh --pedantic
+./run_tests.sh
+
+# If you want a coverage report
+./coverage.sh
 ```
 
 ## Acronyms
