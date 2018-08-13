@@ -21,18 +21,18 @@ import           Database.PostgreSQL.Simple (Connection, SqlError)
 
 import           Crypto.Scrypt              (ScryptParams)
 
-import           Control.Lens.TH
-
 import           Katip                      as K
 
+import           Control.Lens.TH
 import           Data.Aeson
 import           Data.Aeson.TH
+
 import           Data.Swagger
+import           Servant                    (FromHttpApiData (..))
+
 import           Data.Text                  (Text)
 
 import           GHC.Generics               (Generic)
-
-import           Servant                    (FromHttpApiData (..))
 
 
 -- *****************************************************************************
