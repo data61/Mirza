@@ -81,19 +81,18 @@ instance ToSchema User
 
 -- | Note that BusinessRegistry.NewUser is expected to become different in the
 -- future, and hence this duplication
-data NewUser = NewUser {
-  newUserPhoneNumber  :: Text,
-  newUserEmailAddress :: EmailAddress,
-  newUserFirstName    :: Text,
-  newUserLastName     :: Text,
-  newUserCompany      :: GS1CompanyPrefix,
-  newUserPassword     :: Text
-} deriving (Generic, Eq, Show)
+data NewUser = NewUser
+  { newUserPhoneNumber  :: Text
+  , newUserEmailAddress :: EmailAddress
+  , newUserFirstName    :: Text
+  , newUserLastName     :: Text
+  , newUserCompany      :: GS1CompanyPrefix
+  , newUserPassword     :: Text
+  } deriving (Generic, Eq, Show)
 $(deriveJSON defaultOptions ''NewUser)
 instance ToSchema NewUser
 
 -- Auth User Types:
-
 newtype AuthUser = AuthUser { authUserId :: UserId }
   deriving (Show, Eq, Read, Generic)
 instance ToSchema AuthUser
