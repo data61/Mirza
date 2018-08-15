@@ -31,6 +31,7 @@ import           Data.Swagger
 import           Data.Text                  (Text)
 
 import           GHC.Generics               (Generic)
+import           GHC.Stack                  (CallStack)
 
 import           Servant                    (FromHttpApiData (..))
 
@@ -152,10 +153,15 @@ instance ToSchema KeyInfoResponse
 
 data BusinessRegistryError
   = DBErrorBRE SqlError
-  | BusinessCreationErrorBRE String
+  -- | The user tried to add a business with the a GS1CompanyPrefix that already exsits.
+  | BusinessCreationErrorNonUniqueBRE
   | UserCreationErrorBRE String
   | KeyErrorBRE KeyError
-  deriving (Show, Eq, Generic)
+  -- | An error that isn't specifically excluded by the types, but that the
+  -- | developers don't think is possible to hit, or know of a situation which
+  -- | could cause this case to be excercised.
+  | LogicErrorBRE CallStack
+  deriving (Show, Generic)
 
 data KeyError
   = InvalidRSAKey PEM_RSAPubKey

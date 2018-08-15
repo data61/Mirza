@@ -11,7 +11,8 @@ import           Mirza.BusinessRegistry.Types            as BRT
 
 import           Test.Hspec.Core.Spec                    (sequential)
 import           Test.Tasty                              hiding (withResource)
-import           Test.Tasty.Hspec                        (around, testSpec)
+import qualified Test.Tasty.Hspec                        as HSpec (around,
+                                                                   testSpec)
 import           Test.Tasty.Runners                      (NumThreads (..))
 
 import           Mirza.BusinessRegistry.Tests.Business   (testBizQueries)
@@ -26,7 +27,7 @@ import           Database.PostgreSQL.Simple
 import           Data.Pool                               (withResource)
 import qualified Data.Pool                               as Pool
 
-import           Katip                                   (Severity (DebugS))
+import           Katip                                   (Severity (InfoS))
 
 -- dbFunc = withDatabaseDebug putStrLn
 
@@ -78,12 +79,13 @@ withDatabaseConnection = bracket openConnection closeConnection
 
 main :: IO ()
 main = do
-  keyTests <- testSpec "HSpec" (sequential $ around withDatabaseConnection testKeyQueries)
-  bizTests <- testSpec "HSpec" (sequential $ around withDatabaseConnection testBizQueries)
-  clientTests <- testSpec "Client HSpec" clientSpec
+  -- keyTests <- HSpec.testSpec "HSpec" (sequential $ HSpec.around withDatabaseConnection testKeyQueries)
+  -- bizTests <- HSpec.testSpec "HSpec" (sequential $ HSpec.around withDatabaseConnection testBizQueries)
+  -- clientTests <- HSpec.testSpec "Client HSpec" clientSpec
+  clientTests <- clientSpec
 
   defaultMain $ localOption (NumThreads 1) $ testGroup "tests"
-    [ keyTests
-    , bizTests
-    , clientTests
+    -- [ keyTests
+    -- , bizTests
+    [ clientTests
     ]
