@@ -3,7 +3,7 @@ module Mirza.BusinessRegistry.Client.Servant
   -- * Public API
     getKey
   , getKeyInfo
-  , businessList
+  , listBusiness
   , addUser
   , addBusiness
   -- * Authenticated API
@@ -25,7 +25,7 @@ import           Data.Proxy                   (Proxy (..))
 
 getKey       :: BRKeyId -> ClientM PEM_RSAPubKey
 getKeyInfo   :: BRKeyId -> ClientM KeyInfoResponse
-businessList :: ClientM [BusinessResponse]
+listBusiness :: ClientM [BusinessResponse]
 addUser      :: NewUser     -> ClientM UserId
 addBusiness  :: NewBusiness -> ClientM GS1CompanyPrefix
 
@@ -39,7 +39,7 @@ _api@(
   _pubAPI@(
         getKey
     :<|> getKeyInfo
-    :<|> businessList
+    :<|> listBusiness
     :<|> addUser
     :<|> addBusiness
   )

@@ -104,9 +104,9 @@ serveSwaggerAPI = toSwagger serverAPI
 -- | Takes in a BusinessRegistryError and converts it to an HTTP error (eg. err400)
 appErrToHttpErr :: BusinessRegistryError -> Handler a
 appErrToHttpErr (KeyErrorBRE kError) = keyErrToHttpErr kError
-appErrToHttpErr x@(DBErrorBRE _sqlError)             = liftIO (print x) >> notImplemented
-appErrToHttpErr x@(BusinessCreationErrorBRE _reason) = liftIO (print x) >> notImplemented
-appErrToHttpErr x@(UserCreationErrorBRE _reason)     = liftIO (print x) >> notImplemented
+appErrToHttpErr x@(DBErrorBRE _sqlError)              = liftIO (print x) >> notImplemented
+appErrToHttpErr x@(BusinessCreationErrorNonUniqueBRE) = liftIO (print x) >> notImplemented
+appErrToHttpErr x@(UserCreationErrorBRE _reason)      = liftIO (print x) >> notImplemented
 
 
 keyErrToHttpErr :: KeyError -> Handler a

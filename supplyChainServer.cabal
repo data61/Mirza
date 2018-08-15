@@ -158,6 +158,7 @@ test-suite businessRegistry-test
                      , supplyChainServer
                      , resource-pool >= 0.2.3
                      , beam-postgres
+                     , beam-core
                      , bytestring
                      , hspec
                      , hspec-core
@@ -169,6 +170,8 @@ test-suite businessRegistry-test
                      , time
                      , tasty
                      , tasty-hspec
+                     , tasty-hunit
+                     , hspec-expectations
                      , wai
                      , warp
                      , servant-client

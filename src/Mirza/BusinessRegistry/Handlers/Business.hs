@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE RecordWildCards       #-}
 
@@ -17,6 +18,13 @@ import           Data.GS1.EPC                             as EPC
 
 import           Database.Beam                            as B
 import           Database.Beam.Backend.SQL.BeamExtensions
+import           Database.PostgreSQL.Simple.Errors        (ConstraintViolation (UniqueViolation),
+                                                           constraintViolation)
+
+import           Control.Lens                             ((^?))
+import           Control.Monad.Except
+
+import           GHC.Stack
 
 
 listBusinesses :: BRApp context err => AppM context err [BusinessResponse]
@@ -36,7 +44,21 @@ listBusinessesQuery = pg $ runSelectReturningList $ select $
 
 
 addBusiness ::  (BRApp context err) => NewBusiness -> AppM context err GS1CompanyPrefix
-addBusiness = (fmap biz_gs1_company_prefix) . runDb . addBusinessQuery . newBusinessToBusiness
+addBusiness = (fmap biz_gs1_company_prefix)
+  . (flip catchError errHandler)
+  . runDb
+  . addBusinessQuery
+  . newBusinessToBusiness
+  where
+    errHandler :: (AsSqlError err, AsBusinessRegistryError err, MonadError err m, MonadIO m) => err -> m a
+    -- errHandler e | True = error "Hit!"
+    errHandler e = case e ^? _SqlError of
+      Nothing -> throwError e
+      Just sqlErr ->
+        case constraintViolation sqlErr of
+          Just (UniqueViolation "businesses_pkey") -> throwing_ _BusinessCreationErrorNonUniqueBRE
+          _ -> throwError e
+
 
 
 newBusinessToBusiness :: NewBusiness -> Business
@@ -48,20 +70,10 @@ newBusinessToBusiness NewBusiness{..} =
 
 
 -- | Will _always_ create a new UUID for the BizId
-addBusinessQuery :: BRApp context err => Business -> DB context err Business
+addBusinessQuery :: (HasCallStack, BRApp context err) => Business -> DB context err Business
 addBusinessQuery biz@BusinessT{..} = do
-  res <- -- handleError errHandler $
-         pg $ runInsertReturningList (_businesses businessRegistryDB) $
-            insertValues [biz]
+  res <- pg $ runInsertReturningList (_businesses businessRegistryDB)
+            $ insertValues [biz]
   case res of
         [r] -> return r
-        -- TODO: Have a proper error response
-        _   -> throwing _BusinessCreationErrorBRE (show res)
-  -- where
-  --   errHandler :: (AsSqlError err, MonadError err m) => err -> m a
-  --   errHandler e = case e ^? _DatabaseError of
-  --     Nothing -> throwError e
-  --     Just sqlErr -> case constraintViolation sqlErr of
-  --       Just (UniqueViolation "users_email_address_key")
-  --         -> throwing_ _BusinessExists
-  --       _ -> throwing _InsertionFail (toServerError (Just . sqlState) sqlErr, email)
+        _   -> throwing _LogicErrorBRE callStack
