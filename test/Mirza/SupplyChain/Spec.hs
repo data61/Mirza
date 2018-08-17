@@ -3,36 +3,29 @@ module Main where
 
 import           Mirza.SupplyChain.Tests.Settings
 
-import           Mirza.SupplyChain.Main           hiding (main)
-import           Mirza.SupplyChain.Migrate
-import           Mirza.SupplyChain.Types          as ST
+import           Mirza.SupplyChain.Database.Migrate
+import           Mirza.SupplyChain.Main             hiding (main)
+import           Mirza.SupplyChain.Types            as ST
 
-import           Test.Hspec.Core.Spec             (sequential)
-import           Test.Tasty                       hiding (withResource)
-import           Test.Tasty.Hspec                 (around, testSpec)
-import           Test.Tasty.Runners               (NumThreads (..))
+import           Test.Hspec.Core.Spec               (sequential)
+import           Test.Tasty                         hiding (withResource)
+import           Test.Tasty.Hspec                   (around, testSpec)
+import           Test.Tasty.Runners                 (NumThreads (..))
 
 import           Mirza.SupplyChain.Tests.Client
-import           Mirza.SupplyChain.Tests.Service  (testServiceQueries)
+import           Mirza.SupplyChain.Tests.Service    (testServiceQueries)
 
-import           Control.Exception                (bracket)
+import           Control.Exception                  (bracket)
 import           Data.Int
 import           Database.Beam.Postgres
 import           Database.PostgreSQL.Simple
 
-import           Data.Pool                        (Pool, destroyAllResources,
-                                                   withResource)
-import qualified Data.Pool                        as Pool
+import           Data.Pool                          (Pool, destroyAllResources,
+                                                     withResource)
+import qualified Data.Pool                          as Pool
 
-import           Katip                            (Severity (DebugS))
+import           Katip                              (Severity (DebugS))
 
--- dbFunc = withDatabaseDebug putStrLn
-
--- INTERESTING NOTE ON MIGRATION
--- receive this error if the tables already exist (not in tests anymore since delete them beforehand)
---  uncaught exception: ErrorCall (Data.Either.Combinators.fromRight: Argument takes form 'Left _'
---  CallStack (from HasCallStack):
---    error, called at src/Data/Either/Combinators.hs:106:24 in either-4.4.1.1-6PiwKYkn4v6B4KO2R2Fu1b:Data.Either.Combinators)
 
 -- drop all tables created by migration. Equivalent to, at the time of writing;
 -- execute_ conn "DROP TABLE IF EXISTS users, keys, businesses, contacts, labels, what_labels, items, transformations, locations, events, whats, \"bizTransactions\", whys, wheres, whens, \"labelEvents\", \"userEvents\", hashes, blockchain;"
