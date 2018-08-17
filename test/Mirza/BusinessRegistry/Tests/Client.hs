@@ -72,6 +72,21 @@ newBusinessToBusinessResponse business = (BusinessResponse
 makeNewBusiness :: GS1CompanyPrefix -> Text -> NewBusiness
 makeNewBusiness prefix name = NewBusiness prefix name
 
+newUserToBasicAuthData :: NewUser -> BasicAuthData
+newUserToBasicAuthData =
+  BasicAuthData
+  <$> encodeUtf8 . getEmailAddress . newUserEmailAddress
+  <*> encodeUtf8 . newUserPassword
+
+-- todo this is copied from keys, move it into a higher level module and remove it from here and there.
+rsaPubKey :: IO PEM_RSAPubKey
+rsaPubKey = PEM_RSAPubKey <$> TIO.readFile "./test/Mirza/Common/testKeys/goodKeys/test.pub"
+
+
+-- todo this is copied from keys, move it into a higher level module and remove it from here and there.
+rsaPubKey' :: FilePath -> IO PEM_RSAPubKey
+rsaPubKey' filename = PEM_RSAPubKey <$> TIO.readFile filename
+
 
 clientSpec :: IO TestTree
 clientSpec = do
@@ -127,8 +142,60 @@ clientSpec = do
           --   `shouldSatisfyIO` isLeft
 
 
+  let userTests = testCaseSteps "Can create users" $ \step ->
+        bracket runApp endWaiApp $ \(_tid,baseurl) -> do
+          let http = runClient baseurl
+              business1CompanyPrefix = (GS1CompanyPrefix "prefix1")
+              primaryBusiness = makeNewBusiness business1CompanyPrefix "Name"
+
+          let userB1U1 = NewUser "" (EmailAddress "") "" "" business1CompanyPrefix "" -- Business1User1
+              userB1U2 = NewUser "" (EmailAddress "2") "" "" business1CompanyPrefix "" -- Business1User2
+              userSameEmail = NewUser "" (newUserEmailAddress userB1U1) "" "" business1CompanyPrefix "" -- Same email address as userB1U1 other fields different.
+              userNonRegisteredBusiness = NewUser "" (EmailAddress "3") "" "" (GS1CompanyPrefix "unregistered") ""
+
+          -- Create a business to use from further test cases (this is tested in
+          --  the businesses tests so doesn't need to be explicitly tested here).
+          _ <- http (addBusiness primaryBusiness)
+
+          -- TODO add comment here
+          goodKey <- rsaPubKey
+
+          -- We delibrately test the "good user" that we will later add so that
+          -- we know that we are failing because they aren't in the DB rather
+          -- then because they are somehow otherwise invalid.
+          step "That a user that doesn't exist can't login"
+          http (addPublicKey (newUserToBasicAuthData userB1U1) goodKey Nothing)
+            `shouldSatisfyIO` isLeft
+          putStrLn "can't log in"
+
+          step "Can create a new user"
+          http (addUser userB1U1)
+            `shouldSatisfyIO` isRight
+
+          step "Can't create a new user with a GS1CompanyPrefix that isn't registered"
+          res1 <- http (addUser userNonRegisteredBusiness)
+          print res
+          res1 `shouldSatisfy` isLeft
+
+          step "Can create a new user with the same email address"
+          http (addUser userSameEmail)
+            `shouldSatisfyIO` isLeft
+
+          step "Can create a second user"
+          http (addUser userB1U2)
+            `shouldSatisfyIO` isRight
+
+          step "That the created user can login"
+          http (addPublicKey (newUserToBasicAuthData userB1U1) goodKey Nothing)
+            `shouldSatisfyIO` isRight
+
+          -- TODO Can't add a user with an empty email address.
+          -- TODO Can't add a user with an empty password.
+
+
   pure $ testGroup "Business Registry HTTP Client tests"
         [ businessTests
+        , userTests
         ]
 -- |
 -- @action \`shouldReturn\` expected@ sets the expectation that @action@
