@@ -251,20 +251,18 @@ runPopulateDatabase :: GlobalOptions -> IO ()
 runPopulateDatabase globals = do
   ctx     <- initBRContext globals
   biz1    <- dummyBusiness "1"
-  ebiz1    <- runAppM ctx $ runDb (addBusinessQuery biz1)
-  bizid1  <- f . fmap primaryKey $ ebiz1
-  user1A' <- dummyUser "A1" bizid1 globals
-  user1B' <- dummyUser "B1" bizid1 globals
-  _eusers  <- runAppM @_ @BusinessRegistryError ctx $
-              runDb (mapM addUserQuery [user1A', user1B'])
+  (Right bizid1)  <- runAppM @_ @BusinessRegistryError ctx $ addBusiness biz1
+  user1A' <- dummyUser "A1" (BizId bizid1) globals
+  user1B' <- dummyUser "B1" (BizId bizid1) globals
+  _eusers <- runAppM @_ @BusinessRegistryError ctx $
+             runDb (mapM addUserQuery [user1A', user1B'])
 
   biz2    <- dummyBusiness "2"
-  ebiz2    <- runAppM ctx $ runDb (addBusinessQuery biz2)
-  bizid2  <- f . fmap primaryKey $ ebiz2
-  user2A' <- dummyUser "A2" bizid2 globals
-  user2B' <- dummyUser "B2" bizid2 globals
-  _eusers  <- runAppM @_ @BusinessRegistryError ctx $
-              runDb (mapM addUserQuery [user2A', user2B'])
+  (Right bizid2)  <- runAppM @_ @BusinessRegistryError ctx $ addBusiness biz2
+  user2A' <- dummyUser "A2" (BizId bizid2) globals
+  user2B' <- dummyUser "B2" (BizId bizid2) globals
+  _eusers <- runAppM @_ @BusinessRegistryError ctx $
+             runDb (mapM addUserQuery [user2A', user2B'])
 
   print biz1
   print user1A'
@@ -274,15 +272,12 @@ runPopulateDatabase globals = do
   print user2A'
   print user2B'
 
-  where f :: Either BusinessRegistryError a -> IO a
-        f = either (error . show) pure
 
-
-dummyBusiness :: Text -> IO Business
+dummyBusiness :: Text -> IO NewBusiness
 dummyBusiness unique = do
-  let biz_gs1_company_prefix = GS1CompanyPrefix ("Business" <> unique <> "Prefix")
-  let biz_name               = "Business" <> unique <> "Name"
-  return BusinessT{..}
+  let newBusinessGs1CompanyPrefix = GS1CompanyPrefix ("Business" <> unique <> "Prefix")
+  let newBusinessName             = "Business" <> unique <> "Name"
+  return NewBusiness{..}
 
 
 dummyUser :: Text -> BizId -> GlobalOptions -> IO Schema.User
