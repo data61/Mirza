@@ -73,7 +73,7 @@ authCheckQuery useremail (Password password) = do
   let userTable = _users businessRegistryDB
   r <- pg $ runSelectReturningList $ select $ do
         user <- all_ userTable
-        guard_ (email_address user  ==. val_ (emailToText useremail))
+        guard_ (email_address user  ==. val_ useremail)
         pure user
   params <- view $ _2 . scryptParams
   case r of

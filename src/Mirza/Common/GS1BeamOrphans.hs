@@ -12,7 +12,8 @@
 -- At the moment, if Database.Beam.BPostgres.Postgres.Syntax is a hidden module
 -- So it is not possible to implement the types yet
 module Mirza.Common.GS1BeamOrphans
-  ( LabelType(..)
+  ( textType
+  , LabelType(..)
   , labelType
   , LocationField(..)
   , locationRefType
@@ -46,8 +47,6 @@ import           Database.PostgreSQL.Simple.FromField
 import           Database.Beam.Postgres.Syntax        (PgDataTypeSyntax)
 import           Database.PostgreSQL.Simple.ToField   (ToField, toField)
 import           GHC.Generics                         (Generic)
-
-
 
 -- Type definitions
 

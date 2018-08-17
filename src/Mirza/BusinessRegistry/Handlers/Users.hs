@@ -47,8 +47,7 @@ newUserQuery (BRT.NewUser phone useremail firstName lastName biz password) = do
   res <- BRT.pg $ runInsertReturningList (Schema._users Schema.businessRegistryDB) $
       insertValues
        [Schema.UserT userId (Schema.BizId  biz) firstName lastName
-               phone (Scrypt.getEncryptedPass encPass)
-               (BRT.emailToText useremail)
+               phone (Scrypt.getEncryptedPass encPass) useremail
        ]
   case res of
       [r] -> return $ BRT.UserId $ user_id r

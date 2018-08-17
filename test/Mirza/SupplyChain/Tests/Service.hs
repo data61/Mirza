@@ -32,8 +32,7 @@ import           GHC.Stack                                    (HasCallStack)
 import           Servant
 import           Test.Hspec
 
-import           Text.Email.Validate                          (
-                                                               toByteString)
+import           Text.Email.Validate                          (toByteString)
 
 import qualified Crypto.Scrypt                                as Scrypt
 
