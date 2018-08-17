@@ -329,10 +329,10 @@ findInstLabelId' cp sn msfv mir mat = do
 
 
 getUser :: EmailAddress -> DB context err (Maybe ST.User)
-getUser (EmailAddress email) = do
+getUser useremail = do
   r <- pg $ runSelectReturningList $ select $ do
     allUsers <- all_ (SB._users SB.supplyChainDb)
-    guard_ (SB.user_email_address allUsers ==. val_ email)
+    guard_ (SB.user_email_address allUsers ==. val_ (emailToText useremail))
     pure allUsers
   return $ case r of
     [u] -> Just . QU.userTableToModel $ u

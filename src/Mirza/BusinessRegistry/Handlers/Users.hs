@@ -21,11 +21,15 @@ import qualified Crypto.Scrypt                            as Scrypt
 
 import           Control.Lens                             (view, _2)
 import           Control.Monad.IO.Class                   (liftIO)
-import           Data.Text.Encoding                       (encodeUtf8)
+import           Data.Text.Encoding                       (decodeUtf8,
+                                                           encodeUtf8)
+
+import           Text.Email.Validate                      (EmailAddress,
+                                                           toByteString,
+                                                           validate)
 
 
-
-newUser ::  (BRApp context err, BRT.HasScryptParams context)
+newUser :: (BRApp context err, BRT.HasScryptParams context)
         => BRT.NewUser
         -> BRT.AppM context err BRT.UserId
 newUser = BRT.runDb . newUserQuery
@@ -35,7 +39,7 @@ newUser = BRT.runDb . newUserQuery
 newUserQuery :: (BRT.AsBusinessRegistryError err, BRT.HasScryptParams context)
              => BRT.NewUser
              -> BRT.DB context err BRT.UserId
-newUserQuery (BRT.NewUser phone (BRT.EmailAddress email) firstName lastName biz password) = do
+newUserQuery (BRT.NewUser phone useremail firstName lastName biz password) = do
   params <- view $ _2 . BRT.scryptParams
   encPass <- liftIO $ Scrypt.encryptPassIO params (Scrypt.Pass $ encodeUtf8 password)
   userId <- newUUID
@@ -43,7 +47,8 @@ newUserQuery (BRT.NewUser phone (BRT.EmailAddress email) firstName lastName biz 
   res <- BRT.pg $ runInsertReturningList (Schema._users Schema.businessRegistryDB) $
       insertValues
        [Schema.UserT userId (Schema.BizId  biz) firstName lastName
-               phone (Scrypt.getEncryptedPass encPass) email
+               phone (Scrypt.getEncryptedPass encPass)
+               (BRT.emailToText useremail)
        ]
   case res of
       [r] -> return $ BRT.UserId $ user_id r

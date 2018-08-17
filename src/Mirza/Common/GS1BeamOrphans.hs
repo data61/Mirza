@@ -476,4 +476,3 @@ instance ToField LabelType where
 
 labelType :: BMigrate.DataType PgDataTypeSyntax LabelType
 labelType = textType
-
