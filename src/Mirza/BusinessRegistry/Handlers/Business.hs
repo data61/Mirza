@@ -51,14 +51,12 @@ addBusiness = (fmap biz_gs1_company_prefix)
   . newBusinessToBusiness
   where
     errHandler :: (AsSqlError err, AsBusinessRegistryError err, MonadError err m, MonadIO m) => err -> m a
-    -- errHandler e | True = error "Hit!"
     errHandler e = case e ^? _SqlError of
       Nothing -> throwError e
       Just sqlErr ->
         case constraintViolation sqlErr of
           Just (UniqueViolation "businesses_pkey") -> throwing_ _BusinessCreationErrorNonUniqueBRE
           _ -> throwError e
-
 
 
 newBusinessToBusiness :: NewBusiness -> Business
@@ -69,7 +67,6 @@ newBusinessToBusiness NewBusiness{..} =
     }
 
 
--- | Will _always_ create a new UUID for the BizId
 addBusinessQuery :: (HasCallStack, BRApp context err) => Business -> DB context err Business
 addBusinessQuery biz@BusinessT{..} = do
   res <- pg $ runInsertReturningList (_businesses businessRegistryDB)
