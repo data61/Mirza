@@ -73,6 +73,7 @@ import           Control.Lens
 import           Control.Monad.Error.Lens
 
 import           Data.Swagger
+import           Data.Swagger.Lens
 
 import           GHC.Generics                         (Generic)
 
@@ -103,9 +104,10 @@ instance FromJSON EmailAddress where
     Left err -> fail err
     Right e  -> pure e
 
--- No clue if this is correct
 instance ToSchema EmailAddress where
-  declareNamedSchema _ = pure $ NamedSchema (Just "EmailAddress") byteSchema
+  declareNamedSchema _ = declareNamedSchema (Proxy :: Proxy Text)
+    <&> name ?~ "Email address"
+    <&> schema . description ?~ "An RFC 5322 email address"
 
 emailToText :: EmailAddress -> Text
 emailToText = decodeUtf8 . toByteString
