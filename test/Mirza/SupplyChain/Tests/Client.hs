@@ -1,5 +1,7 @@
 module Mirza.SupplyChain.Tests.Client where
 
+import           Mirza.Common.Types               (unsafeMkEmailAddress)
+
 import           Mirza.SupplyChain.Tests.Settings
 
 import           Control.Concurrent               (ThreadId, forkIO, killThread)
@@ -15,7 +17,6 @@ import           Servant.Client
 
 import           Data.Bifunctor
 import           Data.Either                      (isLeft, isRight)
-import           Data.Maybe                       (fromJust)
 
 import           Data.Text.Encoding               (encodeUtf8)
 
@@ -33,7 +34,7 @@ import           Mirza.SupplyChain.Client.Servant
 import           Katip                            (Severity (DebugS))
 import           Mirza.SupplyChain.Tests.Dummies
 
-import           Text.Email.Validate              (emailAddress, toByteString)
+import           Text.Email.Validate              (toByteString)
 
 
 -- Cribbed from https://github.com/haskell-servant/servant/blob/master/servant-client/test/Servant/ClientSpec.hs
@@ -43,7 +44,7 @@ import           Text.Email.Validate              (emailAddress, toByteString)
 userABC :: NewUser
 userABC = NewUser
   { newUserPhoneNumber = "0400 111 222"
-  , newUserEmailAddress = fromJust . emailAddress $ "abc@example.com"
+  , newUserEmailAddress = unsafeMkEmailAddress "abc@example.com"
   , newUserFirstName = "Biz Johnny"
   , newUserLastName = "Smith Biz"
   , newUserCompany = GS1CompanyPrefix "something"
