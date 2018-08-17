@@ -28,6 +28,7 @@ then
   test_report=`./run_tests.sh --coverage "${args[@]}" 2>&1 |
               egrep -i "$report_link_header" |
               sed "s/$report_link_header//g"`
+  echo "Report generation complete."
 
   echo "Your report lives in $test_report"
   echo "$OSTYPE"
