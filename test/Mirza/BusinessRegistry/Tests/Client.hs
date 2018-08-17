@@ -1,5 +1,7 @@
 module Mirza.BusinessRegistry.Tests.Client where
 
+import           Mirza.Common.Types                    (unsafeMkEmailAddress)
+
 import           Mirza.BusinessRegistry.Tests.Settings (testDbConnStr)
 
 import           Control.Concurrent                    (ThreadId, forkIO,
@@ -29,10 +31,7 @@ import           Data.GS1.EPC                          (GS1CompanyPrefix (..))
 
 import           Katip                                 (Severity (DebugS))
 
-import           Data.Maybe                            (fromJust)
-
-import           Text.Email.Validate                   (emailAddress,
-                                                        toByteString)
+import           Text.Email.Validate                   (toByteString)
 
 
 -- Cribbed from https://github.com/haskell-servant/servant/blob/master/servant-client/test/Servant/ClientSpec.hs
@@ -42,7 +41,7 @@ import           Text.Email.Validate                   (emailAddress,
 userABC :: NewUser
 userABC = NewUser
   { newUserPhoneNumber = "0400 111 222"
-  , newUserEmailAddress = fromJust . emailAddress $ "abc@example.com"
+  , newUserEmailAddress = unsafeMkEmailAddress "abc@example.com"
   , newUserFirstName = "Johnny"
   , newUserLastName = "Smith"
   , newUserCompany = GS1CompanyPrefix "something"

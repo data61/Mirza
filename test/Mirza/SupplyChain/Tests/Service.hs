@@ -32,10 +32,7 @@ import           GHC.Stack                                    (HasCallStack)
 import           Servant
 import           Test.Hspec
 
-import           Data.ByteString                              (ByteString)
-
-import           Text.Email.Validate                          (EmailAddress,
-                                                               emailAddress,
+import           Text.Email.Validate                          (
                                                                toByteString)
 
 import qualified Crypto.Scrypt                                as Scrypt
@@ -44,10 +41,6 @@ testAppM :: context -> AppM context AppError a -> IO a
 testAppM scsContext act = runAppM scsContext act >>= \case
     Left err -> fail (show err)
     Right a -> pure a
-
--- | Only use this with
-unsafeMkEmailAddress :: ByteString -> EmailAddress
-unsafeMkEmailAddress = fromJust . emailAddress
 
 testServiceQueries :: HasCallStack => SpecWith SCSContext
 testServiceQueries = do
