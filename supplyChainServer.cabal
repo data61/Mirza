@@ -160,6 +160,8 @@ test-suite businessRegistry-test
                      , beam-postgres
                      , beam-core
                      , bytestring
+                     , directory
+                     , filepath
                      , hspec
                      , hspec-core
                      , http-client

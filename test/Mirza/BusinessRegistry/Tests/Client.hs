@@ -18,8 +18,15 @@ import           Network.Wai.Handler.Warp
 import           Servant.API.BasicAuth
 import           Servant.Client
 
+import           Control.Monad                          (forM_)
 import           Data.Either
+import           Data.List                              (isSuffixOf)
+import           Data.Text                              (Text)
 import           Data.Text.Encoding                     (encodeUtf8)
+import qualified Data.Text.IO                           as TIO
+import           System.Directory                       (listDirectory)
+import           System.FilePath                        ((</>))
+import           System.IO                              (FilePath)
 
 import           Test.Hspec.Expectations
 import           Test.Tasty
@@ -193,9 +200,57 @@ clientSpec = do
           -- TODO Can't add a user with an empty password.
 
 
+  let keyTests = testCaseSteps "That keys work as expected" $ \step -> do
+        bracket runApp endWaiApp $ \(_tid, baseurl) -> do
+          step "PENDING"
+          let http = runClient baseurl
+              business1CompanyPrefix = (GS1CompanyPrefix "prefix1")
+              business1 = makeNewBusiness business1CompanyPrefix "Name"
+
+          let userB1U1 = NewUser "" (EmailAddress "keys1") "" "" business1CompanyPrefix "" -- Business1User1
+              -- userB1U2 = NewUser "" (EmailAddress "keys2") "" "" business1CompanyPrefix "" -- Business1User2
+              -- userB2U1 = NewUser "" (EmailAddress "keys3") "" "" business2CompanyPrefix "" -- Business2User1
+              -- userB2U2 = NewUser "" (EmailAddress "keys4") "" "" business2CompanyPrefix "" -- Business2User2
+
+          -- Create a business to use from further test cases (this is tested in
+          --  the businesses tests so doesn't need to be explicitly tested here).
+          _ <- http (addBusiness business1)
+
+          -- Create a business to use from further test cases (this is tested in
+          --  the businesses tests so doesn't need to be explicitly tested here).
+          _ <- http (addUser userB1U1)
+
+          -- TODO add comment here
+          goodKey <- rsaPubKey
+
+
+          step "Can add a good key"
+          http (addPublicKey (newUserToBasicAuthData userB1U1) goodKey Nothing)
+            `shouldSatisfyIO` isRight
+
+
+          let testDirectory keyType predicate = do
+                let directory = "test" </> "Mirza" </> "Common" </> "testKeys" </> keyType
+                files <- filter (".pub" `isSuffixOf`) <$> listDirectory directory
+                let fullyQualifiedFiles = (directory </>) <$> files
+                keys <- traverse rsaPubKey' fullyQualifiedFiles
+                forM_ (zip files keys) $ \(keyName,key) -> do
+                  step $ "Testing " ++ keyType ++ " key: " ++ keyName
+                  http (addPublicKey (newUserToBasicAuthData userB1U1) key Nothing)
+                    `shouldSatisfyIO` predicate
+
+          step "Can add all of the good keys"
+          testDirectory "goodKeys" isRight
+
+          -- TODO: Change small keys to bad keys and rename the keys to the type of the key problem
+          step "Can't add any of the bad keys"
+          testDirectory "smallKeys" isLeft
+
+
   pure $ testGroup "Business Registry HTTP Client tests"
         [ businessTests
         , userTests
+        , keyTests
         ]
 -- |
 -- @action \`shouldReturn\` expected@ sets the expectation that @action@
