@@ -39,6 +39,11 @@ import           Control.Exception                       (finally)
 import           Katip                                   as K
 import           System.IO                               (stdout)
 
+import           Text.Email.Validate                     (EmailAddress,
+                                                          emailAddress,
+                                                          toByteString,
+                                                          unsafeEmailAddress,
+                                                          validate)
 
 
 --------------------------------------------------------------------------------
@@ -200,11 +205,19 @@ interactivlyGetUserT opts = do
   last_name     <- pack <$> prompt "last_name    "
   phone_number  <- pack <$> prompt "phone_number "
   raw_password  <- pack <$> prompt "password"
-  email_address <- pack <$> prompt "email_address"
+  email_address <- getUserEmailInteractive
   Scrypt.EncryptedPass password_hash
                 <- Scrypt.encryptPassIO params (Scrypt.Pass $ encodeUtf8 raw_password)
   return UserT{..}
-
+  where
+    getUserEmailInteractive :: IO EmailAddress
+    getUserEmailInteractive = do
+      useremail <- encodeUtf8 . pack <$> prompt "email_address"
+      case validate useremail of
+        Left reason -> do
+          putStrLn $ "Invalid Email. Reason: " ++ reason
+          getUserEmailInteractive
+        Right email -> pure email
 
 createScryptParams :: GlobalOptions -> IO Scrypt.ScryptParams
 createScryptParams GlobalOptions{goScryptN,goScryptP,goScryptR} =
@@ -304,7 +317,7 @@ dummyUser unique business_uid opts = do
   let last_name     = "User" <> unique <> "LastName"
   let phone_number  = "User" <> unique <> "PhoneNumber"
   let raw_password  = "User" <> unique <> "Password"
-  let email_address = unique <> "@example.com"
+  let email_address = unsafeEmailAddress (encodeUtf8 unique) "example.com"
   Scrypt.EncryptedPass password_hash
       <- Scrypt.encryptPassIO params (Scrypt.Pass $ encodeUtf8 raw_password)
   return UserT{..}
