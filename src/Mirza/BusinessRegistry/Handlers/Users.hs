@@ -20,7 +20,9 @@ import           Database.Beam.Backend.SQL.BeamExtensions
 import qualified Crypto.Scrypt                            as Scrypt
 
 import           Control.Lens                             (view, _2)
+import           Control.Monad                            (when)
 import           Control.Monad.IO.Class                   (liftIO)
+import           Data.Maybe                               (isNothing)
 import           Data.Text.Encoding                       (encodeUtf8)
 
 
@@ -35,14 +37,21 @@ addUser = BRT.runDb . addUserQuery
 addUserQuery :: (BRT.AsBusinessRegistryError err, BRT.HasScryptParams context)
              => BRT.NewUser
              -> BRT.DB context err BRT.UserId
-addUserQuery (BRT.NewUser phone (BRT.EmailAddress email) firstName lastName biz password) = do
+addUserQuery (BRT.NewUser phone (BRT.EmailAddress email) firstName lastName companyPrefix password) = do
   params <- view $ _2 . BRT.scryptParams
   encPass <- liftIO $ Scrypt.encryptPassIO params (Scrypt.Pass $ encodeUtf8 password)
   userId <- newUUID
+
+  bizs <- BRT.pg $ runSelectReturningOne $ select $ do
+    bizes <- all_ (Schema._businesses Schema.businessRegistryDB)
+    guard_ (biz_gs1_company_prefix bizes ==. val_ companyPrefix)
+    pure bizes
+  when (isNothing bizs) $ BRT.throwing_ BRT._BusinessDoesNotExistBRE
+
   -- TODO: use Database.Beam.Backend.SQL.runReturningOne?
   res <- BRT.pg $ runInsertReturningList (Schema._users Schema.businessRegistryDB) $
       insertValues
-       [Schema.UserT userId (Schema.BizId  biz) firstName lastName
+       [Schema.UserT userId (Schema.BizId companyPrefix) firstName lastName
                phone (Scrypt.getEncryptedPass encPass) email
        ]
   case res of
