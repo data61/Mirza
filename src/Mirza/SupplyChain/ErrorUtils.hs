@@ -19,7 +19,6 @@ import           Control.Monad.Except                (MonadError (..),
                                                       throwError)
 import           Data.ByteString                     (ByteString)
 import qualified Data.ByteString.Lazy.Char8          as LBSC8
-import           Data.Text.Encoding                  (encodeUtf8)
 
 import           Data.GS1.EPC
 import           Database.PostgreSQL.Simple.Internal (SqlError (..))
