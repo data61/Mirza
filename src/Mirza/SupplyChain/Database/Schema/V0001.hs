@@ -764,11 +764,6 @@ instance Table SignatureT where
 -- Hashes Table
 --------------------------------------------------------------------------------
 
-{-
-    hashTable   =  "CREATE TABLE IF NOT EXISTS Hashes (id INTEGER PRIMARY KEY AUTOINCREMENT, eventID INTEGER NOT NULL, hash BLOB NOT NULL, isSigned INTEGER DEFAULT 0, signedByUserID INTEGER, keyID INTEGER DEFAULT -1,timestamp INTEGER NOT NULL);"
-
--}
-
 type Hashes = HashesT Identity
 type HashesId = PrimaryKey HashesT Identity
 
@@ -797,9 +792,6 @@ instance Table HashesT where
 -- Blockchain Table
 --------------------------------------------------------------------------------
 
-{- blockChainTable = "CREATE TABLE IF NOT EXISTS BlockchainTable (id INTEGER PRIMARY KEY AUTOINCREMENT, eventID INTEGER NOT NULL, hash BLOB NOT NULL, blockChain address text NOT NULL, blockChainID INTEGER NOT NULL);"
-
--}
 type BlockChain = BlockChainT Identity
 type BlockChainId = PrimaryKey BlockChainT Identity
 
