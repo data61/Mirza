@@ -13,12 +13,12 @@ import           Mirza.SupplyChain.Tests.Dummies
 import           Mirza.SupplyChain.Tests.Settings
 
 import           Mirza.SupplyChain.Auth
+import           Mirza.SupplyChain.Database.Schema            as Schema
 import           Mirza.SupplyChain.Handlers.Contacts
 import           Mirza.SupplyChain.Handlers.EventRegistration
 import           Mirza.SupplyChain.Handlers.Queries
 import           Mirza.SupplyChain.Handlers.Users
-import qualified Mirza.SupplyChain.StorageBeam                as SB
-import           Mirza.SupplyChain.Types
+import           Mirza.SupplyChain.Types                      as ST
 
 import           Control.Monad                                (void)
 import           Data.Maybe                                   (fromJust)
@@ -59,7 +59,7 @@ testServiceQueries = do
   --       keyInfo <- getPublicKeyInfo keyId
 
   --       -- Adding the event
-  --       (_insertedEvent, (SB.EventId eventId)) <- insertObjectEvent dummyUser dummyObject
+  --       (_insertedEvent, (Schema.EventId eventId)) <- insertObjectEvent dummyUser dummyObject
   --       let myDigest = SHA256
   --           mySign = Signature "c2FqaWRhbm93ZXIyMw=="
   --           mySignedEvent = SignedEvent (EvId.EventId eventId) keyId mySign myDigest
@@ -77,19 +77,19 @@ testServiceQueries = do
         pure (uid, user)
       case res of
         (_, Nothing) -> fail "Received Nothing for user"
-        ((UserId uid), Just user :: Maybe (SB.UserT Identity)) ->
+        ((ST.UserId uid), Just user :: Maybe (Schema.UserT Identity)) ->
           user `shouldSatisfy`
             (\u ->
-              (SB.user_phone_number u) == (newUserPhoneNumber dummyNewUser) &&
-              (SB.user_email_address u) == (getEmailAddress . newUserEmailAddress $ dummyNewUser) &&
-              (SB.user_first_name u) == (newUserFirstName dummyNewUser) &&
-              (SB.user_last_name u) == (newUserLastName dummyNewUser) &&
-              (SB.user_biz_id u) == (SB.BizId (newUserCompany dummyNewUser)) &&
+              (Schema.user_phone_number u) == (newUserPhoneNumber dummyNewUser) &&
+              (Schema.user_email_address u) == (getEmailAddress . newUserEmailAddress $ dummyNewUser) &&
+              (Schema.user_first_name u) == (newUserFirstName dummyNewUser) &&
+              (Schema.user_last_name u) == (newUserLastName dummyNewUser) &&
+              (Schema.user_biz_id u) == (Schema.BizId (newUserCompany dummyNewUser)) &&
               -- note database bytestring includes the salt, this checks password
               (Scrypt.verifyPass'
                 (Scrypt.Pass $ encodeUtf8 $ newUserPassword dummyNewUser)
-                (Scrypt.EncryptedPass $ SB.user_password_hash u)) &&
-              (SB.user_id u) == uid
+                (Scrypt.EncryptedPass $ Schema.user_password_hash u)) &&
+              (Schema.user_id u) == uid
             )
 
   describe "authCheck tests" $
@@ -297,7 +297,7 @@ testServiceQueries = do
 
   describe "DWhere" $
     it "Insert and find DWhere" $ \scsContext -> do
-      let eventId = SB.EventId dummyId
+      let eventId = Schema.EventId dummyId
       insertedDWhere <- testAppM scsContext $ do
         void $ runDb $ insertDWhere dummyDWhere eventId
         runDb $ findDWhere eventId

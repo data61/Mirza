@@ -23,15 +23,15 @@ module Mirza.SupplyChain.Client.Servant
   ) where
 
 import           Mirza.SupplyChain.API
-import qualified Mirza.SupplyChain.StorageBeam as SB
-import           Mirza.SupplyChain.Types       as T
+import qualified Mirza.SupplyChain.Database.Schema as Schema
+import           Mirza.SupplyChain.Types           as T
 
 import           Servant.API
 import           Servant.Client
 
-import           Data.Proxy                    (Proxy (..))
+import           Data.Proxy                        (Proxy (..))
 
-import qualified Data.GS1.Event                as Ev
+import qualified Data.GS1.Event                    as Ev
 import           Data.GS1.EventId
 
 import           Data.UUID.Types
@@ -59,10 +59,10 @@ eventList           :: BasicAuthData -> UserId -> ClientM [Ev.Event]
 eventUserList       :: BasicAuthData -> EventId -> ClientM [(T.User, Bool)]
 queryUserId         :: BasicAuthData -> ClientM UserId
 
-insertObjectEvent   :: BasicAuthData -> ObjectEvent -> ClientM (Ev.Event, SB.EventId)
-insertAggEvent      :: BasicAuthData -> AggregationEvent -> ClientM (Ev.Event, SB.EventId)
-insertTransactEvent :: BasicAuthData -> TransactionEvent -> ClientM (Ev.Event, SB.EventId)
-insertTransfEvent   :: BasicAuthData -> TransformationEvent -> ClientM (Ev.Event, SB.EventId)
+insertObjectEvent   :: BasicAuthData -> ObjectEvent -> ClientM (Ev.Event, Schema.EventId)
+insertAggEvent      :: BasicAuthData -> AggregationEvent -> ClientM (Ev.Event, Schema.EventId)
+insertTransactEvent :: BasicAuthData -> TransactionEvent -> ClientM (Ev.Event, Schema.EventId)
+insertTransfEvent   :: BasicAuthData -> TransformationEvent -> ClientM (Ev.Event, Schema.EventId)
 
 
 
