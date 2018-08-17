@@ -32,12 +32,22 @@ import           GHC.Stack                                    (HasCallStack)
 import           Servant
 import           Test.Hspec
 
+import           Data.ByteString                              (ByteString)
+
+import           Text.Email.Validate                          (EmailAddress,
+                                                               emailAddress,
+                                                               toByteString)
+
 import qualified Crypto.Scrypt                                as Scrypt
 
 testAppM :: context -> AppM context AppError a -> IO a
 testAppM scsContext act = runAppM scsContext act >>= \case
     Left err -> fail (show err)
     Right a -> pure a
+
+-- | Only use this with
+unsafeMkEmailAddress :: ByteString -> EmailAddress
+unsafeMkEmailAddress = fromJust . emailAddress
 
 testServiceQueries :: HasCallStack => SpecWith SCSContext
 testServiceQueries = do
@@ -81,7 +91,7 @@ testServiceQueries = do
           user `shouldSatisfy`
             (\u ->
               (Schema.user_phone_number u) == (newUserPhoneNumber dummyNewUser) &&
-              (Schema.user_email_address u) == (getEmailAddress . newUserEmailAddress $ dummyNewUser) &&
+              (Schema.user_email_address u) == (emailToText . newUserEmailAddress $ dummyNewUser) &&
               (Schema.user_first_name u) == (newUserFirstName dummyNewUser) &&
               (Schema.user_last_name u) == (newUserLastName dummyNewUser) &&
               (Schema.user_biz_id u) == (Schema.BizId (newUserCompany dummyNewUser)) &&
@@ -98,8 +108,8 @@ testServiceQueries = do
         uid <- newUser dummyNewUser
         let check = unBasicAuthCheck $ authCheck scsContext
         let basicAuthData = BasicAuthData
-                          (encodeUtf8 $ getEmailAddress $ newUserEmailAddress dummyNewUser)
-                          (encodeUtf8 $ newUserPassword dummyNewUser)
+                          (toByteString $ newUserEmailAddress dummyNewUser)
+                          (encodeUtf8   $ newUserPassword     dummyNewUser)
 
         user <- liftIO $ check basicAuthData
         pure (uid, user)
@@ -193,7 +203,7 @@ testServiceQueries = do
     (after_ clearContact) . describe "Contacts" $
       describe "Add contact" $
         it "addContact simple" $ \scsContext -> do
-          let myContact = makeDummyNewUser (EmailAddress "first@gmail.com")
+          let myContact = makeDummyNewUser (unsafeMkEmailAddress "first@gmail.com")
           (hasBeenAdded, isContact) <- testAppM scsContext $ do
             uid <- newUser dummyNewUser
             user <- runDb $ getUser . newUserEmailAddress $ dummyNewUser
@@ -210,7 +220,7 @@ testServiceQueries = do
         (hasBeenAdded, hasBeenRemoved) <- testAppM scsContext $ do
           void $ newUser dummyNewUser
           mUser <- runDb $ getUser $ newUserEmailAddress dummyNewUser
-          let myContact = makeDummyNewUser (EmailAddress "first@gmail.com")
+          let myContact = makeDummyNewUser (unsafeMkEmailAddress "first@gmail.com")
               user = fromJust mUser
           myContactUid <- newUser myContact
           hasBeenAdded <- addContact user myContactUid
@@ -225,8 +235,8 @@ testServiceQueries = do
           void $ newUser dummyNewUser
           mUser <- runDb $ getUser $ newUserEmailAddress dummyNewUser
         -- Add a new user who is NOT a contact
-          otherUserId <- newUser $ makeDummyNewUser (EmailAddress "other@gmail.com")
-          let myContact = makeDummyNewUser (EmailAddress "first@gmail.com")
+          otherUserId <- newUser $ makeDummyNewUser (unsafeMkEmailAddress "other@gmail.com")
+          let myContact = makeDummyNewUser (unsafeMkEmailAddress "first@gmail.com")
               user = fromJust mUser
           myContactUid <- newUser myContact
           hasBeenAdded <- addContact user myContactUid
@@ -242,10 +252,10 @@ testServiceQueries = do
         (hasBeenAdded, contactList, users) <- testAppM scsContext $ do
           void $ newUser dummyNewUser
           mUser <- runDb $ getUser $ newUserEmailAddress dummyNewUser
-          let myContact = makeDummyNewUser (EmailAddress "first@gmail.com")
+          let myContact = makeDummyNewUser (unsafeMkEmailAddress "first@gmail.com")
               user = fromJust mUser
           myContactUid <- newUser myContact
-          mMyContact_user <- runDb $ getUser (EmailAddress "first@gmail.com")
+          mMyContact_user <- runDb $ getUser (unsafeMkEmailAddress "first@gmail.com")
           hasBeenAdded <- addContact user myContactUid
           contactList <- listContacts user
           pure (hasBeenAdded, contactList, [fromJust mMyContact_user])
@@ -254,10 +264,10 @@ testServiceQueries = do
       it "Add many and list" $ \scsContext -> do
         (contactList, users) <- testAppM scsContext $ do
           -- Making the users
-          let myContact_1 = makeDummyNewUser (EmailAddress "first@gmail.com")
-              myContact_2 = makeDummyNewUser (EmailAddress "second@gmail.com")
-              myContact_3 = makeDummyNewUser (EmailAddress "third@gmail.com")
-              myContact_4 = makeDummyNewUser (EmailAddress "fourth@gmail.com")
+          let myContact_1 = makeDummyNewUser (unsafeMkEmailAddress "first@gmail.com")
+              myContact_2 = makeDummyNewUser (unsafeMkEmailAddress "second@gmail.com")
+              myContact_3 = makeDummyNewUser (unsafeMkEmailAddress "third@gmail.com")
+              myContact_4 = makeDummyNewUser (unsafeMkEmailAddress "fourth@gmail.com")
 
           -- Adding the users to the DB
           void $ newUser dummyNewUser
@@ -268,10 +278,10 @@ testServiceQueries = do
 
           -- Getting the users
           mUser <- runDb $ getUser $ newUserEmailAddress dummyNewUser
-          mMyContact_1 <- runDb $ getUser (EmailAddress "first@gmail.com")
-          mMyContact_2 <- runDb $ getUser (EmailAddress "second@gmail.com")
-          mMyContact_3 <- runDb $ getUser (EmailAddress "third@gmail.com")
-          mMyContact_4 <- runDb $ getUser (EmailAddress "fourth@gmail.com")
+          mMyContact_1 <- runDb $ getUser (unsafeMkEmailAddress "first@gmail.com")
+          mMyContact_2 <- runDb $ getUser (unsafeMkEmailAddress "second@gmail.com")
+          mMyContact_3 <- runDb $ getUser (unsafeMkEmailAddress "third@gmail.com")
+          mMyContact_4 <- runDb $ getUser (unsafeMkEmailAddress "fourth@gmail.com")
 
           let user = fromJust mUser
               myContact_1_user = fromJust mMyContact_1

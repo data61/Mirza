@@ -6,10 +6,14 @@ import           Data.GS1.EPC                 (GS1CompanyPrefix (..))
 import           Mirza.BusinessRegistry.Types as BRT
 import           Mirza.Common.Types           as CT
 
+import           Data.Maybe                   (fromJust)
+
+import           Text.Email.Validate          (emailAddress)
+
 dummyNewUser :: BRT.NewUser
-dummyNewUser = makeDummyNewUser (EmailAddress "fake@gmail.com")
+dummyNewUser = makeDummyNewUser (fromJust $ emailAddress "fake@gmail.com")
 
 -- | Utility function to make many users on the fly
 makeDummyNewUser :: CT.EmailAddress -> BRT.NewUser
-makeDummyNewUser emailAddress =
-    BRT.NewUser "000" emailAddress "Bob" "Smith" (GS1CompanyPrefix "blah Ltd") "password"
+makeDummyNewUser useremail =
+    BRT.NewUser "000" useremail "Bob" "Smith" (GS1CompanyPrefix "blah Ltd") "password"
