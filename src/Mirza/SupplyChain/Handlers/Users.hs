@@ -7,12 +7,12 @@ module Mirza.SupplyChain.Handlers.Users
 
 
 import           Mirza.Common.Utils
+import           Mirza.SupplyChain.Database.Schema        as Schema
 import           Mirza.SupplyChain.ErrorUtils             (getSqlErrorCode,
                                                            throwBackendError,
                                                            toServerError)
 import           Mirza.SupplyChain.Handlers.Common
 import           Mirza.SupplyChain.QueryUtils
-import qualified Mirza.SupplyChain.StorageBeam            as SB
 import           Mirza.SupplyChain.Types                  hiding (NewUser (..),
                                                            User (userId))
 import qualified Mirza.SupplyChain.Types                  as ST
@@ -67,13 +67,13 @@ insertUser :: AsServiceError err
 insertUser encPass (ST.NewUser phone useremail firstName lastName biz _) = do
   userId <- newUUID
   -- TODO: use Database.Beam.Backend.SQL.runReturningOne?
-  res <- handleError errHandler $ pg $ runInsertReturningList (SB._users SB.supplyChainDb) $
+  res <- handleError errHandler $ pg $ runInsertReturningList (Schema._users Schema.supplyChainDb) $
     insertValues
-      [SB.User userId (SB.BizId  biz) firstName lastName
+      [Schema.User userId (Schema.BizId  biz) firstName lastName
                phone (Scrypt.getEncryptedPass encPass) (emailToText useremail)
       ]
   case res of
-        [r] -> return . ST.UserId . SB.user_id $ r
+        [r] -> return . ST.UserId . Schema.user_id $ r
         -- TODO: Have a proper error response
         _   -> throwBackendError res
   where

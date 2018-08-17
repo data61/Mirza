@@ -18,9 +18,9 @@ module Mirza.SupplyChain.Handlers.EventRegistration
 
 import qualified Mirza.Common.GS1BeamOrphans       as MU
 import           Mirza.Common.Time                 (toDbTimestamp)
+import           Mirza.SupplyChain.Database.Schema as Schema
 import           Mirza.SupplyChain.ErrorUtils      (throwBackendError)
 import           Mirza.SupplyChain.Handlers.Common
-import qualified Mirza.SupplyChain.StorageBeam     as SB
 import           Mirza.SupplyChain.Types           hiding (User (..))
 import qualified Mirza.SupplyChain.Types           as ST
 
@@ -61,12 +61,12 @@ import           Control.Monad                     (void)
 
 insertObjectEvent :: SCSApp context err => ST.User
                   -> ObjectEvent
-                  -> AppM context err (Ev.Event, SB.EventId)
+                  -> AppM context err (Ev.Event, Schema.EventId)
 insertObjectEvent user ob = runDb $ insertObjectEventQuery user ob
 
 insertObjectEventQuery :: ST.User
                        -> ObjectEvent
-                       -> DB context err (Ev.Event, SB.EventId)
+                       -> DB context err (Ev.Event, Schema.EventId)
 insertObjectEventQuery
   (ST.User (ST.UserId tUserId) _ _ )
   (ObjectEvent
@@ -77,7 +77,7 @@ insertObjectEventQuery
   ) = do
 
   let
-      userId = SB.UserId tUserId -- converting from model to storage UserId
+      userId = Schema.UserId tUserId -- converting from model to storage UserId
       eventType = Ev.ObjectEventT
       dwhat =  ObjWhat $ ObjectDWhat act labelEpcs
       event = Ev.Event eventType foreignEventId dwhat dwhen dwhy dwhere
@@ -85,13 +85,13 @@ insertObjectEventQuery
 
   eventId <- insertEvent userId jsonEvent event
   whatId <- insertDWhat Nothing dwhat eventId
-  labelIds' <- mapM (insertLabel Nothing (SB.WhatId whatId)) labelEpcs
-  let labelIds = SB.LabelId <$> labelIds'
+  labelIds' <- mapM (insertLabel Nothing (Schema.WhatId whatId)) labelEpcs
+  let labelIds = Schema.LabelId <$> labelIds'
   _whenId <- insertDWhen dwhen eventId
   _whyId <- insertDWhy dwhy eventId
   insertDWhere dwhere eventId
   insertUserEvent eventId userId userId False Nothing
-  mapM_ (insertWhatLabel (SB.WhatId whatId)) labelIds
+  mapM_ (insertWhatLabel (Schema.WhatId whatId)) labelIds
   mapM_ (insertLabelEvent eventId) labelIds
 
   return (event, eventId)
@@ -100,12 +100,12 @@ insertObjectEventQuery
 
 insertAggEvent :: SCSApp context err => ST.User
                -> AggregationEvent
-               -> AppM context err (Ev.Event, SB.EventId)
+               -> AppM context err (Ev.Event, Schema.EventId)
 insertAggEvent user ev = runDb $ insertAggEventQuery user ev
 
 insertAggEventQuery :: ST.User
                     -> AggregationEvent
-                    -> DB context err (Ev.Event, SB.EventId)
+                    -> DB context err (Ev.Event, Schema.EventId)
 insertAggEventQuery
   (ST.User (ST.UserId tUserId) _ _ )
   (AggregationEvent
@@ -116,7 +116,7 @@ insertAggEventQuery
     dwhen dwhy dwhere
   ) = do
   let
-      userId = SB.UserId tUserId
+      userId = Schema.UserId tUserId
       eventType = Ev.AggregationEventT
       dwhat =  AggWhat $ AggregationDWhat act mParentLabel labelEpcs
       event = Ev.Event eventType foreignEventId dwhat dwhen dwhy dwhere
@@ -124,14 +124,14 @@ insertAggEventQuery
 
   eventId <- insertEvent userId jsonEvent event
   whatId <- insertDWhat Nothing dwhat eventId
-  labelIds' <- mapM (insertLabel Nothing (SB.WhatId whatId)) labelEpcs
-  let labelIds = SB.LabelId <$> labelIds'
-  mapM_ (insertLabel (Just MU.Parent) (SB.WhatId whatId)) (IL . unParentLabel <$> mParentLabel)
+  labelIds' <- mapM (insertLabel Nothing (Schema.WhatId whatId)) labelEpcs
+  let labelIds = Schema.LabelId <$> labelIds'
+  mapM_ (insertLabel (Just MU.Parent) (Schema.WhatId whatId)) (IL . unParentLabel <$> mParentLabel)
   _whenId <- insertDWhen dwhen eventId
   _whyId <- insertDWhy dwhy eventId
   insertDWhere dwhere eventId
   insertUserEvent eventId userId userId False Nothing
-  mapM_ (insertWhatLabel (SB.WhatId whatId)) labelIds
+  mapM_ (insertWhatLabel (Schema.WhatId whatId)) labelIds
   mapM_ (insertLabelEvent eventId) labelIds
 
   -- FIXME: This should return the event as it has been inserted - the user has
@@ -141,12 +141,12 @@ insertAggEventQuery
 
 insertTransactEvent :: SCSApp context err => ST.User
                     -> TransactionEvent
-                    -> AppM context err (Ev.Event, SB.EventId)
+                    -> AppM context err (Ev.Event, Schema.EventId)
 insertTransactEvent user ev = runDb $ insertTransactEventQuery user ev
 
 insertTransactEventQuery :: ST.User
                          -> TransactionEvent
-                         -> DB context err (Ev.Event, SB.EventId)
+                         -> DB context err (Ev.Event, Schema.EventId)
 insertTransactEventQuery
   (ST.User (ST.UserId tUserId) _ _ )
   (TransactionEvent
@@ -159,7 +159,7 @@ insertTransactEventQuery
     dwhen dwhy dwhere
   ) = do
   let
-      userId = SB.UserId tUserId
+      userId = Schema.UserId tUserId
       eventType = Ev.TransactionEventT
       dwhat =  TransactWhat $ TransactionDWhat act mParentLabel bizTransactions labelEpcs
       event = Ev.Event eventType foreignEventId dwhat dwhen dwhy dwhere
@@ -167,14 +167,14 @@ insertTransactEventQuery
 
   eventId <- insertEvent userId jsonEvent event
   whatId <- insertDWhat Nothing dwhat eventId
-  labelIds' <- mapM (insertLabel Nothing (SB.WhatId whatId)) labelEpcs
-  let labelIds = SB.LabelId <$> labelIds'
-  mapM_ (insertLabel (Just MU.Parent) (SB.WhatId whatId)) (IL . unParentLabel <$> mParentLabel)
+  labelIds' <- mapM (insertLabel Nothing (Schema.WhatId whatId)) labelEpcs
+  let labelIds = Schema.LabelId <$> labelIds'
+  mapM_ (insertLabel (Just MU.Parent) (Schema.WhatId whatId)) (IL . unParentLabel <$> mParentLabel)
   _whenId <- insertDWhen dwhen eventId
   _whyId <- insertDWhy dwhy eventId
   insertDWhere dwhere eventId
   insertUserEvent eventId userId userId False Nothing
-  mapM_ (insertWhatLabel (SB.WhatId whatId)) labelIds
+  mapM_ (insertWhatLabel (Schema.WhatId whatId)) labelIds
   mapM_ (insertLabelEvent eventId) labelIds
 
   return (event, eventId)
@@ -183,12 +183,12 @@ insertTransactEventQuery
 
 insertTransfEvent :: SCSApp context err => ST.User
                   -> TransformationEvent
-                  -> AppM context err (Ev.Event, SB.EventId)
+                  -> AppM context err (Ev.Event, Schema.EventId)
 insertTransfEvent user ev = runDb $ insertTransfEventQuery user ev
 
 insertTransfEventQuery :: ST.User
                        -> TransformationEvent
-                       -> DB context err (Ev.Event, SB.EventId)
+                       -> DB context err (Ev.Event, Schema.EventId)
 insertTransfEventQuery
   (ST.User (ST.UserId tUserId) _ _ )
   (TransformationEvent
@@ -199,7 +199,7 @@ insertTransfEventQuery
     dwhen dwhy dwhere
   ) = do
   let
-      userId = SB.UserId tUserId
+      userId = Schema.UserId tUserId
       eventType = Ev.TransformationEventT
       dwhat =  TransformWhat $ TransformationDWhat mTransfId inputs outputs
       event = Ev.Event eventType foreignEventId dwhat dwhen dwhy dwhere
@@ -207,14 +207,14 @@ insertTransfEventQuery
 
   eventId <- insertEvent userId jsonEvent event
   whatId <- insertDWhat Nothing dwhat eventId
-  inputLabelIds <- mapM (\(InputEPC i) -> insertLabel (Just MU.Input) (SB.WhatId whatId) i) inputs
-  outputLabelIds <- mapM (\(OutputEPC o) -> insertLabel (Just MU.Output) (SB.WhatId whatId) o) outputs
-  let labelIds = SB.LabelId <$> (inputLabelIds ++ outputLabelIds)
+  inputLabelIds <- mapM (\(InputEPC i) -> insertLabel (Just MU.Input) (Schema.WhatId whatId) i) inputs
+  outputLabelIds <- mapM (\(OutputEPC o) -> insertLabel (Just MU.Output) (Schema.WhatId whatId) o) outputs
+  let labelIds = Schema.LabelId <$> (inputLabelIds ++ outputLabelIds)
   _whenId <- insertDWhen dwhen eventId
   _whyId <- insertDWhy dwhy eventId
   insertDWhere dwhere eventId
   insertUserEvent eventId userId userId False Nothing
-  mapM_ (insertWhatLabel (SB.WhatId whatId)) labelIds
+  mapM_ (insertWhatLabel (Schema.WhatId whatId)) labelIds
   mapM_ (insertLabelEvent eventId) labelIds
 
   return (event, eventId)
@@ -223,40 +223,40 @@ insertTransfEventQuery
 -- Helper functions
 
 epcToStorageLabel :: Maybe MU.LabelType
-                  -> SB.WhatId
-                  -> SB.LabelId
+                  -> Schema.WhatId
+                  -> Schema.LabelId
                   -> LabelEPC
-                  -> SB.Label
-epcToStorageLabel labelType (SB.WhatId whatId) (SB.LabelId pKey) (IL (SGTIN gs1Prefix fv ir sn)) =
-  SB.Label pKey labelType (SB.WhatId whatId)
+                  -> Schema.Label
+epcToStorageLabel labelType (Schema.WhatId whatId) (Schema.LabelId pKey) (IL (SGTIN gs1Prefix fv ir sn)) =
+  Schema.Label pKey labelType (Schema.WhatId whatId)
            gs1Prefix (Just ir)
            (Just sn) Nothing Nothing
            fv
            Nothing Nothing Nothing
 
-epcToStorageLabel labelType (SB.WhatId whatId) (SB.LabelId pKey) (IL (GIAI gs1Prefix sn)) =
-  SB.Label pKey labelType (SB.WhatId whatId)
+epcToStorageLabel labelType (Schema.WhatId whatId) (Schema.LabelId pKey) (IL (GIAI gs1Prefix sn)) =
+  Schema.Label pKey labelType (Schema.WhatId whatId)
            gs1Prefix Nothing (Just sn)
            Nothing Nothing Nothing Nothing Nothing Nothing
 
-epcToStorageLabel labelType (SB.WhatId whatId) (SB.LabelId pKey) (IL (SSCC gs1Prefix sn)) =
-  SB.Label pKey labelType (SB.WhatId whatId)
+epcToStorageLabel labelType (Schema.WhatId whatId) (Schema.LabelId pKey) (IL (SSCC gs1Prefix sn)) =
+  Schema.Label pKey labelType (Schema.WhatId whatId)
            gs1Prefix Nothing (Just sn)
            Nothing Nothing Nothing Nothing Nothing Nothing
 
-epcToStorageLabel labelType (SB.WhatId whatId) (SB.LabelId pKey) (IL (GRAI gs1Prefix at sn)) =
-  SB.Label pKey labelType (SB.WhatId whatId)
+epcToStorageLabel labelType (Schema.WhatId whatId) (Schema.LabelId pKey) (IL (GRAI gs1Prefix at sn)) =
+  Schema.Label pKey labelType (Schema.WhatId whatId)
            gs1Prefix Nothing (Just sn)
            Nothing Nothing Nothing (Just at) Nothing Nothing
 
-epcToStorageLabel labelType (SB.WhatId whatId) (SB.LabelId pKey) (CL (LGTIN gs1Prefix ir lot) mQ) =
-  SB.Label pKey labelType (SB.WhatId whatId)
+epcToStorageLabel labelType (Schema.WhatId whatId) (Schema.LabelId pKey) (CL (LGTIN gs1Prefix ir lot) mQ) =
+  Schema.Label pKey labelType (Schema.WhatId whatId)
            gs1Prefix (Just ir) Nothing
            Nothing (Just lot) Nothing Nothing
            (getQuantityAmount mQ) (getQuantityUom mQ)
 
-epcToStorageLabel labelType (SB.WhatId whatId) (SB.LabelId pKey) (CL (CSGTIN gs1Prefix fv ir) mQ) =
-  SB.Label pKey labelType (SB.WhatId whatId)
+epcToStorageLabel labelType (Schema.WhatId whatId) (Schema.LabelId pKey) (CL (CSGTIN gs1Prefix fv ir) mQ) =
+  Schema.Label pKey labelType (Schema.WhatId whatId)
            gs1Prefix (Just ir) Nothing
            Nothing Nothing fv Nothing
            (getQuantityAmount mQ) (getQuantityUom mQ)
@@ -277,19 +277,19 @@ getQuantityUom (Just (ItemCount _))          = Nothing
 toStorageDWhat :: PrimaryKeyType
                -> Maybe PrimaryKeyType
                -> Maybe PrimaryKeyType
-               -> SB.EventId
+               -> Schema.EventId
                -> DWhat
-               -> SB.What
+               -> Schema.What
 toStorageDWhat pKey mParentId mBizTranId eventId dwhat
-   = SB.What pKey
+   = Schema.What pKey
         (Just . Ev.getEventType $ dwhat)
         (getAction dwhat)
-        (SB.LabelId mParentId)
-        (SB.BizTransactionId mBizTranId)
-        (SB.TransformationId $ unTransformationId <$> (getTransformationId dwhat))
+        (Schema.LabelId mParentId)
+        (Schema.BizTransactionId mBizTranId)
+        (Schema.TransformationId $ unTransformationId <$> (getTransformationId dwhat))
         eventId
 
-getTransformationId :: DWhat -> Maybe TransformationId
+getTransformationId :: DWhat -> Maybe EPC.TransformationId
 getTransformationId (TransformWhat t) = _transformationId t
 getTransformationId _                 = Nothing
 
@@ -316,23 +316,23 @@ findInstLabelId' :: GS1CompanyPrefix
                  -> DB context err (Maybe PrimaryKeyType)
 findInstLabelId' cp sn msfv mir mat = do
   r <- pg $ runSelectReturningList $ select $ do
-    labels <- all_ (SB._labels SB.supplyChainDb)
-    guard_ (SB.label_gs1_company_prefix labels ==. val_ cp &&.
-            SB.label_serial_number labels ==. val_ (Just sn) &&.
-            (SB.label_sgtin_filter_value labels) ==. (val_ msfv) &&.
-            SB.label_asset_type labels ==. val_ mat &&.
-            SB.label_item_reference labels ==. val_ mir)
+    labels <- all_ (Schema._labels Schema.supplyChainDb)
+    guard_ (Schema.label_gs1_company_prefix labels ==. val_ cp &&.
+            Schema.label_serial_number labels ==. val_ (Just sn) &&.
+            (Schema.label_sgtin_filter_value labels) ==. (val_ msfv) &&.
+            Schema.label_asset_type labels ==. val_ mat &&.
+            Schema.label_item_reference labels ==. val_ mir)
     pure labels
   return $ case r of
-    [l] -> Just (SB.label_id l)
+    [l] -> Just (Schema.label_id l)
     _   -> Nothing
 
 
 getUser :: EmailAddress -> DB context err (Maybe ST.User)
 getUser useremail = do
   r <- pg $ runSelectReturningList $ select $ do
-    allUsers <- all_ (SB._users SB.supplyChainDb)
-    guard_ (SB.user_email_address allUsers ==. val_ (emailToText useremail))
+    allUsers <- all_ (Schema._users Schema.supplyChainDb)
+    guard_ (Schema.user_email_address allUsers ==. val_ (emailToText useremail))
     pure allUsers
   return $ case r of
     [u] -> Just . QU.userTableToModel $ u
@@ -349,16 +349,16 @@ findClassLabelId' :: GS1CompanyPrefix
                   -> DB context err (Maybe PrimaryKeyType)
 findClassLabelId' cp msfv ir lot = do
   r <- pg $ runSelectReturningList $ select $ do
-    labels <- all_ (SB._labels SB.supplyChainDb)
+    labels <- all_ (Schema._labels Schema.supplyChainDb)
     guard_ (
-             SB.label_gs1_company_prefix labels ==. val_ cp &&.
-             (SB.label_sgtin_filter_value labels) ==. (val_ msfv) &&.
-             SB.label_lot labels ==. (val_ lot) &&.
-             SB.label_item_reference labels ==. (val_ . Just $ ir)
+             Schema.label_gs1_company_prefix labels ==. val_ cp &&.
+             (Schema.label_sgtin_filter_value labels) ==. (val_ msfv) &&.
+             Schema.label_lot labels ==. (val_ lot) &&.
+             Schema.label_item_reference labels ==. (val_ . Just $ ir)
            )
     pure labels
   case r of
-    [l] -> return $ Just (SB.label_id l)
+    [l] -> return $ Just (Schema.label_id l)
     _   -> return Nothing
 
 
@@ -371,73 +371,73 @@ getParentId (TransactWhat (TransactionDWhat _ (Just p) _ _)) = findInstLabelId .
 getParentId (AggWhat (AggregationDWhat _ (Just p) _) )  = findInstLabelId . unParentLabel $ p
 getParentId _                                 = return Nothing
 
-toStorageDWhen :: SB.WhenId
+toStorageDWhen :: Schema.WhenId
                -> DWhen
-               -> SB.EventId
-               -> SB.When
-toStorageDWhen (SB.WhenId pKey) (DWhen eventTime mRecordTime tZone) =
-  SB.When pKey
+               -> Schema.EventId
+               -> Schema.When
+toStorageDWhen (Schema.WhenId pKey) (DWhen eventTime mRecordTime tZone) =
+  Schema.When pKey
     (toDbTimestamp eventTime)
     (toDbTimestamp <$> mRecordTime)
     (T.pack . timeZoneOffsetString $ tZone)
 
-toStorageDWhy :: SB.WhyId -> DWhy -> SB.EventId -> SB.Why
-toStorageDWhy (SB.WhyId pKey) (DWhy mBiz mDisp)
-  = SB.Why pKey (renderURL <$> mBiz) (renderURL <$> mDisp)
+toStorageDWhy :: Schema.WhyId -> DWhy -> Schema.EventId -> Schema.Why
+toStorageDWhy (Schema.WhyId pKey) (DWhy mBiz mDisp)
+  = Schema.Why pKey (renderURL <$> mBiz) (renderURL <$> mDisp)
 
-toStorageEvent :: SB.EventId
-               -> SB.UserId
+toStorageEvent :: Schema.EventId
+               -> Schema.UserId
                -> T.Text
                -> Maybe EvId.EventId
-               -> SB.Event
-toStorageEvent (SB.EventId pKey) userId jsonEvent mEventId =
-  SB.Event pKey (EvId.unEventId <$> mEventId) userId jsonEvent
+               -> Schema.Event
+toStorageEvent (Schema.EventId pKey) userId jsonEvent mEventId =
+  Schema.Event pKey (EvId.unEventId <$> mEventId) userId jsonEvent
 
 insertDWhat :: Maybe PrimaryKeyType
             -> DWhat
-            -> SB.EventId
+            -> Schema.EventId
             -> DB context err PrimaryKeyType
 insertDWhat mBizTranId dwhat eventId = QU.withPKey $ \pKey ->  do
     mParentId <- getParentId dwhat
-    pg $ B.runInsert $ B.insert (SB._whats SB.supplyChainDb)
+    pg $ B.runInsert $ B.insert (Schema._whats Schema.supplyChainDb)
           $ insertValues [toStorageDWhat pKey mParentId mBizTranId eventId dwhat]
 
 
-insertDWhen :: DWhen -> SB.EventId -> DB context err PrimaryKeyType
+insertDWhen :: DWhen -> Schema.EventId -> DB context err PrimaryKeyType
 insertDWhen dwhen eventId = QU.withPKey $ \pKey ->
-  pg $ B.runInsert $ B.insert (SB._whens SB.supplyChainDb)
-             $ insertValues [toStorageDWhen (SB.WhenId pKey) dwhen eventId]
+  pg $ B.runInsert $ B.insert (Schema._whens Schema.supplyChainDb)
+             $ insertValues [toStorageDWhen (Schema.WhenId pKey) dwhen eventId]
 
 
-insertDWhy :: DWhy -> SB.EventId -> DB context err PrimaryKeyType
+insertDWhy :: DWhy -> Schema.EventId -> DB context err PrimaryKeyType
 insertDWhy dwhy eventId = QU.withPKey $ \pKey ->
-  pg $ B.runInsert $ B.insert (SB._whys SB.supplyChainDb)
-             $ insertValues [toStorageDWhy (SB.WhyId pKey) dwhy eventId]
+  pg $ B.runInsert $ B.insert (Schema._whys Schema.supplyChainDb)
+             $ insertValues [toStorageDWhy (Schema.WhyId pKey) dwhy eventId]
 
 insertSrcDestType :: MU.LocationField
-                  -> SB.EventId
+                  -> Schema.EventId
                   -> SrcDestLocation
                   -> DB context err PrimaryKeyType
 insertSrcDestType locField eventId
   (SrcDestLocation (sdType, SGLN pfix locationRef ext)) =
   QU.withPKey $ \pKey -> do
-    let stWhere = SB.Where pKey pfix (Just sdType) locationRef locField ext eventId
-    pg $ B.runInsert $ B.insert (SB._wheres SB.supplyChainDb)
+    let stWhere = Schema.Where pKey pfix (Just sdType) locationRef locField ext eventId
+    pg $ B.runInsert $ B.insert (Schema._wheres Schema.supplyChainDb)
              $ insertValues [stWhere]
 
 insertLocationEPC :: MU.LocationField
-                  -> SB.EventId
+                  -> Schema.EventId
                   -> LocationEPC
                   -> DB context err PrimaryKeyType
 insertLocationEPC locField eventId (SGLN pfix locationRef ext) =
   QU.withPKey $ \pKey -> do
-    let stWhere = SB.Where pKey pfix Nothing locationRef locField ext eventId
-    pg $ B.runInsert $ B.insert (SB._wheres SB.supplyChainDb)
+    let stWhere = Schema.Where pKey pfix Nothing locationRef locField ext eventId
+    pg $ B.runInsert $ B.insert (Schema._wheres Schema.supplyChainDb)
                 $ insertValues [stWhere]
 
 -- | Maps the relevant insert function for all
 -- ReadPoint, BizLocation, Src, Dest
-insertDWhere :: DWhere -> SB.EventId -> DB context err ()
+insertDWhere :: DWhere -> Schema.EventId -> DB context err ()
 insertDWhere (DWhere rPoints bizLocs srcTs destTs) eventId = do
     sequence_ $ insertLocationEPC MU.ReadPoint eventId . unReadPointLocation <$> rPoints
     sequence_ $ insertLocationEPC MU.BizLocation eventId . unBizLocation <$> bizLocs
@@ -446,7 +446,7 @@ insertDWhere (DWhere rPoints bizLocs srcTs destTs) eventId = do
 
 -- | Given a DWhere, looks for all the insertions associated with the DWHere
 -- Think of this as the inverse of ``insertDWhere``
-findDWhere :: SB.EventId -> DB context err (Maybe DWhere)
+findDWhere :: Schema.EventId -> DB context err (Maybe DWhere)
 findDWhere eventId = do
   rPoints <- findDWhereByLocationField MU.ReadPoint eventId
   bizLocs <- findDWhereByLocationField MU.BizLocation eventId
@@ -454,17 +454,17 @@ findDWhere eventId = do
   destTs <- findDWhereByLocationField MU.Dest eventId
   return $ mergeSBWheres [rPoints, bizLocs, srcTs, destTs]
 
-findDWhereByLocationField :: MU.LocationField -> SB.EventId -> DB context err [SB.WhereT Identity]
+findDWhereByLocationField :: MU.LocationField -> Schema.EventId -> DB context err [Schema.WhereT Identity]
 findDWhereByLocationField locField eventId = pg $ runSelectReturningList $ select $ do
-    wheres <- all_ (SB._wheres SB.supplyChainDb)
+    wheres <- all_ (Schema._wheres Schema.supplyChainDb)
     guard_ (
-      SB.where_event_id wheres ==. val_ eventId &&.
-      SB.where_location_field wheres ==. val_ locField)
+      Schema.where_event_id wheres ==. val_ eventId &&.
+      Schema.where_location_field wheres ==. val_ locField)
     pure wheres
 
--- | Merges a list of SB.Wheres into one Data.GS1.DWhere
--- mergeSBWheres :: [SB.WhereT Identity] -> DWhere
-mergeSBWheres :: [[SB.WhereT Identity]] -> Maybe DWhere
+-- | Merges a list of Schema.Wheres into one Data.GS1.DWhere
+-- mergeSBWheres :: [Schema.WhereT Identity] -> DWhere
+mergeSBWheres :: [[Schema.WhereT Identity]] -> Maybe DWhere
 mergeSBWheres [rPointsW, bizLocsW, srcTsW, destTsW] =
   let rPoints = ReadPointLocation . constructLocation <$> rPointsW
       bizLocs = BizLocation . constructLocation <$> bizLocsW
@@ -475,98 +475,105 @@ mergeSBWheres [rPointsW, bizLocsW, srcTsW, destTsW] =
 mergeSBWheres _                                     = Nothing -- error "Invalid arguments"
 
 -- | This relies on the user calling this function in the appropriate WhereT
-constructSrcDestLocation :: SB.WhereT Identity -> Maybe SrcDestLocation
+constructSrcDestLocation :: Schema.WhereT Identity -> Maybe SrcDestLocation
 constructSrcDestLocation whereT =
   SrcDestLocation . (,constructLocation whereT)
-    <$> SB.where_source_dest_type whereT
+    <$> Schema.where_source_dest_type whereT
 
 
 -- | This relies on the user calling this function in the appropriate WhereT
-constructLocation :: SB.WhereT Identity -> LocationEPC
+constructLocation :: Schema.WhereT Identity -> LocationEPC
 constructLocation whereT =
   EPC.SGLN
-    (SB.where_gs1_company_prefix whereT)
-    (SB.where_gs1_location_id whereT)
-    (SB.where_sgln_ext whereT)
+    (Schema.where_gs1_company_prefix whereT)
+    (Schema.where_gs1_location_id whereT)
+    (Schema.where_sgln_ext whereT)
 
 
-insertEvent :: SB.UserId -> T.Text -> Event -> DB context err SB.EventId
-insertEvent userId jsonEvent event = fmap (SB.EventId <$>) QU.withPKey $ \pKey ->
-  pg $ B.runInsert $ B.insert (SB._events SB.supplyChainDb)
-      $ insertValues [toStorageEvent (SB.EventId pKey) userId jsonEvent (_eid event)]
+insertEvent :: Schema.UserId
+            -> T.Text
+            -> Ev.Event
+            -> DB context err Schema.EventId
+insertEvent userId jsonEvent event = fmap (Schema.EventId <$>) QU.withPKey $ \pKey ->
+  pg $ B.runInsert $ B.insert (Schema._events Schema.supplyChainDb)
+      $ insertValues [toStorageEvent (Schema.EventId pKey) userId jsonEvent (_eid event)]
 
-insertUserEvent :: SB.EventId
-                -> SB.UserId
-                -> SB.UserId
+insertUserEvent :: Schema.EventId
+                -> Schema.UserId
+                -> Schema.UserId
                 -> Bool
                 -> (Maybe ByteString)
                 -> DB context err ()
 insertUserEvent eventId userId addedByUserId signed signedHash =
   void $ QU.withPKey $ \pKey ->
-    pg $ B.runInsert $ B.insert (SB._user_events SB.supplyChainDb)
+    pg $ B.runInsert $ B.insert (Schema._user_events Schema.supplyChainDb)
         $ insertValues
-          [ SB.UserEvent pKey eventId userId signed addedByUserId signedHash
+          [ Schema.UserEvent pKey eventId userId signed addedByUserId signedHash
           ]
 
-insertWhatLabel :: SB.WhatId
-                -> SB.LabelId
+insertWhatLabel :: Schema.WhatId
+                -> Schema.LabelId
                 -> DB context err PrimaryKeyType
-insertWhatLabel (SB.WhatId whatId) (SB.LabelId labelId) = QU.withPKey $ \pKey ->
-  pg $ B.runInsert $ B.insert (SB._what_labels SB.supplyChainDb)
+insertWhatLabel (Schema.WhatId whatId) (Schema.LabelId labelId) = QU.withPKey $ \pKey ->
+  pg $ B.runInsert $ B.insert (Schema._what_labels Schema.supplyChainDb)
         $ insertValues
         [
-          SB.WhatLabel pKey
-          (SB.WhatId whatId)
-          (SB.LabelId labelId)
+          Schema.WhatLabel pKey
+          (Schema.WhatId whatId)
+          (Schema.LabelId labelId)
         ]
 
 -- | Given the necessary information,
--- converts a ``LabelEPC`` to SB.Label and writes it to the database
+-- converts a ``LabelEPC`` to Schema.Label and writes it to the database
 insertLabel :: Maybe MU.LabelType
-            -> SB.WhatId
+            -> Schema.WhatId
             -> LabelEPC
             -> DB context err PrimaryKeyType
 insertLabel labelType whatId labelEpc = QU.withPKey $ \pKey ->
-  pg $ B.runInsert $ B.insert (SB._labels SB.supplyChainDb)
+  pg $ B.runInsert $ B.insert (Schema._labels Schema.supplyChainDb)
         $ insertValues
-        [ epcToStorageLabel labelType whatId (SB.LabelId pKey) labelEpc]
+        [ epcToStorageLabel labelType whatId (Schema.LabelId pKey) labelEpc]
 
 -- | Ties up a label and an event entry in the database
-insertLabelEvent :: SB.EventId
-                 -> SB.LabelId
+insertLabelEvent :: Schema.EventId
+                 -> Schema.LabelId
                  -> DB context err PrimaryKeyType
-insertLabelEvent (SB.EventId eventId) (SB.LabelId labelId) = QU.withPKey $ \pKey ->
-  pg $ B.runInsert $ B.insert (SB._label_events SB.supplyChainDb)
+insertLabelEvent (Schema.EventId eventId) (Schema.LabelId labelId) = QU.withPKey $ \pKey ->
+  pg $ B.runInsert $ B.insert (Schema._label_events Schema.supplyChainDb)
         $ insertValues
-          [ SB.LabelEvent pKey (SB.LabelId labelId) (SB.EventId eventId)
+          [ Schema.LabelEvent pKey (Schema.LabelId labelId) (Schema.EventId eventId)
         ]
 
-getUserById :: UserId -> DB context err (Maybe SB.User)
-getUserById (UserId uid) = do
+getUserById :: ST.UserId -> DB context err (Maybe Schema.User)
+getUserById (ST.UserId uid) = do
   r <- pg $ runSelectReturningList $ select $ do
-          user <- all_ (SB._users SB.supplyChainDb)
-          guard_ (SB.user_id user ==. val_ uid)
+          user <- all_ (Schema._users Schema.supplyChainDb)
+          guard_ (Schema.user_id user ==. val_ uid)
           pure user
   case r of
     [user] -> return $ Just user
     _      -> return Nothing
 
-getEventList :: AsServiceError err => SB.LabelId -> DB context err [Ev.Event]
-getEventList (SB.LabelId labelId) = do
+getEventList :: AsServiceError err
+             => Schema.LabelId
+             -> DB context err [Ev.Event]
+getEventList (Schema.LabelId labelId) = do
   labelEvents <- pg $ runSelectReturningList $ select $ do
-        labelEvent <- all_ (SB._label_events SB.supplyChainDb)
-        guard_ (SB.label_event_label_id labelEvent ==. val_ (SB.LabelId labelId))
+        labelEvent <- all_ (Schema._label_events Schema.supplyChainDb)
+        guard_ (Schema.label_event_label_id labelEvent ==. val_ (Schema.LabelId labelId))
         pure labelEvent
-  let eventIds = SB.label_event_event_id <$> labelEvents
+  let eventIds = Schema.label_event_event_id <$> labelEvents
       allEvents = findEvent <$> eventIds
   catMaybes <$> sequence allEvents
 
-findEvent :: AsServiceError err => SB.EventId -> DB context err (Maybe Ev.Event)
-findEvent (SB.EventId eventId) = do
+findEvent :: AsServiceError err
+          => Schema.EventId
+          -> DB context err (Maybe Ev.Event)
+findEvent (Schema.EventId eventId) = do
   r <- pg $
         runSelectReturningList $ select $ do
-        event <- all_ (SB._events SB.supplyChainDb)
-        guard_ (SB.event_id event ==. (val_ eventId))
+        event <- all_ (Schema._events Schema.supplyChainDb)
+        guard_ (Schema.event_id event ==. (val_ eventId))
         pure event
   case r of
     [event] -> return $ QU.storageToModelEvent event
@@ -574,12 +581,12 @@ findEvent (SB.EventId eventId) = do
     _       -> throwBackendError r
 
 -- | Checks if a user is associated with an event
-hasUserCreatedEvent :: UserId -> EvId.EventId -> DB context err Bool
-hasUserCreatedEvent (UserId userId) (EvId.EventId eventId) = do
+hasUserCreatedEvent :: ST.UserId -> EvId.EventId -> DB context err Bool
+hasUserCreatedEvent (ST.UserId userId) (EvId.EventId eventId) = do
   r <- pg $ runSelectReturningList $ select $ do
-        userEvent <- all_ (SB._user_events SB.supplyChainDb)
-        guard_ (SB.user_events_owner userEvent ==. (val_ . SB.UserId $ userId) &&.
-                SB.user_events_event_id userEvent ==. (val_ . SB.EventId $ eventId))
+        userEvent <- all_ (Schema._user_events Schema.supplyChainDb)
+        guard_ (Schema.user_events_owner userEvent ==. (val_ . Schema.UserId $ userId) &&.
+                Schema.user_events_event_id userEvent ==. (val_ . Schema.EventId $ eventId))
         pure userEvent
   return $ case r of
     [_userEvent] -> True

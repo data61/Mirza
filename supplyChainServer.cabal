@@ -39,6 +39,9 @@ library
                     , Mirza.SupplyChain.API
                     , Mirza.SupplyChain.Auth
                     , Mirza.SupplyChain.Client.Servant
+                    , Mirza.SupplyChain.Database.Migrate
+                    , Mirza.SupplyChain.Database.Schema
+                    , Mirza.SupplyChain.Database.Schema.V0001
                     , Mirza.SupplyChain.Handlers.Common
                     , Mirza.SupplyChain.Handlers.Contacts
                     , Mirza.SupplyChain.Handlers.EventRegistration
@@ -46,15 +49,12 @@ library
                     , Mirza.SupplyChain.Handlers.Signatures
                     , Mirza.SupplyChain.Handlers.Users
                     , Mirza.SupplyChain.Main
-                    , Mirza.SupplyChain.Migrate
                     , Mirza.SupplyChain.QueryUtils
                     , Mirza.SupplyChain.Service
-                    , Mirza.SupplyChain.StorageBeam
                     , Mirza.SupplyChain.Types
 
 
-  other-modules:      Mirza.SupplyChain.MigrateScript
-                    , Mirza.SupplyChain.ErrorUtils
+  other-modules:      Mirza.SupplyChain.ErrorUtils
   build-depends:      base >= 4.7 && < 5
                     , GS1Combinators
                     , aeson
