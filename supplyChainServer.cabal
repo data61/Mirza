@@ -124,6 +124,7 @@ test-suite supplyChainServer-test
                      , beam-core
                      , beam-postgres
                      , bytestring
+                     , email-validate
                      , hspec
                      , hspec-core
                      , http-client
@@ -160,6 +161,7 @@ test-suite businessRegistry-test
                      , resource-pool >= 0.2.3
                      , beam-postgres
                      , bytestring
+                     , email-validate
                      , hspec
                      , hspec-core
                      , http-client
