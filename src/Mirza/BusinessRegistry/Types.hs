@@ -76,12 +76,12 @@ instance HasKatipContext BRContext where
 -- | Note that BusinessRegistry.NewUser is expected to become different in the
 -- future, and hence this duplication
 data NewUser = NewUser
-  { newUserPhoneNumber  :: Text
-  , newUserEmailAddress :: EmailAddress
+  { newUserEmailAddress :: EmailAddress
+  , newUserPassword     :: Text
+  , newUserCompany      :: GS1CompanyPrefix
   , newUserFirstName    :: Text
   , newUserLastName     :: Text
-  , newUserCompany      :: GS1CompanyPrefix
-  , newUserPassword     :: Text
+  , newUserPhoneNumber  :: Text
   } deriving (Generic, Eq, Show)
 $(deriveJSON defaultOptions ''NewUser)
 instance ToSchema NewUser

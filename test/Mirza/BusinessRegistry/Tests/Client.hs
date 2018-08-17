@@ -130,7 +130,7 @@ clientSpec = do
                   (`shouldContain` [ primaryBusinessResponse])
 
           step "Can't add business with the same GS1CompanyPrefix"
-          http (addBusiness primaryBusiness{newBusinessName = "businessTests_AnotherName"})
+          http (addBusiness primaryBusiness{newBusinessName = "businessTests_anotherName"})
             `shouldSatisfyIO` isLeft
           -- TODO: Check that the error type is correct / meaningful.
 
@@ -152,13 +152,13 @@ clientSpec = do
   let userTests = testCaseSteps "Can create users" $ \step ->
         bracket runApp endWaiApp $ \(_tid,baseurl) -> do
           let http = runClient baseurl
-              companyPrefix = (GS1CompanyPrefix "prefix1")
-              business = makeNewBusiness companyPrefix "Name"
+              companyPrefix = (GS1CompanyPrefix "userTests_companyPrefix")
+              business = makeNewBusiness companyPrefix "userTests_businessName"
 
-          let user1 = NewUser "" (EmailAddress "") "" "" companyPrefix "" -- Business1User1
-              user2 = NewUser "" (EmailAddress "2") "" "" companyPrefix "" -- Business1User2
-              userSameEmail = NewUser "" (newUserEmailAddress user1) "" "" companyPrefix "" -- Same email address as userB1U1 other fields different.
-              userNonRegisteredBusiness = NewUser "" (EmailAddress "3") "" "" (GS1CompanyPrefix "unregistered") ""
+          let user1 = NewUser (EmailAddress "userTests_email1@example.com") "password" companyPrefix "userTests First Name 1" "userTests Last Name 1" "userTests Phone Number 1"
+              user2 = NewUser (EmailAddress "userTests_email2@example.com") "password" companyPrefix "userTests First Name 2" "userTests Last Name 2" "userTests Phone Number 2"
+              userSameEmail = NewUser (newUserEmailAddress user1) "password" companyPrefix  "userTests First Name Same Email" "userTests Last Name Same Email" "userTests Phone Number Same Email" -- Same email address as user1 other fields different.
+              userNonRegisteredBusiness = NewUser (EmailAddress "userTests_unregisteredBusiness@example.com") "password" (GS1CompanyPrefix "unregistered") "userTests First Name Unregistered Business" "userTests Last Name Unregistered Business" "userTests Phone Number Unregistered Business"
 
           -- Create a business to use from further test cases (this is tested in
           --  the businesses tests so doesn't need to be explicitly tested here).
@@ -207,7 +207,7 @@ clientSpec = do
               business1CompanyPrefix = (GS1CompanyPrefix "prefix1")
               business1 = makeNewBusiness business1CompanyPrefix "Name"
 
-          let userB1U1 = NewUser "" (EmailAddress "keys1") "" "" business1CompanyPrefix "" -- Business1User1
+          let userB1U1 = NewUser (EmailAddress "keys1") "password" business1CompanyPrefix "" "" "" -- Business1User1
               -- userB1U2 = NewUser "" (EmailAddress "keys2") "" "" business1CompanyPrefix "" -- Business1User2
               -- userB2U1 = NewUser "" (EmailAddress "keys3") "" "" business2CompanyPrefix "" -- Business2User1
               -- userB2U2 = NewUser "" (EmailAddress "keys4") "" "" business2CompanyPrefix "" -- Business2User2
