@@ -32,6 +32,10 @@ import qualified Crypto.Scrypt                            as Scrypt
 
 import           Control.Lens
 
+import           Text.Email.Validate                      (EmailAddress,
+                                                           emailAddress,
+                                                           toByteString,
+                                                           validate)
 
 -- | We need to supply our handlers with the right Context. In this case,
 -- Basic Authentication requires a Context Entry with the 'BasicAuthCheck' value
@@ -47,24 +51,29 @@ basicAuthServerContext context = authCheck context :. EmptyContext
 authCheck :: (HasScryptParams context, DBConstraint context SqlError)
           => context -> BasicAuthCheck AuthUser
 authCheck context =
-  let check (BasicAuthData useremail pass) = do
-        eitherUser <- runAppM @_ @SqlError context . runDb $
-                      authCheckQuery (EmailAddress $ decodeUtf8 useremail) (Password pass)
-        case eitherUser of
-          Right (Just user) -> return (Authorized user)
-          _                 -> return Unauthorized
+  let check (BasicAuthData useremail pass) =
+        case emailAddress useremail of
+          Nothing -> return Unauthorized
+          Just email -> do
+            eitherUser <- runAppM @_ @SqlError context . runDb $
+                          authCheckQuery email (Password pass)
+            case eitherUser of
+              Right (Just user) -> return (Authorized user)
+              _                 -> return Unauthorized
   in BasicAuthCheck check
-
 
 -- Basic Auth check using Scrypt hashes.
 -- TODO: How safe is this to timing attacks? Can we tell which emails are in the
 -- system easily?
-authCheckQuery :: (AsSqlError err, HasScryptParams context) =>  EmailAddress -> Password -> DB context err (Maybe AuthUser)
-authCheckQuery (EmailAddress email) (Password password) = do
+authCheckQuery :: (AsSqlError err, HasScryptParams context)
+               => EmailAddress
+               -> Password
+               -> DB context err (Maybe AuthUser)
+authCheckQuery useremail (Password password) = do
   let userTable = _users businessRegistryDB
   r <- pg $ runSelectReturningList $ select $ do
         user <- all_ userTable
-        guard_ (email_address user  ==. val_ email)
+        guard_ (email_address user  ==. val_ (emailToText useremail))
         pure user
   params <- view $ _2 . scryptParams
   case r of

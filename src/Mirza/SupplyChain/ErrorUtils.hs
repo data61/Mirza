@@ -25,11 +25,13 @@ import           Data.GS1.EPC
 import           Database.PostgreSQL.Simple.Internal (SqlError (..))
 import           Servant.Server
 
+import           Text.Email.Validate                 (toByteString)
+
 -- | Takes in a ServiceError and converts it to an HTTP error (eg. err400)
 appErrToHttpErr :: ServiceError -> Handler a
-appErrToHttpErr (EmailExists _ (EmailAddress email)) =
+appErrToHttpErr (EmailExists _ useremail) =
   throwError $ err400 {
-    errBody = LBSC8.fromChunks ["User email ", encodeUtf8 email, " exists."]
+    errBody = LBSC8.fromChunks ["User email ", toByteString useremail, " exists."]
   }
 appErrToHttpErr (InvalidKeyId _) =
   throwError $ err400 {
@@ -63,9 +65,9 @@ appErrToHttpErr (EventPermissionDenied _ _) =
   throwError $ err403 {
     errBody = "User does not own the event."
   }
-appErrToHttpErr (UserNotFound (EmailAddress _email)) =
+appErrToHttpErr (UserNotFound _) =
   throwError $ err404 { errBody = "User not found." }
-appErrToHttpErr (EmailNotFound (EmailAddress _email)) =
+appErrToHttpErr (EmailNotFound _) =
   throwError $ err404 { errBody = "User not found." }
 appErrToHttpErr (InvalidRSAKeyInDB _) = generic500err
 appErrToHttpErr (InsertionFail _ _email) = generic500err

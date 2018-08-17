@@ -27,6 +27,9 @@ import qualified Crypto.Scrypt                 as Scrypt
 import           Control.Lens                  (view, _2)
 import           Data.Text.Encoding            (decodeUtf8)
 
+import           Text.Email.Validate           (EmailAddress, emailAddress,
+                                                toByteString, validate)
+
 
 -- | We need to supply our handlers with the right Context. In this case,
 -- Basic Authentication requires a Context Entry with the 'BasicAuthCheck' value
@@ -42,23 +45,29 @@ basicAuthServerContext context = authCheck context :. EmptyContext
 authCheck :: (HasScryptParams context, DBConstraint context ServiceError)
           => context -> BasicAuthCheck ST.User
 authCheck context =
-  let check (BasicAuthData useremail pass) = do
-        eitherUser <- runAppM @_ @ServiceError context . runDb $
-                      authCheckQuery (EmailAddress $ decodeUtf8 useremail) (Password pass)
-        case eitherUser of
-          Right (Just user) -> return (Authorized user)
-          _                 -> return Unauthorized
+  let check (BasicAuthData useremail pass) =
+        case emailAddress useremail of
+          Nothing -> return Unauthorized
+          Just email -> do
+            eitherUser <- runAppM @_ @ServiceError context . runDb $
+                          authCheckQuery email (Password pass)
+            case eitherUser of
+              Right (Just user) -> return (Authorized user)
+              _                 -> return Unauthorized
   in BasicAuthCheck check
 
 
 -- Basic Auth check using Scrypt hashes.
 -- TODO: How safe is this to timing attacks? Can we tell which emails are in the
 -- system easily?
-authCheckQuery :: (AsServiceError err, HasScryptParams context) =>  EmailAddress -> Password -> DB context err (Maybe ST.User)
-authCheckQuery e@(EmailAddress email) (Password password) = do
+authCheckQuery :: (AsServiceError err, HasScryptParams context)
+               =>  EmailAddress
+               -> Password
+               -> DB context err (Maybe ST.User)
+authCheckQuery useremail (Password password) = do
   r <- pg $ runSelectReturningList $ select $ do
         user <- all_ (SB._users SB.supplyChainDb)
-        guard_ (SB.user_email_address user  ==. val_ email)
+        guard_ (SB.user_email_address user  ==. val_ (emailToText useremail))
         pure user
   params <- view $ _2 . scryptParams
   case r of
@@ -66,12 +75,12 @@ authCheckQuery e@(EmailAddress email) (Password password) = do
         case Scrypt.verifyPass params (Scrypt.Pass password)
               (Scrypt.EncryptedPass $ SB.user_password_hash user)
         of
-          (False, _     ) -> throwAppError $ AuthFailed (EmailAddress email)
+          (False, _     ) -> throwAppError $ AuthFailed useremail
           (True, Nothing) -> pure $ Just (userTableToModel user)
           (True, Just (Scrypt.EncryptedPass password')) -> do
             _ <- pg $ runUpdate $ update (SB._users SB.supplyChainDb)
                     (\u -> [SB.user_password_hash u <-. val_ password'])
                     (\u -> SB.user_id u ==. val_ (SB.user_id user))
             pure $ Just (userTableToModel user)
-    [] -> throwAppError $ EmailNotFound e
+    [] -> throwAppError $ EmailNotFound useremail
     _  -> throwBackendError r -- multiple elements

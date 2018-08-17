@@ -30,7 +30,8 @@ import           Database.Beam.Postgres.Syntax    (PgDataTypeSyntax)
 import           Data.Aeson
 import           Data.Swagger
 
-
+import           Text.Email.Validate              (EmailAddress, toByteString,
+                                                   validate)
 
 -- Convention: Table types and constructors are suffixed with T (for Table).
 

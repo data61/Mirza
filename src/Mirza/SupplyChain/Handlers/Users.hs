@@ -64,13 +64,13 @@ insertUser :: AsServiceError err
            => Scrypt.EncryptedPass
            -> ST.NewUser
            -> DB context err ST.UserId
-insertUser encPass (ST.NewUser phone (EmailAddress email) firstName lastName biz _) = do
+insertUser encPass (ST.NewUser phone useremail firstName lastName biz _) = do
   userId <- newUUID
   -- TODO: use Database.Beam.Backend.SQL.runReturningOne?
   res <- handleError errHandler $ pg $ runInsertReturningList (SB._users SB.supplyChainDb) $
     insertValues
       [SB.User userId (SB.BizId  biz) firstName lastName
-               phone (Scrypt.getEncryptedPass encPass) email
+               phone (Scrypt.getEncryptedPass encPass) (emailToText useremail)
       ]
   case res of
         [r] -> return . ST.UserId . SB.user_id $ r
@@ -82,5 +82,5 @@ insertUser encPass (ST.NewUser phone (EmailAddress email) firstName lastName biz
       Nothing -> throwError e
       Just sqlErr -> case constraintViolation sqlErr of
         Just (UniqueViolation "users_email_address_key")
-          -> throwing _EmailExists (toServerError getSqlErrorCode sqlErr, EmailAddress email)
-        _ -> throwing _InsertionFail (toServerError (Just . sqlState) sqlErr, email)
+          -> throwing _EmailExists (toServerError getSqlErrorCode sqlErr, useremail)
+        _ -> throwing _InsertionFail (toServerError (Just . sqlState) sqlErr, emailToText useremail)
