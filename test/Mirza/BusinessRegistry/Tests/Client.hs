@@ -29,6 +29,12 @@ import           Data.GS1.EPC                          (GS1CompanyPrefix (..))
 
 import           Katip                                 (Severity (DebugS))
 
+import           Data.Maybe                            (fromJust)
+
+import           Text.Email.Validate                   (emailAddress,
+                                                        toByteString)
+
+
 -- Cribbed from https://github.com/haskell-servant/servant/blob/master/servant-client/test/Servant/ClientSpec.hs
 
 -- === Servant Client tests
@@ -36,7 +42,7 @@ import           Katip                                 (Severity (DebugS))
 userABC :: NewUser
 userABC = NewUser
   { newUserPhoneNumber = "0400 111 222"
-  , newUserEmailAddress = EmailAddress "abc@example.com"
+  , newUserEmailAddress = fromJust . emailAddress $ "abc@example.com"
   , newUserFirstName = "Johnny"
   , newUserLastName = "Smith"
   , newUserCompany = GS1CompanyPrefix "something"
@@ -44,8 +50,8 @@ userABC = NewUser
 
 authABC :: BasicAuthData
 authABC = BasicAuthData
-  (encodeUtf8 . getEmailAddress . newUserEmailAddress $ userABC)
-  (encodeUtf8 . newUserPassword                      $ userABC)
+  (toByteString . newUserEmailAddress $ userABC)
+  (encodeUtf8   . newUserPassword     $ userABC)
 
 runApp :: IO (ThreadId, BaseUrl)
 runApp = do
