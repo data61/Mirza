@@ -103,5 +103,5 @@ eventUserSignedList (EvId.EventId eventId) = do
     pure (user, Schema.user_events_has_signed userEvent)
   return $ bimap userTableToModel id <$> usersSignedList
 
-queryUserId :: SCSApp context err => ST.User -> AppM context err UserId
+queryUserId :: SCSApp context err => ST.User -> AppM context err ST.UserId
 queryUserId = return . ST.userId
