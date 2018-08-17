@@ -47,6 +47,7 @@ To initalise the database run:
 The -c option takes a database connection string in libpq format. See: https://www.postgresql.org/docs/9.5/static/libpq-connect.html#LIBPQ-CONNSTRING
 
 Some examples are:
+
 - "dbname=devsupplychainserver"`
 - "postgresql://localhost/devsupplychainserver"
 
@@ -86,6 +87,9 @@ as:
 
 # If you want a coverage report
 ./coverage.sh
+
+# If you want to launch the report in the browser
+./coverage.sh --launch
 ```
 
 ## Acronyms
