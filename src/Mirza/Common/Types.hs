@@ -9,7 +9,7 @@
 {-# LANGUAGE UndecidableInstances       #-}
 
 module Mirza.Common.Types
-  ( EmailAddress, Password(..)  , UserId(..)
+  ( EmailAddress, emailToText, Password(..)  , UserId(..)
   , BRKeyId(..)
   , AppM(..), runAppM, EnvType(..)
   , DB(..), runDb, pg
@@ -62,6 +62,7 @@ import           Crypto.Scrypt                        (ScryptParams)
 
 import qualified Data.ByteString                      as BS
 
+import           Data.Text                            (Text)
 import           Data.Text.Encoding                   as T
 import           Text.Email.Validate                  (EmailAddress,
                                                        toByteString, validate)
@@ -101,6 +102,13 @@ instance FromJSON EmailAddress where
   parseJSON = withText "EmailAddress" $ \t -> case validate (T.encodeUtf8 t) of
     Left err -> fail err
     Right e  -> pure e
+
+-- No clue if this is correct
+instance ToSchema EmailAddress where
+  declareNamedSchema _ = pure $ NamedSchema (Just "EmailAddress") byteSchema
+
+emailToText :: EmailAddress -> Text
+emailToText = decodeUtf8 . toByteString
 
 -- *****************************************************************************
 -- User Types
