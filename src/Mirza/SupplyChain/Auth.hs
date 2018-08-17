@@ -10,25 +10,25 @@ module Mirza.SupplyChain.Auth
   , authCheck
   ) where
 
-import           Mirza.SupplyChain.ErrorUtils  (throwAppError,
-                                                throwBackendError)
+import           Mirza.SupplyChain.Database.Schema as Schema
+import           Mirza.SupplyChain.ErrorUtils      (throwAppError,
+                                                    throwBackendError)
 import           Mirza.SupplyChain.QueryUtils
-import qualified Mirza.SupplyChain.StorageBeam as SB
-import           Mirza.SupplyChain.Types       hiding (NewUser (..),
-                                                User (userId), UserId)
-import qualified Mirza.SupplyChain.Types       as ST
+import           Mirza.SupplyChain.Types           hiding (NewUser (..),
+                                                    User (userId), UserId)
+import qualified Mirza.SupplyChain.Types           as ST
 
-import           Database.Beam                 as B
+import           Database.Beam                     as B
 
 import           Servant
 
-import qualified Crypto.Scrypt                 as Scrypt
+import qualified Crypto.Scrypt                     as Scrypt
 
-import           Control.Lens                  (view, _2)
-import           Data.Text.Encoding            (decodeUtf8)
+import           Control.Lens                      (view, _2)
+import           Data.Text.Encoding                (decodeUtf8)
 
-import           Text.Email.Validate           (EmailAddress, emailAddress,
-                                                toByteString, validate)
+import           Text.Email.Validate               (EmailAddress, emailAddress,
+                                                    toByteString, validate)
 
 
 -- | We need to supply our handlers with the right Context. In this case,
@@ -66,21 +66,21 @@ authCheckQuery :: (AsServiceError err, HasScryptParams context)
                -> DB context err (Maybe ST.User)
 authCheckQuery useremail (Password password) = do
   r <- pg $ runSelectReturningList $ select $ do
-        user <- all_ (SB._users SB.supplyChainDb)
-        guard_ (SB.user_email_address user  ==. val_ (emailToText useremail))
+        user <- all_ (Schema._users Schema.supplyChainDb)
+        guard_ (Schema.user_email_address user  ==. val_ (emailToText useremail))
         pure user
   params <- view $ _2 . scryptParams
   case r of
     [user] ->
         case Scrypt.verifyPass params (Scrypt.Pass password)
-              (Scrypt.EncryptedPass $ SB.user_password_hash user)
+              (Scrypt.EncryptedPass $ Schema.user_password_hash user)
         of
           (False, _     ) -> throwAppError $ AuthFailed useremail
           (True, Nothing) -> pure $ Just (userTableToModel user)
           (True, Just (Scrypt.EncryptedPass password')) -> do
-            _ <- pg $ runUpdate $ update (SB._users SB.supplyChainDb)
-                    (\u -> [SB.user_password_hash u <-. val_ password'])
-                    (\u -> SB.user_id u ==. val_ (SB.user_id user))
+            _ <- pg $ runUpdate $ update (Schema._users Schema.supplyChainDb)
+                    (\u -> [Schema.user_password_hash u <-. val_ password'])
+                    (\u -> Schema.user_id u ==. val_ (Schema.user_id user))
             pure $ Just (userTableToModel user)
     [] -> throwAppError $ EmailNotFound useremail
     _  -> throwBackendError r -- multiple elements
