@@ -63,6 +63,15 @@ authABC = BasicAuthData
   (encodeUtf8 . newUserPassword                      $ userABC)
 
 
+newBusinessToBusinessResponse :: NewBusiness -> BusinessResponse
+newBusinessToBusinessResponse business = (BusinessResponse
+                                          <$> newBusinessGs1CompanyPrefix
+                                          <*> newBusinessName)
+                                          business
+
+makeNewBusiness :: GS1CompanyPrefix -> Text -> NewBusiness
+makeNewBusiness prefix name = NewBusiness prefix name
+
 
 clientSpec :: IO TestTree
 clientSpec = do
@@ -78,33 +87,24 @@ clientSpec = do
 
   res `shouldSatisfy` isRight
 
-  let businessTests = testCaseSteps "Can create businesses" $ \step -> do
+  let businessTests = testCaseSteps "Can create businesses" $ \step ->
         bracket runApp endWaiApp $ \(_tid,baseurl) -> do
           let http = runClient baseurl
-              primaryBusiness = NewBusiness (GS1CompanyPrefix "prefix") "Name"
-              primaryBusinessResponse =
-                (BusinessResponse
-                <$> newBusinessGs1CompanyPrefix
-                <*> newBusinessName)
-                primaryBusiness
-              secondaryBusiness = NewBusiness (GS1CompanyPrefix "prefixSecondary") "NameSecondary"
-              secondaryBusinessResponse =
-                (BusinessResponse
-                <$> newBusinessGs1CompanyPrefix
-                <*> newBusinessName)
-                secondaryBusiness
+              primaryBusiness = makeNewBusiness (GS1CompanyPrefix "prefix") "Name"
+              primaryBusinessResponse = newBusinessToBusinessResponse primaryBusiness
+              secondaryBusiness =  makeNewBusiness (GS1CompanyPrefix "prefixSecondary") "NameSecondary"
+              secondaryBusinessResponse = newBusinessToBusinessResponse secondaryBusiness
 
 
           step "Can create a new business"
           http (addBusiness primaryBusiness)
             `shouldSatisfyIO` isRight
+          -- TODO: Check that the output is correct.
 
           step "That the added business was added and can be listed."
-
           http listBusiness >>=
             either (const $ expectationFailure "Error listing businesses")
                   (`shouldContain` [ primaryBusinessResponse])
-
 
           step "Can't add business with the same GS1CompanyPrefix"
           http (addBusiness primaryBusiness{newBusinessName = "Another name"})
