@@ -33,6 +33,8 @@ module Mirza.Common.GS1BeamOrphans
 
 import           Mirza.Common.Beam
 
+import           Data.Text                            (Text)
+
 import qualified Data.GS1.EPC                         as EPC
 import qualified Data.GS1.Event                       as Ev
 
@@ -41,7 +43,7 @@ import qualified Database.Beam.Backend.SQL            as BSQL
 import qualified Database.Beam.Migrate                as BMigrate
 import qualified Database.Beam.Postgres               as BPostgres
 
-import           Database.PostgreSQL.Simple.FromField
+import           Database.PostgreSQL.Simple.FromField (FromField (..))
 
 import           Database.Beam.Postgres.Syntax        (PgDataTypeSyntax)
 import           Database.PostgreSQL.Simple.ToField   (ToField, toField)
@@ -220,9 +222,9 @@ locationType = textType
 
 -- ======= EPC.GS1CompanyPrefix =======
 
-instance BSQL.HasSqlValueSyntax be String =>
+instance BSQL.HasSqlValueSyntax be Text =>
   BSQL.HasSqlValueSyntax be EPC.GS1CompanyPrefix where
-    sqlValueSyntax = BSQL.autoSqlValueSyntax
+    sqlValueSyntax (EPC.GS1CompanyPrefix pfx) = BSQL.sqlValueSyntax pfx
 instance (BMigrate.IsSql92ColumnSchemaSyntax be) =>
   BMigrate.HasDefaultSqlDataTypeConstraints be EPC.GS1CompanyPrefix
 
@@ -234,13 +236,13 @@ instance (BSQL.HasSqlValueSyntax (BSQL.Sql92ExpressionValueSyntax be) Bool,
           B.HasSqlQuantifiedEqualityCheck be EPC.GS1CompanyPrefix
 
 instance BSQL.FromBackendRow BPostgres.Postgres EPC.GS1CompanyPrefix where
-  fromBackendRow = defaultFromBackendRow "EPC.GS1CompanyPrefix"
+  fromBackendRow = EPC.GS1CompanyPrefix <$> BSQL.fromBackendRow
 
 instance FromField EPC.GS1CompanyPrefix where
-  fromField = defaultFromField "EPC.GS1CompanyPrefix"
+  fromField mbs conv = EPC.GS1CompanyPrefix <$> fromField mbs conv
 
 instance ToField EPC.GS1CompanyPrefix where
-  toField = toField . show
+  toField (EPC.GS1CompanyPrefix pfx) = toField pfx
 
 gs1CompanyPrefixType :: BMigrate.DataType PgDataTypeSyntax EPC.GS1CompanyPrefix
 gs1CompanyPrefixType = textType
