@@ -94,6 +94,7 @@ clientSpec = do
               primaryBusinessResponse = newBusinessToBusinessResponse primaryBusiness
               secondaryBusiness =  makeNewBusiness (GS1CompanyPrefix "prefixSecondary") "NameSecondary"
               secondaryBusinessResponse = newBusinessToBusinessResponse secondaryBusiness
+              -- emptyCompanyPrefixBusiness =  makeNewBusiness (GS1CompanyPrefix "") "EmptyBusiness"
 
 
           step "Can create a new business"
@@ -120,6 +121,11 @@ clientSpec = do
               either (const $ expectationFailure "Error listing businesses")
                     (`shouldContain` [ primaryBusinessResponse
                                         , secondaryBusinessResponse])
+
+          -- step "That the GS1CompanyPrefix can't be empty (\"\")."
+          -- http (addBusiness emptyCompanyPrefixBusiness)
+          --   `shouldSatisfyIO` isLeft
+
 
   pure $ testGroup "Business Registry HTTP Client tests"
         [ businessTests
