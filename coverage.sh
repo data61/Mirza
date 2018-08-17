@@ -24,6 +24,7 @@ then
   # The line where the link is starts with this phrase
   export report_link_header="An index of the generated HTML coverage reports is available at "
 
+  echo "Report is being generated. Please wait..."
   test_report=`./run_tests.sh --coverage "${args[@]}" 2>&1 |
               egrep -i "$report_link_header" |
               sed "s/$report_link_header//g"`
