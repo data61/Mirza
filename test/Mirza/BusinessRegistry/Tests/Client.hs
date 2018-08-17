@@ -112,9 +112,9 @@ clientSpec = do
   let businessTests = testCaseSteps "Can create businesses" $ \step ->
         bracket runApp endWaiApp $ \(_tid,baseurl) -> do
           let http = runClient baseurl
-              primaryBusiness = makeNewBusiness (GS1CompanyPrefix "prefix") "Name"
+              primaryBusiness = makeNewBusiness (GS1CompanyPrefix "businessTests_primaryCompanyPrefix") "businessTests_primaryBusinessName"
               primaryBusinessResponse = newBusinessToBusinessResponse primaryBusiness
-              secondaryBusiness =  makeNewBusiness (GS1CompanyPrefix "prefixSecondary") "NameSecondary"
+              secondaryBusiness =  makeNewBusiness (GS1CompanyPrefix "businessTests_secondaryCompanyPrefix") "businessTests_secondaryBusinessName"
               secondaryBusinessResponse = newBusinessToBusinessResponse secondaryBusiness
               -- emptyCompanyPrefixBusiness =  makeNewBusiness (GS1CompanyPrefix "") "EmptyBusiness"
 
@@ -130,7 +130,7 @@ clientSpec = do
                   (`shouldContain` [ primaryBusinessResponse])
 
           step "Can't add business with the same GS1CompanyPrefix"
-          http (addBusiness primaryBusiness{newBusinessName = "Another name"})
+          http (addBusiness primaryBusiness{newBusinessName = "businessTests_AnotherName"})
             `shouldSatisfyIO` isLeft
           -- TODO: Check that the error type is correct / meaningful.
 
@@ -152,17 +152,17 @@ clientSpec = do
   let userTests = testCaseSteps "Can create users" $ \step ->
         bracket runApp endWaiApp $ \(_tid,baseurl) -> do
           let http = runClient baseurl
-              business1CompanyPrefix = (GS1CompanyPrefix "prefix1")
-              primaryBusiness = makeNewBusiness business1CompanyPrefix "Name"
+              companyPrefix = (GS1CompanyPrefix "prefix1")
+              business = makeNewBusiness companyPrefix "Name"
 
-          let userB1U1 = NewUser "" (EmailAddress "") "" "" business1CompanyPrefix "" -- Business1User1
-              userB1U2 = NewUser "" (EmailAddress "2") "" "" business1CompanyPrefix "" -- Business1User2
-              userSameEmail = NewUser "" (newUserEmailAddress userB1U1) "" "" business1CompanyPrefix "" -- Same email address as userB1U1 other fields different.
+          let user1 = NewUser "" (EmailAddress "") "" "" companyPrefix "" -- Business1User1
+              user2 = NewUser "" (EmailAddress "2") "" "" companyPrefix "" -- Business1User2
+              userSameEmail = NewUser "" (newUserEmailAddress user1) "" "" companyPrefix "" -- Same email address as userB1U1 other fields different.
               userNonRegisteredBusiness = NewUser "" (EmailAddress "3") "" "" (GS1CompanyPrefix "unregistered") ""
 
           -- Create a business to use from further test cases (this is tested in
           --  the businesses tests so doesn't need to be explicitly tested here).
-          _ <- http (addBusiness primaryBusiness)
+          _ <- http (addBusiness business)
 
           -- TODO add comment here
           goodKey <- rsaPubKey
@@ -171,12 +171,12 @@ clientSpec = do
           -- we know that we are failing because they aren't in the DB rather
           -- then because they are somehow otherwise invalid.
           step "That a user that doesn't exist can't login"
-          http (addPublicKey (newUserToBasicAuthData userB1U1) goodKey Nothing)
+          http (addPublicKey (newUserToBasicAuthData user1) goodKey Nothing)
             `shouldSatisfyIO` isLeft
           putStrLn "can't log in"
 
           step "Can create a new user"
-          http (addUser userB1U1)
+          http (addUser user1)
             `shouldSatisfyIO` isRight
 
           step "Can't create a new user with a GS1CompanyPrefix that isn't registered"
@@ -189,11 +189,11 @@ clientSpec = do
             `shouldSatisfyIO` isLeft
 
           step "Can create a second user"
-          http (addUser userB1U2)
+          http (addUser user2)
             `shouldSatisfyIO` isRight
 
           step "That the created user can login"
-          http (addPublicKey (newUserToBasicAuthData userB1U1) goodKey Nothing)
+          http (addPublicKey (newUserToBasicAuthData user1) goodKey Nothing)
             `shouldSatisfyIO` isRight
 
           -- TODO Can't add a user with an empty email address.
