@@ -80,5 +80,5 @@ authCheckQuery userEmail (Password password) = do
                     (\u -> [Schema.user_password_hash u <-. val_ password'])
                     (\u -> Schema.user_id u ==. val_ (Schema.user_id user))
             pure $ Just (userTableToModel user)
-    [] -> throwAppError $ EmailNotFound userEmail
+    [] -> throwAppError $ UserNotFound userEmail
     _  -> throwBackendError r -- multiple elements
