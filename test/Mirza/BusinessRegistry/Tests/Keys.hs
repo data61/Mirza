@@ -53,7 +53,9 @@ testKeyQueries = do
       pubKey <- rsaPubKey
       tStart <- timeStampIO
       res <- testAppM brContext $ do
+        liftIO $ putStrLn "before user"
         uid <- newUser dummyNewUser
+        liftIO $ putStrLn "after user"
         tableUser <- runDb $ getUserByIdQuery uid
         let user = tableToAuthUser . fromJust $ tableUser
         let (BT.PEM_RSAPubKey keyStr) = pubKey
