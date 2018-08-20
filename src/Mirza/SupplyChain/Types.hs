@@ -325,7 +325,6 @@ data ServiceError
   | InsertionFail         ServerError Text
   | EventPermissionDenied UserId EvId.EventId
   | EmailExists           ServerError EmailAddress
-  | EmailNotFound         EmailAddress
   | AuthFailed            EmailAddress
   | UserNotFound          EmailAddress
   | ParseError            EPC.ParseFailure

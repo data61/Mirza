@@ -66,8 +66,6 @@ appErrToHttpErr (EventPermissionDenied _ _) =
   }
 appErrToHttpErr (UserNotFound _) =
   throwError $ err404 { errBody = "User not found." }
-appErrToHttpErr (EmailNotFound _) =
-  throwError $ err404 { errBody = "User not found." }
 appErrToHttpErr (InvalidRSAKeyInDB _) = generic500err
 appErrToHttpErr (InsertionFail _ _email) = generic500err
 appErrToHttpErr (BlockchainSendFailed _) = generic500err
