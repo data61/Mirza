@@ -25,10 +25,8 @@ import           Servant
 import qualified Crypto.Scrypt                     as Scrypt
 
 import           Control.Lens                      (view, _2)
-import           Data.Text.Encoding                (decodeUtf8)
 
-import           Text.Email.Validate               (EmailAddress, emailAddress,
-                                                    toByteString, validate)
+import           Text.Email.Validate               (EmailAddress, emailAddress)
 
 
 -- | We need to supply our handlers with the right Context. In this case,

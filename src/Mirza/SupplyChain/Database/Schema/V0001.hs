@@ -43,8 +43,7 @@ import           Database.Beam.Migrate.Types
 import           Database.Beam.Postgres
 import           Database.Beam.Postgres.Syntax    (PgDataTypeSyntax)
 
-import           Text.Email.Validate              (EmailAddress, emailAddress,
-                                                   toByteString, validate)
+import           Text.Email.Validate              (EmailAddress)
 
 
 -- Convention: Table types and constructors are suffixed with T (for Table).
