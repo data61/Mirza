@@ -83,7 +83,7 @@ testServiceQueries = do
           user `shouldSatisfy`
             (\u ->
               (Schema.user_phone_number u) == (newUserPhoneNumber dummyNewUser) &&
-              (Schema.user_email_address u) == (emailToText . newUserEmailAddress $ dummyNewUser) &&
+              (Schema.user_email_address u) == (newUserEmailAddress dummyNewUser) &&
               (Schema.user_first_name u) == (newUserFirstName dummyNewUser) &&
               (Schema.user_last_name u) == (newUserLastName dummyNewUser) &&
               (Schema.user_biz_id u) == (Schema.BizId (newUserCompany dummyNewUser)) &&

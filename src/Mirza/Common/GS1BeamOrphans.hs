@@ -30,9 +30,11 @@ module Mirza.Common.GS1BeamOrphans
   , lotType
   , serialNumType
   , itemRefType
+  , emailAddressType
   ) where
 
 import           Mirza.Common.Beam
+import           Mirza.Common.Types                   (emailToText)
 
 import qualified Data.GS1.EPC                         as EPC
 import qualified Data.GS1.Event                       as Ev
@@ -41,12 +43,19 @@ import qualified Database.Beam                        as B
 import qualified Database.Beam.Backend.SQL            as BSQL
 import qualified Database.Beam.Migrate                as BMigrate
 import qualified Database.Beam.Postgres               as BPostgres
-
-import           Database.PostgreSQL.Simple.FromField
-
 import           Database.Beam.Postgres.Syntax        (PgDataTypeSyntax)
+import           Database.PostgreSQL.Simple.FromField
 import           Database.PostgreSQL.Simple.ToField   (ToField, toField)
+
+import           Data.Text                            (Text)
+import           Data.Text.Encoding                   (encodeUtf8)
+
 import           GHC.Generics                         (Generic)
+
+import           Text.Email.Validate                  (EmailAddress,
+                                                       emailAddress,
+                                                       toByteString, validate)
+
 
 -- Type definitions
 
@@ -475,3 +484,37 @@ instance ToField LabelType where
 
 labelType :: BMigrate.DataType PgDataTypeSyntax LabelType
 labelType = textType
+
+-- ======= EmailAddress =======
+
+instance BSQL.HasSqlValueSyntax be String =>
+  BSQL.HasSqlValueSyntax be EmailAddress where
+    sqlValueSyntax = BSQL.sqlValueSyntax
+instance (BMigrate.IsSql92ColumnSchemaSyntax be) =>
+  BMigrate.HasDefaultSqlDataTypeConstraints be EmailAddress
+
+instance (BSQL.HasSqlValueSyntax (BSQL.Sql92ExpressionValueSyntax be) Bool,
+          BSQL.IsSql92ExpressionSyntax be) =>
+          B.HasSqlEqualityCheck be EmailAddress
+instance (BSQL.HasSqlValueSyntax (BSQL.Sql92ExpressionValueSyntax be) Bool,
+          BSQL.IsSql92ExpressionSyntax be) =>
+          B.HasSqlQuantifiedEqualityCheck be EmailAddress
+
+emailFromBackendRow :: Text -> EmailAddress
+emailFromBackendRow emailTxt =
+  let emailByte = encodeUtf8 emailTxt in
+    case validate emailByte of
+      Left reason -> error reason -- shouldn't ever happen
+      Right email -> email
+
+instance BSQL.FromBackendRow BPostgres.Postgres EmailAddress where
+  fromBackendRow = emailFromBackendRow <$> BSQL.fromBackendRow
+
+instance FromField EmailAddress where
+  fromField mbs conv = emailFromBackendRow <$> fromField mbs conv
+
+instance ToField EmailAddress where
+  toField = toField . emailToText
+
+emailAddressType :: BMigrate.DataType PgDataTypeSyntax EmailAddress
+emailAddressType = textType
