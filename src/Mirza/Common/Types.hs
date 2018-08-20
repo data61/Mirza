@@ -138,15 +138,6 @@ newtype Password = Password BS.ByteString
 instance Show Password where
   show _ = "Password <redacted>"
 
-
--- newtype EmailAddress = EmailAddress {getEmailAddress :: Text}
---   deriving (Show, Eq, Generic, Read, FromJSON, ToJSON)
--- instance ToSchema EmailAddress
--- instance ToParamSchema EmailAddress
--- deriving instance FromHttpApiData EmailAddress
--- deriving instance ToHttpApiData EmailAddress
-
-
 newtype BRKeyId = BRKeyId {getBRKeyId :: UUID}
   deriving (Show, Eq, Generic, Read, FromJSON, ToJSON)
 instance ToSchema BRKeyId
