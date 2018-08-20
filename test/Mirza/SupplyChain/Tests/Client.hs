@@ -1,6 +1,6 @@
 module Mirza.SupplyChain.Tests.Client where
 
-import           Mirza.Common.Types               (unsafeMkEmailAddress)
+import           Mirza.Common.Tests.Utils         (unsafeMkEmailAddress)
 
 import           Mirza.SupplyChain.Tests.Settings
 
