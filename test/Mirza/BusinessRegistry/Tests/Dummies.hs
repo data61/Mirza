@@ -15,5 +15,5 @@ dummyNewUser = makeDummyNewUser (fromJust $ emailAddress "fake@gmail.com")
 
 -- | Utility function to make many users on the fly
 makeDummyNewUser :: CT.EmailAddress -> BRT.NewUser
-makeDummyNewUser useremail =
-    BRT.NewUser "000" useremail "Bob" "Smith" (GS1CompanyPrefix "blah Ltd") "password"
+makeDummyNewUser userEmail =
+    BRT.NewUser "000" userEmail "Bob" "Smith" (GS1CompanyPrefix "blah Ltd") "password"

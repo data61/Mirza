@@ -43,8 +43,8 @@ basicAuthServerContext context = authCheck context :. EmptyContext
 authCheck :: (HasScryptParams context, DBConstraint context ServiceError)
           => context -> BasicAuthCheck ST.User
 authCheck context =
-  let check (BasicAuthData useremail pass) =
-        case emailAddress useremail of
+  let check (BasicAuthData userEmail pass) =
+        case emailAddress userEmail of
           Nothing -> return Unauthorized
           Just email -> do
             eitherUser <- runAppM @_ @ServiceError context . runDb $
@@ -62,10 +62,10 @@ authCheckQuery :: (AsServiceError err, HasScryptParams context)
                =>  EmailAddress
                -> Password
                -> DB context err (Maybe ST.User)
-authCheckQuery useremail (Password password) = do
+authCheckQuery userEmail (Password password) = do
   r <- pg $ runSelectReturningList $ select $ do
         user <- all_ (Schema._users Schema.supplyChainDb)
-        guard_ (Schema.user_email_address user  ==. val_ useremail)
+        guard_ (Schema.user_email_address user  ==. val_ userEmail)
         pure user
   params <- view $ _2 . scryptParams
   case r of
@@ -73,12 +73,12 @@ authCheckQuery useremail (Password password) = do
         case Scrypt.verifyPass params (Scrypt.Pass password)
               (Scrypt.EncryptedPass $ Schema.user_password_hash user)
         of
-          (False, _     ) -> throwAppError $ AuthFailed useremail
+          (False, _     ) -> throwAppError $ AuthFailed userEmail
           (True, Nothing) -> pure $ Just (userTableToModel user)
           (True, Just (Scrypt.EncryptedPass password')) -> do
             _ <- pg $ runUpdate $ update (Schema._users Schema.supplyChainDb)
                     (\u -> [Schema.user_password_hash u <-. val_ password'])
                     (\u -> Schema.user_id u ==. val_ (Schema.user_id user))
             pure $ Just (userTableToModel user)
-    [] -> throwAppError $ EmailNotFound useremail
+    [] -> throwAppError $ EmailNotFound userEmail
     _  -> throwBackendError r -- multiple elements
