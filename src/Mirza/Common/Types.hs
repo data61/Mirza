@@ -7,6 +7,7 @@
 {-# LANGUAGE TemplateHaskell            #-}
 {-# LANGUAGE TypeApplications           #-}
 {-# LANGUAGE UndecidableInstances       #-}
+{-# OPTIONS_GHC -fno-warn-orphans       #-}
 
 module Mirza.Common.Types
   ( EmailAddress, emailToText, unsafeMkEmailAddress, Password(..)  , UserId(..)
@@ -75,14 +76,13 @@ import           Data.Aeson
 import           Control.Lens
 import           Control.Monad.Error.Lens
 
-import           Data.Swagger
-import           Data.Swagger.Lens
 
 import           GHC.Generics                         (Generic)
 
 import           Katip                                as K
 import           Katip.Monadic                        (askLoggerIO)
 
+import           Data.Swagger
 import           Servant                              (FromHttpApiData (..),
                                                        ToHttpApiData (..))
 import           Servant.Client                       (ClientEnv (..), ClientM,

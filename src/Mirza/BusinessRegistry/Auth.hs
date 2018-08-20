@@ -13,18 +13,15 @@ module Mirza.BusinessRegistry.Auth
   , listUsersQuery
   ) where
 
-import           Database.Beam                            as B
 import           Mirza.BusinessRegistry.Database.Schema   as Schema
 import           Mirza.BusinessRegistry.Handlers.Common
-import           Mirza.Common.Utils
-
-import           Database.Beam.Backend.SQL.BeamExtensions
-import           Database.PostgreSQL.Simple               (SqlError)
-
-import           Data.Text.Encoding                       (decodeUtf8)
-
 import           Mirza.BusinessRegistry.Types             as BT
 import           Mirza.Common.Types                       as CT
+import           Mirza.Common.Utils
+
+import           Database.Beam                            as B
+import           Database.Beam.Backend.SQL.BeamExtensions
+import           Database.PostgreSQL.Simple               (SqlError)
 
 import           Servant
 
@@ -33,9 +30,7 @@ import qualified Crypto.Scrypt                            as Scrypt
 import           Control.Lens
 
 import           Text.Email.Validate                      (EmailAddress,
-                                                           emailAddress,
-                                                           toByteString,
-                                                           validate)
+                                                           emailAddress)
 
 -- | We need to supply our handlers with the right Context. In this case,
 -- Basic Authentication requires a Context Entry with the 'BasicAuthCheck' value

@@ -11,38 +11,29 @@
 -- in MigrateScript
 module Mirza.BusinessRegistry.Database.Schema.V0001 where
 
-import qualified Data.GS1.EPC                         as EPC
+import qualified Data.GS1.EPC                  as EPC
 import           Mirza.Common.GS1BeamOrphans
-import           Mirza.Common.Types                   (PrimaryKeyType,
-                                                       emailToText)
+import           Mirza.Common.Types            (PrimaryKeyType)
 
 import           Control.Lens
 
-import           Data.ByteString                      (ByteString)
-import           Data.Text                            (Text)
-import           Data.Text.Encoding                   (encodeUtf8)
-import           Data.Time                            (LocalTime)
-import           Data.UUID                            (UUID)
+import           Data.ByteString               (ByteString)
+import           Data.Text                     (Text)
+import           Data.Time                     (LocalTime)
+import           Data.UUID                     (UUID)
 
-import           Database.Beam                        as B
-import qualified Database.Beam.Backend.SQL            as BSQL
-import qualified Database.Beam.Migrate                as BMigrate
-import           Database.Beam.Migrate.SQL            as BSQL
-import           Database.Beam.Migrate.SQL.Tables
+import           Database.Beam                 as B
+import           Database.Beam.Migrate.SQL     as BSQL
 import           Database.Beam.Migrate.Types
-import           Database.Beam.Postgres               as BPostgres
-import           Database.Beam.Postgres.Syntax        (PgDataTypeSyntax)
-import           Database.PostgreSQL.Simple.FromField
-import           Database.PostgreSQL.Simple.ToField   (ToField, toField)
+import           Database.Beam.Postgres        as BPostgres
+import           Database.Beam.Postgres.Syntax (PgDataTypeSyntax)
 
 import           Data.Aeson
 import           Data.Swagger
 
-import           Text.Email.Validate                  (EmailAddress,
-                                                       emailAddress,
-                                                       toByteString, validate)
+import           Text.Email.Validate           (EmailAddress)
 
-import           GHC.Generics                         (Generic)
+import           GHC.Generics                  (Generic)
 
 -- Convention: Table types and constructors are suffixed with T (for Table).
 

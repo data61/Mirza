@@ -39,13 +39,11 @@ newUserQuery (BRT.NewUser phone useremail firstName lastName biz password) = do
   encPass <- liftIO $ Scrypt.encryptPassIO params (Scrypt.Pass $ encodeUtf8 password)
   userId <- newUUID
   -- TODO: use Database.Beam.Backend.SQL.runReturningOne?
-  liftIO $ putStrLn "inserting user"
   res <- BRT.pg $ runInsertReturningList (Schema._users Schema.businessRegistryDB) $
       insertValues
        [Schema.UserT userId (Schema.BizId  biz) firstName lastName
                phone (Scrypt.getEncryptedPass encPass) useremail
        ]
-  liftIO $ putStrLn "inserted user"
   case res of
       [r] -> return $ BRT.UserId $ user_id r
       -- TODO: Have a proper error response

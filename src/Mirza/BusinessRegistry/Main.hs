@@ -40,8 +40,6 @@ import           Katip                                   as K
 import           System.IO                               (stdout)
 
 import           Text.Email.Validate                     (EmailAddress,
-                                                          emailAddress,
-                                                          toByteString,
                                                           unsafeEmailAddress,
                                                           validate)
 
