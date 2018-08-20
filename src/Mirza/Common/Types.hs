@@ -133,6 +133,8 @@ instance ToParamSchema UserId
 deriving instance FromHttpApiData UserId
 deriving instance ToHttpApiData UserId
 
+-- | Do NOT derive an `Eq` instance for Password. We do not want a literal
+-- equality check for password
 newtype Password = Password BS.ByteString
 
 instance Show Password where
