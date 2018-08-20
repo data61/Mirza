@@ -324,7 +324,7 @@ data ServiceError
   | InvalidDigest         Digest
   | InsertionFail         ServerError Text
   | EventPermissionDenied UserId EvId.EventId
-  | EmailExists           ServerError EmailAddress
+  | EmailExists           EmailAddress
   | AuthFailed            EmailAddress
   | UserNotFound          EmailAddress
   | ParseError            EPC.ParseFailure
