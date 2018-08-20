@@ -10,7 +10,7 @@
 {-# OPTIONS_GHC -fno-warn-orphans       #-}
 
 module Mirza.Common.Types
-  ( EmailAddress, emailToText, unsafeMkEmailAddress, Password(..)  , UserId(..)
+  ( EmailAddress, emailToText, Password(..)  , UserId(..)
   , BRKeyId(..)
   , AppM(..), runAppM, EnvType(..)
   , DB(..), runDb, pg
@@ -59,16 +59,12 @@ import           Control.Monad.Trans                  (lift)
 
 import           Data.Pool                            as Pool
 
-import           Data.Maybe                           (fromJust)
-
 import           Crypto.Scrypt                        (ScryptParams)
 
 import qualified Data.ByteString                      as BS
-
 import           Data.Text                            (Text)
 import           Data.Text.Encoding                   as T
 import           Text.Email.Validate                  (EmailAddress,
-                                                       emailAddress,
                                                        toByteString, validate)
 
 import           Data.Aeson
@@ -114,11 +110,6 @@ instance ToSchema EmailAddress where
 
 emailToText :: EmailAddress -> Text
 emailToText = decodeUtf8 . toByteString
-
--- | Only use this with hardcodes email addresses that are guaranteed to return
--- a ``Just``
-unsafeMkEmailAddress :: BS.ByteString -> EmailAddress
-unsafeMkEmailAddress = fromJust . emailAddress
 
 -- *****************************************************************************
 -- User Types

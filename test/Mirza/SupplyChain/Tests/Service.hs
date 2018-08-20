@@ -9,6 +9,7 @@ module Mirza.SupplyChain.Tests.Service
   ( testServiceQueries
   ) where
 
+import           Mirza.Common.Tests.Utils                     (unsafeMkEmailAddress)
 import           Mirza.SupplyChain.Tests.Dummies
 import           Mirza.SupplyChain.Tests.Settings
 
