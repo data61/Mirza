@@ -179,6 +179,10 @@ clientSpec = do
           http (addUser user1)
             `shouldSatisfyIO` isRight
 
+          step "That the created user can login"
+          http (addPublicKey (newUserToBasicAuthData user1) goodKey Nothing)
+            `shouldSatisfyIO` isRight
+
           step "Can't create a new user with a GS1CompanyPrefix that isn't registered"
           res1 <- http (addUser userNonRegisteredBusiness)
           print res
@@ -192,9 +196,6 @@ clientSpec = do
           http (addUser user2)
             `shouldSatisfyIO` isRight
 
-          step "That the created user can login"
-          http (addPublicKey (newUserToBasicAuthData user1) goodKey Nothing)
-            `shouldSatisfyIO` isRight
 
           -- TODO Can't add a user with an empty email address.
           -- TODO Can't add a user with an empty password.
