@@ -67,7 +67,7 @@ authCheckQuery :: (AsServiceError err, HasScryptParams context)
 authCheckQuery useremail (Password password) = do
   r <- pg $ runSelectReturningList $ select $ do
         user <- all_ (Schema._users Schema.supplyChainDb)
-        guard_ (Schema.user_email_address user  ==. val_ (emailToText useremail))
+        guard_ (Schema.user_email_address user  ==. val_ useremail)
         pure user
   params <- view $ _2 . scryptParams
   case r of

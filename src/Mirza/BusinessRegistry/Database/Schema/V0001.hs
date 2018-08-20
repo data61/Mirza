@@ -70,39 +70,6 @@ data BusinessRegistryDB f = BusinessRegistryDB
   deriving Generic
 instance Database anybackend BusinessRegistryDB
 
-
-instance BSQL.HasSqlValueSyntax be Text =>
-  BSQL.HasSqlValueSyntax be EmailAddress where
-    sqlValueSyntax = BSQL.sqlValueSyntax
-instance (BMigrate.IsSql92ColumnSchemaSyntax be) =>
-  BMigrate.HasDefaultSqlDataTypeConstraints be EmailAddress
-
-instance (BSQL.HasSqlValueSyntax (BSQL.Sql92ExpressionValueSyntax be) Bool,
-          BSQL.IsSql92ExpressionSyntax be) =>
-          B.HasSqlEqualityCheck be EmailAddress
-instance (BSQL.HasSqlValueSyntax (BSQL.Sql92ExpressionValueSyntax be) Bool,
-          BSQL.IsSql92ExpressionSyntax be) =>
-          B.HasSqlQuantifiedEqualityCheck be EmailAddress
-
-emailFromBackendRow :: Text -> EmailAddress
-emailFromBackendRow emailTxt =
-  let emailByte = encodeUtf8 emailTxt in
-    case validate emailByte of
-      Left reason -> error reason -- shouldn't ever happen
-      Right email -> email
-
-instance BSQL.FromBackendRow BPostgres.Postgres EmailAddress where
-  fromBackendRow = emailFromBackendRow <$> BSQL.fromBackendRow
-
-instance FromField EmailAddress where
-  fromField mbs conv = emailFromBackendRow <$> fromField mbs conv
-
-instance ToField EmailAddress where
-  toField = toField . emailToText
-
-emailAddressType :: BMigrate.DataType PgDataTypeSyntax EmailAddress
-emailAddressType = textType
-
 -- Migration: Intialisation -> V1.
 migration :: () -> Migration PgCommandSyntax (CheckedDatabaseSettings Postgres BusinessRegistryDB)
 migration () =
@@ -116,19 +83,19 @@ migration () =
           (field "last_name" (varchar (Just defaultFieldMaxLength)) notNull)
           (field "phone_number" (varchar (Just defaultFieldMaxLength)) notNull)
           (field "password_hash" binaryLargeObject notNull)
-          (field "email_address" emailAddressType unique notNull)
+          (field "email_address" emailAddressType unique)
     )
     <*> createTable "businesses"
-      (
-        BusinessT
-            (field "biz_gs1_company_prefix" gs1CompanyPrefixType)
-            (field "biz_name" (varchar (Just defaultFieldMaxLength)) notNull)
-            (field "biz_function" (varchar (Just defaultFieldMaxLength)) notNull)
-            (field "biz_site_name" (varchar (Just defaultFieldMaxLength)) notNull)
-            (field "biz_address" (varchar (Just defaultFieldMaxLength)) notNull)
-            (field "biz_lat" double)
-            (field "biz_long" double)
-      )
+    (
+      BusinessT
+          (field "biz_gs1_company_prefix" gs1CompanyPrefixType)
+          (field "biz_name" (varchar (Just defaultFieldMaxLength)) notNull)
+          (field "biz_function" (varchar (Just defaultFieldMaxLength)) notNull)
+          (field "biz_site_name" (varchar (Just defaultFieldMaxLength)) notNull)
+          (field "biz_address" (varchar (Just defaultFieldMaxLength)) notNull)
+          (field "biz_lat" double)
+          (field "biz_long" double)
+    )
     <*> createTable "keys"
     (
       KeyT

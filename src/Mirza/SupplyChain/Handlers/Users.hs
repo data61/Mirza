@@ -70,7 +70,7 @@ insertUser encPass (ST.NewUser phone useremail firstName lastName biz _) = do
   res <- handleError errHandler $ pg $ runInsertReturningList (Schema._users Schema.supplyChainDb) $
     insertValues
       [Schema.User userId (Schema.BizId  biz) firstName lastName
-               phone (Scrypt.getEncryptedPass encPass) (emailToText useremail)
+               phone (Scrypt.getEncryptedPass encPass) useremail
       ]
   case res of
         [r] -> return . ST.UserId . Schema.user_id $ r

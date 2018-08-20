@@ -332,7 +332,7 @@ getUser :: EmailAddress -> DB context err (Maybe ST.User)
 getUser useremail = do
   r <- pg $ runSelectReturningList $ select $ do
     allUsers <- all_ (Schema._users Schema.supplyChainDb)
-    guard_ (Schema.user_email_address allUsers ==. val_ (emailToText useremail))
+    guard_ (Schema.user_email_address allUsers ==. val_ useremail)
     pure allUsers
   return $ case r of
     [u] -> Just . QU.userTableToModel $ u
