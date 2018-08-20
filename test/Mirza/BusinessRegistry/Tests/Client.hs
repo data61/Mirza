@@ -144,6 +144,7 @@ clientSpec = do
                     (`shouldContain` [ primaryBusinessResponse
                                         , secondaryBusinessResponse])
 
+          -- TODO: Include me (github #205):
           -- step "That the GS1CompanyPrefix can't be empty (\"\")."
           -- http (addBusiness emptyCompanyPrefixBusiness)
           --   `shouldSatisfyIO` isLeft
@@ -198,10 +199,12 @@ clientSpec = do
           http (addUser user2)
             `shouldSatisfyIO` isRight
 
+          -- TODO: Include me (github #205):
           -- step "Can't create a user with an empty email."
           -- http (addUser userEmptyEmail)
           --   `shouldSatisfyIO` isLeft
 
+          -- TODO: Include me (github #205):
           -- step "Can't create a user with an empty password."
           -- http (addUser userEmptyPassword)
           --   `shouldSatisfyIO` isLeft
