@@ -159,6 +159,8 @@ clientSpec = do
               user2 = NewUser (EmailAddress "userTests_email2@example.com") "password" companyPrefix "userTests First Name 2" "userTests Last Name 2" "userTests Phone Number 2"
               userSameEmail = NewUser (newUserEmailAddress user1) "password" companyPrefix  "userTests First Name Same Email" "userTests Last Name Same Email" "userTests Phone Number Same Email" -- Same email address as user1 other fields different.
               userNonRegisteredBusiness = NewUser (EmailAddress "userTests_unregisteredBusiness@example.com") "password" (GS1CompanyPrefix "unregistered") "userTests First Name Unregistered Business" "userTests Last Name Unregistered Business" "userTests Phone Number Unregistered Business"
+              -- userEmptyEmail = NewUser (EmailAddress "") "password" companyPrefix  "userTests First Name Empty Email" "userTests Last Name Empty Email" "userTests Phone Number Empty Email"
+              -- userEmptyPassword = NewUser (EmailAddress "userTests_emptyPassword@example.com") "" companyPrefix  "userTests First Name Empty Password" "userTests Last Name Empty Password" "userTests Phone Number Empty Password"
 
           -- Create a business to use from further test cases (this is tested in
           --  the businesses tests so doesn't need to be explicitly tested here).
@@ -196,9 +198,13 @@ clientSpec = do
           http (addUser user2)
             `shouldSatisfyIO` isRight
 
+          -- step "Can't create a user with an empty email."
+          -- http (addUser userEmptyEmail)
+          --   `shouldSatisfyIO` isLeft
 
-          -- TODO Can't add a user with an empty email address.
-          -- TODO Can't add a user with an empty password.
+          -- step "Can't create a user with an empty password."
+          -- http (addUser userEmptyPassword)
+          --   `shouldSatisfyIO` isLeft
 
 
   let keyTests = testCaseSteps "That keys work as expected" $ \step -> do
