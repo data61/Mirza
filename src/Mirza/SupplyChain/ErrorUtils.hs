@@ -28,7 +28,7 @@ import           Text.Email.Validate                 (toByteString)
 
 -- | Takes in a ServiceError and converts it to an HTTP error (eg. err400)
 appErrToHttpErr :: ServiceError -> Handler a
-appErrToHttpErr (EmailExists _ userEmail) =
+appErrToHttpErr (EmailExists userEmail) =
   throwError $ err400 {
     errBody = LBSC8.fromChunks ["User email ", toByteString userEmail, " exists."]
   }

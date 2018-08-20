@@ -8,8 +8,7 @@ module Mirza.SupplyChain.Handlers.Users
 
 import           Mirza.Common.Utils
 import           Mirza.SupplyChain.Database.Schema        as Schema
-import           Mirza.SupplyChain.ErrorUtils             (getSqlErrorCode,
-                                                           throwBackendError,
+import           Mirza.SupplyChain.ErrorUtils             (throwBackendError,
                                                            toServerError)
 import           Mirza.SupplyChain.Handlers.Common
 import           Mirza.SupplyChain.QueryUtils
@@ -83,5 +82,5 @@ insertUser encPass (ST.NewUser phone userEmail firstName lastName biz _) = do
       Just sqlErr -> case constraintViolation sqlErr of
         -- Should this be ``user_email_address_key`` instead? (user instead of users)
         Just (UniqueViolation "users_email_address_key")
-          -> throwing _EmailExists (toServerError getSqlErrorCode sqlErr, userEmail)
+          -> throwing _EmailExists userEmail
         _ -> throwing _InsertionFail (toServerError (Just . sqlState) sqlErr, emailToText userEmail)
