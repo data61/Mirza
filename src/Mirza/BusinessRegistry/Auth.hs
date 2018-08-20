@@ -46,8 +46,8 @@ basicAuthServerContext context = authCheck context :. EmptyContext
 authCheck :: (HasScryptParams context, DBConstraint context SqlError)
           => context -> BasicAuthCheck AuthUser
 authCheck context =
-  let check (BasicAuthData useremail pass) =
-        case emailAddress useremail of
+  let check (BasicAuthData userEmail pass) =
+        case emailAddress userEmail of
           Nothing -> return Unauthorized
           Just email -> do
             eitherUser <- runAppM @_ @SqlError context . runDb $
@@ -64,11 +64,11 @@ authCheckQuery :: (AsSqlError err, HasScryptParams context)
                => EmailAddress
                -> Password
                -> DB context err (Maybe AuthUser)
-authCheckQuery useremail (Password password) = do
+authCheckQuery userEmail (Password password) = do
   let userTable = _users businessRegistryDB
   r <- pg $ runSelectReturningList $ select $ do
         user <- all_ userTable
-        guard_ (email_address user  ==. val_ useremail)
+        guard_ (email_address user  ==. val_ userEmail)
         pure user
   params <- view $ _2 . scryptParams
   case r of

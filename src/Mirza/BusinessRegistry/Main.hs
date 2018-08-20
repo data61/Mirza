@@ -210,8 +210,8 @@ interactivlyGetUserT opts = do
   where
     getUserEmailInteractive :: IO EmailAddress
     getUserEmailInteractive = do
-      useremail <- encodeUtf8 . pack <$> prompt "email_address"
-      case validate useremail of
+      userEmail <- encodeUtf8 . pack <$> prompt "email_address"
+      case validate userEmail of
         Left reason -> do
           putStrLn $ "Invalid Email. Reason: " ++ reason
           getUserEmailInteractive

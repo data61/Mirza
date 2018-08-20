@@ -26,8 +26,8 @@ dummyNewUser = makeDummyNewUser (fromJust $ emailAddress "fake@gmail.com")
 
 -- | Utility function to make many users on the fly
 makeDummyNewUser :: EmailAddress -> ST.NewUser
-makeDummyNewUser useremail =
-    ST.NewUser "000" useremail "Bob" "Smith" (GS1CompanyPrefix "blah Ltd") "password"
+makeDummyNewUser userEmail =
+    ST.NewUser "000" userEmail "Bob" "Smith" (GS1CompanyPrefix "blah Ltd") "password"
 
 dummyLocation :: LocationEPC
 dummyLocation = SGLN (GS1CompanyPrefix "blah Ltd") (LocationReference "11111") Nothing

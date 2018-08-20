@@ -34,7 +34,7 @@ newUser = BRT.runDb . newUserQuery
 newUserQuery :: (BRT.AsBusinessRegistryError err, BRT.HasScryptParams context)
              => BRT.NewUser
              -> BRT.DB context err BRT.UserId
-newUserQuery (BRT.NewUser phone useremail firstName lastName biz password) = do
+newUserQuery (BRT.NewUser phone userEmail firstName lastName biz password) = do
   params <- view $ _2 . BRT.scryptParams
   encPass <- liftIO $ Scrypt.encryptPassIO params (Scrypt.Pass $ encodeUtf8 password)
   userId <- newUUID
@@ -42,7 +42,7 @@ newUserQuery (BRT.NewUser phone useremail firstName lastName biz password) = do
   res <- BRT.pg $ runInsertReturningList (Schema._users Schema.businessRegistryDB) $
       insertValues
        [Schema.UserT userId (Schema.BizId  biz) firstName lastName
-               phone (Scrypt.getEncryptedPass encPass) useremail
+               phone (Scrypt.getEncryptedPass encPass) userEmail
        ]
   case res of
       [r] -> return $ BRT.UserId $ user_id r
