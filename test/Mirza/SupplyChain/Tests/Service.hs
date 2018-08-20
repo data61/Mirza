@@ -71,8 +71,8 @@ testServiceQueries = do
   --       pure (keyState keyInfo)
   --     myKeyState `shouldBe` InEffect
 
-  describe "newUser tests" $
-    it "newUser test 1" $ \scsContext -> do
+  describe "newUser tests" $ do
+    it "newUser test all valid" $ \scsContext -> do
       res <- testAppM scsContext $  do
         uid <- newUser dummyNewUser
         user <- runDb $ getUserById uid
