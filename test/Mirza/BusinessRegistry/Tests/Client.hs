@@ -188,7 +188,7 @@ clientSpec = do
           print res
           res1 `shouldSatisfy` isLeft
 
-          step "Can create a new user with the same email address"
+          step "Can't create a new user with the same email address"
           http (addUser userSameEmail)
             `shouldSatisfyIO` isLeft
 
