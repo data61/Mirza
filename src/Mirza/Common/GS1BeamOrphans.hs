@@ -52,9 +52,7 @@ import           Data.Text.Encoding                   (encodeUtf8)
 
 import           GHC.Generics                         (Generic)
 
-import           Text.Email.Validate                  (EmailAddress,
-                                                       emailAddress,
-                                                       toByteString, validate)
+import           Text.Email.Validate                  (EmailAddress, validate)
 
 
 -- Type definitions
@@ -487,9 +485,9 @@ labelType = textType
 
 -- ======= EmailAddress =======
 
-instance BSQL.HasSqlValueSyntax be String =>
+instance BSQL.HasSqlValueSyntax be Text =>
   BSQL.HasSqlValueSyntax be EmailAddress where
-    sqlValueSyntax = BSQL.sqlValueSyntax
+    sqlValueSyntax = BSQL.sqlValueSyntax . emailToText
 instance (BMigrate.IsSql92ColumnSchemaSyntax be) =>
   BMigrate.HasDefaultSqlDataTypeConstraints be EmailAddress
 
