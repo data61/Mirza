@@ -37,7 +37,7 @@ _privAPI :: Client ClientM ProtectedAPI
 _pubAPI  :: Client ClientM PublicAPI
 _api@(
   _pubAPI@(
-        getKey
+         getKey
     :<|> getKeyInfo
     :<|> listBusiness
     :<|> addUser
