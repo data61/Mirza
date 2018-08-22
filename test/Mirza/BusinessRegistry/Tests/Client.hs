@@ -101,13 +101,12 @@ clientSpec = do
   let BusinessRegistryDB usersTable businessesTable keysTable
         = businessRegistryDB
 
-  res <- runAppM @_ @BusinessRegistryError ctx $ runDb $ do
+  flushDbResult <- runAppM @_ @BusinessRegistryError ctx $ runDb $ do
       let deleteTable table = pg $ runDelete $ delete table (const (val_ True))
       deleteTable keysTable
       deleteTable usersTable
       deleteTable businessesTable
-
-  res `shouldSatisfy` isRight
+  flushDbResult `shouldSatisfy` isRight
 
   let businessTests = testCaseSteps "Can create businesses" $ \step ->
         bracket runApp endWaiApp $ \(_tid,baseurl) -> do
@@ -117,7 +116,6 @@ clientSpec = do
               secondaryBusiness =  makeNewBusiness (GS1CompanyPrefix "businessTests_secondaryCompanyPrefix") "businessTests_secondaryBusinessName"
               secondaryBusinessResponse = newBusinessToBusinessResponse secondaryBusiness
               -- emptyCompanyPrefixBusiness =  makeNewBusiness (GS1CompanyPrefix "") "EmptyBusiness"
-
 
           step "Can create a new business"
           http (addBusiness primaryBusiness)
@@ -164,7 +162,7 @@ clientSpec = do
               -- userEmptyPassword = NewUser (EmailAddress "userTests_emptyPassword@example.com") "" companyPrefix  "userTests First Name Empty Password" "userTests Last Name Empty Password" "userTests Phone Number Empty Password"
 
           -- Create a business to use from further test cases (this is tested in
-          --  the businesses tests so doesn't need to be explicitly tested here).
+          -- the businesses tests so doesn't need to be explicitly tested here).
           _ <- http (addBusiness business)
 
           -- TODO add comment here
@@ -176,7 +174,6 @@ clientSpec = do
           step "That a user that doesn't exist can't login"
           http (addPublicKey (newUserToBasicAuthData user1) goodKey Nothing)
             `shouldSatisfyIO` isLeft
-          putStrLn "can't log in"
 
           step "Can create a new user"
           http (addUser user1)
