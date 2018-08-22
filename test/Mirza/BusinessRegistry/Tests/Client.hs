@@ -6,7 +6,8 @@ module Mirza.BusinessRegistry.Tests.Client where
 import           Mirza.BusinessRegistry.Tests.Settings  (testDbConnStr)
 
 import           Control.Concurrent                     (ThreadId, forkIO,
-                                                         killThread)
+                                                         killThread,
+                                                         threadDelay)
 import           Control.Exception                      (bracket)
 import           System.IO.Unsafe                       (unsafePerformIO)
 
@@ -21,9 +22,12 @@ import           Servant.Client
 import           Control.Monad                          (forM_)
 import           Data.Either
 import           Data.List                              (isSuffixOf)
+import           Data.Maybe                             (isNothing)
 import           Data.Text                              (Text)
 import           Data.Text.Encoding                     (encodeUtf8)
 import qualified Data.Text.IO                           as TIO
+import           Data.Time.Clock
+import           Data.UUID
 import           System.Directory                       (listDirectory)
 import           System.FilePath                        ((</>))
 import           System.IO                              (FilePath)
@@ -41,6 +45,7 @@ import           Mirza.BusinessRegistry.Main            (GlobalOptions (..),
                                                          initBRContext)
 import           Mirza.BusinessRegistry.Types
 
+import           Mirza.Common.Time
 
 import           Data.GS1.EPC                           (GS1CompanyPrefix (..))
 
@@ -93,6 +98,27 @@ rsaPubKey = PEM_RSAPubKey <$> TIO.readFile "./test/Mirza/Common/testKeys/goodKey
 -- todo this is copied from keys, move it into a higher level module and remove it from here and there.
 rsaPubKey' :: FilePath -> IO PEM_RSAPubKey
 rsaPubKey' filename = PEM_RSAPubKey <$> TIO.readFile filename
+
+
+
+checkRecord :: (a -> Bool) -> (b -> a) -> Either c b -> Bool
+checkRecord predicate accessor (Right response) = predicate (accessor response)
+checkRecord _         _        (Left _)         = False
+
+-- Only use this from tests and only where you are sure that you will have a right.
+right :: Either a b -> b
+right (Right x) = x
+right _         = error "Wasn't right..."
+
+-- Only use this from tests and only where you are sure that you will have a right.
+removeMe :: Maybe a -> a
+removeMe (Just key) = key
+removeMe _          = error "Wasn't just..."
+
+within1Second :: UTCTime -> UTCTime -> Bool
+within1Second expected actual = abs (diffUTCTime expected actual) < (fromInteger 1)
+
+
 
 
 clientSpec :: IO TestTree
@@ -185,7 +211,6 @@ clientSpec = do
 
           step "Can't create a new user with a GS1CompanyPrefix that isn't registered"
           res1 <- http (addUser userNonRegisteredBusiness)
-          print res
           res1 `shouldSatisfy` isLeft
 
           step "Can't create a new user with the same email address"
@@ -207,42 +232,148 @@ clientSpec = do
           --   `shouldSatisfyIO` isLeft
 
 
-  let keyTests = testCaseSteps "That keys work as expected" $ \step -> do
+  let keyTests = testCaseSteps "That keys work as expected" $ \step ->
         bracket runApp endWaiApp $ \(_tid, baseurl) -> do
-          step "PENDING"
-          let http = runClient baseurl
-              business1CompanyPrefix = (GS1CompanyPrefix "prefix1")
-              business1 = makeNewBusiness business1CompanyPrefix "Name"
+          -- Note: These tests assumes that the time on the server and the
+          -- client is exactly the same. This "should" be true for the tests
+          -- since they should be running on the same machine and using the same
+          -- time source. But this test may need to be update if this assumption
+          --  no longer holds for some reason in the future.
 
-          let userB1U1 = NewUser (EmailAddress "keys1") "password" business1CompanyPrefix "" "" "" -- Business1User1
-              -- userB1U2 = NewUser "" (EmailAddress "keys2") "" "" business1CompanyPrefix "" -- Business1User2
-              -- userB2U1 = NewUser "" (EmailAddress "keys3") "" "" business2CompanyPrefix "" -- Business2User1
-              -- userB2U2 = NewUser "" (EmailAddress "keys4") "" "" business2CompanyPrefix "" -- Business2User2
+          let http = runClient baseurl
+              business1CompanyPrefix = (GS1CompanyPrefix "keyTests_companyPrefix1")
+              business1 = makeNewBusiness business1CompanyPrefix "userTests_businessName1"
+              business2CompanyPrefix = (GS1CompanyPrefix "keyTests_companyPrefix2")
+              business2 = makeNewBusiness business2CompanyPrefix "userTests_businessName2"
+
+          let userB1U1 = NewUser (EmailAddress "keysTests_email1@example.com") "password" business1CompanyPrefix "keysTests First Name 1" "keysTests Last Name 1" "keysTests Phone Number 1" -- Business1User1
+              userB1U2 = NewUser (EmailAddress "keysTests_email2@example.com") "password" business1CompanyPrefix "keysTests First Name 2" "keysTests Last Name 2" "keysTests Phone Number 2" -- Business1User2
+              userB2U1 = NewUser (EmailAddress "keysTests_email3@example.com") "password" business2CompanyPrefix "keysTests First Name 3" "keysTests Last Name 3" "keysTests Phone Number 3" -- Business2User1
 
           -- Create a business to use from further test cases (this is tested in
           --  the businesses tests so doesn't need to be explicitly tested here).
           _ <- http (addBusiness business1)
+          _ <- http (addBusiness business2)
 
           -- Create a business to use from further test cases (this is tested in
-          --  the businesses tests so doesn't need to be explicitly tested here).
-          _ <- http (addUser userB1U1)
+          -- the businesses tests so doesn't need to be explicitly tested here).
+          userB1U1Responce <- http (addUser userB1U1)
+          _                <- http (addUser userB1U2)
+          _                <- http (addUser userB2U1)
 
           -- TODO add comment here
           goodKey <- rsaPubKey
 
+          step "Can add a good key (no exipry time)"
 
-          step "Can add a good key"
-          http (addPublicKey (newUserToBasicAuthData userB1U1) goodKey Nothing)
-            `shouldSatisfyIO` isRight
+          b1K1ApproxInsertionTime <- getCurrentTime
+          b1K1StoredKeyIdResult <- http (addPublicKey (newUserToBasicAuthData userB1U1) goodKey Nothing)
+          b1K1StoredKeyIdResult `shouldSatisfy` isRight
+
+          let b1K1StoredKeyId = right b1K1StoredKeyIdResult
+
+          step "Can retrieve a stored key"
+          b1K1Responce <- http (getKey b1K1StoredKeyId)
+          b1K1Responce `shouldSatisfy` isRight
+
+          step "Can retrieve the key info for a stored key"
+          b1K1InfoResponce <- http (getKeyInfo b1K1StoredKeyId)
+          b1K1InfoResponce `shouldSatisfy` isRight
+          b1K1InfoResponce `shouldSatisfy` (checkRecord (b1K1StoredKeyId ==) keyInfoId)
+          b1K1InfoResponce `shouldSatisfy` (checkRecord (right userB1U1Responce ==) keyInfoUserId)
+          b1K1InfoResponce `shouldSatisfy` (checkRecord (InEffect ==) keyInfoState)
+          b1K1InfoResponce `shouldSatisfy` (checkRecord (within1Second b1K1ApproxInsertionTime) (getCreationTime . keyInfoCreationTime))
+          b1K1InfoResponce `shouldSatisfy` (checkRecord isNothing keyInfoRevocationTime)
+          b1K1InfoResponce `shouldSatisfy` (checkRecord isNothing keyInfoExpirationTime)
+          b1K1InfoResponce `shouldSatisfy` (checkRecord (goodKey ==) keyInfoPEMString)
 
 
-          let testDirectory keyType predicate = do
-                let directory = "test" </> "Mirza" </> "Common" </> "testKeys" </> keyType
+          step "That getKey fails gracefully searching for a non existant key"
+          b1InvalidKeyResponce <- http (getKey (BRKeyId nil))
+          b1InvalidKeyResponce `shouldSatisfy` isLeft
+
+          step "That getKeyInfo fails gracefully searching for a non existant key"
+          b1InvalidKeyInfoResponce <- http (getKeyInfo (BRKeyId nil))
+          b1InvalidKeyInfoResponce `shouldSatisfy` isLeft
+
+
+          let expiryDelay = 3
+          step $ "Can add a good key with exipry time (" ++ (show expiryDelay) ++ " seconds from now)"
+          b1K2Expiry <- (Just . ExpirationTime) <$> ((addUTCTime (fromInteger expiryDelay)) <$> getCurrentTime)
+          b1K2StoredKeyIdResult <- http (addPublicKey (newUserToBasicAuthData userB1U1) goodKey b1K2Expiry)
+          b1K2StoredKeyIdResult `shouldSatisfy` isRight
+
+          let b1K2StoredKeyId = right b1K2StoredKeyIdResult
+
+          step "That the key info reflects the expiry time"
+          b1K2InfoResponce <- http (getKeyInfo b1K2StoredKeyId)
+          b1K2InfoResponce `shouldSatisfy` isRight
+          b1K2InfoResponce `shouldSatisfy` (checkRecord (b1K2StoredKeyId ==) keyInfoId)
+          b1K2InfoResponce `shouldSatisfy` (checkRecord (right userB1U1Responce ==) keyInfoUserId)
+          b1K2InfoResponce `shouldSatisfy` (checkRecord (InEffect ==) keyInfoState)
+          b1K2InfoResponce `shouldSatisfy` (checkRecord isNothing keyInfoRevocationTime)
+          -- todo clean up the expression on the following line...
+          b1K2InfoResponce `shouldSatisfy` (checkRecord (within1Second (getExpirationTime (removeMe b1K2Expiry))) (getExpirationTime . removeMe . keyInfoExpirationTime))
+          b1K2InfoResponce `shouldSatisfy` (checkRecord (goodKey ==) keyInfoPEMString)
+
+          step "That the key info status updates after the expiry time has been reached"
+          threadDelay $ fromIntegral (expiryDelay * 1000000)
+          b1K2InfoDelayedResponce <- http (getKeyInfo b1K2StoredKeyId)
+          b1K2InfoDelayedResponce `shouldSatisfy` isRight
+          b1K2InfoDelayedResponce `shouldSatisfy` (checkRecord (Expired ==) keyInfoState)
+
+          -- step $ "That it is not possible to add a key that is already expired"
+          -- b1ExpiredKeyExpiry <- (Just . ExpirationTime) <$> ((addUTCTime (fromInteger (-1))) <$> getCurrentTime)
+          -- b1ExpiredKeyExpiryResult <- http (addPublicKey (newUserToBasicAuthData userB1U1) goodKey b1ExpiredKeyExpiry)
+          -- b1ExpiredKeyExpiryResult `shouldSatisfy` isLeft
+
+          step "That it's possible to revoke a key"
+          b1K3StoredKeyIdResult <- http (addPublicKey (newUserToBasicAuthData userB1U1) goodKey Nothing)
+          b1K3StoredKeyIdResult `shouldSatisfy` isRight
+          let b1K3StoredKeyId = right b1K3StoredKeyIdResult
+          b1K3Now <- getCurrentTime
+          b1K3RevokedResponce <- http (revokePublicKey (newUserToBasicAuthData userB1U1) b1K3StoredKeyId)
+          b1K3RevokedResponce `shouldSatisfy` isRight
+          b1K3RevokedResponce `shouldSatisfy` (checkRecord (within1Second b1K3Now) getRevocationTime)
+
+          step "That the key status updates after the key is revoked"
+          b1K3RevokedInfoResponce <- http (getKeyInfo b1K3StoredKeyId)
+          b1K3RevokedInfoResponce `shouldSatisfy` isRight
+          b1K3RevokedInfoResponce `shouldSatisfy` (checkRecord (Revoked ==) keyInfoState)
+
+          -- step "That another user from the same business can also revoke the key"
+          -- b1K4StoredKeyIdResult <- http (addPublicKey (newUserToBasicAuthData userB1U1) goodKey Nothing)
+          -- b1K4StoredKeyIdResult `shouldSatisfy` isRight
+          -- let b1K4StoredKeyId = right b1K4StoredKeyIdResult
+          -- b1K4RevokedResponce <- http (revokePublicKey (newUserToBasicAuthData userB1U2) b1K4StoredKeyId)
+          -- b1K4RevokedResponce `shouldSatisfy` isRight
+          -- b1K4RevokedInfoResponce <- http (getKeyInfo b1K4StoredKeyId)
+          -- b1K4RevokedInfoResponce `shouldSatisfy` isRight
+          -- b1K4RevokedInfoResponce `shouldSatisfy` (checkRecord (Revoked ==) keyInfoState)
+
+          step "That user from the another business can't also revoke the key"
+          b1K5StoredKeyIdResult <- http (addPublicKey (newUserToBasicAuthData userB1U1) goodKey Nothing)
+          b1K5StoredKeyIdResult `shouldSatisfy` isRight
+          let b1K5StoredKeyId = right b1K5StoredKeyIdResult
+          b1K5RevokedResponce <- http (revokePublicKey (newUserToBasicAuthData userB2U1) b1K5StoredKeyId)
+          b1K5RevokedResponce `shouldSatisfy` isLeft
+          b1K5RevokedInfoResponce <- http (getKeyInfo b1K5StoredKeyId)
+          b1K5RevokedInfoResponce `shouldSatisfy` isRight
+          b1K5RevokedInfoResponce `shouldSatisfy` (checkRecord (InEffect ==) keyInfoState)
+
+
+
+
+
+
+          -- Function to run a test predicate over all the keys in one of the test keys subdirectories.
+          let testDirectory keyDirectory predicate = do
+                let directory = "test" </> "Mirza" </> "Common" </> "testKeys" </> keyDirectory
                 files <- filter (".pub" `isSuffixOf`) <$> listDirectory directory
                 let fullyQualifiedFiles = (directory </>) <$> files
                 keys <- traverse rsaPubKey' fullyQualifiedFiles
                 forM_ (zip files keys) $ \(keyName,key) -> do
-                  step $ "Testing " ++ keyType ++ " key: " ++ keyName
+                  step $ "Testing " ++ keyDirectory ++ " key: " ++ keyName
                   http (addPublicKey (newUserToBasicAuthData userB1U1) key Nothing)
                     `shouldSatisfyIO` predicate
 
@@ -250,8 +381,8 @@ clientSpec = do
           testDirectory "goodKeys" isRight
 
           -- TODO: Change small keys to bad keys and rename the keys to the type of the key problem
-          step "Can't add any of the bad keys"
-          testDirectory "smallKeys" isLeft
+          -- step "Can't add any of the bad keys"
+          -- testDirectory "smallKeys" isLeft
 
 
   pure $ testGroup "Business Registry HTTP Client tests"
