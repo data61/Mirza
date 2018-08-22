@@ -310,9 +310,8 @@ clientSpec = do
           step "Can add all of the good keys"
           testDirectory "goodKeys" isRight
 
-          -- TODO: Change small keys to bad keys and rename the keys to the type of the key problem
-          -- step "Can't add any of the bad keys"
-          -- testDirectory "smallKeys" isLeft
+          step "Can't add any of the bad keys"
+          testDirectory "badKeys" isLeft
 
 
   pure $ testGroup "Business Registry HTTP Client tests"
@@ -404,4 +403,4 @@ readRsaPubKey filename = PEM_RSAPubKey <$> TIO.readFile filename
 
 -- TODO: this is copied from keys, move it into a higher level module and remove it from here and there.
 goodRsaPublicKey :: IO PEM_RSAPubKey
-goodRsaPublicKey = readRsaPubKey "./test/Mirza/Common/testKeys/goodKeys/test.pub"
+goodRsaPublicKey = readRsaPubKey "./test/Mirza/Common/testKeys/goodKeys/4096bit_rsa_key.pub"
