@@ -45,7 +45,7 @@ import           Mirza.BusinessRegistry.Types
 import           Data.GS1.EPC                           (GS1CompanyPrefix (..))
 
 
-import           Katip                                  (Severity (InfoS))
+import           Katip                                  (Severity (DebugS))
 
 -- Cribbed from https://github.com/haskell-servant/servant/blob/master/servant-client/test/Servant/ClientSpec.hs
 

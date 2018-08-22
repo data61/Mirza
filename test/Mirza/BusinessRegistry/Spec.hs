@@ -9,15 +9,10 @@ import           Mirza.BusinessRegistry.Database.Migrate
 import           Mirza.BusinessRegistry.Main             hiding (main)
 import           Mirza.BusinessRegistry.Types            as BRT
 
-import           Test.Hspec.Core.Spec                    (sequential)
 import           Test.Tasty                              hiding (withResource)
-import qualified Test.Tasty.Hspec                        as HSpec (around,
-                                                                   testSpec)
 import           Test.Tasty.Runners                      (NumThreads (..))
 
-import           Mirza.BusinessRegistry.Tests.Business   (testBizQueries)
 import           Mirza.BusinessRegistry.Tests.Client
-import           Mirza.BusinessRegistry.Tests.Keys       (testKeyQueries)
 
 import           Control.Exception                       (bracket)
 import           Data.Int
@@ -27,7 +22,7 @@ import           Database.PostgreSQL.Simple
 import           Data.Pool                               (withResource)
 import qualified Data.Pool                               as Pool
 
-import           Katip                                   (Severity (InfoS))
+import           Katip                                   (Severity (DebugS))
 
 -- dbFunc = withDatabaseDebug putStrLn
 
