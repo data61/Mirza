@@ -60,21 +60,6 @@ import           Katip                                  (Severity (DebugS))
 -- Test Data
 -- *****************************************************************************
 
-userABC :: NewUser
-userABC = NewUser
-  { newUserPhoneNumber = "0400 111 222"
-  , newUserEmailAddress = EmailAddress "abc@example.com"
-  , newUserFirstName = "Johnny"
-  , newUserLastName = "Smith"
-  , newUserCompany = GS1CompanyPrefix "something"
-  , newUserPassword = "re4lly$ecret14!"}
-
-authABC :: BasicAuthData
-authABC = BasicAuthData
-  (encodeUtf8 . getEmailAddress . newUserEmailAddress $ userABC)
-  (encodeUtf8 . newUserPassword                      $ userABC)
-
-
 newBusinessToBusinessResponse :: NewBusiness -> BusinessResponse
 newBusinessToBusinessResponse business = (BusinessResponse
                                           <$> newBusinessGs1CompanyPrefix
