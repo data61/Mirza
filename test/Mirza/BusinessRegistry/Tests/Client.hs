@@ -22,7 +22,7 @@ import           Servant.Client
 import           Control.Monad                          (forM_)
 import           Data.Either
 import           Data.List                              (isSuffixOf)
-import           Data.Maybe                             (isNothing)
+import           Data.Maybe                             (fromJust, isNothing)
 import           Data.Text                              (Text)
 import           Data.Text.Encoding                     (encodeUtf8)
 import qualified Data.Text.IO                           as TIO
@@ -55,56 +55,6 @@ import           Katip                                  (Severity (DebugS))
 -- Cribbed from https://github.com/haskell-servant/servant/blob/master/servant-client/test/Servant/ClientSpec.hs
 
 -- === Servant Client tests
-
--- *****************************************************************************
--- Test Data
--- *****************************************************************************
-
-newBusinessToBusinessResponse :: NewBusiness -> BusinessResponse
-newBusinessToBusinessResponse business = (BusinessResponse
-                                          <$> newBusinessGs1CompanyPrefix
-                                          <*> newBusinessName)
-                                          business
-
-makeNewBusiness :: GS1CompanyPrefix -> Text -> NewBusiness
-makeNewBusiness prefix name = NewBusiness prefix name
-
-newUserToBasicAuthData :: NewUser -> BasicAuthData
-newUserToBasicAuthData =
-  BasicAuthData
-  <$> encodeUtf8 . getEmailAddress . newUserEmailAddress
-  <*> encodeUtf8 . newUserPassword
-
--- todo this is copied from keys, move it into a higher level module and remove it from here and there.
-rsaPubKey :: IO PEM_RSAPubKey
-rsaPubKey = PEM_RSAPubKey <$> TIO.readFile "./test/Mirza/Common/testKeys/goodKeys/test.pub"
-
-
--- todo this is copied from keys, move it into a higher level module and remove it from here and there.
-rsaPubKey' :: FilePath -> IO PEM_RSAPubKey
-rsaPubKey' filename = PEM_RSAPubKey <$> TIO.readFile filename
-
-
-
-checkRecord :: (a -> Bool) -> (b -> a) -> Either c b -> Bool
-checkRecord predicate accessor (Right response) = predicate (accessor response)
-checkRecord _         _        (Left _)         = False
-
--- Only use this from tests and only where you are sure that you will have a right.
-right :: Either a b -> b
-right (Right x) = x
-right _         = error "Wasn't right..."
-
--- Only use this from tests and only where you are sure that you will have a right.
-removeMe :: Maybe a -> a
-removeMe (Just key) = key
-removeMe _          = error "Wasn't just..."
-
-within1Second :: UTCTime -> UTCTime -> Bool
-within1Second expected actual = abs (diffUTCTime expected actual) < (fromInteger 1)
-
-
-
 
 clientSpec :: IO TestTree
 clientSpec = do
@@ -176,8 +126,8 @@ clientSpec = do
           -- the businesses tests so doesn't need to be explicitly tested here).
           _ <- http (addBusiness business)
 
-          -- TODO add comment here
-          goodKey <- rsaPubKey
+          -- Add good RSA Public Key for using from the test cases.
+          goodKey <- goodRsaPublicKey
 
           -- We delibrately test the "good user" that we will later add so that
           -- we know that we are failing because they aren't in the DB rather
@@ -246,8 +196,8 @@ clientSpec = do
           _                <- http (addUser userB1U2)
           _                <- http (addUser userB2U1)
 
-          -- TODO add comment here
-          goodKey <- rsaPubKey
+          -- Add good RSA Public Key for using from the test cases.
+          goodKey <- goodRsaPublicKey
 
           step "Can add a good key (no exipry time)"
 
@@ -297,8 +247,7 @@ clientSpec = do
           b1K2InfoResponce `shouldSatisfy` (checkRecord (right userB1U1Responce ==) keyInfoUserId)
           b1K2InfoResponce `shouldSatisfy` (checkRecord (InEffect ==) keyInfoState)
           b1K2InfoResponce `shouldSatisfy` (checkRecord isNothing keyInfoRevocationTime)
-          -- todo clean up the expression on the following line...
-          b1K2InfoResponce `shouldSatisfy` (checkRecord (within1Second (getExpirationTime (removeMe b1K2Expiry))) (getExpirationTime . removeMe . keyInfoExpirationTime))
+          b1K2InfoResponce `shouldSatisfy` (checkRecord (within1Second ((getExpirationTime . fromJust) b1K2Expiry)) (getExpirationTime . fromJust . keyInfoExpirationTime))
           b1K2InfoResponce `shouldSatisfy` (checkRecord (goodKey ==) keyInfoPEMString)
 
           step "That the key info status updates after the expiry time has been reached"
@@ -356,7 +305,7 @@ clientSpec = do
                 let directory = "test" </> "Mirza" </> "Common" </> "testKeys" </> keyDirectory
                 files <- filter (".pub" `isSuffixOf`) <$> listDirectory directory
                 let fullyQualifiedFiles = (directory </>) <$> files
-                keys <- traverse rsaPubKey' fullyQualifiedFiles
+                keys <- traverse readRsaPubKey fullyQualifiedFiles
                 forM_ (zip files keys) $ \(keyName,key) -> do
                   step $ "Testing " ++ keyDirectory ++ " key: " ++ keyName
                   http (addPublicKey (newUserToBasicAuthData userB1U1) key Nothing)
@@ -415,3 +364,49 @@ manager' = unsafePerformIO $ C.newManager C.defaultManagerSettings
 
 runClient :: BaseUrl -> ClientM a  -> IO (Either ServantError a)
 runClient baseUrl' x = runClientM x (mkClientEnv manager' baseUrl')
+
+
+
+-- *****************************************************************************
+-- Test Utility Functions
+-- *****************************************************************************
+
+makeNewBusiness :: GS1CompanyPrefix -> Text -> NewBusiness
+makeNewBusiness prefix name = NewBusiness prefix name
+
+newBusinessToBusinessResponse :: NewBusiness -> BusinessResponse
+newBusinessToBusinessResponse business = (BusinessResponse
+                                          <$> newBusinessGs1CompanyPrefix
+                                          <*> newBusinessName)
+                                          business
+
+newUserToBasicAuthData :: NewUser -> BasicAuthData
+newUserToBasicAuthData =
+  BasicAuthData
+  <$> encodeUtf8 . getEmailAddress . newUserEmailAddress
+  <*> encodeUtf8 . newUserPassword
+
+
+-- Test helper function that enables a predicate to be run on the result of a test call.
+checkRecord :: (a -> Bool) -> (b -> a) -> Either c b -> Bool
+checkRecord predicate accessor (Right response) = predicate (accessor response)
+checkRecord _         _        (Left _)         = False
+
+-- Only use this from tests and only where you are sure that you will have a right.
+right :: Either a b -> b
+right (Right x) = x
+right _         = error "Wasn't right..."
+
+
+-- TODO: Move into test utils after merging with Sajid.
+-- Checks that the two times are within 1 second of each other.
+within1Second :: UTCTime -> UTCTime -> Bool
+within1Second expected actual = abs (diffUTCTime expected actual) < (fromInteger 1)
+
+-- TODO: This is copied from keys, move it into a higher level module and remove it from here and there.
+readRsaPubKey :: FilePath -> IO PEM_RSAPubKey
+readRsaPubKey filename = PEM_RSAPubKey <$> TIO.readFile filename
+
+-- TODO: this is copied from keys, move it into a higher level module and remove it from here and there.
+goodRsaPublicKey :: IO PEM_RSAPubKey
+goodRsaPublicKey = readRsaPubKey "./test/Mirza/Common/testKeys/goodKeys/test.pub"
