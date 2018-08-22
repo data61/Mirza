@@ -72,30 +72,33 @@ clientSpec = do
   let businessTests = testCaseSteps "Can create businesses" $ \step ->
         bracket runApp endWaiApp $ \(_tid,baseurl) -> do
           let http = runClient baseurl
-              primaryBusiness = makeNewBusiness (GS1CompanyPrefix "businessTests_primaryCompanyPrefix") "businessTests_primaryBusinessName"
+              primaryCompanyPrefix = (GS1CompanyPrefix "businessTests_primaryCompanyPrefix")
+              primaryBusiness = makeNewBusiness primaryCompanyPrefix "businessTests_primaryBusinessName"
               primaryBusinessResponse = newBusinessToBusinessResponse primaryBusiness
-              secondaryBusiness =  makeNewBusiness (GS1CompanyPrefix "businessTests_secondaryCompanyPrefix") "businessTests_secondaryBusinessName"
+              secondaryCompanyPrefix = (GS1CompanyPrefix "businessTests_secondaryCompanyPrefix")
+              secondaryBusiness =  makeNewBusiness secondaryCompanyPrefix "businessTests_secondaryBusinessName"
               secondaryBusinessResponse = newBusinessToBusinessResponse secondaryBusiness
-              -- emptyCompanyPrefixBusiness =  makeNewBusiness (GS1CompanyPrefix "") "EmptyBusiness"
+              -- emptyCompanyPrefixBusiness = makeNewBusiness (GS1CompanyPrefix "") "EmptyBusiness"
 
           step "Can create a new business"
-          http (addBusiness primaryBusiness)
-            `shouldSatisfyIO` isRight
-          -- TODO: Check that the output is correct.
+          newPrimaryBusinessResult <- http (addBusiness primaryBusiness)
+          newPrimaryBusinessResult `shouldSatisfy` isRight
+          newPrimaryBusinessResult `shouldBe` (Right primaryCompanyPrefix)
 
           step "That the added business was added and can be listed."
           http listBusiness >>=
             either (const $ expectationFailure "Error listing businesses")
-                  (`shouldContain` [ primaryBusinessResponse])
+                   (`shouldContain` [primaryBusinessResponse])
 
           step "Can't add business with the same GS1CompanyPrefix"
           http (addBusiness primaryBusiness{newBusinessName = "businessTests_anotherName"})
             `shouldSatisfyIO` isLeft
-          -- TODO: Check that the error type is correct / meaningful.
+          -- Should also check that the error type is correct / meaningful.
 
           step "Can add a second business"
-          http (addBusiness secondaryBusiness)
-            `shouldSatisfyIO` isRight
+          newSecondaryBusinessResult <- http (addBusiness secondaryBusiness)
+          newSecondaryBusinessResult `shouldSatisfy` isRight
+          newSecondaryBusinessResult `shouldBe` (Right secondaryCompanyPrefix)
 
           step "List businesses returns all of the businesses"
           http listBusiness >>=
@@ -145,8 +148,8 @@ clientSpec = do
             `shouldSatisfyIO` isRight
 
           step "Can't create a new user with a GS1CompanyPrefix that isn't registered"
-          res1 <- http (addUser userNonRegisteredBusiness)
-          res1 `shouldSatisfy` isLeft
+          http (addUser userNonRegisteredBusiness)
+            `shouldSatisfyIO` isLeft
 
           step "Can't create a new user with the same email address"
           http (addUser userSameEmail)
@@ -200,7 +203,6 @@ clientSpec = do
           goodKey <- goodRsaPublicKey
 
           step "Can add a good key (no exipry time)"
-
           b1K1ApproxInsertionTime <- getCurrentTime
           b1K1StoredKeyIdResult <- http (addPublicKey (newUserToBasicAuthData userB1U1) goodKey Nothing)
           b1K1StoredKeyIdResult `shouldSatisfy` isRight
@@ -222,7 +224,6 @@ clientSpec = do
           b1K1InfoResponce `shouldSatisfy` (checkRecord isNothing keyInfoExpirationTime)
           b1K1InfoResponce `shouldSatisfy` (checkRecord (goodKey ==) keyInfoPEMString)
 
-
           step "That getKey fails gracefully searching for a non existant key"
           b1InvalidKeyResponce <- http (getKey (BRKeyId nil))
           b1InvalidKeyResponce `shouldSatisfy` isLeft
@@ -230,7 +231,6 @@ clientSpec = do
           step "That getKeyInfo fails gracefully searching for a non existant key"
           b1InvalidKeyInfoResponce <- http (getKeyInfo (BRKeyId nil))
           b1InvalidKeyInfoResponce `shouldSatisfy` isLeft
-
 
           let expiryDelay = 3
           step $ "Can add a good key with exipry time (" ++ (show expiryDelay) ++ " seconds from now)"
@@ -296,10 +296,6 @@ clientSpec = do
           b1K5RevokedInfoResponce `shouldSatisfy` (checkRecord (InEffect ==) keyInfoState)
 
 
-
-
-
-
           -- Function to run a test predicate over all the keys in one of the test keys subdirectories.
           let testDirectory keyDirectory predicate = do
                 let directory = "test" </> "Mirza" </> "Common" </> "testKeys" </> keyDirectory
@@ -324,12 +320,11 @@ clientSpec = do
         , userTests
         , keyTests
         ]
--- |
--- @action \`shouldReturn\` expected@ sets the expectation that @action@
--- returns @expected@.
+
+
+
 shouldSatisfyIO :: (HasCallStack, Show a, Eq a) => IO a -> (a -> Bool) -> Expectation
 action `shouldSatisfyIO` p = action >>= (`shouldSatisfy` p)
-
 
 go :: GlobalOptions
 go = GlobalOptions testDbConnStr 14 8 1 DebugS Dev
