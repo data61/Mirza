@@ -45,7 +45,7 @@ import           Data.Char                                    (toLower)
 import           Data.Text                                    (unpack)
 import qualified Data.Text                                    as T
 
-import           Mirza.BusinessRegistry.Client.Servant        (getKey)
+import           Mirza.BusinessRegistry.Client.Servant        (getPublicKey)
 
 -- | A function to tie a user to an event
 -- Populates the ``UserEvents`` table
@@ -96,7 +96,7 @@ eventSign :: (HasClientEnv context, AsServantError err, SCSApp context err)
           -> SignedEvent
           -> AppM context err PrimaryKeyType
 eventSign _user (SignedEvent eventId keyId (ST.Signature sigStr) digest') = do
-  rsaPublicKey <- runClientFunc $ getKey keyId
+  rsaPublicKey <- runClientFunc $ getPublicKey keyId
   let (BT.PEM_RSAPubKey keyStr) = rsaPublicKey
   (pubKey :: RSAPubKey) <- liftIO
       (toPublicKey <$> (readPublicKey . unpack $ keyStr))
