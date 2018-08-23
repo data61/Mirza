@@ -313,7 +313,7 @@ clientSpec = do
           b1K2InfoDelayedResponce `shouldSatisfy` isRight
           b1K2InfoDelayedResponce `shouldSatisfy` (checkRecord (Expired ==) keyInfoState)
 
-          -- TODO: Include this test.
+          -- TODO: Include this test (github #205):
           -- step $ "That it is not possible to add a key that is already expired"
           -- b1ExpiredKeyExpiry <- (Just . ExpirationTime) <$> ((addUTCTime (fromInteger (-1))) <$> getCurrentTime)
           -- b1ExpiredKeyExpiryResult <- http (addPublicKey (newUserToBasicAuthData userB1U1) goodKey b1ExpiredKeyExpiry)
@@ -337,7 +337,7 @@ clientSpec = do
           b1K3RevokedAgainResponce <- http (revokePublicKey (newUserToBasicAuthData userB1U1) b1K3StoredKeyId)
           b1K3RevokedAgainResponce `shouldSatisfy` isLeft
 
-          -- TODO: Include this test.
+          -- TODO: Include this test. (github #211)
           -- step "That another user from the same business can also revoke the key"
           -- b1K4StoredKeyIdResult <- http (addPublicKey (newUserToBasicAuthData userB1U1) goodKey Nothing)
           -- b1K4StoredKeyIdResult `shouldSatisfy` isRight
@@ -384,7 +384,7 @@ clientSpec = do
           step "Can add all of the good keys"
           testDirectory "goodKeys" isRight
 
-          -- TODO: Include this test. Some of the invalid keys work.
+          -- TODO: Include this test. Some of the invalid keys work. (github #212)
           -- step "Can't add any of the bad keys"
           -- testDirectory "badKeys" isLeft
 
@@ -472,10 +472,10 @@ right _         = error "Wasn't right..."
 within1Second :: UTCTime -> UTCTime -> Bool
 within1Second expected actual = abs (diffUTCTime expected actual) < (fromInteger 1)
 
--- TODO: This is copied from keys, move it into a higher level module and remove it from here and there.
+-- TODO: This is copied from keys, move it into a higher level module and remove it from here and there after merging with sajid work.
 readRsaPubKey :: FilePath -> IO PEM_RSAPubKey
 readRsaPubKey filename = PEM_RSAPubKey <$> TIO.readFile filename
 
--- TODO: this is copied from keys, move it into a higher level module and remove it from here and there.
+-- TODO: this is copied from keys, move it into a higher level module and remove it from here and there after merging with sajid work.
 goodRsaPublicKey :: IO PEM_RSAPubKey
 goodRsaPublicKey = readRsaPubKey "./test/Mirza/Common/testKeys/goodKeys/4096bit_rsa_key.pub"
