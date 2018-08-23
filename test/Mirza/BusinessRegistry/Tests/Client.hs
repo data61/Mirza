@@ -359,8 +359,15 @@ clientSpec = do
           b1K5RevokedInfoResponce `shouldSatisfy` (checkRecord (InEffect ==) keyInfoState)
 
           step "That revokePublicKey for an invalid keyId fails gracefully"
-          b1K6RevokedResponce <- http (revokePublicKey (newUserToBasicAuthData userB1U1) (BRKeyId nil))
-          b1K6RevokedResponce `shouldSatisfy` isLeft
+          revokeInvalidKeyIdResponce <- http (revokePublicKey (newUserToBasicAuthData userB1U1) (BRKeyId nil))
+          revokeInvalidKeyIdResponce `shouldSatisfy` isLeft
+
+          step "Test where the key has an expiry time (which hasn't expired) and is revoked reports the correct status."
+          -- TODO.
+
+          step "Test where the key has an expiry time (which has expired) and is revoked reports the correct status."
+          -- TODO.
+
 
 
           -- Function to run a test predicate over all the keys in one of the test keys subdirectories.
