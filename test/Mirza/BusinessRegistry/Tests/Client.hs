@@ -313,6 +313,7 @@ clientSpec = do
           b1K2InfoDelayedResponce `shouldSatisfy` isRight
           b1K2InfoDelayedResponce `shouldSatisfy` (checkRecord (Expired ==) keyInfoState)
 
+          -- TODO: Include this test.
           -- step $ "That it is not possible to add a key that is already expired"
           -- b1ExpiredKeyExpiry <- (Just . ExpirationTime) <$> ((addUTCTime (fromInteger (-1))) <$> getCurrentTime)
           -- b1ExpiredKeyExpiryResult <- http (addPublicKey (newUserToBasicAuthData userB1U1) goodKey b1ExpiredKeyExpiry)
@@ -336,6 +337,7 @@ clientSpec = do
           b1K3RevokedAgainResponce <- http (revokePublicKey (newUserToBasicAuthData userB1U1) b1K3StoredKeyId)
           b1K3RevokedAgainResponce `shouldSatisfy` isLeft
 
+          -- TODO: Include this test.
           -- step "That another user from the same business can also revoke the key"
           -- b1K4StoredKeyIdResult <- http (addPublicKey (newUserToBasicAuthData userB1U1) goodKey Nothing)
           -- b1K4StoredKeyIdResult `shouldSatisfy` isRight
