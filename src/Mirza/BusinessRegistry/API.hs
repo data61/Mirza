@@ -48,7 +48,7 @@ type PublicAPI =
        "key"      :> "get"     :> Capture "keyId" BRKeyId :> Get '[JSON] PEM_RSAPubKey
   :<|> "key"      :> "getInfo" :> Capture "keyId" BRKeyId :> Get '[JSON] KeyInfoResponse
   :<|> "business" :> "list"                               :> Get '[JSON] [BusinessResponse]
-  -- TODO: These should not be publically exposed, fix this:
+  -- TODO: These should not be publically exposed, fix this (github #195):
   :<|> "user"     :> "new"     :> ReqBody '[JSON] NewUser     :> Post '[JSON] UserId
   :<|> "business" :> "new"     :> ReqBody '[JSON] NewBusiness :> Post '[JSON] GS1CompanyPrefix
 
