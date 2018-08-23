@@ -118,12 +118,43 @@ clientSpec = do
               companyPrefix = (GS1CompanyPrefix "userTests_companyPrefix")
               business = makeNewBusiness companyPrefix "userTests_businessName"
 
-          let user1 = NewUser (EmailAddress "userTests_email1@example.com") "password" companyPrefix "userTests First Name 1" "userTests Last Name 1" "userTests Phone Number 1"
-              user2 = NewUser (EmailAddress "userTests_email2@example.com") "password" companyPrefix "userTests First Name 2" "userTests Last Name 2" "userTests Phone Number 2"
-              userSameEmail = NewUser (newUserEmailAddress user1) "password" companyPrefix  "userTests First Name Same Email" "userTests Last Name Same Email" "userTests Phone Number Same Email" -- Same email address as user1 other fields different.
-              userNonRegisteredBusiness = NewUser (EmailAddress "userTests_unregisteredBusiness@example.com") "password" (GS1CompanyPrefix "unregistered") "userTests First Name Unregistered Business" "userTests Last Name Unregistered Business" "userTests Phone Number Unregistered Business"
-              -- userEmptyEmail = NewUser (EmailAddress "") "password" companyPrefix  "userTests First Name Empty Email" "userTests Last Name Empty Email" "userTests Phone Number Empty Email"
-              -- userEmptyPassword = NewUser (EmailAddress "userTests_emptyPassword@example.com") "" companyPrefix  "userTests First Name Empty Password" "userTests Last Name Empty Password" "userTests Phone Number Empty Password"
+          let user1 = NewUser (EmailAddress "userTests_email1@example.com")
+                              "password"
+                              companyPrefix
+                              "userTests First Name 1"
+                              "userTests Last Name 1"
+                              "userTests Phone Number 1"
+              user2 = NewUser (EmailAddress "userTests_email2@example.com")
+                              "password"
+                              companyPrefix
+                              "userTests First Name 2"
+                              "userTests Last Name 2"
+                              "userTests Phone Number 2"
+              -- Same email address as user1 other fields different.
+              userSameEmail = NewUser (newUserEmailAddress user1)
+                                      "password"
+                                      companyPrefix
+                                      "userTests First Name Same Email"
+                                      "userTests Last Name Same Email"
+                                      "userTests Phone Number Same Email"
+              userNonRegisteredBusiness = NewUser (EmailAddress "userTests_unregisteredBusiness@example.com")
+                                                  "password"
+                                                  (GS1CompanyPrefix "unregistered")
+                                                  "userTests First Name Unregistered Business"
+                                                  "userTests Last Name Unregistered Business"
+                                                  "userTests Phone Number Unregistered Business"
+              -- userEmptyEmail = NewUser (EmailAddress "")
+              --                          "password"
+              --                          companyPrefix
+              --                          "userTests First Name Empty Email"
+              --                          "userTests Last Name Empty Email"
+              --                          "userTests Phone Number Empty Email"
+              -- userEmptyPassword = NewUser (EmailAddress "userTests_emptyPassword@example.com")
+              --                             ""
+              --                             companyPrefix
+              --                             "userTests First Name Empty Password"
+              --                             "userTests Last Name Empty Password"
+              --                             "userTests Phone Number Empty Password"
 
           -- Create a business to use from further test cases (this is tested in
           -- the businesses tests so doesn't need to be explicitly tested here).
@@ -142,10 +173,18 @@ clientSpec = do
           step "Can create a new user"
           http (addUser user1)
             `shouldSatisfyIO` isRight
+          -- Note: We effectively implicitly test that the value returned is
+          --       sensible later when we test that a user with this ID occurs
+          --       in a keys query responce, here we can only test that we think
+          --       that we succeeded and have no other way of verifying the ID
+          --       is otherwise correct constraining our selves to just user
+          --       related API functions.
 
           step "That the created user can login"
           http (addPublicKey (newUserToBasicAuthData user1) goodKey Nothing)
             `shouldSatisfyIO` isRight
+          -- Note: We test the result of the function elsewhere, all we care
+          --       about here is that the user can login.
 
           step "Can't create a new user with a GS1CompanyPrefix that isn't registered"
           http (addUser userNonRegisteredBusiness)
@@ -184,9 +223,27 @@ clientSpec = do
               business2CompanyPrefix = (GS1CompanyPrefix "keyTests_companyPrefix2")
               business2 = makeNewBusiness business2CompanyPrefix "userTests_businessName2"
 
-          let userB1U1 = NewUser (EmailAddress "keysTests_email1@example.com") "password" business1CompanyPrefix "keysTests First Name 1" "keysTests Last Name 1" "keysTests Phone Number 1" -- Business1User1
-              userB1U2 = NewUser (EmailAddress "keysTests_email2@example.com") "password" business1CompanyPrefix "keysTests First Name 2" "keysTests Last Name 2" "keysTests Phone Number 2" -- Business1User2
-              userB2U1 = NewUser (EmailAddress "keysTests_email3@example.com") "password" business2CompanyPrefix "keysTests First Name 3" "keysTests Last Name 3" "keysTests Phone Number 3" -- Business2User1
+          -- Business1User1
+          let userB1U1 = NewUser (EmailAddress "keysTests_email1@example.com")
+                                 "password"
+                                 business1CompanyPrefix
+                                 "keysTests First Name 1"
+                                 "keysTests Last Name 1"
+                                 "keysTests Phone Number 1"
+          -- Business1User2
+          let userB1U2 = NewUser (EmailAddress "keysTests_email2@example.com")
+                                 "password"
+                                 business1CompanyPrefix
+                                 "keysTests First Name 2"
+                                 "keysTests Last Name 2"
+                                 "keysTests Phone Number 2"
+          -- Business2User1
+          let userB2U1 = NewUser (EmailAddress "keysTests_email3@example.com")
+                                 "password"
+                                 business2CompanyPrefix
+                                 "keysTests First Name 3"
+                                 "keysTests Last Name 3"
+                                 "keysTests Phone Number 3"
 
           -- Create a business to use from further test cases (this is tested in
           --  the businesses tests so doesn't need to be explicitly tested here).
