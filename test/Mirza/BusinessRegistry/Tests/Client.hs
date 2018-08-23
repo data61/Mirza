@@ -86,7 +86,7 @@ clientSpec = do
           newPrimaryBusinessResult `shouldBe` (Right primaryCompanyPrefix)
 
           step "That the added business was added and can be listed."
-          http listBusiness >>=
+          http listBusinesses >>=
             either (const $ expectationFailure "Error listing businesses")
                    (`shouldContain` [primaryBusinessResponse])
 
@@ -101,7 +101,7 @@ clientSpec = do
           newSecondaryBusinessResult `shouldBe` (Right secondaryCompanyPrefix)
 
           step "List businesses returns all of the businesses"
-          http listBusiness >>=
+          http listBusinesses >>=
               either (const $ expectationFailure "Error listing businesses")
                     (`shouldContain` [ primaryBusinessResponse
                                         , secondaryBusinessResponse])
@@ -267,11 +267,11 @@ clientSpec = do
           let b1K1StoredKeyId = right b1K1StoredKeyIdResult
 
           step "Can retrieve a stored key"
-          b1K1Responce <- http (getKey b1K1StoredKeyId)
+          b1K1Responce <- http (getPublicKey b1K1StoredKeyId)
           b1K1Responce `shouldSatisfy` isRight
 
           step "Can retrieve the key info for a stored key"
-          b1K1InfoResponce <- http (getKeyInfo b1K1StoredKeyId)
+          b1K1InfoResponce <- http (getPublicKeyInfo b1K1StoredKeyId)
           b1K1InfoResponce `shouldSatisfy` isRight
           b1K1InfoResponce `shouldSatisfy` (checkRecord (b1K1StoredKeyId ==) keyInfoId)
           b1K1InfoResponce `shouldSatisfy` (checkRecord (right userB1U1Responce ==) keyInfoUserId)
@@ -281,12 +281,12 @@ clientSpec = do
           b1K1InfoResponce `shouldSatisfy` (checkRecord isNothing keyInfoExpirationTime)
           b1K1InfoResponce `shouldSatisfy` (checkRecord (goodKey ==) keyInfoPEMString)
 
-          step "That getKey fails gracefully searching for a non existant key"
-          b1InvalidKeyResponce <- http (getKey (BRKeyId nil))
+          step "That getPublicKey fails gracefully searching for a non existant key"
+          b1InvalidKeyResponce <- http (getPublicKey (BRKeyId nil))
           b1InvalidKeyResponce `shouldSatisfy` isLeft
 
-          step "That getKeyInfo fails gracefully searching for a non existant key"
-          b1InvalidKeyInfoResponce <- http (getKeyInfo (BRKeyId nil))
+          step "That getPublicKeyInfo fails gracefully searching for a non existant key"
+          b1InvalidKeyInfoResponce <- http (getPublicKeyInfo (BRKeyId nil))
           b1InvalidKeyInfoResponce `shouldSatisfy` isLeft
 
           let expiryDelay = 3
@@ -298,7 +298,7 @@ clientSpec = do
           let b1K2StoredKeyId = right b1K2StoredKeyIdResult
 
           step "That the key info reflects the expiry time"
-          b1K2InfoResponce <- http (getKeyInfo b1K2StoredKeyId)
+          b1K2InfoResponce <- http (getPublicKeyInfo b1K2StoredKeyId)
           b1K2InfoResponce `shouldSatisfy` isRight
           b1K2InfoResponce `shouldSatisfy` (checkRecord (b1K2StoredKeyId ==) keyInfoId)
           b1K2InfoResponce `shouldSatisfy` (checkRecord (right userB1U1Responce ==) keyInfoUserId)
@@ -309,7 +309,7 @@ clientSpec = do
 
           step "That the key info status updates after the expiry time has been reached"
           threadDelay $ fromIntegral (expiryDelay * 1000000)
-          b1K2InfoDelayedResponce <- http (getKeyInfo b1K2StoredKeyId)
+          b1K2InfoDelayedResponce <- http (getPublicKeyInfo b1K2StoredKeyId)
           b1K2InfoDelayedResponce `shouldSatisfy` isRight
           b1K2InfoDelayedResponce `shouldSatisfy` (checkRecord (Expired ==) keyInfoState)
 
@@ -329,7 +329,7 @@ clientSpec = do
           b1K3RevokedResponce `shouldSatisfy` (checkRecord (within1Second b1K3Now) getRevocationTime)
 
           step "That the key status updates after the key is revoked"
-          b1K3RevokedInfoResponce <- http (getKeyInfo b1K3StoredKeyId)
+          b1K3RevokedInfoResponce <- http (getPublicKeyInfo b1K3StoredKeyId)
           b1K3RevokedInfoResponce `shouldSatisfy` isRight
           b1K3RevokedInfoResponce `shouldSatisfy` (checkRecord (Revoked ==) keyInfoState)
 
@@ -344,7 +344,7 @@ clientSpec = do
           -- let b1K4StoredKeyId = right b1K4StoredKeyIdResult
           -- b1K4RevokedResponce <- http (revokePublicKey (newUserToBasicAuthData userB1U2) b1K4StoredKeyId)
           -- b1K4RevokedResponce `shouldSatisfy` isRight
-          -- b1K4RevokedInfoResponce <- http (getKeyInfo b1K4StoredKeyId)
+          -- b1K4RevokedInfoResponce <- http (getPublicKeyInfo b1K4StoredKeyId)
           -- b1K4RevokedInfoResponce `shouldSatisfy` isRight
           -- b1K4RevokedInfoResponce `shouldSatisfy` (checkRecord (Revoked ==) keyInfoState)
 
@@ -354,7 +354,7 @@ clientSpec = do
           let b1K5StoredKeyId = right b1K5StoredKeyIdResult
           b1K5RevokedResponce <- http (revokePublicKey (newUserToBasicAuthData userB2U1) b1K5StoredKeyId)
           b1K5RevokedResponce `shouldSatisfy` isLeft
-          b1K5RevokedInfoResponce <- http (getKeyInfo b1K5StoredKeyId)
+          b1K5RevokedInfoResponce <- http (getPublicKeyInfo b1K5StoredKeyId)
           b1K5RevokedInfoResponce `shouldSatisfy` isRight
           b1K5RevokedInfoResponce `shouldSatisfy` (checkRecord (InEffect ==) keyInfoState)
 

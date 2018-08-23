@@ -42,11 +42,11 @@ addUserQuery (BRT.NewUser (BRT.EmailAddress email) password companyPrefix firstN
   encPass <- liftIO $ Scrypt.encryptPassIO params (Scrypt.Pass $ encodeUtf8 password)
   userId <- newUUID
 
-  bizs <- BRT.pg $ runSelectReturningOne $ select $ do
-    bizes <- all_ (Schema._businesses Schema.businessRegistryDB)
-    guard_ (biz_gs1_company_prefix bizes ==. val_ companyPrefix)
-    pure bizes
-  when (isNothing bizs) $ BRT.throwing_ BRT._BusinessDoesNotExistBRE
+  business <- BRT.pg $ runSelectReturningOne $ select $ do
+    businesses <- all_ (Schema._businesses Schema.businessRegistryDB)
+    guard_ (biz_gs1_company_prefix businesses ==. val_ companyPrefix)
+    pure businesses
+  when (isNothing business) $ BRT.throwing_ BRT._BusinessDoesNotExistBRE
 
   -- TODO: use Database.Beam.Backend.SQL.runReturningOne?
   res <- BRT.pg $ runInsertReturningList (Schema._users Schema.businessRegistryDB) $

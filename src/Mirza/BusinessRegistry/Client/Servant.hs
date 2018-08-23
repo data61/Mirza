@@ -1,9 +1,9 @@
 module Mirza.BusinessRegistry.Client.Servant
   (
   -- * Public API
-    getKey
-  , getKeyInfo
-  , listBusiness
+    getPublicKey
+  , getPublicKeyInfo
+  , listBusinesses
   , addUser
   , addBusiness
   -- * Authenticated API
@@ -23,9 +23,9 @@ import           Servant.Client
 
 import           Data.Proxy                   (Proxy (..))
 
-getKey       :: BRKeyId -> ClientM PEM_RSAPubKey
-getKeyInfo   :: BRKeyId -> ClientM KeyInfoResponse
-listBusiness :: ClientM [BusinessResponse]
+getPublicKey       :: BRKeyId -> ClientM PEM_RSAPubKey
+getPublicKeyInfo   :: BRKeyId -> ClientM KeyInfoResponse
+listBusinesses :: ClientM [BusinessResponse]
 addUser      :: NewUser     -> ClientM UserId
 addBusiness  :: NewBusiness -> ClientM GS1CompanyPrefix
 
@@ -37,9 +37,9 @@ _privAPI :: Client ClientM ProtectedAPI
 _pubAPI  :: Client ClientM PublicAPI
 _api@(
   _pubAPI@(
-         getKey
-    :<|> getKeyInfo
-    :<|> listBusiness
+         getPublicKey
+    :<|> getPublicKeyInfo
+    :<|> listBusinesses
     :<|> addUser
     :<|> addBusiness
   )
