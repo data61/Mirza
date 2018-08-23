@@ -332,6 +332,10 @@ clientSpec = do
           b1K3RevokedInfoResponce `shouldSatisfy` isRight
           b1K3RevokedInfoResponce `shouldSatisfy` (checkRecord (Revoked ==) keyInfoState)
 
+          step "That revoking an already revoked key generates an error"
+          b1K3RevokedAgainResponce <- http (revokePublicKey (newUserToBasicAuthData userB1U1) b1K3StoredKeyId)
+          b1K3RevokedAgainResponce `shouldSatisfy` isLeft
+
           -- step "That another user from the same business can also revoke the key"
           -- b1K4StoredKeyIdResult <- http (addPublicKey (newUserToBasicAuthData userB1U1) goodKey Nothing)
           -- b1K4StoredKeyIdResult `shouldSatisfy` isRight
@@ -342,7 +346,7 @@ clientSpec = do
           -- b1K4RevokedInfoResponce `shouldSatisfy` isRight
           -- b1K4RevokedInfoResponce `shouldSatisfy` (checkRecord (Revoked ==) keyInfoState)
 
-          step "That user from the another business can't also revoke the key"
+          step "That a user from the another business can't also revoke the key"
           b1K5StoredKeyIdResult <- http (addPublicKey (newUserToBasicAuthData userB1U1) goodKey Nothing)
           b1K5StoredKeyIdResult `shouldSatisfy` isRight
           let b1K5StoredKeyId = right b1K5StoredKeyIdResult
@@ -351,6 +355,10 @@ clientSpec = do
           b1K5RevokedInfoResponce <- http (getKeyInfo b1K5StoredKeyId)
           b1K5RevokedInfoResponce `shouldSatisfy` isRight
           b1K5RevokedInfoResponce `shouldSatisfy` (checkRecord (InEffect ==) keyInfoState)
+
+          step "That revokePublicKey for an invalid keyId fails gracefully"
+          b1K6RevokedResponce <- http (revokePublicKey (newUserToBasicAuthData userB1U1) (BRKeyId nil))
+          b1K6RevokedResponce `shouldSatisfy` isLeft
 
 
           -- Function to run a test predicate over all the keys in one of the test keys subdirectories.
