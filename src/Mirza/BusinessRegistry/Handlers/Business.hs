@@ -33,7 +33,7 @@ listBusinesses = fmap bizToBizResponse <$> runDb listBusinessesQuery
 
 bizToBizResponse :: Business -> BusinessResponse
 bizToBizResponse BusinessT{..} = BusinessResponse
-  { businessGs1CompanyPrefix = biz_gs1_company_prefix
+  { businessGS1CompanyPrefix = biz_gs1_company_prefix
   , businessName             = biz_name
   }
 
@@ -62,7 +62,7 @@ addBusiness = (fmap biz_gs1_company_prefix)
 newBusinessToBusiness :: NewBusiness -> Business
 newBusinessToBusiness NewBusiness{..} =
   BusinessT
-    { biz_gs1_company_prefix = newBusinessGs1CompanyPrefix
+    { biz_gs1_company_prefix = newBusinessGS1CompanyPrefix
     , biz_name               = newBusinessName
     }
 

@@ -275,7 +275,7 @@ runPopulateDatabase globals = do
 
 dummyBusiness :: Text -> IO NewBusiness
 dummyBusiness unique = do
-  let newBusinessGs1CompanyPrefix = GS1CompanyPrefix ("Business" <> unique <> "Prefix")
+  let newBusinessGS1CompanyPrefix = GS1CompanyPrefix ("Business" <> unique <> "Prefix")
   let newBusinessName             = "Business" <> unique <> "Name"
   return NewBusiness{..}
 

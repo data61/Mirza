@@ -96,7 +96,7 @@ instance FromHttpApiData AuthUser where
 
 
 data NewBusiness = NewBusiness
-  { newBusinessGs1CompanyPrefix :: GS1CompanyPrefix
+  { newBusinessGS1CompanyPrefix :: GS1CompanyPrefix
   , newBusinessName             :: Text
   } deriving (Generic, Eq, Show)
 $(deriveJSON defaultOptions ''NewBusiness)
@@ -104,7 +104,7 @@ instance ToSchema NewBusiness
 
 -- Business Response Types:
 data BusinessResponse = BusinessResponse
-  { businessGs1CompanyPrefix :: EPC.GS1CompanyPrefix
+  { businessGS1CompanyPrefix :: EPC.GS1CompanyPrefix
   , businessName             :: Text
   }
   deriving (Show, Eq, Read, Generic)
