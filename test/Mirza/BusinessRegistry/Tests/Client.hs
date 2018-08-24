@@ -469,7 +469,7 @@ makeNewBusiness prefix name = NewBusiness prefix name
 
 newBusinessToBusinessResponse :: NewBusiness -> BusinessResponse
 newBusinessToBusinessResponse business = (BusinessResponse
-                                          <$> newBusinessGs1CompanyPrefix
+                                          <$> newBusinessGS1CompanyPrefix
                                           <*> newBusinessName)
                                           business
 
