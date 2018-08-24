@@ -308,10 +308,15 @@ clientSpec = do
           b1K2InfoResponce `shouldSatisfy` (checkRecord (goodKey ==) keyInfoPEMString)
 
           step "That the key info status updates after the expiry time has been reached"
-          threadDelay $ fromIntegral (expiryDelay * 1000000)
+          threadDelay $ fromIntegral $ millisecondsToSeconds expiryDelay
           b1K2InfoDelayedResponce <- http (getPublicKeyInfo b1K2StoredKeyId)
           b1K2InfoDelayedResponce `shouldSatisfy` isRight
           b1K2InfoDelayedResponce `shouldSatisfy` (checkRecord (Expired ==) keyInfoState)
+
+          -- TODO Include this test (github #217):
+          -- step "Test that it is not possible to revoke a key that has already expired."
+          -- b1K2RevokedResponce <- http (revokePublicKey (newUserToBasicAuthData userB1U1) b1K2StoredKeyId)
+          -- b1K2RevokedResponce `shouldSatisfy` isLeft
 
           -- TODO: Include this test (github #205):
           -- step $ "That it is not possible to add a key that is already expired"
@@ -363,10 +368,26 @@ clientSpec = do
           revokeInvalidKeyIdResponce `shouldSatisfy` isLeft
 
           step "Test where the key has an expiry time (which hasn't expired) and is revoked reports the correct status."
-          -- TODO.
+          b1K6ExpiryUTC <- (addUTCTime (fromInteger expiryDelay)) <$> getCurrentTime
+          let b1K6Expiry = (Just . ExpirationTime) b1K6ExpiryUTC
+          b1K6StoreKeyIdResult <- http (addPublicKey (newUserToBasicAuthData userB1U1) goodKey b1K6Expiry)
+          b1K6StoreKeyIdResult `shouldSatisfy` isRight
+          let b1K6KeyId = right b1K6StoreKeyIdResult
+          b1K6RevokeKeyResult <- http (revokePublicKey (newUserToBasicAuthData userB1U1) b1K6KeyId)
+          b1K6RevokeKeyResult `shouldSatisfy` isRight
+          b1K6ExpiryRevokedResponce <- http (getPublicKeyInfo b1K6KeyId)
+          -- This a test integrity check. We need to make sure that the time after we sent the request is not enough that the key will be after exipry time here.
+          b1K6TimeAfterResponce <- getCurrentTime
+          b1K6TimeAfterResponce `shouldSatisfy` (< b1K6ExpiryUTC)
+          b1K6ExpiryRevokedResponce `shouldSatisfy` isRight
+          b1K6ExpiryRevokedResponce `shouldSatisfy` (checkRecord (Revoked ==) keyInfoState)
 
-          step "Test where the key has an expiry time (which has expired) and is revoked reports the correct status."
-          -- TODO.
+          step "Test where the key has an expiry time and a revoked time which expired after it was revoked and both revoked and expired time have passed."
+          -- Wait for the key from the previous test to expire and then recheck the status.
+          threadDelay $ millisecondsToSeconds $ ceiling $ diffUTCTime b1K6ExpiryUTC b1K6TimeAfterResponce
+          b1K6ExpiredRevokedResponce <- http (getPublicKeyInfo b1K6KeyId)
+          b1K6ExpiredRevokedResponce `shouldSatisfy` isRight
+          b1K6ExpiredRevokedResponce `shouldSatisfy` (checkRecord (Revoked ==) keyInfoState)
 
 
 
@@ -479,3 +500,6 @@ readRsaPubKey filename = PEM_RSAPubKey <$> TIO.readFile filename
 -- TODO: this is copied from keys, move it into a higher level module and remove it from here and there after merging with sajid work.
 goodRsaPublicKey :: IO PEM_RSAPubKey
 goodRsaPublicKey = readRsaPubKey "./test/Mirza/Common/testKeys/goodKeys/4096bit_rsa_key.pub"
+
+millisecondsToSeconds :: (Num a) => a -> a
+millisecondsToSeconds = (* 1000000)
