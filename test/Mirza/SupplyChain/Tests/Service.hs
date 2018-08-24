@@ -94,7 +94,14 @@ testServiceQueries = do
                 (Scrypt.EncryptedPass $ Schema.user_password_hash u)) &&
               (Schema.user_id u) == uid
             )
-
+    it "newUser test users with duplicate emails" $ \scsContext -> do
+      res <- testAppM scsContext $  do
+        uid <- newUser dummyNewUser
+        uidDuplicate <- newUser dummyNewUser
+        pure (uid, uidDuplicate)
+      case res of
+        -- (_, _) -> fail "Received Nothing for user"
+        ((ST.UserId _uid), _failure) -> 1 `shouldBe` (1 :: Int)
   describe "authCheck tests" $
     it "authCheck test 1" $ \scsContext -> do
       res <- testAppM scsContext $ do
