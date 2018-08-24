@@ -21,7 +21,7 @@ then
 fi
 
 stack build --fast
-stack exec supplyChainServer-exe -- -i
+stack exec supplyChainServer-exe -- --init-db
 stack exec businessRegistry -- initdb
 
 # eventuially, we will get an updated list from ASIC and populate the db
@@ -65,7 +65,8 @@ echo "Inserting a user. Username: abc@gmail.com, Password: password"
 curl -X POST "http://localhost:8000/newUser" \
     -H "accept: application/json;charset=utf-8"\
     -H "Content-Type: application/json;charset=utf-8"\
-    -d "{ \"phoneNumber\": \"0412\", \"userEmailAddress\": \"abc@gmail.com\", \"firstName\": \"sajid\", \"lastName\": \"anower\", \"company\": \"4000001\", \"password\": \"password\"}")&
+    -d "{ \"newUserPhoneNumber\": \"0412\", \"newUserEmailAddress\": \"abc@gmail.com\", \"newUserFirstName\": \"sajid\", \"newUserLastName\": \"anower\", \"newUserCompany\": \"4000001\", \"newUserPassword\": \"password\"}")&
+echo; echo
 
 # TODO: Run an instance of businessRegistry as well
 
