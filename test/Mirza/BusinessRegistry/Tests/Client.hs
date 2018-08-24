@@ -1,6 +1,6 @@
 module Mirza.BusinessRegistry.Tests.Client where
 
-import           Mirza.Common.Tests.Utils                    (unsafeMkEmailAddress)
+import           Mirza.Common.Tests.Utils              (unsafeMkEmailAddress)
 
 import           Mirza.BusinessRegistry.Tests.Settings (testDbConnStr)
 
