@@ -154,7 +154,7 @@ instance ToSchema KeyInfoResponse
 data BusinessRegistryError
   = DBErrorBRE SqlError
   -- | The user tried to add a business with the a GS1CompanyPrefix that already exsits.
-  | BusinessCreationErrorNonUniqueBRE
+  | GS1CompanyPrefixExistsBRE
   | BusinessDoesNotExistBRE
   | UserCreationErrorBRE String
   | KeyErrorBRE KeyError
