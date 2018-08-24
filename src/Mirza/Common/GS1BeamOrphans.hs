@@ -502,7 +502,7 @@ emailFromBackendRow :: Text -> EmailAddress
 emailFromBackendRow emailTxt =
   let emailByte = encodeUtf8 emailTxt in
     case validate emailByte of
-      Right email -> email
+      Right userEmail -> userEmail
       Left reason -> error reason -- shouldn't ever happen
 
 instance BSQL.FromBackendRow BPostgres.Postgres EmailAddress where
