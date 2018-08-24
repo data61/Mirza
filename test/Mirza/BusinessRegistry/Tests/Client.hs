@@ -20,14 +20,16 @@ import           Servant.API.BasicAuth
 import           Servant.Client
 
 import           Control.Monad                          (forM_)
-import           Data.Either
+import           Data.Either                            (isLeft, isRight)
 import           Data.List                              (isSuffixOf)
 import           Data.Maybe                             (fromJust, isNothing)
 import           Data.Text                              (Text)
 import           Data.Text.Encoding                     (encodeUtf8)
 import qualified Data.Text.IO                           as TIO
-import           Data.Time.Clock
-import           Data.UUID
+import           Data.Time.Clock                        (UTCTime, addUTCTime,
+                                                        diffUTCTime,
+                                                        getCurrentTime)
+import           Data.UUID                              (nil)
 import           System.Directory                       (listDirectory)
 import           System.FilePath                        ((</>))
 import           System.IO                              (FilePath)
@@ -36,7 +38,8 @@ import           Test.Hspec.Expectations
 import           Test.Tasty
 import           Test.Tasty.HUnit
 
-import           Database.Beam.Query
+import           Database.Beam.Query                    (delete, runDelete,
+                                                        val_)
 import           Mirza.BusinessRegistry.Client.Servant
 import           Mirza.BusinessRegistry.Database.Schema
 import           Mirza.BusinessRegistry.Main            (GlobalOptions (..),
