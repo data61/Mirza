@@ -105,7 +105,7 @@ serveSwaggerAPI = toSwagger serverAPI
 appErrToHttpErr :: BusinessRegistryError -> Handler a
 appErrToHttpErr (KeyErrorBRE kError) = keyErrToHttpErr kError
 appErrToHttpErr x@(DBErrorBRE _sqlError)              = liftIO (print x) >> notImplemented
-appErrToHttpErr x@(BusinessCreationErrorNonUniqueBRE) = liftIO (print x) >> notImplemented
+appErrToHttpErr x@(GS1CompanyPrefixExistsBRE) = liftIO (print x) >> notImplemented
 appErrToHttpErr x@(BusinessDoesNotExistBRE)           = liftIO (print x) >> notImplemented
 appErrToHttpErr x@(UserCreationErrorBRE _reason)      = liftIO (print x) >> notImplemented
 

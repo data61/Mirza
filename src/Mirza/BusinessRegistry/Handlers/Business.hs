@@ -55,7 +55,7 @@ addBusiness = (fmap biz_gs1_company_prefix)
       Nothing -> throwError e
       Just sqlErr ->
         case constraintViolation sqlErr of
-          Just (UniqueViolation "businesses_pkey") -> throwing_ _BusinessCreationErrorNonUniqueBRE
+          Just (UniqueViolation "businesses_pkey") -> throwing_ _GS1CompanyPrefixExistsBRE
           _ -> throwError e
 
 
