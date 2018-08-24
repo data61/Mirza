@@ -49,8 +49,8 @@ type PublicAPI =
   :<|> "key"      :> "getInfo" :> Capture "keyId" BRKeyId :> Get '[JSON] KeyInfoResponse
   :<|> "business" :> "list"                               :> Get '[JSON] [BusinessResponse]
   -- TODO: These should not be publically exposed, fix this (github #195):
-  :<|> "user"     :> "new"     :> ReqBody '[JSON] NewUser     :> Post '[JSON] UserId
-  :<|> "business" :> "new"     :> ReqBody '[JSON] NewBusiness :> Post '[JSON] GS1CompanyPrefix
+  :<|> "user"     :> "add"     :> ReqBody '[JSON] NewUser     :> Post '[JSON] UserId
+  :<|> "business" :> "add"     :> ReqBody '[JSON] NewBusiness :> Post '[JSON] GS1CompanyPrefix
 
 
 type PrivateAPI =
