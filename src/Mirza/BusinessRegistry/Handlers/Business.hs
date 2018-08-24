@@ -28,11 +28,11 @@ import           GHC.Stack                                (HasCallStack)
 
 
 listBusinesses :: BRApp context err => AppM context err [BusinessResponse]
-listBusinesses = fmap bizToBizResponse <$> runDb listBusinessesQuery
+listBusinesses = fmap businessToBusinessResponse <$> runDb listBusinessesQuery
 
 
-bizToBizResponse :: Business -> BusinessResponse
-bizToBizResponse BusinessT{..} = BusinessResponse
+businessToBusinessResponse :: Business -> BusinessResponse
+businessToBusinessResponse BusinessT{..} = BusinessResponse
   { businessGS1CompanyPrefix = biz_gs1_company_prefix
   , businessName             = biz_name
   }
