@@ -22,9 +22,9 @@ import           Database.PostgreSQL.Simple.Errors        (ConstraintViolation (
                                                            constraintViolation)
 
 import           Control.Lens                             ((^?))
-import           Control.Monad.Except
+import           Control.Monad.Except                     (catchError, throwError)
 
-import           GHC.Stack
+import           GHC.Stack                                (HasCallStack)
 
 
 listBusinesses :: BRApp context err => AppM context err [BusinessResponse]
