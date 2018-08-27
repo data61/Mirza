@@ -3,6 +3,7 @@
 module Mirza.BusinessRegistry.Handlers.Users
   (
     addUser
+  , addUserAuth
   , addUserQuery
   , getUserByIdQuery
   , tableToAuthUser
@@ -28,11 +29,20 @@ import           Data.Text.Encoding                       (encodeUtf8)
 
 
 
+-- This function is an interface adapter and adds the BT.AuthUser argument to
+-- addUser so that we can use it from behind the private API. This argument
+-- is not used in the current implementation as it is assumed that all users
+-- will have the ability to act globally.
+addUserAuth ::  (BRApp context err, BRT.HasScryptParams context)
+        => BRT.AuthUser
+        -> BRT.NewUser
+        -> BRT.AppM context err BRT.UserId
+addUserAuth _ = addUser
+
 addUser ::  (BRApp context err, BRT.HasScryptParams context)
         => BRT.NewUser
         -> BRT.AppM context err BRT.UserId
 addUser = BRT.runDb . addUserQuery
-
 
 -- | Hashes the password of the BRT.NewUser and inserts the user into the database
 addUserQuery :: (BRT.AsBusinessRegistryError err, BRT.HasScryptParams context)
