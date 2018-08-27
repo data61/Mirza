@@ -136,6 +136,8 @@ test-suite supplyChainServer-test
                      , uuid
                      , tasty
                      , tasty-hspec
+                     , tasty-hunit
+                     , hspec-expectations
                      , wai
                      , warp
                      , servant-client
