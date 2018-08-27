@@ -167,6 +167,7 @@ test-suite businessRegistry-test
                      , http-client
                      , network
                      , postgresql-simple
+                     , random
                      , servant
                      , text
                      , time

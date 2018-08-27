@@ -11,7 +11,7 @@ import           Mirza.BusinessRegistry.API              (API, ServerAPI, api)
 import           Mirza.BusinessRegistry.Auth
 import           Mirza.BusinessRegistry.Database.Migrate
 import           Mirza.BusinessRegistry.Database.Schema  as Schema
-import           Mirza.BusinessRegistry.Service
+import           Mirza.BusinessRegistry.Service          hiding (addUserQuery)
 import           Mirza.BusinessRegistry.Types            as BT
 import           Mirza.Common.Types                      as CT
 import           Mirza.Common.Utils                      (newUUID)
