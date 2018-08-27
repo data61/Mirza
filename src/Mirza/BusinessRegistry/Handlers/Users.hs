@@ -3,6 +3,7 @@
 module Mirza.BusinessRegistry.Handlers.Users
   (
     addUser
+  , addUserQuery
   , getUserByIdQuery
   , tableToAuthUser
   ) where

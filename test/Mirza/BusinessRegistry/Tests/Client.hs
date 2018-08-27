@@ -1,5 +1,6 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Mirza.BusinessRegistry.Tests.Client where
 
@@ -19,11 +20,11 @@ import           Network.Wai.Handler.Warp
 import           Servant.API.BasicAuth
 import           Servant.Client
 
-import           Control.Monad                          (forM_)
+import           Control.Monad                          (forM_, replicateM)
 import           Data.Either                            (isLeft, isRight)
 import           Data.List                              (isSuffixOf)
 import           Data.Maybe                             (fromJust, isNothing)
-import           Data.Text                              (Text)
+import           Data.Text                              (Text, pack)
 import           Data.Text.Encoding                     (encodeUtf8)
 import qualified Data.Text.IO                           as TIO
 import           Data.Time.Clock                        (UTCTime, addUTCTime,
@@ -33,6 +34,8 @@ import           Data.UUID                              (nil)
 import           System.Directory                       (listDirectory)
 import           System.FilePath                        ((</>))
 import           System.IO                              (FilePath)
+import           System.Random
+
 
 import           Test.Hspec.Expectations
 import           Test.Tasty
@@ -40,12 +43,15 @@ import           Test.Tasty.HUnit
 
 import           Database.Beam.Query                    (delete, runDelete,
                                                         val_)
+
 import           Mirza.BusinessRegistry.Client.Servant
 import           Mirza.BusinessRegistry.Database.Schema
-import           Mirza.BusinessRegistry.Main            (GlobalOptions (..),
-                                                         RunServerOptions (..),
-                                                         initApplication,
-                                                         initBRContext)
+import qualified Mirza.BusinessRegistry.Handlers.Business as BRHB (addBusiness)
+import qualified Mirza.BusinessRegistry.Handlers.Users    as BRHU (addUserQuery)
+import           Mirza.BusinessRegistry.Main              (GlobalOptions (..),
+                                                          RunServerOptions (..),
+                                                          initApplication,
+                                                          initBRContext)
 import           Mirza.BusinessRegistry.Types
 
 import           Mirza.Common.Time
@@ -71,6 +77,11 @@ clientSpec = do
       deleteTable usersTable
       deleteTable businessesTable
   flushDbResult `shouldSatisfy` isRight
+
+  -- This construct somewhat destroys the integrity of these test since it is
+  -- necessary to assume that these functions work correctly in order for the
+  -- test cases to complete.
+  _globalAuthData <- bootstrapAuthData ctx
 
   let businessTests = testCaseSteps "Can create businesses" $ \step ->
         bracket runApp endWaiApp $ \(_tid,baseurl) -> do
@@ -503,3 +514,33 @@ goodRsaPublicKey = readRsaPubKey "./test/Mirza/Common/testKeys/goodKeys/4096bit_
 
 millisecondsToSeconds :: (Num a) => a -> a
 millisecondsToSeconds = (* 1000000)
+
+
+bootstrapAuthData :: (HasEnvType w, HasConnPool w, HasKatipContext w, HasKatipLogEnv w, HasScryptParams w) => w -> IO BasicAuthData
+bootstrapAuthData ctx = do
+  -- We delibrately keep the domain @example.com so that the address doesn't potentially exist.
+  globalUserEmail <- (<> "@example.com") <$> randomText
+  -- We specifically prefix the password with "PlainTextPassword:" so that it makes it more obvious if this password
+  -- shows up anywhere in plain text by mistake.
+  globalUserPassword <- ("PlainTextPassword:" <>) <$> randomText
+  let globalTestCompanyPrefix = (GS1CompanyPrefix "Tests Global Business Company Prefix")
+  let globalTestsBusiness = NewBusiness globalTestCompanyPrefix "Tests Global Business Name"
+  insertGlobalBusinessResult  <- runAppM @_ @BusinessRegistryError ctx $ BRHB.addBusiness globalTestsBusiness
+  insertGlobalBusinessResult `shouldSatisfy` isRight
+  let globalTestsUser = NewUser (EmailAddress globalUserEmail)
+                              globalUserPassword
+                              globalTestCompanyPrefix
+                              "Tests Global User First Name"
+                              "Tests Global User Last Name"
+                              "Tests Global User Phone Number"
+  insertGlobalUserResult <- runAppM @_ @BusinessRegistryError ctx $ runDb (BRHU.addUserQuery globalTestsUser)
+  insertGlobalUserResult `shouldSatisfy` isRight
+
+  return $ newUserToBasicAuthData globalTestsUser
+
+
+randomText :: IO Text
+randomText = do
+  count <- randomRIO (8 :: Int, 32)
+  randomString <- (take count) <$> replicateM count (randomRIO ('a', 'z'))
+  return $ pack randomString
