@@ -1,3 +1,6 @@
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE TypeApplications #-}
+
 module Mirza.SupplyChain.Tests.Client where
 
 import           Mirza.SupplyChain.Tests.Settings
@@ -18,6 +21,9 @@ import           Data.Either                      (isLeft, isRight)
 import           Data.Text.Encoding               (encodeUtf8)
 
 import           Test.Tasty.Hspec
+import           Test.Hspec.Expectations
+import           Test.Tasty
+import           Test.Tasty.HUnit
 
 import           Mirza.SupplyChain.Main           (ServerOptions (..),
                                                    initApplication,
@@ -30,6 +36,10 @@ import           Mirza.SupplyChain.Client.Servant
 
 import           Katip                            (Severity (DebugS))
 import           Mirza.SupplyChain.Tests.Dummies
+
+import           Database.Beam.Query              (delete, runDelete, val_)
+import           Mirza.SupplyChain.Database.Schema
+
 
 -- Cribbed from https://github.com/haskell-servant/servant/blob/master/servant-client/test/Servant/ClientSpec.hs
 
@@ -51,14 +61,41 @@ authABC = BasicAuthData
 
 runApp :: IO (ThreadId, BaseUrl)
 runApp = do
-  let so = (ServerOptions Dev False testDbConnStr "127.0.0.1" 8000 14 8 1 DebugS)
   ctx <- initSCSContext so
   startWaiApp =<< initApplication so ctx
 
-clientSpec :: Spec
-clientSpec =
-  beforeAll runApp $
-  afterAll endWaiApp $ do
+so :: ServerOptions
+so = ServerOptions Dev False testDbConnStr "127.0.0.1" 8000 14 8 1 DebugS
+
+clientSpec :: IO TestTree
+clientSpec = do
+  ctx <- initSCSContext so
+
+  flushDbResult <- runAppM @_ @ServiceError ctx $ runDb $ do
+      let deleteTable table = pg $ runDelete $ delete table (const (val_ True))
+      deleteTable $ _users supplyChainDb
+      deleteTable $ _users supplyChainDb
+      deleteTable $ _businesses supplyChainDb
+      deleteTable $ _contacts supplyChainDb
+      deleteTable $ _labels supplyChainDb
+      deleteTable $ _what_labels supplyChainDb
+      deleteTable $ _items supplyChainDb
+      deleteTable $ _transformations supplyChainDb
+      deleteTable $ _locations supplyChainDb
+      deleteTable $ _events supplyChainDb
+      deleteTable $ _whats supplyChainDb
+      deleteTable $ _biz_transactions supplyChainDb
+      deleteTable $ _whys supplyChainDb
+      deleteTable $ _wheres supplyChainDb
+      deleteTable $ _whens supplyChainDb
+      deleteTable $ _label_events supplyChainDb
+      deleteTable $ _user_events supplyChainDb
+      deleteTable $ _signatures supplyChainDb
+      deleteTable $ _hashes supplyChainDb
+      deleteTable $ _blockchain supplyChainDb
+  flushDbResult `shouldSatisfy` isRight
+
+  beforeAll runApp $ afterAll endWaiApp $ do
     describe "SupplyChain.Client new user" $ do
       it "Can create a new user" $ \(_,baseurl) -> do
         res <- first show <$> runClient (newUser userABC) baseurl
@@ -104,13 +141,15 @@ clientSpec =
                 baseurl
         print res
         res `shouldSatisfy` isRight
+      it "Provenance of a labelEPC" $ \(_,baseurl) -> do
+        res <- first show <$> runClient
+                (insertTransfEvent authABC dummyTransformation)
+                baseurl
+        print res
+        res `shouldSatisfy` isRight
+
       xit "Can retrieve all submitted events" $ \(_,_baseurl) ->
         pending
-        --   res@(Right evs) <- first show <$> runClient
-        --           (eventList authABC uid) -- uid of userABC
-        --           baseurl
-        --   print res
-        --   res `shouldSatisfy` isRight
 
 {-
 Check Provenance of a labelEPC
