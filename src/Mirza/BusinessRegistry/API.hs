@@ -44,16 +44,13 @@ serverAPI = Proxy
 
 
 type PublicAPI =
-  -- Business
        "key"      :> "get"     :> Capture "keyId" BRKeyId :> Get '[JSON] PEM_RSAPubKey
   :<|> "key"      :> "getInfo" :> Capture "keyId" BRKeyId :> Get '[JSON] KeyInfoResponse
   :<|> "business" :> "list"                               :> Get '[JSON] [BusinessResponse]
-  -- TODO: These should not be publically exposed, fix this (github #195):
-  :<|> "user"     :> "add"     :> ReqBody '[JSON] NewUser     :> Post '[JSON] UserId
-  :<|> "business" :> "add"     :> ReqBody '[JSON] NewBusiness :> Post '[JSON] GS1CompanyPrefix
 
 
 type PrivateAPI =
--- Business
-       "key"      :> "add"     :> ReqBody '[JSON] PEM_RSAPubKey :> QueryParam "expirationTime" ExpirationTime :> Post '[JSON] BRKeyId
+       "user"     :> "add"     :> ReqBody '[JSON] NewUser     :> Post '[JSON] UserId
+  :<|> "business" :> "add"     :> ReqBody '[JSON] NewBusiness :> Post '[JSON] GS1CompanyPrefix
+  :<|> "key"      :> "add"     :> ReqBody '[JSON] PEM_RSAPubKey :> QueryParam "expirationTime" ExpirationTime :> Post '[JSON] BRKeyId
   :<|> "key"      :> "revoke"  :> Capture "keyId" BRKeyId       :> Post '[JSON] RevocationTime

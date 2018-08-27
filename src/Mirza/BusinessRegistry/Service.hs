@@ -57,19 +57,17 @@ appHandlers = publicServer :<|> privateServer
 publicServer :: (BRApp context err, HasScryptParams context, PossibleErrors err)
              => ServerT PublicAPI (AppM context err)
 publicServer =
-  -- Business
        getPublicKey
   :<|> getPublicKeyInfo
   :<|> listBusinesses
-  :<|> addUser
-  :<|> addBusiness
 
 
-privateServer :: (BRApp context err, PossibleErrors err)
+privateServer :: (BRApp context err, HasScryptParams context,  PossibleErrors err)
               => ServerT ProtectedAPI (AppM context err)
 privateServer =
--- Business
-       addPublicKey
+       addUserAuth
+  :<|> addBusinessAuth
+  :<|> addPublicKey
   :<|> revokePublicKey
 
 
