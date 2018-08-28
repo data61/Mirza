@@ -152,6 +152,8 @@ test-suite businessRegistry-test
                     , Mirza.BusinessRegistry.Tests.Business
                     , Mirza.BusinessRegistry.Tests.Client
                     , Mirza.BusinessRegistry.Tests.Settings
+                    , Mirza.BusinessRegistry.Tests.Utils
+                    , Mirza.Common.Tests.Utils
   default-extensions:  OverloadedStrings
   build-depends:       base
                      , GS1Combinators

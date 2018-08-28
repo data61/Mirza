@@ -36,7 +36,6 @@ import           System.FilePath                        ((</>))
 import           System.IO                              (FilePath)
 import           System.Random
 
-
 import           Test.Hspec.Expectations
 import           Test.Tasty
 import           Test.Tasty.HUnit
@@ -55,6 +54,9 @@ import           Mirza.BusinessRegistry.Main              (GlobalOptions (..),
 import           Mirza.BusinessRegistry.Types
 
 import           Mirza.Common.Time
+
+import           Mirza.Common.Tests.Utils
+import           Mirza.BusinessRegistry.Tests.Utils
 
 import           Data.GS1.EPC                           (GS1CompanyPrefix (..))
 
@@ -408,7 +410,7 @@ clientSpec = do
 
           -- Function to run a test predicate over all the keys in one of the test keys subdirectories.
           let testDirectory keyDirectory predicate = do
-                let directory = "test" </> "Mirza" </> "Common" </> "testKeys" </> keyDirectory
+                let directory = "test" </> "Mirza" </> "Common" </> "TestData" </> "testKeys" </> keyDirectory
                 files <- filter (".pub" `isSuffixOf`) <$> listDirectory directory
                 let fullyQualifiedFiles = (directory </>) <$> files
                 keys <- traverse readRsaPubKey fullyQualifiedFiles
@@ -501,23 +503,6 @@ right :: Either a b -> b
 right (Right x) = x
 right _         = error "Wasn't right..."
 
-
--- TODO: Move into test utils after merging with Sajid.
--- Checks that the two times are within 1 second of each other.
-within1Second :: UTCTime -> UTCTime -> Bool
-within1Second expected actual = abs (diffUTCTime expected actual) < (fromInteger 1)
-
-
--- TODO: This is copied from keys, move it into a higher level module and remove
--- it from here and there after merging with sajid work.
-readRsaPubKey :: FilePath -> IO PEM_RSAPubKey
-readRsaPubKey filename = PEM_RSAPubKey <$> TIO.readFile filename
-
-
--- TODO: this is copied from keys, move it into a higher level module and remove
--- it from here and there after merging with sajid work.
-goodRsaPublicKey :: IO PEM_RSAPubKey
-goodRsaPublicKey = readRsaPubKey "./test/Mirza/Common/testKeys/goodKeys/4096bit_rsa_key.pub"
 
 
 millisecondsToSeconds :: (Num a) => a -> a
