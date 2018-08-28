@@ -11,7 +11,7 @@ import           Mirza.BusinessRegistry.API              (API, ServerAPI, api)
 import           Mirza.BusinessRegistry.Auth
 import           Mirza.BusinessRegistry.Database.Migrate
 import           Mirza.BusinessRegistry.Database.Schema  as Schema
-import           Mirza.BusinessRegistry.Service          hiding (addUserQuery)
+import           Mirza.BusinessRegistry.Service
 import           Mirza.BusinessRegistry.Types            as BT
 import           Mirza.Common.Types                      as CT
 import           Mirza.Common.Utils                      (newUUID)
@@ -185,25 +185,21 @@ runUserCommand globals UserList = do
    either (print @BusinessRegistryError) (mapM_ print) euser
 
 runUserCommand globals UserAdd = do
-  user <- interactivlyGetUserT globals
+  user <- interactivlyGetNewUser
   ctx <- initBRContext globals
   euser <- runAppM ctx $ runDb (addUserQuery user)
   either (print @BusinessRegistryError) print euser
 
 
-interactivlyGetUserT :: GlobalOptions -> IO Schema.User
-interactivlyGetUserT opts = do
-  params <- createScryptParams opts
-  user_id       <- newUUID
-  user_biz_id   <- BizId . read <$> prompt "user_biz_id  "
-  first_name    <- pack <$> prompt "first_name   "
-  last_name     <- pack <$> prompt "last_name    "
-  phone_number  <- pack <$> prompt "phone_number "
-  raw_password  <- pack <$> prompt "password"
-  email_address <- pack <$> prompt "email_address"
-  Scrypt.EncryptedPass password_hash
-                <- Scrypt.encryptPassIO params (Scrypt.Pass $ encodeUtf8 raw_password)
-  return UserT{..}
+interactivlyGetNewUser :: IO NewUser
+interactivlyGetNewUser = do
+  newUserEmailAddress <- EmailAddress . pack <$> prompt "Email Address:"
+  newUserPassword     <- pack <$> prompt "Password:"
+  newUserCompany      <- GS1CompanyPrefix . read <$> prompt "GS1CompanyPrefix:"
+  newUserFirstName    <- pack <$> prompt "First Name:"
+  newUserLastName     <- pack <$> prompt "Last Name:"
+  newUserPhoneNumber  <- pack <$> prompt "Phone Number:"
+  return NewUser{..}
 
 
 createScryptParams :: GlobalOptions -> IO Scrypt.ScryptParams
@@ -250,27 +246,28 @@ prompt message = putStrLn message *> getLine
 runPopulateDatabase :: GlobalOptions -> IO ()
 runPopulateDatabase globals = do
   ctx     <- initBRContext globals
-  biz1    <- dummyBusiness "1"
-  (Right bizid1)  <- runAppM @_ @BusinessRegistryError ctx $ addBusiness biz1
-  user1A' <- dummyUser "A1" (BizId bizid1) globals
-  user1B' <- dummyUser "B1" (BizId bizid1) globals
-  _eusers <- runAppM @_ @BusinessRegistryError ctx $
-             runDb (mapM addUserQuery [user1A', user1B'])
 
-  biz2    <- dummyBusiness "2"
-  (Right bizid2)  <- runAppM @_ @BusinessRegistryError ctx $ addBusiness biz2
-  user2A' <- dummyUser "A2" (BizId bizid2) globals
-  user2B' <- dummyUser "B2" (BizId bizid2) globals
-  _eusers <- runAppM @_ @BusinessRegistryError ctx $
-             runDb (mapM addUserQuery [user2A', user2B'])
+  b1      <- dummyBusiness "1"
+  _result <- runAppM @_ @BusinessRegistryError ctx $ addBusiness b1
+  u1b1    <- dummyUser "B1U1" (newBusinessGS1CompanyPrefix b1)
+  u2b1    <- dummyUser "B1U2" (newBusinessGS1CompanyPrefix b1)
+  _result <- runAppM @_ @BusinessRegistryError ctx $
+             runDb (mapM addUserQuery [u1b1, u2b1])
 
-  print biz1
-  print user1A'
-  print user1B'
+  b2      <- dummyBusiness "2"
+  _result <- runAppM @_ @BusinessRegistryError ctx $ addBusiness b2
+  u1b2    <- dummyUser "B2U1" (newBusinessGS1CompanyPrefix b2)
+  u2b2    <- dummyUser "B2U2" (newBusinessGS1CompanyPrefix b2)
+  _result <- runAppM @_ @BusinessRegistryError ctx $
+             runDb (mapM addUserQuery [u1b2, u2b2])
 
-  print biz2
-  print user2A'
-  print user2B'
+  print b1
+  print u1b1
+  print u2b1
+
+  print b2
+  print u1b2
+  print u2b2
 
 
 dummyBusiness :: Text -> IO NewBusiness
@@ -280,19 +277,15 @@ dummyBusiness unique = do
   return NewBusiness{..}
 
 
-dummyUser :: Text -> BizId -> GlobalOptions -> IO Schema.User
-dummyUser unique business_uid opts = do
-  params <- createScryptParams opts
-  user_id       <- newUUID
-  let user_biz_id   = business_uid
-  let first_name    = "User" <> unique <> "FirstName"
-  let last_name     = "User" <> unique <> "LastName"
-  let phone_number  = "User" <> unique <> "PhoneNumber"
-  let raw_password  = "User" <> unique <> "Password"
-  let email_address = unique <> "@example.com"
-  Scrypt.EncryptedPass password_hash
-      <- Scrypt.encryptPassIO params (Scrypt.Pass $ encodeUtf8 raw_password)
-  return UserT{..}
+dummyUser :: Text -> GS1CompanyPrefix -> IO NewUser
+dummyUser unique business_uid = do
+  let newUserEmailAddress = EmailAddress $ "User" <> unique <> "@example.com"
+  let newUserPassword     = "User" <> unique <> "Password"
+  let newUserCompany      = business_uid
+  let newUserFirstName    = "User" <> unique <> "FirstName"
+  let newUserLastName     = "User" <> unique <> "LastName"
+  let newUserPhoneNumber  = "User" <> unique <> "PhoneNumber"
+  return NewUser{..}
 
 
 --------------------------------------------------------------------------------
