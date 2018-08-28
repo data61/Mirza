@@ -4,22 +4,11 @@
 
 module Mirza.BusinessRegistry.Tests.Client where
 
-import           Mirza.BusinessRegistry.Tests.Settings  (testDbConnStr)
 
 import           Control.Concurrent                     (ThreadId, forkIO,
                                                          killThread,
                                                          threadDelay)
 import           Control.Exception                      (bracket)
-import           System.IO.Unsafe                       (unsafePerformIO)
-
-import qualified Network.HTTP.Client                    as C
-import           Network.Socket
-import qualified Network.Wai                            as Wai
-import           Network.Wai.Handler.Warp
-
-import           Servant.API.BasicAuth
-import           Servant.Client
-
 import           Control.Monad                          (forM_, replicateM)
 import           Data.Either                            (isLeft, isRight)
 import           Data.List                              (isSuffixOf)
@@ -31,17 +20,31 @@ import           Data.Time.Clock                        (UTCTime, addUTCTime,
                                                         diffUTCTime,
                                                         getCurrentTime)
 import           Data.UUID                              (nil)
+
 import           System.Directory                       (listDirectory)
 import           System.FilePath                        ((</>))
 import           System.IO                              (FilePath)
+import           System.IO.Unsafe                       (unsafePerformIO)
 import           System.Random
+
+import qualified Network.HTTP.Client                    as C
+import           Network.Socket
+import qualified Network.Wai                            as Wai
+import           Network.Wai.Handler.Warp
+
+import           Servant.API.BasicAuth
+import           Servant.Client
+
+import           Database.Beam.Query                    (delete, runDelete,
+                                                        val_)
+
+import           Katip                                  (Severity (DebugS))
 
 import           Test.Hspec.Expectations
 import           Test.Tasty
 import           Test.Tasty.HUnit
 
-import           Database.Beam.Query                    (delete, runDelete,
-                                                        val_)
+import           Data.GS1.EPC                           (GS1CompanyPrefix (..))
 
 import           Mirza.BusinessRegistry.Client.Servant
 import           Mirza.BusinessRegistry.Database.Schema
@@ -55,13 +58,12 @@ import           Mirza.BusinessRegistry.Types
 
 import           Mirza.Common.Time
 
-import           Mirza.Common.Tests.Utils
+
+import           Mirza.BusinessRegistry.Tests.Settings  (testDbConnStr)
 import           Mirza.BusinessRegistry.Tests.Utils
+import           Mirza.Common.Tests.Utils
 
-import           Data.GS1.EPC                           (GS1CompanyPrefix (..))
 
-
-import           Katip                                  (Severity (DebugS))
 
 -- Cribbed from https://github.com/haskell-servant/servant/blob/master/servant-client/test/Servant/ClientSpec.hs
 
