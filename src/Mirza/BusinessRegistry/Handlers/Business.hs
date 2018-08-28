@@ -80,4 +80,4 @@ addBusinessQuery biz@BusinessT{..} = do
             $ insertValues [biz]
   case res of
         [r] -> return r
-        _   -> throwing _LogicErrorBRE callStack
+        _   -> throwing _UnexpectedErrorBRE callStack
