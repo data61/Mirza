@@ -390,7 +390,8 @@ clientSpec = do
           b1K6RevokeKeyResult <- http (revokePublicKey (newUserToBasicAuthData userB1U1) b1K6KeyId)
           b1K6RevokeKeyResult `shouldSatisfy` isRight
           b1K6ExpiryRevokedResponce <- http (getPublicKeyInfo b1K6KeyId)
-          -- This a test integrity check. We need to make sure that the time after we sent the request is not enough that the key will be after exipry time here.
+          -- This a test integrity check. We need to make sure that the time
+          -- after we sent the request is not enough that the key will be after exipry time here.
           b1K6TimeAfterResponce <- getCurrentTime
           b1K6TimeAfterResponce `shouldSatisfy` (< b1K6ExpiryUTC)
           b1K6ExpiryRevokedResponce `shouldSatisfy` isRight
@@ -481,6 +482,7 @@ newBusinessToBusinessResponse business = (BusinessResponse
                                           <*> newBusinessName)
                                           business
 
+
 newUserToBasicAuthData :: NewUser -> BasicAuthData
 newUserToBasicAuthData =
   BasicAuthData
@@ -493,6 +495,7 @@ checkRecord :: (a -> Bool) -> (b -> a) -> Either c b -> Bool
 checkRecord predicate accessor (Right response) = predicate (accessor response)
 checkRecord _         _        (Left _)         = False
 
+
 -- Only use this from tests and only where you are sure that you will have a right.
 right :: Either a b -> b
 right (Right x) = x
@@ -504,13 +507,18 @@ right _         = error "Wasn't right..."
 within1Second :: UTCTime -> UTCTime -> Bool
 within1Second expected actual = abs (diffUTCTime expected actual) < (fromInteger 1)
 
--- TODO: This is copied from keys, move it into a higher level module and remove it from here and there after merging with sajid work.
+
+-- TODO: This is copied from keys, move it into a higher level module and remove
+-- it from here and there after merging with sajid work.
 readRsaPubKey :: FilePath -> IO PEM_RSAPubKey
 readRsaPubKey filename = PEM_RSAPubKey <$> TIO.readFile filename
 
--- TODO: this is copied from keys, move it into a higher level module and remove it from here and there after merging with sajid work.
+
+-- TODO: this is copied from keys, move it into a higher level module and remove
+-- it from here and there after merging with sajid work.
 goodRsaPublicKey :: IO PEM_RSAPubKey
 goodRsaPublicKey = readRsaPubKey "./test/Mirza/Common/testKeys/goodKeys/4096bit_rsa_key.pub"
+
 
 millisecondsToSeconds :: (Num a) => a -> a
 millisecondsToSeconds = (* 1000000)
