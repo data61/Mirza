@@ -76,12 +76,12 @@ clientSpec = do
         bracket runApp endWaiApp $ \(_tid,baseurl) -> do
           let http = runClient baseurl
               primaryCompanyPrefix = (GS1CompanyPrefix "businessTests_primaryCompanyPrefix")
-              primaryBusiness = makeNewBusiness primaryCompanyPrefix "businessTests_primaryBusinessName"
+              primaryBusiness = NewBusiness primaryCompanyPrefix "businessTests_primaryBusinessName"
               primaryBusinessResponse = newBusinessToBusinessResponse primaryBusiness
               secondaryCompanyPrefix = (GS1CompanyPrefix "businessTests_secondaryCompanyPrefix")
-              secondaryBusiness =  makeNewBusiness secondaryCompanyPrefix "businessTests_secondaryBusinessName"
+              secondaryBusiness =  NewBusiness secondaryCompanyPrefix "businessTests_secondaryBusinessName"
               secondaryBusinessResponse = newBusinessToBusinessResponse secondaryBusiness
-              -- emptyCompanyPrefixBusiness = makeNewBusiness (GS1CompanyPrefix "") "EmptyBusiness"
+              -- emptyCompanyPrefixBusiness = NewBusiness (GS1CompanyPrefix "") "EmptyBusiness"
 
           step "Can create a new business"
           newPrimaryBusinessResult <- http (addBusiness primaryBusiness)
@@ -119,7 +119,7 @@ clientSpec = do
         bracket runApp endWaiApp $ \(_tid,baseurl) -> do
           let http = runClient baseurl
               companyPrefix = (GS1CompanyPrefix "userTests_companyPrefix")
-              business = makeNewBusiness companyPrefix "userTests_businessName"
+              business = NewBusiness companyPrefix "userTests_businessName"
 
           let user1 = NewUser (EmailAddress "userTests_email1@example.com")
                               "password"
@@ -222,9 +222,9 @@ clientSpec = do
 
           let http = runClient baseurl
               business1CompanyPrefix = (GS1CompanyPrefix "keyTests_companyPrefix1")
-              business1 = makeNewBusiness business1CompanyPrefix "userTests_businessName1"
+              business1 = NewBusiness business1CompanyPrefix "userTests_businessName1"
               business2CompanyPrefix = (GS1CompanyPrefix "keyTests_companyPrefix2")
-              business2 = makeNewBusiness business2CompanyPrefix "userTests_businessName2"
+              business2 = NewBusiness business2CompanyPrefix "userTests_businessName2"
 
           -- Business1User1
           let userB1U1 = NewUser (EmailAddress "keysTests_email1@example.com")
@@ -463,9 +463,6 @@ runClient baseUrl' x = runClientM x (mkClientEnv manager' baseUrl')
 -- *****************************************************************************
 -- Test Utility Functions
 -- *****************************************************************************
-
-makeNewBusiness :: GS1CompanyPrefix -> Text -> NewBusiness
-makeNewBusiness prefix name = NewBusiness prefix name
 
 newBusinessToBusinessResponse :: NewBusiness -> BusinessResponse
 newBusinessToBusinessResponse business = (BusinessResponse
