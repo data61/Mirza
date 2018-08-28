@@ -81,7 +81,7 @@ clientSpec = do
   -- This construct somewhat destroys the integrity of these test since it is
   -- necessary to assume that these functions work correctly in order for the
   -- test cases to complete.
-  _globalAuthData <- bootstrapAuthData ctx
+  globalAuthData <- bootstrapAuthData ctx
 
   let businessTests = testCaseSteps "Can create businesses" $ \step ->
         bracket runApp endWaiApp $ \(_tid,baseurl) -> do
@@ -95,7 +95,7 @@ clientSpec = do
               -- emptyCompanyPrefixBusiness = NewBusiness (GS1CompanyPrefix "") "EmptyBusiness"
 
           step "Can create a new business"
-          newPrimaryBusinessResult <- http (addBusiness primaryBusiness)
+          newPrimaryBusinessResult <- http (addBusiness globalAuthData primaryBusiness)
           newPrimaryBusinessResult `shouldSatisfy` isRight
           newPrimaryBusinessResult `shouldBe` (Right primaryCompanyPrefix)
 
@@ -105,12 +105,12 @@ clientSpec = do
                    (`shouldContain` [primaryBusinessResponse])
 
           step "Can't add business with the same GS1CompanyPrefix"
-          http (addBusiness primaryBusiness{newBusinessName = "businessTests_anotherName"})
+          http (addBusiness globalAuthData primaryBusiness{newBusinessName = "businessTests_anotherName"})
             `shouldSatisfyIO` isLeft
           -- Should also check that the error type is correct / meaningful.
 
           step "Can add a second business"
-          newSecondaryBusinessResult <- http (addBusiness secondaryBusiness)
+          newSecondaryBusinessResult <- http (addBusiness globalAuthData secondaryBusiness)
           newSecondaryBusinessResult `shouldSatisfy` isRight
           newSecondaryBusinessResult `shouldBe` (Right secondaryCompanyPrefix)
 
@@ -172,7 +172,7 @@ clientSpec = do
 
           -- Create a business to use from further test cases (this is tested in
           -- the businesses tests so doesn't need to be explicitly tested here).
-          _ <- http (addBusiness business)
+          _ <- http (addBusiness globalAuthData business)
 
           -- Add good RSA Public Key for using from the test cases.
           goodKey <- goodRsaPublicKey
@@ -185,7 +185,7 @@ clientSpec = do
             `shouldSatisfyIO` isLeft
 
           step "Can create a new user"
-          http (addUser user1)
+          http (addUser globalAuthData user1)
             `shouldSatisfyIO` isRight
           -- Note: We effectively implicitly test that the value returned is
           --       sensible later when we test that a user with this ID occurs
@@ -201,15 +201,15 @@ clientSpec = do
           --       about here is that the user can login.
 
           step "Can't create a new user with a GS1CompanyPrefix that isn't registered"
-          http (addUser userNonRegisteredBusiness)
+          http (addUser globalAuthData userNonRegisteredBusiness)
             `shouldSatisfyIO` isLeft
 
           step "Can't create a new user with the same email address"
-          http (addUser userSameEmail)
+          http (addUser globalAuthData userSameEmail)
             `shouldSatisfyIO` isLeft
 
           step "Can create a second user"
-          http (addUser user2)
+          http (addUser globalAuthData user2)
             `shouldSatisfyIO` isRight
 
           -- TODO: Include me (github #205):
@@ -261,14 +261,14 @@ clientSpec = do
 
           -- Create a business to use from further test cases (this is tested in
           --  the businesses tests so doesn't need to be explicitly tested here).
-          _ <- http (addBusiness business1)
-          _ <- http (addBusiness business2)
+          _ <- http (addBusiness globalAuthData business1)
+          _ <- http (addBusiness globalAuthData business2)
 
           -- Create a business to use from further test cases (this is tested in
           -- the businesses tests so doesn't need to be explicitly tested here).
-          userB1U1Responce <- http (addUser userB1U1)
-          _                <- http (addUser userB1U2)
-          _                <- http (addUser userB2U1)
+          userB1U1Responce <- http (addUser globalAuthData userB1U1)
+          _                <- http (addUser globalAuthData userB1U2)
+          _                <- http (addUser globalAuthData userB2U1)
 
           -- Add good RSA Public Key for using from the test cases.
           goodKey <- goodRsaPublicKey
