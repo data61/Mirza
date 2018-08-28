@@ -122,7 +122,7 @@ clientSpec = do
 
           -- TODO: Include me (github #205):
           -- step "That the GS1CompanyPrefix can't be empty (\"\")."
-          -- http (addBusiness emptyCompanyPrefixBusiness)
+          -- http (addBusiness globalAuthData emptyCompanyPrefixBusiness)
           --   `shouldSatisfyIO` isLeft
 
 
@@ -214,12 +214,12 @@ clientSpec = do
 
           -- TODO: Include me (github #205):
           -- step "Can't create a user with an empty email."
-          -- http (addUser userEmptyEmail)
+          -- http (addUser globalAuthData userEmptyEmail)
           --   `shouldSatisfyIO` isLeft
 
           -- TODO: Include me (github #205):
           -- step "Can't create a user with an empty password."
-          -- http (addUser userEmptyPassword)
+          -- http (addUser globalAuthData userEmptyPassword)
           --   `shouldSatisfyIO` isLeft
 
 
