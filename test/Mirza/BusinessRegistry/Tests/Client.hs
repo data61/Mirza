@@ -52,7 +52,6 @@ import           Mirza.Common.Time
 
 import           Data.GS1.EPC                           (GS1CompanyPrefix (..))
 
-
 import           Katip                                  (Severity (DebugS))
 
 -- Cribbed from https://github.com/haskell-servant/servant/blob/master/servant-client/test/Servant/ClientSpec.hs
