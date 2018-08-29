@@ -6,6 +6,7 @@ module Mirza.SupplyChain.Tests.Client where
 import           Mirza.SupplyChain.Tests.Settings
 
 import           Control.Concurrent               (ThreadId, forkIO, killThread)
+import           Control.Exception                (bracket)
 import           System.IO.Unsafe                 (unsafePerformIO)
 
 import qualified Network.HTTP.Client              as C
@@ -44,6 +45,9 @@ import           Mirza.SupplyChain.Database.Schema
 -- Cribbed from https://github.com/haskell-servant/servant/blob/master/servant-client/test/Servant/ClientSpec.hs
 
 -- === Servant Client tests
+
+shouldSatisfyIO :: (HasCallStack, Show a, Eq a) => IO a -> (a -> Bool) -> Expectation
+action `shouldSatisfyIO` p = action >>= (`shouldSatisfy` p)
 
 userABC :: NewUser
 userABC = NewUser
@@ -95,56 +99,79 @@ clientSpec = do
       deleteTable $ _blockchain supplyChainDb
   flushDbResult `shouldSatisfy` isRight
 
+
+-- data NewUser = NewUser {
+--   newUserPhoneNumber  :: Text,
+--   newUserEmailAddress :: EmailAddress,
+--   newUserFirstName    :: Text,
+--   newUserLastName     :: Text,
+--   newUserCompany      :: GS1CompanyPrefix,
+--   newUserPassword     :: Text
+-- } deriving (Generic, Eq, Show
+
+
+  let userTests = testCaseSteps "Adding new users" $ \step ->
+        bracket runApp endWaiApp $ \(_tid,baseurl) -> do
+          let http = runClient baseurl
+              companyPrefix = (GS1CompanyPrefix "userTests_companyPrefix")
+
+          let user1 = userABC
+              user2 = userABC {newUserEmailAddress="different@example.com"}
+              -- Same email address as user1 other fields different.
+              userSameEmail = userABC {newUserFirstName="First"}
+
+          step "Can create a new user"
+          http (addUser user1)
+            `shouldSatisfyIO` isRight
+
+          step "Can't create a new user with the same email address"
+          http (addUser userSameEmail)
+            `shouldSatisfyIO` isLeft
+
+          step "Can create a second user"
+          http (addUser user2)
+            `shouldSatisfyIO` isRight
+
+          step "Should be able to authenticate"
+          http (contactsInfo authABC)
+            `shouldSatisfyIO` isRight
+
+          step "Should fail to authenticate with unknown user"
+          http (contactsInfo (BasicAuthData "xyz@example.com" "notagoodpassword"))
+            `shouldSatisfyIO` isLeft
+
   beforeAll runApp $ afterAll endWaiApp $ do
-    describe "SupplyChain.Client new user" $ do
-      it "Can create a new user" $ \(_,baseurl) -> do
-        res <- first show <$> runClient (newUser userABC) baseurl
-        res `shouldSatisfy` isRight
 
-      it "Can't reuse email address" $ \(_,baseurl) -> do
-        res <- first show <$> runClient (newUser userABC) baseurl
-        res `shouldSatisfy` isLeft
-
-    describe "BasicAuth" $ do
-      it "Should be able to authenticate" $ \(_,baseurl) -> do
-        res <- first show <$> runClient (contactsInfo authABC) baseurl
-        res `shouldBe` Right []
-
-      it "Should fail to authenticate with unknown user" $ \(_,baseurl) -> do
-        res <- first show <$> runClient
-                (contactsInfo (BasicAuthData "xyz@example.com" "notagoodpassword"))
-                baseurl
-        res `shouldSatisfy` isLeft
     describe "Events can be inserted by the new user" $ do
       -- TODO: Events need their EventId returned to user
       it "Can insert Object events" $ \(_,baseurl) -> do
         res <- first show <$> runClient
-                (insertObjectEvent authABC dummyObject)
                 baseurl
+                (insertObjectEvent authABC dummyObject)
         print res
         res `shouldSatisfy` isRight
       it "Can insert Aggregation events" $ \(_,baseurl) -> do
         res <- first show <$> runClient
-                (insertAggEvent authABC dummyAggregation)
                 baseurl
+                (insertAggEvent authABC dummyAggregation)
         print res
         res `shouldSatisfy` isRight
       it "Can insert Transaction events" $ \(_,baseurl) -> do
         res <- first show <$> runClient
-                (insertTransactEvent authABC dummyTransaction)
                 baseurl
+                (insertTransactEvent authABC dummyTransaction)
         print res
         res `shouldSatisfy` isRight
       it "Can insert Transformation events" $ \(_,baseurl) -> do
         res <- first show <$> runClient
-                (insertTransfEvent authABC dummyTransformation)
                 baseurl
+                (insertTransfEvent authABC dummyTransformation)
         print res
         res `shouldSatisfy` isRight
       it "Provenance of a labelEPC" $ \(_,baseurl) -> do
         res <- first show <$> runClient
-                (insertTransfEvent authABC dummyTransformation)
                 baseurl
+                (insertTransfEvent authABC dummyTransformation)
         print res
         res `shouldSatisfy` isRight
 
@@ -205,11 +232,6 @@ Add, remove and search for contacts.
 -}
 
 
-
-
-    -- describe "Signatures" $ do
-    --   it "Can "
-
 -- Plumbing
 
 startWaiApp :: Wai.Application -> IO (ThreadId, BaseUrl)
@@ -238,16 +260,5 @@ openTestSocket = do
 manager' :: C.Manager
 manager' = unsafePerformIO $ C.newManager C.defaultManagerSettings
 
-runClient :: ClientM a -> BaseUrl -> IO (Either ServantError a)
-runClient x baseUrl' = runClientM x (mkClientEnv manager' baseUrl')
-
-
--- defaultEnv :: IO Env
--- defaultEnv = (\conn -> Env Dev conn Scrypt.defaultParams) <$> defaultPool
-
--- defaultPool :: IO (Pool Connection)
--- defaultPool = Pool.createPool (connectPostgreSQL testDbNameConnStr) close
---                 1 -- Number of "sub-pools",
---                 60 -- How long in seconds to keep a connection open for reuse
---                 10 -- Max number of connections to have open at any one time
-
+runClient :: BaseUrl -> ClientM a -> IO (Either ServantError a)
+runClient baseUrl' x = runClientM x (mkClientEnv manager' baseUrl')
