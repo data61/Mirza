@@ -1,7 +1,7 @@
 module Mirza.SupplyChain.Client.Servant
   (
   -- * Public API
-    newUser
+    addUser
   -- * Authenticated API
   , contactsInfo
   , addContact
@@ -39,7 +39,7 @@ import           Data.UUID.Types
 
 
 -- * Public API
-newUser      :: NewUser -> ClientM UserId
+addUser      :: NewUser -> ClientM UserId
 
 
 -- * Authenticated API
@@ -71,7 +71,7 @@ _privAPI :: Client ClientM ProtectedAPI
 _pubAPI  :: Client ClientM PublicAPI
 _api@(
   _pubAPI@(
-    newUser
+    addUser
   )
   :<|>
   _privAPI@(
