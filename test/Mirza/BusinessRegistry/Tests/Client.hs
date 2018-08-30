@@ -11,6 +11,7 @@ import           Control.Concurrent                     (ThreadId, forkIO,
 import           Control.Exception                      (bracket)
 import           Control.Monad                          (forM_, replicateM)
 import           Data.Either                            (isLeft, isRight)
+import           Data.Either.Utils                      (fromRight)
 import           Data.List                              (isSuffixOf)
 import           Data.Maybe                             (fromJust, isNothing)
 import           Data.Text                              (Text, pack)
