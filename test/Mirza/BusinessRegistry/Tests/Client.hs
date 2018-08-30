@@ -279,8 +279,9 @@ clientSpec = do
           goodKey <- goodRsaPublicKey
 
           step "Can add a good key (no exipry time)"
-          b1K1ApproxInsertionTime <- getCurrentTime
+          b1K1PreInsertionTime <- getCurrentTime
           b1K1StoredKeyIdResult <- http (addPublicKey (newUserToBasicAuthData userB1U1) goodKey Nothing)
+          b1K1PostInsertionTime <- getCurrentTime
           b1K1StoredKeyIdResult `shouldSatisfy` isRight
 
           let b1K1StoredKeyId = fromRight b1K1StoredKeyIdResult
@@ -295,7 +296,7 @@ clientSpec = do
           b1K1InfoResponse `shouldSatisfy` (checkField (b1K1StoredKeyId ==) keyInfoId)
           b1K1InfoResponse `shouldSatisfy` (checkField (fromRight userB1U1Response ==) keyInfoUserId)
           b1K1InfoResponse `shouldSatisfy` (checkField (InEffect ==) keyInfoState)
-          b1K1InfoResponse `shouldSatisfy` (checkField (within1Second b1K1ApproxInsertionTime) (getCreationTime . keyInfoCreationTime))
+          b1K1InfoResponse `shouldSatisfy` (checkField (betweenTimes b1K1PreInsertionTime b1K1PostInsertionTime) (getCreationTime . keyInfoCreationTime))
           b1K1InfoResponse `shouldSatisfy` (checkField isNothing keyInfoRevocationTime)
           b1K1InfoResponse `shouldSatisfy` (checkField isNothing keyInfoExpirationTime)
           b1K1InfoResponse `shouldSatisfy` (checkField (goodKey ==) keyInfoPEMString)
