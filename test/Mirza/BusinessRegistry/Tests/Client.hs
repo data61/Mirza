@@ -296,7 +296,7 @@ clientSpec = do
           b1K1InfoResponse `shouldSatisfy` (checkField (b1K1StoredKeyId ==) keyInfoId)
           b1K1InfoResponse `shouldSatisfy` (checkField (fromRight userB1U1Response ==) keyInfoUserId)
           b1K1InfoResponse `shouldSatisfy` (checkField (InEffect ==) keyInfoState)
-          b1K1InfoResponse `shouldSatisfy` (checkField (betweenTimes b1K1PreInsertionTime b1K1PostInsertionTime) (getCreationTime . keyInfoCreationTime))
+          b1K1InfoResponse `shouldSatisfy` (checkField (betweenInclusive b1K1PreInsertionTime b1K1PostInsertionTime) (getCreationTime . keyInfoCreationTime))
           b1K1InfoResponse `shouldSatisfy` (checkField isNothing keyInfoRevocationTime)
           b1K1InfoResponse `shouldSatisfy` (checkField isNothing keyInfoExpirationTime)
           b1K1InfoResponse `shouldSatisfy` (checkField (goodKey ==) keyInfoPEMString)
