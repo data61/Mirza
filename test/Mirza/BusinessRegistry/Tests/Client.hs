@@ -91,39 +91,39 @@ clientSpec = do
   let businessTests = testCaseSteps "Can create businesses" $ \step ->
         bracket runApp endWaiApp $ \(_tid,baseurl) -> do
           let http = runClient baseurl
-              primaryCompanyPrefix = (GS1CompanyPrefix "businessTests_primaryCompanyPrefix")
-              primaryBusiness = NewBusiness primaryCompanyPrefix "businessTests_primaryBusinessName"
-              primaryBusinessResponse = newBusinessToBusinessResponse primaryBusiness
-              secondaryCompanyPrefix = (GS1CompanyPrefix "businessTests_secondaryCompanyPrefix")
-              secondaryBusiness =  NewBusiness secondaryCompanyPrefix "businessTests_secondaryBusinessName"
-              secondaryBusinessResponse = newBusinessToBusinessResponse secondaryBusiness
+              biz1Prefix = (GS1CompanyPrefix "businessTests_biz1Prefix")
+              biz1 = NewBusiness biz1Prefix "businessTests_biz1Name"
+              biz1Response = newBusinessToBusinessResponse biz1
+              biz2Prefix = (GS1CompanyPrefix "businessTests_biz2Prefix")
+              biz2 =  NewBusiness biz2Prefix "businessTests_biz2Name"
+              biz2Response = newBusinessToBusinessResponse biz2
               -- emptyCompanyPrefixBusiness = NewBusiness (GS1CompanyPrefix "") "EmptyBusiness"
 
           step "Can create a new business"
-          newPrimaryBusinessResult <- http (addBusiness globalAuthData primaryBusiness)
-          newPrimaryBusinessResult `shouldSatisfy` isRight
-          newPrimaryBusinessResult `shouldBe` (Right primaryCompanyPrefix)
+          addBiz1Result <- http (addBusiness globalAuthData biz1)
+          addBiz1Result `shouldSatisfy` isRight
+          addBiz1Result `shouldBe` (Right biz1Prefix)
 
           step "That the added business was added and can be listed."
           http listBusinesses >>=
             either (const $ expectationFailure "Error listing businesses")
-                   (`shouldContain` [primaryBusinessResponse])
+                   (`shouldContain` [biz1Response])
 
           step "Can't add business with the same GS1CompanyPrefix"
-          http (addBusiness globalAuthData primaryBusiness{newBusinessName = "businessTests_anotherName"})
+          http (addBusiness globalAuthData biz1{newBusinessName = "businessTests_anotherName"})
             `shouldSatisfyIO` isLeft
           -- Should also check that the error type is correct / meaningful.
 
           step "Can add a second business"
-          newSecondaryBusinessResult <- http (addBusiness globalAuthData secondaryBusiness)
-          newSecondaryBusinessResult `shouldSatisfy` isRight
-          newSecondaryBusinessResult `shouldBe` (Right secondaryCompanyPrefix)
+          addBiz2Result <- http (addBusiness globalAuthData biz2)
+          addBiz2Result `shouldSatisfy` isRight
+          addBiz2Result `shouldBe` (Right biz2Prefix)
 
           step "List businesses returns all of the businesses"
           http listBusinesses >>=
               either (const $ expectationFailure "Error listing businesses")
-                    (`shouldContain` [ primaryBusinessResponse
-                                        , secondaryBusinessResponse])
+                    (`shouldContain` [ biz1Response
+                                        , biz2Response])
 
           -- TODO: Include me (github #205):
           -- step "That the GS1CompanyPrefix can't be empty (\"\")."
@@ -156,12 +156,12 @@ clientSpec = do
                                       "userTests First Name Same Email"
                                       "userTests Last Name Same Email"
                                       "userTests Phone Number Same Email"
-              userNonRegisteredBusiness = NewUser (EmailAddress "userTests_unregisteredBusiness@example.com")
-                                                  "password"
-                                                  (GS1CompanyPrefix "unregistered")
-                                                  "userTests First Name Unregistered Business"
-                                                  "userTests Last Name Unregistered Business"
-                                                  "userTests Phone Number Unregistered Business"
+              userNonRegisteredBiz = NewUser (EmailAddress "userTests_unregisteredBusiness@example.com")
+                                             "password"
+                                             (GS1CompanyPrefix "unregistered")
+                                             "userTests First Name Unregistered Business"
+                                             "userTests Last Name Unregistered Business"
+                                             "userTests Phone Number Unregistered Business"
               -- userEmptyEmail = NewUser (EmailAddress "")
               --                          "password"
               --                          companyPrefix
@@ -206,7 +206,7 @@ clientSpec = do
           --       about here is that the user can login.
 
           step "Can't create a new user with a GS1CompanyPrefix that isn't registered"
-          http (addUser globalAuthData userNonRegisteredBusiness)
+          http (addUser globalAuthData userNonRegisteredBiz)
             `shouldSatisfyIO` isLeft
 
           step "Can't create a new user with the same email address"
@@ -237,37 +237,37 @@ clientSpec = do
           --  no longer holds for some reason in the future.
 
           let http = runClient baseurl
-              business1CompanyPrefix = (GS1CompanyPrefix "keyTests_companyPrefix1")
-              business1 = NewBusiness business1CompanyPrefix "userTests_businessName1"
-              business2CompanyPrefix = (GS1CompanyPrefix "keyTests_companyPrefix2")
-              business2 = NewBusiness business2CompanyPrefix "userTests_businessName2"
+              biz1Prefix = (GS1CompanyPrefix "keyTests_companyPrefix1")
+              biz1 = NewBusiness biz1Prefix "userTests_businessName1"
+              biz2Prefix = (GS1CompanyPrefix "keyTests_companyPrefix2")
+              biz2 = NewBusiness biz2Prefix "userTests_businessName2"
 
           -- Business1User1
           let userB1U1 = NewUser (EmailAddress "keysTests_email1@example.com")
                                  "password"
-                                 business1CompanyPrefix
+                                 biz1Prefix
                                  "keysTests First Name 1"
                                  "keysTests Last Name 1"
                                  "keysTests Phone Number 1"
           -- Business1User2
           let userB1U2 = NewUser (EmailAddress "keysTests_email2@example.com")
                                  "password"
-                                 business1CompanyPrefix
+                                 biz1Prefix
                                  "keysTests First Name 2"
                                  "keysTests Last Name 2"
                                  "keysTests Phone Number 2"
           -- Business2User1
           let userB2U1 = NewUser (EmailAddress "keysTests_email3@example.com")
                                  "password"
-                                 business2CompanyPrefix
+                                 biz2Prefix
                                  "keysTests First Name 3"
                                  "keysTests Last Name 3"
                                  "keysTests Phone Number 3"
 
           -- Create a business to use from further test cases (this is tested in
           --  the businesses tests so doesn't need to be explicitly tested here).
-          _ <- http (addBusiness globalAuthData business1)
-          _ <- http (addBusiness globalAuthData business2)
+          _ <- http (addBusiness globalAuthData biz1)
+          _ <- http (addBusiness globalAuthData biz2)
 
           -- Create a business to use from further test cases (this is tested in
           -- the businesses tests so doesn't need to be explicitly tested here).
