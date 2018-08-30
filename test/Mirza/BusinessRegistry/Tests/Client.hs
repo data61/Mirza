@@ -496,7 +496,8 @@ newUserToBasicAuthData =
   <*> encodeUtf8 . newUserPassword
 
 
--- Test helper function that enables a predicate to be run on the result of a test call.
+-- Test helper function that enables a predicate to be run on the result of a
+-- test call.
 checkField :: (a -> Bool) -> (b -> a) -> Either c b -> Bool
 checkField predicate accessor (Right response) = predicate (accessor response)
 checkField _         _        (Left _)         = False
@@ -506,12 +507,16 @@ secondsToMicroseconds :: (Num a) => a -> a
 secondsToMicroseconds = (* 1000000)
 
 
-bootstrapAuthData :: (HasEnvType w, HasConnPool w, HasKatipContext w, HasKatipLogEnv w, HasScryptParams w) => w -> IO BasicAuthData
+bootstrapAuthData :: (HasEnvType w, HasConnPool w, HasKatipContext w,
+                      HasKatipLogEnv w, HasScryptParams w)
+                     => w -> IO BasicAuthData
 bootstrapAuthData ctx = do
-  -- We delibrately keep the domain @example.com so that the address doesn't potentially exist.
+  -- We delibrately keep the domain @example.com so that the address doesn't
+  -- potentially exist.
   globalUserEmail <- (<> "@example.com") <$> randomText
-  -- We specifically prefix the password with "PlainTextPassword:" so that it makes it more obvious if this password
-  -- shows up anywhere in plain text by mistake.
+  -- We specifically prefix the password with "PlainTextPassword:" so that it
+  -- makes it more obvious if this password shows up anywhere in plain text by
+  -- mistake.
   globalUserPassword <- ("PlainTextPassword:" <>) <$> randomText
   let globalTestCompanyPrefix = (GS1CompanyPrefix "Tests Global Business Company Prefix")
   let globalTestsBusiness = NewBusiness globalTestCompanyPrefix "Tests Global Business Name"
