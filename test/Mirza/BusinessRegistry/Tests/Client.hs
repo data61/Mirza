@@ -326,7 +326,7 @@ clientSpec = do
           b1K2InfoResponse `shouldSatisfy` (checkRecord (goodKey ==) keyInfoPEMString)
 
           step "That the key info status updates after the expiry time has been reached"
-          threadDelay $ fromIntegral $ millisecondsToSeconds expiryDelay
+          threadDelay $ fromIntegral $ secondsToMicroseconds expiryDelay
           b1K2InfoDelayedResponse <- http (getPublicKeyInfo b1K2StoredKeyId)
           b1K2InfoDelayedResponse `shouldSatisfy` isRight
           b1K2InfoDelayedResponse `shouldSatisfy` (checkRecord (Expired ==) keyInfoState)
@@ -403,7 +403,7 @@ clientSpec = do
 
           step "Test where the key has an expiry time and a revoked time which expired after it was revoked and both revoked and expired time have passed."
           -- Wait for the key from the previous test to expire and then recheck the status.
-          threadDelay $ millisecondsToSeconds $ ceiling $ diffUTCTime b1K6ExpiryUTC b1K6TimeAfterResponse
+          threadDelay $ secondsToMicroseconds $ ceiling $ diffUTCTime b1K6ExpiryUTC b1K6TimeAfterResponse
           b1K6ExpiredRevokedResponse <- http (getPublicKeyInfo b1K6KeyId)
           b1K6ExpiredRevokedResponse `shouldSatisfy` isRight
           b1K6ExpiredRevokedResponse `shouldSatisfy` (checkRecord (Revoked ==) keyInfoState)
@@ -507,8 +507,8 @@ right _         = error "Wasn't right..."
 
 
 
-millisecondsToSeconds :: (Num a) => a -> a
-millisecondsToSeconds = (* 1000000)
+secondsToMicroseconds :: (Num a) => a -> a
+secondsToMicroseconds = (* 1000000)
 
 
 bootstrapAuthData :: (HasEnvType w, HasConnPool w, HasKatipContext w, HasKatipLogEnv w, HasScryptParams w) => w -> IO BasicAuthData
