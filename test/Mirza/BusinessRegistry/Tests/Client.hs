@@ -282,7 +282,7 @@ clientSpec = do
           b1K1StoredKeyIdResult <- http (addPublicKey (newUserToBasicAuthData userB1U1) goodKey Nothing)
           b1K1StoredKeyIdResult `shouldSatisfy` isRight
 
-          let b1K1StoredKeyId = right b1K1StoredKeyIdResult
+          let b1K1StoredKeyId = fromRight b1K1StoredKeyIdResult
 
           step "Can retrieve a stored key"
           b1K1Response <- http (getPublicKey b1K1StoredKeyId)
@@ -292,7 +292,7 @@ clientSpec = do
           b1K1InfoResponse <- http (getPublicKeyInfo b1K1StoredKeyId)
           b1K1InfoResponse `shouldSatisfy` isRight
           b1K1InfoResponse `shouldSatisfy` (checkRecord (b1K1StoredKeyId ==) keyInfoId)
-          b1K1InfoResponse `shouldSatisfy` (checkRecord (right userB1U1Response ==) keyInfoUserId)
+          b1K1InfoResponse `shouldSatisfy` (checkRecord (fromRight userB1U1Response ==) keyInfoUserId)
           b1K1InfoResponse `shouldSatisfy` (checkRecord (InEffect ==) keyInfoState)
           b1K1InfoResponse `shouldSatisfy` (checkRecord (within1Second b1K1ApproxInsertionTime) (getCreationTime . keyInfoCreationTime))
           b1K1InfoResponse `shouldSatisfy` (checkRecord isNothing keyInfoRevocationTime)
@@ -313,13 +313,13 @@ clientSpec = do
           b1K2StoredKeyIdResult <- http (addPublicKey (newUserToBasicAuthData userB1U1) goodKey b1K2Expiry)
           b1K2StoredKeyIdResult `shouldSatisfy` isRight
 
-          let b1K2StoredKeyId = right b1K2StoredKeyIdResult
+          let b1K2StoredKeyId = fromRight b1K2StoredKeyIdResult
 
           step "That the key info reflects the expiry time"
           b1K2InfoResponse <- http (getPublicKeyInfo b1K2StoredKeyId)
           b1K2InfoResponse `shouldSatisfy` isRight
           b1K2InfoResponse `shouldSatisfy` (checkRecord (b1K2StoredKeyId ==) keyInfoId)
-          b1K2InfoResponse `shouldSatisfy` (checkRecord (right userB1U1Response ==) keyInfoUserId)
+          b1K2InfoResponse `shouldSatisfy` (checkRecord (fromRight userB1U1Response ==) keyInfoUserId)
           b1K2InfoResponse `shouldSatisfy` (checkRecord (InEffect ==) keyInfoState)
           b1K2InfoResponse `shouldSatisfy` (checkRecord isNothing keyInfoRevocationTime)
           b1K2InfoResponse `shouldSatisfy` (checkRecord (within1Second ((getExpirationTime . fromJust) b1K2Expiry)) (getExpirationTime . fromJust . keyInfoExpirationTime))
@@ -345,7 +345,7 @@ clientSpec = do
           step "That it's possible to revoke a key"
           b1K3StoredKeyIdResult <- http (addPublicKey (newUserToBasicAuthData userB1U1) goodKey Nothing)
           b1K3StoredKeyIdResult `shouldSatisfy` isRight
-          let b1K3StoredKeyId = right b1K3StoredKeyIdResult
+          let b1K3StoredKeyId = fromRight b1K3StoredKeyIdResult
           b1K3Now <- getCurrentTime
           b1K3RevokedResponse <- http (revokePublicKey (newUserToBasicAuthData userB1U1) b1K3StoredKeyId)
           b1K3RevokedResponse `shouldSatisfy` isRight
@@ -364,7 +364,7 @@ clientSpec = do
           -- step "That another user from the same business can also revoke the key"
           -- b1K4StoredKeyIdResult <- http (addPublicKey (newUserToBasicAuthData userB1U1) goodKey Nothing)
           -- b1K4StoredKeyIdResult `shouldSatisfy` isRight
-          -- let b1K4StoredKeyId = right b1K4StoredKeyIdResult
+          -- let b1K4StoredKeyId = fromRight b1K4StoredKeyIdResult
           -- b1K4RevokedResponse <- http (revokePublicKey (newUserToBasicAuthData userB1U2) b1K4StoredKeyId)
           -- b1K4RevokedResponse `shouldSatisfy` isRight
           -- b1K4RevokedInfoResponse <- http (getPublicKeyInfo b1K4StoredKeyId)
@@ -374,7 +374,7 @@ clientSpec = do
           step "That a user from the another business can't also revoke the key"
           b1K5StoredKeyIdResult <- http (addPublicKey (newUserToBasicAuthData userB1U1) goodKey Nothing)
           b1K5StoredKeyIdResult `shouldSatisfy` isRight
-          let b1K5StoredKeyId = right b1K5StoredKeyIdResult
+          let b1K5StoredKeyId = fromRight b1K5StoredKeyIdResult
           b1K5RevokedResponse <- http (revokePublicKey (newUserToBasicAuthData userB2U1) b1K5StoredKeyId)
           b1K5RevokedResponse `shouldSatisfy` isLeft
           b1K5RevokedInfoResponse <- http (getPublicKeyInfo b1K5StoredKeyId)
@@ -390,7 +390,7 @@ clientSpec = do
           let b1K6Expiry = (Just . ExpirationTime) b1K6ExpiryUTC
           b1K6StoreKeyIdResult <- http (addPublicKey (newUserToBasicAuthData userB1U1) goodKey b1K6Expiry)
           b1K6StoreKeyIdResult `shouldSatisfy` isRight
-          let b1K6KeyId = right b1K6StoreKeyIdResult
+          let b1K6KeyId = fromRight b1K6StoreKeyIdResult
           b1K6RevokeKeyResult <- http (revokePublicKey (newUserToBasicAuthData userB1U1) b1K6KeyId)
           b1K6RevokeKeyResult `shouldSatisfy` isRight
           b1K6ExpiryRevokedResponse <- http (getPublicKeyInfo b1K6KeyId)
@@ -498,13 +498,6 @@ newUserToBasicAuthData =
 checkRecord :: (a -> Bool) -> (b -> a) -> Either c b -> Bool
 checkRecord predicate accessor (Right response) = predicate (accessor response)
 checkRecord _         _        (Left _)         = False
-
-
--- Only use this from tests and only where you are sure that you will have a right.
-right :: Either a b -> b
-right (Right x) = x
-right _         = error "Wasn't right..."
-
 
 
 secondsToMicroseconds :: (Num a) => a -> a
