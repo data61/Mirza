@@ -513,25 +513,25 @@ bootstrapAuthData :: (HasEnvType w, HasConnPool w, HasKatipContext w,
 bootstrapAuthData ctx = do
   -- We delibrately keep the domain @example.com so that the address doesn't
   -- potentially exist.
-  globalUserEmail <- (<> "@example.com") <$> randomText
+  email <- (<> "@example.com") <$> randomText
   -- We specifically prefix the password with "PlainTextPassword:" so that it
   -- makes it more obvious if this password shows up anywhere in plain text by
   -- mistake.
-  globalUserPassword <- ("PlainTextPassword:" <>) <$> randomText
-  let globalTestCompanyPrefix = (GS1CompanyPrefix "Tests Global Business Company Prefix")
-  let globalTestsBusiness = NewBusiness globalTestCompanyPrefix "Tests Global Business Name"
-  insertGlobalBusinessResult  <- runAppM @_ @BusinessRegistryError ctx $ BRHB.addBusiness globalTestsBusiness
-  insertGlobalBusinessResult `shouldSatisfy` isRight
-  let globalTestsUser = NewUser (EmailAddress globalUserEmail)
-                              globalUserPassword
-                              globalTestCompanyPrefix
-                              "Tests Global User First Name"
-                              "Tests Global User Last Name"
-                              "Tests Global User Phone Number"
-  insertGlobalUserResult <- runAppM @_ @BusinessRegistryError ctx $ runDb (BRHU.addUserQuery globalTestsUser)
-  insertGlobalUserResult `shouldSatisfy` isRight
+  password <- ("PlainTextPassword:" <>) <$> randomText
+  let prefix = (GS1CompanyPrefix "Tests Global Business Company Prefix")
+  let business = NewBusiness prefix "Tests Global Business Name"
+  insertBusinessResult  <- runAppM @_ @BusinessRegistryError ctx $ BRHB.addBusiness business
+  insertBusinessResult `shouldSatisfy` isRight
+  let user = NewUser  (EmailAddress email)
+                      password
+                      prefix
+                      "Tests Global User First Name"
+                      "Tests Global User Last Name"
+                      "Tests Global User Phone Number"
+  insertUserResult <- runAppM @_ @BusinessRegistryError ctx $ runDb (BRHU.addUserQuery user)
+  insertUserResult `shouldSatisfy` isRight
 
-  return $ newUserToBasicAuthData globalTestsUser
+  return $ newUserToBasicAuthData user
 
 
 randomText :: IO Text
