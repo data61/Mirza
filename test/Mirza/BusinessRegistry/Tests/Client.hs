@@ -519,15 +519,15 @@ bootstrapAuthData ctx = do
   -- mistake.
   password <- ("PlainTextPassword:" <>) <$> randomText
   let prefix = (GS1CompanyPrefix "1000000")
-  let business = NewBusiness prefix "Tests Global Business Name"
+  let business = NewBusiness prefix "Business Name"
   insertBusinessResult  <- runAppM @_ @BusinessRegistryError ctx $ BRHB.addBusiness business
   insertBusinessResult `shouldSatisfy` isRight
   let user = NewUser  (EmailAddress email)
                       password
                       prefix
-                      "Tests Global User First Name"
-                      "Tests Global User Last Name"
-                      "Tests Global User Phone Number"
+                      "Test User First Name"
+                      "Test User Last Name"
+                      "Test User Phone Number"
   insertUserResult <- runAppM @_ @BusinessRegistryError ctx $ runDb (BRHU.addUserQuery user)
   insertUserResult `shouldSatisfy` isRight
 
