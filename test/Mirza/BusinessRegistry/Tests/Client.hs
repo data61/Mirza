@@ -9,7 +9,7 @@ import           Control.Concurrent                     (ThreadId, forkIO,
                                                          killThread,
                                                          threadDelay)
 import           Control.Exception                      (bracket)
-import           Control.Monad                          (forM_, replicateM)
+import           Control.Monad                          (forM_)
 import           Data.Either                            (isLeft, isRight)
 import           Data.Either.Utils                      (fromRight)
 import           Data.List                              (isSuffixOf)
@@ -26,7 +26,6 @@ import           System.Directory                       (listDirectory)
 import           System.FilePath                        ((</>))
 import           System.IO                              (FilePath)
 import           System.IO.Unsafe                       (unsafePerformIO)
-import           System.Random
 
 import qualified Network.HTTP.Client                    as C
 import           Network.Socket
@@ -58,6 +57,7 @@ import           Mirza.BusinessRegistry.Main              (GlobalOptions (..),
 import           Mirza.BusinessRegistry.Types
 
 import           Mirza.Common.Time
+import           Mirza.Common.Utils
 
 
 import           Mirza.BusinessRegistry.Tests.Settings  (testDbConnStr)
@@ -545,10 +545,3 @@ bootstrapAuthData ctx = do
 -- mistake.
 randomPassword :: IO Text
 randomPassword = ("PlainTextPassword:" <>) <$> randomText
-
-
-randomText :: IO Text
-randomText = do
-  count <- randomRIO (8 :: Int, 32)
-  randomString <- (take count) <$> replicateM count (randomRIO ('a', 'z'))
-  return $ pack randomString

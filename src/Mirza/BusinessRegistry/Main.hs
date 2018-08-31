@@ -14,7 +14,7 @@ import           Mirza.BusinessRegistry.Database.Schema  as Schema
 import           Mirza.BusinessRegistry.Service
 import           Mirza.BusinessRegistry.Types            as BT
 import           Mirza.Common.Types                      as CT
-import           Mirza.Common.Utils                      (newUUID)
+import           Mirza.Common.Utils                      (newUUID, randomText)
 
 import           Data.GS1.EPC                            (GS1CompanyPrefix (..))
 
@@ -261,6 +261,13 @@ runPopulateDatabase globals = do
   _result <- runAppM @_ @BusinessRegistryError ctx $
              runDb (mapM addUserQuery [u1b2, u2b2])
 
+  putStrLn "Credentials"
+  printCredentials u1b1
+  printCredentials u2b1
+  printCredentials u1b2
+  printCredentials u2b2
+
+  putStrLn "Full User Information"
   print b1
   print u1b1
   print u2b1
@@ -279,13 +286,20 @@ dummyBusiness unique = do
 
 dummyUser :: Text -> GS1CompanyPrefix -> IO NewUser
 dummyUser unique business_uid = do
+  passwordEntropy <- randomText
   let newUserEmailAddress = EmailAddress $ "User" <> unique <> "@example.com"
-  let newUserPassword     = "User" <> unique <> "Password"
+  let newUserPassword     = "User" <> unique <> "Password" <> passwordEntropy
   let newUserCompany      = business_uid
   let newUserFirstName    = "User" <> unique <> "FirstName"
   let newUserLastName     = "User" <> unique <> "LastName"
   let newUserPhoneNumber  = "User" <> unique <> "PhoneNumber"
   return NewUser{..}
+
+
+printCredentials :: NewUser -> IO ()
+printCredentials user = do
+  putStrLn $ "Username: " <> show ((getEmailAddress . newUserEmailAddress) user)
+  putStrLn $ "Password: " <> show (newUserPassword user)
 
 
 --------------------------------------------------------------------------------
