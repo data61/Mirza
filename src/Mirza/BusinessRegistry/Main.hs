@@ -185,14 +185,14 @@ runUserCommand globals UserList = do
    either (print @BusinessRegistryError) (mapM_ print) euser
 
 runUserCommand globals UserAdd = do
-  user <- interactivlyGetNewUser
+  user <- interactivelyGetNewUser
   ctx <- initBRContext globals
   euser <- runAppM ctx $ runDb (addUserQuery user)
   either (print @BusinessRegistryError) print euser
 
 
-interactivlyGetNewUser :: IO NewUser
-interactivlyGetNewUser = do
+interactivelyGetNewUser :: IO NewUser
+interactivelyGetNewUser = do
   newUserEmailAddress <- EmailAddress . pack <$> prompt "Email Address:"
   newUserPassword     <- pack <$> prompt "Password:"
   newUserCompany      <- GS1CompanyPrefix . read <$> prompt "GS1CompanyPrefix:"
@@ -223,14 +223,14 @@ runBusinessCommand globals BusinessList = do
   either (print @BusinessRegistryError) (mapM_ print) ebizs
 
 runBusinessCommand globals BusinessAdd = do
-  business <- interactivlyGetBusinessT
+  business <- interactivelyGetBusinessT
   ctx <- initBRContext globals
   ebiz <- runAppM ctx $ runDb (addBusinessQuery business)
   either (print @BusinessRegistryError) print ebiz
 
 
-interactivlyGetBusinessT :: IO Business
-interactivlyGetBusinessT = do
+interactivelyGetBusinessT :: IO Business
+interactivelyGetBusinessT = do
   biz_gs1_company_prefix <- GS1CompanyPrefix . pack <$>  prompt "GS1CompanyPrefix"
   biz_name      <- pack <$> prompt "Name"
   return BusinessT{..}
