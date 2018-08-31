@@ -139,37 +139,39 @@ clientSpec = do
 
   let userTests = testCaseSteps "Can create users" $ \step ->
         bracket runApp endWaiApp $ \(_tid,baseurl) -> do
+          password <- randomPassword
+
           let http = runClient baseurl
               companyPrefix = (GS1CompanyPrefix "3000001")
               business = NewBusiness companyPrefix "userTests_businessName"
 
           let user1 = NewUser (EmailAddress "userTests_email1@example.com")
-                              "password"
+                              password
                               companyPrefix
                               "userTests First Name 1"
                               "userTests Last Name 1"
                               "userTests Phone Number 1"
               user2 = NewUser (EmailAddress "userTests_email2@example.com")
-                              "password"
+                              password
                               companyPrefix
                               "userTests First Name 2"
                               "userTests Last Name 2"
                               "userTests Phone Number 2"
               -- Same email address as user1 other fields different.
               userSameEmail = NewUser (newUserEmailAddress user1)
-                                      "password"
+                                      password
                                       companyPrefix
                                       "userTests First Name Same Email"
                                       "userTests Last Name Same Email"
                                       "userTests Phone Number Same Email"
               userNonRegisteredBiz = NewUser (EmailAddress "userTests_unregisteredBusiness@example.com")
-                                             "password"
+                                             password
                                              (GS1CompanyPrefix "unregistered")
                                              "userTests First Name Unregistered Business"
                                              "userTests Last Name Unregistered Business"
                                              "userTests Phone Number Unregistered Business"
               -- userEmptyEmail = NewUser (EmailAddress "")
-              --                          "password"
+              --                          password
               --                          companyPrefix
               --                          "userTests First Name Empty Email"
               --                          "userTests Last Name Empty Email"
@@ -236,6 +238,7 @@ clientSpec = do
 
   let keyTests = testCaseSteps "That keys work as expected" $ \step ->
         bracket runApp endWaiApp $ \(_tid, baseurl) -> do
+          password <- randomPassword
           let http = runClient baseurl
               biz1Prefix = (GS1CompanyPrefix "4000001")
               biz1 = NewBusiness biz1Prefix "userTests_businessName1"
@@ -244,21 +247,21 @@ clientSpec = do
 
           -- Business1User1
           let userB1U1 = NewUser (EmailAddress "keysTests_email1@example.com")
-                                 "password"
+                                 password
                                  biz1Prefix
                                  "keysTests First Name 1"
                                  "keysTests Last Name 1"
                                  "keysTests Phone Number 1"
           -- Business1User2
           let userB1U2 = NewUser (EmailAddress "keysTests_email2@example.com")
-                                 "password"
+                                 password
                                  biz1Prefix
                                  "keysTests First Name 2"
                                  "keysTests Last Name 2"
                                  "keysTests Phone Number 2"
           -- Business2User1
           let userB2U1 = NewUser (EmailAddress "keysTests_email3@example.com")
-                                 "password"
+                                 password
                                  biz2Prefix
                                  "keysTests First Name 3"
                                  "keysTests Last Name 3"
@@ -511,13 +514,8 @@ bootstrapAuthData :: (HasEnvType w, HasConnPool w, HasKatipContext w,
                       HasKatipLogEnv w, HasScryptParams w)
                      => w -> IO BasicAuthData
 bootstrapAuthData ctx = do
-  -- We delibrately keep the domain @example.com so that the address doesn't
-  -- potentially exist.
-  email <- (<> "@example.com") <$> randomText
-  -- We specifically prefix the password with "PlainTextPassword:" so that it
-  -- makes it more obvious if this password shows up anywhere in plain text by
-  -- mistake.
-  password <- ("PlainTextPassword:" <>) <$> randomText
+  let email = "initialUser@example.com"
+  password <- randomPassword
   let prefix = (GS1CompanyPrefix "1000000")
   let business = NewBusiness prefix "Business Name"
   insertBusinessResult  <- runAppM @_ @BusinessRegistryError ctx $ BRHB.addBusiness business
@@ -532,6 +530,13 @@ bootstrapAuthData ctx = do
   insertUserResult `shouldSatisfy` isRight
 
   return $ newUserToBasicAuthData user
+
+
+-- We specifically prefix the password with "PlainTextPassword:" so that it
+-- makes it more obvious if this password shows up anywhere in plain text by
+-- mistake.
+randomPassword :: IO Text
+randomPassword = ("PlainTextPassword:" <>) <$> randomText
 
 
 randomText :: IO Text
