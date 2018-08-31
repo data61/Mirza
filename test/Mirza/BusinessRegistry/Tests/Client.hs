@@ -97,8 +97,8 @@ clientSpec = do
               biz2Prefix = (GS1CompanyPrefix "2000002")
               biz2 =  NewBusiness biz2Prefix "businessTests_biz2Name"
               biz2Response = newBusinessToBusinessResponse biz2
-              -- emptyCompanyPrefixBusiness = NewBusiness (GS1CompanyPrefix "") "EmptyBusiness"
-              -- stringCompanyPrefix1Business = NewBusiness (GS1CompanyPrefix "string") "EmptyBusiness"
+              -- emptyPrefixBiz = NewBusiness (GS1CompanyPrefix "") "EmptyBusiness"
+              -- stringPrefix1Biz = NewBusiness (GS1CompanyPrefix "string") "EmptyBusiness"
 
           step "Can create a new business"
           addBiz1Result <- http (addBusiness globalAuthData biz1)
@@ -128,12 +128,12 @@ clientSpec = do
 
           -- TODO: Include me (github #205):
           -- step "That the GS1CompanyPrefix can't be empty (\"\")."
-          -- http (addBusiness globalAuthData emptyCompanyPrefixBusiness)
+          -- http (addBusiness globalAuthData emptyPrefixBiz)
           --   `shouldSatisfyIO` isLeft
 
           -- TODO: Include me (github #205):
           -- step "That the GS1CompanyPrefix can't be a string."
-          -- http (addBusiness globalAuthData stringCompanyPrefix1Business)
+          -- http (addBusiness globalAuthData stringPrefix1Biz)
           --    `shouldSatisfyIO` isLeft
 
 
