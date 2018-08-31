@@ -213,6 +213,14 @@ clientSpec = do
           -- Note: We test the result of the function elsewhere, all we care
           --       about here is that the user can login.
 
+          step "That the wrong password doesn't allow the user to login"
+          http (addPublicKey (newUserToBasicAuthData user1){basicAuthPassword = "invalid password"} goodKey Nothing)
+            `shouldSatisfyIO` isLeft
+
+          step "That the an empty password doesn't allow the user to login"
+          http (addPublicKey (newUserToBasicAuthData user1){basicAuthPassword = ""} goodKey Nothing)
+            `shouldSatisfyIO` isLeft
+
           step "Can't create a new user with a GS1CompanyPrefix that isn't registered"
           http (addUser globalAuthData userNonRegisteredBiz)
             `shouldSatisfyIO` isLeft
