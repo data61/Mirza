@@ -91,13 +91,14 @@ clientSpec = do
   let businessTests = testCaseSteps "Can create businesses" $ \step ->
         bracket runApp endWaiApp $ \(_tid,baseurl) -> do
           let http = runClient baseurl
-              biz1Prefix = (GS1CompanyPrefix "businessTests_biz1Prefix")
+              biz1Prefix = (GS1CompanyPrefix "2000001")
               biz1 = NewBusiness biz1Prefix "businessTests_biz1Name"
               biz1Response = newBusinessToBusinessResponse biz1
-              biz2Prefix = (GS1CompanyPrefix "businessTests_biz2Prefix")
+              biz2Prefix = (GS1CompanyPrefix "2000002")
               biz2 =  NewBusiness biz2Prefix "businessTests_biz2Name"
               biz2Response = newBusinessToBusinessResponse biz2
               -- emptyCompanyPrefixBusiness = NewBusiness (GS1CompanyPrefix "") "EmptyBusiness"
+              -- stringCompanyPrefix1Business = NewBusiness (GS1CompanyPrefix "string") "EmptyBusiness"
 
           step "Can create a new business"
           addBiz1Result <- http (addBusiness globalAuthData biz1)
@@ -130,11 +131,16 @@ clientSpec = do
           -- http (addBusiness globalAuthData emptyCompanyPrefixBusiness)
           --   `shouldSatisfyIO` isLeft
 
+          -- TODO: Include me (github #205):
+          -- step "That the GS1CompanyPrefix can't be a string."
+          -- http (addBusiness globalAuthData stringCompanyPrefix1Business)
+          --    `shouldSatisfyIO` isLeft
+
 
   let userTests = testCaseSteps "Can create users" $ \step ->
         bracket runApp endWaiApp $ \(_tid,baseurl) -> do
           let http = runClient baseurl
-              companyPrefix = (GS1CompanyPrefix "userTests_companyPrefix")
+              companyPrefix = (GS1CompanyPrefix "3000001")
               business = NewBusiness companyPrefix "userTests_businessName"
 
           let user1 = NewUser (EmailAddress "userTests_email1@example.com")
@@ -231,9 +237,9 @@ clientSpec = do
   let keyTests = testCaseSteps "That keys work as expected" $ \step ->
         bracket runApp endWaiApp $ \(_tid, baseurl) -> do
           let http = runClient baseurl
-              biz1Prefix = (GS1CompanyPrefix "keyTests_companyPrefix1")
+              biz1Prefix = (GS1CompanyPrefix "4000001")
               biz1 = NewBusiness biz1Prefix "userTests_businessName1"
-              biz2Prefix = (GS1CompanyPrefix "keyTests_companyPrefix2")
+              biz2Prefix = (GS1CompanyPrefix "4000002")
               biz2 = NewBusiness biz2Prefix "userTests_businessName2"
 
           -- Business1User1
@@ -512,7 +518,7 @@ bootstrapAuthData ctx = do
   -- makes it more obvious if this password shows up anywhere in plain text by
   -- mistake.
   password <- ("PlainTextPassword:" <>) <$> randomText
-  let prefix = (GS1CompanyPrefix "Tests Global Business Company Prefix")
+  let prefix = (GS1CompanyPrefix "1000000")
   let business = NewBusiness prefix "Tests Global Business Name"
   insertBusinessResult  <- runAppM @_ @BusinessRegistryError ctx $ BRHB.addBusiness business
   insertBusinessResult `shouldSatisfy` isRight
