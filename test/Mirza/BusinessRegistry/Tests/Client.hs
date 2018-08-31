@@ -230,12 +230,6 @@ clientSpec = do
 
   let keyTests = testCaseSteps "That keys work as expected" $ \step ->
         bracket runApp endWaiApp $ \(_tid, baseurl) -> do
-          -- Note: These tests assumes that the time on the server and the
-          -- client is exactly the same. This "should" be true for the tests
-          -- since they should be running on the same machine and using the same
-          -- time source. But this test may need to be update if this assumption
-          --  no longer holds for some reason in the future.
-
           let http = runClient baseurl
               biz1Prefix = (GS1CompanyPrefix "keyTests_companyPrefix1")
               biz1 = NewBusiness biz1Prefix "userTests_businessName1"
