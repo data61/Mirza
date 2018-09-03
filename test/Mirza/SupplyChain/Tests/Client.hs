@@ -17,12 +17,10 @@ import           Network.Wai.Handler.Warp
 import           Servant.API.BasicAuth
 import           Servant.Client
 
-import           Data.Bifunctor
 import           Data.Either                      (isLeft, isRight)
 import           Data.Text.Encoding               (encodeUtf8)
 
 import           Test.Tasty.Hspec
-import           Test.Hspec.Expectations
 import           Test.Tasty
 import           Test.Tasty.HUnit
 
@@ -100,23 +98,12 @@ clientSpec = do
   flushDbResult `shouldSatisfy` isRight
 
 
--- data NewUser = NewUser {
---   newUserPhoneNumber  :: Text,
---   newUserEmailAddress :: EmailAddress,
---   newUserFirstName    :: Text,
---   newUserLastName     :: Text,
---   newUserCompany      :: GS1CompanyPrefix,
---   newUserPassword     :: Text
--- } deriving (Generic, Eq, Show
-
-
-  let userTests = testCaseSteps "Adding new users" $ \step ->
+  let userCreationTests = testCaseSteps "Adding new users" $ \step ->
         bracket runApp endWaiApp $ \(_tid,baseurl) -> do
           let http = runClient baseurl
-              companyPrefix = (GS1CompanyPrefix "userTests_companyPrefix")
 
           let user1 = userABC
-              user2 = userABC {newUserEmailAddress="different@example.com"}
+              user2 = userABC {newUserEmailAddress= EmailAddress "different@example.com"}
               -- Same email address as user1 other fields different.
               userSameEmail = userABC {newUserFirstName="First"}
 
@@ -140,43 +127,32 @@ clientSpec = do
           http (contactsInfo (BasicAuthData "xyz@example.com" "notagoodpassword"))
             `shouldSatisfyIO` isLeft
 
-  beforeAll runApp $ afterAll endWaiApp $ do
+  let eventInsertionTests = testCaseSteps "User can add events" $ \step ->
+        bracket runApp endWaiApp $ \(_tid,baseurl) -> do
+          let http = runClient baseurl
+          step "User Can insert Object events"
+            -- TODO: Events need their EventId returned to user
+          http (insertObjectEvent authABC dummyObject)
+            `shouldSatisfyIO` isRight
 
-    describe "Events can be inserted by the new user" $ do
-      -- TODO: Events need their EventId returned to user
-      it "Can insert Object events" $ \(_,baseurl) -> do
-        res <- first show <$> runClient
-                baseurl
-                (insertObjectEvent authABC dummyObject)
-        print res
-        res `shouldSatisfy` isRight
-      it "Can insert Aggregation events" $ \(_,baseurl) -> do
-        res <- first show <$> runClient
-                baseurl
-                (insertAggEvent authABC dummyAggregation)
-        print res
-        res `shouldSatisfy` isRight
-      it "Can insert Transaction events" $ \(_,baseurl) -> do
-        res <- first show <$> runClient
-                baseurl
-                (insertTransactEvent authABC dummyTransaction)
-        print res
-        res `shouldSatisfy` isRight
-      it "Can insert Transformation events" $ \(_,baseurl) -> do
-        res <- first show <$> runClient
-                baseurl
-                (insertTransfEvent authABC dummyTransformation)
-        print res
-        res `shouldSatisfy` isRight
-      it "Provenance of a labelEPC" $ \(_,baseurl) -> do
-        res <- first show <$> runClient
-                baseurl
-                (insertTransfEvent authABC dummyTransformation)
-        print res
-        res `shouldSatisfy` isRight
+          step "User Can insert Aggregation events"
+          http (insertAggEvent authABC dummyAggregation)
+            `shouldSatisfyIO` isRight
 
-      xit "Can retrieve all submitted events" $ \(_,_baseurl) ->
-        pending
+          step "User Can insert Transaction events"
+          http (insertTransactEvent authABC dummyTransaction)
+            `shouldSatisfyIO` isRight
+
+          step "User Can insert Transformation events"
+          http (insertTransfEvent authABC dummyTransformation)
+            `shouldSatisfyIO` isRight
+          step "Provenance of a labelEPC"
+          http (insertTransfEvent authABC dummyTransformation)
+            `shouldSatisfyIO` isRight
+  pure $ testGroup "Supply Chain Service Client Tests"
+        [ userCreationTests
+        , eventInsertionTests
+        ]
 
 {-
 Check Provenance of a labelEPC
