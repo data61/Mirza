@@ -49,7 +49,7 @@ appErrToHttpErr (InvalidUserId _) =
   }
 appErrToHttpErr (InvalidDigest _) =
   throwError $ err400 {
-    errBody = "Invalid Key Id entered."
+    errBody = "Invalid Digest given."
   }
 appErrToHttpErr (ParseError err) =
   throwError $ err400 {
