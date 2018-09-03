@@ -24,6 +24,7 @@ import           Mirza.SupplyChain.Types           as ST
 
 import qualified Data.GS1.Event                    as Ev
 import           Data.GS1.EventId                  as EvId
+import           Data.GS1.EPC                      (GS1CompanyPrefix)
 
 import           Servant
 import           Servant.API.Flatten
@@ -47,7 +48,7 @@ serverAPI = Proxy
 
 type PublicAPI =
   -- Users
-         "newUser"                            :> ReqBody '[JSON] NewUser                                      :> Post '[JSON] UserId
+       "newUser"                            :> ReqBody '[JSON] NewUser                                      :> Post '[JSON] UserId
 
 type PrivateAPI =
 -- Contacts
@@ -71,3 +72,5 @@ type PrivateAPI =
   :<|> "event"    :> "aggregateEvent"       :> ReqBody '[JSON] AggregationEvent                               :> Post '[JSON] (Ev.Event, Schema.EventId)
   :<|> "event"    :> "transactionEvent"     :> ReqBody '[JSON] TransactionEvent                               :> Post '[JSON] (Ev.Event, Schema.EventId)
   :<|> "event"    :> "transformationEvent"  :> ReqBody '[JSON] TransformationEvent                            :> Post '[JSON] (Ev.Event, Schema.EventId)
+-- Users
+  :<|> "user"     :> "searchByCompanyId"    :> Capture "gs1CompanyId" GS1CompanyPrefix                        :> Get '[JSON] [User]
