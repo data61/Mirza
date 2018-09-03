@@ -60,7 +60,6 @@ type PrivateAPI =
   :<|> "event"    :> "sign"                 :> ReqBody '[JSON] SignedEvent                                    :> Post '[JSON] PrimaryKeyType
   :<|> "event"    :> "getHash"              :> ReqBody '[JSON] EventId                                        :> Post '[JSON] HashedEvent
 -- Queries
-  :<|> "epc"                                :> Capture "urn" ST.LabelEPCUrn     :> "info"                     :> Get '[JSON] EPCState
   :<|> "epc"                                :> Capture "urn" ST.LabelEPCUrn     :> "events"                   :> Get '[JSON] [Ev.Event]
   :<|> "event"                              :> Capture "eventId" EventId        :> "info"                     :> Get '[JSON] (Maybe Ev.Event)
   :<|> "event"    :> "list"                 :> Capture "userId" UserId                                        :> Get '[JSON] [Ev.Event]
