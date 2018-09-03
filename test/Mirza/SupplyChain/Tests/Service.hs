@@ -42,33 +42,6 @@ testAppM scsContext act = runAppM scsContext act >>= \case
 testServiceQueries :: HasCallStack => SpecWith SCSContext
 testServiceQueries = do
 
-  -- describe "eventSign - INCOMPLETE " $ do
-  --   it "Signing an event with a revoked key" $ \scsContext -> do
-  --     nowish <- getCurrentTime
-  --     let hundredMinutes = 100 * 60
-  --         someTimeLater = addUTCTime (hundredMinutes) nowish
-  --     pubKey <- rsaPubKey
-  --     myKeyState <- testAppM scsContext $ do
-
-  --       -- Adding a user, key, and revoking the key
-  --       uid <- addUser dummyNewUser
-  --       storageUser <- runDb $ getUserById uid
-  --       let user = userTableToModel . fromJust $ storageUser
-  --       keyId <- addPublicKey user pubKey (Just . ExpirationTime $ someTimeLater)
-  --       _timeKeyRevoked <- revokePublicKey user keyId
-  --       keyInfo <- getPublicKeyInfo keyId
-
-  --       -- Adding the event
-  --       (_insertedEvent, (Schema.EventId eventId)) <- insertObjectEvent dummyUser dummyObject
-  --       let myDigest = SHA256
-  --           mySign = Signature "c2FqaWRhbm93ZXIyMw=="
-  --           mySignedEvent = SignedEvent (EvId.EventId eventId) keyId mySign myDigest
-  --       -- if this test can proceed after the following statement
-  --       _eventSignId <- eventSign user mySignedEvent
-  --       -- it means the basic functionality of ``eventSign`` function is perhaps done
-  --       pure (keyState keyInfo)
-  --     myKeyState `shouldBe` InEffect
-
   describe "newUser tests" $
     it "newUser test 1" $ \scsContext -> do
       res <- testAppM scsContext $  do

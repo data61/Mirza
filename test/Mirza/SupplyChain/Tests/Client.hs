@@ -135,13 +135,13 @@ clientSpec = do
           http (contactsInfo (BasicAuthData "xyz@example.com" "notagoodpassword"))
             `shouldSatisfyIO` isLeft
 
-  let eventInsertionTests = testCaseSteps "User can add events" $ \step ->
+  let eventInsertionTests = testCaseSteps "User can add single events" $ \step ->
         bracket runApp endWaiApp $ \(_tid,baseurl) -> do
           let http = runClient baseurl
           step "User Can insert Object events"
             -- TODO: Events need their EventId returned to user
-          http (insertObjectEvent authABC dummyObject)
-            `shouldSatisfyIO` isRight
+          resp <- http (insertObjectEvent authABC dummyObject)
+          resp `shouldSatisfy` isRight
 
           step "User Can insert Aggregation events"
           http (insertAggEvent authABC dummyAggregation)
@@ -154,12 +154,51 @@ clientSpec = do
           step "User Can insert Transformation events"
           http (insertTransfEvent authABC dummyTransformation)
             `shouldSatisfyIO` isRight
+
           step "Provenance of a labelEPC"
           http (insertTransfEvent authABC dummyTransformation)
             `shouldSatisfyIO` isRight
+
+  let eventSignTests = testCaseSteps "eventSign - INCOMPLETE " $ \step ->
+        bracket runApp endWaiApp $ \(_tid,baseurl) -> do
+        let http = runClient baseurl
+
+        nowish <- getCurrentTime
+        let hundredMinutes = 100 * 60
+            someTimeLater = addUTCTime (hundredMinutes) nowish
+
+        step "Adding a new user"
+        uid <- http (addUser userABC)
+        uid `shouldSatisfy` isRight
+
+        step "Tying the user with a good key and an expiration time"
+        goodKey <- goodRsaPublicKey
+        keyIdResponse <- http (addPublicKey authABC goodKey (Just . ExpirationTime $ someTimeLater))
+        keyIdResponse `shouldSatisfy` isRight
+        let keyId = fromRight (BRKeyId nil) keyIdResponse
+
+        step "Revoking the key"
+        http (revokePublicKey authABC keyId)
+          `shouldSatisfyIO` isRight
+
+        step "Inserting the object event"
+        objInsertionResponse <- http (insertObjectEvent authABC dummyObject)
+        objInsertionResponse `shouldSatisfy` isRight
+        let (_insertedEvent, (Schema.EventId eventId)) = fromRight (error "Should be right") objInsertionResponse
+
+          -- Adding the event
+        let mySign = ST.Signature "c2FqaWRhbm93ZXIyMw=="
+            myDigest = SHA256
+            mySignedEvent = SignedEvent (EvId.EventId eventId) keyId mySign myDigest
+        -- if this test can proceed after the following statement
+        http (eventSign authABC mySignedEvent)
+          `shouldSatisfyIO` isRight
+        -- it means the basic functionality of ``eventSign`` function is perhaps done
+
   pure $ testGroup "Supply Chain Service Client Tests"
         [ userCreationTests
         , eventInsertionTests
+        , eventSignTests
         ]
 
 {-
@@ -246,3 +285,9 @@ manager' = unsafePerformIO $ C.newManager C.defaultManagerSettings
 
 runClient :: BaseUrl -> ClientM a -> IO (Either ServantError a)
 runClient baseUrl' x = runClientM x (mkClientEnv manager' baseUrl')
+
+readRsaPubKey :: FilePath -> IO PEM_RSAPubKey
+readRsaPubKey filename = PEM_RSAPubKey <$> TIO.readFile filename
+
+goodRsaPublicKey :: IO PEM_RSAPubKey
+goodRsaPublicKey = readRsaPubKey "./test/Mirza/Common/testKeys/goodKeys/4096bit_rsa_key.pub"
