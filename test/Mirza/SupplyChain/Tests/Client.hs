@@ -3,6 +3,7 @@
 
 module Mirza.SupplyChain.Tests.Client where
 
+import           Mirza.SupplyChain.Tests.Dummies
 import           Mirza.SupplyChain.Tests.Settings
 
 import           Control.Concurrent               (ThreadId, forkIO, killThread)
@@ -17,8 +18,11 @@ import           Network.Wai.Handler.Warp
 import           Servant.API.BasicAuth
 import           Servant.Client
 
-import           Data.Either                      (isLeft, isRight)
+import           Data.Either                      (isLeft, isRight, fromRight)
+import           Data.UUID                        (nil)
+
 import           Data.Text.Encoding               (encodeUtf8)
+import qualified Data.Text.IO                     as TIO
 
 import           Test.Tasty.Hspec
 import           Test.Tasty
@@ -27,18 +31,22 @@ import           Test.Tasty.HUnit
 import           Mirza.SupplyChain.Main           (ServerOptions (..),
                                                    initApplication,
                                                    initSCSContext)
-import           Mirza.SupplyChain.Types
+import           Mirza.SupplyChain.Types          as ST
+import           Mirza.BusinessRegistry.Types     (PEM_RSAPubKey(..))
+import           Mirza.Common.Time                (ExpirationTime(..))
 
 import           Data.GS1.EPC                     (GS1CompanyPrefix (..))
+import           Data.GS1.EventId as EvId
+
+import           Data.Time.Clock                  (getCurrentTime, addUTCTime)
 
 import           Mirza.SupplyChain.Client.Servant
+import           Mirza.BusinessRegistry.Client.Servant (addPublicKey, revokePublicKey)
 
 import           Katip                            (Severity (DebugS))
-import           Mirza.SupplyChain.Tests.Dummies
 
 import           Database.Beam.Query              (delete, runDelete, val_)
-import           Mirza.SupplyChain.Database.Schema
-
+import           Mirza.SupplyChain.Database.Schema as Schema
 
 -- Cribbed from https://github.com/haskell-servant/servant/blob/master/servant-client/test/Servant/ClientSpec.hs
 
@@ -59,7 +67,7 @@ userABC = NewUser
 authABC :: BasicAuthData
 authABC = BasicAuthData
   (encodeUtf8 . getEmailAddress . newUserEmailAddress $ userABC)
-  (encodeUtf8 . newUserPassword                      $ userABC)
+  (encodeUtf8 . newUserPassword                       $ userABC)
 
 runApp :: IO (ThreadId, BaseUrl)
 runApp = do
