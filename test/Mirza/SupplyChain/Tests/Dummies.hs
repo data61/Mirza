@@ -3,7 +3,7 @@
 -- in GS1Combinators
 module Mirza.SupplyChain.Tests.Dummies where
 
-import           Mirza.SupplyChain.Types hiding (InProgress, NewUser (..))
+import           Mirza.SupplyChain.Types hiding (NewUser (..))
 import qualified Mirza.SupplyChain.Types as ST
 
 import           Data.GS1.DWhat
