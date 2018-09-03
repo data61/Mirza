@@ -64,7 +64,7 @@ library
                     , beam-postgres
                     , bytestring
                     , hoist-error >= 0.2
-                    , HsOpenSSL
+                    , HsOpenSSL >= 0.11.4.14
                     , http-client
                     , insert-ordered-containers
                     , katip >= 0.5.4
