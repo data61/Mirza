@@ -1,9 +1,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 
 module Mirza.SupplyChain.Handlers.Queries
-  (
-    epcState
-  , listEvents, eventInfo, eventList, eventUserList, eventsByUser
+  ( listEvents, eventInfo, eventList, eventUserList, eventsByUser
   , eventUserSignedList
   , queryUserId
   ) where
@@ -33,11 +31,6 @@ import           Database.Beam                                as B
 
 import           Data.Bifunctor                               (bimap)
 import           Data.Maybe                                   (catMaybes)
-
-
--- Use getLabelIdState
-epcState :: ST.User ->  LabelEPCUrn -> AppM context err EPCState
-epcState _user _str = U.notImplemented
 
 
 -- This takes an EPC urn,
