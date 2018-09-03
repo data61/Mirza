@@ -2,7 +2,7 @@
 
 module Mirza.SupplyChain.Handlers.Users
   (
-    newUser, userTableToModel
+    newUser, userTableToModel, searchUserByCompanyId
   ) where
 
 
@@ -16,6 +16,8 @@ import           Mirza.SupplyChain.QueryUtils
 import           Mirza.SupplyChain.Types                  hiding (NewUser (..),
                                                            User (userId))
 import qualified Mirza.SupplyChain.Types                  as ST
+
+import           Data.GS1.EPC                             (GS1CompanyPrefix (..))
 
 import           Database.Beam                            as B
 import           Database.Beam.Backend.SQL.BeamExtensions
@@ -84,3 +86,14 @@ insertUser encPass (ST.NewUser phone (EmailAddress email) firstName lastName biz
         Just (UniqueViolation "users_email_address_key")
           -> throwing _EmailExists (toServerError getSqlErrorCode sqlErr, EmailAddress email)
         _ -> throwing _InsertionFail (toServerError (Just . sqlState) sqlErr, email)
+
+searchUserByCompanyId :: (SCSApp context err, HasScryptParams context)
+                      => GS1CompanyPrefix
+                      -> AppM context err ST.User
+searchUserByCompanyId = runDb . searchUserByCompanyIdQuery
+
+
+searchUserByCompanyIdQuery :: (SCSApp context err, HasScryptParams context)
+                           => GS1CompanyPrefix
+                           -> DB context err ST.User
+searchUserByCompanyIdQuery (GS1CompanyPrefix pfx) = error ""

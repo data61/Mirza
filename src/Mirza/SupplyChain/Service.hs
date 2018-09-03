@@ -80,7 +80,8 @@ privateServer =
   :<|> insertAggEvent
   :<|> insertTransactEvent
   :<|> insertTransfEvent
-
+-- User
+  :<|> searchUserByCompanyId
 
 instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub) where
   toSwagger _ =
