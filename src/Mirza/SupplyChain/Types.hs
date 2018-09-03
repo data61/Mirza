@@ -107,19 +107,6 @@ instance ToParamSchema LabelEPCUrn
 deriving instance FromHttpApiData LabelEPCUrn
 deriving instance ToHttpApiData LabelEPCUrn
 
-data EPCState = New | InProgress | AwaitingDeploymentToBC | Customer | Finalised
-  deriving (Generic, Eq, Show)
-$(deriveJSON defaultOptions ''EPCState)
-instance ToSchema EPCState
-
--- XXX - do we want to retrieve more information than this?
-data EPCInfo = EPCInfo {
-  state :: EPCState
-} deriving (Generic, Eq, Show)
-$(deriveJSON defaultOptions ''EPCInfo)
-instance ToSchema EPCInfo
-
-
 
 -- *****************************************************************************
 -- Event Types
