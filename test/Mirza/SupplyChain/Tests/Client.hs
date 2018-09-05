@@ -62,14 +62,6 @@ authABC = BasicAuthData
 runApp :: IO (ThreadId, BaseUrl)
 runApp = do
   ctx <- initSCSContext so
-  startWaiApp =<< initApplication so ctx
-
-so :: ServerOptions
-so = ServerOptions Dev False testDbConnStr "127.0.0.1" 8000 14 8 1 DebugS
-
-clientSpec :: IO TestTree
-clientSpec = do
-  ctx <- initSCSContext so
   let SupplyChainDb
         usersTable
         businessesTable
@@ -113,7 +105,13 @@ clientSpec = do
       deleteTable $ hashesTable
       deleteTable $ blockchainTable
   flushDbResult `shouldSatisfy` isRight
+  startWaiApp =<< initApplication so ctx
 
+so :: ServerOptions
+so = ServerOptions Dev False testDbConnStr "127.0.0.1" 8000 14 8 1 DebugS
+
+clientSpec :: IO TestTree
+clientSpec = do
 
   let userCreationTests = testCaseSteps "Adding new users" $ \step ->
         bracket runApp endWaiApp $ \(_tid,baseurl) -> do
