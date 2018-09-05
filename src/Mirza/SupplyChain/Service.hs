@@ -69,7 +69,6 @@ privateServer =
   :<|> eventSign
   :<|> eventHashed
 -- Queries
-  :<|> epcState
   :<|> listEvents
   :<|> eventInfo
   :<|> eventList
