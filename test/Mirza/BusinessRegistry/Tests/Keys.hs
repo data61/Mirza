@@ -105,7 +105,6 @@ testKeyQueries = do
         let companyPrefix = (GS1CompanyPrefix "3000001")
             myBusiness = NewBusiness companyPrefix "pubKeyTests_businessName"
         businessPfx <- addBusiness myBusiness
-
         uid <- addUser dummyNewUser {newUserCompany=businessPfx}
         tableUser <- runDb $ getUserByIdQuery uid
         let user = tableToAuthUser . fromJust $ tableUser
@@ -162,7 +161,6 @@ testKeyQueries = do
         let companyPrefix = (GS1CompanyPrefix "3000001")
             myBusiness = NewBusiness companyPrefix "pubKeyTests_businessName"
         businessPfx <- addBusiness myBusiness
-
         uid <- addUser dummyNewUser {newUserCompany=businessPfx}
         tableUser <- runDb $ getUserByIdQuery uid
         let user = tableToAuthUser . fromJust $ tableUser
