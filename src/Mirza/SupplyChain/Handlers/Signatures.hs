@@ -29,6 +29,7 @@ import qualified Data.GS1.EventId                             as EvId
 import           Database.Beam                                as B
 import           Database.Beam.Backend.SQL.BeamExtensions
 
+import           OpenSSL (withOpenSSL)
 import qualified OpenSSL.EVP.Digest                           as EVPDigest
 import           OpenSSL.EVP.PKey                             (toPublicKey)
 import           OpenSSL.EVP.Verify                           (VerifyStatus (..),
@@ -124,8 +125,7 @@ getEventJSON eventId = do
 
 
 makeDigest :: Digest -> IO (Maybe EVPDigest.Digest)
-makeDigest = EVPDigest.getDigestByName . map toLower . show
-
+makeDigest digest = withOpenSSL $ EVPDigest.getDigestByName . map toLower . show $ digest
 
 insertSignature :: (AsServiceError err) => EvId.EventId
                 -> BRKeyId
