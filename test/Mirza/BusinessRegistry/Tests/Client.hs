@@ -302,14 +302,23 @@ clientSpec = do
           step "Can retrieve the key info for a stored key"
           b1K1InfoResponse <- http (getPublicKeyInfo b1K1StoredKeyId)
           b1K1InfoResponse `shouldSatisfy` isRight
-          b1K1InfoResponse `shouldSatisfy` checkField keyInfoId     (b1K1StoredKeyId ==)
-          b1K1InfoResponse `shouldSatisfy` checkField keyInfoUserId (fromRight userB1U1Response ==)
-          b1K1InfoResponse `shouldSatisfy` checkField keyInfoState  (InEffect ==)
-          b1K1InfoResponse `shouldSatisfy` checkField keyInfoRevocationTime isNothing
-          b1K1InfoResponse `shouldSatisfy` checkField keyInfoExpirationTime isNothing
-          b1K1InfoResponse `shouldSatisfy` checkField keyInfoPEMString      (goodKey ==)
-          b1K1InfoResponse `shouldSatisfy` checkField (getCreationTime . keyInfoCreationTime)
-                                                      (betweenInclusive b1K1PreInsertionTime b1K1PostInsertionTime)
+          let KeyInfoResponse
+                ky1InfoId
+                ky1InfoUserId
+                ky1InfoState
+                ky1InfoCreationTime
+                ky1InfoRevocationTime
+                ky1InfoExpirationTime
+                ky1InfoPEMString
+                = fromRight b1K1InfoResponse
+          ky1InfoId             `shouldSatisfy` (== b1K1StoredKeyId)
+          ky1InfoUserId         `shouldSatisfy` (== fromRight userB1U1Response)
+          ky1InfoState          `shouldSatisfy` (== InEffect)
+          ky1InfoRevocationTime `shouldSatisfy` isNothing
+          ky1InfoExpirationTime `shouldSatisfy` isNothing
+          ky1InfoPEMString      `shouldSatisfy` (== goodKey)
+          getCreationTime ky1InfoCreationTime
+            `shouldSatisfy` (betweenInclusive b1K1PreInsertionTime b1K1PostInsertionTime)
 
           step "That getPublicKey fails gracefully searching for a non existant key"
           b1InvalidKeyResponse <- http (getPublicKey (BRKeyId nil))
@@ -330,27 +339,28 @@ clientSpec = do
           step "That the key info reflects the expiry time"
           b1K2InfoResponse <- http (getPublicKeyInfo b1K2StoredKeyId)
           b1K2InfoResponse `shouldSatisfy` isRight
-          let Right (KeyInfoResponse 
-                    kyInfoId             
-                    kyInfoUserId         
-                    kyInfoState          
-                    _kyInfoCreationTime   
-                    kyInfoRevocationTime 
-                    kyInfoExpirationTime 
-                    kyInfoPEMString      ) = b1K2InfoResponse
-          kyInfoId             `shouldSatisfy` (b1K2StoredKeyId ==)
-          kyInfoUserId         `shouldSatisfy` (fromRight userB1U1Response ==)
-          kyInfoState          `shouldSatisfy` (InEffect ==)
-          kyInfoRevocationTime `shouldSatisfy` isNothing
-          kyInfoPEMString      `shouldSatisfy` (goodKey ==) 
-          getExpirationTime (fromJust kyInfoExpirationTime)
+          let KeyInfoResponse
+                ky2InfoId
+                ky2InfoUserId
+                ky2InfoState
+                _ky2InfoCreationTime
+                ky2InfoRevocationTime
+                ky2InfoExpirationTime
+                ky2InfoPEMString
+                = fromRight b1K2InfoResponse
+          ky2InfoId             `shouldSatisfy` (== b1K2StoredKeyId)
+          ky2InfoUserId         `shouldSatisfy` (== fromRight userB1U1Response)
+          ky2InfoState          `shouldSatisfy` (== InEffect)
+          ky2InfoRevocationTime `shouldSatisfy` isNothing
+          ky2InfoPEMString      `shouldSatisfy` (== goodKey)
+          getExpirationTime (fromJust ky2InfoExpirationTime)
             `shouldSatisfy` within1Second ((getExpirationTime . fromJust) b1K2Expiry)
 
           step "That the key info status updates after the expiry time has been reached"
           threadDelay $ fromIntegral $ secondsToMicroseconds expiryDelay
           b1K2InfoDelayedResponse <- http (getPublicKeyInfo b1K2StoredKeyId)
           b1K2InfoDelayedResponse `shouldSatisfy` isRight
-          b1K2InfoDelayedResponse `shouldSatisfy` checkField keyInfoState (Expired ==)
+          b1K2InfoDelayedResponse `shouldSatisfy` checkField keyInfoState (== Expired)
 
           -- TODO Include this test (github #217):
           -- step "Test that it is not possible to revoke a key that has already expired."
@@ -375,7 +385,7 @@ clientSpec = do
           step "That the key status updates after the key is revoked"
           b1K3RevokedInfoResponse <- http (getPublicKeyInfo b1K3StoredKeyId)
           b1K3RevokedInfoResponse `shouldSatisfy` isRight
-          b1K3RevokedInfoResponse `shouldSatisfy` checkField keyInfoState (Revoked ==)
+          b1K3RevokedInfoResponse `shouldSatisfy` checkField keyInfoState (== Revoked)
 
           step "That revoking an already revoked key generates an error"
           b1K3RevokedAgainResponse <- http (revokePublicKey (newUserToBasicAuthData userB1U1) b1K3StoredKeyId)
@@ -390,7 +400,7 @@ clientSpec = do
           -- b1K4RevokedResponse `shouldSatisfy` isRight
           -- b1K4RevokedInfoResponse <- http (getPublicKeyInfo b1K4StoredKeyId)
           -- b1K4RevokedInfoResponse `shouldSatisfy` isRight
-          -- b1K4RevokedInfoResponse `shouldSatisfy` (checkField (Revoked ==) keyInfoState)
+          -- b1K4RevokedInfoResponse `shouldSatisfy` (checkField keyInfoState (== Revoked))
 
           step "That a user from the another business can't also revoke the key"
           b1K5StoredKeyIdResult <- http (addPublicKey (newUserToBasicAuthData userB1U1) goodKey Nothing)
@@ -400,7 +410,7 @@ clientSpec = do
           b1K5RevokedResponse `shouldSatisfy` isLeft
           b1K5RevokedInfoResponse <- http (getPublicKeyInfo b1K5StoredKeyId)
           b1K5RevokedInfoResponse `shouldSatisfy` isRight
-          b1K5RevokedInfoResponse `shouldSatisfy` checkField keyInfoState (InEffect ==)
+          b1K5RevokedInfoResponse `shouldSatisfy` checkField keyInfoState (== InEffect)
 
           step "That revokePublicKey for an invalid keyId fails gracefully"
           revokeInvalidKeyIdResponse <- http (revokePublicKey (newUserToBasicAuthData userB1U1) (BRKeyId nil))
@@ -420,14 +430,14 @@ clientSpec = do
           b1K6TimeAfterResponse <- getCurrentTime
           b1K6TimeAfterResponse `shouldSatisfy` (< b1K6ExpiryUTC)
           b1K6ExpiryRevokedResponse `shouldSatisfy` isRight
-          b1K6ExpiryRevokedResponse `shouldSatisfy` checkField keyInfoState (Revoked ==)
+          b1K6ExpiryRevokedResponse `shouldSatisfy` checkField keyInfoState (== Revoked)
 
           step "Test where the key has an expiry time and a revoked time which expired after it was revoked and both revoked and expired time have passed."
           -- Wait for the key from the previous test to expire and then recheck the status.
           threadDelay $ secondsToMicroseconds $ ceiling $ diffUTCTime b1K6ExpiryUTC b1K6TimeAfterResponse
           b1K6ExpiredRevokedResponse <- http (getPublicKeyInfo b1K6KeyId)
           b1K6ExpiredRevokedResponse `shouldSatisfy` isRight
-          b1K6ExpiredRevokedResponse `shouldSatisfy` checkField keyInfoState (Revoked ==)
+          b1K6ExpiredRevokedResponse `shouldSatisfy` checkField keyInfoState (== Revoked)
 
 
 
@@ -502,7 +512,7 @@ runClient baseUrl' x = runClientM x (mkClientEnv manager' baseUrl')
 -- *****************************************************************************
 
 newBusinessToBusinessResponse :: NewBusiness -> BusinessResponse
-newBusinessToBusinessResponse = 
+newBusinessToBusinessResponse =
   BusinessResponse <$> newBusinessGS1CompanyPrefix <*> newBusinessName
 
 
