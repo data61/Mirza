@@ -14,7 +14,7 @@ import           Mirza.BusinessRegistry.Database.Schema  as Schema
 import           Mirza.BusinessRegistry.Service
 import           Mirza.BusinessRegistry.Types            as BT
 import           Mirza.Common.Types                      as CT
-import           Mirza.Common.Utils                      (newUUID, randomText)
+import           Mirza.Common.Utils                      (randomText)
 
 import           Data.GS1.EPC                            (GS1CompanyPrefix (..))
 
@@ -30,7 +30,6 @@ import qualified Network.Wai.Handler.Warp                as Warp
 import           Data.ByteString                         (ByteString)
 import           Data.Semigroup                          ((<>))
 import           Data.Text                               (Text, pack)
-import           Data.Text.Encoding                      (encodeUtf8)
 import           Options.Applicative                     hiding (action)
 
 import qualified Crypto.Scrypt                           as Scrypt

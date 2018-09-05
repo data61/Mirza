@@ -15,9 +15,7 @@ module Mirza.BusinessRegistry.Auth
 import           Database.Beam                            as B
 import           Mirza.BusinessRegistry.Database.Schema   as Schema
 import           Mirza.BusinessRegistry.Handlers.Common
-import           Mirza.Common.Utils
 
-import           Database.Beam.Backend.SQL.BeamExtensions
 import           Database.PostgreSQL.Simple               (SqlError)
 
 import           Data.Text.Encoding                       (decodeUtf8)

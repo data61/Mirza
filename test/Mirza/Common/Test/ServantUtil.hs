@@ -3,22 +3,24 @@ module Mirza.Common.Test.ServantUtil
   , endWaiApp
   , runClient
   , manager'
+  , shouldSatisfyIO
   ) where
 
-import           Control.Concurrent        (ThreadId, forkIO,  killThread)
-import           System.IO.Unsafe          (unsafePerformIO)
+import           Control.Concurrent           (ThreadId, forkIO,  killThread)
+import           System.IO.Unsafe             (unsafePerformIO)
 
-import qualified Network.HTTP.Client       as C
+import qualified Network.HTTP.Client          as C
 import           Network.Socket
-import qualified Network.Wai               as Wai
+import qualified Network.Wai                  as Wai
 import           Network.Wai.Handler.Warp
 import           Servant.Client
 
+import           GHC.Stack                    (HasCallStack)
+import           Test.Hspec.Expectations      (Expectation, shouldSatisfy)
 
 -- Cribbed from
 -- https://github.com/haskell-servant/servant/blob/master/servant-client/test/Servant/ClientSpec.hs
 -- License is BSD3, so thank you Zalora South East Asia Pte Ltd, Servant Contributors
-
 
 
 startWaiApp :: Wai.Application -> IO (ThreadId, BaseUrl)
@@ -46,3 +48,6 @@ manager' = unsafePerformIO $ C.newManager C.defaultManagerSettings
 
 runClient :: BaseUrl -> ClientM a -> IO (Either ServantError a)
 runClient baseUrl' x = runClientM x (mkClientEnv manager' baseUrl')
+
+shouldSatisfyIO :: (HasCallStack, Show a, Eq a) => IO a -> (a -> Bool) -> Expectation
+action `shouldSatisfyIO` p = action >>= (`shouldSatisfy` p)

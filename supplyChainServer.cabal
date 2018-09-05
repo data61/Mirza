@@ -64,7 +64,7 @@ library
                     , beam-postgres
                     , bytestring
                     , hoist-error >= 0.2
-                    , HsOpenSSL
+                    , HsOpenSSL >= 0.11.4.14
                     , http-client
                     , insert-ordered-containers
                     , katip >= 0.5.4
@@ -117,6 +117,7 @@ test-suite supplyChainServer-test
                     , Mirza.SupplyChain.Tests.Dummies
                     , Mirza.SupplyChain.Tests.Client
                     , Mirza.SupplyChain.Tests.Settings
+                    , Mirza.BusinessRegistry.Tests.Utils
   default-extensions:  OverloadedStrings
   build-depends:       base
                      , GS1Combinators
@@ -138,6 +139,8 @@ test-suite supplyChainServer-test
                      , uuid
                      , tasty
                      , tasty-hspec
+                     , tasty-hunit
+                     , hspec-expectations
                      , wai
                      , warp
                      , servant-client
