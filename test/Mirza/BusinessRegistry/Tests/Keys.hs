@@ -20,10 +20,9 @@ import           Mirza.BusinessRegistry.Types             as BT
 import           Mirza.Common.Time                        (CreationTime (..),
                                                            ExpirationTime (..))
 
+import           Mirza.BusinessRegistry.Tests.Utils
+
 import           Data.Maybe                               (fromJust, isNothing)
-
-
-import qualified Data.Text                                as T
 
 import           Data.Time.Clock                          (addUTCTime,
                                                            getCurrentTime)
@@ -34,9 +33,6 @@ import           Test.Hspec
 
 timeStampIO :: MonadIO m => m LocalTime
 timeStampIO = liftIO $ (utcToLocalTime utc) <$> getCurrentTime
-
-rsaPubKey :: IO BT.PEM_RSAPubKey
-rsaPubKey = BT.PEM_RSAPubKey . T.pack <$> Prelude.readFile "./test/Mirza/Common/testKeys/goodKeys/test.pub"
 
 testAppM :: context
          -> AppM context BusinessRegistryError a
@@ -50,7 +46,7 @@ testKeyQueries = do
 
   describe "addPublicKey tests" $
     it "addPublicKey test 1" $ \brContext -> do
-      pubKey <- rsaPubKey
+      pubKey <- goodRsaPublicKey
       tStart <- timeStampIO
       res <- testAppM brContext $ do
         uid <- addUser dummyNewUser
@@ -78,7 +74,7 @@ testKeyQueries = do
   describe "getPublicKeyInfo tests" $
     it "getPublicKeyInfo test 1" $ \brContext -> do
       tStart <- liftIO getCurrentTime
-      pubKey <- rsaPubKey
+      pubKey <- goodRsaPublicKey
       (keyInfo, uid, tEnd) <- testAppM brContext $ do
         uid <- addUser dummyNewUser
         tableUser <- runDb $ getUserByIdQuery uid
@@ -97,7 +93,7 @@ testKeyQueries = do
 
   describe "revokePublicKey tests" $ do
     it "Revoke public key with permissions" $ \brContext -> do
-      pubKey <- rsaPubKey
+      pubKey <- goodRsaPublicKey
       myKeyState <- testAppM brContext $ do
         uid <- addUser dummyNewUser
         tableUser <- runDb $ getUserByIdQuery uid
@@ -110,7 +106,7 @@ testKeyQueries = do
 
 {-- XXX - FIXME!!! Need to catch UnAuthorisedKeyAccess error
     it "Revoke public key without permissions" $ \brContext -> do
-      pubKey <- rsaPubKey
+      pubKey <- goodRsaPublicKey
       r <- testAppM brContext $ do
         uid <- addUser dummyNewUser
         tableUser <- runDb $ getUserByIdQuery uid
@@ -131,7 +127,7 @@ testKeyQueries = do
       nowish <- getCurrentTime
       let hundredMinutes = 100 * 60
           someTimeAgo = addUTCTime (-hundredMinutes) nowish
-      pubKey <- rsaPubKey
+      pubKey <- goodRsaPublicKey
       myKeyState <- testAppM brContext $ do
         uid <- addUser dummyNewUser
         tableUser <- runDb $ getUserByIdQuery uid
@@ -146,7 +142,7 @@ testKeyQueries = do
       nowish <- getCurrentTime
       let hundredMinutes = 100 * 60
           someTimeAgo = addUTCTime (-hundredMinutes) nowish
-      pubKey <- rsaPubKey
+      pubKey <- goodRsaPublicKey
       myKeyState <- testAppM brContext $ do
         uid <- addUser dummyNewUser
         tableUser <- runDb $ getUserByIdQuery uid
@@ -160,7 +156,7 @@ testKeyQueries = do
       nowish <- getCurrentTime
       let hundredMinutes = 100 * 60
           someTimeLater = addUTCTime hundredMinutes nowish
-      pubKey <- rsaPubKey
+      pubKey <- goodRsaPublicKey
       myKeyState <- testAppM brContext $ do
         uid <- addUser dummyNewUser
         tableUser <- runDb $ getUserByIdQuery uid

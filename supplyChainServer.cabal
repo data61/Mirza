@@ -72,6 +72,7 @@ library
                     , mtl
                     , optparse-applicative
                     , postgresql-simple
+                    , random
                     , resource-pool >= 0.2.3
                     , scrypt
                     , servant
@@ -116,6 +117,7 @@ test-suite supplyChainServer-test
                     , Mirza.SupplyChain.Tests.Dummies
                     , Mirza.SupplyChain.Tests.Client
                     , Mirza.SupplyChain.Tests.Settings
+                    , Mirza.BusinessRegistry.Tests.Utils
   default-extensions:  OverloadedStrings
   build-depends:       base
                      , GS1Combinators
@@ -156,6 +158,8 @@ test-suite businessRegistry-test
                     , Mirza.BusinessRegistry.Tests.Business
                     , Mirza.BusinessRegistry.Tests.Client
                     , Mirza.BusinessRegistry.Tests.Settings
+                    , Mirza.BusinessRegistry.Tests.Utils
+                    , Mirza.Common.Tests.Utils
   default-extensions:  OverloadedStrings
   build-depends:       base
                      , GS1Combinators
@@ -169,6 +173,7 @@ test-suite businessRegistry-test
                      , hspec
                      , hspec-core
                      , http-client
+                     , MissingH
                      , network
                      , postgresql-simple
                      , servant

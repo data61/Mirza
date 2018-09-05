@@ -41,6 +41,8 @@ import           Data.Time.Clock                  (addUTCTime, getCurrentTime)
 import           Data.GS1.EPC                     (GS1CompanyPrefix (..))
 import           Data.GS1.EventId                 as EvId
 
+import           Mirza.BusinessRegistry.Tests.Utils
+
 -- === SCS Client tests
 
 userABC :: NewUser

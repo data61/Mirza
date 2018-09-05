@@ -6,6 +6,7 @@ module Mirza.BusinessRegistry.Handlers.Business
   ( listBusinesses
   , listBusinessesQuery
   , addBusiness
+  , addBusinessAuth
   , addBusinessQuery
   ) where
 
@@ -42,6 +43,12 @@ listBusinessesQuery :: BRApp context err => DB context err [Business]
 listBusinessesQuery = pg $ runSelectReturningList $ select $
   all_ (_businesses businessRegistryDB)
 
+-- This function is an interface adapter and adds the BT.AuthUser argument to
+-- addBusiness so that we can use it from behind the private API. This argument
+-- is not used in the current implementation as it is assumed that all users
+-- will have the ability to act globally.
+addBusinessAuth ::  (BRApp context err) => BT.AuthUser -> NewBusiness -> AppM context err GS1CompanyPrefix
+addBusinessAuth _ = addBusiness
 
 addBusiness ::  (BRApp context err) => NewBusiness -> AppM context err GS1CompanyPrefix
 addBusiness = (fmap biz_gs1_company_prefix)
@@ -73,4 +80,4 @@ addBusinessQuery biz@BusinessT{..} = do
             $ insertValues [biz]
   case res of
         [r] -> return r
-        _   -> throwing _LogicErrorBRE callStack
+        _   -> throwing _UnexpectedErrorBRE callStack

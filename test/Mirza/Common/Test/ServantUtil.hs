@@ -4,8 +4,6 @@ module Mirza.Common.Test.ServantUtil
   , runClient
   , manager'
   , shouldSatisfyIO
-  , readRsaPubKey
-  , goodRsaPublicKey
   ) where
 
 import           Control.Concurrent           (ThreadId, forkIO,  killThread)
@@ -19,10 +17,6 @@ import           Servant.Client
 
 import           GHC.Stack                    (HasCallStack)
 import           Test.Hspec.Expectations      (Expectation, shouldSatisfy)
-
-import           Mirza.BusinessRegistry.Types
-
-import qualified Data.Text.IO                  as TIO
 
 -- Cribbed from
 -- https://github.com/haskell-servant/servant/blob/master/servant-client/test/Servant/ClientSpec.hs
@@ -57,11 +51,3 @@ runClient baseUrl' x = runClientM x (mkClientEnv manager' baseUrl')
 
 shouldSatisfyIO :: (HasCallStack, Show a, Eq a) => IO a -> (a -> Bool) -> Expectation
 action `shouldSatisfyIO` p = action >>= (`shouldSatisfy` p)
-
--- TODO: This is copied from keys, move it into a higher level module and remove it from here and there after merging with sajid work.
-readRsaPubKey :: FilePath -> IO PEM_RSAPubKey
-readRsaPubKey filename = PEM_RSAPubKey <$> TIO.readFile filename
-
--- TODO: this is copied from keys, move it into a higher level module and remove it from here and there after merging with sajid work.
-goodRsaPublicKey :: IO PEM_RSAPubKey
-goodRsaPublicKey = readRsaPubKey "./test/Mirza/Common/testKeys/goodKeys/4096bit_rsa_key.pub"
