@@ -30,6 +30,8 @@ import           Data.Time.LocalTime                      (LocalTime, utc,
 import           GHC.Stack                                (HasCallStack)
 import           Test.Hspec
 
+import           Data.GS1.EPC                             (GS1CompanyPrefix (..))
+
 timeStampIO :: MonadIO m => m LocalTime
 timeStampIO = liftIO $ (utcToLocalTime utc) <$> getCurrentTime
 
@@ -48,7 +50,11 @@ testKeyQueries = do
       pubKey <- goodRsaPublicKey
       tStart <- timeStampIO
       res <- testAppM brContext $ do
-        uid <- addUser dummyNewUser
+
+        let companyPrefix = (GS1CompanyPrefix "3000001")
+            myBusiness = NewBusiness companyPrefix "pubKeyTests_businessName"
+        businessPfx <- addBusiness myBusiness
+        uid <- addUser dummyNewUser {newUserCompany=businessPfx}
         tableUser <- runDb $ getUserByIdQuery uid
         let user = tableToAuthUser . fromJust $ tableUser
         let (BT.PEM_RSAPubKey keyStr) = pubKey
