@@ -43,6 +43,7 @@ import           Control.Monad.IO.Class                       (liftIO)
 import qualified Data.HashMap.Strict.InsOrd                   as IOrd
 import           Data.Swagger
 
+import           Mirza.Common.GS1BeamOrphans                  ()
 
 
 appHandlers :: (HasClientEnv context, AsServantError err, SCSApp context err, HasScryptParams context)

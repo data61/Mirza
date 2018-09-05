@@ -72,4 +72,4 @@ type PrivateAPI =
   :<|> "event"    :> "transactionEvent"     :> ReqBody '[JSON] TransactionEvent                               :> Post '[JSON] (Ev.Event, Schema.EventId)
   :<|> "event"    :> "transformationEvent"  :> ReqBody '[JSON] TransformationEvent                            :> Post '[JSON] (Ev.Event, Schema.EventId)
 -- Users
-  :<|> "user"     :> "searchByCompanyId"    :> Capture "gs1CompanyId" GS1CompanyPrefix                        :> Get '[JSON] [User]
+  :<|> "user"     :> "searchByCompanyId"    :> Capture "gs1CompanyId" GS1CompanyPrefix                        :> Get '[JSON] (Maybe User)
