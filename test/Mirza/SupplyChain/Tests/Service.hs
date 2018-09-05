@@ -194,11 +194,26 @@ testServiceQueries = do
           insertedEvent `shouldBe` dummyTransactEvent
           evtList `shouldBe` [insertedEvent]
 
-  describe "getUser tests" $
-    it "getUser test 1" $ \scsContext -> do
+  describe "getUser tests" $ do
+    it "getUser test by Id" $ \scsContext -> do
       res <- testAppM scsContext $ do
         uid <- newUser dummyNewUser
         user <- runDb $ getUser $ newUserEmailAddress dummyNewUser
+        pure (uid, user)
+      case res of
+        (_, Nothing) -> fail "Received Nothing for user"
+        (uid, Just user) ->
+          user `shouldSatisfy`
+            (\u ->
+              (userId u == uid) &&
+              (userFirstName u == newUserFirstName dummyNewUser) &&
+              (userLastName u == newUserLastName dummyNewUser)
+            )
+    it "getUser test by Company Id" $ \scsContext -> do
+      res <- testAppM scsContext $ do
+        uid <- newUser dummyNewUser
+        user <- searchUserByCompanyId dummyUser $ newUserCompany dummyNewUser
+        -- ^ The argument dummyUser is ignored
         pure (uid, user)
       case res of
         (_, Nothing) -> fail "Received Nothing for user"
