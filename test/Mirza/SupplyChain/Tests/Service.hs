@@ -43,37 +43,10 @@ testAppM scsContext act = runAppM scsContext act >>= \case
 testServiceQueries :: HasCallStack => SpecWith SCSContext
 testServiceQueries = do
 
-  -- describe "eventSign - INCOMPLETE " $ do
-  --   it "Signing an event with a revoked key" $ \scsContext -> do
-  --     nowish <- getCurrentTime
-  --     let hundredMinutes = 100 * 60
-  --         someTimeLater = addUTCTime (hundredMinutes) nowish
-  --     pubKey <- rsaPubKey
-  --     myKeyState <- testAppM scsContext $ do
-
-  --       -- Adding a user, key, and revoking the key
-  --       uid <- newUser dummyNewUser
-  --       storageUser <- runDb $ getUserById uid
-  --       let user = userTableToModel . fromJust $ storageUser
-  --       keyId <- addPublicKey user pubKey (Just . ExpirationTime $ someTimeLater)
-  --       _timeKeyRevoked <- revokePublicKey user keyId
-  --       keyInfo <- getPublicKeyInfo keyId
-
-  --       -- Adding the event
-  --       (_insertedEvent, (Schema.EventId eventId)) <- insertObjectEvent dummyUser dummyObject
-  --       let myDigest = SHA256
-  --           mySign = Signature "c2FqaWRhbm93ZXIyMw=="
-  --           mySignedEvent = SignedEvent (EvId.EventId eventId) keyId mySign myDigest
-  --       -- if this test can proceed after the following statement
-  --       _eventSignId <- eventSign user mySignedEvent
-  --       -- it means the basic functionality of ``eventSign`` function is perhaps done
-  --       pure (keyState keyInfo)
-  --     myKeyState `shouldBe` InEffect
-
   describe "newUser tests" $
     it "newUser test 1" $ \scsContext -> do
       res <- testAppM scsContext $  do
-        uid <- newUser dummyNewUser
+        uid <- addUser dummyNewUser
         user <- runDb $ getUserById uid
         pure (uid, user)
       case res of
@@ -96,7 +69,7 @@ testServiceQueries = do
   describe "authCheck tests" $
     it "authCheck test 1" $ \scsContext -> do
       res <- testAppM scsContext $ do
-        uid <- newUser dummyNewUser
+        uid <- addUser dummyNewUser
         let check = unBasicAuthCheck $ authCheck scsContext
         let basicAuthData = BasicAuthData
                           (encodeUtf8 $ getEmailAddress $ newUserEmailAddress dummyNewUser)
@@ -197,7 +170,7 @@ testServiceQueries = do
   describe "getUser tests" $
     it "getUser test 1" $ \scsContext -> do
       res <- testAppM scsContext $ do
-        uid <- newUser dummyNewUser
+        uid <- addUser dummyNewUser
         user <- runDb $ getUser $ newUserEmailAddress dummyNewUser
         pure (uid, user)
       case res of
@@ -216,9 +189,9 @@ testServiceQueries = do
         it "addContact simple" $ \scsContext -> do
           let myContact = makeDummyNewUser (EmailAddress "first@gmail.com")
           (hasBeenAdded, isContact) <- testAppM scsContext $ do
-            uid <- newUser dummyNewUser
+            uid <- addUser dummyNewUser
             user <- runDb $ getUser . newUserEmailAddress $ dummyNewUser
-            myContactUid <- newUser myContact
+            myContactUid <- addUser myContact
             hasBeenAdded <- addContact (fromJust user) myContactUid
             isContact <- runDb $ isExistingContact uid myContactUid
             pure (hasBeenAdded, isContact)
@@ -229,11 +202,11 @@ testServiceQueries = do
       it "Simple remove one" $ \scsContext -> do
         -- Adding the contact first
         (hasBeenAdded, hasBeenRemoved) <- testAppM scsContext $ do
-          void $ newUser dummyNewUser
+          void $ addUser dummyNewUser
           mUser <- runDb $ getUser $ newUserEmailAddress dummyNewUser
           let myContact = makeDummyNewUser (EmailAddress "first@gmail.com")
               user = fromJust mUser
-          myContactUid <- newUser myContact
+          myContactUid <- addUser myContact
           hasBeenAdded <- addContact user myContactUid
         -- removing the contact now
           hasBeenRemoved <- removeContact user myContactUid
@@ -243,13 +216,13 @@ testServiceQueries = do
       it "Remove wrong contact" $ \scsContext -> do
         -- Adding the contact first
         (hasBeenAdded, hasBeenRemoved) <- testAppM scsContext $ do
-          void $ newUser dummyNewUser
+          void $ addUser dummyNewUser
           mUser <- runDb $ getUser $ newUserEmailAddress dummyNewUser
         -- Add a new user who is NOT a contact
-          otherUserId <- newUser $ makeDummyNewUser (EmailAddress "other@gmail.com")
+          otherUserId <- addUser $ makeDummyNewUser (EmailAddress "other@gmail.com")
           let myContact = makeDummyNewUser (EmailAddress "first@gmail.com")
               user = fromJust mUser
-          myContactUid <- newUser myContact
+          myContactUid <- addUser myContact
           hasBeenAdded <- addContact user myContactUid
         -- removing a wrong contact
           hasBeenRemoved <- removeContact user otherUserId
@@ -261,11 +234,11 @@ testServiceQueries = do
       it "Add one and list" $ \scsContext -> do
         -- Adding the contact first
         (hasBeenAdded, contactList, users) <- testAppM scsContext $ do
-          void $ newUser dummyNewUser
+          void $ addUser dummyNewUser
           mUser <- runDb $ getUser $ newUserEmailAddress dummyNewUser
           let myContact = makeDummyNewUser (EmailAddress "first@gmail.com")
               user = fromJust mUser
-          myContactUid <- newUser myContact
+          myContactUid <- addUser myContact
           mMyContact_user <- runDb $ getUser (EmailAddress "first@gmail.com")
           hasBeenAdded <- addContact user myContactUid
           contactList <- listContacts user
@@ -281,11 +254,11 @@ testServiceQueries = do
               myContact_4 = makeDummyNewUser (EmailAddress "fourth@gmail.com")
 
           -- Adding the users to the DB
-          void $ newUser dummyNewUser
-          myContactUid_1 <- newUser myContact_1
-          myContactUid_2 <- newUser myContact_2
-          myContactUid_3 <- newUser myContact_3
-          myContactUid_4 <- newUser myContact_4
+          void $ addUser dummyNewUser
+          myContactUid_1 <- addUser myContact_1
+          myContactUid_2 <- addUser myContact_2
+          myContactUid_3 <- addUser myContact_3
+          myContactUid_4 <- addUser myContact_4
 
           -- Getting the users
           mUser <- runDb $ getUser $ newUserEmailAddress dummyNewUser

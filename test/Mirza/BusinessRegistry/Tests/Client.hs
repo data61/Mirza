@@ -7,6 +7,12 @@ module Mirza.BusinessRegistry.Tests.Client where
 
 import           Control.Concurrent                     (ThreadId, threadDelay)
 import           Control.Exception                      (bracket)
+
+import           Mirza.Common.Test.ServantUtil
+
+import           Servant.API.BasicAuth
+import           Servant.Client
+
 import           Control.Monad                          (forM_)
 import           Data.Either                            (isLeft, isRight)
 import           Data.Either.Utils                      (fromRight)
@@ -21,9 +27,6 @@ import           Data.UUID                              (nil)
 
 import           System.Directory                       (listDirectory)
 import           System.FilePath                        ((</>))
-
-import           Servant.API.BasicAuth
-import           Servant.Client
 
 import           Database.Beam.Query                    (delete, runDelete,
                                                         val_)
@@ -48,16 +51,12 @@ import           Mirza.BusinessRegistry.Types
 
 import           Mirza.Common.Time
 import           Mirza.Common.Utils
-import           Mirza.Common.Test.ServantUtil
 
 import           Mirza.BusinessRegistry.Tests.Settings  (testDbConnStr)
 import           Mirza.BusinessRegistry.Tests.Utils
 import           Mirza.Common.Tests.Utils
 
-
-
-
--- === Servant Client tests
+-- === BR Servant Client tests
 
 clientSpec :: IO TestTree
 clientSpec = do
@@ -442,9 +441,9 @@ clientSpec = do
         ]
 
 
-
-shouldSatisfyIO :: (HasCallStack, Show a, Eq a) => IO a -> (a -> Bool) -> Expectation
-action `shouldSatisfyIO` p = action >>= (`shouldSatisfy` p)
+-- *****************************************************************************
+-- Test Utility Functions
+-- *****************************************************************************
 
 go :: GlobalOptions
 go = GlobalOptions testDbConnStr 14 8 1 DebugS Dev

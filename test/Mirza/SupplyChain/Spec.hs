@@ -65,9 +65,9 @@ withDatabaseConnection = bracket openConnection closeConnection
 main :: IO ()
 main = do
   serviceTests <- testSpec "HSpec" (sequential $ around withDatabaseConnection testServiceQueries)
-  clientTests <- testSpec "Client HSpec" clientSpec
+  clientTests <- clientSpec
 
-  defaultMain $ localOption (NumThreads 1) $ testGroup "tests"
+  defaultMain $ localOption (NumThreads 1) $ testGroup "SCS tests"
     [ serviceTests
     , clientTests
     ]
