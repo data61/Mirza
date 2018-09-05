@@ -107,10 +107,7 @@ addPublicKey :: (BRApp context err, AsKeyError err) => BT.AuthUser
              -> Maybe ExpirationTime
              -> AppM context err CT.BRKeyId
 addPublicKey user pemKey@(PEM_RSAPubKey pemStr) mExp = do
-  -- liftIO $ print "===================================================="
   somePubKey <- liftIO $ readPublicKey (unpack pemStr) -- TODO: Catch exception from OpenSSL - any invalid PEM string causes exception
-  -- liftIO $ print "===================================================="
-  -- -- liftIO $ print somePubKey
   rsaKey <- checkPubKey somePubKey pemKey              -- Input: "x"
   runDb $ addPublicKeyQuery user mExp rsaKey           -- Error: user error (error:0906D06C:PEM routines:PEM_read_bio:no start line)
 
