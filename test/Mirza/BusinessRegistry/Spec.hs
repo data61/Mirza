@@ -80,11 +80,11 @@ main :: IO ()
 main = do
   keyTests <- testSpec "HSpec" (sequential $ around withDatabaseConnection testKeyQueries)
   bizTests <- testSpec "HSpec" (sequential $ around withDatabaseConnection testBizQueries)
-  -- clientTests <- HSpec.testSpec "Client HSpec" clientSpec
   clientTests <- clientSpec
+  -- clientTests <- HSpec.testSpec "Client HSpec" clientSpec
 
   defaultMain $ localOption (NumThreads 1) $ testGroup "tests"
-    [ keyTests
+    [clientTests
+    , keyTests
     , bizTests
-    , clientTests
     ]
