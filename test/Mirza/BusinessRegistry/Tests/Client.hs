@@ -5,9 +5,7 @@
 module Mirza.BusinessRegistry.Tests.Client where
 
 
-import           Control.Concurrent                     (ThreadId, forkIO,
-                                                         killThread,
-                                                         threadDelay)
+import           Control.Concurrent                     (ThreadId, threadDelay)
 import           Control.Exception                      (bracket)
 import           Control.Monad                          (forM_)
 import           Data.Either                            (isLeft, isRight)
@@ -23,12 +21,6 @@ import           Data.UUID                              (nil)
 
 import           System.Directory                       (listDirectory)
 import           System.FilePath                        ((</>))
-import           System.IO.Unsafe                       (unsafePerformIO)
-
-import qualified Network.HTTP.Client                    as C
-import           Network.Socket
-import qualified Network.Wai                            as Wai
-import           Network.Wai.Handler.Warp
 
 import           Servant.API.BasicAuth
 import           Servant.Client
@@ -56,7 +48,7 @@ import           Mirza.BusinessRegistry.Types
 
 import           Mirza.Common.Time
 import           Mirza.Common.Utils
-
+import           Mirza.Common.Test.ServantUtil
 
 import           Mirza.BusinessRegistry.Tests.Settings  (testDbConnStr)
 import           Mirza.BusinessRegistry.Tests.Utils
@@ -64,30 +56,13 @@ import           Mirza.Common.Tests.Utils
 
 
 
--- Cribbed from https://github.com/haskell-servant/servant/blob/master/servant-client/test/Servant/ClientSpec.hs
 
 -- === Servant Client tests
 
 clientSpec :: IO TestTree
 clientSpec = do
-  ctx <- initBRContext go
-  let BusinessRegistryDB usersTable businessesTable keysTable
-        = businessRegistryDB
-
-  flushDbResult <- runAppM @_ @BusinessRegistryError ctx $ runDb $ do
-      let deleteTable table = pg $ runDelete $ delete table (const (val_ True))
-      deleteTable keysTable
-      deleteTable usersTable
-      deleteTable businessesTable
-  flushDbResult `shouldSatisfy` isRight
-
-  -- This construct somewhat destroys the integrity of these test since it is
-  -- necessary to assume that these functions work correctly in order for the
-  -- test cases to complete.
-  globalAuthData <- bootstrapAuthData ctx
-
   let businessTests = testCaseSteps "Can create businesses" $ \step ->
-        bracket runApp endWaiApp $ \(_tid,baseurl) -> do
+        bracket runApp (\(a,b,_) -> endWaiApp (a,b)) $ \(_tid,baseurl,globalAuthData) -> do
           let http = runClient baseurl
               biz1Prefix = (GS1CompanyPrefix "2000001")
               biz1 = NewBusiness biz1Prefix "businessTests_biz1Name"
@@ -136,7 +111,7 @@ clientSpec = do
 
 
   let userTests = testCaseSteps "Can create users" $ \step ->
-        bracket runApp endWaiApp $ \(_tid,baseurl) -> do
+        bracket runApp (\(a,b,_) -> endWaiApp (a,b)) $ \(_tid,baseurl,globalAuthData) -> do
           password <- randomPassword
 
           let http = runClient baseurl
@@ -243,7 +218,7 @@ clientSpec = do
 
 
   let keyTests = testCaseSteps "That keys work as expected" $ \step ->
-        bracket runApp endWaiApp $ \(_tid, baseurl) -> do
+        bracket runApp (\(a,b,_) -> endWaiApp (a,b)) $ \(_tid, baseurl, globalAuthData) -> do
           password <- randomPassword
           let http = runClient baseurl
               biz1Prefix = (GS1CompanyPrefix "4000001")
@@ -474,36 +449,26 @@ action `shouldSatisfyIO` p = action >>= (`shouldSatisfy` p)
 go :: GlobalOptions
 go = GlobalOptions testDbConnStr 14 8 1 DebugS Dev
 
-runApp :: IO (ThreadId, BaseUrl)
+runApp :: IO (ThreadId, BaseUrl, BasicAuthData)
 runApp = do
   ctx <- initBRContext go
-  startWaiApp =<< initApplication go (RunServerOptions 8000) ctx
+  let BusinessRegistryDB usersTable businessesTable keysTable
+        = businessRegistryDB
 
-startWaiApp :: Wai.Application -> IO (ThreadId, BaseUrl)
-startWaiApp app = do
-    (prt, sock) <- openTestSocket
-    let settings = setPort prt defaultSettings
-    thread <- forkIO $ runSettingsSocket settings sock app
-    return (thread, BaseUrl Http "localhost" prt "")
+  flushDbResult <- runAppM @_ @BusinessRegistryError ctx $ runDb $ do
+      let deleteTable table = pg $ runDelete $ delete table (const (val_ True))
+      deleteTable keysTable
+      deleteTable usersTable
+      deleteTable businessesTable
+  flushDbResult `shouldSatisfy` isRight
 
-endWaiApp :: (ThreadId, BaseUrl) -> IO ()
-endWaiApp (thread, _) = killThread thread
+  -- This construct somewhat destroys the integrity of these test since it is
+  -- necessary to assume that these functions work correctly in order for the
+  -- test cases to complete.
+  globalAuthData <- bootstrapAuthData ctx
 
-openTestSocket :: IO (Port, Socket)
-openTestSocket = do
-  s <- socket AF_INET Stream defaultProtocol
-  localhost <- inet_addr "127.0.0.1"
-  bind s (SockAddrInet aNY_PORT localhost)
-  listen s 1
-  prt <- socketPort s
-  return (fromIntegral prt, s)
-
-{-# NOINLINE manager' #-}
-manager' :: C.Manager
-manager' = unsafePerformIO $ C.newManager C.defaultManagerSettings
-
-runClient :: BaseUrl -> ClientM a  -> IO (Either ServantError a)
-runClient baseUrl' x = runClientM x (mkClientEnv manager' baseUrl')
+  (tid,brul) <- startWaiApp =<< initApplication go (RunServerOptions 8000) ctx
+  pure (tid,brul,globalAuthData)
 
 
 

@@ -112,7 +112,8 @@ test-suite supplyChainServer-test
   type:               exitcode-stdio-1.0
   hs-source-dirs:     test
   main-is:            Mirza/SupplyChain/Spec.hs
-  other-modules:      Mirza.SupplyChain.Tests.Service
+  other-modules:      Mirza.Common.Test.ServantUtil
+                    , Mirza.SupplyChain.Tests.Service
                     , Mirza.SupplyChain.Tests.Dummies
                     , Mirza.SupplyChain.Tests.Client
                     , Mirza.SupplyChain.Tests.Settings
@@ -148,7 +149,8 @@ test-suite businessRegistry-test
   type:               exitcode-stdio-1.0
   hs-source-dirs:     test
   main-is:            Mirza/BusinessRegistry/Spec.hs
-  other-modules:      Mirza.BusinessRegistry.Tests.Keys
+  other-modules:      Mirza.Common.Test.ServantUtil
+                    , Mirza.BusinessRegistry.Tests.Keys
                     , Mirza.BusinessRegistry.Tests.Dummies
                     , Mirza.BusinessRegistry.Tests.Business
                     , Mirza.BusinessRegistry.Tests.Client
