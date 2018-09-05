@@ -35,8 +35,8 @@ import           Mirza.SupplyChain.Database.Schema as Schema
 
 import           Database.Beam.Query               (delete, runDelete, val_)
 
-import           Mirza.Common.Time                (ExpirationTime (..))
-import           Data.Time.Clock                  (addUTCTime, getCurrentTime)
+-- import           Mirza.Common.Time                (ExpirationTime (..))
+-- import           Data.Time.Clock                  (addUTCTime, getCurrentTime)
 
 import           Data.GS1.EPC                     (GS1CompanyPrefix (..))
 import           Data.GS1.EventId                 as EvId
@@ -149,9 +149,9 @@ clientSpec = do
         bracket runApp endWaiApp $ \(_tid,baseurl) -> do
         let http = runClient baseurl
 
-        nowish <- getCurrentTime
-        let hundredMinutes = 100 * 60
-            someTimeLater = addUTCTime (hundredMinutes) nowish
+        -- nowish <- getCurrentTime
+        -- let hundredMinutes = 100 * 60
+        --     someTimeLater = addUTCTime (hundredMinutes) nowish
 
         step "Adding a new user"
         uid <- http (addUser userABC)
@@ -159,13 +159,13 @@ clientSpec = do
 
         step "Tying the user with a good key and an expiration time"
         goodKey <- goodRsaPublicKey
-        keyIdResponse <- http (addPublicKey authABC goodKey (Just . ExpirationTime $ someTimeLater))
+        keyIdResponse <- http (addPublicKey authABC goodKey Nothing)
+        -- liftIO $ print keyIdResponse
         keyIdResponse `shouldSatisfy` isRight
         let keyId = fromRight (BRKeyId nil) keyIdResponse
 
         step "Revoking the key"
-        http (revokePublicKey authABC keyId)
-          `shouldSatisfyIO` isRight
+        http (revokePublicKey authABC keyId) `shouldSatisfyIO` isRight
 
         step "Inserting the object event"
         objInsertionResponse <- http (insertObjectEvent authABC dummyObject)
@@ -177,8 +177,7 @@ clientSpec = do
             myDigest = SHA256
             mySignedEvent = SignedEvent (EvId.EventId eventId) keyId mySign myDigest
         -- if this test can proceed after the following statement
-        http (eventSign authABC mySignedEvent)
-          `shouldSatisfyIO` isRight
+        http (eventSign authABC mySignedEvent) `shouldSatisfyIO` isRight
         -- it means the basic functionality of ``eventSign`` function is perhaps done
 
   pure $ testGroup "Supply Chain Service Client Tests"
