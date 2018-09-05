@@ -5,16 +5,11 @@ module Mirza.BusinessRegistry.Tests.Client where
 
 import           Mirza.BusinessRegistry.Tests.Settings  (testDbConnStr)
 
-import           Control.Concurrent                     (ThreadId, forkIO,
-                                                         killThread,
+import           Control.Concurrent                     (ThreadId,
                                                          threadDelay)
 import           Control.Exception                      (bracket)
-import           System.IO.Unsafe                       (unsafePerformIO)
 
-import qualified Network.HTTP.Client                    as C
-import           Network.Socket
-import qualified Network.Wai                            as Wai
-import           Network.Wai.Handler.Warp
+import           Mirza.Common.Test.ServantUtil
 
 import           Servant.API.BasicAuth
 import           Servant.Client
@@ -25,14 +20,12 @@ import           Data.List                              (isSuffixOf)
 import           Data.Maybe                             (fromJust, isNothing)
 import           Data.Text                              (Text)
 import           Data.Text.Encoding                     (encodeUtf8)
-import qualified Data.Text.IO                           as TIO
 import           Data.Time.Clock                        (UTCTime, addUTCTime,
                                                         diffUTCTime,
                                                         getCurrentTime)
 import           Data.UUID                              (nil)
 import           System.Directory                       (listDirectory)
 import           System.FilePath                        ((</>))
-import           System.IO                              (FilePath)
 
 import           Test.Hspec.Expectations
 import           Test.Tasty
@@ -54,9 +47,8 @@ import           Data.GS1.EPC                           (GS1CompanyPrefix (..))
 
 import           Katip                                  (Severity (DebugS))
 
--- Cribbed from https://github.com/haskell-servant/servant/blob/master/servant-client/test/Servant/ClientSpec.hs
 
--- === Servant Client tests
+-- === BR Servant Client tests
 
 clientSpec :: IO TestTree
 clientSpec = do
@@ -419,9 +411,9 @@ clientSpec = do
         ]
 
 
-
-shouldSatisfyIO :: (HasCallStack, Show a, Eq a) => IO a -> (a -> Bool) -> Expectation
-action `shouldSatisfyIO` p = action >>= (`shouldSatisfy` p)
+-- *****************************************************************************
+-- Test Utility Functions
+-- *****************************************************************************
 
 go :: GlobalOptions
 go = GlobalOptions testDbConnStr 14 8 1 DebugS Dev
@@ -431,37 +423,6 @@ runApp = do
   ctx <- initBRContext go
   startWaiApp =<< initApplication go (RunServerOptions 8000) ctx
 
-startWaiApp :: Wai.Application -> IO (ThreadId, BaseUrl)
-startWaiApp app = do
-    (prt, sock) <- openTestSocket
-    let settings = setPort prt defaultSettings
-    thread <- forkIO $ runSettingsSocket settings sock app
-    return (thread, BaseUrl Http "localhost" prt "")
-
-endWaiApp :: (ThreadId, BaseUrl) -> IO ()
-endWaiApp (thread, _) = killThread thread
-
-openTestSocket :: IO (Port, Socket)
-openTestSocket = do
-  s <- socket AF_INET Stream defaultProtocol
-  localhost <- inet_addr "127.0.0.1"
-  bind s (SockAddrInet aNY_PORT localhost)
-  listen s 1
-  prt <- socketPort s
-  return (fromIntegral prt, s)
-
-{-# NOINLINE manager' #-}
-manager' :: C.Manager
-manager' = unsafePerformIO $ C.newManager C.defaultManagerSettings
-
-runClient :: BaseUrl -> ClientM a  -> IO (Either ServantError a)
-runClient baseUrl' x = runClientM x (mkClientEnv manager' baseUrl')
-
-
-
--- *****************************************************************************
--- Test Utility Functions
--- *****************************************************************************
 
 makeNewBusiness :: GS1CompanyPrefix -> Text -> NewBusiness
 makeNewBusiness prefix name = NewBusiness prefix name
@@ -494,14 +455,6 @@ right _         = error "Wasn't right..."
 -- Checks that the two times are within 1 second of each other.
 within1Second :: UTCTime -> UTCTime -> Bool
 within1Second expected actual = abs (diffUTCTime expected actual) < (fromInteger 1)
-
--- TODO: This is copied from keys, move it into a higher level module and remove it from here and there after merging with sajid work.
-readRsaPubKey :: FilePath -> IO PEM_RSAPubKey
-readRsaPubKey filename = PEM_RSAPubKey <$> TIO.readFile filename
-
--- TODO: this is copied from keys, move it into a higher level module and remove it from here and there after merging with sajid work.
-goodRsaPublicKey :: IO PEM_RSAPubKey
-goodRsaPublicKey = readRsaPubKey "./test/Mirza/Common/testKeys/goodKeys/4096bit_rsa_key.pub"
 
 millisecondsToSeconds :: (Num a) => a -> a
 millisecondsToSeconds = (* 1000000)

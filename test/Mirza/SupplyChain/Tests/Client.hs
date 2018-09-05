@@ -3,57 +3,45 @@
 
 module Mirza.SupplyChain.Tests.Client where
 
-import           Mirza.SupplyChain.Tests.Dummies
-import           Mirza.SupplyChain.Tests.Settings
 
-import           Control.Concurrent               (ThreadId, forkIO, killThread)
-import           Control.Exception                (bracket)
-import           System.IO.Unsafe                 (unsafePerformIO)
-
-import qualified Network.HTTP.Client              as C
-import           Network.Socket
-import qualified Network.Wai                      as Wai
-import           Network.Wai.Handler.Warp
+import           Control.Concurrent                (ThreadId)
+import           Control.Exception                 (bracket)
 
 import           Servant.API.BasicAuth
-import           Servant.Client
+import           Servant.Client                    (BaseUrl)
 
-import           Data.Either                      (isLeft, isRight, fromRight)
-import           Data.UUID                        (nil)
+import           Data.Either                       (isLeft, isRight, fromRight)
+import           Data.UUID                         (nil)
 
-import           Data.Text.Encoding               (encodeUtf8)
-import qualified Data.Text.IO                     as TIO
+import           Data.Text.Encoding                (encodeUtf8)
 
 import           Test.Tasty.Hspec
 import           Test.Tasty
 import           Test.Tasty.HUnit
 
-import           Mirza.SupplyChain.Main           (ServerOptions (..),
-                                                   initApplication,
-                                                   initSCSContext)
-import           Mirza.SupplyChain.Types          as ST
-import           Mirza.BusinessRegistry.Types     (PEM_RSAPubKey(..))
-import           Mirza.Common.Time                (ExpirationTime(..))
+import           Katip                             (Severity (DebugS))
 
-import           Data.GS1.EPC                     (GS1CompanyPrefix (..))
-import           Data.GS1.EventId as EvId
-
-import           Data.Time.Clock                  (getCurrentTime, addUTCTime)
-
+import           Mirza.SupplyChain.Main            (ServerOptions (..),
+                                                    initApplication,
+                                                    initSCSContext)
+import           Mirza.SupplyChain.Types           as ST
 import           Mirza.SupplyChain.Client.Servant
-import           Mirza.BusinessRegistry.Client.Servant (addPublicKey, revokePublicKey)
-
-import           Katip                            (Severity (DebugS))
-
-import           Database.Beam.Query              (delete, runDelete, val_)
+import           Mirza.BusinessRegistry.Client.Servant (revokePublicKey,
+                                                        addPublicKey)
+import           Mirza.SupplyChain.Tests.Dummies
+import           Mirza.SupplyChain.Tests.Settings
+import           Mirza.Common.Test.ServantUtil
 import           Mirza.SupplyChain.Database.Schema as Schema
 
--- Cribbed from https://github.com/haskell-servant/servant/blob/master/servant-client/test/Servant/ClientSpec.hs
+import           Database.Beam.Query               (delete, runDelete, val_)
 
--- === Servant Client tests
+import           Mirza.Common.Time                (ExpirationTime (..))
+import           Data.Time.Clock                  (addUTCTime, getCurrentTime)
 
-shouldSatisfyIO :: (HasCallStack, Show a, Eq a) => IO a -> (a -> Bool) -> Expectation
-action `shouldSatisfyIO` p = action >>= (`shouldSatisfy` p)
+import           Data.GS1.EPC                     (GS1CompanyPrefix (..))
+import           Data.GS1.EventId                 as EvId
+
+-- === SCS Client tests
 
 userABC :: NewUser
 userABC = NewUser
@@ -155,11 +143,7 @@ clientSpec = do
           http (insertTransfEvent authABC dummyTransformation)
             `shouldSatisfyIO` isRight
 
-          step "Provenance of a labelEPC"
-          http (insertTransfEvent authABC dummyTransformation)
-            `shouldSatisfyIO` isRight
-
-  let eventSignTests = testCaseSteps "eventSign - INCOMPLETE " $ \step ->
+  let eventSignTests = testCaseSteps "eventSign" $ \step ->
         bracket runApp endWaiApp $ \(_tid,baseurl) -> do
         let http = runClient baseurl
 
@@ -253,41 +237,3 @@ Add, remove and search for contacts.
 
 
 -}
-
-
--- Plumbing
-
-startWaiApp :: Wai.Application -> IO (ThreadId, BaseUrl)
-startWaiApp app = do
-    (prt, sock) <- openTestSocket
-    let settings = setPort prt defaultSettings
-    thread <- forkIO $ runSettingsSocket settings sock app
-    return (thread, BaseUrl Http "localhost" prt "")
-
-
-endWaiApp :: (ThreadId, BaseUrl) -> IO ()
-endWaiApp (thread, _) = killThread thread
-
-openTestSocket :: IO (Port, Socket)
-openTestSocket = do
-  s <- socket AF_INET Stream defaultProtocol
-  localhost <- inet_addr "127.0.0.1"
-  bind s (SockAddrInet aNY_PORT localhost)
-  listen s 1
-  prt <- socketPort s
-  return (fromIntegral prt, s)
-
-
-
-{-# NOINLINE manager' #-}
-manager' :: C.Manager
-manager' = unsafePerformIO $ C.newManager C.defaultManagerSettings
-
-runClient :: BaseUrl -> ClientM a -> IO (Either ServantError a)
-runClient baseUrl' x = runClientM x (mkClientEnv manager' baseUrl')
-
-readRsaPubKey :: FilePath -> IO PEM_RSAPubKey
-readRsaPubKey filename = PEM_RSAPubKey <$> TIO.readFile filename
-
-goodRsaPublicKey :: IO PEM_RSAPubKey
-goodRsaPublicKey = readRsaPubKey "./test/Mirza/Common/testKeys/goodKeys/4096bit_rsa_key.pub"

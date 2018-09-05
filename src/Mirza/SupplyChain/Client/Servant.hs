@@ -10,7 +10,6 @@ module Mirza.SupplyChain.Client.Servant
   , addUserToEvent
   , eventSign
   , eventHashed
-  , epcState
   , listEvents
   , eventInfo
   , eventList
@@ -52,7 +51,6 @@ addUserToEvent      :: BasicAuthData -> UserId -> EventId -> ClientM ()
 eventSign           :: BasicAuthData -> SignedEvent -> ClientM UUID
 eventHashed         :: BasicAuthData -> EventId -> ClientM HashedEvent
 
-epcState            :: BasicAuthData -> LabelEPCUrn -> ClientM EPCState
 listEvents          :: BasicAuthData -> LabelEPCUrn -> ClientM [Ev.Event]
 eventInfo           :: BasicAuthData -> EventId -> ClientM (Maybe Ev.Event)
 eventList           :: BasicAuthData -> UserId -> ClientM [Ev.Event]
@@ -84,7 +82,6 @@ _api@(
     :<|> eventSign
     :<|> eventHashed
 
-    :<|> epcState
     :<|> listEvents
     :<|> eventInfo
     :<|> eventList
