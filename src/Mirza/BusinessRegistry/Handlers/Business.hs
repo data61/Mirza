@@ -52,7 +52,7 @@ addBusinessAuth _ = addBusiness
 
 addBusiness ::  (BRApp context err) => NewBusiness -> AppM context err GS1CompanyPrefix
 addBusiness = (fmap biz_gs1_company_prefix)
-  . (flip catchError errHandler)
+  . (`catchError` errHandler)
   . runDb
   . addBusinessQuery
   . newBusinessToBusiness
