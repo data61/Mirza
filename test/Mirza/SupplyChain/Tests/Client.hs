@@ -70,29 +70,48 @@ so = ServerOptions Dev False testDbConnStr "127.0.0.1" 8000 14 8 1 DebugS
 clientSpec :: IO TestTree
 clientSpec = do
   ctx <- initSCSContext so
-
+  let SupplyChainDb
+        usersTable
+        businessesTable
+        contactsTable
+        labelsTable
+        whatLabelsTable
+        itemsTable
+        transformationsTable
+        locationsTable
+        eventsTable
+        whatsTable
+        bizTransactionsTable
+        whysTable
+        wheresTable
+        whensTable
+        labelEventsTable
+        userEventsTable
+        signaturesTable
+        hashesTable
+        blockchainTable
+          = supplyChainDb
   flushDbResult <- runAppM @_ @ServiceError ctx $ runDb $ do
       let deleteTable table = pg $ runDelete $ delete table (const (val_ True))
-      deleteTable $ _users supplyChainDb
-      deleteTable $ _users supplyChainDb
-      deleteTable $ _businesses supplyChainDb
-      deleteTable $ _contacts supplyChainDb
-      deleteTable $ _labels supplyChainDb
-      deleteTable $ _what_labels supplyChainDb
-      deleteTable $ _items supplyChainDb
-      deleteTable $ _transformations supplyChainDb
-      deleteTable $ _locations supplyChainDb
-      deleteTable $ _events supplyChainDb
-      deleteTable $ _whats supplyChainDb
-      deleteTable $ _biz_transactions supplyChainDb
-      deleteTable $ _whys supplyChainDb
-      deleteTable $ _wheres supplyChainDb
-      deleteTable $ _whens supplyChainDb
-      deleteTable $ _label_events supplyChainDb
-      deleteTable $ _user_events supplyChainDb
-      deleteTable $ _signatures supplyChainDb
-      deleteTable $ _hashes supplyChainDb
-      deleteTable $ _blockchain supplyChainDb
+      deleteTable $ usersTable
+      deleteTable $ businessesTable
+      deleteTable $ contactsTable
+      deleteTable $ labelsTable
+      deleteTable $ whatLabelsTable
+      deleteTable $ itemsTable
+      deleteTable $ transformationsTable
+      deleteTable $ locationsTable
+      deleteTable $ eventsTable
+      deleteTable $ whatsTable
+      deleteTable $ bizTransactionsTable
+      deleteTable $ whysTable
+      deleteTable $ wheresTable
+      deleteTable $ whensTable
+      deleteTable $ labelEventsTable
+      deleteTable $ userEventsTable
+      deleteTable $ signaturesTable
+      deleteTable $ hashesTable
+      deleteTable $ blockchainTable
   flushDbResult `shouldSatisfy` isRight
 
 
