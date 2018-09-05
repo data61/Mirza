@@ -33,8 +33,6 @@ import           Control.Monad.Except                     (MonadError,
 import           Control.Monad.IO.Class                   (liftIO)
 import           Data.Text.Encoding                       (encodeUtf8)
 
-
-
 newUser :: (SCSApp context err, HasScryptParams context)
         => ST.NewUser
         -> AppM context err ST.UserId
@@ -45,28 +43,9 @@ newUser = runDb . newUserQuery
 newUserQuery :: (AsServiceError err, HasScryptParams context)
              => ST.NewUser
              -> DB context err ST.UserId
-newUserQuery userInfo@(ST.NewUser _ _ _ _ _ password) = do
+newUserQuery (ST.NewUser phone (EmailAddress email) firstName lastName biz password) = do
   params <- view $ _2 . scryptParams
-  hash <- liftIO $ Scrypt.encryptPassIO params (Scrypt.Pass $ encodeUtf8 password)
-  insertUser hash userInfo
-
-
-{-
-  -- Sample ST.NewUser JSON
-  {
-    "phoneNumber": "0412",
-    "emailAddress": "abc@gmail.com",
-    "firstName": "sajid",
-    "lastName": "anower",
-    "company": "4000001",
-    "password": "password"
-  }
--}
-insertUser :: AsServiceError err
-           => Scrypt.EncryptedPass
-           -> ST.NewUser
-           -> DB context err ST.UserId
-insertUser encPass (ST.NewUser phone (EmailAddress email) firstName lastName biz _) = do
+  encPass <- liftIO $ Scrypt.encryptPassIO params (Scrypt.Pass $ encodeUtf8 password)
   userId <- newUUID
   -- TODO: use Database.Beam.Backend.SQL.runReturningOne?
   res <- handleError errHandler $ pg $ runInsertReturningList (Schema._users Schema.supplyChainDb) $
@@ -87,13 +66,23 @@ insertUser encPass (ST.NewUser phone (EmailAddress email) firstName lastName biz
           -> throwing _EmailExists (toServerError getSqlErrorCode sqlErr, EmailAddress email)
         _ -> throwing _InsertionFail (toServerError (Just . sqlState) sqlErr, email)
 
-searchUserByCompanyId :: (SCSApp context err, HasScryptParams context)
-                      => GS1CompanyPrefix
-                      -> AppM context err ST.User
-searchUserByCompanyId = runDb . searchUserByCompanyIdQuery
+
+searchUserByCompanyId :: SCSApp context err
+                      => ST.User
+                      -> GS1CompanyPrefix
+                      -> AppM context err (Maybe ST.User)
+searchUserByCompanyId _ = runDb . searchUserByCompanyIdQuery
 
 
-searchUserByCompanyIdQuery :: (SCSApp context err, HasScryptParams context)
+searchUserByCompanyIdQuery :: SCSApp context err
                            => GS1CompanyPrefix
-                           -> DB context err ST.User
-searchUserByCompanyIdQuery (GS1CompanyPrefix pfx) = error ""
+                           -> DB context err (Maybe ST.User)
+searchUserByCompanyIdQuery pfx = do
+  r <- pg $ runSelectReturningList $ select $ do
+          user <- all_ (Schema._users Schema.supplyChainDb)
+          guard_ (user_biz_id user ==. (BizId $ val_ pfx))
+          pure user
+  case r of
+    [user] -> return $ Just $ userTableToModel user
+    _      -> return Nothing
+
