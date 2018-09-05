@@ -5,8 +5,7 @@
 module Mirza.BusinessRegistry.Tests.Client where
 
 
-import           Control.Concurrent                     (ThreadId,
-                                                         threadDelay)
+import           Control.Concurrent                     (ThreadId, threadDelay)
 import           Control.Exception                      (bracket)
 
 import           Mirza.Common.Test.ServantUtil
@@ -53,7 +52,6 @@ import           Mirza.BusinessRegistry.Types
 import           Mirza.Common.Time
 import           Mirza.Common.Utils
 
-
 import           Mirza.BusinessRegistry.Tests.Settings  (testDbConnStr)
 import           Mirza.BusinessRegistry.Tests.Utils
 import           Mirza.Common.Tests.Utils
@@ -62,24 +60,8 @@ import           Mirza.Common.Tests.Utils
 
 clientSpec :: IO TestTree
 clientSpec = do
-  ctx <- initBRContext go
-  let BusinessRegistryDB usersTable businessesTable keysTable
-        = businessRegistryDB
-
-  flushDbResult <- runAppM @_ @BusinessRegistryError ctx $ runDb $ do
-      let deleteTable table = pg $ runDelete $ delete table (const (val_ True))
-      deleteTable keysTable
-      deleteTable usersTable
-      deleteTable businessesTable
-  flushDbResult `shouldSatisfy` isRight
-
-  -- This construct somewhat destroys the integrity of these test since it is
-  -- necessary to assume that these functions work correctly in order for the
-  -- test cases to complete.
-  globalAuthData <- bootstrapAuthData ctx
-
   let businessTests = testCaseSteps "Can create businesses" $ \step ->
-        bracket runApp endWaiApp $ \(_tid,baseurl) -> do
+        bracket runApp (\(a,b,_) -> endWaiApp (a,b)) $ \(_tid,baseurl,globalAuthData) -> do
           let http = runClient baseurl
               biz1Prefix = (GS1CompanyPrefix "2000001")
               biz1 = NewBusiness biz1Prefix "businessTests_biz1Name"
@@ -128,7 +110,7 @@ clientSpec = do
 
 
   let userTests = testCaseSteps "Can create users" $ \step ->
-        bracket runApp endWaiApp $ \(_tid,baseurl) -> do
+        bracket runApp (\(a,b,_) -> endWaiApp (a,b)) $ \(_tid,baseurl,globalAuthData) -> do
           password <- randomPassword
 
           let http = runClient baseurl
@@ -235,7 +217,7 @@ clientSpec = do
 
 
   let keyTests = testCaseSteps "That keys work as expected" $ \step ->
-        bracket runApp endWaiApp $ \(_tid, baseurl) -> do
+        bracket runApp (\(a,b,_) -> endWaiApp (a,b)) $ \(_tid, baseurl, globalAuthData) -> do
           password <- randomPassword
           let http = runClient baseurl
               biz1Prefix = (GS1CompanyPrefix "4000001")
@@ -285,7 +267,7 @@ clientSpec = do
           b1K1PostInsertionTime <- getCurrentTime
           b1K1StoredKeyIdResult `shouldSatisfy` isRight
 
-          let b1K1StoredKeyId = fromRight b1K1StoredKeyIdResult
+          let Right b1K1StoredKeyId = b1K1StoredKeyIdResult
 
           step "Can retrieve a stored key"
           b1K1Response <- http (getPublicKey b1K1StoredKeyId)
@@ -294,13 +276,23 @@ clientSpec = do
           step "Can retrieve the key info for a stored key"
           b1K1InfoResponse <- http (getPublicKeyInfo b1K1StoredKeyId)
           b1K1InfoResponse `shouldSatisfy` isRight
-          b1K1InfoResponse `shouldSatisfy` (checkField (b1K1StoredKeyId ==) keyInfoId)
-          b1K1InfoResponse `shouldSatisfy` (checkField (fromRight userB1U1Response ==) keyInfoUserId)
-          b1K1InfoResponse `shouldSatisfy` (checkField (InEffect ==) keyInfoState)
-          b1K1InfoResponse `shouldSatisfy` (checkField (betweenInclusive b1K1PreInsertionTime b1K1PostInsertionTime) (getCreationTime . keyInfoCreationTime))
-          b1K1InfoResponse `shouldSatisfy` (checkField isNothing keyInfoRevocationTime)
-          b1K1InfoResponse `shouldSatisfy` (checkField isNothing keyInfoExpirationTime)
-          b1K1InfoResponse `shouldSatisfy` (checkField (goodKey ==) keyInfoPEMString)
+          let KeyInfoResponse
+                ky1InfoId
+                ky1InfoUserId
+                ky1InfoState
+                ky1InfoCreationTime
+                ky1InfoRevocationTime
+                ky1InfoExpirationTime
+                ky1InfoPEMString
+                = fromRight b1K1InfoResponse
+          ky1InfoId             `shouldSatisfy` (== b1K1StoredKeyId)
+          ky1InfoUserId         `shouldSatisfy` (== fromRight userB1U1Response)
+          ky1InfoState          `shouldSatisfy` (== InEffect)
+          ky1InfoRevocationTime `shouldSatisfy` isNothing
+          ky1InfoExpirationTime `shouldSatisfy` isNothing
+          ky1InfoPEMString      `shouldSatisfy` (== goodKey)
+          getCreationTime ky1InfoCreationTime
+            `shouldSatisfy` (betweenInclusive b1K1PreInsertionTime b1K1PostInsertionTime)
 
           step "That getPublicKey fails gracefully searching for a non existant key"
           b1InvalidKeyResponse <- http (getPublicKey (BRKeyId nil))
@@ -316,23 +308,33 @@ clientSpec = do
           b1K2StoredKeyIdResult <- http (addPublicKey (newUserToBasicAuthData userB1U1) goodKey b1K2Expiry)
           b1K2StoredKeyIdResult `shouldSatisfy` isRight
 
-          let b1K2StoredKeyId = fromRight b1K2StoredKeyIdResult
+          let Right b1K2StoredKeyId = b1K2StoredKeyIdResult
 
           step "That the key info reflects the expiry time"
           b1K2InfoResponse <- http (getPublicKeyInfo b1K2StoredKeyId)
           b1K2InfoResponse `shouldSatisfy` isRight
-          b1K2InfoResponse `shouldSatisfy` (checkField (b1K2StoredKeyId ==) keyInfoId)
-          b1K2InfoResponse `shouldSatisfy` (checkField (fromRight userB1U1Response ==) keyInfoUserId)
-          b1K2InfoResponse `shouldSatisfy` (checkField (InEffect ==) keyInfoState)
-          b1K2InfoResponse `shouldSatisfy` (checkField isNothing keyInfoRevocationTime)
-          b1K2InfoResponse `shouldSatisfy` (checkField (within1Second ((getExpirationTime . fromJust) b1K2Expiry)) (getExpirationTime . fromJust . keyInfoExpirationTime))
-          b1K2InfoResponse `shouldSatisfy` (checkField (goodKey ==) keyInfoPEMString)
+          let KeyInfoResponse
+                ky2InfoId
+                ky2InfoUserId
+                ky2InfoState
+                _ky2InfoCreationTime
+                ky2InfoRevocationTime
+                ky2InfoExpirationTime
+                ky2InfoPEMString
+                = fromRight b1K2InfoResponse
+          ky2InfoId             `shouldSatisfy` (== b1K2StoredKeyId)
+          ky2InfoUserId         `shouldSatisfy` (== fromRight userB1U1Response)
+          ky2InfoState          `shouldSatisfy` (== InEffect)
+          ky2InfoRevocationTime `shouldSatisfy` isNothing
+          ky2InfoPEMString      `shouldSatisfy` (== goodKey)
+          getExpirationTime (fromJust ky2InfoExpirationTime)
+            `shouldSatisfy` within1Second ((getExpirationTime . fromJust) b1K2Expiry)
 
           step "That the key info status updates after the expiry time has been reached"
           threadDelay $ fromIntegral $ secondsToMicroseconds expiryDelay
           b1K2InfoDelayedResponse <- http (getPublicKeyInfo b1K2StoredKeyId)
           b1K2InfoDelayedResponse `shouldSatisfy` isRight
-          b1K2InfoDelayedResponse `shouldSatisfy` (checkField (Expired ==) keyInfoState)
+          b1K2InfoDelayedResponse `shouldSatisfy` checkField keyInfoState (== Expired)
 
           -- TODO Include this test (github #217):
           -- step "Test that it is not possible to revoke a key that has already expired."
@@ -352,12 +354,12 @@ clientSpec = do
           b1K3Now <- getCurrentTime
           b1K3RevokedResponse <- http (revokePublicKey (newUserToBasicAuthData userB1U1) b1K3StoredKeyId)
           b1K3RevokedResponse `shouldSatisfy` isRight
-          b1K3RevokedResponse `shouldSatisfy` (checkField (within1Second b1K3Now) getRevocationTime)
+          b1K3RevokedResponse `shouldSatisfy` checkField getRevocationTime (within1Second b1K3Now)
 
           step "That the key status updates after the key is revoked"
           b1K3RevokedInfoResponse <- http (getPublicKeyInfo b1K3StoredKeyId)
           b1K3RevokedInfoResponse `shouldSatisfy` isRight
-          b1K3RevokedInfoResponse `shouldSatisfy` (checkField (Revoked ==) keyInfoState)
+          b1K3RevokedInfoResponse `shouldSatisfy` checkField keyInfoState (== Revoked)
 
           step "That revoking an already revoked key generates an error"
           b1K3RevokedAgainResponse <- http (revokePublicKey (newUserToBasicAuthData userB1U1) b1K3StoredKeyId)
@@ -372,17 +374,17 @@ clientSpec = do
           -- b1K4RevokedResponse `shouldSatisfy` isRight
           -- b1K4RevokedInfoResponse <- http (getPublicKeyInfo b1K4StoredKeyId)
           -- b1K4RevokedInfoResponse `shouldSatisfy` isRight
-          -- b1K4RevokedInfoResponse `shouldSatisfy` (checkField (Revoked ==) keyInfoState)
+          -- b1K4RevokedInfoResponse `shouldSatisfy` (checkField keyInfoState (== Revoked))
 
           step "That a user from the another business can't also revoke the key"
           b1K5StoredKeyIdResult <- http (addPublicKey (newUserToBasicAuthData userB1U1) goodKey Nothing)
           b1K5StoredKeyIdResult `shouldSatisfy` isRight
-          let b1K5StoredKeyId = fromRight b1K5StoredKeyIdResult
+          let Right b1K5StoredKeyId = b1K5StoredKeyIdResult
           b1K5RevokedResponse <- http (revokePublicKey (newUserToBasicAuthData userB2U1) b1K5StoredKeyId)
           b1K5RevokedResponse `shouldSatisfy` isLeft
           b1K5RevokedInfoResponse <- http (getPublicKeyInfo b1K5StoredKeyId)
           b1K5RevokedInfoResponse `shouldSatisfy` isRight
-          b1K5RevokedInfoResponse `shouldSatisfy` (checkField (InEffect ==) keyInfoState)
+          b1K5RevokedInfoResponse `shouldSatisfy` checkField keyInfoState (== InEffect)
 
           step "That revokePublicKey for an invalid keyId fails gracefully"
           revokeInvalidKeyIdResponse <- http (revokePublicKey (newUserToBasicAuthData userB1U1) (BRKeyId nil))
@@ -390,10 +392,10 @@ clientSpec = do
 
           step "Test where the key has an expiry time (which hasn't expired) and is revoked reports the correct status."
           b1K6ExpiryUTC <- (addUTCTime (fromInteger expiryDelay)) <$> getCurrentTime
-          let b1K6Expiry = (Just . ExpirationTime) b1K6ExpiryUTC
+          let b1K6Expiry = Just . ExpirationTime $ b1K6ExpiryUTC
           b1K6StoreKeyIdResult <- http (addPublicKey (newUserToBasicAuthData userB1U1) goodKey b1K6Expiry)
           b1K6StoreKeyIdResult `shouldSatisfy` isRight
-          let b1K6KeyId = fromRight b1K6StoreKeyIdResult
+          let Right b1K6KeyId = b1K6StoreKeyIdResult
           b1K6RevokeKeyResult <- http (revokePublicKey (newUserToBasicAuthData userB1U1) b1K6KeyId)
           b1K6RevokeKeyResult `shouldSatisfy` isRight
           b1K6ExpiryRevokedResponse <- http (getPublicKeyInfo b1K6KeyId)
@@ -402,14 +404,14 @@ clientSpec = do
           b1K6TimeAfterResponse <- getCurrentTime
           b1K6TimeAfterResponse `shouldSatisfy` (< b1K6ExpiryUTC)
           b1K6ExpiryRevokedResponse `shouldSatisfy` isRight
-          b1K6ExpiryRevokedResponse `shouldSatisfy` (checkField (Revoked ==) keyInfoState)
+          b1K6ExpiryRevokedResponse `shouldSatisfy` checkField keyInfoState (== Revoked)
 
           step "Test where the key has an expiry time and a revoked time which expired after it was revoked and both revoked and expired time have passed."
           -- Wait for the key from the previous test to expire and then recheck the status.
           threadDelay $ secondsToMicroseconds $ ceiling $ diffUTCTime b1K6ExpiryUTC b1K6TimeAfterResponse
           b1K6ExpiredRevokedResponse <- http (getPublicKeyInfo b1K6KeyId)
           b1K6ExpiredRevokedResponse `shouldSatisfy` isRight
-          b1K6ExpiredRevokedResponse `shouldSatisfy` (checkField (Revoked ==) keyInfoState)
+          b1K6ExpiredRevokedResponse `shouldSatisfy` checkField keyInfoState (== Revoked)
 
 
 
@@ -446,17 +448,36 @@ clientSpec = do
 go :: GlobalOptions
 go = GlobalOptions testDbConnStr 14 8 1 DebugS Dev
 
-runApp :: IO (ThreadId, BaseUrl)
+runApp :: IO (ThreadId, BaseUrl, BasicAuthData)
 runApp = do
   ctx <- initBRContext go
-  startWaiApp =<< initApplication go (RunServerOptions 8000) ctx
+  let BusinessRegistryDB usersTable businessesTable keysTable
+        = businessRegistryDB
 
+  flushDbResult <- runAppM @_ @BusinessRegistryError ctx $ runDb $ do
+      let deleteTable table = pg $ runDelete $ delete table (const (val_ True))
+      deleteTable keysTable
+      deleteTable usersTable
+      deleteTable businessesTable
+  flushDbResult `shouldSatisfy` isRight
+
+  -- This construct somewhat destroys the integrity of these test since it is
+  -- necessary to assume that these functions work correctly in order for the
+  -- test cases to complete.
+  globalAuthData <- bootstrapAuthData ctx
+
+  (tid,brul) <- startWaiApp =<< initApplication go (RunServerOptions 8000) ctx
+  pure (tid,brul,globalAuthData)
+
+
+
+-- *****************************************************************************
+-- Test Utility Functions
+-- *****************************************************************************
 
 newBusinessToBusinessResponse :: NewBusiness -> BusinessResponse
-newBusinessToBusinessResponse business = (BusinessResponse
-                                          <$> newBusinessGS1CompanyPrefix
-                                          <*> newBusinessName)
-                                          business
+newBusinessToBusinessResponse =
+  BusinessResponse <$> newBusinessGS1CompanyPrefix <*> newBusinessName
 
 
 newUserToBasicAuthData :: NewUser -> BasicAuthData
@@ -468,8 +489,8 @@ newUserToBasicAuthData =
 
 -- Test helper function that enables a predicate to be run on the result of a
 -- test call.
-checkField :: (a -> Bool) -> (b -> a) -> Either c b -> Bool
-checkField predicate accessor (Right response) = predicate (accessor response)
+checkField :: (b -> a) -> (a -> Bool) -> Either c b -> Bool
+checkField accessor predicate (Right response) = predicate (accessor response)
 checkField _         _        (Left _)         = False
 
 
@@ -483,7 +504,7 @@ bootstrapAuthData :: (HasEnvType w, HasConnPool w, HasKatipContext w,
 bootstrapAuthData ctx = do
   let email = "initialUser@example.com"
   password <- randomPassword
-  let prefix = (GS1CompanyPrefix "1000000")
+  let prefix = GS1CompanyPrefix "1000000"
   let business = NewBusiness prefix "Business Name"
   insertBusinessResult  <- runAppM @_ @BusinessRegistryError ctx $ BRHB.addBusiness business
   insertBusinessResult `shouldSatisfy` isRight
