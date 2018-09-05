@@ -13,7 +13,7 @@ module Mirza.SupplyChain.ErrorUtils
 
 import           Mirza.Common.Types
 import qualified Mirza.Common.Utils                  as U
-import           Mirza.SupplyChain.Types
+import           Mirza.SupplyChain.Types             as ST
 
 import           Control.Monad.Except                (MonadError (..),
                                                       throwError)
@@ -72,6 +72,7 @@ appErrToHttpErr (InsertionFail _ _email) = generic500err
 appErrToHttpErr (BlockchainSendFailed _) = generic500err
 appErrToHttpErr (BackendErr _) = generic500err
 appErrToHttpErr (DatabaseError _) = generic500err
+appErrToHttpErr (ST.ServantErr _) = generic500err
 
 generic500err :: Handler a
 generic500err = throwError err500 {errBody = "Something went wrong"}
