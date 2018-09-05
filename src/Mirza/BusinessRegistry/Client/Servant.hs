@@ -26,9 +26,9 @@ import           Data.Proxy                   (Proxy (..))
 getPublicKey       :: BRKeyId -> ClientM PEM_RSAPubKey
 getPublicKeyInfo   :: BRKeyId -> ClientM KeyInfoResponse
 listBusinesses :: ClientM [BusinessResponse]
-addUser      :: NewUser     -> ClientM UserId
-addBusiness  :: NewBusiness -> ClientM GS1CompanyPrefix
 
+addUser         :: BasicAuthData -> NewUser     -> ClientM UserId
+addBusiness     :: BasicAuthData -> NewBusiness -> ClientM GS1CompanyPrefix
 addPublicKey    :: BasicAuthData -> PEM_RSAPubKey -> Maybe ExpirationTime -> ClientM BRKeyId
 revokePublicKey :: BasicAuthData -> BRKeyId -> ClientM RevocationTime
 
@@ -40,12 +40,12 @@ _api@(
          getPublicKey
     :<|> getPublicKeyInfo
     :<|> listBusinesses
-    :<|> addUser
-    :<|> addBusiness
   )
   :<|>
   _privAPI@(
-         addPublicKey
+         addUser
+    :<|> addBusiness
+    :<|> addPublicKey
     :<|> revokePublicKey
   )
  ) = client (Proxy :: Proxy ServerAPI)
