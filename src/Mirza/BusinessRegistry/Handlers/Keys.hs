@@ -34,7 +34,7 @@ import           Control.Monad                            (unless, when)
 import           Data.Maybe                               (isJust)
 
 minPubKeySize :: Bit
-minPubKeySize = Bit 4096
+minPubKeySize = Bit 2048
 
 getPublicKey :: (BRApp context err, AsKeyError err)
              => CT.BRKeyId
