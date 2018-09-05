@@ -4,7 +4,6 @@
 {-# LANGUAGE MonoLocalBinds        #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
-{-# LANGUAGE TypeApplications      #-}
 
 module Mirza.BusinessRegistry.Tests.Keys
   ( testKeyQueries
@@ -56,7 +55,7 @@ testKeyQueries = do
         keyId <- addPublicKey user pubKey Nothing
         tEnd <- timeStampIO
         insertedKey <- getPublicKey keyId
-        storageKey <- runDb $ BKey.getKeyById keyId
+        storageKey <- runDb $ BKey.getKeyById keyId 
         pure (storageKey, keyStr, keyId, uid, tEnd, insertedKey)
       case res of
         (Nothing, _, _, _, _, _) -> fail "Received Nothing for key"

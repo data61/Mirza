@@ -1,12 +1,12 @@
 module Mirza.Common.Tests.Utils where
 
-import           Data.Time.Clock                        (UTCTime, diffUTCTime)
+import           Data.Time.Clock (UTCTime, diffUTCTime)
 
 
 
 -- Checks that the two times are within 1 second of each other.
 within1Second :: UTCTime -> UTCTime -> Bool
-within1Second expected actual = abs (diffUTCTime expected actual) < 1
+within1Second expected actual = abs (diffUTCTime expected actual) < 1 -- second
 
 
 -- | Checks whether a value is between two bounds.
