@@ -1,12 +1,7 @@
-{-# LANGUAGE DeriveGeneric         #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE StandaloneDeriving    #-}
 {-# LANGUAGE TypeFamilies          #-}
 
--- | This module contains all the table definitions
--- The migration script has been moved to the module MigrateScript
--- If some definition is changed here, please make the equivalent change
--- in MigrateScript
+
 module Mirza.BusinessRegistry.Database.Schema.V0002
  ( module Mirza.BusinessRegistry.Database.Schema.V0002
  , module V0001
