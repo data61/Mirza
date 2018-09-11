@@ -351,10 +351,11 @@ clientSpec = do
           b1K3StoredKeyIdResult <- http (addPublicKey (newUserToBasicAuthData userB1U1) goodKey Nothing)
           b1K3StoredKeyIdResult `shouldSatisfy` isRight
           let b1K3StoredKeyId = fromRight b1K3StoredKeyIdResult
-          b1K3Now <- getCurrentTime
+          b1K3PreRevoke <- getCurrentTime
           b1K3RevokedResponse <- http (revokePublicKey (newUserToBasicAuthData userB1U1) b1K3StoredKeyId)
+          b1K3PostRevoke <- getCurrentTime
           b1K3RevokedResponse `shouldSatisfy` isRight
-          b1K3RevokedResponse `shouldSatisfy` checkField getRevocationTime (within1Second b1K3Now)
+          b1K3RevokedResponse `shouldSatisfy` checkField getRevocationTime (betweenInclusive b1K3PreRevoke b1K3PostRevoke)
 
           step "That the key status updates after the key is revoked"
           b1K3RevokedInfoResponse <- http (getPublicKeyInfo b1K3StoredKeyId)
