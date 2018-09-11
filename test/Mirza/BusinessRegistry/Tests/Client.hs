@@ -491,8 +491,7 @@ newUserToBasicAuthData =
 -- Test helper function that enables a predicate to be run on the result of a
 -- test call.
 checkField :: (b -> a) -> (a -> Bool) -> Either c b -> Bool
-checkField accessor predicate (Right response) = predicate (accessor response)
-checkField _         _        (Left _)         = False
+checkField accessor predicate = either (const False) (predicate . accessor)
 
 
 secondsToMicroseconds :: (Num a) => a -> a
