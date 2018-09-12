@@ -1,9 +1,12 @@
+{-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE RecordWildCards       #-}
 
 module Mirza.BusinessRegistry.Handlers.Business
   ( listBusinesses
   , listBusinessesQuery
+  , addBusiness
+  , addBusinessAuth
   , addBusinessQuery
   ) where
 
@@ -12,18 +15,27 @@ import           Mirza.BusinessRegistry.Database.Schema
 import           Mirza.BusinessRegistry.Handlers.Common
 import           Mirza.BusinessRegistry.Types             as BT
 
+import           Data.GS1.EPC                             as EPC
+
 import           Database.Beam                            as B
 import           Database.Beam.Backend.SQL.BeamExtensions
+import           Database.PostgreSQL.Simple.Errors        (ConstraintViolation (UniqueViolation),
+                                                           constraintViolation)
+
+import           Control.Lens                             ((^?))
+import           Control.Monad.Except                     (catchError, throwError)
+
+import           GHC.Stack                                (HasCallStack, callStack)
 
 
 listBusinesses :: BRApp context err => AppM context err [BusinessResponse]
-listBusinesses = fmap bizToBizResponse <$> runDb listBusinessesQuery
+listBusinesses = fmap businessToBusinessResponse <$> runDb listBusinessesQuery
 
 
-bizToBizResponse :: Business -> BusinessResponse
-bizToBizResponse BusinessT{..} = BusinessResponse
-  { bizId    = biz_gs1_company_prefix
-  , bizName  = biz_name
+businessToBusinessResponse :: Business -> BusinessResponse
+businessToBusinessResponse BusinessT{..} = BusinessResponse
+  { businessGS1CompanyPrefix = biz_gs1_company_prefix
+  , businessName             = biz_name
   }
 
 
@@ -31,22 +43,41 @@ listBusinessesQuery :: BRApp context err => DB context err [Business]
 listBusinessesQuery = pg $ runSelectReturningList $ select $
   all_ (_businesses businessRegistryDB)
 
+-- This function is an interface adapter and adds the BT.AuthUser argument to
+-- addBusiness so that we can use it from behind the private API. This argument
+-- is not used in the current implementation as it is assumed that all users
+-- will have the ability to act globally.
+addBusinessAuth ::  (BRApp context err) => BT.AuthUser -> NewBusiness -> AppM context err GS1CompanyPrefix
+addBusinessAuth _ = addBusiness
 
--- | Will _always_ create a new UUID for the BizId
-addBusinessQuery :: BRApp context err => Business -> DB context err Business
+addBusiness ::  (BRApp context err) => NewBusiness -> AppM context err GS1CompanyPrefix
+addBusiness = (fmap biz_gs1_company_prefix)
+  . (`catchError` errHandler)
+  . runDb
+  . addBusinessQuery
+  . newBusinessToBusiness
+  where
+    errHandler :: (AsSqlError err, AsBusinessRegistryError err, MonadError err m, MonadIO m) => err -> m a
+    errHandler e = case e ^? _SqlError of
+      Nothing -> throwError e
+      Just sqlErr ->
+        case constraintViolation sqlErr of
+          Just (UniqueViolation "businesses_pkey") -> throwing_ _GS1CompanyPrefixExistsBRE
+          _ -> throwError e
+
+
+newBusinessToBusiness :: NewBusiness -> Business
+newBusinessToBusiness NewBusiness{..} =
+  BusinessT
+    { biz_gs1_company_prefix = newBusinessGS1CompanyPrefix
+    , biz_name               = newBusinessName
+    }
+
+
+addBusinessQuery :: (HasCallStack, BRApp context err) => Business -> DB context err Business
 addBusinessQuery biz@BusinessT{..} = do
-  res <- -- handleError errHandler $
-         pg $ runInsertReturningList (_businesses businessRegistryDB) $
-            insertValues [biz]
+  res <- pg $ runInsertReturningList (_businesses businessRegistryDB)
+            $ insertValues [biz]
   case res of
         [r] -> return r
-        -- TODO: Have a proper error response
-        _   -> throwing _BusinessCreationErrorBRE (show res)
-  -- where
-  --   errHandler :: (AsSqlError err, MonadError err m) => err -> m a
-  --   errHandler e = case e ^? _DatabaseError of
-  --     Nothing -> throwError e
-  --     Just sqlErr -> case constraintViolation sqlErr of
-  --       Just (UniqueViolation "users_email_address_key")
-  --         -> throwing_ _BusinessExists
-  --       _ -> throwing _InsertionFail (toServerError (Just . sqlState) sqlErr, email)
+        _   -> throwing _UnexpectedErrorBRE callStack

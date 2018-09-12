@@ -1,24 +1,22 @@
-module Mirza.Common.Test.ServantUtil
+module Mirza.Common.Tests.ServantUtils
   ( startWaiApp
   , endWaiApp
   , runClient
   , manager'
   ) where
 
-import           Control.Concurrent        (ThreadId, forkIO,  killThread)
-import           System.IO.Unsafe          (unsafePerformIO)
+import           Control.Concurrent           (ThreadId, forkIO,  killThread)
+import           System.IO.Unsafe             (unsafePerformIO)
 
-import qualified Network.HTTP.Client       as C
+import qualified Network.HTTP.Client          as C
 import           Network.Socket
-import qualified Network.Wai               as Wai
+import qualified Network.Wai                  as Wai
 import           Network.Wai.Handler.Warp
 import           Servant.Client
-
 
 -- Cribbed from
 -- https://github.com/haskell-servant/servant/blob/master/servant-client/test/Servant/ClientSpec.hs
 -- License is BSD3, so thank you Zalora South East Asia Pte Ltd, Servant Contributors
-
 
 
 startWaiApp :: Wai.Application -> IO (ThreadId, BaseUrl)
@@ -44,5 +42,5 @@ openTestSocket = do
 manager' :: C.Manager
 manager' = unsafePerformIO $ C.newManager C.defaultManagerSettings
 
-runClient :: ClientM a -> BaseUrl -> IO (Either ServantError a)
-runClient x baseUrl' = runClientM x (mkClientEnv manager' baseUrl')
+runClient :: BaseUrl -> ClientM a -> IO (Either ServantError a)
+runClient baseUrl' x = runClientM x (mkClientEnv manager' baseUrl')
