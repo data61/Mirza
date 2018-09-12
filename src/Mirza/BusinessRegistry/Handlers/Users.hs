@@ -37,7 +37,7 @@ addUserAuth ::  (BRApp context err, BRT.HasScryptParams context)
         => BRT.AuthUser
         -> BRT.NewUser
         -> BRT.AppM context err BRT.UserId
-addUserAuth _ = addUser
+addUserAuth _authUser = addUser
 
 addUser ::  (BRApp context err, BRT.HasScryptParams context)
         => BRT.NewUser
