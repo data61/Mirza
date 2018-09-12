@@ -13,7 +13,6 @@ import           Mirza.SupplyChain.Handlers.EventRegistration (findEvent,
                                                                getEventList)
 import           Mirza.SupplyChain.Handlers.Users             (userTableToModel)
 
-import qualified Mirza.Common.Utils                           as U
 import           Mirza.SupplyChain.Database.Schema            as Schema
 import           Mirza.SupplyChain.ErrorUtils                 (throwParseError)
 import           Mirza.SupplyChain.QueryUtils

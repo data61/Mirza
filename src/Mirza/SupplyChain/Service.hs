@@ -53,7 +53,7 @@ publicServer :: (SCSApp context err, HasScryptParams context)
              => ServerT PublicAPI (AppM context err)
 publicServer =
   -- Users
-       newUser
+       addUser
 
 privateServer :: (AsServantError err, HasClientEnv context, SCSApp context err)
               => ServerT ProtectedAPI (AppM context err)
