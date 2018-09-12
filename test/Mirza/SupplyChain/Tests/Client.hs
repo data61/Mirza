@@ -146,6 +146,10 @@ clientSpec = do
   let eventInsertionTests = testCaseSteps "User can add single events" $ \step ->
         bracket runApp endWaiApp $ \(_tid,baseurl) -> do
           let http = runClient baseurl
+
+          -- Add a user so that we can authenticate for these tests.
+          http (addUser userABC) `shouldSatisfyIO` isRight
+
           step "User Can insert Object events"
             -- TODO: Events need their EventId returned to user
           resp <- http (insertObjectEvent authABC dummyObject)
