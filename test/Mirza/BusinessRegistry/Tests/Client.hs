@@ -8,7 +8,7 @@ module Mirza.BusinessRegistry.Tests.Client where
 import           Control.Concurrent                     (ThreadId, threadDelay)
 import           Control.Exception                      (bracket)
 
-import           Mirza.Common.Test.ServantUtil
+import           Mirza.Common.Tests.ServantUtils
 
 import           Servant.API.BasicAuth
 import           Servant.Client

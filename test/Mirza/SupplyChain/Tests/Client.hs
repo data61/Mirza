@@ -30,7 +30,8 @@ import           Mirza.BusinessRegistry.Client.Servant (revokePublicKey,
                                                         addPublicKey)
 import           Mirza.SupplyChain.Tests.Dummies
 import           Mirza.SupplyChain.Tests.Settings
-import           Mirza.Common.Test.ServantUtil
+import           Mirza.Common.Tests.ServantUtils
+import           Mirza.Common.Tests.Utils
 import           Mirza.SupplyChain.Database.Schema as Schema
 
 import           Database.Beam.Query               (delete, runDelete, val_)
