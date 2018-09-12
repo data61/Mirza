@@ -1,8 +1,14 @@
 module Mirza.Common.Tests.Utils where
 
+import           Test.Hspec.Expectations      (Expectation, shouldSatisfy)
+
 import           Data.Time.Clock (UTCTime, diffUTCTime)
 
+import           GHC.Stack                    (HasCallStack)
 
+--------------------------------------------------------------------------------
+-- Generic Predicate Utils
+--------------------------------------------------------------------------------
 
 -- Checks that the two times are within 1 second of each other.
 within1Second :: UTCTime -> UTCTime -> Bool
@@ -19,3 +25,11 @@ betweenInclusive :: Ord a =>
 betweenInclusive bound1 bound2 x = (bound1 `comparitor` x) && (x `comparitor` bound2) where
   comparitor | bound1 <= bound2  = (<=)
              | otherwise         = (>=)
+
+
+--------------------------------------------------------------------------------
+-- Hspec Utils
+--------------------------------------------------------------------------------
+
+shouldSatisfyIO :: (HasCallStack, Show a, Eq a) => IO a -> (a -> Bool) -> Expectation
+action `shouldSatisfyIO` p = action >>= (`shouldSatisfy` p)
