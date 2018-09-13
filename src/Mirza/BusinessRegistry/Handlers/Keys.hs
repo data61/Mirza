@@ -118,6 +118,9 @@ checkPubKey :: (MonadError err m, AsKeyError err)
 checkPubKey spKey pemKey =
   maybe (throwing _InvalidRSAKey pemKey)
   (\pubKey ->
+    -- Note: This constraint implies that we only check that the key is greater then (2^N)-8 bits since rsaSize is the
+    -- number of bytes required to hold the key. See github issue #212
+    -- https://github.csiro.au/Blockchain/supplyChainServer/issues/212#issuecomment-13326 for further information.
     let keySizeBits = Bit $ rsaSize pubKey * 8 in
     -- rsaSize returns size in bytes
     if keySizeBits < minPubKeySize
