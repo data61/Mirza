@@ -30,8 +30,6 @@ import           Data.Time.LocalTime                      (LocalTime, utc,
 import           GHC.Stack                                (HasCallStack)
 import           Test.Hspec
 
-import           Data.GS1.EPC                             (GS1CompanyPrefix (..))
-
 timeStampIO :: MonadIO m => m LocalTime
 timeStampIO = liftIO $ (utcToLocalTime utc) <$> getCurrentTime
 
@@ -42,6 +40,7 @@ testAppM brContext act = runAppM brContext act >>= \case
     Left err -> fail (show err)
     Right a -> pure a
 
+
 testKeyQueries :: (HasCallStack) => SpecWith BT.BRContext
 testKeyQueries = do
 
@@ -50,17 +49,13 @@ testKeyQueries = do
       pubKey <- goodRsaPublicKey
       tStart <- timeStampIO
       res <- testAppM brContext $ do
-        let companyPrefix = (GS1CompanyPrefix "3000001")
-            myBusiness = NewBusiness companyPrefix "pubKeyTests_businessName"
-        businessPfx <- addBusiness myBusiness
-        uid <- addUser dummyNewUser {newUserCompany=businessPfx}
-        tableUser <- runDb $ getUserByIdQuery uid
-        let user = tableToAuthUser . fromJust $ tableUser
+        user <- insertDummies
+        let uid = authUserId user
         let (BT.PEM_RSAPubKey keyStr) = pubKey
         keyId <- addPublicKey user pubKey Nothing
         tEnd <- timeStampIO
         insertedKey <- getPublicKey keyId
-        storageKey <- runDb $ BKey.getKeyById keyId 
+        storageKey <- runDb $ BKey.getKeyById keyId
         pure (storageKey, keyStr, keyId, uid, tEnd, insertedKey)
       case res of
         (Nothing, _, _, _, _, _) -> fail "Received Nothing for key"
@@ -80,12 +75,8 @@ testKeyQueries = do
       tStart <- liftIO getCurrentTime
       pubKey <- goodRsaPublicKey
       (keyInfo, uid, tEnd) <- testAppM brContext $ do
-        let companyPrefix = (GS1CompanyPrefix "3000001")
-            myBusiness = NewBusiness companyPrefix "pubKeyTests_businessName"
-        businessPfx <- addBusiness myBusiness
-        uid <- addUser dummyNewUser {newUserCompany=businessPfx}
-        tableUser <- runDb $ getUserByIdQuery uid
-        let user = tableToAuthUser . fromJust $ tableUser
+        user <- insertDummies
+        let uid = authUserId user
         keyId <- addPublicKey user pubKey Nothing
         keyInfo <- getPublicKeyInfo keyId
         tEnd <- liftIO getCurrentTime
@@ -102,12 +93,7 @@ testKeyQueries = do
     it "Revoke public key with permissions" $ \brContext -> do
       pubKey <- goodRsaPublicKey
       myKeyState <- testAppM brContext $ do
-        let companyPrefix = (GS1CompanyPrefix "3000001")
-            myBusiness = NewBusiness companyPrefix "pubKeyTests_businessName"
-        businessPfx <- addBusiness myBusiness
-        uid <- addUser dummyNewUser {newUserCompany=businessPfx}
-        tableUser <- runDb $ getUserByIdQuery uid
-        let user = tableToAuthUser . fromJust $ tableUser
+        user <- insertDummies
         keyId <- addPublicKey user pubKey Nothing
         _timeKeyRevoked <- revokePublicKey user keyId
         keyInfo <- getPublicKeyInfo keyId
@@ -139,13 +125,7 @@ testKeyQueries = do
           someTimeAgo = addUTCTime (-hundredMinutes) nowish
       pubKey <- goodRsaPublicKey
       myKeyState <- testAppM brContext $ do
-        let companyPrefix = (GS1CompanyPrefix "3000001")
-            myBusiness = NewBusiness companyPrefix "pubKeyTests_businessName"
-        businessPfx <- addBusiness myBusiness
-
-        uid <- addUser dummyNewUser {newUserCompany=businessPfx}
-        tableUser <- runDb $ getUserByIdQuery uid
-        let user = tableToAuthUser . fromJust $ tableUser
+        user <- insertDummies
         keyId <- addPublicKey user pubKey (Just . ExpirationTime $ someTimeAgo )
         _timeKeyRevoked <- revokePublicKey user keyId
         keyInfo <- getPublicKeyInfo keyId
@@ -158,12 +138,7 @@ testKeyQueries = do
           someTimeAgo = addUTCTime (-hundredMinutes) nowish
       pubKey <- goodRsaPublicKey
       myKeyState <- testAppM brContext $ do
-        let companyPrefix = (GS1CompanyPrefix "3000001")
-            myBusiness = NewBusiness companyPrefix "pubKeyTests_businessName"
-        businessPfx <- addBusiness myBusiness
-        uid <- addUser dummyNewUser {newUserCompany=businessPfx}
-        tableUser <- runDb $ getUserByIdQuery uid
-        let user = tableToAuthUser . fromJust $ tableUser
+        user <- insertDummies
         keyId <- addPublicKey user pubKey (Just . ExpirationTime $ someTimeAgo)
         keyInfo <- getPublicKeyInfo keyId
         pure (keyInfoState keyInfo)
@@ -175,12 +150,7 @@ testKeyQueries = do
           someTimeLater = addUTCTime hundredMinutes nowish
       pubKey <- goodRsaPublicKey
       myKeyState <- testAppM brContext $ do
-        let companyPrefix = (GS1CompanyPrefix "3000001")
-            myBusiness = NewBusiness companyPrefix "pubKeyTests_businessName"
-        businessPfx <- addBusiness myBusiness
-        uid <- addUser dummyNewUser {newUserCompany=businessPfx}
-        tableUser <- runDb $ getUserByIdQuery uid
-        let user = tableToAuthUser . fromJust $ tableUser
+        user <- insertDummies
         keyId <- addPublicKey user pubKey (Just . ExpirationTime $ someTimeLater)
         keyInfo <- getPublicKeyInfo keyId
         pure (keyInfoState keyInfo)
@@ -192,3 +162,16 @@ testKeyQueries = do
         -- myBizList <-
         -- pure listBusinesses
       bizList `shouldBe` []
+
+
+-- *****************************************************************************
+-- Test Utility Functions
+-- *****************************************************************************
+
+-- | Adds the dummy business and user and returns the user id and auth user.
+insertDummies :: AppM BRContext BusinessRegistryError AuthUser
+insertDummies = do
+  businessPfx <- addBusiness dummyBusiness
+  uid <- addUser dummyNewUser {newUserCompany=businessPfx}
+  tableUser <- runDb $ getUserByIdQuery uid
+  return (tableToAuthUser . fromJust $ tableUser)
