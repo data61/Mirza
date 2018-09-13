@@ -119,19 +119,6 @@ testKeyQueries = do
       -- r `shouldBe` Left BT.UnauthorisedKeyAccess
 --}
 
-    it "Already expired AND revoked pub key" $ \brContext -> do
-      nowish <- getCurrentTime
-      let hundredMinutes = 100 * 60
-          someTimeAgo = addUTCTime (-hundredMinutes) nowish
-      pubKey <- goodRsaPublicKey
-      myKeyState <- testAppM brContext $ do
-        user <- insertDummies
-        keyId <- addPublicKey user pubKey (Just . ExpirationTime $ someTimeAgo )
-        _timeKeyRevoked <- revokePublicKey user keyId
-        keyInfo <- getPublicKeyInfo keyId
-        pure (keyInfoState keyInfo)
-      myKeyState `shouldBe` Revoked
-
     it "Expired but NOT revoked pub key" $ \brContext -> do
       nowish <- getCurrentTime
       let hundredMinutes = 100 * 60
