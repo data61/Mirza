@@ -336,10 +336,9 @@ clientSpec = do
           b1K2InfoDelayedResponse `shouldSatisfy` isRight
           b1K2InfoDelayedResponse `shouldSatisfy` checkField keyInfoState (== Expired)
 
-          -- TODO Include this test (github #217):
-          -- step "Test that it is not possible to revoke a key that has already expired."
-          -- b1K2RevokedResponse <- http (revokePublicKey (newUserToBasicAuthData userB1U1) b1K2StoredKeyId)
-          -- b1K2RevokedResponse `shouldSatisfy` isLeft
+          step "Test that it is not possible to revoke a key that has already expired."
+          b1K2RevokedResponse <- http (revokePublicKey (newUserToBasicAuthData userB1U1) b1K2StoredKeyId)
+          b1K2RevokedResponse `shouldSatisfy` isLeft
 
           -- TODO: Include this test (github #205):
           -- step $ "That it is not possible to add a key that is already expired"

@@ -30,7 +30,7 @@ import           OpenSSL.PEM                              (readPublicKey,
                                                            writePublicKey)
 import           OpenSSL.RSA                              (RSAPubKey, rsaSize)
 
-import           Control.Monad                            (unless, when)
+import           Control.Monad                            (unless)
 import           Data.Maybe                               (isJust)
 
 minPubKeySize :: Bit
@@ -151,15 +151,31 @@ revokePublicKey :: (BRApp context err, AsKeyError err) => BT.AuthUser
 revokePublicKey (AuthUser uId) keyId =
     runDb $ revokePublicKeyQuery uId keyId
 
-isKeyRevokedQuery :: (BRApp context err, AsKeyError err)
+keyStateQuery :: (BRApp context err, AsKeyError err)
                   => CT.BRKeyId
-                  -> DB context err Bool
-isKeyRevokedQuery kid = do
+                  -> DB context err KeyState
+keyStateQuery kid = do
   currTime <- liftIO getCurrentTime
   mkeyInfo <- fmap (keyToKeyInfo currTime) <$> getPublicKeyInfoQuery kid
   maybe (throwing _KeyNotFound kid)
-        (\ki -> pure $ keyInfoState ki == Revoked)
+        (\ki -> pure $ keyInfoState ki)
         mkeyInfo
+
+-- | Checks that the key is useable and throws a key error if it is expired or revoked.
+useableKey :: (HasEnvType context,
+               HasConnPool context,
+               HasKatipContext context,
+               HasKatipLogEnv context,
+               AsBusinessRegistryError e,
+               AsSqlError e,
+               AsKeyError e)
+              => BRKeyId -> DB context e ()
+useableKey k = do
+  state <- keyStateQuery k
+  case state of
+    Revoked  -> throwing_ _KeyAlreadyRevoked
+    Expired  -> throwing_ _KeyAlreadyExpired
+    InEffect -> pure ()
 
 revokePublicKeyQuery :: (BRApp context err, AsKeyError err) => CT.UserId
                      -> CT.BRKeyId
@@ -167,8 +183,7 @@ revokePublicKeyQuery :: (BRApp context err, AsKeyError err) => CT.UserId
 revokePublicKeyQuery uId k@(CT.BRKeyId keyId) = do
   userOwnsKey <- doesUserOwnKeyQuery uId k
   unless userOwnsKey $ throwing_ _UnauthorisedKeyAccess
-  keyRevoked <- isKeyRevokedQuery k
-  when keyRevoked $ throwing_ _KeyAlreadyRevoked
+  useableKey k
   timestamp <- generateTimestamp
   _r <- pg $ runUpdate $ update
                 (_keys businessRegistryDB)
