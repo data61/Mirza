@@ -452,7 +452,7 @@ go = GlobalOptions testDbConnStr 14 8 1 DebugS Dev
 runApp :: IO (ThreadId, BaseUrl, BasicAuthData)
 runApp = do
   ctx <- initBRContext go
-  let BusinessRegistryDB usersTable businessesTable keysTable
+  let BusinessRegistryDB usersTable businessesTable keysTable locationsTable
         = businessRegistryDB
 
   flushDbResult <- runAppM @_ @BusinessRegistryError ctx $ runDb $ do
@@ -460,6 +460,7 @@ runApp = do
       deleteTable keysTable
       deleteTable usersTable
       deleteTable businessesTable
+      deleteTable locationsTable
   flushDbResult `shouldSatisfy` isRight
 
   -- This construct somewhat destroys the integrity of these test since it is

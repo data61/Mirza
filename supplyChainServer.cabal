@@ -24,6 +24,7 @@ library
                     , Mirza.BusinessRegistry.Database.Migrate
                     , Mirza.BusinessRegistry.Database.Schema
                     , Mirza.BusinessRegistry.Database.Schema.V0001
+                    , Mirza.BusinessRegistry.Database.Schema.V0002
                     , Mirza.BusinessRegistry.Handlers.Business
                     , Mirza.BusinessRegistry.Handlers.Common
                     , Mirza.BusinessRegistry.Handlers.Keys
