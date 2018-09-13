@@ -430,9 +430,8 @@ clientSpec = do
           step "Can add all of the good keys"
           testDirectory "goodKeys" isRight
 
-          -- TODO: Include this test. Some of the invalid keys work. (github #212)
-          -- step "Can't add any of the bad keys"
-          -- testDirectory "badKeys" isLeft
+          step "Can't add any of the bad keys"
+          testDirectory "badKeys" isLeft
 
 
   pure $ testGroup "Business Registry HTTP Client tests"
