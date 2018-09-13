@@ -162,17 +162,24 @@ keyStateQuery kid = do
 
 
 
--- | Checks that the key is useable and throws a key error if it is expired or revoked.
-useableKey :: (HasEnvType context,
+-- | Checks that the key is useable and throws a key error if the key is not
+-- | found, the user doesn't have permission to modify the key, it is expired
+-- | or revoked. The function can be modified in the future to add additional
+-- | constraints that must be checked before the key is updated in anyway
+-- | (effectively controling the minimum state for write access to the key).
+updateableKey :: (HasEnvType context,
                HasConnPool context,
                HasKatipContext context,
                HasKatipLogEnv context,
                AsBusinessRegistryError e,
                AsSqlError e,
                AsKeyError e)
-              => BRKeyId -> DB context e ()
-useableKey k = do
-  state <- keyStateQuery k
+              => CT.BRKeyId -> CT.UserId -> DB context e ()
+updateableKey keyId userId = do
+  userOwnsKey <- doesUserOwnKeyQuery userId keyId
+  unless userOwnsKey $ throwing_ _UnauthorisedKeyAccess
+
+  state <- keyStateQuery keyId
   case state of
     Revoked  -> throwing_ _KeyAlreadyRevoked
     Expired  -> throwing_ _KeyAlreadyExpired
@@ -181,10 +188,8 @@ useableKey k = do
 revokePublicKeyQuery :: (BRApp context err, AsKeyError err) => CT.UserId
                      -> CT.BRKeyId
                      -> DB context err RevocationTime
-revokePublicKeyQuery uId k@(CT.BRKeyId keyId) = do
-  userOwnsKey <- doesUserOwnKeyQuery uId k
-  unless userOwnsKey $ throwing_ _UnauthorisedKeyAccess
-  useableKey k
+revokePublicKeyQuery userId k@(CT.BRKeyId keyId) = do
+  updateableKey k userId
   timestamp <- generateTimestamp
   _r <- pg $ runUpdate $ update
                 (_keys businessRegistryDB)
