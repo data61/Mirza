@@ -1,5 +1,8 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE StandaloneDeriving    #-}
+{-# LANGUAGE DeriveGeneric         #-}
+
 
 
 module Mirza.BusinessRegistry.Database.Schema.V0002
@@ -11,8 +14,8 @@ module Mirza.BusinessRegistry.Database.Schema.V0002
 import qualified Data.GS1.EPC                     as EPC
 import           Mirza.Common.GS1BeamOrphans
 import           Mirza.Common.Types               (PrimaryKeyType)
-import           Control.Lens
 
+import           Control.Lens
 import           Data.Text                        (Text)
 
 import           Database.Beam                    as B
@@ -22,6 +25,8 @@ import           Database.Beam.Postgres
 
 import           Data.Aeson
 import           Data.Swagger
+
+import           GHC.Generics (Generic)
 
 import qualified Mirza.BusinessRegistry.Database.Schema.V0001 as V0001
 import           Mirza.BusinessRegistry.Database.Schema.V0001 as V0001' hiding (BusinessRegistryDB(..), migration)
