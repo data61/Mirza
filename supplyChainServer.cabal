@@ -112,7 +112,8 @@ test-suite supplyChainServer-test
   type:               exitcode-stdio-1.0
   hs-source-dirs:     test
   main-is:            Mirza/SupplyChain/Spec.hs
-  other-modules:      Mirza.Common.Test.ServantUtil
+  other-modules:      Mirza.Common.Tests.ServantUtils
+                    , Mirza.Common.Tests.Utils
                     , Mirza.SupplyChain.Tests.Service
                     , Mirza.SupplyChain.Tests.Dummies
                     , Mirza.SupplyChain.Tests.Client
@@ -152,14 +153,14 @@ test-suite businessRegistry-test
   type:               exitcode-stdio-1.0
   hs-source-dirs:     test
   main-is:            Mirza/BusinessRegistry/Spec.hs
-  other-modules:      Mirza.Common.Test.ServantUtil
+  other-modules:      Mirza.Common.Tests.ServantUtils
+                    , Mirza.Common.Tests.Utils
                     , Mirza.BusinessRegistry.Tests.Keys
                     , Mirza.BusinessRegistry.Tests.Dummies
                     , Mirza.BusinessRegistry.Tests.Business
                     , Mirza.BusinessRegistry.Tests.Client
                     , Mirza.BusinessRegistry.Tests.Settings
                     , Mirza.BusinessRegistry.Tests.Utils
-                    , Mirza.Common.Tests.Utils
   default-extensions:  OverloadedStrings
   build-depends:       base
                      , GS1Combinators

@@ -10,8 +10,8 @@ import           Control.Exception                 (bracket)
 import           Servant.API.BasicAuth
 import           Servant.Client                    (BaseUrl)
 
-import           Data.Either                       (isLeft, isRight, fromRight)
-import           Data.UUID                         (nil)
+import           Data.Either                       (isLeft, isRight)
+--import           Data.UUID                         (nil)
 
 import           Data.Text.Encoding                (encodeUtf8)
 
@@ -26,11 +26,12 @@ import           Mirza.SupplyChain.Main            (ServerOptions (..),
                                                     initSCSContext)
 import           Mirza.SupplyChain.Types           as ST
 import           Mirza.SupplyChain.Client.Servant
-import           Mirza.BusinessRegistry.Client.Servant (revokePublicKey,
-                                                        addPublicKey)
+--import           Mirza.BusinessRegistry.Client.Servant (revokePublicKey,
+--                                                        addPublicKey)
 import           Mirza.SupplyChain.Tests.Dummies
 import           Mirza.SupplyChain.Tests.Settings
-import           Mirza.Common.Test.ServantUtil
+import           Mirza.Common.Tests.ServantUtils
+import           Mirza.Common.Tests.Utils
 import           Mirza.SupplyChain.Database.Schema as Schema
 
 import           Database.Beam.Query               (delete, runDelete, val_)
@@ -39,9 +40,9 @@ import           Database.Beam.Query               (delete, runDelete, val_)
 -- import           Data.Time.Clock                  (addUTCTime, getCurrentTime)
 
 import           Data.GS1.EPC                     (GS1CompanyPrefix (..))
-import           Data.GS1.EventId                 as EvId
+--import           Data.GS1.EventId                 as EvId
 
-import           Mirza.BusinessRegistry.Tests.Utils
+--import           Mirza.BusinessRegistry.Tests.Utils
 
 -- === SCS Client tests
 
@@ -145,6 +146,10 @@ clientSpec = do
   let eventInsertionTests = testCaseSteps "User can add single events" $ \step ->
         bracket runApp endWaiApp $ \(_tid,baseurl) -> do
           let http = runClient baseurl
+
+          -- Add a user so that we can authenticate for these tests.
+          http (addUser userABC) `shouldSatisfyIO` isRight
+
           step "User Can insert Object events"
             -- TODO: Events need their EventId returned to user
           resp <- http (insertObjectEvent authABC dummyObject)
@@ -162,45 +167,46 @@ clientSpec = do
           http (insertTransfEvent authABC dummyTransformation)
             `shouldSatisfyIO` isRight
 
-  let eventSignTests = testCaseSteps "eventSign" $ \step ->
-        bracket runApp endWaiApp $ \(_tid,baseurl) -> do
-        let http = runClient baseurl
+  -- TODO: See github issue #235.
+  -- let eventSignTests = testCaseSteps "eventSign" $ \step ->
+  --       bracket runApp endWaiApp $ \(_tid,baseurl) -> do
+  --       let http = runClient baseurl
 
-        -- nowish <- getCurrentTime
-        -- let hundredMinutes = 100 * 60
-        --     someTimeLater = addUTCTime (hundredMinutes) nowish
+  --       -- nowish <- getCurrentTime
+  --       -- let hundredMinutes = 100 * 60
+  --       --     someTimeLater = addUTCTime (hundredMinutes) nowish
 
-        step "Adding a new user"
-        uid <- http (addUser userABC)
-        uid `shouldSatisfy` isRight
+  --       step "Adding a new user"
+  --       uid <- http (addUser userABC)
+  --       uid `shouldSatisfy` isRight
 
-        step "Tying the user with a good key and an expiration time"
-        goodKey <- goodRsaPublicKey
-        keyIdResponse <- http (addPublicKey authABC goodKey Nothing)
-        -- liftIO $ print keyIdResponse
-        keyIdResponse `shouldSatisfy` isRight
-        let keyId = fromRight (BRKeyId nil) keyIdResponse
+  --       step "Tying the user with a good key and an expiration time"
+  --       goodKey <- goodRsaPublicKey
+  --       keyIdResponse <- http (addPublicKey authABC goodKey Nothing)
+  --       -- liftIO $ print keyIdResponse
+  --       keyIdResponse `shouldSatisfy` isRight
+  --       let keyId = fromRight (BRKeyId nil) keyIdResponse
 
-        step "Revoking the key"
-        http (revokePublicKey authABC keyId) `shouldSatisfyIO` isRight
+  --       step "Revoking the key"
+  --       http (revokePublicKey authABC keyId) `shouldSatisfyIO` isRight
 
-        step "Inserting the object event"
-        objInsertionResponse <- http (insertObjectEvent authABC dummyObject)
-        objInsertionResponse `shouldSatisfy` isRight
-        let (_insertedEvent, (Schema.EventId eventId)) = fromRight (error "Should be right") objInsertionResponse
+  --       step "Inserting the object event"
+  --       objInsertionResponse <- http (insertObjectEvent authABC dummyObject)
+  --       objInsertionResponse `shouldSatisfy` isRight
+  --       let (_insertedEvent, (Schema.EventId eventId)) = fromRight (error "Should be right") objInsertionResponse
 
-          -- Adding the event
-        let mySign = ST.Signature "c2FqaWRhbm93ZXIyMw=="
-            myDigest = SHA256
-            mySignedEvent = SignedEvent (EvId.EventId eventId) keyId mySign myDigest
-        -- if this test can proceed after the following statement
-        http (eventSign authABC mySignedEvent) `shouldSatisfyIO` isRight
-        -- it means the basic functionality of ``eventSign`` function is perhaps done
+  --         -- Adding the event
+  --       let mySign = ST.Signature "c2FqaWRhbm93ZXIyMw=="
+  --           myDigest = SHA256
+  --           mySignedEvent = SignedEvent (EvId.EventId eventId) keyId mySign myDigest
+  --       -- if this test can proceed after the following statement
+  --       http (eventSign authABC mySignedEvent) `shouldSatisfyIO` isRight
+  --       -- it means the basic functionality of ``eventSign`` function is perhaps done
 
   pure $ testGroup "Supply Chain Service Client Tests"
         [ userCreationTests
         , eventInsertionTests
-        , eventSignTests
+        -- , eventSignTests
         ]
 
 {-

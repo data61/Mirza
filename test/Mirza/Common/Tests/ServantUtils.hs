@@ -1,9 +1,8 @@
-module Mirza.Common.Test.ServantUtil
+module Mirza.Common.Tests.ServantUtils
   ( startWaiApp
   , endWaiApp
   , runClient
   , manager'
-  , shouldSatisfyIO
   ) where
 
 import           Control.Concurrent           (ThreadId, forkIO,  killThread)
@@ -14,9 +13,6 @@ import           Network.Socket
 import qualified Network.Wai                  as Wai
 import           Network.Wai.Handler.Warp
 import           Servant.Client
-
-import           GHC.Stack                    (HasCallStack)
-import           Test.Hspec.Expectations      (Expectation, shouldSatisfy)
 
 -- Cribbed from
 -- https://github.com/haskell-servant/servant/blob/master/servant-client/test/Servant/ClientSpec.hs
@@ -48,6 +44,3 @@ manager' = unsafePerformIO $ C.newManager C.defaultManagerSettings
 
 runClient :: BaseUrl -> ClientM a -> IO (Either ServantError a)
 runClient baseUrl' x = runClientM x (mkClientEnv manager' baseUrl')
-
-shouldSatisfyIO :: (HasCallStack, Show a, Eq a) => IO a -> (a -> Bool) -> Expectation
-action `shouldSatisfyIO` p = action >>= (`shouldSatisfy` p)
