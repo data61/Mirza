@@ -32,6 +32,8 @@ import           OpenSSL.RSA                              (RSAPubKey, rsaSize)
 
 import           Control.Monad                            (unless)
 import           Data.Maybe                               (isJust)
+import           Control.Monad.Error.Hoist                ((<!?>))
+import           Control.Lens                             ((#))
 
 minPubKeySize :: Bit
 minPubKeySize = Bit 2048
@@ -156,10 +158,9 @@ keyStateQuery :: (BRApp context err, AsKeyError err)
                   -> DB context err KeyState
 keyStateQuery kid = do
   currTime <- liftIO getCurrentTime
-  mkeyInfo <- fmap (keyToKeyInfo currTime) <$> getPublicKeyInfoQuery kid
-  maybe (throwing _KeyNotFound kid)
-        (\ki -> pure $ keyInfoState ki)
-        mkeyInfo
+  keyInfoState . keyToKeyInfo currTime <$> getPublicKeyInfoQuery kid <!?> (_KeyNotFound # kid)
+
+
 
 -- | Checks that the key is useable and throws a key error if it is expired or revoked.
 useableKey :: (HasEnvType context,
