@@ -97,7 +97,12 @@ keyToKeyInfo currTime (Schema.KeyT keyId (Schema.UserId keyUserId) pemStr creati
 
 
 
-getPublicKeyInfoQuery :: BRApp context err => CT.BRKeyId -> DB context err (Maybe Schema.Key)
+getPublicKeyInfoQuery ::  ( HasEnvType context
+                          , HasConnPool context
+                          , HasKatipContext context
+                          , HasKatipLogEnv context
+                          , AsBusinessRegistryError err)
+                           => CT.BRKeyId -> DB context err (Maybe Schema.Key)
 getPublicKeyInfoQuery (CT.BRKeyId uuid) = pg $ runSelectReturningOne $
   select $ do
     keys <- all_ (_keys businessRegistryDB)
@@ -153,7 +158,12 @@ revokePublicKey :: (BRApp context err, AsKeyError err) => BT.AuthUser
 revokePublicKey (AuthUser uId) keyId =
     runDb $ revokePublicKeyQuery uId keyId
 
-keyStateQuery :: (BRApp context err, AsKeyError err)
+keyStateQuery ::  ( HasEnvType context
+                  , HasConnPool context
+                  , HasKatipContext context
+                  , HasKatipLogEnv context
+                  , AsBusinessRegistryError err
+                  , AsKeyError err)
                   => CT.BRKeyId
                   -> DB context err KeyState
 keyStateQuery kid = do
@@ -167,14 +177,13 @@ keyStateQuery kid = do
 -- | or revoked. The function can be modified in the future to add additional
 -- | constraints that must be checked before the key is updated in anyway
 -- | (effectively controling the minimum state for write access to the key).
-protectKeyUpdate :: (HasEnvType context,
-               HasConnPool context,
-               HasKatipContext context,
-               HasKatipLogEnv context,
-               AsBusinessRegistryError e,
-               AsSqlError e,
-               AsKeyError e)
-              => CT.BRKeyId -> CT.UserId -> DB context e ()
+protectKeyUpdate :: ( HasEnvType context
+                    , HasConnPool context
+                    , HasKatipContext context
+                    , HasKatipLogEnv context
+                    , AsBusinessRegistryError err
+                    , AsKeyError err)
+                    => CT.BRKeyId -> CT.UserId -> DB context err ()
 protectKeyUpdate keyId userId = do
   userOwnsKey <- doesUserOwnKeyQuery userId keyId
   unless userOwnsKey $ throwing_ _UnauthorisedKeyAccess
