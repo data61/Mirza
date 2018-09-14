@@ -173,10 +173,10 @@ keyStateQuery kid = do
 
 
 -- | Checks that the key is useable and throws a key error if the key is not
--- | found, the user doesn't have permission to modify the key, it is expired
--- | or revoked. The function can be modified in the future to add additional
--- | constraints that must be checked before the key is updated in anyway
--- | (effectively controling the minimum state for write access to the key).
+-- found, the user doesn't have permission to modify the key, it is expired
+-- or revoked. The function can be modified in the future to add additional
+-- constraints that must be checked before the key is updated in anyway
+-- (effectively controling the minimum state for write access to the key).
 protectKeyUpdate :: ( Member err     '[AsKeyError])
                  =>  CT.BRKeyId
                  -> CT.UserId
