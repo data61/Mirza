@@ -119,6 +119,8 @@ keyErrToHttpErr (InvalidRSAKeySize (Expected (Bit expSize)) (Received (Bit recSi
   }
 keyErrToHttpErr KeyAlreadyRevoked =
   throwError $ err400 { errBody = "Public Key already revoked" }
+keyErrToHttpErr KeyAlreadyExpired =
+  throwError $ err400 { errBody = "Public Key already expired" }
 keyErrToHttpErr UnauthorisedKeyAccess =
   throwError $ err403 { errBody = "Not authorised to access this key." }
 keyErrToHttpErr (PublicKeyInsertionError _) =

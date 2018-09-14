@@ -7,6 +7,11 @@
 {-# LANGUAGE TemplateHaskell            #-}
 {-# LANGUAGE TypeApplications           #-}
 {-# LANGUAGE UndecidableInstances       #-}
+{-# LANGUAGE TypeOperators              #-}
+{-# LANGUAGE DataKinds                  #-}
+{-# LANGUAGE ConstraintKinds            #-}
+{-# LANGUAGE KindSignatures             #-}
+{-# LANGUAGE TypeFamilies               #-}
 
 
 module Mirza.Common.Types
@@ -18,6 +23,8 @@ module Mirza.Common.Types
   , DB(..)
   , runDb
   , pg
+  , Member
+  , HasLogging
   , AsSqlError(..)
   , HasConnPool(..)
   , HasEnvType(..)
@@ -79,6 +86,7 @@ import           Control.Monad.Error.Lens
 import           Data.Swagger
 
 import           GHC.Generics                         (Generic)
+import           GHC.Exts (Constraint)
 
 import           Katip                                as K
 import           Katip.Monadic                        (askLoggerIO)
@@ -185,6 +193,20 @@ newtype DB context error a = DB (ReaderT (Connection,context) (ExceptT error Pg)
   , MonadIO -- Need to figure out if we actually want this
   )
 
+-- =============================================================================
+-- Classes and utilities for working with Constraints
+-- =============================================================================
+
+
+-- | Helper to make constraints on functions cleaner:
+--
+-- bazQuery :: ( Member context '[HasEnvType, HasConnPool, HasLogging]
+--             , Member err     '[AsBusinessRegistryError, AsKeyError])
+--             => Foo
+--             -> DB context err Bar
+type family Member (e :: *) (cs :: [* -> Constraint]) :: Constraint where
+  Member e '[] = ()
+  Member e (c ': cs) = (c e, Member e cs)
 
 -- | The class of contexts which have a database pool:
 -- @
@@ -207,6 +229,19 @@ instance AsSqlError SqlError where
 class HasScryptParams a where
   scryptParams :: Lens' a ScryptParams
 
+-- Logging classes
+-- ===============
+
+-- | Convenience class for contexts which can be used for logging
+-- @
+--   foo :: Member context '[HasLogging] => Foo -> DB context err Bar
+-- @
+class (HasKatipContext context, HasKatipLogEnv context)
+  => HasLogging context where
+instance (HasKatipContext context, HasKatipLogEnv context)
+  => HasLogging context
+
+
 class HasKatipLogEnv a where
   katipLogEnv :: Lens' a K.LogEnv
 
@@ -214,11 +249,6 @@ class HasKatipContext a where
   katipContexts :: Lens' a K.LogContexts
   katipNamespace :: Lens' a K.Namespace
 
-class HasClientEnv a where
-  clientEnv :: Lens' a ClientEnv
-
-class AsServantError a where
-    _ServantError :: Prism' a ServantError
 
 instance HasKatipLogEnv context => Katip (AppM context err) where
   getLogEnv = view katipLogEnv
@@ -243,6 +273,13 @@ instance (HasKatipContext context, HasKatipLogEnv context)
   localKatipContext f = local (over (_2 . katipContexts) f)
   localKatipNamespace f = local (over (_2 . katipNamespace) f)
 
+
+
+class HasClientEnv a where
+  clientEnv :: Lens' a ClientEnv
+
+class AsServantError a where
+    _ServantError :: Prism' a ServantError
 
 type DBConstraint context err =
     ( HasEnvType context
