@@ -89,6 +89,7 @@ migration () =
           (field "pem_str" text)
           (field "creation_time" timestamptz)
           (field "revocation_time" (maybeType timestamptz))
+          (field "revoking_user_id" (maybeType pkSerialType))
           (field "expiration_time" (maybeType timestamptz))
     )
 
@@ -170,12 +171,13 @@ deriving instance Show Key
 -- However, all times are converted to UTCTime using methods from typeclasses
 -- defined in Mirza.Common.Time
 data KeyT f = KeyT
-  { key_id          :: C f PrimaryKeyType
-  , key_user_id     :: PrimaryKey UserT f    -- TODO: We should record the business that is associated with the key...not sure if there is any need to store the user...
-  , pem_str         :: C f Text
-  , creation_time   :: C f LocalTime -- Stored as UTC Time
-  , revocation_time :: C f (Maybe LocalTime) -- Stored as UTC Time
-  , expiration_time :: C f (Maybe LocalTime) -- Stored as UTC Time
+  { key_id           :: C f PrimaryKeyType
+  , key_user_id      :: PrimaryKey UserT f    -- TODO: We should record the business that is associated with the key...not sure if there is any need to store the user...
+  , pem_str          :: C f Text
+  , creation_time    :: C f LocalTime -- Stored as UTC Time
+  , revocation_time  :: C f (Maybe LocalTime) -- Stored as UTC Time
+  , revoking_user_id :: C f (Maybe PrimaryKeyType)
+  , expiration_time  :: C f (Maybe LocalTime) -- Stored as UTC Time
   }
   deriving Generic
 
