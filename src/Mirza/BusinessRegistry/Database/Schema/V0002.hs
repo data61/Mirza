@@ -12,6 +12,7 @@ module Mirza.BusinessRegistry.Database.Schema.V0002
  ) where
 
 import qualified Data.GS1.EPC                     as EPC
+import           Mirza.BusinessRegistry.Types
 import           Mirza.Common.GS1BeamOrphans
 import           Mirza.Common.Types               (PrimaryKeyType)
 
@@ -25,6 +26,7 @@ import           Database.Beam.Postgres
 
 import           Data.Aeson
 import           Data.Swagger
+import           Servant (ToHttpApiData(toUrlPiece), FromHttpApiData)
 
 import           GHC.Generics (Generic)
 
@@ -55,9 +57,9 @@ migration v0001 = BusinessRegistryDB
           (field "location_id" V0001.pkSerialType)
           (V0001.BizId (field "location_biz_id" gs1CompanyPrefixType))
           (field "location_gln" locationEPCType)
-          (field "Location_lat" latitudeType)
-          (field "Location_lon" longitudeType)
-          (field "location_address" (varchar Nothing))
+          (field "Location_lat" (maybeType latitudeType))
+          (field "Location_lon" (maybeType longitudeType))
+          (field "location_address" (maybeType $ varchar Nothing))
         )
 
 type Location = LocationT Identity
@@ -67,9 +69,9 @@ data LocationT f = LocationT
   { location_id        :: C f PrimaryKeyType
   , location_biz_id    :: PrimaryKey V0001.BusinessT f
   , location_gln       :: C f EPC.LocationEPC
-  , location_latitude  :: C f Latitude
-  , location_longitude :: C f Longitude
-  , location_address   :: C f Text
+  , location_latitude  :: C f (Maybe Latitude)
+  , location_longitude :: C f (Maybe Longitude)
+  , location_address   :: C f (Maybe Text)
   }
   deriving Generic
 
@@ -90,3 +92,8 @@ instance Table LocationT where
     deriving Generic
   primaryKey = LocationId . location_id
 deriving instance Eq (PrimaryKey LocationT Identity)
+
+instance ToHttpApiData (PrimaryKey LocationT Identity) where
+  toUrlPiece (LocationId uuid) = toUrlPiece uuid
+
+instance FromHttpApiData (PrimaryKey LocationT Identity) where

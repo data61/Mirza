@@ -30,10 +30,6 @@ module Mirza.Common.GS1BeamOrphans
   , serialNumType
   , itemRefType
   , locationEPCType
-  , Latitude(..)
-  , latitudeType
-  , Longitude(..)
-  , longitudeType
   ) where
 
 import           Mirza.Common.Beam
@@ -517,58 +513,3 @@ instance ToField EPC.LocationEPC where
 
 locationEPCType :: BMigrate.DataType PgDataTypeSyntax EPC.LocationEPC
 locationEPCType = textType
-
-newtype Latitude  = Latitude  { getLatitude  :: Double } deriving (Show, Eq, Ord)
-newtype Longitude = Longitude { getLongitude :: Double } deriving (Show, Eq, Ord)
-
-
-instance BSQL.HasSqlValueSyntax be Double
-      => BSQL.HasSqlValueSyntax be Latitude where
-  sqlValueSyntax = BSQL.sqlValueSyntax . getLatitude
-instance (BMigrate.IsSql92ColumnSchemaSyntax be)
-      => BMigrate.HasDefaultSqlDataTypeConstraints be Latitude
-
-instance ( BSQL.HasSqlValueSyntax (BSQL.Sql92ExpressionValueSyntax be) Bool
-         , BSQL.IsSql92ExpressionSyntax be)
-      => B.HasSqlEqualityCheck be Latitude
-instance ( BSQL.HasSqlValueSyntax (BSQL.Sql92ExpressionValueSyntax be) Bool
-         , BSQL.IsSql92ExpressionSyntax be)
-      => B.HasSqlQuantifiedEqualityCheck be Latitude
-
-instance BSQL.FromBackendRow BPostgres.Postgres Latitude where
-  fromBackendRow = Latitude <$> BSQL.fromBackendRow
-
-instance FromField Latitude where
-  fromField fld mbs = Latitude <$> fromField fld mbs
-
-instance ToField Latitude where
-  toField = toField . getLatitude
-
-latitudeType :: BMigrate.DataType PgDataTypeSyntax Latitude
-latitudeType = BMigrate.DataType BSQL.doubleType
-
-
-instance BSQL.HasSqlValueSyntax be Double 
-      => BSQL.HasSqlValueSyntax be Longitude where
-  sqlValueSyntax = BSQL.sqlValueSyntax . getLongitude
-instance BMigrate.IsSql92ColumnSchemaSyntax be
-      => BMigrate.HasDefaultSqlDataTypeConstraints be Longitude
-
-instance ( BSQL.HasSqlValueSyntax (BSQL.Sql92ExpressionValueSyntax be) Bool
-         , BSQL.IsSql92ExpressionSyntax be)
-      => B.HasSqlEqualityCheck be Longitude
-instance ( BSQL.HasSqlValueSyntax (BSQL.Sql92ExpressionValueSyntax be) Bool
-         , BSQL.IsSql92ExpressionSyntax be)
-      => B.HasSqlQuantifiedEqualityCheck be Longitude
-
-instance BSQL.FromBackendRow BPostgres.Postgres Longitude where
-  fromBackendRow = Longitude <$> BSQL.fromBackendRow
-
-instance FromField Longitude where
-  fromField fld mbs = Longitude <$> fromField fld mbs
-
-instance ToField Longitude where
-  toField = toField . getLongitude
-
-longitudeType :: BMigrate.DataType PgDataTypeSyntax Longitude
-longitudeType = BMigrate.DataType BSQL.doubleType
