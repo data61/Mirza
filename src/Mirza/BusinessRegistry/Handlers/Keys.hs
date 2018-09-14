@@ -167,7 +167,7 @@ keyStateQuery kid = do
 -- | or revoked. The function can be modified in the future to add additional
 -- | constraints that must be checked before the key is updated in anyway
 -- | (effectively controling the minimum state for write access to the key).
-updateableKey :: (HasEnvType context,
+protectKeyUpdate :: (HasEnvType context,
                HasConnPool context,
                HasKatipContext context,
                HasKatipLogEnv context,
@@ -175,7 +175,7 @@ updateableKey :: (HasEnvType context,
                AsSqlError e,
                AsKeyError e)
               => CT.BRKeyId -> CT.UserId -> DB context e ()
-updateableKey keyId userId = do
+protectKeyUpdate keyId userId = do
   userOwnsKey <- doesUserOwnKeyQuery userId keyId
   unless userOwnsKey $ throwing_ _UnauthorisedKeyAccess
 
@@ -189,7 +189,7 @@ revokePublicKeyQuery :: (BRApp context err, AsKeyError err) => CT.UserId
                      -> CT.BRKeyId
                      -> DB context err RevocationTime
 revokePublicKeyQuery userId k@(CT.BRKeyId keyId) = do
-  updateableKey k userId
+  protectKeyUpdate k userId
   timestamp <- generateTimestamp
   _r <- pg $ runUpdate $ update
                 (_keys businessRegistryDB)
