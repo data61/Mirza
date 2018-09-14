@@ -27,6 +27,7 @@ import           Mirza.BusinessRegistry.API
 import           Mirza.BusinessRegistry.Handlers.Business as Handlers
 import           Mirza.BusinessRegistry.Handlers.Common   as Handlers
 import           Mirza.BusinessRegistry.Handlers.Keys     as Handlers
+import           Mirza.BusinessRegistry.Handlers.Location as Handlers
 import           Mirza.BusinessRegistry.Handlers.Users    as Handlers
 import           Mirza.BusinessRegistry.Types
 import           Mirza.Common.Utils
@@ -69,6 +70,8 @@ privateServer =
   :<|> addBusinessAuth
   :<|> addPublicKey
   :<|> revokePublicKey
+  :<|> addLocation
+  :<|> removeLocation
 
 
 instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub) where

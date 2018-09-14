@@ -15,7 +15,8 @@
 
 
 module Mirza.Common.Types
-  ( EmailAddress(..) , Password(..)  , UserId(..)
+  ( EmailAddress(..) , Password(..)
+  , UserId(..)
   , BRKeyId(..)
   , EnvType(..)
   , AppM(..)

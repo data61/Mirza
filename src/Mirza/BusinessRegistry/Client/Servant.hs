@@ -13,6 +13,7 @@ module Mirza.BusinessRegistry.Client.Servant
 
 import           Mirza.BusinessRegistry.API
 import           Mirza.BusinessRegistry.Types as BRT
+import           Mirza.BusinessRegistry.Database.Schema (LocationId)
 import           Mirza.Common.Time            (ExpirationTime, RevocationTime)
 import           Mirza.Common.Types           (BRKeyId)
 
@@ -31,6 +32,9 @@ addUser         :: BasicAuthData -> NewUser     -> ClientM UserId
 addBusiness     :: BasicAuthData -> NewBusiness -> ClientM GS1CompanyPrefix
 addPublicKey    :: BasicAuthData -> PEM_RSAPubKey -> Maybe ExpirationTime -> ClientM BRKeyId
 revokePublicKey :: BasicAuthData -> BRKeyId -> ClientM RevocationTime
+addLocation     :: BasicAuthData -> NewLocation -> ClientM LocationId
+removeLocation  :: BasicAuthData -> LocationId -> ClientM NoContent
+
 
 _api     :: Client ClientM ServerAPI
 _privAPI :: Client ClientM ProtectedAPI
@@ -47,5 +51,7 @@ _api@(
     :<|> addBusiness
     :<|> addPublicKey
     :<|> revokePublicKey
+    :<|> addLocation
+    :<|> removeLocation
   )
  ) = client (Proxy :: Proxy ServerAPI)

@@ -3,6 +3,7 @@
 {-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE StandaloneDeriving         #-}
 {-# LANGUAGE TemplateHaskell            #-}
+{-# LANGUAGE UndecidableInstances       #-}
 
 module Mirza.BusinessRegistry.Types (
     module Mirza.BusinessRegistry.Types
@@ -17,7 +18,15 @@ import           Mirza.Common.Utils
 import           Data.GS1.EPC               as EPC
 
 import           Data.Pool                  as Pool
+
+import           Database.Beam
+import           Database.Beam.Backend.SQL
+import           Database.Beam.Postgres.Syntax (PgDataTypeSyntax)
 import           Database.PostgreSQL.Simple (Connection, SqlError)
+import           Database.PostgreSQL.Simple.FromField (FromField, fromField)
+import           Database.PostgreSQL.Simple.ToField   (ToField, toField)
+import qualified Database.Beam.Migrate      as BMigrate
+import qualified Database.Beam.Postgres     as BPostgres
 
 import           Crypto.Scrypt              (ScryptParams)
 
@@ -112,6 +121,78 @@ instance ToSchema BusinessResponse
 instance ToJSON BusinessResponse
 instance FromJSON BusinessResponse
 
+data NewLocation = NewLocation
+  { newLocGLN     :: LocationEPC
+  , newLocCoords  :: Maybe (Latitude, Longitude)
+  , newLocAddress :: Maybe Text
+  }
+  deriving (Show, Eq, Generic)
+
+instance ToSchema NewLocation
+instance ToJSON NewLocation
+instance FromJSON NewLocation
+
+newtype Latitude  = Latitude  { getLatitude  :: Double }
+        deriving (Show, Eq, Ord, FromJSON, ToJSON, Generic)
+newtype Longitude = Longitude { getLongitude :: Double }
+        deriving (Show, Eq, Ord, FromJSON, ToJSON, Generic)
+
+instance ToSchema Latitude
+instance ToSchema Longitude
+
+instance HasSqlValueSyntax be Double
+      => HasSqlValueSyntax be Latitude where
+  sqlValueSyntax = sqlValueSyntax . getLatitude
+instance (BMigrate.IsSql92ColumnSchemaSyntax be)
+      => BMigrate.HasDefaultSqlDataTypeConstraints be Latitude
+
+instance ( HasSqlValueSyntax (Sql92ExpressionValueSyntax be) Bool
+         , IsSql92ExpressionSyntax be)
+      => HasSqlEqualityCheck be Latitude
+instance ( HasSqlValueSyntax (Sql92ExpressionValueSyntax be) Bool
+         , IsSql92ExpressionSyntax be)
+      => HasSqlQuantifiedEqualityCheck be Latitude
+
+instance FromBackendRow BPostgres.Postgres Latitude where
+  fromBackendRow = Latitude <$> fromBackendRow
+
+instance FromField Latitude where
+  fromField fld mbs = Latitude <$> fromField fld mbs
+
+instance ToField Latitude where
+  toField = toField . getLatitude
+
+latitudeType :: BMigrate.DataType PgDataTypeSyntax Latitude
+latitudeType = BMigrate.DataType doubleType
+
+
+instance HasSqlValueSyntax be Double 
+      => HasSqlValueSyntax be Longitude where
+  sqlValueSyntax = sqlValueSyntax . getLongitude
+instance BMigrate.IsSql92ColumnSchemaSyntax be
+      => BMigrate.HasDefaultSqlDataTypeConstraints be Longitude
+
+instance ( HasSqlValueSyntax (Sql92ExpressionValueSyntax be) Bool
+         , IsSql92ExpressionSyntax be)
+      => HasSqlEqualityCheck be Longitude
+instance ( HasSqlValueSyntax (Sql92ExpressionValueSyntax be) Bool
+         , IsSql92ExpressionSyntax be)
+      => HasSqlQuantifiedEqualityCheck be Longitude
+
+instance FromBackendRow BPostgres.Postgres Longitude where
+  fromBackendRow = Longitude <$> fromBackendRow
+
+instance FromField Longitude where
+  fromField fld mbs = Longitude <$> fromField fld mbs
+
+instance ToField Longitude where
+  toField = toField . getLongitude
+
+longitudeType :: BMigrate.DataType PgDataTypeSyntax Longitude
+longitudeType = BMigrate.DataType doubleType
+
+
+
 data KeyState
   = InEffect -- Can be used
   | Revoked -- Key passed the revocation time
@@ -120,6 +201,8 @@ data KeyState
 $(deriveJSON defaultOptions ''KeyState)
 instance ToSchema KeyState
 instance ToParamSchema KeyState
+
+
 
 -- *****************************************************************************
 -- Signing and Hashing Types
