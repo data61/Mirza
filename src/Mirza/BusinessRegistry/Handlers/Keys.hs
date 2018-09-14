@@ -1,4 +1,6 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE DataKinds #-}
+
 
 module Mirza.BusinessRegistry.Handlers.Keys
   (
@@ -11,7 +13,6 @@ module Mirza.BusinessRegistry.Handlers.Keys
 
 
 import           Mirza.BusinessRegistry.Database.Schema   as Schema
-import           Mirza.BusinessRegistry.Handlers.Common
 import           Mirza.BusinessRegistry.Types             as BT
 import           Mirza.Common.Time
 import           Mirza.Common.Types                       as CT
@@ -38,15 +39,15 @@ import           Control.Lens                             ((#))
 minPubKeySize :: Bit
 minPubKeySize = Bit 2048
 
-getPublicKey :: (BRApp context err, AsKeyError err)
+getPublicKey :: ( Member context '[HasEnvType, HasConnPool, HasLogging]
+                , Member err     '[AsKeyError, AsSqlError])
              => CT.BRKeyId
              -> AppM context err PEM_RSAPubKey
 getPublicKey kid = do
   mpem <- runDb $ getPublicKeyQuery kid
   maybe (throwing _KeyNotFound kid) pure mpem
 
-getPublicKeyQuery :: BRApp context err
-                  => CT.BRKeyId
+getPublicKeyQuery :: CT.BRKeyId
                   -> DB context err (Maybe PEM_RSAPubKey)
 getPublicKeyQuery (CT.BRKeyId uuid) = fmap (fmap PEM_RSAPubKey) $ pg $ runSelectReturningOne $
   select $ do
@@ -54,7 +55,8 @@ getPublicKeyQuery (CT.BRKeyId uuid) = fmap (fmap PEM_RSAPubKey) $ pg $ runSelect
     guard_ (primaryKey keys ==. val_ (Schema.KeyId uuid))
     pure (pem_str keys)
 
-getPublicKeyInfo :: (BRApp context err, AsKeyError err)
+getPublicKeyInfo :: ( Member context '[HasEnvType, HasConnPool, HasLogging]
+                    , Member err     '[AsKeyError, AsSqlError])
                  => CT.BRKeyId
                  -> AppM context err BT.KeyInfoResponse
 getPublicKeyInfo kid = do
@@ -64,7 +66,9 @@ getPublicKeyInfo kid = do
         (pure . keyToKeyInfo currTime)
         mkey
 
-keyToKeyInfo :: UTCTime -> Schema.Key -> KeyInfoResponse
+keyToKeyInfo :: UTCTime
+             -> Schema.Key
+             -> KeyInfoResponse
 keyToKeyInfo currTime (Schema.KeyT keyId (Schema.UserId keyUserId) pemStr creation revocation expiration ) =
   (KeyInfoResponse (CT.BRKeyId keyId) (CT.UserId keyUserId)
     (getKeyState
@@ -95,21 +99,17 @@ keyToKeyInfo currTime (Schema.KeyT keyId (Schema.UserId keyUserId) pemStr creati
     getKeyState Nothing Nothing = InEffect
 
 
-
-
-getPublicKeyInfoQuery ::  ( HasEnvType context
-                          , HasConnPool context
-                          , HasKatipContext context
-                          , HasKatipLogEnv context
-                          , AsBusinessRegistryError err)
-                           => CT.BRKeyId -> DB context err (Maybe Schema.Key)
+getPublicKeyInfoQuery :: CT.BRKeyId
+                      -> DB context err (Maybe Schema.Key)
 getPublicKeyInfoQuery (CT.BRKeyId uuid) = pg $ runSelectReturningOne $
   select $ do
     keys <- all_ (_keys businessRegistryDB)
     guard_ (primaryKey keys ==. val_ (Schema.KeyId uuid))
     pure keys
 
-addPublicKey :: (BRApp context err, AsKeyError err) => BT.AuthUser
+addPublicKey :: ( Member context '[HasEnvType, HasConnPool, HasLogging]
+                , Member err     '[AsKeyError, AsSqlError])
+             => BT.AuthUser
              -> PEM_RSAPubKey
              -> Maybe ExpirationTime
              -> AppM context err CT.BRKeyId
@@ -119,9 +119,11 @@ addPublicKey user pemKey@(PEM_RSAPubKey pemStr) mExp = do
   runDb $ addPublicKeyQuery user mExp rsaKey           -- Error: user error (error:0906D06C:PEM routines:PEM_read_bio:no start line)
 
 
-
-checkPubKey :: (MonadError err m, AsKeyError err)
-            => SomePublicKey -> PEM_RSAPubKey-> m RSAPubKey
+checkPubKey :: (MonadError err m
+               , Member err     '[AsKeyError])
+            => SomePublicKey
+            -> PEM_RSAPubKey
+            -> m RSAPubKey
 checkPubKey spKey pemKey =
   maybe (throwing _InvalidRSAKey pemKey)
   (\pubKey ->
@@ -134,7 +136,8 @@ checkPubKey spKey pemKey =
   (toPublicKey spKey)
 
 
-addPublicKeyQuery :: AsKeyError err => AuthUser
+addPublicKeyQuery :: ( Member err     '[AsKeyError])
+                  => AuthUser
                   -> Maybe ExpirationTime
                   -> RSAPubKey
                   -> DB context err CT.BRKeyId
@@ -152,24 +155,21 @@ addPublicKeyQuery (AuthUser (CT.UserId uid)) expTime rsaPubKey = do
     _       -> throwing _PublicKeyInsertionError (map (CT.BRKeyId . key_id) ks)
 
 
-revokePublicKey :: (BRApp context err, AsKeyError err) => BT.AuthUser
+revokePublicKey :: ( Member context '[HasEnvType, HasConnPool, HasLogging]
+                   , Member err     '[AsKeyError, AsSqlError])
+                => BT.AuthUser
                 -> CT.BRKeyId
                 -> AppM context err RevocationTime
 revokePublicKey (AuthUser uId) keyId =
     runDb $ revokePublicKeyQuery uId keyId
 
-keyStateQuery ::  ( HasEnvType context
-                  , HasConnPool context
-                  , HasKatipContext context
-                  , HasKatipLogEnv context
-                  , AsBusinessRegistryError err
-                  , AsKeyError err)
-                  => CT.BRKeyId
-                  -> DB context err KeyState
+
+keyStateQuery :: ( Member err     '[AsKeyError])
+              => CT.BRKeyId
+              -> DB context err KeyState
 keyStateQuery kid = do
   currTime <- liftIO getCurrentTime
   keyInfoState . keyToKeyInfo currTime <$> getPublicKeyInfoQuery kid <!?> (_KeyNotFound # kid)
-
 
 
 -- | Checks that the key is useable and throws a key error if the key is not
@@ -177,13 +177,10 @@ keyStateQuery kid = do
 -- | or revoked. The function can be modified in the future to add additional
 -- | constraints that must be checked before the key is updated in anyway
 -- | (effectively controling the minimum state for write access to the key).
-protectKeyUpdate :: ( HasEnvType context
-                    , HasConnPool context
-                    , HasKatipContext context
-                    , HasKatipLogEnv context
-                    , AsBusinessRegistryError err
-                    , AsKeyError err)
-                    => CT.BRKeyId -> CT.UserId -> DB context err ()
+protectKeyUpdate :: ( Member err     '[AsKeyError])
+                 =>  CT.BRKeyId
+                 -> CT.UserId
+                 -> DB context err ()
 protectKeyUpdate keyId userId = do
   userOwnsKey <- doesUserOwnKeyQuery userId keyId
   unless userOwnsKey $ throwing_ _UnauthorisedKeyAccess
@@ -194,7 +191,8 @@ protectKeyUpdate keyId userId = do
     Expired  -> throwing_ _KeyAlreadyExpired
     InEffect -> pure ()
 
-revokePublicKeyQuery :: (BRApp context err, AsKeyError err) => CT.UserId
+revokePublicKeyQuery :: ( Member err     '[AsKeyError])
+                     => CT.UserId
                      -> CT.BRKeyId
                      -> DB context err RevocationTime
 revokePublicKeyQuery userId k@(CT.BRKeyId keyId) = do
@@ -206,8 +204,8 @@ revokePublicKeyQuery userId k@(CT.BRKeyId keyId) = do
                 (\key -> key_id key ==. (val_ keyId))
   return $ RevocationTime timestamp
 
-doesUserOwnKeyQuery :: AsKeyError err
-                    => CT.UserId
+
+doesUserOwnKeyQuery :: CT.UserId
                     -> CT.BRKeyId
                     -> DB context err Bool
 doesUserOwnKeyQuery (CT.UserId uId) (CT.BRKeyId keyId) = do
@@ -218,7 +216,8 @@ doesUserOwnKeyQuery (CT.UserId uId) (CT.BRKeyId keyId) = do
           pure key
   return $ isJust r
 
-getKeyById :: CT.BRKeyId -> DB context err (Maybe Key)
+getKeyById :: CT.BRKeyId
+           -> DB context err (Maybe Key)
 getKeyById (CT.BRKeyId keyId) = pg $ runSelectReturningOne $ select $ do
           key <- all_ (_keys businessRegistryDB)
           guard_ (key_id key ==. val_ keyId)
