@@ -386,6 +386,7 @@ clientSpec = do
           -- b1K4RevokedInfoResponse <- http (getPublicKeyInfo b1K4StoredKeyId)
           -- b1K4RevokedInfoResponse `shouldSatisfy` isRight
           -- b1K4RevokedInfoResponse `shouldSatisfy` (checkField keyInfoState (== Revoked))
+          --TODO: Also check that the revoking user is correct and is different from the original adding user.
 
           step "That a user from the another business can't also revoke the key"
           b1K5StoredKeyIdResult <- http (addPublicKey (newUserToBasicAuthData userB1U1) goodKey Nothing)
