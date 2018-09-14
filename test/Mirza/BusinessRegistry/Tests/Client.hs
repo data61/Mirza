@@ -17,7 +17,7 @@ import           Control.Monad                          (forM_)
 import           Data.Either                            (isLeft, isRight)
 import           Data.Either.Utils                      (fromRight)
 import           Data.List                              (isSuffixOf)
-import           Data.Maybe                             (fromJust, isNothing)
+import           Data.Maybe                             (fromJust, isJust, isNothing)
 import           Data.Text                              (Text)
 import           Data.Text.Encoding                     (encodeUtf8)
 import           Data.Time.Clock                        (addUTCTime,
@@ -356,6 +356,17 @@ clientSpec = do
           b1K3RevokedResponse `shouldSatisfy` isRight
           b1K3RevokedResponse `shouldSatisfy` checkField getRevocationTime (betweenInclusive b1K3PreRevoke b1K3PostRevoke)
 
+          step "That the key info correctly shows the revokation status time and revoking user"
+          let extractRevocationTime = getRevocationTime . fst . fromJust
+          b1K3InfoResponse <- http (getPublicKeyInfo b1K3StoredKeyId)
+          b1K3InfoResponse `shouldSatisfy` isRight
+          b1K3InfoResponse `shouldSatisfy` checkField keyInfoRevocation isJust
+          b1K3InfoResponse `shouldSatisfy` checkField keyInfoRevocation ((betweenInclusive b1K3PreRevoke b1K3PostRevoke) . extractRevocationTime)
+          b1K3InfoResponse `shouldSatisfy` checkField keyInfoRevocation ((== fromRight userB1U1Response) . snd . fromJust)
+          -- We check that the time through this responce ~matches the time that was given when we revoked the key.
+          let b1K3RevokedResponseTime = (getRevocationTime . fromRight) b1K3RevokedResponse
+          b1K3InfoResponse `shouldSatisfy` checkField keyInfoRevocation ((within1Second b1K3RevokedResponseTime) . extractRevocationTime)
+
           step "That the key status updates after the key is revoked"
           b1K3RevokedInfoResponse <- http (getPublicKeyInfo b1K3StoredKeyId)
           b1K3RevokedInfoResponse `shouldSatisfy` isRight
@@ -412,7 +423,6 @@ clientSpec = do
           b1K6ExpiredRevokedResponse <- http (getPublicKeyInfo b1K6KeyId)
           b1K6ExpiredRevokedResponse `shouldSatisfy` isRight
           b1K6ExpiredRevokedResponse `shouldSatisfy` checkField keyInfoState (== Revoked)
-
 
 
           -- Function to run a test predicate over all the keys in one of the test keys subdirectories.

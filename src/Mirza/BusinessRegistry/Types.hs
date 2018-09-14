@@ -138,7 +138,7 @@ data KeyInfoResponse = KeyInfoResponse
   , keyInfoUserId         :: UserId  -- TODO: There should be a forien key for Business in here....not sure that user is relevant...
   , keyInfoState          :: KeyState
   , keyInfoCreationTime   :: CreationTime
-  , keyInfoRevocationTime :: Maybe RevocationTime
+  , keyInfoRevocation     :: Maybe (RevocationTime, UserId)
   , keyInfoExpirationTime :: Maybe ExpirationTime
   , keyInfoPEMString      :: PEM_RSAPubKey
   }

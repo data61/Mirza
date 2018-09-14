@@ -69,14 +69,14 @@ getPublicKeyInfo kid = do
 keyToKeyInfo :: UTCTime
              -> Schema.Key
              -> KeyInfoResponse
-keyToKeyInfo currTime (Schema.KeyT keyId (Schema.UserId keyUserId) pemStr creation revocation expiration ) =
+keyToKeyInfo currTime (Schema.KeyT keyId (Schema.UserId keyUserId) pemStr creation revocationTime revocationUser expiration) =
   (KeyInfoResponse (CT.BRKeyId keyId) (CT.UserId keyUserId)
     (getKeyState
-      (fromDbTimestamp <$> revocation)
+      (fromDbTimestamp <$> revocationTime)
       (fromDbTimestamp <$> expiration)
     )
     (fromDbTimestamp creation)
-    (fromDbTimestamp <$> revocation)
+    ((,) <$> (fromDbTimestamp <$> revocationTime) <*> (CT.UserId  <$> revocationUser))
     (fromDbTimestamp <$> expiration)
     (PEM_RSAPubKey pemStr)
   )
@@ -150,7 +150,7 @@ addPublicKeyQuery (AuthUser (CT.UserId uid)) expTime rsaPubKey = do
   ks <- pg $ runInsertReturningList (_keys businessRegistryDB) $
         insertValues
         [ KeyT keyId (Schema.UserId uid) keyStr
-            (toDbTimestamp timestamp) Nothing (toDbTimestamp <$> expTime)
+            (toDbTimestamp timestamp) Nothing Nothing (toDbTimestamp <$> expTime)
         ]
   case ks of
     [rowId] -> return (CT.BRKeyId $ key_id rowId)
@@ -202,7 +202,8 @@ revokePublicKeyQuery userId k@(CT.BRKeyId keyId) = do
   timestamp <- generateTimestamp
   _r <- pg $ runUpdate $ update
                 (_keys businessRegistryDB)
-                (\key -> [revocation_time key <-. val_ (Just $ toDbTimestamp timestamp)])
+                (\key -> [ revocation_time key  <-. val_ (Just $ toDbTimestamp timestamp)
+                         , revoking_user_id key <-. val_ (Just $ getUserId userId)])
                 (\key -> key_id key ==. (val_ keyId))
   return $ RevocationTime timestamp
 
