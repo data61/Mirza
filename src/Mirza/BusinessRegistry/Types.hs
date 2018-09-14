@@ -171,6 +171,7 @@ data KeyError
   | KeyNotFound CT.BRKeyId
   | UnauthorisedKeyAccess
   | KeyAlreadyRevoked
+  | KeyAlreadyExpired
   deriving (Show, Eq)
 
 newtype Bit  = Bit  {getBit :: Int} deriving (Show, Eq, Read, Ord)
