@@ -119,8 +119,7 @@ addPublicKey user pemKey@(PEM_RSAPubKey pemStr) mExp = do
   runDb $ addPublicKeyQuery user mExp rsaKey           -- Error: user error (error:0906D06C:PEM routines:PEM_read_bio:no start line)
 
 
-checkPubKey :: (MonadError err m
-               , Member err     '[AsKeyError])
+checkPubKey :: (MonadError err m, AsKeyError err)
             => SomePublicKey
             -> PEM_RSAPubKey
             -> m RSAPubKey
@@ -164,7 +163,7 @@ revokePublicKey (AuthUser uId) keyId =
     runDb $ revokePublicKeyQuery uId keyId
 
 
-keyStateQuery :: ( Member err     '[AsKeyError])
+keyStateQuery :: AsKeyError err
               => CT.BRKeyId
               -> DB context err KeyState
 keyStateQuery kid = do
