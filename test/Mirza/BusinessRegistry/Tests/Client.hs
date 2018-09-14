@@ -429,10 +429,14 @@ clientSpec = do
 
           step "Can add all of the good keys"
           testDirectory "goodKeys" isRight
+          -- Note: 2041 / 2047 bit key tests have been moved to the good tests because we know that there is an issue
+          -- with the implementation here based on limitiations of the library that we are using and have accepted that
+          -- we will allow keys with this size to be supported even though we hope that our users will only use keys
+          -- with size 2048 and above. See github issue #212
+          -- https://github.csiro.au/Blockchain/supplyChainServer/issues/212#issuecomment-13326 for further information.
 
-          -- TODO: Include this test. Some of the invalid keys work. (github #212)
-          -- step "Can't add any of the bad keys"
-          -- testDirectory "badKeys" isLeft
+          step "Can't add any of the bad keys"
+          testDirectory "badKeys" isLeft
 
 
   pure $ testGroup "Business Registry HTTP Client tests"
