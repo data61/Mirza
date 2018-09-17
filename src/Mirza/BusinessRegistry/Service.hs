@@ -127,3 +127,5 @@ keyErrToHttpErr (PublicKeyInsertionError _) =
   throwError $ err500 { errBody = "Key could not be inserted." }
 keyErrToHttpErr (KeyNotFound _) =
   throwError $ err404 { errBody = "Key with the given ID not found." }
+keyErrToHttpErr (InvalidExpiry) =
+  throwError $ err404 { errBody = "The specified expiry time is not valid." }
