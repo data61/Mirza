@@ -24,6 +24,7 @@ import           Database.Beam.Backend.SQL.BeamExtensions
 import           Data.Text                                (pack, unpack)
 import           Data.Time.Clock                          (UTCTime,
                                                            getCurrentTime)
+import Data.Time.LocalTime
 
 import           OpenSSL.EVP.PKey                         (SomePublicKey,
                                                            toPublicKey)
@@ -61,26 +62,35 @@ getPublicKeyInfo :: ( Member context '[HasEnvType, HasConnPool, HasLogging]
                  -> AppM context err BT.KeyInfoResponse
 getPublicKeyInfo kid = do
   currTime <- liftIO getCurrentTime
-  mkey <- runDb $ getPublicKeyInfoQuery kid
-  maybe (throwing _KeyNotFound kid)
-        (pure . keyToKeyInfo currTime)
-        mkey
+  key <- runDb $ getPublicKeyInfoQuery kid <!?> (_KeyNotFound # kid)
+  keyToKeyInfo currTime key
 
-keyToKeyInfo :: UTCTime
+
+
+keyToKeyInfo :: (MonadError err m, AsKeyError err)
+             => UTCTime
              -> Schema.Key
-             -> KeyInfoResponse
-keyToKeyInfo currTime (Schema.KeyT keyId (Schema.UserId keyUserId) pemStr creation revocationTime revocationUser expiration) =
-  (KeyInfoResponse (CT.BRKeyId keyId) (CT.UserId keyUserId)
+             -> m KeyInfoResponse
+keyToKeyInfo currTime (Schema.KeyT keyId (Schema.UserId keyUserId) pemStr creation revocationTime revocationUser expiration) = do
+  revocation <- composeRevocation revocationTime revocationUser
+  pure $ KeyInfoResponse (CT.BRKeyId keyId) (CT.UserId keyUserId)
     (getKeyState
       (fromDbTimestamp <$> revocationTime)
       (fromDbTimestamp <$> expiration)
     )
     (fromDbTimestamp creation)
-    ((,) <$> (fromDbTimestamp <$> revocationTime) <*> (CT.UserId  <$> revocationUser))
+    revocation
     (fromDbTimestamp <$> expiration)
     (PEM_RSAPubKey pemStr)
-  )
   where
+    composeRevocation :: (MonadError e m, AsKeyError e, ModelTimestamp a)
+                      => Maybe LocalTime
+                      -> Maybe PrimaryKeyType
+                      -> m (Maybe (a, CT.UserId))
+    composeRevocation Nothing (Just _) = throwing_ _InvalidRevocation
+    composeRevocation (Just _) Nothing = throwing_ _InvalidRevocation
+    composeRevocation time user = pure $ ((,) <$> (fromDbTimestamp <$> time) <*> (CT.UserId  <$> user))
+
     -- TODO: After migrating to JOSE, there should always be an expiration time.
     getKeyState :: Maybe RevocationTime
                 -> Maybe ExpirationTime
@@ -171,7 +181,7 @@ keyStateQuery :: AsKeyError err
               -> DB context err KeyState
 keyStateQuery kid = do
   currTime <- liftIO getCurrentTime
-  keyInfoState . keyToKeyInfo currTime <$> getPublicKeyInfoQuery kid <!?> (_KeyNotFound # kid)
+  fmap keyInfoState . keyToKeyInfo currTime =<< getPublicKeyInfoQuery kid <!?> (_KeyNotFound # kid)
 
 
 -- | Checks that the key is useable and throws a key error if the key is not
