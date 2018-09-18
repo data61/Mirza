@@ -19,7 +19,6 @@ module Mirza.SupplyChain.Client.Servant
   , insertAggEvent
   , insertTransactEvent
   , insertTransfEvent
-  , searchUserByCompanyId
   ) where
 
 import           Mirza.SupplyChain.API
@@ -47,7 +46,7 @@ newUser      :: NewUser -> ClientM UserId
 contactsInfo        :: BasicAuthData -> ClientM [T.User]
 addContact          :: BasicAuthData -> UserId -> ClientM Bool
 removeContact       :: BasicAuthData -> UserId -> ClientM Bool
-userSearch          :: BasicAuthData -> String -> ClientM [T.User]
+userSearch          :: BasicAuthData -> UserSearch -> ClientM [T.User]
 
 addUserToEvent      :: BasicAuthData -> UserId -> EventId -> ClientM ()
 eventSign           :: BasicAuthData -> SignedEvent -> ClientM UUID
@@ -64,7 +63,6 @@ insertAggEvent      :: BasicAuthData -> AggregationEvent -> ClientM (Ev.Event, S
 insertTransactEvent :: BasicAuthData -> TransactionEvent -> ClientM (Ev.Event, Schema.EventId)
 insertTransfEvent   :: BasicAuthData -> TransformationEvent -> ClientM (Ev.Event, Schema.EventId)
 
-searchUserByCompanyId :: BasicAuthData -> EPC.GS1CompanyPrefix -> ClientM (Maybe User)
 
 _api     :: Client ClientM ServerAPI
 _privAPI :: Client ClientM ProtectedAPI
@@ -94,7 +92,5 @@ _api@(
     :<|> insertAggEvent
     :<|> insertTransactEvent
     :<|> insertTransfEvent
-
-    :<|> searchUserByCompanyId
   )
  ) = client (Proxy :: Proxy ServerAPI)

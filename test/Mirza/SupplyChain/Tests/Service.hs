@@ -118,8 +118,8 @@ testServiceQueries = do
     it "Insert Object Event" $ \scsContext -> do
       (insertedEvent, _) <- testAppM scsContext $ insertObjectEvent dummyUser dummyObject
       insertedEvent `shouldBe` dummyObjEvent
-      
-    it "Should not allow duplicate Object events" $ \scsContext -> do 
+
+    it "Should not allow duplicate Object events" $ \scsContext -> do
       _res <- runAppM @_ @AppError scsContext $ insertObjectEvent dummyUser dummyObject
       res <- runAppM @_ @AppError scsContext $ insertObjectEvent dummyUser dummyObject
       res `shouldSatisfy` isLeft
@@ -138,8 +138,8 @@ testServiceQueries = do
     it "Insert Aggregation Event" $ \scsContext -> do
       (insertedEvent, _) <- testAppM scsContext $ insertAggEvent dummyUser dummyAggregation
       insertedEvent `shouldBe` dummyAggEvent
-    
-    it "Should not allow duplicate Aggregation events" $ \scsContext -> do 
+
+    it "Should not allow duplicate Aggregation events" $ \scsContext -> do
       _res <- runAppM @_ @AppError scsContext $ insertAggEvent dummyUser dummyAggregation
       res <- runAppM @_ @AppError scsContext $ insertAggEvent dummyUser dummyAggregation
       res `shouldSatisfy` isLeft
@@ -159,7 +159,7 @@ testServiceQueries = do
       (insertedEvent, _) <- testAppM scsContext $ insertTransfEvent dummyUser dummyTransformation
       insertedEvent `shouldBe` dummyTransfEvent
 
-    it "Should not allow duplicate Transformation events" $ \scsContext -> do 
+    it "Should not allow duplicate Transformation events" $ \scsContext -> do
       _res <- runAppM @_ @AppError scsContext $ insertTransfEvent dummyUser dummyTransformation
       res <- runAppM @_ @AppError scsContext $ insertTransfEvent dummyUser dummyTransformation
       res `shouldSatisfy` isLeft
@@ -178,8 +178,8 @@ testServiceQueries = do
     it "Insert Transaction Event" $ \scsContext -> do
       (insertedEvent, _) <- testAppM scsContext $ insertTransactEvent dummyUser dummyTransaction
       insertedEvent `shouldBe` dummyTransactEvent
-    
-    it "Should not allow duplicate Transaction events" $ \scsContext -> do 
+
+    it "Should not allow duplicate Transaction events" $ \scsContext -> do
       _res <- runAppM @_ @AppError scsContext $ insertTransactEvent dummyUser dummyTransaction
       res <- runAppM @_ @AppError scsContext $ insertTransactEvent dummyUser dummyTransaction
       res `shouldSatisfy` isLeft
@@ -212,18 +212,19 @@ testServiceQueries = do
     it "getUser test by Company Id" $ \scsContext -> do
       res <- testAppM scsContext $ do
         uid <- newUser dummyNewUser
-        user <- searchUserByCompanyId dummyUser $ newUserCompany dummyNewUser
+        users <- userSearch dummyUser (UserSearch (Just $ newUserCompany dummyNewUser) Nothing)
         -- ^ The argument dummyUser is ignored
-        pure (uid, user)
+        pure (uid, users)
       case res of
-        (_, Nothing) -> fail "Received Nothing for user"
-        (uid, Just user) ->
+        (_, []) -> fail "Received Nothing for user"
+        (uid, [user]) ->
           user `shouldSatisfy`
             (\u ->
               (userId u == uid) &&
               (userFirstName u == newUserFirstName dummyNewUser) &&
               (userLastName u == newUserLastName dummyNewUser)
             )
+        (_, _) -> fail "There should only be one result in this test"
 
   describe "Contacts" $ do
     (after_ clearContact) . describe "Contacts" $

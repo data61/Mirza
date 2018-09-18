@@ -285,7 +285,12 @@ data HashedEvent = HashedEvent {
 $(deriveJSON defaultOptions ''HashedEvent)
 instance ToSchema HashedEvent
 
-
+data UserSearch = UserSearch {
+   usearch_gs1_company_id :: Maybe GS1CompanyPrefix
+  ,usearch_lastname :: Maybe Text
+} deriving (Show, Eq, Generic, Read)
+$(deriveJSON defaultOptions ''UserSearch)
+instance ToSchema UserSearch
 
 -- *****************************************************************************
 -- Error Types

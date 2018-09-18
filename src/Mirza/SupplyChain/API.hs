@@ -55,7 +55,8 @@ type PrivateAPI =
        "contacts"                                                                                             :> Get '[JSON] [User]
   :<|> "contacts" :> "add"                  :> Capture "userId" ST.UserId                                     :> Get '[JSON] Bool
   :<|> "contacts" :> "remove"               :> Capture "userId" ST.UserId                                     :> Get '[JSON] Bool
-  :<|> "contacts" :> "search"               :> Capture "term" String                                          :> Get '[JSON] [User]
+-- Users
+  :<|> "user" :> "search"                   :> ReqBody '[JSON] UserSearch                                    :> Post '[JSON] [User]
 -- Signatures
   :<|> "event"    :> "addUser"              :> Capture "userId" UserId       :> Capture "eventId" EventId     :> Post '[JSON] ()
   :<|> "event"    :> "sign"                 :> ReqBody '[JSON] SignedEvent                                    :> Post '[JSON] PrimaryKeyType
@@ -71,5 +72,3 @@ type PrivateAPI =
   :<|> "event"    :> "aggregateEvent"       :> ReqBody '[JSON] AggregationEvent                               :> Post '[JSON] (Ev.Event, Schema.EventId)
   :<|> "event"    :> "transactionEvent"     :> ReqBody '[JSON] TransactionEvent                               :> Post '[JSON] (Ev.Event, Schema.EventId)
   :<|> "event"    :> "transformationEvent"  :> ReqBody '[JSON] TransformationEvent                            :> Post '[JSON] (Ev.Event, Schema.EventId)
--- Users
-  :<|> "user"     :> "searchByCompanyId"    :> Capture "gs1CompanyId" GS1CompanyPrefix                        :> Get '[JSON] (Maybe User)
