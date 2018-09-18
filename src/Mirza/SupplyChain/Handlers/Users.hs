@@ -2,7 +2,7 @@
 
 module Mirza.SupplyChain.Handlers.Users
   (
-    newUser, userTableToModel, searchUserByCompanyId
+    newUser, userTableToModel
   ) where
 
 
@@ -67,22 +67,4 @@ newUserQuery (ST.NewUser phone (EmailAddress email) firstName lastName biz passw
         _ -> throwing _InsertionFail (toServerError (Just . sqlState) sqlErr, email)
 
 
-searchUserByCompanyId :: SCSApp context err
-                      => ST.User
-                      -> GS1CompanyPrefix
-                      -> AppM context err (Maybe ST.User)
-searchUserByCompanyId _ = runDb . searchUserByCompanyIdQuery
-
-
-searchUserByCompanyIdQuery :: SCSApp context err
-                           => GS1CompanyPrefix
-                           -> DB context err (Maybe ST.User)
-searchUserByCompanyIdQuery pfx = do
-  r <- pg $ runSelectReturningList $ select $ do
-          user <- all_ (Schema._users Schema.supplyChainDb)
-          guard_ (user_biz_id user ==. (BizId $ val_ pfx))
-          pure user
-  case r of
-    [user] -> return $ Just $ userTableToModel user
-    _      -> return Nothing
 
