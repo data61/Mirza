@@ -9,6 +9,8 @@ module Mirza.BusinessRegistry.Client.Servant
   -- * Authenticated API
   , addPublicKey
   , revokePublicKey
+  , addLocation
+  , removeLocation
   ) where
 
 import           Mirza.BusinessRegistry.API

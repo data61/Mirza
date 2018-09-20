@@ -241,9 +241,10 @@ data BusinessRegistryError
   | BusinessDoesNotExistBRE
   | UserCreationErrorBRE String
   | KeyErrorBRE KeyError
+  | LocationRemovalErrorBRE
   -- | An error that isn't specifically excluded by the types, but that the
-  -- | developers don't think is possible to hit, or know of a situation which
-  -- | could cause this case to be excercised.
+  -- developers don't think is possible to hit, or know of a situation which
+  -- could cause this case to be excercised.
   | UnexpectedErrorBRE CallStack
   deriving (Show, Generic)
 
