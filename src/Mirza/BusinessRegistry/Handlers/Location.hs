@@ -17,15 +17,11 @@ import           Mirza.Common.Types                       (Member)
 
 import           Database.Beam                            as B
 import           Database.Beam.Backend.SQL.BeamExtensions
--- import           Database.PostgreSQL.Simple.Errors        (ConstraintViolation (UniqueViolation),
---                                                            constraintViolation)
 
 import           Control.Lens                             ((#))
 
 import           GHC.Stack                                (HasCallStack, callStack)
--- import           Control.Monad.Except                     (catchError, throwError)
 import           Control.Monad.Error.Hoist                (hoistErrorM)
-
 
 import           Servant (NoContent(NoContent))
 
@@ -101,18 +97,15 @@ removeLocationQuery :: (Member context '[]
                     -> LocationId
                     -> DB context err [Location]
 removeLocationQuery (AuthUser (BT.UserId auser)) (LocationId locId) = do
+  -- Ensure that the user is a member of the business which owns the location
   _ <- hoistErrorM (_LocationRemovalErrorBRE #) $
         pg $ runSelectReturningOne $ select $ do
           user <- all_ (_users businessRegistryDB)
           loc  <- all_ (_locations businessRegistryDB)
-          guard_ (user_id user ==. val_ auser
-                  &&. location_id loc ==. val_ locId
-                  &&. user_biz_id user ==. location_biz_id loc)
+          guard_ (  user_id     user  ==. val_            auser
+                &&. location_id loc   ==. val_            locId
+                &&. user_biz_id user  ==. location_biz_id loc  )
           pure user
-
-      -- TODO: Check that user is member of business owning location
-       -- see Database.Beam.Backend.SQL.BeamExtensions.runDeleteReturningList
-       -- and subquery_ 
 
   pg $ runDeleteReturningList 
         (_locations businessRegistryDB) 
