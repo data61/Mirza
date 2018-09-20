@@ -147,7 +147,7 @@ addPublicKeyQuery :: ( Member err     '[AsKeyError])
                   -> DB context err CT.BRKeyId
 addPublicKeyQuery (AuthUser (CT.UserId uid)) expTime rsaPubKey = do
   now <- liftIO getCurrentTime
-  for_ expTime $ \time -> when ((getExpirationTime time) <= now) (throwing_ _InvalidExpiry)
+  for_ expTime $ \time -> when ((getExpirationTime time) <= now) (throwing_ _AddedExpiredKey)
   keyStr <- liftIO $ pack <$> writePublicKey rsaPubKey
   keyId <- newUUID
   timestamp <- generateTimestamp

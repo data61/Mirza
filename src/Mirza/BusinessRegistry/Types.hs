@@ -172,7 +172,7 @@ data KeyError
   | UnauthorisedKeyAccess
   | KeyAlreadyRevoked
   | KeyAlreadyExpired
-  | InvalidExpiry
+  | AddedExpiredKey
   deriving (Show, Eq)
 
 newtype Bit  = Bit  {getBit :: Int} deriving (Show, Eq, Read, Ord)
