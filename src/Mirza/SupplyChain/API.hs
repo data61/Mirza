@@ -30,6 +30,8 @@ import           Servant
 import           Servant.API.Flatten
 import           Servant.Swagger.UI
 
+import           Data.Text                          (Text)
+
 type API
     -- this serves both: swagger.json and swagger-ui
     = SwaggerSchemaUI "swagger-ui" "swagger.json"
@@ -56,7 +58,9 @@ type PrivateAPI =
   :<|> "contacts" :> "add"                  :> Capture "userId" ST.UserId                                     :> Get '[JSON] Bool
   :<|> "contacts" :> "remove"               :> Capture "userId" ST.UserId                                     :> Get '[JSON] Bool
 -- Users
-  :<|> "user" :> "search"                   :> ReqBody '[JSON] UserSearch                                    :> Post '[JSON] [User]
+  :<|> "user"     :> "search"               :> QueryParam "GS1CompanyPrefix" GS1CompanyPrefix
+                                            :> QueryParam "lastname" Text
+                                            :> Post '[JSON] [User]
 -- Signatures
   :<|> "event"    :> "addUser"              :> Capture "userId" UserId       :> Capture "eventId" EventId     :> Post '[JSON] ()
   :<|> "event"    :> "sign"                 :> ReqBody '[JSON] SignedEvent                                    :> Post '[JSON] PrimaryKeyType

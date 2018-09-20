@@ -19,10 +19,13 @@ import           Mirza.SupplyChain.Types                  hiding (NewUser (..),
                                                            User (userId),
                                                            UserId)
 import qualified Mirza.SupplyChain.Types                  as ST
+import           Data.GS1.EPC                             (GS1CompanyPrefix)
 
 import           Database.Beam                            as B
 import           Database.Beam.Backend.SQL.BeamExtensions
-import           Data.Maybe                               (fromJust, isJust)
+import           Data.Maybe                               (isNothing)
+import           Data.Text                                (Text)
+import           Data.Foldable                            (for_)
 
 
 
@@ -84,10 +87,11 @@ removeContactQuery (ST.User firstId@(ST.UserId uid1) _ _) secondId@(ST.UserId ui
 --
 
 userSearch :: SCSApp context err
-                      => ST.User
-                      -> ST.UserSearch
-                      -> AppM context err [ST.User]
-userSearch _ = runDb . userSearchQuery
+           => ST.User
+           -> Maybe GS1CompanyPrefix
+           -> Maybe Text -- last name
+           -> AppM context err [ST.User]
+userSearch _ mgs1pfx mlastname = runDb $ userSearchQuery mgs1pfx mlastname
 
 
 -- This is very ugly. I'm not familiar enough with Beam to know how to
@@ -97,28 +101,18 @@ userSearch _ = runDb . userSearchQuery
 -- an ordering/weighting function written in Haskell to the sum of the results.
 -- I've left it in to illustrate
 -- the idea behind the API, but we should definitely revisit it.
-userSearchQuery:: SCSApp context err
-                      => ST.UserSearch
-                      -> DB context err [ST.User]
-userSearchQuery (ST.UserSearch pfx lname) = do
-      if isJust pfx
-        then do
-            pfxUsers <- pg $ runSelectReturningList $ select $ do
-                    user <- all_ (Schema._users Schema.supplyChainDb)
-                    guard_ (user_biz_id user ==. (BizId $ val_ $ fromJust pfx))
-                    pure user
+userSearchQuery :: SCSApp context err
+                => Maybe GS1CompanyPrefix
+                -> Maybe Text -- last name
+                -> DB context err [ST.User]
+userSearchQuery mpfx mlname = 
+  if all isNothing [() <$ mpfx, () <$ mlname] then pure []
+  else fmap (map userTableToModel) $ pg $ runSelectReturningList $ select $ do
+        user <- all_ (Schema._users Schema.supplyChainDb)
+        for_ mpfx   $ \pfx   -> guard_ (user_biz_id user ==. (BizId $ val_ pfx))
+        for_ mlname $ \lname -> guard_ (like_ (user_last_name user) (val_ lname))
+        pure user
 
-            return $ map userTableToModel pfxUsers
-        else do
-          if isJust lname
-           then do
-            lastnameUsers <- pg $ runSelectReturningList $ select $ do
-                    user <- all_ (Schema._users Schema.supplyChainDb)
-                    guard_ (user_last_name user ==. (val_ $ fromJust lname))
-                    pure user
-            return $ map userTableToModel lastnameUsers
-           else
-             return []
 
 
 -- | Checks if a pair of userIds are recorded as a contact.

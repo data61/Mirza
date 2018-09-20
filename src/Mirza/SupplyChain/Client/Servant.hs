@@ -35,7 +35,7 @@ import           Data.GS1.EventId
 import           Data.GS1.EPC                      as EPC
 
 import           Data.UUID.Types
-
+import           Data.Text                         (Text)
 
 
 -- * Public API
@@ -46,7 +46,7 @@ newUser      :: NewUser -> ClientM UserId
 contactsInfo        :: BasicAuthData -> ClientM [T.User]
 addContact          :: BasicAuthData -> UserId -> ClientM Bool
 removeContact       :: BasicAuthData -> UserId -> ClientM Bool
-userSearch          :: BasicAuthData -> UserSearch -> ClientM [T.User]
+userSearch          :: BasicAuthData -> Maybe GS1CompanyPrefix -> Maybe Text -> ClientM [T.User]
 
 addUserToEvent      :: BasicAuthData -> UserId -> EventId -> ClientM ()
 eventSign           :: BasicAuthData -> SignedEvent -> ClientM UUID
