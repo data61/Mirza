@@ -14,9 +14,13 @@ import           Mirza.Common.Time          (CreationTime, ExpirationTime,
 import           Mirza.Common.Types         as CT
 import           Mirza.Common.Utils
 
+import qualified Mirza.BusinessRegistry.Database.Schema   as Schema
+
 import           Data.GS1.EPC               as EPC
 
 import           Data.Pool                  as Pool
+import           Database.Beam                            as B
+import           Database.Beam.Backend.SQL.BeamExtensions
 import           Database.PostgreSQL.Simple (Connection, SqlError)
 
 import           Crypto.Scrypt              (ScryptParams)
@@ -29,6 +33,7 @@ import           Data.Aeson
 import           Data.Aeson.TH
 import           Data.Swagger
 import           Data.Text                  (Text)
+import           Data.Time                        (LocalTime)
 
 import           GHC.Generics               (Generic)
 import           GHC.Stack                  (CallStack)
@@ -181,8 +186,8 @@ data KeyError
   -- this error it might be a good time to re-evaulate whether it is better to
   -- fix the storage datatype so its not possible to generate this error in the
   -- first place.
-  | InvalidRevocation
-  deriving (Show, Eq)
+  | InvalidRevocation (Maybe LocalTime) (PrimaryKey Schema.UserT (Nullable Identity)) CallStack
+  deriving (Show)
 
 newtype Bit  = Bit  {getBit :: Int} deriving (Show, Eq, Read, Ord)
 newtype Expected = Expected {getExpected :: Bit} deriving (Show, Eq, Read, Ord)

@@ -37,6 +37,8 @@ import           Data.Maybe                               (isJust)
 import           Control.Monad.Error.Hoist                ((<!?>))
 import           Control.Lens                             ((#))
 
+import           GHC.Stack                                (HasCallStack, callStack)
+
 minPubKeySize :: Bit
 minPubKeySize = Bit 2048
 
@@ -89,13 +91,13 @@ keyToKeyInfo currTime (Schema.KeyT keyId (Schema.UserId keyUserId) pemStr creati
     -- since we store in the database as two separate fields (because of
     -- complexity storing natively as a (Maybe (time, user)), see database
     -- comment for more info) we need to verify when we combine them here.
-    composeRevocation :: (MonadError e m, AsKeyError e, ModelTimestamp a)
+    composeRevocation :: (HasCallStack, MonadError e m, AsKeyError e, ModelTimestamp a)
                       => Maybe LocalTime
                       -> PrimaryKey UserT (Nullable Identity)
                       -> m (Maybe (a, CT.UserId))
-    composeRevocation Nothing  (Schema.UserId (Just _)) = throwing_ _InvalidRevocation
-    composeRevocation (Just _) (Schema.UserId Nothing)  = throwing_ _InvalidRevocation
-    composeRevocation time     (Schema.UserId user)     = pure $ ((,) <$> (fromDbTimestamp <$> time) <*> (CT.UserId  <$> user))
+    composeRevocation time@Nothing  user@(Schema.UserId (Just _)) = throwing _InvalidRevocation (time, user, callStack)
+    composeRevocation time@(Just _) user@(Schema.UserId Nothing)  = throwing _InvalidRevocation (time, user, callStack)
+    composeRevocation time          (Schema.UserId user)     = pure $ ((,) <$> (fromDbTimestamp <$> time) <*> (CT.UserId  <$> user))
 
     -- TODO: After migrating to JOSE, there should always be an expiration time.
     getKeyState :: Maybe RevocationTime
