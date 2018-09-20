@@ -128,4 +128,4 @@ keyErrToHttpErr (PublicKeyInsertionError _) =
 keyErrToHttpErr (KeyNotFound _) =
   throwError $ err404 { errBody = "Key with the given ID not found." }
 keyErrToHttpErr (InvalidRevocation) =
-  throwError $ err404 { errBody = "Key has been revoked but in an invalid way." }
+  throwError $ err500 { errBody = "Key has been revoked but in an invalid way." }
