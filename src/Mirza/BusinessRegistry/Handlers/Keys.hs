@@ -66,7 +66,6 @@ getPublicKeyInfo kid = do
   keyToKeyInfo currTime key
 
 
-
 keyToKeyInfo :: (MonadError err m, AsKeyError err)
              => UTCTime
              -> Schema.Key
@@ -92,11 +91,11 @@ keyToKeyInfo currTime (Schema.KeyT keyId (Schema.UserId keyUserId) pemStr creati
     -- comment for more info) we need to verify when we combine them here.
     composeRevocation :: (MonadError e m, AsKeyError e, ModelTimestamp a)
                       => Maybe LocalTime
-                      -> Maybe PrimaryKeyType
+                      -> PrimaryKey UserT (Nullable Identity)
                       -> m (Maybe (a, CT.UserId))
-    composeRevocation Nothing (Just _) = throwing_ _InvalidRevocation
-    composeRevocation (Just _) Nothing = throwing_ _InvalidRevocation
-    composeRevocation time user = pure $ ((,) <$> (fromDbTimestamp <$> time) <*> (CT.UserId  <$> user))
+    composeRevocation Nothing  (Schema.UserId (Just _)) = throwing_ _InvalidRevocation
+    composeRevocation (Just _) (Schema.UserId Nothing)  = throwing_ _InvalidRevocation
+    composeRevocation time     (Schema.UserId user)     = pure $ ((,) <$> (fromDbTimestamp <$> time) <*> (CT.UserId  <$> user))
 
     -- TODO: After migrating to JOSE, there should always be an expiration time.
     getKeyState :: Maybe RevocationTime
@@ -167,7 +166,7 @@ addPublicKeyQuery (AuthUser (CT.UserId uid)) expTime rsaPubKey = do
   ks <- pg $ runInsertReturningList (_keys businessRegistryDB) $
         insertValues
         [ KeyT keyId (Schema.UserId uid) keyStr
-            (toDbTimestamp timestamp) Nothing Nothing (toDbTimestamp <$> expTime)
+            (toDbTimestamp timestamp) Nothing (Schema.UserId Nothing) (toDbTimestamp <$> expTime)
         ]
   case ks of
     [rowId] -> return (CT.BRKeyId $ key_id rowId)
@@ -220,7 +219,7 @@ revokePublicKeyQuery userId k@(CT.BRKeyId keyId) = do
   _r <- pg $ runUpdate $ update
                 (_keys businessRegistryDB)
                 (\key -> [ revocation_time key  <-. val_ (Just $ toDbTimestamp timestamp)
-                         , revoking_user_id key <-. val_ (Just $ getUserId userId)])
+                         , revoking_user_id key <-. val_ (Schema.UserId $ Just $ getUserId userId)])
                 (\key -> key_id key ==. (val_ keyId))
   return $ RevocationTime timestamp
 
