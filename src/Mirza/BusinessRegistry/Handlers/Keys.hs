@@ -83,6 +83,13 @@ keyToKeyInfo currTime (Schema.KeyT keyId (Schema.UserId keyUserId) pemStr creati
     (fromDbTimestamp <$> expiration)
     (PEM_RSAPubKey pemStr)
   where
+    -- | This function checks that the Maybe constructor for both the time and
+    -- the user matches (i.e. both Just, or both Nothing) and throws an error if
+    -- this is not the case. Logically they should only ever be the same, since
+    -- both the user and time should be recorded when the key is revoked, but
+    -- since we store in the database as two separate fields (because of
+    -- complexity storing natively as a (Maybe (time, user)), see database
+    -- comment for more info) we need to verify when we combine them here.
     composeRevocation :: (MonadError e m, AsKeyError e, ModelTimestamp a)
                       => Maybe LocalTime
                       -> Maybe PrimaryKeyType
