@@ -175,6 +175,12 @@ data KeyT f = KeyT
   , key_user_id      :: PrimaryKey UserT f    -- TODO: We should record the business that is associated with the key...not sure if there is any need to store the user...
   , pem_str          :: C f Text
   , creation_time    :: C f LocalTime -- Stored as UTC Time
+  -- It would be nicer and cleaner to store the revocation time and user as a
+  -- Maybe (LocalTime, UserId) rather then as two independent Maybe fields as
+  -- they should only ever be stored in composite and would prevent accidental
+  -- errors where they are not stored the same (i.e. one is a Just and the other
+  -- is Nothing), but currently we don't know how to do this / if it is even
+  -- possible and so have this implementation for now...
   , revocation_time  :: C f (Maybe LocalTime) -- Stored as UTC Time
   , revoking_user_id :: C f (Maybe PrimaryKeyType)
   , expiration_time  :: C f (Maybe LocalTime) -- Stored as UTC Time
