@@ -89,7 +89,7 @@ migration () =
           (field "pem_str" text)
           (field "creation_time" timestamptz)
           (field "revocation_time" (maybeType timestamptz))
-          (field "revoking_user_id" (maybeType pkSerialType))
+          (UserId (field "revoking_user_id" (maybeType pkSerialType))
           (field "expiration_time" (maybeType timestamptz))
     )
 
@@ -164,6 +164,7 @@ deriving instance Eq (PrimaryKey BusinessT Identity)
 
 type Key = KeyT Identity
 deriving instance Show Key
+deriving instance Show ( PrimaryKey UserT (Nullable Identity))
 
 -- The types are not ``UTCTime`` because beam does not support UTCTime
 -- See this discussion for details:
@@ -182,7 +183,7 @@ data KeyT f = KeyT
   -- is Nothing), but currently we don't know how to do this / if it is even
   -- possible and so have this implementation for now...
   , revocation_time  :: C f (Maybe LocalTime) -- Stored as UTC Time
-  , revoking_user_id :: C f (Maybe PrimaryKeyType)
+  , revoking_user_id :: PrimaryKey UserT (Nullable f)
   , expiration_time  :: C f (Maybe LocalTime) -- Stored as UTC Time
   }
   deriving Generic
