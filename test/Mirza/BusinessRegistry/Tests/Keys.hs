@@ -86,7 +86,7 @@ testKeyQueries = do
           (keyInfoUserId ki == uid) &&
           ((keyInfoCreationTime ki) > (CreationTime tStart) &&
            (keyInfoCreationTime ki) < (CreationTime tEnd)) &&
-          isNothing (keyInfoRevocationTime ki)
+          isNothing (keyInfoRevocation ki)
         )
 
   describe "revokePublicKey tests" $ do
