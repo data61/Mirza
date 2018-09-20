@@ -26,7 +26,7 @@ import           Database.Beam.Postgres
 
 import           Data.Aeson
 import           Data.Swagger
-import           Servant (ToHttpApiData(toUrlPiece), FromHttpApiData)
+import           Servant (ToHttpApiData(toUrlPiece), FromHttpApiData(parseUrlPiece))
 
 import           GHC.Generics (Generic)
 
@@ -88,12 +88,13 @@ instance Beamable LocationT
 instance Beamable (PrimaryKey LocationT)
 
 instance Table LocationT where
-  data PrimaryKey LocationT f = LocationId (C f PrimaryKeyType)
+  newtype PrimaryKey LocationT f = LocationId (C f PrimaryKeyType)
     deriving Generic
   primaryKey = LocationId . location_id
 deriving instance Eq (PrimaryKey LocationT Identity)
 
 instance ToHttpApiData (PrimaryKey LocationT Identity) where
-  toUrlPiece (LocationId uuid) = toUrlPiece uuid
+  toUrlPiece (LocationId locId) = toUrlPiece locId
 
 instance FromHttpApiData (PrimaryKey LocationT Identity) where
+  parseUrlPiece t = LocationId <$> parseUrlPiece t

@@ -110,6 +110,7 @@ appErrToHttpErr x@(GS1CompanyPrefixExistsBRE)         = liftIO (print x) >> notI
 appErrToHttpErr x@(BusinessDoesNotExistBRE)           = liftIO (print x) >> notImplemented
 appErrToHttpErr x@(UserCreationErrorBRE _reason)      = liftIO (print x) >> notImplemented
 appErrToHttpErr x@(UnexpectedErrorBRE _reason)        = liftIO (print x) >> notImplemented
+appErrToHttpErr x@(LocationRemovalErrorBRE)           = liftIO (print x) >> notImplemented
 
 keyErrToHttpErr :: KeyError -> Handler a
 keyErrToHttpErr (InvalidRSAKey _) =
