@@ -14,9 +14,13 @@ import           Mirza.Common.Time          (CreationTime, ExpirationTime,
 import           Mirza.Common.Types         as CT
 import           Mirza.Common.Utils
 
+import qualified Mirza.BusinessRegistry.Database.Schema   as Schema
+
 import           Data.GS1.EPC               as EPC
 
 import           Data.Pool                  as Pool
+import           Database.Beam                            as B
+import           Database.Beam.Backend.SQL.BeamExtensions
 import           Database.PostgreSQL.Simple (Connection, SqlError)
 
 import           Crypto.Scrypt              (ScryptParams)
@@ -29,6 +33,7 @@ import           Data.Aeson
 import           Data.Aeson.TH
 import           Data.Swagger
 import           Data.Text                  (Text)
+import           Data.Time                        (LocalTime)
 
 import           GHC.Generics               (Generic)
 import           GHC.Stack                  (CallStack)
@@ -138,7 +143,7 @@ data KeyInfoResponse = KeyInfoResponse
   , keyInfoUserId         :: UserId  -- TODO: There should be a forien key for Business in here....not sure that user is relevant...
   , keyInfoState          :: KeyState
   , keyInfoCreationTime   :: CreationTime
-  , keyInfoRevocationTime :: Maybe RevocationTime
+  , keyInfoRevocation     :: Maybe (RevocationTime, UserId)
   , keyInfoExpirationTime :: Maybe ExpirationTime
   , keyInfoPEMString      :: PEM_RSAPubKey
   }
@@ -172,7 +177,17 @@ data KeyError
   | UnauthorisedKeyAccess
   | KeyAlreadyRevoked
   | KeyAlreadyExpired
-  deriving (Show, Eq)
+  -- | If it is detected that the key has a revocation time and no revoking
+  -- user or the key has a revoking user but now revoking time. Hopefully in
+  -- practice it is not possible to produce this error since it probably
+  -- indicates a bug in our code. It is only possible to generate this error
+  -- because we don't store the revoking data in the database as a
+  -- Maybe (Time, User) because this is technically complex. If we encounter
+  -- this error it might be a good time to re-evaulate whether it is better to
+  -- fix the storage datatype so its not possible to generate this error in the
+  -- first place.
+  | InvalidRevocation (Maybe LocalTime) (PrimaryKey Schema.UserT (Nullable Identity)) CallStack
+  deriving (Show)
 
 newtype Bit  = Bit  {getBit :: Int} deriving (Show, Eq, Read, Ord)
 newtype Expected = Expected {getExpected :: Bit} deriving (Show, Eq, Read, Ord)
