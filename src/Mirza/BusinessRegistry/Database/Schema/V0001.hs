@@ -89,7 +89,7 @@ migration () =
           (field "pem_str" text)
           (field "creation_time" timestamptz)
           (field "revocation_time" (maybeType timestamptz))
-          (UserId (field "revoking_user_id" (maybeType pkSerialType))
+          (UserId (field "revoking_user_id" (maybeType pkSerialType)))
           (field "expiration_time" (maybeType timestamptz))
     )
 
