@@ -88,7 +88,7 @@ testKeyQueries = do
           (keyInfoUserId ki == uid) &&
           ((keyInfoCreationTime ki) > (CreationTime tStart) &&
            (keyInfoCreationTime ki) < (CreationTime tEnd)) &&
-          isNothing (keyInfoRevocationTime ki)
+          isNothing (keyInfoRevocation ki)
         )
 
   describe "revokePublicKey tests" $ do
@@ -123,14 +123,14 @@ testKeyQueries = do
 
     it "Expired but NOT revoked pub key" $ \brContext -> do
       nowish <- getCurrentTime
-      let smallDelay = 1
-          nearExpiry = addUTCTime (fromInteger smallDelay) nowish
+      let smallDelayInSeconds = 1
+          nearExpiry = addUTCTime (fromInteger smallDelayInSeconds) nowish
       pubKey <- goodRsaPublicKey
       keyId <- testAppM brContext $ do
         user <- insertDummies
         keyId <- addPublicKey user pubKey (Just . ExpirationTime $ nearExpiry)
         pure keyId
-      threadDelay $ fromIntegral $ secondsToMicroseconds smallDelay
+      threadDelay $ fromIntegral $ secondsToMicroseconds smallDelayInSeconds
       myKeyState <- testAppM brContext $ do
         keyInfo <- getPublicKeyInfo keyId
         pure (keyInfoState keyInfo)
