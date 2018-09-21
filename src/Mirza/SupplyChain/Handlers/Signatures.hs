@@ -29,6 +29,7 @@ import qualified Data.GS1.EventId                             as EvId
 import           Database.Beam                                as B
 import           Database.Beam.Backend.SQL.BeamExtensions
 
+import           OpenSSL (withOpenSSL)
 import qualified OpenSSL.EVP.Digest                           as EVPDigest
 import           OpenSSL.EVP.PKey                             (toPublicKey)
 import           OpenSSL.EVP.Verify                           (VerifyStatus (..),
@@ -45,7 +46,7 @@ import           Data.Char                                    (toLower)
 import           Data.Text                                    (unpack)
 import qualified Data.Text                                    as T
 
-import           Mirza.BusinessRegistry.Client.Servant        (getKey)
+import           Mirza.BusinessRegistry.Client.Servant        (getPublicKey)
 
 -- | A function to tie a user to an event
 -- Populates the ``UserEvents`` table
@@ -96,7 +97,7 @@ eventSign :: (HasClientEnv context, AsServantError err, SCSApp context err)
           -> SignedEvent
           -> AppM context err PrimaryKeyType
 eventSign _user (SignedEvent eventId keyId (ST.Signature sigStr) digest') = do
-  rsaPublicKey <- runClientFunc $ getKey keyId
+  rsaPublicKey <- runClientFunc $ getPublicKey keyId
   let (BT.PEM_RSAPubKey keyStr) = rsaPublicKey
   (pubKey :: RSAPubKey) <- liftIO
       (toPublicKey <$> (readPublicKey . unpack $ keyStr))
@@ -124,8 +125,7 @@ getEventJSON eventId = do
 
 
 makeDigest :: Digest -> IO (Maybe EVPDigest.Digest)
-makeDigest = EVPDigest.getDigestByName . map toLower . show
-
+makeDigest digest = withOpenSSL $ EVPDigest.getDigestByName . map toLower . show $ digest
 
 insertSignature :: (AsServiceError err) => EvId.EventId
                 -> BRKeyId

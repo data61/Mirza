@@ -80,11 +80,6 @@ migration () =
         BusinessT
             (field "biz_gs1_company_prefix" gs1CompanyPrefixType)
             (field "biz_name" (varchar (Just defaultFieldMaxLength)) notNull)
-            (field "biz_function" (varchar (Just defaultFieldMaxLength)) notNull)
-            (field "biz_site_name" (varchar (Just defaultFieldMaxLength)) notNull)
-            (field "biz_address" (varchar (Just defaultFieldMaxLength)) notNull)
-            (field "biz_lat" double)
-            (field "biz_long" double)
       )
     <*> createTable "keys"
     (
@@ -94,6 +89,7 @@ migration () =
           (field "pem_str" text)
           (field "creation_time" timestamptz)
           (field "revocation_time" (maybeType timestamptz))
+          (UserId (field "revoking_user_id" (maybeType pkSerialType)))
           (field "expiration_time" (maybeType timestamptz))
     )
 
@@ -146,11 +142,6 @@ deriving instance Show Business
 data BusinessT f = BusinessT
   { biz_gs1_company_prefix :: C f EPC.GS1CompanyPrefix
   , biz_name               :: C f Text
-  , biz_function           :: C f Text
-  , biz_site_name          :: C f Text
-  , biz_address            :: C f Text
-  , biz_lat                :: C f Double
-  , biz_long               :: C f Double
   }
   deriving Generic
 
@@ -173,6 +164,7 @@ deriving instance Eq (PrimaryKey BusinessT Identity)
 
 type Key = KeyT Identity
 deriving instance Show Key
+deriving instance Show ( PrimaryKey UserT (Nullable Identity))
 
 -- The types are not ``UTCTime`` because beam does not support UTCTime
 -- See this discussion for details:
@@ -180,12 +172,19 @@ deriving instance Show Key
 -- However, all times are converted to UTCTime using methods from typeclasses
 -- defined in Mirza.Common.Time
 data KeyT f = KeyT
-  { key_id          :: C f PrimaryKeyType
-  , key_user_id     :: PrimaryKey UserT f    -- TODO: We should record the business that is associated with the key...not sure if there is any need to store the user...
-  , pem_str         :: C f Text
-  , creation_time   :: C f LocalTime -- Stored as UTC Time
-  , revocation_time :: C f (Maybe LocalTime) -- Stored as UTC Time
-  , expiration_time :: C f (Maybe LocalTime) -- Stored as UTC Time
+  { key_id           :: C f PrimaryKeyType
+  , key_user_id      :: PrimaryKey UserT f    -- TODO: We should record the business that is associated with the key...not sure if there is any need to store the user...
+  , pem_str          :: C f Text
+  , creation_time    :: C f LocalTime -- Stored as UTC Time
+  -- It would be nicer and cleaner to store the revocation time and user as a
+  -- Maybe (LocalTime, UserId) rather then as two independent Maybe fields as
+  -- they should only ever be stored in composite and would prevent accidental
+  -- errors where they are not stored the same (i.e. one is a Just and the other
+  -- is Nothing), but currently we don't know how to do this / if it is even
+  -- possible and so have this implementation for now...
+  , revocation_time  :: C f (Maybe LocalTime) -- Stored as UTC Time
+  , revoking_user_id :: PrimaryKey UserT (Nullable f)
+  , expiration_time  :: C f (Maybe LocalTime) -- Stored as UTC Time
   }
   deriving Generic
 
