@@ -36,6 +36,8 @@ import           Control.Monad                            (unless)
 import           Data.Maybe                               (isJust)
 import           Control.Monad.Error.Hoist                ((<!?>))
 import           Control.Lens                             ((#))
+import           Data.Foldable                            (for_)
+import           Control.Monad                            (when)
 
 import           GHC.Stack                                (HasCallStack, callStack)
 
@@ -162,6 +164,8 @@ addPublicKeyQuery :: ( Member err     '[AsKeyError])
                   -> RSAPubKey
                   -> DB context err CT.BRKeyId
 addPublicKeyQuery (AuthUser (CT.UserId uid)) expTime rsaPubKey = do
+  now <- liftIO getCurrentTime
+  for_ expTime $ \time -> when ((getExpirationTime time) <= now) (throwing_ _AddedExpiredKey)
   keyStr <- liftIO $ pack <$> writePublicKey rsaPubKey
   keyId <- newUUID
   timestamp <- generateTimestamp

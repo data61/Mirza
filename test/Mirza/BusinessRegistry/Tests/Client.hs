@@ -340,11 +340,10 @@ clientSpec = do
           b1K2RevokedResponse <- http (revokePublicKey (newUserToBasicAuthData userB1U1) b1K2StoredKeyId)
           b1K2RevokedResponse `shouldSatisfy` isLeft
 
-          -- TODO: Include this test (github #205):
-          -- step $ "That it is not possible to add a key that is already expired"
-          -- b1ExpiredKeyExpiry <- (Just . ExpirationTime) <$> ((addUTCTime (fromInteger (-1))) <$> getCurrentTime)
-          -- b1ExpiredKeyExpiryResult <- http (addPublicKey (newUserToBasicAuthData userB1U1) goodKey b1ExpiredKeyExpiry)
-          -- b1ExpiredKeyExpiryResult `shouldSatisfy` isLeft
+          step $ "That it is not possible to add a key that is already expired"
+          b1ExpiredKeyExpiry <- (Just . ExpirationTime) <$> ((addUTCTime (fromInteger (-1))) <$> getCurrentTime)
+          b1ExpiredKeyExpiryResult <- http (addPublicKey (newUserToBasicAuthData userB1U1) goodKey b1ExpiredKeyExpiry)
+          b1ExpiredKeyExpiryResult `shouldSatisfy` isLeft
 
           step "That it's possible to revoke a key"
           b1K3StoredKeyIdResult <- http (addPublicKey (newUserToBasicAuthData userB1U1) goodKey Nothing)
@@ -507,10 +506,6 @@ newUserToBasicAuthData =
 -- test call.
 checkField :: (a -> b) -> (b -> Bool) -> Either c a -> Bool
 checkField accessor predicate = either (const False) (predicate . accessor)
-
-
-secondsToMicroseconds :: (Num a) => a -> a
-secondsToMicroseconds = (* 1000000)
 
 
 bootstrapAuthData :: (HasEnvType w, HasConnPool w, HasKatipContext w,

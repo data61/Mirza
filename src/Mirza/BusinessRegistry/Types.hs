@@ -187,6 +187,7 @@ data KeyError
   -- fix the storage datatype so its not possible to generate this error in the
   -- first place.
   | InvalidRevocation (Maybe LocalTime) (PrimaryKey Schema.UserT (Nullable Identity)) CallStack
+  | AddedExpiredKey
   deriving (Show)
 
 newtype Bit  = Bit  {getBit :: Int} deriving (Show, Eq, Read, Ord)
