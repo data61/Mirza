@@ -127,5 +127,7 @@ keyErrToHttpErr (PublicKeyInsertionError _) =
   throwError $ err500 { errBody = "Key could not be inserted." }
 keyErrToHttpErr (KeyNotFound _) =
   throwError $ err404 { errBody = "Key with the given ID not found." }
+keyErrToHttpErr (InvalidRevocation _ _ _) =
+  throwError $ err500 { errBody = "Key has been revoked but in an invalid way." }
 keyErrToHttpErr (AddedExpiredKey) =
   throwError $ err400 { errBody = "Can't add a key that has already expired." }
