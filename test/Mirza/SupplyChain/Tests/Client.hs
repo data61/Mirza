@@ -11,38 +11,30 @@ import           Servant.API.BasicAuth
 import           Servant.Client                    (BaseUrl)
 
 import           Data.Either                       (isLeft, isRight)
---import           Data.UUID                         (nil)
 
 import           Data.Text.Encoding                (encodeUtf8)
 
-import           Test.Tasty.Hspec
 import           Test.Tasty
+import           Test.Tasty.Hspec
 import           Test.Tasty.HUnit
 
 import           Katip                             (Severity (DebugS))
 
+import           Mirza.SupplyChain.Client.Servant
 import           Mirza.SupplyChain.Main            (ServerOptions (..),
                                                     initApplication,
                                                     initSCSContext)
 import           Mirza.SupplyChain.Types           as ST
-import           Mirza.SupplyChain.Client.Servant
---import           Mirza.BusinessRegistry.Client.Servant (revokePublicKey,
---                                                        addPublicKey)
-import           Mirza.SupplyChain.Tests.Dummies
-import           Mirza.SupplyChain.Tests.Settings
+
 import           Mirza.Common.Tests.ServantUtils
 import           Mirza.Common.Tests.Utils
 import           Mirza.SupplyChain.Database.Schema as Schema
+import           Mirza.SupplyChain.Tests.Dummies
+import           Mirza.SupplyChain.Tests.Settings
 
 import           Database.Beam.Query               (delete, runDelete, val_)
 
--- import           Mirza.Common.Time                (ExpirationTime (..))
--- import           Data.Time.Clock                  (addUTCTime, getCurrentTime)
-
-import           Data.GS1.EPC                     (GS1CompanyPrefix (..))
---import           Data.GS1.EventId                 as EvId
-
---import           Mirza.BusinessRegistry.Tests.Utils
+import           Data.GS1.EPC                      (GS1CompanyPrefix (..))
 
 -- === SCS Client tests
 
