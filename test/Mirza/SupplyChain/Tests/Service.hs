@@ -21,8 +21,9 @@ import           Mirza.SupplyChain.Handlers.Users
 import           Mirza.SupplyChain.Types                      as ST
 
 import           Control.Monad                                (void)
-import           Data.Maybe                                   (fromJust)
 import           Data.Either                                  (isLeft)
+import           Data.GS1.EPC                                 (GS1CompanyPrefix (..))
+import           Data.Maybe                                   (fromJust)
 
 import           Data.Text.Encoding                           (encodeUtf8)
 
@@ -182,6 +183,11 @@ testServiceQueries = do
               (userFirstName u == newUserFirstName dummyNewUser) &&
               (userLastName u == newUserLastName dummyNewUser)
             )
+-- Specifically, add a few users, and see if the search works properly;
+-- search for just gs1companyprefix;
+-- search for just last name; search for both;
+-- search with no params given
+
     it "getUser test by Company Id" $ \scsContext -> do
       res <- testAppM scsContext $ do
         uid <- addUser dummyNewUser
@@ -198,6 +204,55 @@ testServiceQueries = do
               (userLastName u == newUserLastName dummyNewUser)
             )
         (_, _) -> fail "There should only be one result in this test"
+
+
+    it "getUser test by last name" $ \scsContext -> do
+      res <- testAppM scsContext $ do
+        uidSmith <- addUser dummyNewUser
+        _uid_2 <- addUser $ ST.NewUser "000" (EmailAddress "jordan@gmail.com") "Bob" "Jordan" (GS1CompanyPrefix "fake_1 Ltd") "password"
+        _uid_3 <- addUser $ ST.NewUser "000" (EmailAddress "james@gmail.com") "Bob" "James" (GS1CompanyPrefix "fake_2 Ltd") "password"
+
+        userSmith <- userSearch dummyUser Nothing (Just "Smith")
+        -- ^ The argument dummyUser is ignored
+        pure (uidSmith, userSmith)
+      case res of
+        (_, []) -> fail "Received Nothing for Smith"
+        (uidSmith, [smith]) ->
+          smith `shouldSatisfy`
+            (\u ->
+              (userId u == uidSmith) &&
+              (userFirstName u == newUserFirstName dummyNewUser) &&
+              (userLastName u == newUserLastName dummyNewUser)
+            )
+        (_, _) -> fail "There should only be one result in this test"
+
+    it "getUser test by last name and company id" $ \scsContext -> do
+      res <- testAppM scsContext $ do
+        _uid_1 <- addUser dummyNewUser
+        uidRealSmith <- addUser $ ST.NewUser "000" (EmailAddress "jordan@gmail.com") "Bob" "Smith" (GS1CompanyPrefix "Real Smith Ltd") "password"
+        _uid_3 <- addUser $ ST.NewUser "000" (EmailAddress "james@gmail.com") "Bob" "James" (GS1CompanyPrefix "Fake Jordan Ltd") "password"
+
+        userSmith <- userSearch dummyUser (Just $ GS1CompanyPrefix "Real Smith Ltd") (Just "Smith")
+        -- ^ The argument dummyUser is ignored
+        pure (uidRealSmith, userSmith)
+      case res of
+        (_, []) -> fail "Received Nothing for Smith"
+        (uidSmith, [smith]) ->
+          smith `shouldSatisfy`
+            (\u ->
+              (userId u == uidSmith) &&
+              (userFirstName u == "Bob") &&
+              (userLastName u == "Smith")
+            )
+        (_, _) -> fail "There should only be one result in this test"
+
+    it "getUser test with no param" $ \scsContext -> do
+      res <- testAppM scsContext $ do
+        _uid <- addUser dummyNewUser
+        users <- userSearch dummyUser Nothing Nothing
+        -- ^ The argument dummyUser is ignored
+        pure users
+      res `shouldBe` []
 
   describe "Contacts" $ do
     (after_ clearContact) . describe "Contacts" $
