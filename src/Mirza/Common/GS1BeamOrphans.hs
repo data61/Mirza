@@ -54,9 +54,18 @@ import           Database.Beam.Postgres.Syntax        (PgDataTypeSyntax)
 import           Database.PostgreSQL.Simple.ToField   (ToField, toField)
 import           GHC.Generics                         (Generic)
 
+import           Data.Swagger
+import           Servant                              (FromHttpApiData (..),
+                                                       ToHttpApiData (..))
 
+instance ToParamSchema EPC.GS1CompanyPrefix
+instance FromHttpApiData EPC.GS1CompanyPrefix where
+  -- TODO: Add proper parsing for EPC.GS1CompanyPrefix
+  parseUrlPiece = Right . EPC.GS1CompanyPrefix
+instance ToHttpApiData EPC.GS1CompanyPrefix where
+  toUrlPiece (EPC.GS1CompanyPrefix pfx) = pfx
 
--- Type definitions
+-- Beam Type definitions
 
 -- ======= Event Type =======
 
