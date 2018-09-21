@@ -24,12 +24,15 @@ import           Data.Time.Clock                        (addUTCTime,
                                                         diffUTCTime,
                                                         getCurrentTime)
 import           Data.UUID                              (nil)
+import           Data.ByteString.Lazy                   (ByteString)
 
 import           System.Directory                       (listDirectory)
 import           System.FilePath                        ((</>))
 
 import           Database.Beam.Query                    (delete, runDelete,
                                                         val_)
+
+import qualified Network.HTTP.Types.Status              as NS
 
 import           Katip                                  (Severity (DebugS))
 
@@ -55,6 +58,7 @@ import           Mirza.Common.Utils
 import           Mirza.BusinessRegistry.Tests.Settings  (testDbConnStr)
 import           Mirza.BusinessRegistry.Tests.Utils
 import           Mirza.Common.Tests.Utils
+
 
 -- === BR Servant Client tests
 
@@ -83,9 +87,10 @@ clientSpec = do
                    (`shouldContain` [biz1Response])
 
           step "Can't add business with the same GS1CompanyPrefix"
-          http (addBusiness globalAuthData biz1{newBusinessName = "businessTests_anotherName"})
-            `shouldSatisfyIO` isLeft
-          -- Should also check that the error type is correct / meaningful.
+          duplicatePrefixResult <- http (addBusiness globalAuthData biz1{newBusinessName = "businessTests_anotherName"})
+          duplicatePrefixResult `shouldSatisfy` isLeft
+          duplicatePrefixResult `shouldSatisfy` (checkFailureStatus NS.badRequest400)
+          duplicatePrefixResult `shouldSatisfy` (checkFailureMessage "GS1 company prefix already exists.")
 
           step "Can add a second business"
           addBiz2Result <- http (addBusiness globalAuthData biz2)
@@ -100,13 +105,20 @@ clientSpec = do
 
           -- TODO: Include me (github #205):
           -- step "That the GS1CompanyPrefix can't be empty (\"\")."
-          -- http (addBusiness globalAuthData emptyPrefixBiz)
-          --   `shouldSatisfyIO` isLeft
+          -- emptyPrefixResult <- http (addBusiness globalAuthData emptyPrefixBiz)
+          -- emptyPrefixResult `shouldSatisfy` isLeft
+          -- emptyPrefixResult `shouldSatisfy` (checkFailureStatus NS.badRequest400)
+          -- emptyPrefixResult `shouldSatisfy` (checkFailureMessage "TODO")
 
           -- TODO: Include me (github #205):
+          -- This should possibly be changed to something that is within the
+          -- type specification but is logically incorrect if the type
+          -- constraint is improved.
           -- step "That the GS1CompanyPrefix can't be a string."
-          -- http (addBusiness globalAuthData stringPrefix1Biz)
-          --    `shouldSatisfyIO` isLeft
+          -- stringPrefixResult <- http (addBusiness globalAuthData stringPrefix1Biz)
+          -- stringPrefixResult `shouldSatisfy` isLeft
+          -- stringPrefixResult `shouldSatisfy` (checkFailureStatus NS.badRequest400)
+          -- stringPrefixResult `shouldSatisfy` (checkFailureMessage "TODO")
 
 
   let userTests = testCaseSteps "Can create users" $ \step ->
@@ -166,8 +178,10 @@ clientSpec = do
           -- we know that we are failing because they aren't in the DB rather
           -- then because they are somehow otherwise invalid.
           step "That a user that doesn't exist can't login"
-          http (addPublicKey (newUserToBasicAuthData user1) goodKey Nothing)
-            `shouldSatisfyIO` isLeft
+          nonExistantUserResult <- http (addPublicKey (newUserToBasicAuthData user1) goodKey Nothing)
+          nonExistantUserResult `shouldSatisfy` isLeft
+          nonExistantUserResult `shouldSatisfy` (checkFailureStatus NS.unauthorized401)
+          nonExistantUserResult `shouldSatisfy` (checkFailureMessage "")
 
           step "Can create a new user"
           http (addUser globalAuthData user1)
@@ -186,20 +200,28 @@ clientSpec = do
           --       about here is that the user can login.
 
           step "That the wrong password doesn't allow the user to login"
-          http (addPublicKey (newUserToBasicAuthData user1){basicAuthPassword = "invalid password"} goodKey Nothing)
-            `shouldSatisfyIO` isLeft
+          wrongPasswordResult <- http (addPublicKey (newUserToBasicAuthData user1){basicAuthPassword = "invalid password"} goodKey Nothing)
+          wrongPasswordResult `shouldSatisfy` isLeft
+          wrongPasswordResult `shouldSatisfy` (checkFailureStatus NS.unauthorized401)
+          wrongPasswordResult `shouldSatisfy` (checkFailureMessage "")
 
           step "That the an empty password doesn't allow the user to login"
-          http (addPublicKey (newUserToBasicAuthData user1){basicAuthPassword = ""} goodKey Nothing)
-            `shouldSatisfyIO` isLeft
+          emptyPasswordResult <- http (addPublicKey (newUserToBasicAuthData user1){basicAuthPassword = ""} goodKey Nothing)
+          emptyPasswordResult `shouldSatisfy` isLeft
+          emptyPasswordResult `shouldSatisfy` (checkFailureStatus NS.unauthorized401)
+          emptyPasswordResult `shouldSatisfy` (checkFailureMessage "")
 
           step "Can't create a new user with a GS1CompanyPrefix that isn't registered"
-          http (addUser globalAuthData userNonRegisteredBiz)
-            `shouldSatisfyIO` isLeft
+          invalidPrefixResult <- http (addUser globalAuthData userNonRegisteredBiz)
+          invalidPrefixResult `shouldSatisfy` isLeft
+          invalidPrefixResult `shouldSatisfy` (checkFailureStatus NS.badRequest400)
+          invalidPrefixResult `shouldSatisfy` (checkFailureMessage "Business does not exist.")
 
           step "Can't create a new user with the same email address"
-          http (addUser globalAuthData userSameEmail)
-            `shouldSatisfyIO` isLeft
+          duplicateEmailResult <- http (addUser globalAuthData userSameEmail)
+          duplicateEmailResult `shouldSatisfy` isLeft
+          -- duplicateEmailResult `shouldSatisfy` (checkFailureStatus NS.badRequest400)
+          -- duplicateEmailResult `shouldSatisfy` (checkFailureMessage "Unable to create user.")
 
           step "Can create a second user"
           http (addUser globalAuthData user2)
@@ -207,13 +229,17 @@ clientSpec = do
 
           -- TODO: Include me (github #205):
           -- step "Can't create a user with an empty email."
-          -- http (addUser globalAuthData userEmptyEmail)
-          --   `shouldSatisfyIO` isLeft
+          -- emptyEmailResult <- http (addUser globalAuthData userEmptyEmail)
+          -- emptyEmailResult `shouldSatisfy` isLeft
+          -- emptyEmailResult `shouldSatisfy` (checkFailureStatus NS.badRequest400)
+          -- emptyEmailResult `shouldSatisfy` (checkFailureMessage "TODO")
 
-          -- TODO: Include me (github #205):
+          -- -- TODO: Include me (github #205):
           -- step "Can't create a user with an empty password."
-          -- http (addUser globalAuthData userEmptyPassword)
-          --   `shouldSatisfyIO` isLeft
+          -- emptyUserPasswordResult <- http (addUser globalAuthData userEmptyPassword)
+          -- emptyUserPasswordResult `shouldSatisfy` isLeft
+          -- emptyUserPasswordResult `shouldSatisfy` (checkFailureStatus NS.badRequest400)
+          -- emptyUserPasswordResult `shouldSatisfy` (checkFailureMessage "TODO")
 
 
   let keyTests = testCaseSteps "That keys work as expected" $ \step ->
@@ -297,10 +323,14 @@ clientSpec = do
           step "That getPublicKey fails gracefully searching for a non existant key"
           b1InvalidKeyResponse <- http (getPublicKey (BRKeyId nil))
           b1InvalidKeyResponse `shouldSatisfy` isLeft
+          b1InvalidKeyResponse `shouldSatisfy` (checkFailureStatus NS.notFound404)
+          b1InvalidKeyResponse `shouldSatisfy` (checkFailureMessage "Public key with the given id not found.")
 
           step "That getPublicKeyInfo fails gracefully searching for a non existant key"
           b1InvalidKeyInfoResponse <- http (getPublicKeyInfo (BRKeyId nil))
           b1InvalidKeyInfoResponse `shouldSatisfy` isLeft
+          b1InvalidKeyInfoResponse `shouldSatisfy` (checkFailureStatus NS.notFound404)
+          b1InvalidKeyInfoResponse `shouldSatisfy` (checkFailureMessage "Public key with the given id not found.")
 
           let expiryDelay = 3
           step $ "Can add a good key with exipry time (" ++ (show expiryDelay) ++ " seconds from now)"
@@ -339,11 +369,15 @@ clientSpec = do
           step "Test that it is not possible to revoke a key that has already expired."
           b1K2RevokedResponse <- http (revokePublicKey (newUserToBasicAuthData userB1U1) b1K2StoredKeyId)
           b1K2RevokedResponse `shouldSatisfy` isLeft
+          b1K2RevokedResponse `shouldSatisfy` (checkFailureStatus NS.badRequest400)
+          b1K2RevokedResponse `shouldSatisfy` (checkFailureMessage "Public key already expired.")
 
           step $ "That it is not possible to add a key that is already expired"
           b1ExpiredKeyExpiry <- (Just . ExpirationTime) <$> ((addUTCTime (fromInteger (-1))) <$> getCurrentTime)
           b1ExpiredKeyExpiryResult <- http (addPublicKey (newUserToBasicAuthData userB1U1) goodKey b1ExpiredKeyExpiry)
           b1ExpiredKeyExpiryResult `shouldSatisfy` isLeft
+          b1ExpiredKeyExpiryResult `shouldSatisfy` (checkFailureStatus NS.badRequest400)
+          b1ExpiredKeyExpiryResult `shouldSatisfy` (checkFailureMessage "The specified expiry time is not valid.")
 
           step "That it's possible to revoke a key"
           b1K3StoredKeyIdResult <- http (addPublicKey (newUserToBasicAuthData userB1U1) goodKey Nothing)
@@ -363,6 +397,8 @@ clientSpec = do
           step "That revoking an already revoked key generates an error"
           b1K3RevokedAgainResponse <- http (revokePublicKey (newUserToBasicAuthData userB1U1) b1K3StoredKeyId)
           b1K3RevokedAgainResponse `shouldSatisfy` isLeft
+          b1K3RevokedAgainResponse `shouldSatisfy` (checkFailureStatus NS.badRequest400)
+          b1K3RevokedAgainResponse `shouldSatisfy` (checkFailureMessage "Public key already revoked.")
 
           -- TODO: Include this test. (github #211)
           -- step "That another user from the same business can also revoke the key"
@@ -381,6 +417,8 @@ clientSpec = do
           let Right b1K5StoredKeyId = b1K5StoredKeyIdResult
           b1K5RevokedResponse <- http (revokePublicKey (newUserToBasicAuthData userB2U1) b1K5StoredKeyId)
           b1K5RevokedResponse `shouldSatisfy` isLeft
+          b1K5RevokedResponse `shouldSatisfy` (checkFailureStatus NS.forbidden403)
+          b1K5RevokedResponse `shouldSatisfy` (checkFailureMessage "Not authorised to access this key.")
           b1K5RevokedInfoResponse <- http (getPublicKeyInfo b1K5StoredKeyId)
           b1K5RevokedInfoResponse `shouldSatisfy` isRight
           b1K5RevokedInfoResponse `shouldSatisfy` checkField keyInfoState (== InEffect)
@@ -388,6 +426,8 @@ clientSpec = do
           step "That revokePublicKey for an invalid keyId fails gracefully"
           revokeInvalidKeyIdResponse <- http (revokePublicKey (newUserToBasicAuthData userB1U1) (BRKeyId nil))
           revokeInvalidKeyIdResponse `shouldSatisfy` isLeft
+          -- revokeInvalidKeyIdResponse `shouldSatisfy` (checkFailureStatus NS.notFound404)
+          -- revokeInvalidKeyIdResponse `shouldSatisfy` (checkFailureMessage "Key with the given ID not found.")
 
           step "Test where the key has an expiry time (which hasn't expired) and is revoked reports the correct status."
           b1K6ExpiryUTC <- (addUTCTime (fromInteger expiryDelay)) <$> getCurrentTime
@@ -496,6 +536,15 @@ newUserToBasicAuthData =
 checkField :: (a -> b) -> (b -> Bool) -> Either c a -> Bool
 checkField accessor predicate = either (const False) (predicate . accessor)
 
+checkFailureStatus :: NS.Status -> Either ServantError a -> Bool
+checkFailureStatus = checkFailureField responseStatusCode
+
+checkFailureMessage :: ByteString -> Either ServantError a -> Bool
+checkFailureMessage = checkFailureField responseBody
+
+checkFailureField :: (Eq a) => (Response -> a) -> a -> Either ServantError b -> Bool
+checkFailureField accessor x (Left (FailureResponse failure)) = x == (accessor failure)
+checkFailureField _        _ _                                = False
 
 bootstrapAuthData :: (HasEnvType w, HasConnPool w, HasKatipContext w,
                       HasKatipLogEnv w, HasScryptParams w)

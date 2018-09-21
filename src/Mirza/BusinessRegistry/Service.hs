@@ -86,7 +86,7 @@ appMToHandler :: forall x context. context -> AppM context BusinessRegistryError
 appMToHandler context act = do
   res <- liftIO $ runAppM context act
   case res of
-    Left err -> appErrToHttpErr err
+    Left err -> businessRegistryErrorToHttpError err
     Right a  -> return a
 
 
@@ -100,32 +100,35 @@ serveSwaggerAPI = toSwagger serverAPI
 
 
 -- | Takes in a BusinessRegistryError and converts it to an HTTP error (eg. err400)
-appErrToHttpErr :: BusinessRegistryError -> Handler a
-appErrToHttpErr (KeyErrorBRE kError) = keyErrToHttpErr kError
-appErrToHttpErr x@(DBErrorBRE _sqlError)              = liftIO (print x) >> notImplemented
-appErrToHttpErr x@(GS1CompanyPrefixExistsBRE)         = liftIO (print x) >> notImplemented
-appErrToHttpErr x@(BusinessDoesNotExistBRE)           = liftIO (print x) >> notImplemented
-appErrToHttpErr x@(UserCreationErrorBRE _reason)      = liftIO (print x) >> notImplemented
-appErrToHttpErr x@(UnexpectedErrorBRE _reason)        = liftIO (print x) >> notImplemented
+businessRegistryErrorToHttpError :: BusinessRegistryError -> Handler a
+businessRegistryErrorToHttpError (KeyErrorBRE kError) = keyErrorToHttpError kError
+businessRegistryErrorToHttpError x@(DBErrorBRE _sqlError)              = liftIO (print x) >> notImplemented
+businessRegistryErrorToHttpError x@(UnexpectedErrorBRE _reason)        = liftIO (print x) >> notImplemented
+businessRegistryErrorToHttpError (GS1CompanyPrefixExistsBRE) =
+  throwError $ err400 { errBody = "GS1 company prefix already exists." }
+businessRegistryErrorToHttpError (BusinessDoesNotExistBRE) =
+  throwError $ err400 { errBody = "Business does not exist." }
+businessRegistryErrorToHttpError (UserCreationErrorBRE _reason) =
+ throwError $ err400 { errBody = "Unable to create user." }
 
-keyErrToHttpErr :: KeyError -> Handler a
-keyErrToHttpErr (InvalidRSAKey _) =
+keyErrorToHttpError :: KeyError -> Handler a
+keyErrorToHttpError (InvalidRSAKey _) =
   throwError $ err400 {
     errBody = "Failed to parse RSA Public key."
   }
-keyErrToHttpErr (InvalidRSAKeySize (Expected (Bit expSize)) (Received (Bit recSize))) =
+keyErrorToHttpError (InvalidRSAKeySize (Expected (Bit expSize)) (Received (Bit recSize))) =
   throwError $ err400 {
     errBody = BSL8.pack $ printf "Invalid RSA Key size. Expected: %d Bits, Received: %d Bits\n" expSize recSize
   }
-keyErrToHttpErr KeyAlreadyRevoked =
-  throwError $ err400 { errBody = "Public Key already revoked" }
-keyErrToHttpErr KeyAlreadyExpired =
-  throwError $ err400 { errBody = "Public Key already expired" }
-keyErrToHttpErr UnauthorisedKeyAccess =
+keyErrorToHttpError KeyAlreadyRevoked =
+  throwError $ err400 { errBody = "Public key already revoked." }
+keyErrorToHttpError KeyAlreadyExpired =
+  throwError $ err400 { errBody = "Public key already expired." }
+keyErrorToHttpError UnauthorisedKeyAccess =
   throwError $ err403 { errBody = "Not authorised to access this key." }
-keyErrToHttpErr (PublicKeyInsertionError _) =
-  throwError $ err500 { errBody = "Key could not be inserted." }
-keyErrToHttpErr (KeyNotFound _) =
-  throwError $ err404 { errBody = "Key with the given ID not found." }
-keyErrToHttpErr (InvalidExpiry) =
-  throwError $ err404 { errBody = "The specified expiry time is not valid." }
+keyErrorToHttpError (PublicKeyInsertionError _) =
+  throwError $ err500 { errBody = "Public key could not be inserted." }
+keyErrorToHttpError (KeyNotFound _) =
+  throwError $ err404 { errBody = "Public key with the given id not found." }
+keyErrorToHttpError (InvalidExpiry) =
+  throwError $ err400 { errBody = "The specified expiry time is not valid." }
