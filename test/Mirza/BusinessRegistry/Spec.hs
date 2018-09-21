@@ -9,13 +9,13 @@ import           Mirza.BusinessRegistry.Database.Migrate
 import           Mirza.BusinessRegistry.Main             hiding (main)
 import           Mirza.BusinessRegistry.Types            as BRT
 
-import           Test.Hspec.Core.Spec                    (sequential)
 import           Test.Tasty                              hiding (withResource)
-import           Test.Tasty.Hspec                        (around, testSpec)
 import           Test.Tasty.Runners                      (NumThreads (..))
+import           Test.Hspec.Core.Spec                    (sequential)
+import           Test.Tasty.Hspec                        (around, testSpec)
 
-import           Mirza.BusinessRegistry.Tests.Business   (testBizQueries)
 import           Mirza.BusinessRegistry.Tests.Client
+import           Mirza.BusinessRegistry.Tests.Business   (testBizQueries)
 import           Mirza.BusinessRegistry.Tests.Keys       (testKeyQueries)
 
 import           Control.Exception                       (bracket)
@@ -80,7 +80,7 @@ main :: IO ()
 main = do
   keyTests <- testSpec "HSpec" (sequential $ around withDatabaseConnection testKeyQueries)
   bizTests <- testSpec "HSpec" (sequential $ around withDatabaseConnection testBizQueries)
-  clientTests <- testSpec "Client HSpec" clientSpec
+  clientTests <- clientSpec
 
   defaultMain $ localOption (NumThreads 1) $ testGroup "tests"
     [ keyTests

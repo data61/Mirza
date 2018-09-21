@@ -14,7 +14,7 @@ import           Mirza.BusinessRegistry.Database.Schema  as Schema
 import           Mirza.BusinessRegistry.Service
 import           Mirza.BusinessRegistry.Types            as BT
 import           Mirza.Common.Types                      as CT
-import           Mirza.Common.Utils                      (newUUID)
+import           Mirza.Common.Utils                      (randomText)
 
 import           Data.GS1.EPC                            (GS1CompanyPrefix (..))
 
@@ -30,8 +30,9 @@ import qualified Network.Wai.Handler.Warp                as Warp
 import           Data.ByteString                         (ByteString)
 import           Data.Semigroup                          ((<>))
 import           Data.Text                               (Text, pack)
-import           Data.Text.Encoding                      (encodeUtf8)
 import           Options.Applicative                     hiding (action)
+import           Text.Email.Validate
+import           Data.Text.Encoding                      (encodeUtf8)
 
 import qualified Crypto.Scrypt                           as Scrypt
 
@@ -39,9 +40,6 @@ import           Control.Exception                       (finally)
 import           Katip                                   as K
 import           System.IO                               (stdout)
 
-import           Text.Email.Validate                     (EmailAddress,
-                                                          unsafeEmailAddress,
-                                                          validate)
 
 
 --------------------------------------------------------------------------------
@@ -188,34 +186,30 @@ runUserCommand globals UserList = do
    either (print @BusinessRegistryError) (mapM_ print) euser
 
 runUserCommand globals UserAdd = do
-  user <- interactivlyGetUserT globals
+  user <- interactivelyGetNewUser
   ctx <- initBRContext globals
   euser <- runAppM ctx $ runDb (addUserQuery user)
   either (print @BusinessRegistryError) print euser
 
 
-interactivlyGetUserT :: GlobalOptions -> IO Schema.User
-interactivlyGetUserT opts = do
-  params <- createScryptParams opts
-  user_id       <- newUUID
-  user_biz_id   <- BizId . read <$> prompt "user_biz_id  "
-  first_name    <- pack <$> prompt "first_name   "
-  last_name     <- pack <$> prompt "last_name    "
-  phone_number  <- pack <$> prompt "phone_number "
-  raw_password  <- pack <$> prompt "password"
-  email_address <- getUserEmailInteractive
-  Scrypt.EncryptedPass password_hash
-                <- Scrypt.encryptPassIO params (Scrypt.Pass $ encodeUtf8 raw_password)
-  return UserT{..}
-  where
-    getUserEmailInteractive :: IO EmailAddress
-    getUserEmailInteractive = do
-      userEmail <- encodeUtf8 . pack <$> prompt "email_address"
-      case validate userEmail of
-        Left reason -> do
-          putStrLn $ "Invalid Email. Reason: " ++ reason
-          getUserEmailInteractive
-        Right email -> pure email
+interactivelyGetNewUser :: IO NewUser
+interactivelyGetNewUser = do
+  newUserEmailAddress <- getUserEmailInteractive
+  newUserPassword     <- pack <$> prompt "Password:"
+  newUserCompany      <- GS1CompanyPrefix . read <$> prompt "GS1CompanyPrefix:"
+  newUserFirstName    <- pack <$> prompt "First Name:"
+  newUserLastName     <- pack <$> prompt "Last Name:"
+  newUserPhoneNumber  <- pack <$> prompt "Phone Number:"
+  return NewUser{..}
+
+getUserEmailInteractive :: IO EmailAddress
+getUserEmailInteractive = do
+  userEmail <- encodeUtf8 . pack <$> prompt "Email Address"
+  case validate userEmail of
+    Left reason -> do
+      putStrLn $ "Invalid Email. Reason: " ++ reason
+      getUserEmailInteractive
+    Right email -> pure email
 
 createScryptParams :: GlobalOptions -> IO Scrypt.ScryptParams
 createScryptParams GlobalOptions{goScryptN,goScryptP,goScryptR} =
@@ -238,21 +232,16 @@ runBusinessCommand globals BusinessList = do
   either (print @BusinessRegistryError) (mapM_ print) ebizs
 
 runBusinessCommand globals BusinessAdd = do
-  business <- interactivlyGetBusinessT
+  business <- interactivelyGetBusinessT
   ctx <- initBRContext globals
   ebiz <- runAppM ctx $ runDb (addBusinessQuery business)
   either (print @BusinessRegistryError) print ebiz
 
 
-interactivlyGetBusinessT :: IO Business
-interactivlyGetBusinessT = do
+interactivelyGetBusinessT :: IO Business
+interactivelyGetBusinessT = do
   biz_gs1_company_prefix <- GS1CompanyPrefix . pack <$>  prompt "GS1CompanyPrefix"
   biz_name      <- pack <$> prompt "Name"
-  biz_function  <- pack <$> prompt "Function"
-  biz_site_name <- pack <$> prompt "Site name"
-  biz_address   <- pack <$> prompt "Address"
-  biz_lat       <- read <$> prompt "Lat"
-  biz_long      <- read <$> prompt "Long"
   return BusinessT{..}
 
 prompt :: String -> IO String
@@ -266,59 +255,60 @@ prompt message = putStrLn message *> getLine
 runPopulateDatabase :: GlobalOptions -> IO ()
 runPopulateDatabase globals = do
   ctx     <- initBRContext globals
-  biz1    <- dummyBusiness "1"
-  ebiz1    <- runAppM ctx $ runDb (addBusinessQuery biz1)
-  bizid1  <- f . fmap primaryKey $ ebiz1
-  user1A' <- dummyUser "A1" bizid1 globals
-  user1B' <- dummyUser "B1" bizid1 globals
-  _eusers  <- runAppM @_ @BusinessRegistryError ctx $
-              runDb (mapM addUserQuery [user1A', user1B'])
 
-  biz2    <- dummyBusiness "2"
-  ebiz2    <- runAppM ctx $ runDb (addBusinessQuery biz2)
-  bizid2  <- f . fmap primaryKey $ ebiz2
-  user2A' <- dummyUser "A2" bizid2 globals
-  user2B' <- dummyUser "B2" bizid2 globals
-  _eusers  <- runAppM @_ @BusinessRegistryError ctx $
-              runDb (mapM addUserQuery [user2A', user2B'])
+  b1      <- dummyBusiness "1"
+  _result <- runAppM @_ @BusinessRegistryError ctx $ addBusiness b1
+  u1b1    <- dummyUser "B1U1" (newBusinessGS1CompanyPrefix b1)
+  u2b1    <- dummyUser "B1U2" (newBusinessGS1CompanyPrefix b1)
+  _result <- runAppM @_ @BusinessRegistryError ctx $
+             runDb (mapM addUserQuery [u1b1, u2b1])
 
-  print biz1
-  print user1A'
-  print user1B'
+  b2      <- dummyBusiness "2"
+  _result <- runAppM @_ @BusinessRegistryError ctx $ addBusiness b2
+  u1b2    <- dummyUser "B2U1" (newBusinessGS1CompanyPrefix b2)
+  u2b2    <- dummyUser "B2U2" (newBusinessGS1CompanyPrefix b2)
+  _result <- runAppM @_ @BusinessRegistryError ctx $
+             runDb (mapM addUserQuery [u1b2, u2b2])
 
-  print biz2
-  print user2A'
-  print user2B'
+  putStrLn "Credentials"
+  printCredentials u1b1
+  printCredentials u2b1
+  printCredentials u1b2
+  printCredentials u2b2
 
-  where f :: Either BusinessRegistryError a -> IO a
-        f = either (error . show) pure
+  putStrLn "Full User Information"
+  print b1
+  print u1b1
+  print u2b1
+
+  print b2
+  print u1b2
+  print u2b2
 
 
-dummyBusiness :: Text -> IO Business
+dummyBusiness :: Text -> IO NewBusiness
 dummyBusiness unique = do
-  let biz_gs1_company_prefix = GS1CompanyPrefix ("Business" <> unique <> "Prefix")
-  let biz_name               = "Business" <> unique <> "Name"
-  let biz_function           = "Business" <> unique <> "Function"
-  let biz_site_name          = "Business" <> unique <> "Site"
-  let biz_address            = "Business" <> unique <> "Address"
-  let biz_lat                = 5
-  let biz_long               = 7
-  return BusinessT{..}
+  let newBusinessGS1CompanyPrefix = GS1CompanyPrefix ("Business" <> unique <> "Prefix")
+  let newBusinessName             = "Business" <> unique <> "Name"
+  return NewBusiness{..}
 
 
-dummyUser :: Text -> BizId -> GlobalOptions -> IO Schema.User
-dummyUser unique business_uid opts = do
-  params <- createScryptParams opts
-  user_id       <- newUUID
-  let user_biz_id   = business_uid
-  let first_name    = "User" <> unique <> "FirstName"
-  let last_name     = "User" <> unique <> "LastName"
-  let phone_number  = "User" <> unique <> "PhoneNumber"
-  let raw_password  = "User" <> unique <> "Password"
-  let email_address = unsafeEmailAddress (encodeUtf8 unique) "example.com"
-  Scrypt.EncryptedPass password_hash
-      <- Scrypt.encryptPassIO params (Scrypt.Pass $ encodeUtf8 raw_password)
-  return UserT{..}
+dummyUser :: Text -> GS1CompanyPrefix -> IO NewUser
+dummyUser unique business_uid = do
+  passwordEntropy <- randomText
+  let newUserEmailAddress = unsafeEmailAddress (encodeUtf8 unique) "example.com"
+  let newUserPassword     = "User" <> unique <> "Password" <> passwordEntropy
+  let newUserCompany      = business_uid
+  let newUserFirstName    = "User" <> unique <> "FirstName"
+  let newUserLastName     = "User" <> unique <> "LastName"
+  let newUserPhoneNumber  = "User" <> unique <> "PhoneNumber"
+  return NewUser{..}
+
+
+printCredentials :: NewUser -> IO ()
+printCredentials user = do
+  putStrLn $ "Username: " <> show (newUserEmailAddress user)
+  putStrLn $ "Password: " <> show (newUserPassword user)
 
 
 --------------------------------------------------------------------------------

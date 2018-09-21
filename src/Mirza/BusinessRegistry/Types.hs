@@ -14,9 +14,12 @@ import           Mirza.Common.Time          (CreationTime, ExpirationTime,
 import           Mirza.Common.Types         as CT
 import           Mirza.Common.Utils
 
+import qualified Mirza.BusinessRegistry.Database.Schema   as Schema
+
 import           Data.GS1.EPC               as EPC
 
 import           Data.Pool                  as Pool
+import           Database.Beam                            as B
 import           Database.PostgreSQL.Simple (Connection, SqlError)
 
 import           Crypto.Scrypt              (ScryptParams)
@@ -31,8 +34,10 @@ import           Data.Swagger
 import           Servant                    (FromHttpApiData (..))
 
 import           Data.Text                  (Text)
+import           Data.Time                        (LocalTime)
 
 import           GHC.Generics               (Generic)
+import           GHC.Stack                  (CallStack)
 
 
 -- *****************************************************************************
@@ -71,29 +76,21 @@ instance HasKatipContext BRContext where
 --       to bottom.
 
 
-data User = User {
-  userId        :: UserId,
-  userFirstName :: Text,
-  userLastName  :: Text
-} deriving (Generic, Eq, Show)
-$(deriveJSON defaultOptions ''User)
-instance ToSchema User
 
 -- | Note that BusinessRegistry.NewUser is expected to become different in the
 -- future, and hence this duplication
-data NewUser = NewUser {
-  newUserPhoneNumber  :: Text,
-  newUserEmailAddress :: EmailAddress,
-  newUserFirstName    :: Text,
-  newUserLastName     :: Text,
-  newUserCompany      :: GS1CompanyPrefix,
-  newUserPassword     :: Text
-} deriving (Generic, Eq, Show)
+data NewUser = NewUser
+  { newUserEmailAddress :: EmailAddress
+  , newUserPassword     :: Text
+  , newUserCompany      :: GS1CompanyPrefix
+  , newUserFirstName    :: Text
+  , newUserLastName     :: Text
+  , newUserPhoneNumber  :: Text
+  } deriving (Generic, Eq, Show)
 $(deriveJSON defaultOptions ''NewUser)
 instance ToSchema NewUser
 
 -- Auth User Types:
-
 newtype AuthUser = AuthUser { authUserId :: UserId }
   deriving (Show, Eq, Read, Generic)
 instance ToSchema AuthUser
@@ -102,10 +99,17 @@ instance FromHttpApiData AuthUser where
   parseUrlPiece = notImplemented
 
 
+data NewBusiness = NewBusiness
+  { newBusinessGS1CompanyPrefix :: GS1CompanyPrefix
+  , newBusinessName             :: Text
+  } deriving (Generic, Eq, Show)
+$(deriveJSON defaultOptions ''NewBusiness)
+instance ToSchema NewBusiness
+
 -- Business Response Types:
-data BusinessResponse = BusinessResponse {
-  bizId   :: EPC.GS1CompanyPrefix,
-  bizName :: Text
+data BusinessResponse = BusinessResponse
+  { businessGS1CompanyPrefix :: EPC.GS1CompanyPrefix
+  , businessName             :: Text
   }
   deriving (Show, Eq, Read, Generic)
 instance ToSchema BusinessResponse
@@ -138,7 +142,7 @@ data KeyInfoResponse = KeyInfoResponse
   , keyInfoUserId         :: UserId  -- TODO: There should be a forien key for Business in here....not sure that user is relevant...
   , keyInfoState          :: KeyState
   , keyInfoCreationTime   :: CreationTime
-  , keyInfoRevocationTime :: Maybe RevocationTime
+  , keyInfoRevocation     :: Maybe (RevocationTime, UserId)
   , keyInfoExpirationTime :: Maybe ExpirationTime
   , keyInfoPEMString      :: PEM_RSAPubKey
   }
@@ -153,10 +157,16 @@ instance ToSchema KeyInfoResponse
 
 data BusinessRegistryError
   = DBErrorBRE SqlError
-  | BusinessCreationErrorBRE String
+  -- | The user tried to add a business with the a GS1CompanyPrefix that already exsits.
+  | GS1CompanyPrefixExistsBRE
+  | BusinessDoesNotExistBRE
   | UserCreationErrorBRE String
   | KeyErrorBRE KeyError
-  deriving (Show, Eq, Generic)
+  -- | An error that isn't specifically excluded by the types, but that the
+  -- | developers don't think is possible to hit, or know of a situation which
+  -- | could cause this case to be excercised.
+  | UnexpectedErrorBRE CallStack
+  deriving (Show, Generic)
 
 data KeyError
   = InvalidRSAKey PEM_RSAPubKey
@@ -165,7 +175,18 @@ data KeyError
   | KeyNotFound CT.BRKeyId
   | UnauthorisedKeyAccess
   | KeyAlreadyRevoked
-  deriving (Show, Eq)
+  | KeyAlreadyExpired
+  -- | If it is detected that the key has a revocation time and no revoking
+  -- user or the key has a revoking user but now revoking time. Hopefully in
+  -- practice it is not possible to produce this error since it probably
+  -- indicates a bug in our code. It is only possible to generate this error
+  -- because we don't store the revoking data in the database as a
+  -- Maybe (Time, User) because this is technically complex. If we encounter
+  -- this error it might be a good time to re-evaulate whether it is better to
+  -- fix the storage datatype so its not possible to generate this error in the
+  -- first place.
+  | InvalidRevocation (Maybe LocalTime) (PrimaryKey Schema.UserT (Nullable Identity)) CallStack
+  deriving (Show)
 
 newtype Bit  = Bit  {getBit :: Int} deriving (Show, Eq, Read, Ord)
 newtype Expected = Expected {getExpected :: Bit} deriving (Show, Eq, Read, Ord)
