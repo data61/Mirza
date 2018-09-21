@@ -2,7 +2,7 @@
 
 module Mirza.SupplyChain.Handlers.Users
   (
-    newUser, userTableToModel
+    addUser, userTableToModel
   ) where
 
 
@@ -33,17 +33,17 @@ import           Control.Monad.Except                     (MonadError,
 import           Control.Monad.IO.Class                   (liftIO)
 import           Data.Text.Encoding                       (encodeUtf8)
 
-newUser :: (SCSApp context err, HasScryptParams context)
+addUser :: (SCSApp context err, HasScryptParams context)
         => ST.NewUser
         -> AppM context err ST.UserId
-newUser = runDb . newUserQuery
+addUser = runDb . addUserQuery
 
 
 -- | Hashes the password of the ST.NewUser and inserts the user into the database
-newUserQuery :: (AsServiceError err, HasScryptParams context)
+addUserQuery :: (AsServiceError err, HasScryptParams context)
              => ST.NewUser
              -> DB context err ST.UserId
-newUserQuery (ST.NewUser phone (EmailAddress email) firstName lastName biz password) = do
+addUserQuery (ST.NewUser phone (EmailAddress email) firstName lastName biz password) = do
   params <- view $ _2 . scryptParams
   encPass <- liftIO $ Scrypt.encryptPassIO params (Scrypt.Pass $ encodeUtf8 password)
   userId <- newUUID
@@ -65,6 +65,3 @@ newUserQuery (ST.NewUser phone (EmailAddress email) firstName lastName biz passw
         Just (UniqueViolation "users_email_address_key")
           -> throwing _EmailExists (toServerError getSqlErrorCode sqlErr, EmailAddress email)
         _ -> throwing _InsertionFail (toServerError (Just . sqlState) sqlErr, email)
-
-
-

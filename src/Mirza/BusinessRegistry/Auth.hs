@@ -9,16 +9,13 @@ module Mirza.BusinessRegistry.Auth
   (
     basicAuthServerContext
   , authCheck
-  , addUserQuery
   , listUsersQuery
   ) where
 
 import           Database.Beam                            as B
 import           Mirza.BusinessRegistry.Database.Schema   as Schema
 import           Mirza.BusinessRegistry.Handlers.Common
-import           Mirza.Common.Utils
 
-import           Database.Beam.Backend.SQL.BeamExtensions
 import           Database.PostgreSQL.Simple               (SqlError)
 
 import           Data.Text.Encoding                       (decodeUtf8)
@@ -89,30 +86,3 @@ userToAuthUser user = AuthUser (CT.UserId $ user_id user)
 listUsersQuery :: BRApp context err => DB context err [Schema.User]
 listUsersQuery = pg $ runSelectReturningList $ select $
     all_ (_users businessRegistryDB)
-
-
--- | Will _always_ create a new UUID for the UserId
-addUserQuery :: BRApp context err => Schema.User -> DB context err Schema.User
-addUserQuery user'@UserT{..} = do
-  -- The id is updated inside here to that it is generated as part of the
-  -- transaction so if the transaction happens to fail because the UUID
-  -- generated already exists it can be rerun in entirity hopefully with a
-  -- better outcome.
-  userId <- newUUID
-  let user = user'{user_id = userId}
-
-  res <- -- handleError errHandler $
-         pg $ runInsertReturningList (_users businessRegistryDB) $
-            insertValues [user]
-  case res of
-        [r] -> return r
-        -- TODO: Have a proper error response
-        _   -> throwing _UserCreationErrorBRE (show res)
-  -- where
-  --   errHandler :: (AsSqlError err, MonadError err m) => err -> m a
-  --   errHandler e = case e ^? _DatabaseError of
-  --     Nothing -> throwError e
-  --     Just sqlErr -> case constraintViolation sqlErr of
-  --       Just (UniqueViolation "users_email_address_key")
-  --         -> throwing_ _UserExists
-  --       _ -> throwing _InsertionFail (toServerError (Just . sqlState) sqlErr, email)
