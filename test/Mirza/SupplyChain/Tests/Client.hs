@@ -3,38 +3,27 @@
 
 module Mirza.SupplyChain.Tests.Client where
 
-
-import           Control.Concurrent                (ThreadId)
-import           Control.Exception                 (bracket)
+import           Control.Exception                (bracket)
 
 import           Servant.API.BasicAuth
-import           Servant.Client                    (BaseUrl)
 
-import           Data.Either                       (isLeft, isRight)
+import           Data.Either                      (isLeft, isRight)
 
-import           Data.Text.Encoding                (encodeUtf8)
+import           Data.Text.Encoding               (encodeUtf8)
 
 import           Test.Tasty
 import           Test.Tasty.Hspec
 import           Test.Tasty.HUnit
 
-import           Katip                             (Severity (DebugS))
-
 import           Mirza.SupplyChain.Client.Servant
-import           Mirza.SupplyChain.Main            (ServerOptions (..),
-                                                    initApplication,
-                                                    initSCSContext)
-import           Mirza.SupplyChain.Types           as ST
+import           Mirza.SupplyChain.Types          as ST
 
+import           Mirza.Common.Tests.InitClient    (runSCSApp)
 import           Mirza.Common.Tests.ServantUtils
 import           Mirza.Common.Tests.Utils
-import           Mirza.SupplyChain.Database.Schema as Schema
 import           Mirza.SupplyChain.Tests.Dummies
-import           Mirza.SupplyChain.Tests.Settings
 
-import           Database.Beam.Query               (delete, runDelete, val_)
-
-import           Data.GS1.EPC                      (GS1CompanyPrefix (..))
+import           Data.GS1.EPC                     (GS1CompanyPrefix (..))
 
 -- === SCS Client tests
 
@@ -52,62 +41,12 @@ authABC = BasicAuthData
   (encodeUtf8 . getEmailAddress . newUserEmailAddress $ userABC)
   (encodeUtf8 . newUserPassword                       $ userABC)
 
-runApp :: IO (ThreadId, BaseUrl)
-runApp = do
-  ctx <- initSCSContext so
-  let SupplyChainDb
-        usersTable
-        businessesTable
-        contactsTable
-        labelsTable
-        whatLabelsTable
-        itemsTable
-        transformationsTable
-        locationsTable
-        eventsTable
-        whatsTable
-        bizTransactionsTable
-        whysTable
-        wheresTable
-        whensTable
-        labelEventsTable
-        userEventsTable
-        signaturesTable
-        hashesTable
-        blockchainTable
-          = supplyChainDb
-  flushDbResult <- runAppM @_ @ServiceError ctx $ runDb $ do
-      let deleteTable table = pg $ runDelete $ delete table (const (val_ True))
-      deleteTable $ usersTable
-      deleteTable $ businessesTable
-      deleteTable $ contactsTable
-      deleteTable $ labelsTable
-      deleteTable $ whatLabelsTable
-      deleteTable $ itemsTable
-      deleteTable $ transformationsTable
-      deleteTable $ locationsTable
-      deleteTable $ eventsTable
-      deleteTable $ whatsTable
-      deleteTable $ bizTransactionsTable
-      deleteTable $ whysTable
-      deleteTable $ wheresTable
-      deleteTable $ whensTable
-      deleteTable $ labelEventsTable
-      deleteTable $ userEventsTable
-      deleteTable $ signaturesTable
-      deleteTable $ hashesTable
-      deleteTable $ blockchainTable
-  flushDbResult `shouldSatisfy` isRight
-  startWaiApp =<< initApplication so ctx
-
-so :: ServerOptions
-so = ServerOptions Dev False testDbConnStr "127.0.0.1" 8000 14 8 1 DebugS
 
 clientSpec :: IO TestTree
 clientSpec = do
 
   let userCreationTests = testCaseSteps "Adding new users" $ \step ->
-        bracket runApp endWaiApp $ \(_tid,baseurl) -> do
+        bracket runSCSApp endWaiApp $ \(_tid,baseurl) -> do
           let http = runClient baseurl
 
           let user1 = userABC
@@ -136,7 +75,7 @@ clientSpec = do
             `shouldSatisfyIO` isLeft
 
   let eventInsertionTests = testCaseSteps "User can add single events" $ \step ->
-        bracket runApp endWaiApp $ \(_tid,baseurl) -> do
+        bracket runSCSApp endWaiApp $ \(_tid,baseurl) -> do
           let http = runClient baseurl
 
           -- Add a user so that we can authenticate for these tests.
@@ -161,7 +100,7 @@ clientSpec = do
 
   -- TODO: See github issue #235.
   -- let eventSignTests = testCaseSteps "eventSign" $ \step ->
-  --       bracket runApp endWaiApp $ \(_tid,baseurl) -> do
+  --       bracket runSCSApp endWaiApp $ \(_tid,baseurl) -> do
   --       let http = runClient baseurl
 
   --       -- nowish <- getCurrentTime
