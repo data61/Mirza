@@ -207,9 +207,9 @@ protectKeyUpdate :: ( Member err     '[AsKeyError])
                  -> DB context err ()
 protectKeyUpdate keyId userId = do
   userOwnsKey <- doesUserOwnKeyQuery userId keyId
-  unless userOwnsKey $ throwing_ _UnauthorisedKeyAccess
-
   state <- keyStateQuery keyId
+
+  unless userOwnsKey $ throwing_ _UnauthorisedKeyAccess
   case state of
     Revoked  -> throwing_ _KeyAlreadyRevoked
     Expired  -> throwing_ _KeyAlreadyExpired

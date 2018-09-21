@@ -438,8 +438,8 @@ clientSpec = do
           step "That revokePublicKey for an invalid keyId fails gracefully"
           revokeInvalidKeyIdResponse <- http (revokePublicKey (newUserToBasicAuthData userB1U1) (BRKeyId nil))
           revokeInvalidKeyIdResponse `shouldSatisfy` isLeft
-          -- revokeInvalidKeyIdResponse `shouldSatisfy` (checkFailureStatus NS.notFound404)
-          -- revokeInvalidKeyIdResponse `shouldSatisfy` (checkFailureMessage "Key with the given ID not found.")
+          revokeInvalidKeyIdResponse `shouldSatisfy` (checkFailureStatus NS.notFound404)
+          revokeInvalidKeyIdResponse `shouldSatisfy` (checkFailureMessage "Public key with the given id not found.")
 
           step "Test where the key has an expiry time (which hasn't expired) and is revoked reports the correct status."
           b1K6ExpiryUTC <- (addUTCTime (fromInteger expiryDelay)) <$> getCurrentTime
