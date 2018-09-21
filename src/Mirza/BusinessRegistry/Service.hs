@@ -26,7 +26,8 @@ import           Mirza.BusinessRegistry.API
 
 import           Mirza.BusinessRegistry.Handlers.Business as Handlers
 import           Mirza.BusinessRegistry.Handlers.Common   as Handlers
-import           Mirza.BusinessRegistry.Handlers.Keys     as Keys
+import           Mirza.BusinessRegistry.Handlers.Keys     as Handlers
+import           Mirza.BusinessRegistry.Handlers.Users    as Handlers
 import           Mirza.BusinessRegistry.Types
 import           Mirza.Common.Utils
 
@@ -56,17 +57,17 @@ appHandlers = publicServer :<|> privateServer
 publicServer :: (BRApp context err, HasScryptParams context, PossibleErrors err)
              => ServerT PublicAPI (AppM context err)
 publicServer =
-  -- Business
        getPublicKey
   :<|> getPublicKeyInfo
   :<|> listBusinesses
 
 
-privateServer :: (BRApp context err, PossibleErrors err)
+privateServer :: (BRApp context err, HasScryptParams context,  PossibleErrors err)
               => ServerT ProtectedAPI (AppM context err)
 privateServer =
--- Business
-       addPublicKey
+       addUserAuth
+  :<|> addBusinessAuth
+  :<|> addPublicKey
   :<|> revokePublicKey
 
 
@@ -100,22 +101,31 @@ serveSwaggerAPI = toSwagger serverAPI
 
 -- | Takes in a BusinessRegistryError and converts it to an HTTP error (eg. err400)
 appErrToHttpErr :: BusinessRegistryError -> Handler a
-appErrToHttpErr (KeyErrorBRE kError)               = keyErrToHttpErr kError
-appErrToHttpErr (DBErrorBRE _sqlError)             = notImplemented
-appErrToHttpErr (BusinessCreationErrorBRE _reason) = notImplemented
-appErrToHttpErr (UserCreationErrorBRE _reason)     = notImplemented
-
+appErrToHttpErr (KeyErrorBRE kError) = keyErrToHttpErr kError
+appErrToHttpErr x@(DBErrorBRE _sqlError)              = liftIO (print x) >> notImplemented
+appErrToHttpErr x@(GS1CompanyPrefixExistsBRE)         = liftIO (print x) >> notImplemented
+appErrToHttpErr x@(BusinessDoesNotExistBRE)           = liftIO (print x) >> notImplemented
+appErrToHttpErr x@(UserCreationErrorBRE _reason)      = liftIO (print x) >> notImplemented
+appErrToHttpErr x@(UnexpectedErrorBRE _reason)        = liftIO (print x) >> notImplemented
 
 keyErrToHttpErr :: KeyError -> Handler a
 keyErrToHttpErr (InvalidRSAKey _) =
-   throwError $ err400 {
-     errBody = "Failed to parse RSA Public key."
-   }
+  throwError $ err400 {
+    errBody = "Failed to parse RSA Public key."
+  }
 keyErrToHttpErr (InvalidRSAKeySize (Expected (Bit expSize)) (Received (Bit recSize))) =
-   throwError $ err400 {
-     errBody = BSL8.pack $ printf "Invalid RSA Key size. Expected: %d Bits, Received: %d Bits\n" expSize recSize
-   }
+  throwError $ err400 {
+    errBody = BSL8.pack $ printf "Invalid RSA Key size. Expected: %d Bits, Received: %d Bits\n" expSize recSize
+  }
 keyErrToHttpErr KeyAlreadyRevoked =
-   throwError $ err400 { errBody = "Public Key already revoked" }
+  throwError $ err400 { errBody = "Public Key already revoked" }
+keyErrToHttpErr KeyAlreadyExpired =
+  throwError $ err400 { errBody = "Public Key already expired" }
 keyErrToHttpErr UnauthorisedKeyAccess =
-   throwError $ err403 { errBody = "Not authorised to access this key." }
+  throwError $ err403 { errBody = "Not authorised to access this key." }
+keyErrToHttpErr (PublicKeyInsertionError _) =
+  throwError $ err500 { errBody = "Key could not be inserted." }
+keyErrToHttpErr (KeyNotFound _) =
+  throwError $ err404 { errBody = "Key with the given ID not found." }
+keyErrToHttpErr (InvalidRevocation _ _ _) =
+  throwError $ err500 { errBody = "Key has been revoked but in an invalid way." }

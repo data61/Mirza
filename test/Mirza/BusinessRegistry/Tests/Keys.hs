@@ -4,7 +4,6 @@
 {-# LANGUAGE MonoLocalBinds        #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
-{-# LANGUAGE TypeApplications      #-}
 
 module Mirza.BusinessRegistry.Tests.Keys
   ( testKeyQueries
@@ -20,10 +19,9 @@ import           Mirza.BusinessRegistry.Types             as BT
 import           Mirza.Common.Time                        (CreationTime (..),
                                                            ExpirationTime (..))
 
+import           Mirza.BusinessRegistry.Tests.Utils
+
 import           Data.Maybe                               (fromJust, isNothing)
-
-
-import qualified Data.Text                                as T
 
 import           Data.Time.Clock                          (addUTCTime,
                                                            getCurrentTime)
@@ -35,9 +33,6 @@ import           Test.Hspec
 timeStampIO :: MonadIO m => m LocalTime
 timeStampIO = liftIO $ (utcToLocalTime utc) <$> getCurrentTime
 
-rsaPubKey :: IO BT.PEM_RSAPubKey
-rsaPubKey = BT.PEM_RSAPubKey . T.pack <$> Prelude.readFile "./test/Mirza/Common/testKeys/goodKeys/test.pub"
-
 testAppM :: context
          -> AppM context BusinessRegistryError a
          -> IO a
@@ -45,17 +40,17 @@ testAppM brContext act = runAppM brContext act >>= \case
     Left err -> fail (show err)
     Right a -> pure a
 
+
 testKeyQueries :: (HasCallStack) => SpecWith BT.BRContext
 testKeyQueries = do
 
   describe "addPublicKey tests" $
     it "addPublicKey test 1" $ \brContext -> do
-      pubKey <- rsaPubKey
+      pubKey <- goodRsaPublicKey
       tStart <- timeStampIO
       res <- testAppM brContext $ do
-        uid <- newUser dummyNewUser
-        tableUser <- runDb $ getUserByIdQuery uid
-        let user = tableToAuthUser . fromJust $ tableUser
+        user <- insertDummies
+        let uid = authUserId user
         let (BT.PEM_RSAPubKey keyStr) = pubKey
         keyId <- addPublicKey user pubKey Nothing
         tEnd <- timeStampIO
@@ -78,11 +73,10 @@ testKeyQueries = do
   describe "getPublicKeyInfo tests" $
     it "getPublicKeyInfo test 1" $ \brContext -> do
       tStart <- liftIO getCurrentTime
-      pubKey <- rsaPubKey
+      pubKey <- goodRsaPublicKey
       (keyInfo, uid, tEnd) <- testAppM brContext $ do
-        uid <- newUser dummyNewUser
-        tableUser <- runDb $ getUserByIdQuery uid
-        let user = tableToAuthUser . fromJust $ tableUser
+        user <- insertDummies
+        let uid = authUserId user
         keyId <- addPublicKey user pubKey Nothing
         keyInfo <- getPublicKeyInfo keyId
         tEnd <- liftIO getCurrentTime
@@ -92,16 +86,14 @@ testKeyQueries = do
           (keyInfoUserId ki == uid) &&
           ((keyInfoCreationTime ki) > (CreationTime tStart) &&
            (keyInfoCreationTime ki) < (CreationTime tEnd)) &&
-          isNothing (keyInfoRevocationTime ki)
+          isNothing (keyInfoRevocation ki)
         )
 
   describe "revokePublicKey tests" $ do
     it "Revoke public key with permissions" $ \brContext -> do
-      pubKey <- rsaPubKey
+      pubKey <- goodRsaPublicKey
       myKeyState <- testAppM brContext $ do
-        uid <- newUser dummyNewUser
-        tableUser <- runDb $ getUserByIdQuery uid
-        let user = tableToAuthUser . fromJust $ tableUser
+        user <- insertDummies
         keyId <- addPublicKey user pubKey Nothing
         _timeKeyRevoked <- revokePublicKey user keyId
         keyInfo <- getPublicKeyInfo keyId
@@ -110,15 +102,15 @@ testKeyQueries = do
 
 {-- XXX - FIXME!!! Need to catch UnAuthorisedKeyAccess error
     it "Revoke public key without permissions" $ \brContext -> do
-      pubKey <- rsaPubKey
+      pubKey <- goodRsaPublicKey
       r <- testAppM brContext $ do
-        uid <- newUser dummyNewUser
+        uid <- addUser dummyNewUser {newUserCompany=businessPfx}
         tableUser <- runDb $ getUserByIdQuery uid
         let user = tableToAuthUser . fromJust $ tableUser
         keyId <- addPublicKey user pubKey Nothing
 
         -- making a fake user
-        hackerUid <- newUser $ makeDummyNewUser (EmailAddress "l33t@hacker.com")
+        hackerUid <- addUser $ makeDummyNewUser (EmailAddress "l33t@hacker.com")
         storageHacker <- runDb $ getUserByIdQuery hackerUid
         let hacker = tableToAuthUser . fromJust $ storageHacker
 
@@ -127,30 +119,13 @@ testKeyQueries = do
       -- r `shouldBe` Left BT.UnauthorisedKeyAccess
 --}
 
-    it "Already expired AND revoked pub key" $ \brContext -> do
-      nowish <- getCurrentTime
-      let hundredMinutes = 100 * 60
-          someTimeAgo = addUTCTime (-hundredMinutes) nowish
-      pubKey <- rsaPubKey
-      myKeyState <- testAppM brContext $ do
-        uid <- newUser dummyNewUser
-        tableUser <- runDb $ getUserByIdQuery uid
-        let user = tableToAuthUser . fromJust $ tableUser
-        keyId <- addPublicKey user pubKey (Just . ExpirationTime $ someTimeAgo )
-        _timeKeyRevoked <- revokePublicKey user keyId
-        keyInfo <- getPublicKeyInfo keyId
-        pure (keyInfoState keyInfo)
-      myKeyState `shouldBe` Revoked
-
     it "Expired but NOT revoked pub key" $ \brContext -> do
       nowish <- getCurrentTime
       let hundredMinutes = 100 * 60
           someTimeAgo = addUTCTime (-hundredMinutes) nowish
-      pubKey <- rsaPubKey
+      pubKey <- goodRsaPublicKey
       myKeyState <- testAppM brContext $ do
-        uid <- newUser dummyNewUser
-        tableUser <- runDb $ getUserByIdQuery uid
-        let user = tableToAuthUser . fromJust $ tableUser
+        user <- insertDummies
         keyId <- addPublicKey user pubKey (Just . ExpirationTime $ someTimeAgo)
         keyInfo <- getPublicKeyInfo keyId
         pure (keyInfoState keyInfo)
@@ -160,11 +135,9 @@ testKeyQueries = do
       nowish <- getCurrentTime
       let hundredMinutes = 100 * 60
           someTimeLater = addUTCTime hundredMinutes nowish
-      pubKey <- rsaPubKey
+      pubKey <- goodRsaPublicKey
       myKeyState <- testAppM brContext $ do
-        uid <- newUser dummyNewUser
-        tableUser <- runDb $ getUserByIdQuery uid
-        let user = tableToAuthUser . fromJust $ tableUser
+        user <- insertDummies
         keyId <- addPublicKey user pubKey (Just . ExpirationTime $ someTimeLater)
         keyInfo <- getPublicKeyInfo keyId
         pure (keyInfoState keyInfo)
@@ -176,3 +149,16 @@ testKeyQueries = do
         -- myBizList <-
         -- pure listBusinesses
       bizList `shouldBe` []
+
+
+-- *****************************************************************************
+-- Test Utility Functions
+-- *****************************************************************************
+
+-- | Adds the dummy business and user and returns the user id and auth user.
+insertDummies :: AppM BRContext BusinessRegistryError AuthUser
+insertDummies = do
+  businessPfx <- addBusiness dummyBusiness
+  uid <- addUser dummyNewUser {newUserCompany=businessPfx}
+  tableUser <- runDb $ getUserByIdQuery uid
+  return (tableToAuthUser . fromJust $ tableUser)

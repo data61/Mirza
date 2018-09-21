@@ -9,6 +9,8 @@ import           Mirza.Common.Types           as CT
 import           Data.Maybe                   (fromJust)
 
 import           Text.Email.Validate          (emailAddress)
+dummyBusiness :: BRT.NewBusiness
+dummyBusiness = NewBusiness (GS1CompanyPrefix "3000001") "pubKeyTests_businessName"
 
 dummyNewUser :: BRT.NewUser
 dummyNewUser = makeDummyNewUser (fromJust $ emailAddress "fake@gmail.com")
@@ -16,4 +18,4 @@ dummyNewUser = makeDummyNewUser (fromJust $ emailAddress "fake@gmail.com")
 -- | Utility function to make many users on the fly
 makeDummyNewUser :: CT.EmailAddress -> BRT.NewUser
 makeDummyNewUser userEmail =
-    BRT.NewUser "000" userEmail "Bob" "Smith" (GS1CompanyPrefix "blah Ltd") "password"
+    BRT.NewUser userEmail "password" (GS1CompanyPrefix "Company Prefix") "First Name" "Last Name" "Phone Number"

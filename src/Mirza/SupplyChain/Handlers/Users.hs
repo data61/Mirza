@@ -2,7 +2,7 @@
 
 module Mirza.SupplyChain.Handlers.Users
   (
-    newUser, userTableToModel
+    addUser, userTableToModel
   ) where
 
 
@@ -31,39 +31,19 @@ import           Control.Monad.IO.Class                   (liftIO)
 import           Data.Text.Encoding                       (encodeUtf8)
 
 
-
-newUser :: (SCSApp context err, HasScryptParams context)
+addUser :: (SCSApp context err, HasScryptParams context)
         => ST.NewUser
         -> AppM context err ST.UserId
-newUser = runDb . newUserQuery
+addUser = runDb . addUserQuery
 
 
 -- | Hashes the password of the ST.NewUser and inserts the user into the database
-newUserQuery :: (AsServiceError err, HasScryptParams context)
+addUserQuery :: (AsServiceError err, HasScryptParams context)
              => ST.NewUser
              -> DB context err ST.UserId
-newUserQuery userInfo@(ST.NewUser _ _ _ _ _ password) = do
+addUserQuery (ST.NewUser phone userEmail firstName lastName biz password) = do
   params <- view $ _2 . scryptParams
-  hash <- liftIO $ Scrypt.encryptPassIO params (Scrypt.Pass $ encodeUtf8 password)
-  insertUser hash userInfo
-
-
-{-
-  -- Sample ST.NewUser JSON
-  {
-    "phoneNumber": "0412",
-    "emailAddress": "abc@gmail.com",
-    "firstName": "sajid",
-    "lastName": "anower",
-    "company": "4000001",
-    "password": "password"
-  }
--}
-insertUser :: AsServiceError err
-           => Scrypt.EncryptedPass
-           -> ST.NewUser
-           -> DB context err ST.UserId
-insertUser encPass (ST.NewUser phone userEmail firstName lastName biz _) = do
+  encPass <- liftIO $ Scrypt.encryptPassIO params (Scrypt.Pass $ encodeUtf8 password)
   userId <- newUUID
   -- TODO: use Database.Beam.Backend.SQL.runReturningOne?
   res <- handleError errHandler $ pg $ runInsertReturningList (Schema._users Schema.supplyChainDb) $
