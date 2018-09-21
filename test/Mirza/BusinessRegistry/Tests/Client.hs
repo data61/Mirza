@@ -377,7 +377,7 @@ clientSpec = do
           b1ExpiredKeyExpiryResult <- http (addPublicKey (newUserToBasicAuthData userB1U1) goodKey b1ExpiredKeyExpiry)
           b1ExpiredKeyExpiryResult `shouldSatisfy` isLeft
           b1ExpiredKeyExpiryResult `shouldSatisfy` (checkFailureStatus NS.badRequest400)
-          b1ExpiredKeyExpiryResult `shouldSatisfy` (checkFailureMessage "The specified expiry time is not valid.")
+          b1ExpiredKeyExpiryResult `shouldSatisfy` (checkFailureMessage "Can't add a key that has already expired.")
 
           step "That it's possible to revoke a key"
           b1K3StoredKeyIdResult <- http (addPublicKey (newUserToBasicAuthData userB1U1) goodKey Nothing)
