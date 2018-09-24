@@ -179,15 +179,16 @@ data TestData = TestData
   , scsThread  :: ThreadId
   , brBaseUrl  :: BaseUrl
   , scsBaseUrl :: BaseUrl
+  , brAuthData :: BasicAuthData
   }
 
 endApps :: TestData -> IO ()
-endApps (TestData brThreadId scsThreadId brUrl scsUrl) = do
+endApps (TestData brThreadId scsThreadId brUrl scsUrl _) = do
   _ <- endWaiApp (scsThreadId, scsUrl)
   endWaiApp (brThreadId, brUrl)
 
-runApps :: IO TestData-- (ThreadId, BaseUrl, BasicAuthData)
+runApps :: IO TestData
 runApps = do
-  (brThreadId, brUrl, _) <- runBRApp
+  (brThreadId, brUrl, brAuth) <- runBRApp
   (scsThreadId, scsUrl) <- runSCSApp brUrl
-  return $ TestData brThreadId scsThreadId brUrl scsUrl
+  return $ TestData brThreadId scsThreadId brUrl scsUrl brAuth
