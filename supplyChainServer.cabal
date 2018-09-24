@@ -119,7 +119,6 @@ test-suite supplyChainServer-test
                     , Mirza.SupplyChain.Tests.Service
                     , Mirza.SupplyChain.Tests.Dummies
                     , Mirza.SupplyChain.Tests.Client
-                    , Mirza.SupplyChain.Tests.Settings
                     , Mirza.BusinessRegistry.Tests.Utils
   default-extensions:  OverloadedStrings
   build-depends:       base

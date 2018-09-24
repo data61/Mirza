@@ -1,67 +1,50 @@
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TypeApplications  #-}
 
 module Mirza.BusinessRegistry.Tests.Client where
 
 
-import           Control.Concurrent                     (ThreadId, threadDelay)
-import           Control.Exception                      (bracket)
+import           Control.Concurrent                    (threadDelay)
+import           Control.Exception                     (bracket)
 
 import           Mirza.Common.Tests.ServantUtils
 
 import           Servant.API.BasicAuth
-import           Servant.Client
 
-import           Control.Monad                          (forM_)
-import           Data.Either                            (isLeft, isRight)
-import           Data.Either.Utils                      (fromRight)
-import           Data.List                              (isSuffixOf)
-import           Data.Maybe                             (fromJust, isJust, isNothing)
-import           Data.Text                              (Text)
-import           Data.Text.Encoding                     (encodeUtf8)
-import           Data.Time.Clock                        (addUTCTime,
-                                                        diffUTCTime,
+import           Control.Monad                         (forM_)
+import           Data.Either                           (isLeft, isRight)
+import           Data.Either.Utils                     (fromRight)
+import           Data.List                             (isSuffixOf)
+import           Data.Maybe                            (fromJust, isJust,
+                                                        isNothing)
+import           Data.Time.Clock                       (addUTCTime, diffUTCTime,
                                                         getCurrentTime)
-import           Data.UUID                              (nil)
+import           Data.UUID                             (nil)
 
-import           System.Directory                       (listDirectory)
-import           System.FilePath                        ((</>))
-
-import           Database.Beam.Query                    (delete, runDelete,
-                                                        val_)
-
-import           Katip                                  (Severity (DebugS))
+import           System.Directory                      (listDirectory)
+import           System.FilePath                       ((</>))
 
 import           Test.Hspec.Expectations
 import           Test.Tasty
 import           Test.Tasty.HUnit
 
-import           Data.GS1.EPC                           (GS1CompanyPrefix (..))
+import           Data.GS1.EPC                          (GS1CompanyPrefix (..))
 
 import           Mirza.BusinessRegistry.Client.Servant
-import           Mirza.BusinessRegistry.Database.Schema
-import qualified Mirza.BusinessRegistry.Handlers.Business as BRHB (addBusiness)
-import qualified Mirza.BusinessRegistry.Handlers.Users    as BRHU (addUserQuery)
-import           Mirza.BusinessRegistry.Main              (GlobalOptions (..),
-                                                          RunServerOptions (..),
-                                                          initApplication,
-                                                          initBRContext)
 import           Mirza.BusinessRegistry.Types
 
 import           Mirza.Common.Time
-import           Mirza.Common.Utils
 
-import           Mirza.BusinessRegistry.Tests.Settings  (testDbConnStr)
 import           Mirza.BusinessRegistry.Tests.Utils
+import           Mirza.Common.Tests.InitClient
 import           Mirza.Common.Tests.Utils
-
 -- === BR Servant Client tests
 
 clientSpec :: IO TestTree
 clientSpec = do
   let businessTests = testCaseSteps "Can create businesses" $ \step ->
-        bracket runApp (\(a,b,_) -> endWaiApp (a,b)) $ \(_tid,baseurl,globalAuthData) -> do
+        bracket runBRApp (\(a,b,_) -> endWaiApp (a,b)) $ \(_tid,baseurl,globalAuthData) -> do
           let http = runClient baseurl
               biz1Prefix = (GS1CompanyPrefix "2000001")
               biz1 = NewBusiness biz1Prefix "businessTests_biz1Name"
@@ -110,7 +93,7 @@ clientSpec = do
 
 
   let userTests = testCaseSteps "Can create users" $ \step ->
-        bracket runApp (\(a,b,_) -> endWaiApp (a,b)) $ \(_tid,baseurl,globalAuthData) -> do
+        bracket runBRApp (\(a,b,_) -> endWaiApp (a,b)) $ \(_tid,baseurl,globalAuthData) -> do
           password <- randomPassword
 
           let http = runClient baseurl
@@ -217,7 +200,7 @@ clientSpec = do
 
 
   let keyTests = testCaseSteps "That keys work as expected" $ \step ->
-        bracket runApp (\(a,b,_) -> endWaiApp (a,b)) $ \(_tid, baseurl, globalAuthData) -> do
+        bracket runBRApp (\(a,b,_) -> endWaiApp (a,b)) $ \(_tid, baseurl, globalAuthData) -> do
           password <- randomPassword
           let http = runClient baseurl
               biz1Prefix = (GS1CompanyPrefix "4000001")
@@ -455,83 +438,7 @@ clientSpec = do
         ]
 
 
--- *****************************************************************************
--- Test Utility Functions
--- *****************************************************************************
-
-go :: GlobalOptions
-go = GlobalOptions testDbConnStr 14 8 1 DebugS Dev
-
-runApp :: IO (ThreadId, BaseUrl, BasicAuthData)
-runApp = do
-  ctx <- initBRContext go
-  let BusinessRegistryDB usersTable businessesTable keysTable locationsTable
-        = businessRegistryDB
-
-  flushDbResult <- runAppM @_ @BusinessRegistryError ctx $ runDb $ do
-      let deleteTable table = pg $ runDelete $ delete table (const (val_ True))
-      deleteTable keysTable
-      deleteTable usersTable
-      deleteTable businessesTable
-      deleteTable locationsTable
-  flushDbResult `shouldSatisfy` isRight
-
-  -- This construct somewhat destroys the integrity of these test since it is
-  -- necessary to assume that these functions work correctly in order for the
-  -- test cases to complete.
-  globalAuthData <- bootstrapAuthData ctx
-
-  (tid,brul) <- startWaiApp =<< initApplication go (RunServerOptions 8000) ctx
-  pure (tid,brul,globalAuthData)
-
-
-
--- *****************************************************************************
--- Test Utility Functions
--- *****************************************************************************
-
-newBusinessToBusinessResponse :: NewBusiness -> BusinessResponse
-newBusinessToBusinessResponse =
-  BusinessResponse <$> newBusinessGS1CompanyPrefix <*> newBusinessName
-
-
-newUserToBasicAuthData :: NewUser -> BasicAuthData
-newUserToBasicAuthData =
-  BasicAuthData
-  <$> encodeUtf8 . getEmailAddress . newUserEmailAddress
-  <*> encodeUtf8 . newUserPassword
-
-
 -- Test helper function that enables a predicate to be run on the result of a
 -- test call.
 checkField :: (a -> b) -> (b -> Bool) -> Either c a -> Bool
 checkField accessor predicate = either (const False) (predicate . accessor)
-
-
-bootstrapAuthData :: (HasEnvType w, HasConnPool w, HasKatipContext w,
-                      HasKatipLogEnv w, HasScryptParams w)
-                     => w -> IO BasicAuthData
-bootstrapAuthData ctx = do
-  let email = "initialUser@example.com"
-  password <- randomPassword
-  let prefix = GS1CompanyPrefix "1000000"
-  let business = NewBusiness prefix "Business Name"
-  insertBusinessResult  <- runAppM @_ @BusinessRegistryError ctx $ BRHB.addBusiness business
-  insertBusinessResult `shouldSatisfy` isRight
-  let user = NewUser  (EmailAddress email)
-                      password
-                      prefix
-                      "Test User First Name"
-                      "Test User Last Name"
-                      "Test User Phone Number"
-  insertUserResult <- runAppM @_ @BusinessRegistryError ctx $ runDb (BRHU.addUserQuery user)
-  insertUserResult `shouldSatisfy` isRight
-
-  return $ newUserToBasicAuthData user
-
-
--- We specifically prefix the password with "PlainTextPassword:" so that it
--- makes it more obvious if this password shows up anywhere in plain text by
--- mistake.
-randomPassword :: IO Text
-randomPassword = ("PlainTextPassword:" <>) <$> randomText

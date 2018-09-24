@@ -1,8 +1,6 @@
 
 module Main where
 
-import           Mirza.SupplyChain.Tests.Settings
-
 import           Mirza.SupplyChain.Database.Migrate
 import           Mirza.SupplyChain.Main             hiding (main)
 import           Mirza.SupplyChain.Types            as ST
@@ -12,6 +10,7 @@ import           Test.Tasty                         hiding (withResource)
 import           Test.Tasty.Hspec                   (around, testSpec)
 import           Test.Tasty.Runners                 (NumThreads (..))
 
+import           Mirza.Common.Tests.InitClient      (testDbConnStrSCS)
 import           Mirza.SupplyChain.Tests.Client
 import           Mirza.SupplyChain.Tests.Service    (testServiceQueries)
 
@@ -42,7 +41,7 @@ dropTables conn =
 
 
 defaultPool :: IO (Pool Connection)
-defaultPool = Pool.createPool (connectPostgreSQL testDbConnStr) close
+defaultPool = Pool.createPool (connectPostgreSQL testDbConnStrSCS) close
                 1 -- Number of "sub-pools",
                 60 -- How long in seconds to keep a connection open for reuse
                 10 -- Max number of connections to have open at any one time
@@ -54,7 +53,7 @@ openConnection = do
   connpool <- defaultPool
   _ <- withResource connpool dropTables -- drop tables before so if already exist no problems... means tables get overwritten though
   withResource connpool (tryCreateSchema True)
-  initSCSContext (ServerOptions Dev False testDbConnStr "127.0.0.1" 8000 14 8 1 DebugS)
+  initSCSContext (ServerOptions Dev False testDbConnStrSCS "127.0.0.1" 8000 14 8 1 DebugS)
 
 closeConnection :: SCSContext -> IO ()
 closeConnection = destroyAllResources . ST._scsDbConnPool
