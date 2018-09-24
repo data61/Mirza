@@ -105,45 +105,67 @@ clientSpec = do
             `shouldSatisfyIO` isRight
 
   -- TODO: See github issue #235.
-  -- let eventSignTests = testCaseSteps "eventSign" $ \step ->
-  --       bracket runSCSApp endWaiApp $ \(_tid,baseurl) -> do
-  --       let http = runClient baseurl
+  let eventSignTests = testCaseSteps "eventSign" $ \step ->
+        bracket runApps endApps $ \testData -> do
 
-  --       -- nowish <- getCurrentTime
-  --       -- let hundredMinutes = 100 * 60
-  --       --     someTimeLater = addUTCTime (hundredMinutes) nowish
+          let scsUrl = scsBaseUrl testData
+              brUrl = brBaseUrl testData
+              httpSCS = runClient scsUrl
+              httpBR = runClient brUrl
+              globalAuthData = brAuthData testData
+          -- nowish <- getCurrentTime
+          -- let hundredMinutes = 100 * 60
+          --     someTimeLater = addUTCTime (hundredMinutes) nowish
 
-  --       step "Adding a new user"
-  --       uid <- http (addUser userABC)
-  --       uid `shouldSatisfy` isRight
+          step "Adding a new user to SCS"
+          uid <- httpSCS (addUser userABC)
+          uid `shouldSatisfy` isRight
 
-  --       step "Tying the user with a good key and an expiration time"
-  --       goodKey <- goodRsaPublicKey
-  --       keyIdResponse <- http (addPublicKey authABC goodKey Nothing)
-  --       -- liftIO $ print keyIdResponse
-  --       keyIdResponse `shouldSatisfy` isRight
-  --       let keyId = fromRight (BRKeyId nil) keyIdResponse
+          step "Adding the same user to BR"
+          let prefix = GS1CompanyPrefix "1000001"
+          let userBR = BT.NewUser
+                          (EmailAddress "abc@example.com")
+                          "re4lly$ecret14!"
+                          prefix
+                          "Biz Johnny"
+                          "Smith Biz"
+                          "0400 111 222"
 
-  --       step "Revoking the key"
-  --       http (revokePublicKey authABC keyId) `shouldSatisfyIO` isRight
+          let business = BT.NewBusiness prefix "Business Name"
+          ctx <- getBRContext
+          insertBusinessResult  <- runAppM @_ @BT.BusinessRegistryError ctx $ BRHB.addBusiness business
+          insertBusinessResult `shouldSatisfy` isRight
 
-  --       step "Inserting the object event"
-  --       objInsertionResponse <- http (insertObjectEvent authABC dummyObject)
-  --       objInsertionResponse `shouldSatisfy` isRight
-  --       let (_insertedEvent, (Schema.EventId eventId)) = fromRight (error "Should be right") objInsertionResponse
+          httpBR (BRClient.addUser globalAuthData userBR) `shouldSatisfyIO` isRight
 
-  --         -- Adding the event
-  --       let mySign = ST.Signature "c2FqaWRhbm93ZXIyMw=="
-  --           myDigest = SHA256
-  --           mySignedEvent = SignedEvent (EvId.EventId eventId) keyId mySign myDigest
-  --       -- if this test can proceed after the following statement
-  --       http (eventSign authABC mySignedEvent) `shouldSatisfyIO` isRight
-  --       -- it means the basic functionality of ``eventSign`` function is perhaps done
+
+          step "Tying the user with a good key and an expiration time"
+          goodKey <- goodRsaPublicKey
+          keyIdResponse <- httpBR (addPublicKey authABC goodKey Nothing)
+          -- liftIO $ print keyIdResponse
+          keyIdResponse `shouldSatisfy` isRight
+          let keyId = fromRight (BRKeyId nil) keyIdResponse
+
+          step "Revoking the key"
+          httpBR (revokePublicKey authABC keyId) `shouldSatisfyIO` isRight
+
+          step "Inserting the object event"
+          objInsertionResponse <- httpSCS (insertObjectEvent authABC dummyObject)
+          objInsertionResponse `shouldSatisfy` isRight
+          let (_insertedEvent, (Schema.EventId eventId)) = fromRight (error "Should be right") objInsertionResponse
+
+            -- Adding the event
+          let mySign = ST.Signature "c2FqaWRhbm93ZXIyMw=="
+              myDigest = SHA256
+              mySignedEvent = SignedEvent (EvId.EventId eventId) keyId mySign myDigest
+          -- if this test can proceed after the following statement
+          httpSCS (eventSign authABC mySignedEvent) `shouldSatisfyIO` isRight
+          -- it means the basic functionality of ``eventSign`` function is perhaps done
 
   pure $ testGroup "Supply Chain Service Client Tests"
         [ userCreationTests
         , eventInsertionTests
-        -- , eventSignTests
+        , eventSignTests
         ]
 
 {-
