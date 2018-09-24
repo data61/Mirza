@@ -12,13 +12,15 @@ import           Data.Either                      (isLeft, isRight)
 import           Data.Text.Encoding               (encodeUtf8)
 
 import           Test.Tasty
-import           Test.Tasty.Hspec
+-- import           Test.Tasty.Hspec
 import           Test.Tasty.HUnit
 
 import           Mirza.SupplyChain.Client.Servant
 import           Mirza.SupplyChain.Types          as ST
 
-import           Mirza.Common.Tests.InitClient    (runApp, runSCSApp)
+import           Mirza.Common.Tests.InitClient    (TestData (..), endApps,
+                                                   runApps)
+
 import           Mirza.Common.Tests.ServantUtils
 import           Mirza.Common.Tests.Utils
 import           Mirza.SupplyChain.Tests.Dummies
@@ -46,8 +48,10 @@ clientSpec :: IO TestTree
 clientSpec = do
 
   let userCreationTests = testCaseSteps "Adding new users" $ \step ->
-        bracket runSCSApp endWaiApp $ \(_tid,baseurl) -> do
-          let http = runClient baseurl
+        -- bracket runSCSApp endWaiApp $ \(_tid,baseurl) -> do
+        bracket runApps endApps $ \testData -> do
+          let baseurl = scsBaseUrl testData
+              http = runClient baseurl
 
           let user1 = userABC
               user2 = userABC {newUserEmailAddress= EmailAddress "different@example.com"}
@@ -75,27 +79,29 @@ clientSpec = do
             `shouldSatisfyIO` isLeft
 
   let eventInsertionTests = testCaseSteps "User can add single events" $ \step ->
-        bracket runApp (\(a,b,_) -> endWaiApp (a,b)) $ \(_tid,baseurl, _) -> do
-          let http = runClient baseurl
+        bracket runApps endApps $ \testData -> do
+
+          let scsUrl = scsBaseUrl testData
+          let httpSCS = runClient scsUrl
 
           -- Add a user so that we can authenticate for these tests.
-          http (addUser userABC) `shouldSatisfyIO` isRight
+          httpSCS (addUser userABC) `shouldSatisfyIO` isRight
 
           step "User Can insert Object events"
             -- TODO: Events need their EventId returned to user
-          resp <- http (insertObjectEvent authABC dummyObject)
-          resp `shouldSatisfy` isRight
+          httpSCS (insertObjectEvent authABC dummyObject)
+            `shouldSatisfyIO` isRight
 
           step "User Can insert Aggregation events"
-          http (insertAggEvent authABC dummyAggregation)
+          httpSCS (insertAggEvent authABC dummyAggregation)
             `shouldSatisfyIO` isRight
 
           step "User Can insert Transaction events"
-          http (insertTransactEvent authABC dummyTransaction)
+          httpSCS (insertTransactEvent authABC dummyTransaction)
             `shouldSatisfyIO` isRight
 
           step "User Can insert Transformation events"
-          http (insertTransfEvent authABC dummyTransformation)
+          httpSCS (insertTransfEvent authABC dummyTransformation)
             `shouldSatisfyIO` isRight
 
   -- TODO: See github issue #235.
