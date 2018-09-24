@@ -3,28 +3,46 @@
 
 module Mirza.Common.Tests.InitClient where
 
-import           Mirza.SupplyChain.Main            (ServerOptions (..),
-                                                    initApplication,
-                                                    initSCSContext)
+import           Mirza.SupplyChain.Database.Schema        as Schema
+import           Mirza.SupplyChain.Main                   (ServerOptions (..),
+                                                           initSCSContext)
+import qualified Mirza.SupplyChain.Main                   as SCSMain
+import           Mirza.SupplyChain.Types                  as ST
 
-import           Control.Concurrent                (ThreadId)
+import           Data.GS1.EPC                             (GS1CompanyPrefix (..))
+import           Mirza.Common.Tests.ServantUtils
+import           Mirza.Common.Utils                       (randomText)
 
-import           Servant.Client                    (BaseUrl)
+import           Control.Concurrent                       (ThreadId)
 
-import           Data.Either                       (isRight)
+import           Servant.API.BasicAuth
+import           Servant.Client                           (BaseUrl)
+
+import           Data.Either                              (isRight)
+
+import           Data.ByteString.Char8                    (ByteString)
+import           Data.Text
+import           Data.Text.Encoding                       (encodeUtf8)
 
 import           Test.Tasty.Hspec
 
-import           Katip                             (Severity (DebugS))
+import           Katip                                    (Severity (DebugS))
 
-import           Mirza.SupplyChain.Types           as ST
+import           Database.Beam.Query                      (delete, runDelete,
+                                                           val_)
 
-import           Mirza.Common.Tests.ServantUtils
-import           Mirza.SupplyChain.Database.Schema as Schema
+import           Mirza.BusinessRegistry.Database.Schema
+import qualified Mirza.BusinessRegistry.Handlers.Business as BRHB (addBusiness)
+import qualified Mirza.BusinessRegistry.Handlers.Users    as BRHU (addUserQuery)
+import           Mirza.BusinessRegistry.Main              (GlobalOptions (..),
+                                                           RunServerOptions (..),
+                                                           initBRContext)
+import qualified Mirza.BusinessRegistry.Main              as BRMain
+import           Mirza.BusinessRegistry.Types             as BT
 
-import           Database.Beam.Query               (delete, runDelete, val_)
-
-import           Data.ByteString.Char8             (ByteString)
+-- *****************************************************************************
+-- SCS Utility Functions
+-- *****************************************************************************
 
 testDbConnStrSCS :: ByteString
 testDbConnStrSCS = "dbname=testsupplychainserver"
@@ -78,5 +96,82 @@ runSCSApp = do
       deleteTable $ hashesTable
       deleteTable $ blockchainTable
   flushDbResult `shouldSatisfy` isRight
-  startWaiApp =<< initApplication soSCS ctx
+  startWaiApp =<< SCSMain.initApplication soSCS ctx
+
+-- *****************************************************************************
+-- BR Utility Functions
+-- *****************************************************************************
+testDbConnStrBR :: ByteString
+testDbConnStrBR = "dbname=devmirzabusinessregistry"
+
+newBusinessToBusinessResponse :: NewBusiness -> BusinessResponse
+newBusinessToBusinessResponse =
+  BusinessResponse <$> newBusinessGS1CompanyPrefix <*> newBusinessName
+
+
+newUserToBasicAuthData :: BT.NewUser -> BasicAuthData
+newUserToBasicAuthData =
+  BasicAuthData
+  <$> encodeUtf8 . getEmailAddress . BT.newUserEmailAddress
+  <*> encodeUtf8 . BT.newUserPassword
+
+
+bootstrapAuthData :: (HasEnvType w, HasConnPool w, HasKatipContext w,
+                      HasKatipLogEnv w, HasScryptParams w)
+                     => w -> IO BasicAuthData
+bootstrapAuthData ctx = do
+  let email = "initialUser@example.com"
+  password <- randomPassword
+  let prefix = GS1CompanyPrefix "1000000"
+  let business = NewBusiness prefix "Business Name"
+  insertBusinessResult  <- runAppM @_ @BusinessRegistryError ctx $ BRHB.addBusiness business
+  insertBusinessResult `shouldSatisfy` isRight
+  let user = BT.NewUser  (EmailAddress email)
+                      password
+                      prefix
+                      "Test User First Name"
+                      "Test User Last Name"
+                      "Test User Phone Number"
+  insertUserResult <- runAppM @_ @BusinessRegistryError ctx $ runDb (BRHU.addUserQuery user)
+  insertUserResult `shouldSatisfy` isRight
+
+  return $ newUserToBasicAuthData user
+
+-- We specifically prefix the password with "PlainTextPassword:" so that it
+-- makes it more obvious if this password shows up anywhere in plain text by
+-- mistake.
+randomPassword :: IO Text
+randomPassword = ("PlainTextPassword:" <>) <$> randomText
+
+go :: GlobalOptions
+go = GlobalOptions testDbConnStrBR 14 8 1 DebugS Dev
+
+runBRApp :: IO (ThreadId, BaseUrl, BasicAuthData)
+runBRApp = do
+  ctx <- initBRContext go
+  let BusinessRegistryDB usersTable businessesTable keysTable locationsTable
+        = businessRegistryDB
+
+  flushDbResult <- runAppM @_ @BusinessRegistryError ctx $ runDb $ do
+      let deleteTable table = pg $ runDelete $ delete table (const (val_ True))
+      deleteTable keysTable
+      deleteTable usersTable
+      deleteTable businessesTable
+      deleteTable locationsTable
+  flushDbResult `shouldSatisfy` isRight
+
+  -- This construct somewhat destroys the integrity of these test since it is
+  -- necessary to assume that these functions work correctly in order for the
+  -- test cases to complete.
+  globalAuthData <- bootstrapAuthData ctx
+
+  (tid,brul) <- startWaiApp =<< BRMain.initApplication go (RunServerOptions 8000) ctx
+  pure (tid,brul,globalAuthData)
+
+-- *****************************************************************************
+-- Common Utility Functions
+-- *****************************************************************************
+
+runApp :: IO (ThreadId, BaseUrl, BasicAuthData)
+runApp = error "lol"
 
