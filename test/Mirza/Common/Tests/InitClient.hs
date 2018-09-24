@@ -102,7 +102,7 @@ runSCSApp = do
 -- BR Utility Functions
 -- *****************************************************************************
 testDbConnStrBR :: ByteString
-testDbConnStrBR = "dbname=devmirzabusinessregistry"
+testDbConnStrBR = "dbname=testmirzabusinessregistry"
 
 newBusinessToBusinessResponse :: NewBusiness -> BusinessResponse
 newBusinessToBusinessResponse =
