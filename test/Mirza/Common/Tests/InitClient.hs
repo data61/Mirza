@@ -148,6 +148,9 @@ randomPassword = ("PlainTextPassword:" <>) <$> randomText
 go :: GlobalOptions
 go = GlobalOptions testDbConnStrBR 14 8 1 DebugS Dev
 
+getBRContext :: IO BRContext
+getBRContext = initBRContext go
+
 runBRApp :: IO (ThreadId, BaseUrl, BasicAuthData)
 runBRApp = do
   ctx <- initBRContext go
