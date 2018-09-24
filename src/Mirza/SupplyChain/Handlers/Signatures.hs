@@ -29,7 +29,7 @@ import qualified Data.GS1.EventId                             as EvId
 import           Database.Beam                                as B
 import           Database.Beam.Backend.SQL.BeamExtensions
 
-import           OpenSSL (withOpenSSL)
+import           OpenSSL                                      (withOpenSSL)
 import qualified OpenSSL.EVP.Digest                           as EVPDigest
 import           OpenSSL.EVP.PKey                             (toPublicKey)
 import           OpenSSL.EVP.Verify                           (VerifyStatus (..),
@@ -92,7 +92,7 @@ addUserToEventQuery (EventOwner lUserId@(ST.UserId loggedInUserId))
    Lets do this after we have everything compiling.
 -}
 
-eventSign :: (HasClientEnv context, AsServantError err, SCSApp context err)
+eventSign :: (HasBRClientEnv context, AsServantError err, SCSApp context err)
           => ST.User
           -> SignedEvent
           -> AppM context err PrimaryKeyType

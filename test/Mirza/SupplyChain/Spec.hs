@@ -47,13 +47,12 @@ defaultPool = Pool.createPool (connectPostgreSQL testDbConnStrSCS) close
                 10 -- Max number of connections to have open at any one time
 
 
-
 openConnection :: IO SCSContext
 openConnection = do
   connpool <- defaultPool
   _ <- withResource connpool dropTables -- drop tables before so if already exist no problems... means tables get overwritten though
   withResource connpool (tryCreateSchema True)
-  initSCSContext (ServerOptions Dev False testDbConnStrSCS "127.0.0.1" 8000 14 8 1 DebugS)
+  initSCSContext (ServerOptions Dev False testDbConnStrSCS "127.0.0.1" 8000 14 8 1 DebugS "127.0.0.1" 8080)
 
 closeConnection :: SCSContext -> IO ()
 closeConnection = destroyAllResources . ST._scsDbConnPool

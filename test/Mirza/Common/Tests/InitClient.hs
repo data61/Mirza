@@ -16,7 +16,7 @@ import           Mirza.Common.Utils                       (randomText)
 import           Control.Concurrent                       (ThreadId)
 
 import           Servant.API.BasicAuth
-import           Servant.Client                           (BaseUrl)
+import           Servant.Client                           (BaseUrl (..))
 
 import           Data.Either                              (isRight)
 
@@ -47,11 +47,13 @@ import           Mirza.BusinessRegistry.Types             as BT
 testDbConnStrSCS :: ByteString
 testDbConnStrSCS = "dbname=testsupplychainserver"
 
-soSCS :: ServerOptions
-soSCS = ServerOptions Dev False testDbConnStrSCS "127.0.0.1" 8000 14 8 1 DebugS
+mkSoSCS :: BaseUrl -> ServerOptions
+mkSoSCS (BaseUrl _ brHost brPrt _) =
+    ServerOptions Dev False testDbConnStrSCS "127.0.0.1" 8000 14 8 1 DebugS brHost brPrt
 
-runSCSApp :: IO (ThreadId, BaseUrl)
-runSCSApp = do
+runSCSApp :: BaseUrl -> IO (ThreadId, BaseUrl)
+runSCSApp brUrl = do
+  let soSCS = mkSoSCS brUrl
   ctx <- initSCSContext soSCS
   let SupplyChainDb
         usersTable
@@ -172,7 +174,20 @@ runBRApp = do
 -- Common Utility Functions
 -- *****************************************************************************
 
-runApp :: IO (ThreadId, BaseUrl, BasicAuthData)
-runApp = do
-  _ <- runSCSApp
-  runBRApp
+data TestData = TestData
+  { brThread   :: ThreadId
+  , scsThread  :: ThreadId
+  , brBaseUrl  :: BaseUrl
+  , scsBaseUrl :: BaseUrl
+  }
+
+endApps :: TestData -> IO ()
+endApps (TestData brThreadId scsThreadId brUrl scsUrl) = do
+  _ <- endWaiApp (scsThreadId, scsUrl)
+  endWaiApp (brThreadId, brUrl)
+
+runApps :: IO TestData-- (ThreadId, BaseUrl, BasicAuthData)
+runApps = do
+  (brThreadId, brUrl, _) <- runBRApp
+  (scsThreadId, scsUrl) <- runSCSApp brUrl
+  return $ TestData brThreadId scsThreadId brUrl scsUrl
