@@ -9,9 +9,8 @@ module Mirza.SupplyChain.Tests.Service
   ( testServiceQueries
   ) where
 
-import           Mirza.SupplyChain.Tests.Dummies
--- import           Mirza.SupplyChain.Tests.Settings
 import           Mirza.Common.Tests.InitClient                (testDbConnStrSCS)
+import           Mirza.SupplyChain.Tests.Dummies
 
 import           Mirza.SupplyChain.Auth
 import           Mirza.SupplyChain.Database.Schema            as Schema

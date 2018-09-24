@@ -173,5 +173,6 @@ runBRApp = do
 -- *****************************************************************************
 
 runApp :: IO (ThreadId, BaseUrl, BasicAuthData)
-runApp = error "lol"
-
+runApp = do
+  _ <- runSCSApp
+  runBRApp

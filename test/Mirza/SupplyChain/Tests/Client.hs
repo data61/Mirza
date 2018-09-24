@@ -18,7 +18,7 @@ import           Test.Tasty.HUnit
 import           Mirza.SupplyChain.Client.Servant
 import           Mirza.SupplyChain.Types          as ST
 
-import           Mirza.Common.Tests.InitClient    (runSCSApp)
+import           Mirza.Common.Tests.InitClient    (runApp, runSCSApp)
 import           Mirza.Common.Tests.ServantUtils
 import           Mirza.Common.Tests.Utils
 import           Mirza.SupplyChain.Tests.Dummies
@@ -75,7 +75,7 @@ clientSpec = do
             `shouldSatisfyIO` isLeft
 
   let eventInsertionTests = testCaseSteps "User can add single events" $ \step ->
-        bracket runSCSApp endWaiApp $ \(_tid,baseurl) -> do
+        bracket runApp (\(a,b,_) -> endWaiApp (a,b)) $ \(_tid,baseurl, _) -> do
           let http = runClient baseurl
 
           -- Add a user so that we can authenticate for these tests.
