@@ -115,13 +115,6 @@ deriving instance ToHttpApiData LabelEPCUrn
 
 newtype EventOwner = EventOwner UserId deriving(Generic, Show, Eq, Read)
 
-data EventState
-  = AwaitingSignature
-  | Signed
-  | AwaitingBlockChain
-  | SentToBlockChain
-  deriving (Generic, Show, Eq, Read)
-
 data ObjectEvent = ObjectEvent {
   obj_foreign_event_id :: Maybe EventId,
   obj_act              :: Action,
