@@ -177,7 +177,7 @@ test-suite businessRegistry-test
                      , directory
                      , filepath
                      , hspec
-                     , HsOpenSSL >= 0.11.4.14                     
+                     , HsOpenSSL >= 0.11.4.14
                      , hspec-core
                      , http-client
                      , MissingH

@@ -301,25 +301,25 @@ data ServerError = ServerError (Maybe BS.ByteString) Text
 
 -- | A sum type of errors that may occur in the Service layer
 data ServiceError
-  = InvalidSignature      String
-  | BlockchainSendFailed  ServerError
-  | InvalidEventId        EventId
-  | InvalidKeyId          BRKeyId
-  | InvalidUserId         UserId
-  | InvalidRSAKeyInDB     Text -- when the key already existing in the DB is wrong
-  | InvalidDigest         Digest
-  | InsertionFail         ServerError Text
-  | EventPermissionDenied UserId EvId.EventId
-  | EmailExists           ServerError EmailAddress
-  | EmailNotFound         EmailAddress
-  | AuthFailed            EmailAddress
-  | UserNotFound          EmailAddress
-  | ParseError            EPC.ParseFailure
-  | BackendErr            Text -- fallback
-  | DatabaseError         SqlError
-  | ServantErr            ServantError
-  | Base64DecodeFailed    String
+  = InvalidSignature       String
+  | Base64DecodeFailed     String
   | SigVerificationFailure String
+  | BlockchainSendFailed   ServerError
+  | InvalidEventId         EventId
+  | InvalidKeyId           BRKeyId
+  | InvalidUserId          UserId
+  | InvalidRSAKeyInDB      Text -- when the key already existing in the DB is wrong
+  | InvalidDigest          Digest
+  | InsertionFail          ServerError Text
+  | EventPermissionDenied  UserId EvId.EventId
+  | EmailExists            ServerError EmailAddress
+  | EmailNotFound          EmailAddress
+  | AuthFailed             EmailAddress
+  | UserNotFound           EmailAddress
+  | ParseError             EPC.ParseFailure
+  | BackendErr             Text -- fallback
+  | DatabaseError          SqlError
+  | ServantErr             ServantError
   deriving (Show, Eq, Generic)
 $(makeClassyPrisms ''ServiceError)
 
