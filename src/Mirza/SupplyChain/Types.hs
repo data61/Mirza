@@ -318,6 +318,8 @@ data ServiceError
   | BackendErr            Text -- fallback
   | DatabaseError         SqlError
   | ServantErr            ServantError
+  | Base64DecodeFailed    String
+  | SigVerificationFailure String
   deriving (Show, Eq, Generic)
 $(makeClassyPrisms ''ServiceError)
 

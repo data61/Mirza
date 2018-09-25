@@ -42,6 +42,7 @@ import           Control.Monad.Error.Hoist                    ((<!?>), (<%?>))
 
 import qualified Data.ByteString.Base64                       as BS64
 import qualified Data.ByteString.Char8                        as BSC
+
 import           Data.Char                                    (toLower)
 import           Data.Text                                    (unpack)
 import qualified Data.Text                                    as T
@@ -102,7 +103,7 @@ eventSign _user (SignedEvent eventId keyId (ST.Signature sigStr) digest') = do
   (pubKey :: RSAPubKey) <- liftIO
       (toPublicKey <$> (readPublicKey . unpack $ keyStr))
       <!?> review _InvalidRSAKeyInDB keyStr
-  sigBS <- BS64.decode (BSC.pack sigStr) <%?> review _InvalidSignature
+  sigBS <- BS64.decode (BSC.pack sigStr) <%?> review _Base64DecodeFailed
   digest <- liftIO (makeDigest digest') <!?> review _InvalidDigest digest'
   runDb $ do
     event <- getEventJSON eventId
@@ -110,7 +111,7 @@ eventSign _user (SignedEvent eventId keyId (ST.Signature sigStr) digest') = do
     verifyStatus <- liftIO $ verifyBS digest sigBS pubKey eventBS
     if verifyStatus == VerifySuccess
       then insertSignature eventId keyId (ST.Signature sigStr) digest'
-      else throwing _InvalidSignature sigStr
+      else throwing _SigVerificationFailure sigStr
 
 -- TODO: Should this return Text or a JSON value?
 getEventJSON :: AsServiceError err => EvId.EventId -> DB context err T.Text

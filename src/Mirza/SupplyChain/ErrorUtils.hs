@@ -39,6 +39,10 @@ appErrToHttpErr (InvalidSignature _) =
   throwError $ err400 {
     errBody = "Invalid Signature entered."
   }
+appErrToHttpErr (Base64DecodeFailed _) =
+  throwError $ err400 {
+    errBody = "Could not decode Base64 signature."
+  }
 appErrToHttpErr (InvalidEventId _) =
   throwError $ err400 {
     errBody = "No such event."
@@ -59,6 +63,8 @@ appErrToHttpErr (ParseError err) =
   }
 appErrToHttpErr (AuthFailed _) =
   throwError $ err403 { errBody = "Authentication failed. Invalid username or password." }
+appErrToHttpErr (SigVerificationFailure _) =
+  throwError $ err403 { errBody = "Could not verify signature." }
 appErrToHttpErr (EventPermissionDenied _ _) =
   throwError $ err403 {
     errBody = "User does not own the event."
