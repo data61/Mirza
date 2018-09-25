@@ -3,43 +3,40 @@
 
 module Mirza.SupplyChain.Tests.Client where
 
-import           Control.Exception                        (bracket)
+import           Control.Exception                     (bracket)
 
 import           Servant.API.BasicAuth
 
-import           Data.Either                              (fromRight, isLeft,
-                                                           isRight)
-import           Data.UUID                                (nil)
+import           Data.Either                           (fromRight, isLeft,
+                                                        isRight)
+import           Data.UUID                             (nil)
 
-import           Data.Text.Encoding                       (encodeUtf8)
+import           Data.Text.Encoding                    (encodeUtf8)
 
 import           Test.Tasty
 import           Test.Tasty.Hspec
 import           Test.Tasty.HUnit
 
-import qualified Mirza.BusinessRegistry.Handlers.Business as BRHB (addBusiness)
-import qualified Mirza.BusinessRegistry.Types             as BT
-import           Mirza.SupplyChain.Types                  as ST
+import qualified Mirza.BusinessRegistry.Types          as BT
+import           Mirza.SupplyChain.Types               as ST
 
-import qualified Mirza.BusinessRegistry.Client.Servant    as BRClient
+import qualified Mirza.BusinessRegistry.Client.Servant as BRClient
 import           Mirza.SupplyChain.Client.Servant
 
-import           Mirza.Common.Tests.InitClient            (TestData (..),
-                                                           endApps,
-                                                           getBRContext,
-                                                           runApps)
-import           Mirza.SupplyChain.Database.Schema        as Schema
+import           Mirza.Common.Tests.InitClient         (TestData (..), endApps,
+                                                        runApps)
+import           Mirza.SupplyChain.Database.Schema     as Schema
 
-import           Mirza.BusinessRegistry.Client.Servant    (addPublicKey,
-                                                           revokePublicKey)
-import           Mirza.BusinessRegistry.Tests.Utils       (goodRsaPublicKey)
+import           Mirza.BusinessRegistry.Client.Servant (addPublicKey,
+                                                        revokePublicKey)
+import           Mirza.BusinessRegistry.Tests.Utils    (goodRsaPublicKey)
 
 import           Mirza.Common.Tests.ServantUtils
 import           Mirza.Common.Tests.Utils
 import           Mirza.SupplyChain.Tests.Dummies
 
-import           Data.GS1.EPC                             (GS1CompanyPrefix (..))
-import           Data.GS1.EventId                         as EvId
+import           Data.GS1.EPC                          (GS1CompanyPrefix (..))
+import           Data.GS1.EventId                      as EvId
 -- === SCS Client tests
 
 userABC :: NewUser
