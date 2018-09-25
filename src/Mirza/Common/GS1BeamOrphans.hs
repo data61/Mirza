@@ -286,7 +286,7 @@ instance FromField EPC.GS1CompanyPrefix where
   fromField mbs conv = EPC.GS1CompanyPrefix <$> fromField mbs conv
 
 instance ToField EPC.GS1CompanyPrefix where
-  toField (EPC.GS1CompanyPrefix prefix) = toField prefix
+  toField (EPC.GS1CompanyPrefix pfx) = toField pfx
 
 gs1CompanyPrefixType :: BMigrate.DataType PgDataTypeSyntax EPC.GS1CompanyPrefix
 gs1CompanyPrefixType = textType
