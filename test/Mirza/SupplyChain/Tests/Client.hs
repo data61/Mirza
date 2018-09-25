@@ -65,6 +65,20 @@ authABC = BasicAuthData
   (encodeUtf8 . newUserPassword                       $ userABC)
 
 
+userDEF :: NewUser
+userDEF = NewUser
+  { newUserPhoneNumber = "0400 111 222"
+  , newUserEmailAddress = EmailAddress "abc@example.com"
+  , newUserFirstName = "Biz Johnny"
+  , newUserLastName = "Smith Biz"
+  , newUserCompany = GS1CompanyPrefix "something"
+  , newUserPassword = "re4lly$ecret14!"}
+
+authDEF :: BasicAuthData
+authDEF = BasicAuthData
+  (encodeUtf8 . getEmailAddress . newUserEmailAddress $ userDEF)
+  (encodeUtf8 . newUserPassword                       $ userDEF)
+
 clientSpec :: IO TestTree
 clientSpec = do
 
@@ -135,8 +149,7 @@ clientSpec = do
               globalAuthData = brAuthData testData
 
           step "Adding a new user to SCS"
-          uid <- httpSCS (addUser userABC)
-          uid `shouldSatisfy` isRight
+          httpSCS (addUser userABC) `shouldSatisfyIO` isRight
 
           step "Adding the same user to BR"
           let prefix = GS1CompanyPrefix "1000001"
@@ -177,10 +190,84 @@ clientSpec = do
 
           httpSCS (eventSign authABC mySignedEvent) `shouldSatisfyIO` isRight
 
+  let transactionEventTest = testCaseSteps
+        "Signing and counter-signing a transaction event" $ \step ->
+        bracket runApps endApps $ \testData -> do
+
+          let scsUrl = scsBaseUrl testData
+              brUrl = brBaseUrl testData
+              httpSCS = runClient scsUrl
+              httpBR = runClient brUrl
+              globalAuthData = brAuthData testData
+
+          step "Adding a new user to SCS"
+          uid <- httpSCS (addUser userABC)
+          uid `shouldSatisfy` isRight
+
+          step "Adding another user"
+          uid <- httpSCS (addUser userDEF)
+          uid `shouldSatisfy` isRight
+
+          step "Adding the same user to BR"
+          let prefixGiver = GS1CompanyPrefix "1000001"
+          let userBRGiver = BT.NewUser
+                          (EmailAddress "abc@example.com")
+                          "re4lly$ecret14!"
+                          prefixGiver
+                          "Biz Giver"
+                          "Smith Biz"
+                          "0400 111 222"
+
+          let prefixReceiver = GS1CompanyPrefix "1000002"
+          let userBRReceiver = BT.NewUser
+                          (EmailAddress "def@example.com")
+                          "re4lly$ecret14!"
+                          prefixReceiver
+                          "Biz Receiver"
+                          "Smith Biz"
+                          "0400 123 432"
+
+          let businessGiver = BT.NewBusiness prefixGiver "Business Name"
+          httpBR (BRClient.addBusiness globalAuthData businessGiver)
+            `shouldSatisfyIO` isRight
+
+          httpBR (BRClient.addUser globalAuthData userBRGiver) `shouldSatisfyIO` isRight
+
+
+          let businessReceiver = BT.NewBusiness prefixReceiver "Business Name"
+          httpBR (BRClient.addBusiness globalAuthData businessReceiver)
+            `shouldSatisfyIO` isRight
+
+          httpBR (BRClient.addUser globalAuthData userBRReceiver) `shouldSatisfyIO` isRight
+
+          step "Tying the user with a good key and an expiration time"
+          goodPubKeyABC <- readRsaPublicKey "./test/Mirza/Common/TestData/testKeys/goodKeys/4096bit_rsa_key.pub"
+          goodPrivKeyABC <- readRsaPrivateKey "./test/Mirza/Common/TestData/testKeys/goodKeys/4096bit_rsa_key.key"
+          keyIdResponse <- httpBR (addPublicKey authABC goodPubKeyABC Nothing)
+          keyIdResponse `shouldSatisfy` isRight
+          let keyId = fromRight (BRKeyId nil) keyIdResponse
+
+          step "Revoking the key"
+          httpBR (revokePublicKey authABC keyId) `shouldSatisfyIO` isRight
+
+          step "Inserting the object event"
+          objInsertionResponse <- httpSCS (insertObjectEvent authABC dummyObject)
+          objInsertionResponse `shouldSatisfy` isRight
+          let (insertedEvent, (Schema.EventId eventId)) = fromRight (error "Should be right") objInsertionResponse
+
+          let myDigest = SHA256
+          (Just sha256) <- makeDigest myDigest
+          mySignBS <- signBS sha256 goodPubKeyABC $ encodeUtf8 . QU.encodeEvent $ insertedEvent
+          let mySign = ST.Signature . BS.unpack . BS64.encode $ mySignBS
+          let mySignedEvent = SignedEvent (EvId.EventId eventId) keyId mySign myDigest
+
+          httpSCS (eventSign authABC mySignedEvent) `shouldSatisfyIO` isRight
+
   pure $ testGroup "Supply Chain Service Client Tests"
         [ userCreationTests
         , eventInsertionTests
         , eventSignTests
+        , transactionEventTest
         ]
 
 {-
