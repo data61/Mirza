@@ -206,6 +206,7 @@ clientSpec = do
           step "Adding a giver user to SCS"
           uidGiver <- httpSCS (addUser userABC)
           uidGiver `shouldSatisfy` isRight
+          -- let (Right userIdGiver) = uidGiver
 
           step "Adding business for the Giver"
           let prefixGiver = GS1CompanyPrefix "1000001"
@@ -233,14 +234,15 @@ clientSpec = do
           step "Inserting the object event with the giver user"
           objInsertionResponse <- httpSCS (insertObjectEvent authABC dummyObject)
           objInsertionResponse `shouldSatisfy` isRight
-          let (insertedEvent, (Schema.EventId eventId)) = fromRight (error "Should be right") objInsertionResponse
+          let (insertedEvent, (Schema.EventId eid)) = fromRight (error "Should be right") objInsertionResponse
+              eventId = EvId.EventId eid
 
           step "Signing the key"
           let myDigest = SHA256
           (Just sha256) <- makeDigest myDigest
           mySignBS <- signBS sha256 goodPrivKeyGiver $ encodeUtf8 . QU.encodeEvent $ insertedEvent
           let mySign = ST.Signature . BS.unpack . BS64.encode $ mySignBS
-          let mySignedEvent = SignedEvent (EvId.EventId eventId) keyIdGiver mySign myDigest
+          let mySignedEvent = SignedEvent eventId keyIdGiver mySign myDigest
           httpSCS (eventSign authABC mySignedEvent) `shouldSatisfyIO` isRight
 
           -- ===============================================
@@ -249,6 +251,8 @@ clientSpec = do
           step "Adding receiving user to SCS"
           uidReceiver <- httpSCS (addUser userDEF)
           uidReceiver `shouldSatisfy` isRight
+          let (Right userIdReceiver) = uidReceiver
+
           step "Adding business for receiver"
           let prefixReceiver = GS1CompanyPrefix "1000002"
           let businessReceiver = BT.NewBusiness prefixReceiver "Receiving Biz"
@@ -265,6 +269,31 @@ clientSpec = do
                           "Smith Biz"
                           "0400 123 432"
           httpBR (BRClient.addUser globalAuthData userBRReceiver) `shouldSatisfyIO` isRight
+
+          step "Checking that the receiver cannot add themselves to the event"
+          httpSCS (addUserToEvent authDEF userIdReceiver eventId)
+            `shouldSatisfyIO` isLeft
+
+          -- TODO: Add userReceiver to event
+          step "Adding receiver to the event using the giver"
+          httpSCS (addUserToEvent authABC userIdReceiver eventId)
+            `shouldSatisfyIO` isRight
+
+          step "Retrieving the event info"
+          eventInfoResult <- httpSCS (eventInfo authABC eventId)
+          eventInfoResult `shouldSatisfy` isRight
+
+          step "Checking that we got the correct event back"
+          let (Right (Just retrievedEvent)) = eventInfoResult
+          retrievedEvent `shouldBe` insertedEvent
+          -- TODO: [BLOCKER] EventState should be defined in GS1Combinators
+          --                 and added to the Ev.Event type as well
+
+          -- TODO: Check that eventInfo says that the eventState is `AwaitingSignature`
+          -- let eventState =
+          -- TODO: Sign the event with the second user
+          -- TODO: Check that eventInfo says that the eventState is `Signed`
+
 
   pure $ testGroup "Supply Chain Service Client Tests"
         [ userCreationTests
