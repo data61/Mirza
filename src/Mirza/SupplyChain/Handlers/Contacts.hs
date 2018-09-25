@@ -6,7 +6,7 @@ module Mirza.SupplyChain.Handlers.Contacts
     listContacts
   , addContact
   , removeContact
-  , contactsSearch, isExistingContact
+  , isExistingContact
   , userSearch
   ) where
 
@@ -19,9 +19,13 @@ import           Mirza.SupplyChain.Types                  hiding (NewUser (..),
                                                            User (userId),
                                                            UserId)
 import qualified Mirza.SupplyChain.Types                  as ST
+import           Data.GS1.EPC                             (GS1CompanyPrefix)
 
 import           Database.Beam                            as B
 import           Database.Beam.Backend.SQL.BeamExtensions
+import           Data.Maybe                               (isNothing)
+import           Data.Text                                (Text)
+import           Data.Foldable                            (for_)
 
 
 
@@ -81,14 +85,34 @@ removeContactQuery (ST.User firstId@(ST.UserId uid1) _ _) secondId@(ST.UserId ui
 -- PSEUDO:
 -- SELECT user2, firstName, lastName FROM Contacts, Users WHERE user1 LIKE *term* AND user2=Users.id UNION SELECT user1, firstName, lastName FROM Contacts, Users WHERE user2 = ? AND user1=Users.id;" (uid, uid)
 --
-contactsSearch :: ST.User -> String -> AppM context err [ST.User]
-contactsSearch _user _term = U.notImplemented
+
+userSearch :: SCSApp context err
+           => ST.User
+           -> Maybe GS1CompanyPrefix
+           -> Maybe Text -- last name
+           -> AppM context err [ST.User]
+userSearch _ mgs1pfx mlastname = runDb $ userSearchQuery mgs1pfx mlastname
 
 
+-- This is very ugly. I'm not familiar enough with Beam to know how to
+-- structure it better though. It's probably best to actually have 2
+-- (or 3 if we want to include first name)
+-- query functions, check if the value is Just, if so, get the results, and then apply
+-- an ordering/weighting function written in Haskell to the sum of the results.
+-- I've left it in to illustrate
+-- the idea behind the API, but we should definitely revisit it.
+userSearchQuery :: SCSApp context err
+                => Maybe GS1CompanyPrefix
+                -> Maybe Text -- last name
+                -> DB context err [ST.User]
+userSearchQuery mpfx mlname = 
+  if all isNothing [() <$ mpfx, () <$ mlname] then pure []
+  else fmap (map userTableToModel) $ pg $ runSelectReturningList $ select $ do
+        user <- all_ (Schema._users Schema.supplyChainDb)
+        for_ mpfx   $ \pfx   -> guard_ (user_biz_id user ==. (BizId $ val_ pfx))
+        for_ mlname $ \lname -> guard_ (like_ (user_last_name user) (val_ lname))
+        pure user
 
-userSearch :: ST.User -> String -> AppM context err [ST.User]
--- userSearch user term = liftIO $ Storage.userSearch user term
-userSearch _user _term = error "Storage module not implemented"
 
 
 -- | Checks if a pair of userIds are recorded as a contact.
