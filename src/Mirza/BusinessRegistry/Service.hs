@@ -99,6 +99,9 @@ serveSwaggerAPI = toSwagger serverAPI
   & info.license ?~ ("MIT" & url ?~ URL "https://opensource.org/licenses/MIT")
 
 
+throwHttpError :: ServantErr -> ByteString -> Handler a
+throwHttpError httpStatus errorMessage = throwError $ httpStatus { errBody = errorMessage }
+
 -- | Takes in a BusinessRegistryError and converts it to an HTTP error (eg. err400)
 businessRegistryErrorToHttpError :: BusinessRegistryError -> Handler a
 businessRegistryErrorToHttpError (KeyErrorBRE kError) = keyErrorToHttpError kError
@@ -106,38 +109,33 @@ businessRegistryErrorToHttpError x@(DBErrorBRE _sqlError)                  = lif
 businessRegistryErrorToHttpError x@(UnexpectedErrorBRE _reason)            = liftIO (print x) >> notImplemented
 businessRegistryErrorToHttpError x@(UnmatchedUniqueViolationBRE _sqlError) = liftIO (print x) >> notImplemented
 businessRegistryErrorToHttpError (GS1CompanyPrefixExistsBRE) =
-  throwError $ err400 { errBody = "GS1 company prefix already exists." }
+  throwHttpError err400 "GS1 company prefix already exists."
 businessRegistryErrorToHttpError (BusinessDoesNotExistBRE) =
-  throwError $ err400 { errBody = "Business does not exist." }
+  throwHttpError err400 "Business does not exist."
 businessRegistryErrorToHttpError (UserCreationErrorBRE _ _) = userCreationError
 businessRegistryErrorToHttpError (UserCreationSQLErrorBRE _) = userCreationError
 
 -- | A common function for handling user errors uniformly irrespective of what the underlying cause is.
-
 userCreationError :: Handler a
-userCreationError = throwError $ err400 { errBody = "Unable to create user." }
+userCreationError = throwHttpError err400 "Unable to create user."
 
 
 keyErrorToHttpError :: KeyError -> Handler a
 keyErrorToHttpError (InvalidRSAKey _) =
-  throwError $ err400 {
-    errBody = "Failed to parse RSA Public key."
-  }
+  throwHttpError err400 "Failed to parse RSA Public key."
 keyErrorToHttpError (InvalidRSAKeySize (Expected (Bit expSize)) (Received (Bit recSize))) =
-  throwError $ err400 {
-    errBody = BSL8.pack $ printf "Invalid RSA Key size. Expected: %d Bits, Received: %d Bits\n" expSize recSize
-  }
+  throwHttpError err400 (BSL8.pack $ printf "Invalid RSA Key size. Expected: %d Bits, Received: %d Bits\n" expSize recSize)
 keyErrorToHttpError KeyAlreadyRevoked =
-  throwError $ err400 { errBody = "Public key already revoked." }
+  throwHttpError err400 "Public key already revoked."
 keyErrorToHttpError KeyAlreadyExpired =
-  throwError $ err400 { errBody = "Public key already expired." }
+  throwHttpError err400 "Public key already expired."
 keyErrorToHttpError UnauthorisedKeyAccess =
-  throwError $ err403 { errBody = "Not authorised to access this key." }
+  throwHttpError err403 "Not authorised to access this key."
 keyErrorToHttpError (PublicKeyInsertionError _) =
-  throwError $ err500 { errBody = "Public key could not be inserted." }
+  throwHttpError err500 "Public key could not be inserted."
 keyErrorToHttpError (KeyNotFound _) =
-  throwError $ err404 { errBody = "Public key with the given id not found." }
+  throwHttpError err404 "Public key with the given id not found."
 keyErrorToHttpError (InvalidRevocation _ _ _) =
-  throwError $ err500 { errBody = "Key has been revoked but in an invalid way." }
+  throwHttpError err500 "Key has been revoked but in an invalid way."
 keyErrorToHttpError (AddedExpiredKey) =
-  throwError $ err400 { errBody = "Can't add a key that has already expired." }
+  throwHttpError err400 "Can't add a key that has already expired."
