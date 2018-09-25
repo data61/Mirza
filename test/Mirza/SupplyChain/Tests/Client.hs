@@ -193,20 +193,6 @@ eventInfo ← eventInfo(eventID)
 publicKey ← getPublicKey uid
 assert $ decrypt(sig, publicKey) == (joseText eventInfo)
 
-Insert an ObjectEvent
-Create an ObjectEvent
-add it via the API
-sign it
-Insert an AggregationEvent
-Create an aggregation event
-add it
-sign it
-
-Insert an TransformationEvent
-Create an transformation event
-add it
-sign it
-
 Sign AND countersign a TransactionEvent
 (eventID, joseTxt) ← insertTransactionEvent transactionEvent
 signedEvent = sign(joseTxt, privKey)
