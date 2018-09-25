@@ -29,8 +29,7 @@ import           Mirza.Common.Tests.InitClient         (TestData (..), endApps,
                                                         runApps)
 import           Mirza.SupplyChain.Database.Schema     as Schema
 
-import           Mirza.BusinessRegistry.Client.Servant (addPublicKey,
-                                                        revokePublicKey)
+import           Mirza.BusinessRegistry.Client.Servant (addPublicKey)
 import           Mirza.BusinessRegistry.Tests.Utils    (goodRsaPrivateKey,
                                                         goodRsaPublicKey,
                                                         readRsaPrivateKey,
@@ -70,7 +69,7 @@ authABC = BasicAuthData
 userDEF :: NewUser
 userDEF = NewUser
   { newUserPhoneNumber = "0400 111 222"
-  , newUserEmailAddress = EmailAddress "abc@example.com"
+  , newUserEmailAddress = EmailAddress "def@example.com"
   , newUserFirstName = "Biz Johnny"
   , newUserLastName = "Smith Biz"
   , newUserCompany = GS1CompanyPrefix "something"
@@ -169,21 +168,19 @@ clientSpec = do
 
           httpBR (BRClient.addUser globalAuthData userBR) `shouldSatisfyIO` isRight
 
-          step "Tying the user with a good key and an expiration time"
+          step "Tying the user with a good key"
           goodPubKey <- goodRsaPublicKey
           goodPrivKey <- goodRsaPrivateKey
           keyIdResponse <- httpBR (addPublicKey authABC goodPubKey Nothing)
           keyIdResponse `shouldSatisfy` isRight
           let keyId = fromRight (BRKeyId nil) keyIdResponse
 
-          step "Revoking the key"
-          httpBR (revokePublicKey authABC keyId) `shouldSatisfyIO` isRight
-
           step "Inserting the object event"
           objInsertionResponse <- httpSCS (insertObjectEvent authABC dummyObject)
           objInsertionResponse `shouldSatisfy` isRight
           let (insertedEvent, (Schema.EventId eventId)) = fromRight (error "Should be right") objInsertionResponse
 
+          step "Signing the key"
           let myDigest = SHA256
           (Just sha256) <- makeDigest myDigest
           mySignBS <- signBS sha256 goodPrivKey $ encodeUtf8 . QU.encodeEvent $ insertedEvent
@@ -202,16 +199,21 @@ clientSpec = do
               httpBR = runClient brUrl
               globalAuthData = brAuthData testData
 
-          step "Adding a new user to SCS"
-          uidABC <- httpSCS (addUser userABC)
-          uidABC `shouldSatisfy` isRight
+          -- ===============================================
+          -- Giving user
+          -- ===============================================
 
-          step "Adding another user"
-          uidDEF <- httpSCS (addUser userDEF)
-          uidDEF `shouldSatisfy` isRight
+          step "Adding a giver user to SCS"
+          uidGiver <- httpSCS (addUser userABC)
+          uidGiver `shouldSatisfy` isRight
 
-          step "Adding the same user to BR"
+          step "Adding business for the Giver"
           let prefixGiver = GS1CompanyPrefix "1000001"
+          let businessGiver = BT.NewBusiness prefixGiver "Giver Biz"
+          httpBR (BRClient.addBusiness globalAuthData businessGiver)
+            `shouldSatisfyIO` isRight
+
+          step "Adding the giver user to BR"
           let userBRGiver = BT.NewUser
                           (EmailAddress "abc@example.com")
                           "re4lly$ecret14!"
@@ -219,8 +221,42 @@ clientSpec = do
                           "Biz Giver"
                           "Smith Biz"
                           "0400 111 222"
+          httpBR (BRClient.addUser globalAuthData userBRGiver) `shouldSatisfyIO` isRight
 
+          step "Tying the giver user with a good key"
+          goodPubKeyGiver <- readRsaPublicKey "./test/Mirza/Common/TestData/testKeys/goodKeys/4096bit_rsa_key.pub"
+          goodPrivKeyGiver <- readRsaPrivateKey "./test/Mirza/Common/TestData/testKeys/goodKeys/4096bit_rsa_key.key"
+          keyIdResponseGiver <- httpBR (addPublicKey authABC goodPubKeyGiver Nothing)
+          keyIdResponseGiver `shouldSatisfy` isRight
+          let keyIdGiver = fromRight (BRKeyId nil) keyIdResponseGiver
+
+          step "Inserting the object event with the giver user"
+          objInsertionResponse <- httpSCS (insertObjectEvent authABC dummyObject)
+          objInsertionResponse `shouldSatisfy` isRight
+          let (insertedEvent, (Schema.EventId eventId)) = fromRight (error "Should be right") objInsertionResponse
+
+          step "Signing the key"
+          let myDigest = SHA256
+          (Just sha256) <- makeDigest myDigest
+          mySignBS <- signBS sha256 goodPrivKeyGiver $ encodeUtf8 . QU.encodeEvent $ insertedEvent
+          let mySign = ST.Signature . BS.unpack . BS64.encode $ mySignBS
+          let mySignedEvent = SignedEvent (EvId.EventId eventId) keyIdGiver mySign myDigest
+          httpSCS (eventSign authABC mySignedEvent) `shouldSatisfyIO` isRight
+
+          -- ===============================================
+          -- Receiving user
+          -- ===============================================
+          step "Adding receiving user to SCS"
+          uidReceiver <- httpSCS (addUser userDEF)
+          uidReceiver `shouldSatisfy` isRight
+          step "Adding business for receiver"
           let prefixReceiver = GS1CompanyPrefix "1000002"
+          let businessReceiver = BT.NewBusiness prefixReceiver "Receiving Biz"
+
+          httpBR (BRClient.addBusiness globalAuthData businessReceiver)
+            `shouldSatisfyIO` isRight
+
+          step "Adding the receiving user to BR"
           let userBRReceiver = BT.NewUser
                           (EmailAddress "def@example.com")
                           "re4lly$ecret14!"
@@ -228,42 +264,7 @@ clientSpec = do
                           "Biz Receiver"
                           "Smith Biz"
                           "0400 123 432"
-
-          let businessGiver = BT.NewBusiness prefixGiver "Business Name"
-          httpBR (BRClient.addBusiness globalAuthData businessGiver)
-            `shouldSatisfyIO` isRight
-
-          httpBR (BRClient.addUser globalAuthData userBRGiver) `shouldSatisfyIO` isRight
-
-
-          let businessReceiver = BT.NewBusiness prefixReceiver "Business Name"
-          httpBR (BRClient.addBusiness globalAuthData businessReceiver)
-            `shouldSatisfyIO` isRight
-
           httpBR (BRClient.addUser globalAuthData userBRReceiver) `shouldSatisfyIO` isRight
-
-          step "Tying the user with a good key and an expiration time"
-          goodPubKeyABC <- readRsaPublicKey "./test/Mirza/Common/TestData/testKeys/goodKeys/4096bit_rsa_key.pub"
-          goodPrivKeyABC <- readRsaPrivateKey "./test/Mirza/Common/TestData/testKeys/goodKeys/4096bit_rsa_key.key"
-          keyIdResponse <- httpBR (addPublicKey authABC goodPubKeyABC Nothing)
-          keyIdResponse `shouldSatisfy` isRight
-          let keyId = fromRight (BRKeyId nil) keyIdResponse
-
-          step "Revoking the key"
-          httpBR (revokePublicKey authABC keyId) `shouldSatisfyIO` isRight
-
-          step "Inserting the object event"
-          objInsertionResponse <- httpSCS (insertObjectEvent authABC dummyObject)
-          objInsertionResponse `shouldSatisfy` isRight
-          let (insertedEvent, (Schema.EventId eventId)) = fromRight (error "Should be right") objInsertionResponse
-
-          let myDigest = SHA256
-          (Just sha256) <- makeDigest myDigest
-          mySignBS <- signBS sha256 goodPrivKeyABC $ encodeUtf8 . QU.encodeEvent $ insertedEvent
-          let mySign = ST.Signature . BS.unpack . BS64.encode $ mySignBS
-          let mySignedEvent = SignedEvent (EvId.EventId eventId) keyId mySign myDigest
-
-          httpSCS (eventSign authABC mySignedEvent) `shouldSatisfyIO` isRight
 
   pure $ testGroup "Supply Chain Service Client Tests"
         [ userCreationTests
