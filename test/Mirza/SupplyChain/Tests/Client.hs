@@ -18,7 +18,9 @@ import           Test.Tasty.Hspec
 import           Test.Tasty.HUnit
 
 import qualified Mirza.BusinessRegistry.Types          as BT
+import qualified Mirza.SupplyChain.QueryUtils          as QU
 import           Mirza.SupplyChain.Types               as ST
+
 
 import qualified Mirza.BusinessRegistry.Client.Servant as BRClient
 import           Mirza.SupplyChain.Client.Servant
@@ -29,7 +31,8 @@ import           Mirza.SupplyChain.Database.Schema     as Schema
 
 import           Mirza.BusinessRegistry.Client.Servant (addPublicKey,
                                                         revokePublicKey)
-import           Mirza.BusinessRegistry.Tests.Utils    (goodRsaPublicKey)
+import           Mirza.BusinessRegistry.Tests.Utils    (goodRsaPrivateKey,
+                                                        goodRsaPublicKey)
 
 import           Mirza.Common.Tests.ServantUtils
 import           Mirza.Common.Tests.Utils
@@ -37,6 +40,14 @@ import           Mirza.SupplyChain.Tests.Dummies
 
 import           Data.GS1.EPC                          (GS1CompanyPrefix (..))
 import           Data.GS1.EventId                      as EvId
+
+import           OpenSSL.EVP.Sign                      (signBS)
+
+import qualified Data.ByteString.Char8                 as BS
+
+import qualified Data.ByteString.Base64                as BS64
+import           Mirza.SupplyChain.Handlers.Signatures (makeDigest)
+
 -- === SCS Client tests
 
 userABC :: NewUser
@@ -143,11 +154,10 @@ clientSpec = do
 
           httpBR (BRClient.addUser globalAuthData userBR) `shouldSatisfyIO` isRight
 
-
           step "Tying the user with a good key and an expiration time"
-          goodKey <- goodRsaPublicKey
-          keyIdResponse <- httpBR (addPublicKey authABC goodKey Nothing)
-          -- liftIO $ print keyIdResponse
+          goodPubKey <- goodRsaPublicKey
+          goodPrivKey <- goodRsaPrivateKey
+          keyIdResponse <- httpBR (addPublicKey authABC goodPubKey Nothing)
           keyIdResponse `shouldSatisfy` isRight
           let keyId = fromRight (BRKeyId nil) keyIdResponse
 
@@ -157,15 +167,15 @@ clientSpec = do
           step "Inserting the object event"
           objInsertionResponse <- httpSCS (insertObjectEvent authABC dummyObject)
           objInsertionResponse `shouldSatisfy` isRight
-          let (_insertedEvent, (Schema.EventId eventId)) = fromRight (error "Should be right") objInsertionResponse
+          let (insertedEvent, (Schema.EventId eventId)) = fromRight (error "Should be right") objInsertionResponse
 
-            -- Adding the event
-          let mySign = ST.Signature "c2FqaWRhbm93ZXIyMw=="
-              myDigest = SHA256
-              mySignedEvent = SignedEvent (EvId.EventId eventId) keyId mySign myDigest
-          -- if this test can proceed after the following statement
+          let myDigest = SHA256
+          (Just sha256) <- makeDigest myDigest
+          mySignBS <- signBS sha256 goodPrivKey $ encodeUtf8 . QU.encodeEvent $ insertedEvent
+          let mySign = ST.Signature . BS.unpack . BS64.encode $ mySignBS
+          let mySignedEvent = SignedEvent (EvId.EventId eventId) keyId mySign myDigest
+
           httpSCS (eventSign authABC mySignedEvent) `shouldSatisfyIO` isRight
-          -- it means the basic functionality of ``eventSign`` function is perhaps done
 
   pure $ testGroup "Supply Chain Service Client Tests"
         [ userCreationTests
