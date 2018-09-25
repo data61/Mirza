@@ -9,13 +9,13 @@ import           Mirza.BusinessRegistry.Database.Migrate
 import           Mirza.BusinessRegistry.Main             hiding (main)
 import           Mirza.BusinessRegistry.Types            as BRT
 
-import           Test.Tasty                              hiding (withResource)
-import           Test.Tasty.Runners                      (NumThreads (..))
 import           Test.Hspec.Core.Spec                    (sequential)
+import           Test.Tasty                              hiding (withResource)
 import           Test.Tasty.Hspec                        (around, testSpec)
+import           Test.Tasty.Runners                      (NumThreads (..))
 
-import           Mirza.BusinessRegistry.Tests.Client
 import           Mirza.BusinessRegistry.Tests.Business   (testBizQueries)
+import           Mirza.BusinessRegistry.Tests.Client
 import           Mirza.BusinessRegistry.Tests.Keys       (testKeyQueries)
 
 import           Control.Exception                       (bracket)
@@ -36,8 +36,7 @@ import           Katip                                   (Severity (DebugS))
 --  CallStack (from HasCallStack):
 --    error, called at src/Data/Either/Combinators.hs:106:24 in either-4.4.1.1-6PiwKYkn4v6B4KO2R2Fu1b:Data.Either.Combinators)
 
--- drop all tables created by migration. Equivalent to, at the time of writing;
--- execute_ conn "DROP TABLE IF EXISTS users, keys, businesses, contacts, labels, what_labels, items, transformations, locations, events, whats, \"bizTransactions\", whys, wheres, whens, \"labelEvents\", \"userEvents\", hashes, blockchain;"
+-- drop all tables created by migration
 dropTables :: Connection -> IO Int64
 dropTables conn =
   --https://stackoverflow.com/questions/3327312/drop-all-tables-in-postgresql
