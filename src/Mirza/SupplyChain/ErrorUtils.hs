@@ -39,7 +39,7 @@ appErrToHttpErr (InvalidSignature _) =
   throwError $ err400 {
     errBody = "Invalid Signature entered."
   }
-appErrToHttpErr (Base64DecodeFailed _) =
+appErrToHttpErr (Base64DecodeFailure _) =
   throwError $ err400 {
     errBody = "Could not decode Base64 signature."
   }

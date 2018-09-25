@@ -302,7 +302,7 @@ data ServerError = ServerError (Maybe BS.ByteString) Text
 -- | A sum type of errors that may occur in the Service layer
 data ServiceError
   = InvalidSignature       String
-  | Base64DecodeFailed     String
+  | Base64DecodeFailure    String
   | SigVerificationFailure String
   | BlockchainSendFailed   ServerError
   | InvalidEventId         EventId
