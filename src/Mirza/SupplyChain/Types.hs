@@ -340,9 +340,9 @@ instance AsSqlError AppError where
   _SqlError = _DatabaseError
 
 instance AsServantError ServantError where
-    _ServantError = id
+  _ServantError = id
 
 instance AsServantError ServiceError where
-    _ServantError = _ServantErr
+  _ServantError = _ServantErr
 
 instance AsServantError AppError where _ServantError = _ServantErr
