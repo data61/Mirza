@@ -113,7 +113,14 @@ deriving instance ToHttpApiData LabelEPCUrn
 -- *****************************************************************************
 -- TODO: The factory functions should probably be removed from here.
 
-newtype EventOwner  = EventOwner UserId deriving(Generic, Show, Eq, Read)
+newtype EventOwner = EventOwner UserId deriving(Generic, Show, Eq, Read)
+
+data EventState
+  = AwaitingSignature
+  | Signed
+  | AwaitingBlockChain
+  | SentToBlockChain
+  deriving (Generic, Show, Eq, Read)
 
 data ObjectEvent = ObjectEvent {
   obj_foreign_event_id :: Maybe EventId,
