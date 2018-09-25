@@ -114,7 +114,6 @@ clientSpec = do
           httpSCS (insertTransfEvent authABC dummyTransformation)
             `shouldSatisfyIO` isRight
 
-  -- TODO: See github issue #235.
   let eventSignTests = testCaseSteps "eventSign" $ \step ->
         bracket runApps endApps $ \testData -> do
 
@@ -123,9 +122,6 @@ clientSpec = do
               httpSCS = runClient scsUrl
               httpBR = runClient brUrl
               globalAuthData = brAuthData testData
-          -- nowish <- getCurrentTime
-          -- let hundredMinutes = 100 * 60
-          --     someTimeLater = addUTCTime (hundredMinutes) nowish
 
           step "Adding a new user to SCS"
           uid <- httpSCS (addUser userABC)
@@ -142,9 +138,8 @@ clientSpec = do
                           "0400 111 222"
 
           let business = BT.NewBusiness prefix "Business Name"
-          ctx <- getBRContext
-          insertBusinessResult  <- runAppM @_ @BT.BusinessRegistryError ctx $ BRHB.addBusiness business
-          insertBusinessResult `shouldSatisfy` isRight
+          httpBR (BRClient.addBusiness globalAuthData business)
+            `shouldSatisfyIO` isRight
 
           httpBR (BRClient.addUser globalAuthData userBR) `shouldSatisfyIO` isRight
 
