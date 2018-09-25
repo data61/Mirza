@@ -10,9 +10,7 @@
 {-# OPTIONS_GHC -fno-warn-orphans  #-}
 
 -- | This module contains all the table definitions
--- The migration script has been moved to the module MigrateScript
--- If some definition is changed here, please make the equivalent change
--- in MigrateScript
+-- Convention: Table types and constructors are suffixed with T (for Table).
 module Mirza.SupplyChain.Database.Schema.V0001 where
 
 import qualified Data.GS1.EPC                     as EPC
@@ -44,29 +42,19 @@ import           Database.Beam.Postgres
 import           Database.Beam.Postgres.Syntax    (PgDataTypeSyntax)
 
 
-
--- Convention: Table types and constructors are suffixed with T (for Table).
-
-
 --------------------------------------------------------------------------------
--- Constants
+-- Constants and Utils
 --------------------------------------------------------------------------------
 
 defaultFieldMaxLength :: Word
 defaultFieldMaxLength = 120
 
-
--- length of the timezone offset
+-- | Length of the timezone offset
 maxTimeZoneLength :: Word
 maxTimeZoneLength = 10
 
---------------------------------------------------------------------------------
--- Database
---------------------------------------------------------------------------------
-
 pkSerialType :: DataType PgDataTypeSyntax UUID
 pkSerialType = uuid
-
 
 -- Database
 data SupplyChainDb f = SupplyChainDb
@@ -178,6 +166,7 @@ migration () =
           (field "event_foreign_event_id" (maybeType uuid))
           (UserId (field "event_created_by" pkSerialType))
           (field "event_json" text notNull unique)
+          (field "event_state" eventStateType notNull)
     )
     <*> createTable "whats"
     (
@@ -511,7 +500,8 @@ data EventT f = Event
   { event_id               :: C f PrimaryKeyType
   , event_foreign_event_id :: C f (Maybe UUID) -- Event ID from XML from foreign systems.
   , event_created_by       :: PrimaryKey UserT f
-  , event_json             :: C f Text }
+  , event_json             :: C f Text
+  , event_state            :: C f EventState}
   deriving Generic
 
 deriving instance Show Event
