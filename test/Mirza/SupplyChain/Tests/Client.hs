@@ -92,26 +92,26 @@ clientSpec = do
         bracket runApps endApps $ \testData -> do
 
           let scsUrl = scsBaseUrl testData
-              httpSCS = runClient scsUrl
+              http = runClient scsUrl
 
           -- Add a user so that we can authenticate for these tests.
-          httpSCS (addUser userABC) `shouldSatisfyIO` isRight
+          http (addUser userABC) `shouldSatisfyIO` isRight
 
           step "User Can insert Object events"
             -- TODO: Events need their EventId returned to user
-          httpSCS (insertObjectEvent authABC dummyObject)
+          http (insertObjectEvent authABC dummyObject)
             `shouldSatisfyIO` isRight
 
           step "User Can insert Aggregation events"
-          httpSCS (insertAggEvent authABC dummyAggregation)
+          http (insertAggEvent authABC dummyAggregation)
             `shouldSatisfyIO` isRight
 
           step "User Can insert Transaction events"
-          httpSCS (insertTransactEvent authABC dummyTransaction)
+          http (insertTransactEvent authABC dummyTransaction)
             `shouldSatisfyIO` isRight
 
           step "User Can insert Transformation events"
-          httpSCS (insertTransfEvent authABC dummyTransformation)
+          http (insertTransfEvent authABC dummyTransformation)
             `shouldSatisfyIO` isRight
 
   let eventSignTests = testCaseSteps "eventSign" $ \step ->
