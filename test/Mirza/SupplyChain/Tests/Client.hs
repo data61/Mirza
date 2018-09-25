@@ -31,7 +31,9 @@ import           Mirza.SupplyChain.Database.Schema     as Schema
 
 import           Mirza.BusinessRegistry.Client.Servant (addPublicKey,
                                                         revokePublicKey)
-import           Mirza.BusinessRegistry.Tests.Utils    (readRsaPrivateKey,
+import           Mirza.BusinessRegistry.Tests.Utils    (goodRsaPrivateKey,
+                                                        goodRsaPublicKey,
+                                                        readRsaPrivateKey,
                                                         readRsaPublicKey)
 
 import           Mirza.Common.Tests.ServantUtils
@@ -168,8 +170,8 @@ clientSpec = do
           httpBR (BRClient.addUser globalAuthData userBR) `shouldSatisfyIO` isRight
 
           step "Tying the user with a good key and an expiration time"
-          goodPubKey <- goodRsaPublicKey "./test/Mirza/Common/TestData/testKeys/goodKeys/4096bit_rsa_key.pub"
-          goodPrivKey <- goodRsaPrivateKey "./test/Mirza/Common/TestData/testKeys/goodKeys/4096bit_rsa_key.key"
+          goodPubKey <- goodRsaPublicKey
+          goodPrivKey <- goodRsaPrivateKey
           keyIdResponse <- httpBR (addPublicKey authABC goodPubKey Nothing)
           keyIdResponse `shouldSatisfy` isRight
           let keyId = fromRight (BRKeyId nil) keyIdResponse
@@ -201,12 +203,12 @@ clientSpec = do
               globalAuthData = brAuthData testData
 
           step "Adding a new user to SCS"
-          uid <- httpSCS (addUser userABC)
-          uid `shouldSatisfy` isRight
+          uidABC <- httpSCS (addUser userABC)
+          uidABC `shouldSatisfy` isRight
 
           step "Adding another user"
-          uid <- httpSCS (addUser userDEF)
-          uid `shouldSatisfy` isRight
+          uidDEF <- httpSCS (addUser userDEF)
+          uidDEF `shouldSatisfy` isRight
 
           step "Adding the same user to BR"
           let prefixGiver = GS1CompanyPrefix "1000001"
@@ -257,7 +259,7 @@ clientSpec = do
 
           let myDigest = SHA256
           (Just sha256) <- makeDigest myDigest
-          mySignBS <- signBS sha256 goodPubKeyABC $ encodeUtf8 . QU.encodeEvent $ insertedEvent
+          mySignBS <- signBS sha256 goodPrivKeyABC $ encodeUtf8 . QU.encodeEvent $ insertedEvent
           let mySign = ST.Signature . BS.unpack . BS64.encode $ mySignBS
           let mySignedEvent = SignedEvent (EvId.EventId eventId) keyId mySign myDigest
 

@@ -17,6 +17,14 @@ readRsaPrivateKey fileName = do
   privKeyStr <- readFile fileName
   readPrivateKey privKeyStr PwNone
 
+-- Gets a good PEM RSA key from file to use from test cases.
+goodRsaPublicKey :: IO PEM_RSAPubKey
+goodRsaPublicKey = readRsaPublicKey "./test/Mirza/Common/TestData/testKeys/goodKeys/4096bit_rsa_key.pub"
+
+-- Gets a good PEM RSA private key from file to use from test cases.
+goodRsaPrivateKey :: IO SomeKeyPair
+goodRsaPrivateKey = readRsaPrivateKey "./test/Mirza/Common/TestData/testKeys/goodKeys/4096bit_rsa_key.key"
+
 -- | Converts from number of seconds to the number of microseconds.
 secondsToMicroseconds :: (Num a) => a -> a
 secondsToMicroseconds = (* 1000000)
