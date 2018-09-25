@@ -24,10 +24,13 @@ import           Mirza.SupplyChain.Types           as ST
 
 import qualified Data.GS1.Event                    as Ev
 import           Data.GS1.EventId                  as EvId
+import           Data.GS1.EPC                      (GS1CompanyPrefix)
 
 import           Servant
 import           Servant.API.Flatten
 import           Servant.Swagger.UI
+
+import           Data.Text                          (Text)
 
 type API
     -- this serves both: swagger.json and swagger-ui
@@ -47,14 +50,17 @@ serverAPI = Proxy
 
 type PublicAPI =
   -- Users
-         "newUser"                            :> ReqBody '[JSON] NewUser                                      :> Post '[JSON] UserId
+       "newUser"                            :> ReqBody '[JSON] NewUser                                      :> Post '[JSON] UserId
 
 type PrivateAPI =
 -- Contacts
        "contacts"                                                                                             :> Get '[JSON] [User]
   :<|> "contacts" :> "add"                  :> Capture "userId" ST.UserId                                     :> Get '[JSON] Bool
   :<|> "contacts" :> "remove"               :> Capture "userId" ST.UserId                                     :> Get '[JSON] Bool
-  :<|> "contacts" :> "search"               :> Capture "term" String                                          :> Get '[JSON] [User]
+-- Users
+  :<|> "user"     :> "search"               :> QueryParam "GS1CompanyPrefix" GS1CompanyPrefix
+                                            :> QueryParam "lastname" Text
+                                            :> Post '[JSON] [User]
 -- Signatures
   :<|> "event"    :> "addUser"              :> Capture "userId" UserId       :> Capture "eventId" EventId     :> Post '[JSON] ()
   :<|> "event"    :> "sign"                 :> ReqBody '[JSON] SignedEvent                                    :> Post '[JSON] PrimaryKeyType
