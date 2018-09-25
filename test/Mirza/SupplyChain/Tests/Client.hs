@@ -31,8 +31,8 @@ import           Mirza.SupplyChain.Database.Schema     as Schema
 
 import           Mirza.BusinessRegistry.Client.Servant (addPublicKey,
                                                         revokePublicKey)
-import           Mirza.BusinessRegistry.Tests.Utils    (goodRsaPrivateKey,
-                                                        goodRsaPublicKey)
+import           Mirza.BusinessRegistry.Tests.Utils    (readRsaPrivateKey,
+                                                        readRsaPublicKey)
 
 import           Mirza.Common.Tests.ServantUtils
 import           Mirza.Common.Tests.Utils
@@ -155,8 +155,8 @@ clientSpec = do
           httpBR (BRClient.addUser globalAuthData userBR) `shouldSatisfyIO` isRight
 
           step "Tying the user with a good key and an expiration time"
-          goodPubKey <- goodRsaPublicKey
-          goodPrivKey <- goodRsaPrivateKey
+          goodPubKey <- goodRsaPublicKey "./test/Mirza/Common/TestData/testKeys/goodKeys/4096bit_rsa_key.pub"
+          goodPrivKey <- goodRsaPrivateKey "./test/Mirza/Common/TestData/testKeys/goodKeys/4096bit_rsa_key.key"
           keyIdResponse <- httpBR (addPublicKey authABC goodPubKey Nothing)
           keyIdResponse `shouldSatisfy` isRight
           let keyId = fromRight (BRKeyId nil) keyIdResponse
