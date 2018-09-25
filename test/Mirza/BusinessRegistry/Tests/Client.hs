@@ -220,8 +220,8 @@ clientSpec = do
           step "Can't create a new user with the same email address"
           duplicateEmailResult <- http (addUser globalAuthData userSameEmail)
           duplicateEmailResult `shouldSatisfy` isLeft
-          -- duplicateEmailResult `shouldSatisfy` (checkFailureStatus NS.badRequest400)
-          -- duplicateEmailResult `shouldSatisfy` (checkFailureMessage "Unable to create user.")
+          duplicateEmailResult `shouldSatisfy` (checkFailureStatus NS.badRequest400)
+          duplicateEmailResult `shouldSatisfy` (checkFailureMessage "Unable to create user.")
 
           step "Can create a second user"
           http (addUser globalAuthData user2)

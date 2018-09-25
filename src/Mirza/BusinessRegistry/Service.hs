@@ -102,14 +102,21 @@ serveSwaggerAPI = toSwagger serverAPI
 -- | Takes in a BusinessRegistryError and converts it to an HTTP error (eg. err400)
 businessRegistryErrorToHttpError :: BusinessRegistryError -> Handler a
 businessRegistryErrorToHttpError (KeyErrorBRE kError) = keyErrorToHttpError kError
-businessRegistryErrorToHttpError x@(DBErrorBRE _sqlError)              = liftIO (print x) >> notImplemented
-businessRegistryErrorToHttpError x@(UnexpectedErrorBRE _reason)        = liftIO (print x) >> notImplemented
+businessRegistryErrorToHttpError x@(DBErrorBRE _sqlError)                  = liftIO (print x) >> notImplemented
+businessRegistryErrorToHttpError x@(UnexpectedErrorBRE _reason)            = liftIO (print x) >> notImplemented
+businessRegistryErrorToHttpError x@(UnmatchedUniqueViolationBRE _sqlError) = liftIO (print x) >> notImplemented
 businessRegistryErrorToHttpError (GS1CompanyPrefixExistsBRE) =
   throwError $ err400 { errBody = "GS1 company prefix already exists." }
 businessRegistryErrorToHttpError (BusinessDoesNotExistBRE) =
   throwError $ err400 { errBody = "Business does not exist." }
-businessRegistryErrorToHttpError (UserCreationErrorBRE _reason) =
- throwError $ err400 { errBody = "Unable to create user." }
+businessRegistryErrorToHttpError (UserCreationErrorBRE _ _) = userCreationError
+businessRegistryErrorToHttpError (UserCreationSQLErrorBRE _) = userCreationError
+
+-- | A common function for handling user errors uniformly irrespective of what the underlying cause is.
+
+userCreationError :: Handler a
+userCreationError = throwError $ err400 { errBody = "Unable to create user." }
+
 
 keyErrorToHttpError :: KeyError -> Handler a
 keyErrorToHttpError (InvalidRSAKey _) =
