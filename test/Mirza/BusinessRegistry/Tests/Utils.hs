@@ -8,17 +8,13 @@ import           OpenSSL.EVP.PKey             (SomeKeyPair)
 import           OpenSSL.PEM
 
 -- Read an PEM RSA key from file.
-readRsaPubKey :: FilePath -> IO PEM_RSAPubKey
-readRsaPubKey filename = PEM_RSAPubKey <$> TIO.readFile filename
+readRsaPublicKey :: FilePath -> IO PEM_RSAPubKey
+readRsaPublicKey filename = PEM_RSAPubKey <$> TIO.readFile filename
 
--- Gets a good PEM RSA key from file to use from test cases.
-goodRsaPublicKey :: IO PEM_RSAPubKey
-goodRsaPublicKey = readRsaPubKey "./test/Mirza/Common/TestData/testKeys/goodKeys/4096bit_rsa_key.pub"
-
--- Gets a good PEM RSA key from file to use from test cases.
-goodRsaPrivateKey :: IO SomeKeyPair
-goodRsaPrivateKey = do
-  privKeyStr <- readFile "./test/Mirza/Common/TestData/testKeys/goodKeys/4096bit_rsa_key.key"
+-- Gets a PEM RSA key from file to use from test cases.
+readRsaPrivateKey :: FilePath -> IO SomeKeyPair
+readRsaPrivateKey fileName = do
+  privKeyStr <- readFile fileName
   readPrivateKey privKeyStr PwNone
 
 -- | Converts from number of seconds to the number of microseconds.
