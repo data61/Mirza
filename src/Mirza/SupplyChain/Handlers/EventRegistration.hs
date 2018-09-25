@@ -386,12 +386,13 @@ toStorageDWhy (Schema.WhyId pKey) (DWhy mBiz mDisp)
   = Schema.Why pKey (renderURL <$> mBiz) (renderURL <$> mDisp)
 
 toStorageEvent :: Schema.EventId
+               -> Maybe EvId.EventId
                -> Schema.UserId
                -> T.Text
-               -> Maybe EvId.EventId
+               -> MU.EventState
                -> Schema.Event
-toStorageEvent (Schema.EventId pKey) userId jsonEvent mEventId =
-  Schema.Event pKey (EvId.unEventId <$> mEventId) userId jsonEvent
+toStorageEvent (Schema.EventId pKey) mEventId =
+  Schema.Event pKey (EvId.unEventId <$> mEventId)
 
 insertDWhat :: Maybe PrimaryKeyType
             -> DWhat
@@ -496,7 +497,7 @@ insertEvent :: Schema.UserId
             -> DB context err Schema.EventId
 insertEvent userId jsonEvent event = fmap (Schema.EventId <$>) QU.withPKey $ \pKey ->
   pg $ B.runInsert $ B.insert (Schema._events Schema.supplyChainDb)
-      $ insertValues [toStorageEvent (Schema.EventId pKey) userId jsonEvent (_eid event)]
+      $ insertValues [toStorageEvent (Schema.EventId pKey) (_eid event) userId jsonEvent MU.AwaitingSignature]
 
 insertUserEvent :: Schema.EventId
                 -> Schema.UserId

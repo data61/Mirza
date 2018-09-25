@@ -4,9 +4,7 @@
 {-# LANGUAGE TypeFamilies          #-}
 
 -- | This module contains all the table definitions
--- The migration script has been moved to the module MigrateScript
--- If some definition is changed here, please make the equivalent change
--- in MigrateScript
+-- Convention: Table types and constructors are suffixed with T (for Table).
 module Mirza.BusinessRegistry.Database.Schema.V0001 where
 
 import qualified Data.GS1.EPC                     as EPC
@@ -31,20 +29,12 @@ import           Data.Aeson
 import           Data.Swagger
 
 
-
--- Convention: Table types and constructors are suffixed with T (for Table).
-
-
 --------------------------------------------------------------------------------
--- Constants
+-- Constants and Utils
 --------------------------------------------------------------------------------
 
 defaultFieldMaxLength :: Word
 defaultFieldMaxLength = 120
-
---------------------------------------------------------------------------------
--- Database
---------------------------------------------------------------------------------
 
 pkSerialType :: DataType PgDataTypeSyntax UUID
 pkSerialType = uuid
