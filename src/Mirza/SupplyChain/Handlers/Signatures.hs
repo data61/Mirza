@@ -103,7 +103,7 @@ eventSign _user (SignedEvent eventId keyId (ST.Signature sigStr) digest') = do
   (pubKey :: RSAPubKey) <- liftIO
       (toPublicKey <$> (readPublicKey . unpack $ keyStr))
       <!?> review _InvalidRSAKeyInDB keyStr
-  sigBS <- BS64.decode (BSC.pack sigStr) <%?> review _Base64DecodeFailed
+  sigBS <- BS64.decode (BSC.pack sigStr) <%?> review _Base64DecodeFailure
   digest <- liftIO (makeDigest digest') <!?> review _InvalidDigest digest'
   runDb $ do
     event <- getEventJSON eventId
