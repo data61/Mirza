@@ -22,15 +22,15 @@ module Mirza.SupplyChain.API
 import qualified Mirza.SupplyChain.Database.Schema as Schema
 import           Mirza.SupplyChain.Types           as ST
 
+import           Data.GS1.EPC                      (GS1CompanyPrefix)
 import qualified Data.GS1.Event                    as Ev
 import           Data.GS1.EventId                  as EvId
-import           Data.GS1.EPC                      (GS1CompanyPrefix)
 
 import           Servant
 import           Servant.API.Flatten
 import           Servant.Swagger.UI
 
-import           Data.Text                          (Text)
+import           Data.Text                         (Text)
 
 type API
     -- this serves both: swagger.json and swagger-ui
@@ -66,8 +66,8 @@ type PrivateAPI =
   :<|> "event"    :> "sign"                 :> ReqBody '[JSON] SignedEvent                                    :> Post '[JSON] PrimaryKeyType
   :<|> "event"    :> "getHash"              :> ReqBody '[JSON] EventId                                        :> Post '[JSON] HashedEvent
 -- Queries
-  :<|> "epc"                                :> Capture "urn" ST.LabelEPCUrn     :> "events"                   :> Get '[JSON] [Ev.Event]
-  :<|> "event"                              :> Capture "eventId" EventId        :> "info"                     :> Get '[JSON] (Maybe Ev.Event)
+  :<|> "epc"      :> "events"               :> Capture "urn" ST.LabelEPCUrn                                   :> Get '[JSON] [Ev.Event]
+  :<|> "event"    :> "info"                 :> Capture "eventId" EventId                                      :> Get '[JSON] EventInfo
   :<|> "event"    :> "list"                 :> Capture "userId" UserId                                        :> Get '[JSON] [Ev.Event]
   :<|> "event"    :> "listUsers"            :> Capture "eventId" EventId                                      :> Get '[JSON] [(User, Bool)]
   :<|> "user"     :> "getId"                                                                                  :> Get '[JSON] UserId
