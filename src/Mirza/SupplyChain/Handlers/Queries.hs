@@ -46,13 +46,21 @@ listEventsQuery labelEpc =
   maybe (return []) (getEventList . Schema.LabelId) =<< findLabelId labelEpc
 
 
-
 eventInfo :: SCSApp context err
           => ST.User
           -> EvId.EventId
-          -> AppM context err (Maybe Ev.Event)
-eventInfo _user = runDb . findEvent . Schema.EventId . EvId.unEventId
+          -> AppM context err EventInfo
+eventInfo user eventId = runDb $ eventInfoQuery user eventId
 
+eventInfoQuery :: SCSApp context err
+               => ST.User
+               -> EvId.EventId
+               -> DB context err EventInfo
+eventInfoQuery _user eventId@(EvId.EventId eId) = do
+  usersWithEvent <- eventUserSignedList eventId
+  event <- findEvent (Schema.EventId eId)
+  -- return $ EventInfo event
+  error "Event Info Query not implemented yet"
 
 
 -- |List events that a particular user was/is involved with
