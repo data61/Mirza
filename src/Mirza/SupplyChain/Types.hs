@@ -272,7 +272,7 @@ data SignedEvent = SignedEvent {
   signed_keyId     :: BRKeyId,
   signed_signature :: Signature,
   signed_digest    :: Digest
-} deriving (Generic)
+} deriving (Generic, Show, Eq)
 $(deriveJSON defaultOptions ''SignedEvent)
 instance ToSchema SignedEvent
 --instance ToParamSchema SignedEvent where
@@ -285,6 +285,16 @@ data HashedEvent = HashedEvent {
 $(deriveJSON defaultOptions ''HashedEvent)
 instance ToSchema HashedEvent
 
+
+data EventInfo = EventInfo {
+    eventInfoEvent         :: Ev.Event
+  , eventInfoUserSigs      :: [(UserId, SignedEvent)]
+  , eventInfoUnsignedUsers :: [UserId]
+  , eventInfoJoseText      :: Text -- JOSEText --this is the json stored in the db atm
+  -- , eventInfoBlockChainId :: BlockchainId
+} deriving (Show, Eq, Generic)
+$(deriveJSON defaultOptions ''EventInfo)
+instance ToSchema EventInfo
 
 -- *****************************************************************************
 -- Error Types
