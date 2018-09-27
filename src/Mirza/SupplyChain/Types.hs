@@ -290,8 +290,6 @@ data EventInfo = EventInfo {
     eventInfoEvent         :: Ev.Event
   , eventInfoUserSigs      :: [(UserId, SignedEvent)]
   , eventInfoUnsignedUsers :: [UserId]
-  , eventInfoJoseText      :: Text -- JOSEText --this is the json stored in the db atm
-  -- , eventInfoBlockChainId :: BlockchainId
 } deriving (Show, Eq, Generic)
 $(deriveJSON defaultOptions ''EventInfo)
 instance ToSchema EventInfo
