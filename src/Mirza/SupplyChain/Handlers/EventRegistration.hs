@@ -389,7 +389,6 @@ toStorageEvent :: Schema.EventId
                -> Maybe EvId.EventId
                -> Schema.UserId
                -> T.Text
-               -> MU.EventState
                -> Schema.Event
 toStorageEvent (Schema.EventId pKey) mEventId =
   Schema.Event pKey (EvId.unEventId <$> mEventId)
@@ -497,7 +496,7 @@ insertEvent :: Schema.UserId
             -> DB context err Schema.EventId
 insertEvent userId jsonEvent event = fmap (Schema.EventId <$>) QU.withPKey $ \pKey ->
   pg $ B.runInsert $ B.insert (Schema._events Schema.supplyChainDb)
-      $ insertValues [toStorageEvent (Schema.EventId pKey) (_eid event) userId jsonEvent MU.AwaitingSignature]
+      $ insertValues [toStorageEvent (Schema.EventId pKey) (_eid event) userId jsonEvent]
 
 insertUserEvent :: Schema.EventId
                 -> Schema.UserId
