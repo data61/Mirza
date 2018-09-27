@@ -9,35 +9,36 @@ module Mirza.BusinessRegistry.Types (
   , module CT
   ) where
 
-import           Mirza.Common.Time          (CreationTime, ExpirationTime,
-                                             RevocationTime)
-import           Mirza.Common.Types         as CT
+import           Mirza.Common.Time                      (CreationTime,
+                                                         ExpirationTime,
+                                                         RevocationTime)
+import           Mirza.Common.Types                     as CT
 import           Mirza.Common.Utils
 
-import qualified Mirza.BusinessRegistry.Database.Schema   as Schema
+import qualified Mirza.BusinessRegistry.Database.Schema as Schema
 
-import           Data.GS1.EPC               as EPC
+import           Data.GS1.EPC                           as EPC
 
-import           Data.Pool                  as Pool
-import           Database.Beam                            as B
-import           Database.PostgreSQL.Simple (Connection, SqlError)
+import           Data.Pool                              as Pool
+import           Database.Beam                          as B
+import           Database.PostgreSQL.Simple             (Connection, SqlError)
 
-import           Crypto.Scrypt              (ScryptParams)
+import           Crypto.Scrypt                          (ScryptParams)
 
-import           Katip                      as K
+import           Katip                                  as K
 
 import           Control.Lens.TH
 import           Data.Aeson
 import           Data.Aeson.TH
 
 import           Data.Swagger
-import           Servant                    (FromHttpApiData (..))
+import           Data.Text                              (Text)
+import           Data.Time                              (LocalTime)
 
-import           Data.Text                  (Text)
-import           Data.Time                        (LocalTime)
+import           GHC.Generics                           (Generic)
+import           GHC.Stack                              (CallStack)
 
-import           GHC.Generics               (Generic)
-import           GHC.Stack                  (CallStack)
+import           Servant                                (FromHttpApiData (..))
 
 
 -- *****************************************************************************
@@ -186,6 +187,7 @@ data KeyError
   -- fix the storage datatype so its not possible to generate this error in the
   -- first place.
   | InvalidRevocation (Maybe LocalTime) (PrimaryKey Schema.UserT (Nullable Identity)) CallStack
+  | AddedExpiredKey
   deriving (Show)
 
 newtype Bit  = Bit  {getBit :: Int} deriving (Show, Eq, Read, Ord)

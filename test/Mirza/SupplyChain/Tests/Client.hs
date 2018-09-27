@@ -3,7 +3,7 @@
 
 module Mirza.SupplyChain.Tests.Client where
 
-import           Mirza.Common.Tests.Utils         (unsafeMkEmailAddress)
+import           Mirza.Common.Tests.Utils          (unsafeMkEmailAddress)
 
 import           Control.Concurrent                (ThreadId)
 import           Control.Exception                 (bracket)
@@ -12,38 +12,31 @@ import           Servant.API.BasicAuth
 import           Servant.Client                    (BaseUrl)
 
 import           Data.Either                       (isLeft, isRight)
---import           Data.UUID                         (nil)
 
-import           Data.Text.Encoding               (encodeUtf8)
+import           Data.Text.Encoding                (encodeUtf8)
 
-import           Test.Tasty.Hspec
 import           Test.Tasty
+import           Test.Tasty.Hspec
 import           Test.Tasty.HUnit
 
 import           Katip                             (Severity (DebugS))
 
+import           Mirza.SupplyChain.Client.Servant
 import           Mirza.SupplyChain.Main            (ServerOptions (..),
                                                     initApplication,
                                                     initSCSContext)
 import           Mirza.SupplyChain.Types           as ST
-import           Mirza.SupplyChain.Client.Servant
---import           Mirza.BusinessRegistry.Client.Servant (revokePublicKey,
---                                                        addPublicKey)
-import           Mirza.SupplyChain.Tests.Dummies
-import           Mirza.SupplyChain.Tests.Settings
+
 import           Mirza.Common.Tests.ServantUtils
 import           Mirza.Common.Tests.Utils
 import           Mirza.SupplyChain.Database.Schema as Schema
+import           Mirza.SupplyChain.Tests.Dummies
+import           Mirza.SupplyChain.Tests.Settings
 
 import           Database.Beam.Query               (delete, runDelete, val_)
 
--- import           Mirza.Common.Time                (ExpirationTime (..))
--- import           Data.Time.Clock                  (addUTCTime, getCurrentTime)
-
-import           Data.GS1.EPC                     (GS1CompanyPrefix (..))
---import           Data.GS1.EventId                 as EvId
-
-import           Text.Email.Validate              (toByteString)
+import           Data.GS1.EPC                      (GS1CompanyPrefix (..))
+import           Text.Email.Validate               (toByteString)
 
 -- === SCS Client tests
 

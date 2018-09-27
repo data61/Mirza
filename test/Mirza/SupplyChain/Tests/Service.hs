@@ -22,8 +22,9 @@ import           Mirza.SupplyChain.Handlers.Users
 import           Mirza.SupplyChain.Types                      as ST
 
 import           Control.Monad                                (void)
-import           Data.Maybe                                   (fromJust)
 import           Data.Either                                  (isLeft)
+import           Data.GS1.EPC                                 (GS1CompanyPrefix (..))
+import           Data.Maybe                                   (fromJust)
 
 import           Data.Text.Encoding                           (encodeUtf8)
 
@@ -128,8 +129,8 @@ testServiceQueries = do
     it "Insert Object Event" $ \scsContext -> do
       (insertedEvent, _) <- testAppM scsContext $ insertObjectEvent dummyUser dummyObject
       insertedEvent `shouldBe` dummyObjEvent
-      
-    it "Should not allow duplicate Object events" $ \scsContext -> do 
+
+    it "Should not allow duplicate Object events" $ \scsContext -> do
       _res <- runAppM @_ @AppError scsContext $ insertObjectEvent dummyUser dummyObject
       res <- runAppM @_ @AppError scsContext $ insertObjectEvent dummyUser dummyObject
       res `shouldSatisfy` isLeft
@@ -148,8 +149,8 @@ testServiceQueries = do
     it "Insert Aggregation Event" $ \scsContext -> do
       (insertedEvent, _) <- testAppM scsContext $ insertAggEvent dummyUser dummyAggregation
       insertedEvent `shouldBe` dummyAggEvent
-    
-    it "Should not allow duplicate Aggregation events" $ \scsContext -> do 
+
+    it "Should not allow duplicate Aggregation events" $ \scsContext -> do
       _res <- runAppM @_ @AppError scsContext $ insertAggEvent dummyUser dummyAggregation
       res <- runAppM @_ @AppError scsContext $ insertAggEvent dummyUser dummyAggregation
       res `shouldSatisfy` isLeft
@@ -169,7 +170,7 @@ testServiceQueries = do
       (insertedEvent, _) <- testAppM scsContext $ insertTransfEvent dummyUser dummyTransformation
       insertedEvent `shouldBe` dummyTransfEvent
 
-    it "Should not allow duplicate Transformation events" $ \scsContext -> do 
+    it "Should not allow duplicate Transformation events" $ \scsContext -> do
       _res <- runAppM @_ @AppError scsContext $ insertTransfEvent dummyUser dummyTransformation
       res <- runAppM @_ @AppError scsContext $ insertTransfEvent dummyUser dummyTransformation
       res `shouldSatisfy` isLeft
@@ -188,8 +189,8 @@ testServiceQueries = do
     it "Insert Transaction Event" $ \scsContext -> do
       (insertedEvent, _) <- testAppM scsContext $ insertTransactEvent dummyUser dummyTransaction
       insertedEvent `shouldBe` dummyTransactEvent
-    
-    it "Should not allow duplicate Transaction events" $ \scsContext -> do 
+
+    it "Should not allow duplicate Transaction events" $ \scsContext -> do
       _res <- runAppM @_ @AppError scsContext $ insertTransactEvent dummyUser dummyTransaction
       res <- runAppM @_ @AppError scsContext $ insertTransactEvent dummyUser dummyTransaction
       res `shouldSatisfy` isLeft
@@ -204,8 +205,8 @@ testServiceQueries = do
           insertedEvent `shouldBe` dummyTransactEvent
           evtList `shouldBe` [insertedEvent]
 
-  describe "getUser tests" $
-    it "getUser test 1" $ \scsContext -> do
+  describe "getUser tests" $ do
+    it "getUser test by Id" $ \scsContext -> do
       res <- testAppM scsContext $ do
         uid <- addUser dummyNewUser
         user <- runDb $ getUser $ newUserEmailAddress dummyNewUser
@@ -219,6 +220,76 @@ testServiceQueries = do
               (userFirstName u == newUserFirstName dummyNewUser) &&
               (userLastName u == newUserLastName dummyNewUser)
             )
+-- Specifically, add a few users, and see if the search works properly;
+-- search for just gs1companyprefix;
+-- search for just last name; search for both;
+-- search with no params given
+
+    it "getUser test by Company Id" $ \scsContext -> do
+      res <- testAppM scsContext $ do
+        uid <- addUser dummyNewUser
+        users <- userSearch dummyUser (Just $ newUserCompany dummyNewUser) Nothing
+        -- ^ The argument dummyUser is ignored
+        pure (uid, users)
+      case res of
+        (_, []) -> fail "Received Nothing for user"
+        (uid, [user]) ->
+          user `shouldSatisfy`
+            (\u ->
+              (userId u == uid) &&
+              (userFirstName u == newUserFirstName dummyNewUser) &&
+              (userLastName u == newUserLastName dummyNewUser)
+            )
+        (_, _) -> fail "There should only be one result in this test"
+
+
+    it "getUser test by last name" $ \scsContext -> do
+      res <- testAppM scsContext $ do
+        uidSmith <- addUser dummyNewUser
+        _uid_2 <- addUser $ ST.NewUser "000" (unsafeMkEmailAddress "jordan@gmail.com") "Bob" "Jordan" (GS1CompanyPrefix "fake_1 Ltd") "password"
+        _uid_3 <- addUser $ ST.NewUser "000" (unsafeMkEmailAddress "james@gmail.com") "Bob" "James" (GS1CompanyPrefix "fake_2 Ltd") "password"
+
+        userSmith <- userSearch dummyUser Nothing (Just "Smith")
+        -- ^ The argument dummyUser is ignored
+        pure (uidSmith, userSmith)
+      case res of
+        (_, []) -> fail "Received Nothing for Smith"
+        (uidSmith, [smith]) ->
+          smith `shouldSatisfy`
+            (\u ->
+              (userId u == uidSmith) &&
+              (userFirstName u == newUserFirstName dummyNewUser) &&
+              (userLastName u == newUserLastName dummyNewUser)
+            )
+        (_, _) -> fail "There should only be one result in this test"
+
+    it "getUser test by last name and company id" $ \scsContext -> do
+      res <- testAppM scsContext $ do
+        _uid_1 <- addUser dummyNewUser
+        uidRealSmith <- addUser $ ST.NewUser "000" (unsafeMkEmailAddress "jordan@gmail.com") "Bob" "Smith" (GS1CompanyPrefix "Real Smith Ltd") "password"
+        _uid_3 <- addUser $ ST.NewUser "000" (unsafeMkEmailAddress "james@gmail.com") "Bob" "James" (GS1CompanyPrefix "Fake Jordan Ltd") "password"
+
+        userSmith <- userSearch dummyUser (Just $ GS1CompanyPrefix "Real Smith Ltd") (Just "Smith")
+        -- ^ The argument dummyUser is ignored
+        pure (uidRealSmith, userSmith)
+      case res of
+        (_, []) -> fail "Received Nothing for Smith"
+        (uidSmith, [smith]) ->
+          smith `shouldSatisfy`
+            (\u ->
+              (userId u == uidSmith) &&
+              (userFirstName u == "Bob") &&
+              (userLastName u == "Smith")
+            )
+        (_, _) -> fail "There should only be one result in this test"
+
+    it "getUser test with no param" $ \scsContext -> do
+      res <- testAppM scsContext $ do
+        _uid <- addUser dummyNewUser
+        users <- userSearch dummyUser Nothing Nothing
+        -- ^ The argument dummyUser is ignored
+        pure users
+      res `shouldBe` []
 
   describe "Contacts" $ do
     (after_ clearContact) . describe "Contacts" $
