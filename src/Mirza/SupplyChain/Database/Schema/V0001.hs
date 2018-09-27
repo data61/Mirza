@@ -20,6 +20,7 @@ import           Mirza.Common.GS1BeamOrphans
 import qualified Mirza.Common.GS1BeamOrphans      as MU
 import           Mirza.Common.Types               hiding (UserId)
 import           Mirza.Common.Types               (BRKeyId (..), PrimaryKeyType)
+import           Mirza.SupplyChain.Types          (Digest (..))
 
 import           Control.Lens
 
@@ -735,7 +736,7 @@ data SignatureT f = Signature
   , signature_event_id  :: PrimaryKey EventT f
   , signature_key_id    :: C f BRKeyId
   , signature_signature :: C f ByteString
-  , signature_digest    :: C f ByteString
+  , signature_digest    :: C f ByteString -- why is this a ByteString?
   , signature_timestamp :: C f LocalTime -- Stored as UTC Time
   }
   deriving Generic
