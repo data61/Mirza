@@ -5,6 +5,7 @@ module Mirza.SupplyChain.Handlers.Signatures
   (
     addUserToEvent
   , eventSign, getEventJSON, makeDigest, insertSignature, eventHashed
+  , findSignedEvent
   ) where
 
 import           Mirza.Common.Time
@@ -146,6 +147,38 @@ insertSignature eId kId (ST.Signature sig) digest = do
     [rowId] -> return ( Schema.signature_id rowId)
     _       -> throwing _BackendErr "Failed to add signature"
 
+
+findSignatureByEvent :: (AsServiceError err)
+                     => EvId.EventId
+                     -> DB environmentUnused err Schema.Signature
+findSignatureByEvent eventId@(EvId.EventId eId) = do
+  r <- pg $ runSelectReturningList $ select $ do
+    sig <- all_ (Schema._signatures Schema.supplyChainDb)
+    guard_ ((Schema.signature_event_id sig) ==. (val_ (Schema.EventId eId)))
+    pure sig
+  case r of
+    [sig] -> return sig
+    _     -> throwing _InvalidEventId eventId
+
+findSignedEvent :: (AsServiceError err)
+                => EvId.EventId
+                -> DB environmentUnused err ST.SignedEvent
+findSignedEvent eventId = do
+  sig <- findSignatureByEvent eventId
+  return $ signatureToSignedEvent sig
+
+signatureToSignedEvent :: Schema.Signature -> ST.SignedEvent
+signatureToSignedEvent
+  (Schema.Signature
+    _sigId
+    (Schema.EventId eId)
+    brKeyId
+    sig
+    digest _) = ST.SignedEvent
+                  (EvId.EventId eId)
+                  brKeyId
+                  (ST.Signature $ BSC.unpack sig)
+                  (read . BSC.unpack $ digest)
 
 -- do we need this?
 eventHashed :: ST.User -> EvId.EventId -> AppM context err HashedEvent
