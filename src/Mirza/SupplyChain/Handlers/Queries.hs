@@ -37,7 +37,7 @@ import           Data.Maybe                                   (catMaybes)
 -- to find all the related "Whats"
 listEvents :: SCSApp context err
            => ST.User
-           ->  LabelEPCUrn
+           -> LabelEPCUrn
            -> AppM context err [Ev.Event]
 listEvents _user = either throwParseError (runDb . listEventsQuery) . urn2LabelEPC . getLabelEPCUrn
 
@@ -82,9 +82,8 @@ eventsByUser (ST.UserId userId) = do
   return $ catMaybes $ decodeEvent <$> events
 
 
-
--- given an event Id, list all the users associated with that event
--- this can be used to make sure everything is signed
+-- | Given an eventId, list all the users associated with that event
+-- This can be used to make sure everything is signed
 eventUserList :: SCSApp context err
               => ST.User
               -> EvId.EventId
