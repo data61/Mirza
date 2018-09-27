@@ -166,7 +166,7 @@ migration () =
           (field "event_foreign_event_id" (maybeType uuid))
           (UserId (field "event_created_by" pkSerialType))
           (field "event_json" text notNull unique)
-          (field "event_state" eventStateType notNull)
+          -- (field "event_state" eventStateType notNull)
     )
     <*> createTable "whats"
     (
@@ -501,7 +501,8 @@ data EventT f = Event
   , event_foreign_event_id :: C f (Maybe UUID) -- Event ID from XML from foreign systems.
   , event_created_by       :: PrimaryKey UserT f
   , event_json             :: C f Text
-  , event_state            :: C f EventState}
+  -- , event_state            :: C f EventState
+  }
   deriving Generic
 
 deriving instance Show Event

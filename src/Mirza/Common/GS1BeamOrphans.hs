@@ -29,7 +29,7 @@ module Mirza.Common.GS1BeamOrphans
   , locationEPCType
   , Latitude(..), latitudeType
   , Longitude(..), longitudeType
-  , EventState (..), eventStateType
+  -- , EventState (..), eventStateType
   ) where
 
 import           Mirza.Common.Beam
@@ -92,37 +92,37 @@ eventType = textType
 
 -- ======= EventState =======
 
-data EventState
-  = AwaitingSignature
-  | Signed
-  | AwaitingBlockChain
-  | SentToBlockChain
-  deriving (Generic, Show, Eq, Read)
+-- data EventState
+--   = AwaitingSignature
+--   | Signed
+--   | AwaitingBlockChain
+--   | SentToBlockChain
+--   deriving (Generic, Show, Eq, Read)
 
-instance BSQL.HasSqlValueSyntax be String =>
-  BSQL.HasSqlValueSyntax be EventState where
-    sqlValueSyntax = BSQL.autoSqlValueSyntax
-instance (BMigrate.IsSql92ColumnSchemaSyntax be) =>
-  BMigrate.HasDefaultSqlDataTypeConstraints be EventState
+-- instance BSQL.HasSqlValueSyntax be String =>
+--   BSQL.HasSqlValueSyntax be EventState where
+--     sqlValueSyntax = BSQL.autoSqlValueSyntax
+-- instance (BMigrate.IsSql92ColumnSchemaSyntax be) =>
+--   BMigrate.HasDefaultSqlDataTypeConstraints be EventState
 
-instance (BSQL.HasSqlValueSyntax (BSQL.Sql92ExpressionValueSyntax be) Bool,
-          BSQL.IsSql92ExpressionSyntax be) =>
-          B.HasSqlEqualityCheck be EventState
-instance (BSQL.HasSqlValueSyntax (BSQL.Sql92ExpressionValueSyntax be) Bool,
-          BSQL.IsSql92ExpressionSyntax be) =>
-          B.HasSqlQuantifiedEqualityCheck be EventState
+-- instance (BSQL.HasSqlValueSyntax (BSQL.Sql92ExpressionValueSyntax be) Bool,
+--           BSQL.IsSql92ExpressionSyntax be) =>
+--           B.HasSqlEqualityCheck be EventState
+-- instance (BSQL.HasSqlValueSyntax (BSQL.Sql92ExpressionValueSyntax be) Bool,
+--           BSQL.IsSql92ExpressionSyntax be) =>
+--           B.HasSqlQuantifiedEqualityCheck be EventState
 
-instance BSQL.FromBackendRow BPostgres.Postgres EventState where
-  fromBackendRow = defaultFromBackendRow "EventState"
+-- instance BSQL.FromBackendRow BPostgres.Postgres EventState where
+--   fromBackendRow = defaultFromBackendRow "EventState"
 
-instance FromField EventState where
-  fromField = defaultFromField "EventState"
+-- instance FromField EventState where
+--   fromField = defaultFromField "EventState"
 
-instance ToField EventState where
-  toField = toField . show
+-- instance ToField EventState where
+--   toField = toField . show
 
-eventStateType :: BMigrate.DataType PgDataTypeSyntax EventState
-eventStateType = textType
+-- eventStateType :: BMigrate.DataType PgDataTypeSyntax EventState
+-- eventStateType = textType
 
 
 -- ======= EPC.LocationReference =======
