@@ -287,9 +287,9 @@ instance ToSchema HashedEvent
 
 
 data EventInfo = EventInfo {
-    eventInfoEvent         :: Ev.Event
-  , eventInfoUserSigs      :: [(UserId, SignedEvent)]
-  , eventInfoUnsignedUsers :: [UserId]
+  eventInfoEvent         :: Ev.Event,
+  eventInfoUserSigs      :: [(UserId, SignedEvent)],
+  eventInfoUnsignedUsers :: [UserId]
 } deriving (Show, Eq, Generic)
 $(deriveJSON defaultOptions ''EventInfo)
 instance ToSchema EventInfo
