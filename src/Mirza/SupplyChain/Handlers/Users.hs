@@ -16,6 +16,8 @@ import           Mirza.SupplyChain.Types                  hiding (NewUser (..),
                                                            User (userId))
 import qualified Mirza.SupplyChain.Types                  as ST
 
+import           Data.GS1.EPC                             (GS1CompanyPrefix (..))
+
 import           Database.Beam                            as B
 import           Database.Beam.Backend.SQL.BeamExtensions
 import           Database.PostgreSQL.Simple.Errors        (ConstraintViolation (..),
@@ -29,7 +31,6 @@ import           Control.Monad.Except                     (MonadError,
                                                            throwError)
 import           Control.Monad.IO.Class                   (liftIO)
 import           Data.Text.Encoding                       (encodeUtf8)
-
 
 addUser :: (SCSApp context err, HasScryptParams context)
         => ST.NewUser

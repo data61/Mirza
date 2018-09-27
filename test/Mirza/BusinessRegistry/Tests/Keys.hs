@@ -30,6 +30,8 @@ import           Data.Time.LocalTime                      (LocalTime, utc,
 import           GHC.Stack                                (HasCallStack)
 import           Test.Hspec
 
+import           Control.Concurrent                     (threadDelay)
+
 timeStampIO :: MonadIO m => m LocalTime
 timeStampIO = liftIO $ (utcToLocalTime utc) <$> getCurrentTime
 
@@ -121,12 +123,15 @@ testKeyQueries = do
 
     it "Expired but NOT revoked pub key" $ \brContext -> do
       nowish <- getCurrentTime
-      let hundredMinutes = 100 * 60
-          someTimeAgo = addUTCTime (-hundredMinutes) nowish
+      let smallDelayInSeconds = 1
+          nearExpiry = addUTCTime (fromInteger smallDelayInSeconds) nowish
       pubKey <- goodRsaPublicKey
-      myKeyState <- testAppM brContext $ do
+      keyId <- testAppM brContext $ do
         user <- insertDummies
-        keyId <- addPublicKey user pubKey (Just . ExpirationTime $ someTimeAgo)
+        keyId <- addPublicKey user pubKey (Just . ExpirationTime $ nearExpiry)
+        pure keyId
+      threadDelay $ fromIntegral $ secondsToMicroseconds smallDelayInSeconds
+      myKeyState <- testAppM brContext $ do
         keyInfo <- getPublicKeyInfo keyId
         pure (keyInfoState keyInfo)
       myKeyState `shouldBe` Expired

@@ -60,8 +60,19 @@ import           GHC.Generics                         (Generic)
 
 import           Text.Email.Validate                  (EmailAddress, validate)
 
-
 -- Type definitions
+import           Data.Swagger
+import           Servant                              (FromHttpApiData (..),
+                                                       ToHttpApiData (..))
+
+instance ToParamSchema EPC.GS1CompanyPrefix
+instance FromHttpApiData EPC.GS1CompanyPrefix where
+  -- TODO: Add proper parsing for EPC.GS1CompanyPrefix
+  parseUrlPiece = Right . EPC.GS1CompanyPrefix
+instance ToHttpApiData EPC.GS1CompanyPrefix where
+  toUrlPiece (EPC.GS1CompanyPrefix pfx) = pfx
+
+-- Beam Type definitions
 
 -- ======= Event Type =======
 
@@ -509,7 +520,7 @@ emailFromBackendRow emailTxt =
   let emailByte = encodeUtf8 emailTxt in
     case validate emailByte of
       Right userEmail -> userEmail
-      Left reason -> error reason -- shouldn't ever happen
+      Left reason     -> error reason -- shouldn't ever happen
 
 instance BSQL.FromBackendRow BPostgres.Postgres EmailAddress where
   fromBackendRow = emailFromBackendRow <$> BSQL.fromBackendRow
@@ -586,7 +597,7 @@ latitudeType :: BMigrate.DataType PgDataTypeSyntax Latitude
 latitudeType = BMigrate.DataType BSQL.doubleType
 
 
-instance BSQL.HasSqlValueSyntax be Double 
+instance BSQL.HasSqlValueSyntax be Double
       => BSQL.HasSqlValueSyntax be Longitude where
   sqlValueSyntax = BSQL.sqlValueSyntax . getLongitude
 instance BMigrate.IsSql92ColumnSchemaSyntax be
