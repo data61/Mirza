@@ -32,12 +32,11 @@ import           OpenSSL.PEM                              (readPublicKey,
                                                            writePublicKey)
 import           OpenSSL.RSA                              (RSAPubKey, rsaSize)
 
-import           Control.Monad                            (unless)
+import           Control.Monad                            (when, unless)
 import           Data.Maybe                               (isJust)
 import           Control.Monad.Error.Hoist                ((<!?>))
 import           Control.Lens                             ((#))
 import           Data.Foldable                            (for_)
-import           Control.Monad                            (when)
 
 import           GHC.Stack                                (HasCallStack, callStack)
 
