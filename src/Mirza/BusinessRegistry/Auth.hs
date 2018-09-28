@@ -49,7 +49,7 @@ authCheck context =
                       authCheckQuery (EmailAddress $ decodeUtf8 useremail) (Password pass)
         case eitherUser of
           Right (Just user) -> return (Authorized user)
-          _                 -> return Unauthorized
+          _                 -> return NoSuchUser -- We always return no such user so that we don't leak information about which users are registered and which are not.
   in BasicAuthCheck check
 
 
