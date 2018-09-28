@@ -33,7 +33,7 @@ import           OpenSSL.PEM                              (readPublicKey,
 import           OpenSSL.RSA                              (RSAPubKey, rsaSize)
 
 import           Control.Monad                            (unless)
-import           Data.Maybe                               (isJust)
+import           Data.Maybe                               (isJust, isNothing)
 import           Control.Monad.Error.Hoist                ((<!?>))
 import           Control.Lens                             ((#))
 import           Data.Foldable                            (for_)
@@ -206,6 +206,12 @@ protectKeyUpdate :: ( Member err     '[AsKeyError])
                  -> CT.UserId
                  -> DB context err ()
 protectKeyUpdate keyId userId = do
+  -- Although this check is implictly performed in keyStateQuery we explicitly perform it here so that the code reads
+  -- logically and progressively builds constraints in order and so that the correct error message is shown when the
+  -- keyId is not found, rather then failing because the user id check in doesUserOwnKeyQuery fails.
+  key <- getKeyById keyId
+  when (isNothing key) $ throwing _KeyNotFound keyId
+
   userOwnsKey <- doesUserOwnKeyQuery userId keyId
   unless userOwnsKey $ throwing_ _UnauthorisedKeyAccess
 
