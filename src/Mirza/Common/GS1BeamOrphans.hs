@@ -50,6 +50,12 @@ import           Database.Beam.Postgres.Syntax        (PgDataTypeSyntax)
 import           Database.PostgreSQL.Simple.ToField   (ToField, toField)
 import           GHC.Generics                         (Generic)
 
+import           Servant                              (ToHttpApiData(toUrlPiece)
+                                                      ,FromHttpApiData(parseUrlPiece))
+import           Data.Swagger                         (ToParamSchema(..),SwaggerType( SwaggerString ) )
+import           Data.Swagger.Lens                    (pattern, type_)
+import           Control.Lens.Operators               ((?~), (&), (.~))
+
 
 
 -- Type definitions
@@ -513,3 +519,15 @@ instance ToField EPC.LocationEPC where
 
 locationEPCType :: BMigrate.DataType PgDataTypeSyntax EPC.LocationEPC
 locationEPCType = textType
+
+instance ToHttpApiData EPC.LocationEPC where
+  toUrlPiece = toUrlPiece . EPC.renderURL
+
+instance FromHttpApiData EPC.LocationEPC where
+  parseUrlPiece = either (fail . show) pure . EPC.readURI
+
+instance ToParamSchema EPC.LocationEPC where
+  toParamSchema _ = mempty
+    & type_ .~ SwaggerString
+    & pattern ?~ "urn:epc:id:sgln:\\d+\\.\\d+(\\.\\d+)"
+    
