@@ -35,6 +35,7 @@ import           Database.Beam.Query                    (delete, runDelete,
 import qualified Network.HTTP.Types.Status              as NS
 
 import           Katip                                  (Severity (DebugS))
+import           System.IO.Temp                         (emptySystemTempFile)
 
 import           Test.Hspec.Expectations
 import           Test.Tasty
@@ -499,12 +500,14 @@ clientSpec = do
 -- Test Utility Functions
 -- *****************************************************************************
 
-go :: GlobalOptions
-go = GlobalOptions testDbConnStr 14 8 1 DebugS Dev
+go :: Maybe FilePath -> GlobalOptions
+go mfp = GlobalOptions testDbConnStr 14 8 1 DebugS mfp Dev
 
 runApp :: IO (ThreadId, BaseUrl, BasicAuthData)
 runApp = do
-  ctx <- initBRContext go
+  tempFile <- emptySystemTempFile "businessRegistryTests.log"
+  let go' = go (Just tempFile)
+  ctx <- initBRContext go'
   let BusinessRegistryDB usersTable businessesTable keysTable locationsTable
         = businessRegistryDB
 
@@ -521,7 +524,7 @@ runApp = do
   -- test cases to complete.
   globalAuthData <- bootstrapAuthData ctx
 
-  (tid,brul) <- startWaiApp =<< initApplication go (RunServerOptions 8000) ctx
+  (tid,brul) <- startWaiApp =<< initApplication go' (RunServerOptions 8000) ctx
   pure (tid,brul,globalAuthData)
 
 
