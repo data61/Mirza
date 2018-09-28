@@ -33,10 +33,11 @@ addLocation :: ( Member context '[HasEnvType, HasConnPool, HasLogging]
             -> AppM context err LocationId
 addLocation auser newLoc = do
   newLocId <- newUUID
+  newGeoLocId <- newUUID
   (fmap primaryKey)
     -- . (`catchError` errHandler)
     . runDb
-    . addLocationQuery auser (LocationId newLocId)
+    . addLocationQuery auser newLocId (GeoLocationId newGeoLocId)
     $ newLoc
   -- TODO: discover which constraints are needed and what we should catch here
   -- (awaiting tests)
@@ -53,10 +54,11 @@ addLocationQuery  :: ( Member context '[]
                      , Member err     '[AsBusinessRegistryError]
                      , HasCallStack)
                   => AuthUser
-                  -> LocationId
+                  -> PrimaryKeyType
+                  -> GeoLocationId
                   -> NewLocation
                   -> DB context err Location
-addLocationQuery (AuthUser (BT.UserId uId)) locId newLoc = do
+addLocationQuery (AuthUser (BT.UserId uId)) locId geoLocId newLoc = do
   mbizId <- pg $ runSelectReturningOne $ select $ do
     user <- all_ (_users businessRegistryDB)
     guard_ (user_id user ==. val_ uId)
@@ -65,24 +67,39 @@ addLocationQuery (AuthUser (BT.UserId uId)) locId newLoc = do
                -- Since the user has authenticated, this should never happen
     Nothing -> throwing _UnexpectedErrorBRE callStack
     Just bizId -> do
-      res <- pg $ 
-        runInsertReturningList (_locations businessRegistryDB) $
-        insertValues [newLocationToLocation locId bizId newLoc]
+      let (loc,geoLoc) = newLocationToLocation locId geoLocId bizId newLoc
+      res <- pg $ runInsertReturningList (_locations businessRegistryDB) $
+                  insertValues [loc]
       case res of
-        [r] -> pure r
+        [r] -> do
+
+            _ <- pg $ runInsertReturningList (_geoLocation businessRegistryDB) $
+                 insertValues [geoLoc]
+            pure r
         _   -> throwing _UnexpectedErrorBRE callStack
 
 
-newLocationToLocation :: LocationId -> BizId -> NewLocation -> Location
-newLocationToLocation (LocationId locId) bizId NewLocation {newLocGLN, newLocCoords, newLocAddress}
-  = LocationT
-    { location_id        = locId
-    , location_biz_id    = bizId
-    , location_gln       = newLocGLN
-    , location_latitude  = fst <$> newLocCoords
-    , location_longitude = snd <$> newLocCoords
-    , location_address   = newLocAddress
-    }
+newLocationToLocation :: PrimaryKeyType 
+                      -> GeoLocationId
+                      -> BizId 
+                      -> NewLocation 
+                      -> (Location, GeoLocation)
+newLocationToLocation 
+  locId (GeoLocationId geoLocId) bizId 
+  NewLocation{newLocGLN, newLocCoords, newLocAddress} =
+    ( LocationT
+        { location_id        = locId
+        , location_biz_id    = bizId
+        , location_gln       = newLocGLN
+        }
+      , GeoLocationT 
+        { geoLocation_id        = geoLocId
+        , geoLocation_gln       = LocationId newLocGLN
+        , geoLocation_latitude  = fst <$> newLocCoords
+        , geoLocation_longitude = snd <$> newLocCoords
+        , geoLocation_address   = newLocAddress
+        }
+    )
 
 removeLocation :: (Member context '[HasEnvType, HasConnPool, HasLogging]
                   , Member err    '[AsSqlError, AsBusinessRegistryError]) 
@@ -96,17 +113,17 @@ removeLocationQuery :: (Member context '[]
                     => AuthUser
                     -> LocationId
                     -> DB context err [Location]
-removeLocationQuery (AuthUser (BT.UserId auser)) (LocationId locId) = do
+removeLocationQuery (AuthUser (BT.UserId auser)) locId = do
   -- Ensure that the user is a member of the business which owns the location
   _ <- hoistErrorM (_LocationRemovalErrorBRE #) $
         pg $ runSelectReturningOne $ select $ do
           user <- all_ (_users businessRegistryDB)
           loc  <- all_ (_locations businessRegistryDB)
           guard_ (  user_id     user  ==. val_            auser
-                &&. location_id loc   ==. val_            locId
+                &&. primaryKey loc    ==. val_            locId
                 &&. user_biz_id user  ==. location_biz_id loc  )
           pure user
 
   pg $ runDeleteReturningList 
         (_locations businessRegistryDB) 
-        (\loc -> location_id loc ==. val_ locId)
+        (\loc -> primaryKey loc ==. val_ locId)
