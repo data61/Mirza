@@ -54,7 +54,7 @@ import           Database.Beam.Postgres.Syntax        (PgDataTypeSyntax)
 import           Database.PostgreSQL.Simple.ToField   (ToField, toField)
 import           GHC.Generics                         (Generic)
 
-import           Data.Swagger
+import           Data.Swagger                         (ToParamSchema(..))
 import           Servant                              (FromHttpApiData (..),
                                                        ToHttpApiData (..))
 
@@ -518,7 +518,7 @@ instance BSQL.FromBackendRow BPostgres.Postgres EPC.LocationEPC where
   fromBackendRow = either (fail . show) pure . EPC.readURI =<< BSQL.fromBackendRow
 
 instance FromField EPC.LocationEPC where
-  fromField fld mbs = do
+  fromField fld mbs =
     either (fail . show) pure . EPC.readURI =<< fromField fld mbs
 
 instance ToField EPC.LocationEPC where
