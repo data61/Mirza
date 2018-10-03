@@ -194,6 +194,19 @@ longitudeType :: BMigrate.DataType PgDataTypeSyntax Longitude
 longitudeType = BMigrate.DataType doubleType
 
 
+data LocationResponse = LocationResponse
+  { locationId    :: PrimaryKeyType
+  , locationGLN   :: EPC.LocationEPC
+  , locationBiz   :: GS1CompanyPrefix
+  , geoLocId      :: PrimaryKeyType
+  , geoLocCoord   :: Maybe (Latitude, Longitude)
+  , geoLocAddress :: Maybe Text
+  } deriving (Show, Generic)
+
+
+instance ToSchema LocationResponse
+instance ToJSON LocationResponse
+instance FromJSON LocationResponse
 
 data KeyState
   = InEffect -- Can be used
@@ -247,7 +260,7 @@ data BusinessRegistryError
   -- | When adding a user fails for an unknown reason.
   | UserCreationErrorBRE String CallStack
   | KeyErrorBRE KeyError
-  | LocationRemovalErrorBRE
+  | LocationNotKnownBRE
   -- | An error that isn't specifically excluded by the types, but that the
   -- developers don't think is possible to hit, or know of a situation which
   -- could cause this case to be excercised.

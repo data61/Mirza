@@ -2,10 +2,12 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE NamedFieldPuns        #-}
 {-# LANGUAGE DataKinds             #-}
+{-# LANGUAGE RecordWildCards       #-}
 
 
 module Mirza.BusinessRegistry.Handlers.Location
   ( addLocation
+  , getLocationByGLN
   ) where
 
 
@@ -13,6 +15,8 @@ import           Mirza.BusinessRegistry.Database.Schema   as DB
 import           Mirza.BusinessRegistry.Types             as BT
 import           Mirza.Common.Utils
 import           Mirza.Common.Types                       (Member)
+
+import           Data.GS1.EPC                             (LocationEPC)
 
 import           Database.Beam                            as B
 import           Database.Beam.Backend.SQL.BeamExtensions
@@ -94,3 +98,36 @@ newLocationToLocation
         , geoLocation_address   = newLocAddress
         }
     )
+
+
+getLocationByGLN :: ( Member context '[HasLogging, HasConnPool, HasEnvType]
+                    , Member err     '[AsBusinessRegistryError, AsSqlError]
+                    , HasCallStack) 
+                    => AuthUser
+                    -> LocationEPC
+                    -> AppM context err LocationResponse
+getLocationByGLN _user gln = do
+  res <- runDb $ getLocationByGLNQuery gln
+  case res of
+    Nothing -> throwing_ _LocationNotKnownBRE 
+    Just (LocationT{location_biz_id = BizId bizId,..} , GeoLocationT{..}) -> pure $ LocationResponse
+      { locationId    = location_id
+      , locationGLN   = location_gln
+      , locationBiz   = bizId
+      , geoLocId      = geoLocation_id
+      , geoLocCoord   = (,) <$> geoLocation_latitude <*> geoLocation_longitude
+      , geoLocAddress = geoLocation_address
+      }
+
+
+getLocationByGLNQuery :: ( Member context '[]
+                         , Member err     '[AsBusinessRegistryError])
+                         => LocationEPC 
+                         -> DB context err (Maybe (Location, GeoLocation))
+getLocationByGLNQuery gln = pg $ runSelectReturningOne $ select $ do
+  loc   <- all_ (_locations businessRegistryDB)
+  geoloc <- all_ (_geoLocations businessRegistryDB)
+  guard_ (primaryKey loc ==. val_ (LocationId gln))
+  guard_ (geoLocation_gln geoloc ==. primaryKey loc) 
+  -- TODO: Add ORDER BY when we have a date modified field
+  pure (loc,geoloc)
