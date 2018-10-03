@@ -14,16 +14,14 @@ module Mirza.BusinessRegistry.Handlers.Business
 import           Mirza.BusinessRegistry.Database.Schema
 import           Mirza.BusinessRegistry.Handlers.Common
 import           Mirza.BusinessRegistry.Types             as BT
+import           Mirza.BusinessRegistry.SqlUtils
 
 import           Data.GS1.EPC                             as EPC
 
 import           Database.Beam                            as B
 import           Database.Beam.Backend.SQL.BeamExtensions
-import           Database.PostgreSQL.Simple.Errors        (ConstraintViolation (UniqueViolation),
-                                                           constraintViolation)
 
-import           Control.Lens                             ((^?))
-import           Control.Monad.Except                     (catchError, throwError)
+import           Control.Lens                             ((#))
 
 import           GHC.Stack                                (HasCallStack, callStack)
 
@@ -52,18 +50,10 @@ addBusinessAuth _ = addBusiness
 
 addBusiness ::  (BRApp context err) => NewBusiness -> AppM context err GS1CompanyPrefix
 addBusiness = (fmap biz_gs1_company_prefix)
-  . (`catchError` errHandler)
+  . (handleError (handleSqlUniqueViloation "businesses_pkey" (const $ _GS1CompanyPrefixExistsBRE # ())))
   . runDb
   . addBusinessQuery
   . newBusinessToBusiness
-  where
-    errHandler :: (AsSqlError err, AsBusinessRegistryError err, MonadError err m, MonadIO m) => err -> m a
-    errHandler e = case e ^? _SqlError of
-      Nothing -> throwError e
-      Just sqlErr ->
-        case constraintViolation sqlErr of
-          Just (UniqueViolation "businesses_pkey") -> throwing_ _GS1CompanyPrefixExistsBRE
-          _ -> throwError e
 
 
 newBusinessToBusiness :: NewBusiness -> Business
