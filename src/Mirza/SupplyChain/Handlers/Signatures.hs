@@ -98,7 +98,7 @@ eventSign :: (HasBRClientEnv context, AsServantError err, SCSApp context err)
           => ST.User
           -> SignedEvent
           -> AppM context err PrimaryKeyType
-eventSign _user (SignedEvent eventId keyId (ST.Signature sigStr) digest') = do
+eventSign user (SignedEvent eventId keyId (ST.Signature sigStr) digest') = do
   rsaPublicKey <- runClientFunc $ getPublicKey keyId
   let (BT.PEM_RSAPubKey keyStr) = rsaPublicKey
   (pubKey :: RSAPubKey) <- liftIO
@@ -111,7 +111,7 @@ eventSign _user (SignedEvent eventId keyId (ST.Signature sigStr) digest') = do
     let eventBS = QU.eventTxtToBS event
     verifyStatus <- liftIO $ verifyBS digest sigBS pubKey eventBS
     if verifyStatus == VerifySuccess
-      then insertSignature eventId keyId (ST.Signature sigStr) digest'
+      then insertSignature (ST.userId user) eventId keyId (ST.Signature sigStr) digest'
       else throwing _SigVerificationFailure sigStr
 
 -- TODO: Should this return Text or a JSON value?
@@ -129,18 +129,19 @@ getEventJSON eventId = do
 makeDigest :: Digest -> IO (Maybe EVPDigest.Digest)
 makeDigest digest = withOpenSSL $ EVPDigest.getDigestByName . map toLower . show $ digest
 
-insertSignature :: (AsServiceError err) => EvId.EventId
+insertSignature :: (AsServiceError err) => ST.UserId
+                -> EvId.EventId
                 -> BRKeyId
                 -> ST.Signature
                 -> Digest
                 -> DB environmentUnused err PrimaryKeyType
 
-insertSignature eId kId (ST.Signature sig) digest = do
+insertSignature (ST.UserId uId) eId kId (ST.Signature sig) digest = do
   sigId <- newUUID
   timestamp <- generateTimestamp
   r <- pg $ runInsertReturningList (Schema._signatures Schema.supplyChainDb) $
         insertValues
-        [(Schema.Signature sigId) (Schema.EventId $ EvId.unEventId eId)
+        [(Schema.Signature sigId) (Schema.UserId uId) (Schema.EventId $ EvId.unEventId eId)
          (BRKeyId $ getBRKeyId kId) (BSC.pack sig)
           (BSC.pack $ show digest) (toDbTimestamp timestamp)]
   case r of
@@ -170,6 +171,7 @@ findSignedEvent eventId = do
 signatureToSignedEvent :: Schema.Signature -> ST.SignedEvent
 signatureToSignedEvent
   (Schema.Signature
+    _userId
     _sigId
     (Schema.EventId eId)
     brKeyId

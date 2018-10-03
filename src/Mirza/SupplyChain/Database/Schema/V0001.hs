@@ -20,7 +20,6 @@ import           Mirza.Common.GS1BeamOrphans
 import qualified Mirza.Common.GS1BeamOrphans      as MU
 import           Mirza.Common.Types               hiding (UserId)
 import           Mirza.Common.Types               (BRKeyId (..), PrimaryKeyType)
-import           Mirza.SupplyChain.Types          (Digest (..))
 
 import           Control.Lens
 
@@ -238,6 +237,7 @@ migration () =
     (
      Signature
           (field "signature_id" pkSerialType)
+          (UserId (field "signature_user_id" pkSerialType notNull))
           (EventId (field "signature_event_id" pkSerialType notNull))
           (field "signature_key_id" brKeyIdType notNull)
           (field "signature_signature" bytea notNull)
@@ -735,7 +735,7 @@ type SignatureId = PrimaryKey SignatureT Identity
 
 data SignatureT f = Signature
   { signature_id        :: C f PrimaryKeyType
-  -- , signature_user_id   :: PrimaryKey UserT f
+  , signature_user_id   :: PrimaryKey UserT f
   , signature_event_id  :: PrimaryKey EventT f
   , signature_key_id    :: C f BRKeyId
   , signature_signature :: C f ByteString
