@@ -10,7 +10,9 @@ module Mirza.SupplyChain.Handlers.Queries
 import           Mirza.SupplyChain.Handlers.Common
 import           Mirza.SupplyChain.Handlers.EventRegistration (findEvent,
                                                                findLabelId,
+                                                               findSchemaEvent,
                                                                getEventList)
+import           Mirza.SupplyChain.Handlers.Signatures
 import           Mirza.SupplyChain.Handlers.Users             (userTableToModel)
 
 import           Mirza.SupplyChain.Database.Schema            as Schema
@@ -46,24 +48,30 @@ listEventsQuery labelEpc =
   maybe (return []) (getEventList . Schema.LabelId) =<< findLabelId labelEpc
 
 
-eventInfo :: SCSApp context err
+eventInfo :: (SCSApp context err, AsServantError err)
           => ST.User
           -> EvId.EventId
           -> AppM context err EventInfo
 eventInfo user eventId = runDb $ eventInfoQuery user eventId
 
-eventInfoQuery :: SCSApp context err
+eventInfoQuery :: AsServiceError err
                => ST.User
                -> EvId.EventId
                -> DB context err EventInfo
-eventInfoQuery _user eventId@(EvId.EventId eId) = do
+eventInfoQuery user eventId@(EvId.EventId eId) = do
   usersWithEvent <- eventUserSignedList eventId
-  event <- findEvent (Schema.EventId eId)
-  -- findSignedEvent
-  let unsignedUserIds = map (ST.userId . fst) $ filter (not . snd) usersWithEvent
-  let signedUserIds = map (ST.userId . fst) $ filter snd usersWithEvent
-  -- return $ EventInfo event
-  error "Event Info Query not implemented yet"
+  schemaEvent <- findSchemaEvent (Schema.EventId eId)
+
+  let event = storageToModelEvent <$> schemaEvent
+      unsignedUserIds = map (ST.userId . fst) $ filter (not . snd) usersWithEvent
+      signedUserIds = (ST.userId . fst) <$> filter snd usersWithEvent
+  signedEvents <- mapM ((flip findSignedEventByUser) eventId) signedUserIds
+  let usersAndSignedEvents = zip signedUserIds signedEvents
+  return $ EventInfo event usersAndSignedEvents unsignedUserIds
+  -- return $ error "Event Info Query not implemented yet"
+
+
+-- pairUsersAndSignedEvents eventId userIds = sequence $ map ((flip findSignedEventByUser) eventId) userIds
 
 
 -- |List events that a particular user was/is involved with
