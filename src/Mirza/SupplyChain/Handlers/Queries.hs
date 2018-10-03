@@ -59,6 +59,9 @@ eventInfoQuery :: SCSApp context err
 eventInfoQuery _user eventId@(EvId.EventId eId) = do
   usersWithEvent <- eventUserSignedList eventId
   event <- findEvent (Schema.EventId eId)
+  -- findSignedEvent
+  let unsignedUserIds = map (ST.userId . fst) $ filter (not . snd) usersWithEvent
+  let signedUserIds = map (ST.userId . fst) $ filter snd usersWithEvent
   -- return $ EventInfo event
   error "Event Info Query not implemented yet"
 
