@@ -50,15 +50,19 @@ import           Database.Beam.Postgres.Syntax        (PgDataTypeSyntax)
 import           Database.PostgreSQL.Simple.ToField   (ToField, toField)
 import           GHC.Generics                         (Generic)
 
-import           Servant                              (ToHttpApiData(toUrlPiece)
-                                                      ,FromHttpApiData(parseUrlPiece))
-import           Data.Swagger                         (ToParamSchema(..),SwaggerType( SwaggerString ) )
+import           Servant                              (FromHttpApiData (..), ToHttpApiData (..), ToHttpApiData(toUrlPiece), FromHttpApiData(parseUrlPiece))
+import           Data.Swagger                         (ToParamSchema(..), SwaggerType(SwaggerString))
 import           Data.Swagger.Lens                    (pattern, type_)
 import           Control.Lens.Operators               ((?~), (&), (.~))
 
+instance ToParamSchema EPC.GS1CompanyPrefix
+instance FromHttpApiData EPC.GS1CompanyPrefix where
+  -- TODO: Add proper parsing for EPC.GS1CompanyPrefix
+  parseUrlPiece = Right . EPC.GS1CompanyPrefix
+instance ToHttpApiData EPC.GS1CompanyPrefix where
+  toUrlPiece (EPC.GS1CompanyPrefix pfx) = pfx
 
-
--- Type definitions
+-- Beam Type definitions
 
 -- ======= Event Type =======
 
@@ -511,7 +515,7 @@ instance BSQL.FromBackendRow BPostgres.Postgres EPC.LocationEPC where
   fromBackendRow = either (fail . show) pure . EPC.readURI =<< BSQL.fromBackendRow
 
 instance FromField EPC.LocationEPC where
-  fromField fld mbs = do
+  fromField fld mbs =
     either (fail . show) pure . EPC.readURI =<< fromField fld mbs
 
 instance ToField EPC.LocationEPC where

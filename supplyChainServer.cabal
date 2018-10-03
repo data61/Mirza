@@ -33,6 +33,7 @@ library
                     , Mirza.BusinessRegistry.Service
                     , Mirza.BusinessRegistry.Handlers.Users
                     , Mirza.BusinessRegistry.Types
+                    , Mirza.BusinessRegistry.SqlUtils
                     , Mirza.Common.Beam
                     , Mirza.Common.GS1BeamOrphans
                     , Mirza.Common.Types
@@ -148,6 +149,7 @@ test-suite supplyChainServer-test
                      , warp
                      , servant-client
                      , katip
+                     , temporary
   default-language:    Haskell2010
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N -Wall -Werror
 
@@ -176,6 +178,7 @@ test-suite businessRegistry-test
                      , hspec
                      , hspec-core
                      , http-client
+                     , http-types
                      , MissingH
                      , network
                      , postgresql-simple
@@ -191,6 +194,7 @@ test-suite businessRegistry-test
                      , servant-client
                      , katip
                      , uuid
+                     , temporary
   default-language:    Haskell2010
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N -Wall -Werror
 

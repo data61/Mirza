@@ -17,6 +17,8 @@ import           Mirza.SupplyChain.Types                  hiding (NewUser (..),
                                                            User (userId))
 import qualified Mirza.SupplyChain.Types                  as ST
 
+import           Data.GS1.EPC                             (GS1CompanyPrefix (..))
+
 import           Database.Beam                            as B
 import           Database.Beam.Backend.SQL.BeamExtensions
 import           Database.PostgreSQL.Simple.Errors        (ConstraintViolation (..),
@@ -30,20 +32,6 @@ import           Control.Monad.Except                     (MonadError,
                                                            throwError)
 import           Control.Monad.IO.Class                   (liftIO)
 import           Data.Text.Encoding                       (encodeUtf8)
-
-
-
-{-
-  -- Sample ST.NewUser JSON
-  {
-    "phoneNumber": "0412",
-    "emailAddress": "abc@gmail.com",
-    "firstName": "sajid",
-    "lastName": "anower",
-    "company": "4000001",
-    "password": "password"
-  }
--}
 
 addUser :: (SCSApp context err, HasScryptParams context)
         => ST.NewUser

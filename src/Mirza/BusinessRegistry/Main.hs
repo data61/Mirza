@@ -36,7 +36,8 @@ import qualified Crypto.Scrypt                           as Scrypt
 
 import           Control.Exception                       (finally)
 import           Katip                                   as K
-import           System.IO                               (stdout)
+import           System.IO                               (stdout, stderr, hPutStr, openFile, IOMode(AppendMode))
+import           Data.Maybe                              (fromMaybe)
 
 
 
@@ -74,6 +75,7 @@ data GlobalOptions = GlobalOptions
   , goScryptP      :: Integer
   , goScryptR      :: Integer
   , goLoggingLevel :: K.Severity
+  , goLogLocation  :: Maybe FilePath
   , goEnvType      :: CT.EnvType
   }
 
@@ -128,8 +130,10 @@ launchServer globals options = do
 
 
 initBRContext :: GlobalOptions -> IO BT.BRContext
-initBRContext opts@(GlobalOptions dbConnStr _ _ _ lev envT) = do
-  handleScribe <- mkHandleScribe ColorIfTerminal stdout lev V3
+initBRContext opts@(GlobalOptions dbConnStr _ _ _ lev mlogPath envT) = do
+  logHandle <- maybe (pure stdout) (flip openFile AppendMode) mlogPath
+  hPutStr stderr $ "(Logging will be to: " ++ fromMaybe "stdout" mlogPath ++ ") "
+  handleScribe <- mkHandleScribe ColorIfTerminal logHandle lev V3
   logEnv <- initLogEnv "businessRegistry" (Environment . pack . show $ envT)
             >>= registerScribe "stdout" handleScribe defaultScribeSettings
   params <- createScryptParams opts
@@ -387,6 +391,12 @@ globalOptions = GlobalOptions
       <> value InfoS
       <> showDefault
       <> help ("Logging level: " ++ show [minBound .. maxBound :: Severity])
+      )
+    <*> optional (strOption 
+        (  long "log-path"
+        <> short 'l'
+        <> help "Path to write log output to (defaults to stdout)"
+        )
       )
     <*> option auto
       ( long "env" <> short 'e'
