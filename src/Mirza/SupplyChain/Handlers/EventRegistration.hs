@@ -9,7 +9,7 @@ module Mirza.SupplyChain.Handlers.EventRegistration
   , insertTransfEvent
   , hasUserCreatedEvent
   , insertUserEvent
-  , findEvent
+  , findEvent, findSchemaEvent
   , findLabelId
   , getEventList
   , getUser, getUserById
@@ -575,14 +575,25 @@ getEventList (Schema.LabelId labelId) = do
 findEvent :: AsServiceError err
           => Schema.EventId
           -> DB context err (Maybe Ev.Event)
-findEvent (Schema.EventId eventId) = do
+findEvent eventId = do
+  mschemaEvent <- findSchemaEvent eventId
+  case mschemaEvent of
+    Just event -> return $ QU.storageToModelEvent event
+    Nothing    -> return Nothing
+  -- return $ error ""
+  -- return $ QU.storageToModelEvent <$> mschemaEvent
+
+findSchemaEvent :: AsServiceError err
+                => Schema.EventId
+                -> DB context err (Maybe Schema.Event)
+findSchemaEvent (Schema.EventId eventId) = do
   r <- pg $
         runSelectReturningList $ select $ do
         event <- all_ (Schema._events Schema.supplyChainDb)
         guard_ (Schema.event_id event ==. (val_ eventId))
         pure event
   case r of
-    [event] -> return $ QU.storageToModelEvent event
+    [event] -> return $ Just event
     -- TODO: Do the right thing here
     _       -> throwBackendError r
 

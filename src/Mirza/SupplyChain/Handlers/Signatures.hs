@@ -17,6 +17,7 @@ import           Mirza.Common.Utils
 import qualified Mirza.BusinessRegistry.Types                 as BT
 
 import           Mirza.SupplyChain.Database.Schema            as Schema
+import           Mirza.SupplyChain.ErrorUtils                 (throwBackendError)
 import           Mirza.SupplyChain.Handlers.Common
 import           Mirza.SupplyChain.Handlers.EventRegistration (hasUserCreatedEvent,
                                                                insertUserEvent)
@@ -26,6 +27,7 @@ import           Mirza.SupplyChain.Types                      hiding
                                                                User (userId),
                                                                UserId)
 import qualified Mirza.SupplyChain.Types                      as ST
+
 
 import qualified Data.GS1.EventId                             as EvId
 
@@ -153,7 +155,7 @@ insertSignature (ST.UserId uId) eId kId (ST.Signature sig) digest = do
 
 findSignatureByEvent :: (AsServiceError err)
                      => EvId.EventId
-                     -> DB environmentUnused err [Schema.Signature]
+                     -> DB context err [Schema.Signature]
 findSignatureByEvent eventId@(EvId.EventId eId) =
   pg $ runSelectReturningList $ select $ do
     sig <- all_ (Schema._signatures Schema.supplyChainDb)
@@ -162,15 +164,15 @@ findSignatureByEvent eventId@(EvId.EventId eId) =
 
 findSignedEventByEvent :: (AsServiceError err)
                        => EvId.EventId
-                       -> DB environmentUnused err [ST.SignedEvent]
+                       -> DB context err [ST.SignedEvent]
 findSignedEventByEvent eventId = do
   sigList <- findSignatureByEvent eventId
   return $ signatureToSignedEvent <$> sigList
 
-findSignatureByUser :: (AsServiceError err)
+findSignatureByUser :: AsServiceError err
                     => ST.UserId
                     -> EvId.EventId
-                    -> DB environmentUnused err Schema.Signature
+                    -> DB context err Schema.Signature
 findSignatureByUser (ST.UserId uId) eventId@(EvId.EventId eId) = do
   r <- pg $ runSelectReturningList $ select $ do
     sig <- all_ (Schema._signatures Schema.supplyChainDb)
@@ -179,12 +181,12 @@ findSignatureByUser (ST.UserId uId) eventId@(EvId.EventId eId) = do
     pure sig
   case r of
     [sig] -> return sig
-    _     -> throwing _InvalidEventId eventId -- TODO: wrong error to throw here
+    _     -> throwBackendError "Invalid User - Event pair" -- TODO: wrong error to throw here
 
-findSignedEventByUser :: (AsServiceError err)
+findSignedEventByUser :: AsServiceError err
                       => ST.UserId
                       -> EvId.EventId
-                      -> DB environmentUnused err ST.SignedEvent
+                      -> DB context err ST.SignedEvent
 findSignedEventByUser uId eventId = do
   sig <- findSignatureByUser uId eventId
   return $ signatureToSignedEvent sig
