@@ -51,7 +51,7 @@ defaultPool = Pool.createPool (connectPostgreSQL testDbConnStrSCS) close
 
 openConnection :: IO SCSContext
 openConnection = do
-  tempFile <- emptySystemTempFile "businessRegistryTests.log"
+  tempFile <- emptySystemTempFile "supplyChainServerTests.log"
   connpool <- defaultPool
   _ <- withResource connpool dropTables -- drop tables before so if already exist no problems... means tables get overwritten though
   withResource connpool (tryCreateSchema True)

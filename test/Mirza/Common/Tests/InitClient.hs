@@ -151,7 +151,6 @@ randomPassword = ("PlainTextPassword:" <>) <$> randomText
 go :: Maybe FilePath -> GlobalOptions
 go mfp = GlobalOptions testDbConnStrBR 14 8 1 DebugS mfp Dev
 
-
 runBRApp :: IO (ThreadId, BaseUrl, BasicAuthData)
 runBRApp = do
   tempFile <- emptySystemTempFile "businessRegistryTests.log"
@@ -171,9 +170,10 @@ runBRApp = do
   -- This construct somewhat destroys the integrity of these test since it is
   -- necessary to assume that these functions work correctly in order for the
   -- test cases to complete.
-  globalAuthData <- bootstrapAuthData ctx
+  brAuthUser <- bootstrapAuthData ctx
+
   (tid,brul) <- startWaiApp =<< BRMain.initApplication go' (RunServerOptions 8000) ctx
-  pure (tid,brul,globalAuthData)
+  pure (tid,brul,brAuthUser)
 
 -- *****************************************************************************
 -- Common Utility Functions
@@ -189,11 +189,11 @@ data TestData = TestData
 
 endApps :: TestData -> IO ()
 endApps (TestData brThreadId scsThreadId brUrl scsUrl _) = do
-  _ <- endWaiApp (scsThreadId, scsUrl)
+  endWaiApp (scsThreadId, scsUrl)
   endWaiApp (brThreadId, brUrl)
 
 runApps :: IO TestData
 runApps = do
-  (brThreadId, brUrl, brAuth) <- runBRApp
+  (brThreadId, brUrl, brAuthUser) <- runBRApp
   (scsThreadId, scsUrl) <- runSCSApp brUrl
-  return $ TestData brThreadId scsThreadId brUrl scsUrl brAuth
+  return $ TestData brThreadId scsThreadId brUrl scsUrl brAuthUser
