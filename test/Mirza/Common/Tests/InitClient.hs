@@ -170,10 +170,10 @@ runBRApp = do
   -- This construct somewhat destroys the integrity of these test since it is
   -- necessary to assume that these functions work correctly in order for the
   -- test cases to complete.
-  globalAuthData <- bootstrapAuthData ctx
+  brAuthUser <- bootstrapAuthData ctx
 
   (tid,brul) <- startWaiApp =<< BRMain.initApplication go' (RunServerOptions 8000) ctx
-  pure (tid,brul,globalAuthData)
+  pure (tid,brul,brAuthUser)
 
 -- *****************************************************************************
 -- Common Utility Functions
@@ -194,6 +194,6 @@ endApps (TestData brThreadId scsThreadId brUrl scsUrl _) = do
 
 runApps :: IO TestData
 runApps = do
-  (brThreadId, brUrl, brAuth) <- runBRApp
+  (brThreadId, brUrl, brAuthUser) <- runBRApp
   (scsThreadId, scsUrl) <- runSCSApp brUrl
-  return $ TestData brThreadId scsThreadId brUrl scsUrl brAuth
+  return $ TestData brThreadId scsThreadId brUrl scsUrl brAuthUser
