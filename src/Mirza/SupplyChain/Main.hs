@@ -36,20 +36,24 @@ import           Control.Lens
 import qualified Crypto.Scrypt                      as Scrypt
 
 import           Control.Exception                  (finally)
-import           Katip                              as K
-import           System.IO                          (stdout, stderr, hPutStrLn, openFile, IOMode(AppendMode))
 import           Data.Maybe                         (fromMaybe)
+import           Katip                              as K
+import           System.IO                          (IOMode (AppendMode),
+                                                     hPutStrLn, openFile,
+                                                     stderr, stdout)
 
 data ServerOptions = ServerOptions
   { env           :: EnvType
   , initDB        :: Bool
   , connectionStr :: ByteString
-  , hostName      :: String
-  , port          :: Int
+  , scsHostName   :: String
+  , scsPort       :: Int
   , sScryptN      :: Integer
   , sScryptP      :: Integer
   , sScryptR      :: Integer
   , loggingLevel  :: K.Severity
+  , brHostName    :: String
+  , brPort        :: Int
   , loggingPath   :: Maybe FilePath
   }
 
@@ -74,13 +78,12 @@ serverOptions = ServerOptions
           <> help "Database connection string in libpq format. See: https://www.postgresql.org/docs/9.5/static/libpq-connect.html#LIBPQ-CONNSTRING"
           <> value defaultDbConnectionStr)
       <*> strOption
-          ( long "host" <> showDefault
+          ( long "scshost" <> showDefault
           <> help "The host to run the server on"
           <> value localhost)
       <*> option auto
-          ( long "port" <> short 'p' <> showDefault <> value 8000
-          <> help "Port to run database on"
-          )
+          ( long "scsport" <> short 'p' <> showDefault <> value 8000
+          <> help "Port to run database on" )
       <*> option auto
           (long "scryptN" <> value 14 <> showDefault
           <> help "Scrypt N parameter (>= 14)")
@@ -93,7 +96,13 @@ serverOptions = ServerOptions
       <*> option auto
           (long "log-level" <> value InfoS <> showDefault
           <> help ("Logging level: " ++ show [minBound .. maxBound :: Severity]))
-      <*> optional (strOption 
+      <*> strOption
+          ( long "brhost"
+          <> help "The host to run the business registry on" )
+      <*> option auto
+          ( long "brport"
+          <> help "Port to run business registry on" )
+      <*> optional (strOption
           (  long "log-path"
           <> short 'l'
           <> help "Path to write log output to (defaults to stdout)"
@@ -110,12 +119,12 @@ main = runProgram =<< execParser opts
       <> header "SupplyChainServer - A server for capturing GS1 events and recording them on a blockchain")
 
 runProgram :: ServerOptions -> IO ()
-runProgram so@ServerOptions{initDB = False, port} = do
+runProgram so@ServerOptions{initDB = False, scsPort} = do
   ctx <- initSCSContext so
   app <- initApplication so ctx
   mids <- initMiddleware so
-  putStrLn $ "http://localhost:" ++ show port ++ "/swagger-ui/"
-  Warp.run (fromIntegral port) (mids app) `finally` closeScribes (ctx ^. ST.scsKatipLogEnv)
+  putStrLn $ "http://localhost:" ++ show scsPort ++ "/swagger-ui/"
+  Warp.run (fromIntegral scsPort) (mids app) `finally` closeScribes (ctx ^. ST.scsKatipLogEnv)
 runProgram so = migrate $ connectionStr so
 
 initMiddleware :: ServerOptions -> IO Middleware
@@ -123,7 +132,7 @@ initMiddleware _ = pure id
 
 
 initSCSContext :: ServerOptions -> IO ST.SCSContext
-initSCSContext (ServerOptions envT _ dbConnStr host prt n p r lev mlogPath) = do
+initSCSContext (ServerOptions envT _ dbConnStr host prt n p r lev brHost brPort mlogPath) = do
   logHandle <- maybe (pure stdout) (flip openFile AppendMode) mlogPath
   hPutStrLn stderr $ "Logging will be to: " ++ fromMaybe "stdout" mlogPath
   handleScribe <- mkHandleScribe ColorIfTerminal logHandle lev V3
@@ -138,10 +147,10 @@ initSCSContext (ServerOptions envT _ dbConnStr host prt n p r lev mlogPath) = do
                       1 -- Number of "sub-pools",
                       60 -- How long in seconds to keep a connection open for reuse
                       10 -- Max number of connections to have open at any one time
-                      -- TODO: Make this a config paramete
+                      -- TODO: Make this a config parameter
   manager <- newManager defaultManagerSettings
   let scheme = if envT == Prod then Https else Http
-      baseUrl = BaseUrl scheme host prt ""
+      baseUrl = BaseUrl scheme brHost brPort ""
   pure $ SCSContext
           envT
           connpool
@@ -156,18 +165,6 @@ initApplication _so ev =
   pure $ serveWithContext api
           (basicAuthServerContext ev)
           (server' ev)
-
-
-
--- easily start the app in ghci, no command line arguments required.
-startAppSimple :: ByteString -> IO ()
-startAppSimple dbConnStr = do
-  let so = (ServerOptions ST.Dev False dbConnStr localhost 8000 14 8 1 DebugS Nothing)
-  ctx <- initSCSContext so
-  initApplication so ctx >>= Warp.run 8000
-
-
--- Implementation
 
 server' :: SCSContext -> Server API
 server' ev =

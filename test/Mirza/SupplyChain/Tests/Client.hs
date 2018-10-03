@@ -3,40 +3,49 @@
 
 module Mirza.SupplyChain.Tests.Client where
 
-
-import           Control.Concurrent                (ThreadId)
-import           Control.Exception                 (bracket)
+import           Control.Exception                     (bracket)
 
 import           Servant.API.BasicAuth
-import           Servant.Client                    (BaseUrl)
 
-import           Data.Either                       (isLeft, isRight)
+import           Data.Either                           (fromRight, isLeft,
+                                                        isRight)
+import           Data.UUID                             (nil)
 
-import           Data.Text.Encoding                (encodeUtf8)
+import           Data.Text.Encoding                    (encodeUtf8)
 
 import           Test.Tasty
 import           Test.Tasty.Hspec
 import           Test.Tasty.HUnit
 
-import           Katip                             (Severity (DebugS))
-import           System.IO.Temp                    (emptySystemTempFile)
+import qualified Mirza.BusinessRegistry.Types          as BT
+import qualified Mirza.SupplyChain.QueryUtils          as QU
+import           Mirza.SupplyChain.Types               as ST
 
-
+import qualified Mirza.BusinessRegistry.Client.Servant as BRClient
 import           Mirza.SupplyChain.Client.Servant
-import           Mirza.SupplyChain.Main            (ServerOptions (..),
-                                                    initApplication,
-                                                    initSCSContext)
-import           Mirza.SupplyChain.Types           as ST
+
+import           Mirza.Common.Tests.InitClient         (TestData (..), endApps,
+                                                        runApps)
+import           Mirza.SupplyChain.Database.Schema     as Schema
+
+import           Mirza.BusinessRegistry.Client.Servant (addPublicKey,
+                                                        revokePublicKey)
+import           Mirza.BusinessRegistry.Tests.Utils    (goodRsaPrivateKey,
+                                                        goodRsaPublicKey)
 
 import           Mirza.Common.Tests.ServantUtils
 import           Mirza.Common.Tests.Utils
-import           Mirza.SupplyChain.Database.Schema as Schema
 import           Mirza.SupplyChain.Tests.Dummies
-import           Mirza.SupplyChain.Tests.Settings
 
-import           Database.Beam.Query               (delete, runDelete, val_)
+import           Data.GS1.EPC                          (GS1CompanyPrefix (..))
+import           Data.GS1.EventId                      as EvId
 
-import           Data.GS1.EPC                      (GS1CompanyPrefix (..))
+import           OpenSSL.EVP.Sign                      (signBS)
+
+import qualified Data.ByteString.Char8                 as BS
+
+import qualified Data.ByteString.Base64                as BS64
+import           Mirza.SupplyChain.Handlers.Signatures (makeDigest)
 
 -- === SCS Client tests
 
@@ -54,65 +63,15 @@ authABC = BasicAuthData
   (encodeUtf8 . getEmailAddress . newUserEmailAddress $ userABC)
   (encodeUtf8 . newUserPassword                       $ userABC)
 
-runApp :: IO (ThreadId, BaseUrl)
-runApp = do
-  tempFile <- emptySystemTempFile "supplyChainServerTests.log"
-  let so' = so (Just tempFile)
-  ctx <- initSCSContext so'
-  let SupplyChainDb
-        usersTable
-        businessesTable
-        contactsTable
-        labelsTable
-        whatLabelsTable
-        itemsTable
-        transformationsTable
-        locationsTable
-        eventsTable
-        whatsTable
-        bizTransactionsTable
-        whysTable
-        wheresTable
-        whensTable
-        labelEventsTable
-        userEventsTable
-        signaturesTable
-        hashesTable
-        blockchainTable
-          = supplyChainDb
-  flushDbResult <- runAppM @_ @ServiceError ctx $ runDb $ do
-      let deleteTable table = pg $ runDelete $ delete table (const (val_ True))
-      deleteTable $ usersTable
-      deleteTable $ businessesTable
-      deleteTable $ contactsTable
-      deleteTable $ labelsTable
-      deleteTable $ whatLabelsTable
-      deleteTable $ itemsTable
-      deleteTable $ transformationsTable
-      deleteTable $ locationsTable
-      deleteTable $ eventsTable
-      deleteTable $ whatsTable
-      deleteTable $ bizTransactionsTable
-      deleteTable $ whysTable
-      deleteTable $ wheresTable
-      deleteTable $ whensTable
-      deleteTable $ labelEventsTable
-      deleteTable $ userEventsTable
-      deleteTable $ signaturesTable
-      deleteTable $ hashesTable
-      deleteTable $ blockchainTable
-  flushDbResult `shouldSatisfy` isRight
-  startWaiApp =<< initApplication so' ctx
-
-so :: Maybe FilePath -> ServerOptions
-so mfp = ServerOptions Dev False testDbConnStr "127.0.0.1" 8000 14 8 1 DebugS mfp
 
 clientSpec :: IO TestTree
 clientSpec = do
 
   let userCreationTests = testCaseSteps "Adding new users" $ \step ->
-        bracket runApp endWaiApp $ \(_tid,baseurl) -> do
-          let http = runClient baseurl
+        -- bracket runSCSApp endWaiApp $ \(_tid,baseurl) -> do
+        bracket runApps endApps $ \testData -> do
+          let baseurl = scsBaseUrl testData
+              http = runClient baseurl
 
           let user1 = userABC
               user2 = userABC {newUserEmailAddress= EmailAddress "different@example.com"}
@@ -140,16 +99,18 @@ clientSpec = do
             `shouldSatisfyIO` isLeft
 
   let eventInsertionTests = testCaseSteps "User can add single events" $ \step ->
-        bracket runApp endWaiApp $ \(_tid,baseurl) -> do
-          let http = runClient baseurl
+        bracket runApps endApps $ \testData -> do
+
+          let scsUrl = scsBaseUrl testData
+              http = runClient scsUrl
 
           -- Add a user so that we can authenticate for these tests.
           http (addUser userABC) `shouldSatisfyIO` isRight
 
           step "User Can insert Object events"
             -- TODO: Events need their EventId returned to user
-          resp <- http (insertObjectEvent authABC dummyObject)
-          resp `shouldSatisfy` isRight
+          http (insertObjectEvent authABC dummyObject)
+            `shouldSatisfyIO` isRight
 
           step "User Can insert Aggregation events"
           http (insertAggEvent authABC dummyAggregation)
@@ -163,46 +124,62 @@ clientSpec = do
           http (insertTransfEvent authABC dummyTransformation)
             `shouldSatisfyIO` isRight
 
-  -- TODO: See github issue #235.
-  -- let eventSignTests = testCaseSteps "eventSign" $ \step ->
-  --       bracket runApp endWaiApp $ \(_tid,baseurl) -> do
-  --       let http = runClient baseurl
+  let eventSignTests = testCaseSteps "eventSign" $ \step ->
+        bracket runApps endApps $ \testData -> do
 
-  --       -- nowish <- getCurrentTime
-  --       -- let hundredMinutes = 100 * 60
-  --       --     someTimeLater = addUTCTime (hundredMinutes) nowish
+          let scsUrl = scsBaseUrl testData
+              brUrl = brBaseUrl testData
+              httpSCS = runClient scsUrl
+              httpBR = runClient brUrl
+              brAuthUser = brAuthData testData
 
-  --       step "Adding a new user"
-  --       uid <- http (addUser userABC)
-  --       uid `shouldSatisfy` isRight
+          step "Adding a new user to SCS"
+          uid <- httpSCS (addUser userABC)
+          uid `shouldSatisfy` isRight
 
-  --       step "Tying the user with a good key and an expiration time"
-  --       goodKey <- goodRsaPublicKey
-  --       keyIdResponse <- http (addPublicKey authABC goodKey Nothing)
-  --       -- liftIO $ print keyIdResponse
-  --       keyIdResponse `shouldSatisfy` isRight
-  --       let keyId = fromRight (BRKeyId nil) keyIdResponse
+          step "Adding the same user to BR"
+          let prefix = GS1CompanyPrefix "1000001"
+          let userBR = BT.NewUser
+                          (EmailAddress "abc@example.com")
+                          "re4lly$ecret14!"
+                          prefix
+                          "Biz Johnny"
+                          "Smith Biz"
+                          "0400 111 222"
 
-  --       step "Revoking the key"
-  --       http (revokePublicKey authABC keyId) `shouldSatisfyIO` isRight
+          let business = BT.NewBusiness prefix "Business Name"
+          httpBR (BRClient.addBusiness brAuthUser business)
+            `shouldSatisfyIO` isRight
 
-  --       step "Inserting the object event"
-  --       objInsertionResponse <- http (insertObjectEvent authABC dummyObject)
-  --       objInsertionResponse `shouldSatisfy` isRight
-  --       let (_insertedEvent, (Schema.EventId eventId)) = fromRight (error "Should be right") objInsertionResponse
+          httpBR (BRClient.addUser brAuthUser userBR) `shouldSatisfyIO` isRight
 
-  --         -- Adding the event
-  --       let mySign = ST.Signature "c2FqaWRhbm93ZXIyMw=="
-  --           myDigest = SHA256
-  --           mySignedEvent = SignedEvent (EvId.EventId eventId) keyId mySign myDigest
-  --       -- if this test can proceed after the following statement
-  --       http (eventSign authABC mySignedEvent) `shouldSatisfyIO` isRight
-  --       -- it means the basic functionality of ``eventSign`` function is perhaps done
+          step "Tying the user with a good key and an expiration time"
+          goodPubKey <- goodRsaPublicKey
+          goodPrivKey <- goodRsaPrivateKey
+          keyIdResponse <- httpBR (addPublicKey authABC goodPubKey Nothing)
+          keyIdResponse `shouldSatisfy` isRight
+          let keyId = fromRight (BRKeyId nil) keyIdResponse
+
+          step "Revoking the key"
+          httpBR (revokePublicKey authABC keyId) `shouldSatisfyIO` isRight
+
+          step "Inserting the object event"
+          objInsertionResponse <- httpSCS (insertObjectEvent authABC dummyObject)
+          objInsertionResponse `shouldSatisfy` isRight
+          let (insertedEvent, (Schema.EventId eventId)) = fromRight (error "Should be right") objInsertionResponse
+
+          let myDigest = SHA256
+          (Just sha256) <- makeDigest myDigest
+          mySignBS <- signBS sha256 goodPrivKey $ encodeUtf8 . QU.encodeEvent $ insertedEvent
+          let mySign = ST.Signature . BS.unpack . BS64.encode $ mySignBS
+          let mySignedEvent = SignedEvent (EvId.EventId eventId) keyId mySign myDigest
+
+          httpSCS (eventSign authABC mySignedEvent) `shouldSatisfyIO` isRight
 
   pure $ testGroup "Supply Chain Service Client Tests"
         [ userCreationTests
         , eventInsertionTests
-        -- , eventSignTests
+        , eventSignTests
         ]
 
 {-

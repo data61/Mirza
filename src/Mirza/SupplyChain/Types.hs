@@ -53,14 +53,14 @@ data SCSContext = SCSContext
   , _scsKatipLogEnv      :: K.LogEnv
   , _scsKatipLogContexts :: K.LogContexts
   , _scsKatipNamespace   :: K.Namespace
-  , _scsClientEnv        :: ClientEnv
+  , _scsBRClientEnv      :: ClientEnv
   }
 $(makeLenses ''SCSContext)
 
 instance HasEnvType SCSContext where envType = scsEnvType
 instance HasConnPool SCSContext where connPool = scsDbConnPool
 instance HasScryptParams SCSContext where scryptParams = scsScryptPs
-instance HasClientEnv SCSContext where clientEnv = scsClientEnv
+instance HasBRClientEnv SCSContext where clientEnv = scsBRClientEnv
 instance HasKatipLogEnv SCSContext where katipLogEnv = scsKatipLogEnv
 instance HasKatipContext SCSContext where
   katipContexts = scsKatipLogContexts
@@ -301,23 +301,25 @@ data ServerError = ServerError (Maybe BS.ByteString) Text
 
 -- | A sum type of errors that may occur in the Service layer
 data ServiceError
-  = InvalidSignature      String
-  | BlockchainSendFailed  ServerError
-  | InvalidEventId        EventId
-  | InvalidKeyId          BRKeyId
-  | InvalidUserId         UserId
-  | InvalidRSAKeyInDB     Text -- when the key already existing in the DB is wrong
-  | InvalidDigest         Digest
-  | InsertionFail         ServerError Text
-  | EventPermissionDenied UserId EvId.EventId
-  | EmailExists           ServerError EmailAddress
-  | EmailNotFound         EmailAddress
-  | AuthFailed            EmailAddress
-  | UserNotFound          EmailAddress
-  | ParseError            EPC.ParseFailure
-  | BackendErr            Text -- fallback
-  | DatabaseError         SqlError
-  | ServantErr            ServantError
+  = InvalidSignature       String
+  | Base64DecodeFailure    String
+  | SigVerificationFailure String
+  | BlockchainSendFailed   ServerError
+  | InvalidEventId         EventId
+  | InvalidKeyId           BRKeyId
+  | InvalidUserId          UserId
+  | InvalidRSAKeyInDB      Text -- when the key already existing in the DB is wrong
+  | InvalidDigest          Digest
+  | InsertionFail          ServerError Text
+  | EventPermissionDenied  UserId EvId.EventId
+  | EmailExists            ServerError EmailAddress
+  | EmailNotFound          EmailAddress
+  | AuthFailed             EmailAddress
+  | UserNotFound           EmailAddress
+  | ParseError             EPC.ParseFailure
+  | BackendErr             Text -- fallback
+  | DatabaseError          SqlError
+  | ServantErr             ServantError
   deriving (Show, Eq, Generic)
 $(makeClassyPrisms ''ServiceError)
 
