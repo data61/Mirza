@@ -286,10 +286,31 @@ $(deriveJSON defaultOptions ''HashedEvent)
 instance ToSchema HashedEvent
 
 
+-- *******************************
+-- The following commented out code is there because we need to add a ToSchema
+-- instance for EventBlockchainStatus
+-- *******************************
+
+-- newtype BlockchainId = BlockchainId Text
+--   deriving (Show, Generic, Eq)
+-- $(deriveJSON defaultOptions ''BlockchainId)
+-- instance ToSchema BlockchainId
+
+-- data EventBlockchainStatus
+--   = Sent BlockchainId
+--   | ReadyAndWaiting
+--   | SendFailed -- sending was attempted but failed
+--   | NotSent -- sending not attempted yet because of lack of signatures, etc
+--   deriving (Show, Generic, Eq)
+-- $(deriveJSON defaultOptions ''EventBlockchainStatus)
+-- instance ToSchema EventBlockchainStatus
+
 data EventInfo = EventInfo {
   eventInfoEvent         :: Ev.Event,
   eventInfoUserSigs      :: [(UserId, SignedEvent)],
-  eventInfoUnsignedUsers :: [UserId]
+  eventInfoUnsignedUsers :: [UserId],
+  eventToSign            :: Text --this is the json stored in the db atm
+  -- eventInfoBlockChainStatus :: EventBlockchainStatus
 } deriving (Show, Eq, Generic)
 $(deriveJSON defaultOptions ''EventInfo)
 instance ToSchema EventInfo
