@@ -17,9 +17,11 @@ import           Test.Tasty
 import           Test.Tasty.Hspec
 import           Test.Tasty.HUnit
 
+import           Katip                                 (Severity (DebugS))
 import qualified Mirza.BusinessRegistry.Types          as BT
 import qualified Mirza.SupplyChain.QueryUtils          as QU
 import           Mirza.SupplyChain.Types               as ST
+import           System.IO.Temp                        (emptySystemTempFile)
 
 
 import qualified Mirza.BusinessRegistry.Client.Servant as BRClient

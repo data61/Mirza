@@ -36,8 +36,11 @@ import           Control.Lens
 import qualified Crypto.Scrypt                      as Scrypt
 
 import           Control.Exception                  (finally)
+import           Data.Maybe                         (fromMaybe)
 import           Katip                              as K
-import           System.IO                          (stdout)
+import           System.IO                          (IOMode (AppendMode),
+                                                     hPutStrLn, openFile,
+                                                     stderr, stdout)
 
 data ServerOptions = ServerOptions
   { env           :: EnvType
@@ -51,6 +54,7 @@ data ServerOptions = ServerOptions
   , loggingLevel  :: K.Severity
   , brHostName    :: String
   , brPort        :: Int
+  , loggingPath   :: Maybe FilePath
   }
 
 localhost :: String
@@ -98,6 +102,12 @@ serverOptions = ServerOptions
       <*> option auto
           ( long "brport"
           <> help "Port to run business registry on" )
+      <*> optional (strOption
+          (  long "log-path"
+          <> short 'l'
+          <> help "Path to write log output to (defaults to stdout)"
+          )
+        )
 
 
 main :: IO ()
@@ -122,8 +132,10 @@ initMiddleware _ = pure id
 
 
 initSCSContext :: ServerOptions -> IO ST.SCSContext
-initSCSContext (ServerOptions envT _ dbConnStr _host _prt n p r lev brHost brPort) = do
-  handleScribe <- mkHandleScribe ColorIfTerminal stdout lev V3
+initSCSContext (ServerOptions envT _ dbConnStr _host _prt n p r lev brHost brPort mlogPath) = do
+  logHandle <- maybe (pure stdout) (flip openFile AppendMode) mlogPath
+  hPutStrLn stderr $ "Logging will be to: " ++ fromMaybe "stdout" mlogPath
+  handleScribe <- mkHandleScribe ColorIfTerminal logHandle lev V3
   logEnv <- initLogEnv "supplyChainServer" (Environment . pack . show $ envT)
             >>= registerScribe "stdout" handleScribe defaultScribeSettings
   params <- case Scrypt.scryptParams (max n 14) (max p 8) (max r 1) of
@@ -153,18 +165,6 @@ initApplication _so ev =
   pure $ serveWithContext api
           (basicAuthServerContext ev)
           (server' ev)
-
-
-
--- easily start the app in ghci, no command line arguments required.
--- startAppSimple :: ByteString -> IO ()
--- startAppSimple dbConnStr = do
---   let so = (ServerOptions ST.Dev False dbConnStr localhost 8000 14 8 1 DebugS)
---   ctx <- initSCSContext so
---   initApplication so ctx >>= Warp.run 8000
-
-
--- Implementation
 
 server' :: SCSContext -> Server API
 server' ev =
