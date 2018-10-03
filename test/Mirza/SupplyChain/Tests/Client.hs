@@ -182,7 +182,7 @@ clientSpec = do
           step "Signing the key"
           let myDigest = SHA256
           (Just sha256) <- makeDigest myDigest
-          mySignBS <- signBS sha256 goodPrivKey $ encodeUtf8 . QU.encodeEvent $ insertedEvent
+          mySignBS <- signBS sha256 goodPrivKey $ encodeUtf8 . QU.encodeEventToJSON $ insertedEvent
           let mySign = ST.Signature . BS.unpack . BS64.encode $ mySignBS
           let mySignedEvent = SignedEvent (EvId.EventId eventId) keyId mySign myDigest
 
@@ -239,7 +239,7 @@ clientSpec = do
           step "Signing the key"
           let myDigest = SHA256
           (Just sha256) <- makeDigest myDigest
-          mySignBS <- signBS sha256 goodPrivKeyGiver $ encodeUtf8 . QU.encodeEvent $ insertedEvent
+          mySignBS <- signBS sha256 goodPrivKeyGiver $ encodeUtf8 . QU.encodeEventToJSON $ insertedEvent
           let mySign = ST.Signature . BS.unpack . BS64.encode $ mySignBS
           let mySignedEvent = SignedEvent eventId keyIdGiver mySign myDigest
           httpSCS (eventSign authABC mySignedEvent) `shouldSatisfyIO` isRight
