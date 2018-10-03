@@ -37,11 +37,11 @@ import           Mirza.BusinessRegistry.Database.Schema.V0001 as V0001' hiding (
 
 -- Database
 data BusinessRegistryDB f = BusinessRegistryDB
-  { _users       :: f (TableEntity V0001.UserT)
-  , _businesses  :: f (TableEntity V0001.BusinessT)
-  , _keys        :: f (TableEntity V0001.KeyT)
-  , _locations   :: f (TableEntity       LocationT)
-  , _geoLocation :: f (TableEntity       GeoLocationT)
+  { _users        :: f (TableEntity V0001.UserT)
+  , _businesses   :: f (TableEntity V0001.BusinessT)
+  , _keys         :: f (TableEntity V0001.KeyT)
+  , _locations    :: f (TableEntity       LocationT)
+  , _geoLocations :: f (TableEntity       GeoLocationT)
   }
   deriving Generic
 instance Database anybackend BusinessRegistryDB

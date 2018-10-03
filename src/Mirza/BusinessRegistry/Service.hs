@@ -71,7 +71,6 @@ privateServer =
   :<|> addPublicKey
   :<|> revokePublicKey
   :<|> addLocation
-  :<|> removeLocation
 
 
 instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub) where

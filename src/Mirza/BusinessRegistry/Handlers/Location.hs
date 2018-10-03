@@ -67,7 +67,7 @@ addLocationQuery (AuthUser (BT.UserId uId)) locId geoLocId newLoc = do
       case res of
         [r] -> do
 
-            _ <- pg $ runInsertReturningList (_geoLocation businessRegistryDB) $
+            _ <- pg $ runInsertReturningList (_geoLocations businessRegistryDB) $
                  insertValues [geoLoc]
             pure r
         _   -> throwing _UnexpectedErrorBRE callStack
