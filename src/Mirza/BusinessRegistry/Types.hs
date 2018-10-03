@@ -16,8 +16,6 @@ import           Mirza.Common.Time                      (CreationTime,
 import           Mirza.Common.Types                     as CT
 import           Mirza.Common.Utils
 
-import qualified Mirza.BusinessRegistry.Database.Schema as Schema
-
 import           Data.GS1.EPC                           as EPC
 
 import           Data.Pool                              as Pool
@@ -273,7 +271,7 @@ data KeyError
   -- this error it might be a good time to re-evaulate whether it is better to
   -- fix the storage datatype so its not possible to generate this error in the
   -- first place.
-  | InvalidRevocation (Maybe LocalTime) (PrimaryKey Schema.UserT (Nullable Identity)) CallStack
+  | InvalidRevocation (Maybe LocalTime) (Maybe PrimaryKeyType) CallStack
   | AddedExpiredKey
   deriving (Show)
 
