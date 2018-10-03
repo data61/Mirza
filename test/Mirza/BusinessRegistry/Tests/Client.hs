@@ -20,8 +20,6 @@ import           Data.Either.Utils                     (fromRight)
 import           Data.List                             (isSuffixOf)
 import           Data.Maybe                            (fromJust, isJust,
                                                         isNothing)
-import           Data.Text                             (Text)
-import           Data.Text.Encoding                    (encodeUtf8)
 import           Data.Time.Clock                       (addUTCTime, diffUTCTime,
                                                         getCurrentTime)
 import           Data.UUID                             (nil)
@@ -30,9 +28,6 @@ import           System.Directory                      (listDirectory)
 import           System.FilePath                       ((</>))
 
 import qualified Network.HTTP.Types.Status             as NS
-
-import           Katip                                 (Severity (DebugS))
-import           System.IO.Temp                        (emptySystemTempFile)
 
 import           Test.Hspec.Expectations
 import           Test.Tasty
@@ -484,94 +479,17 @@ clientSpec = do
         ]
 
 
--- *****************************************************************************
--- Test Utility Functions
--- *****************************************************************************
-
--- go :: Maybe FilePath -> GlobalOptions
--- go mfp = GlobalOptions testDbConnStr 14 8 1 DebugS mfp Dev
-
--- runApp :: IO (ThreadId, BaseUrl, BasicAuthData)
--- runApp = do
---   tempFile <- emptySystemTempFile "businessRegistryTests.log"
---   let go' = go (Just tempFile)
---   ctx <- initBRContext go'
---   let BusinessRegistryDB usersTable businessesTable keysTable locationsTable
---         = businessRegistryDB
-
---   flushDbResult <- runAppM @_ @BusinessRegistryError ctx $ runDb $ do
---       let deleteTable table = pg $ runDelete $ delete table (const (val_ True))
---       deleteTable keysTable
---       deleteTable usersTable
---       deleteTable businessesTable
---       deleteTable locationsTable
---   flushDbResult `shouldSatisfy` isRight
-
---   -- This construct somewhat destroys the integrity of these test since it is
---   -- necessary to assume that these functions work correctly in order for the
---   -- test cases to complete.
---   globalAuthData <- bootstrapAuthData ctx
-
---   (tid,brul) <- startWaiApp =<< initApplication go' (RunServerOptions 8000) ctx
---   pure (tid,brul,globalAuthData)
-
-
-
--- -- *****************************************************************************
--- -- Test Utility Functions
--- -- *****************************************************************************
-
--- newBusinessToBusinessResponse :: NewBusiness -> BusinessResponse
--- newBusinessToBusinessResponse =
---   BusinessResponse <$> newBusinessGS1CompanyPrefix <*> newBusinessName
-
-
--- newUserToBasicAuthData :: NewUser -> BasicAuthData
--- newUserToBasicAuthData =
---   BasicAuthData
---   <$> encodeUtf8 . getEmailAddress . newUserEmailAddress
---   <*> encodeUtf8 . newUserPassword
-
-
 -- Test helper function that enables a predicate to be run on the result of a
 -- test call.
 checkField :: (a -> b) -> (b -> Bool) -> Either c a -> Bool
 checkField accessor predicate = either (const False) (predicate . accessor)
 
--- checkFailureStatus :: NS.Status -> Either ServantError a -> Bool
--- checkFailureStatus = checkFailureField responseStatusCode
+checkFailureStatus :: NS.Status -> Either ServantError a -> Bool
+checkFailureStatus = checkFailureField responseStatusCode
 
--- checkFailureMessage :: ByteString -> Either ServantError a -> Bool
--- checkFailureMessage = checkFailureField responseBody
+checkFailureMessage :: ByteString -> Either ServantError a -> Bool
+checkFailureMessage = checkFailureField responseBody
 
--- checkFailureField :: (Eq a) => (Response -> a) -> a -> Either ServantError b -> Bool
--- checkFailureField accessor x (Left (FailureResponse failure)) = x == (accessor failure)
--- checkFailureField _        _ _                                = False
-
--- bootstrapAuthData :: (HasEnvType w, HasConnPool w, HasKatipContext w,
---                       HasKatipLogEnv w, HasScryptParams w)
---                      => w -> IO BasicAuthData
--- bootstrapAuthData ctx = do
---   let email = "initialUser@example.com"
---   password <- randomPassword
---   let prefix = GS1CompanyPrefix "1000000"
---   let business = NewBusiness prefix "Business Name"
---   insertBusinessResult  <- runAppM @_ @BusinessRegistryError ctx $ BRHB.addBusiness business
---   insertBusinessResult `shouldSatisfy` isRight
---   let user = NewUser  (EmailAddress email)
---                       password
---                       prefix
---                       "Test User First Name"
---                       "Test User Last Name"
---                       "Test User Phone Number"
---   insertUserResult <- runAppM @_ @BusinessRegistryError ctx $ runDb (BRHU.addUserQuery user)
---   insertUserResult `shouldSatisfy` isRight
-
---   return $ newUserToBasicAuthData user
-
-
--- -- We specifically prefix the password with "PlainTextPassword:" so that it
--- -- makes it more obvious if this password shows up anywhere in plain text by
--- -- mistake.
--- randomPassword :: IO Text
--- randomPassword = ("PlainTextPassword:" <>) <$> randomText
+checkFailureField :: (Eq a) => (Response -> a) -> a -> Either ServantError b -> Bool
+checkFailureField accessor x (Left (FailureResponse failure)) = x == (accessor failure)
+checkFailureField _        _ _                                = False

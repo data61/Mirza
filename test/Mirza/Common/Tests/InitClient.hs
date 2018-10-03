@@ -53,10 +53,10 @@ mkSoSCS :: BaseUrl -> Maybe FilePath -> ServerOptions
 mkSoSCS (BaseUrl _ brHost brPrt _) =
   ServerOptions Dev False testDbConnStrSCS "127.0.0.1" 8000 14 8 1 DebugS brHost brPrt
 
-runApp :: IO (ThreadId, BaseUrl)
-runApp = do
+runSCSApp :: BaseUrl -> IO (ThreadId, BaseUrl)
+runSCSApp brUrl = do
   tempFile <- emptySystemTempFile "supplyChainServerTests.log"
-  let so' = so (Just tempFile)
+  let so' = mkSoSCS brUrl (Just tempFile)
   ctx <- initSCSContext so'
   let SupplyChainDb
         usersTable
@@ -148,15 +148,15 @@ bootstrapAuthData ctx = do
 randomPassword :: IO Text
 randomPassword = ("PlainTextPassword:" <>) <$> randomText
 
-go :: GlobalOptions
-go = GlobalOptions testDbConnStrBR 14 8 1 DebugS Dev
+go :: Maybe FilePath -> GlobalOptions
+go mfp = GlobalOptions testDbConnStrBR 14 8 1 DebugS mfp Dev
 
-getBRContext :: IO BRContext
-getBRContext = initBRContext go
 
 runBRApp :: IO (ThreadId, BaseUrl, BasicAuthData)
 runBRApp = do
-  ctx <- initBRContext go
+  tempFile <- emptySystemTempFile "businessRegistryTests.log"
+  let go' = go (Just tempFile)
+  ctx <- initBRContext go'
   let BusinessRegistryDB usersTable businessesTable keysTable locationsTable
         = businessRegistryDB
 
@@ -172,8 +172,7 @@ runBRApp = do
   -- necessary to assume that these functions work correctly in order for the
   -- test cases to complete.
   globalAuthData <- bootstrapAuthData ctx
-
-  (tid,brul) <- startWaiApp =<< BRMain.initApplication go (RunServerOptions 8000) ctx
+  (tid,brul) <- startWaiApp =<< BRMain.initApplication go' (RunServerOptions 8000) ctx
   pure (tid,brul,globalAuthData)
 
 -- *****************************************************************************
