@@ -189,7 +189,7 @@ data TestData = TestData
 
 endApps :: TestData -> IO ()
 endApps (TestData brThreadId scsThreadId brUrl scsUrl _) = do
-  _ <- endWaiApp (scsThreadId, scsUrl)
+  endWaiApp (scsThreadId, scsUrl)
   endWaiApp (brThreadId, brUrl)
 
 runApps :: IO TestData
