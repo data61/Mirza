@@ -24,6 +24,7 @@ import           Database.Beam.Backend.SQL.BeamExtensions
 import           Data.Text                                (pack, unpack)
 import           Data.Time.Clock                          (UTCTime,
                                                            getCurrentTime)
+import Data.Time.LocalTime
 
 import           OpenSSL.EVP.PKey                         (SomePublicKey,
                                                            toPublicKey)
@@ -32,9 +33,13 @@ import           OpenSSL.PEM                              (readPublicKey,
 import           OpenSSL.RSA                              (RSAPubKey, rsaSize)
 
 import           Control.Monad                            (unless)
-import           Data.Maybe                               (isJust)
+import           Data.Maybe                               (isJust, isNothing)
 import           Control.Monad.Error.Hoist                ((<!?>))
 import           Control.Lens                             ((#))
+import           Data.Foldable                            (for_)
+import           Control.Monad                            (when)
+
+import           GHC.Stack                                (HasCallStack, callStack)
 
 minPubKeySize :: Bit
 minPubKeySize = Bit 2048
@@ -61,26 +66,41 @@ getPublicKeyInfo :: ( Member context '[HasEnvType, HasConnPool, HasLogging]
                  -> AppM context err BT.KeyInfoResponse
 getPublicKeyInfo kid = do
   currTime <- liftIO getCurrentTime
-  mkey <- runDb $ getPublicKeyInfoQuery kid
-  maybe (throwing _KeyNotFound kid)
-        (pure . keyToKeyInfo currTime)
-        mkey
+  key <- runDb $ getPublicKeyInfoQuery kid <!?> (_KeyNotFound # kid)
+  keyToKeyInfo currTime key
 
-keyToKeyInfo :: UTCTime
+
+keyToKeyInfo :: (MonadError err m, AsKeyError err)
+             => UTCTime
              -> Schema.Key
-             -> KeyInfoResponse
-keyToKeyInfo currTime (Schema.KeyT keyId (Schema.UserId keyUserId) pemStr creation revocation expiration ) =
-  (KeyInfoResponse (CT.BRKeyId keyId) (CT.UserId keyUserId)
+             -> m KeyInfoResponse
+keyToKeyInfo currTime (Schema.KeyT keyId (Schema.UserId keyUserId) pemStr creation revocationTime revocationUser expiration) = do
+  revocation <- composeRevocation revocationTime revocationUser
+  pure $ KeyInfoResponse (CT.BRKeyId keyId) (CT.UserId keyUserId)
     (getKeyState
-      (fromDbTimestamp <$> revocation)
+      (fromDbTimestamp <$> revocationTime)
       (fromDbTimestamp <$> expiration)
     )
     (fromDbTimestamp creation)
-    (fromDbTimestamp <$> revocation)
+    revocation
     (fromDbTimestamp <$> expiration)
     (PEM_RSAPubKey pemStr)
-  )
   where
+    -- | This function checks that the Maybe constructor for both the time and
+    -- the user matches (i.e. both Just, or both Nothing) and throws an error if
+    -- this is not the case. Logically they should only ever be the same, since
+    -- both the user and time should be recorded when the key is revoked, but
+    -- since we store in the database as two separate fields (because of
+    -- complexity storing natively as a (Maybe (time, user)), see database
+    -- comment for more info) we need to verify when we combine them here.
+    composeRevocation :: (HasCallStack, MonadError e m, AsKeyError e, ModelTimestamp a)
+                      => Maybe LocalTime
+                      -> PrimaryKey UserT (Nullable Identity)
+                      -> m (Maybe (a, CT.UserId))
+    composeRevocation time@Nothing  user@(Schema.UserId (Just _)) = throwing _InvalidRevocation (time, user, callStack)
+    composeRevocation time@(Just _) user@(Schema.UserId Nothing)  = throwing _InvalidRevocation (time, user, callStack)
+    composeRevocation time          (Schema.UserId user)     = pure $ ((,) <$> (fromDbTimestamp <$> time) <*> (CT.UserId  <$> user))
+
     -- TODO: After migrating to JOSE, there should always be an expiration time.
     getKeyState :: Maybe RevocationTime
                 -> Maybe ExpirationTime
@@ -144,13 +164,15 @@ addPublicKeyQuery :: ( Member err     '[AsKeyError])
                   -> RSAPubKey
                   -> DB context err CT.BRKeyId
 addPublicKeyQuery (AuthUser (CT.UserId uid)) expTime rsaPubKey = do
+  now <- liftIO getCurrentTime
+  for_ expTime $ \time -> when ((getExpirationTime time) <= now) (throwing_ _AddedExpiredKey)
   keyStr <- liftIO $ pack <$> writePublicKey rsaPubKey
   keyId <- newUUID
   timestamp <- generateTimestamp
   ks <- pg $ runInsertReturningList (_keys businessRegistryDB) $
         insertValues
         [ KeyT keyId (Schema.UserId uid) keyStr
-            (toDbTimestamp timestamp) Nothing (toDbTimestamp <$> expTime)
+            (toDbTimestamp timestamp) Nothing (Schema.UserId Nothing) (toDbTimestamp <$> expTime)
         ]
   case ks of
     [rowId] -> return (CT.BRKeyId $ key_id rowId)
@@ -171,7 +193,7 @@ keyStateQuery :: AsKeyError err
               -> DB context err KeyState
 keyStateQuery kid = do
   currTime <- liftIO getCurrentTime
-  keyInfoState . keyToKeyInfo currTime <$> getPublicKeyInfoQuery kid <!?> (_KeyNotFound # kid)
+  fmap keyInfoState . keyToKeyInfo currTime =<< getPublicKeyInfoQuery kid <!?> (_KeyNotFound # kid)
 
 
 -- | Checks that the key is useable and throws a key error if the key is not
@@ -184,6 +206,12 @@ protectKeyUpdate :: ( Member err     '[AsKeyError])
                  -> CT.UserId
                  -> DB context err ()
 protectKeyUpdate keyId userId = do
+  -- Although this check is implictly performed in keyStateQuery we explicitly perform it here so that the code reads
+  -- logically and progressively builds constraints in order and so that the correct error message is shown when the
+  -- keyId is not found, rather then failing because the user id check in doesUserOwnKeyQuery fails.
+  key <- getKeyById keyId
+  when (isNothing key) $ throwing _KeyNotFound keyId
+
   userOwnsKey <- doesUserOwnKeyQuery userId keyId
   unless userOwnsKey $ throwing_ _UnauthorisedKeyAccess
 
@@ -202,7 +230,8 @@ revokePublicKeyQuery userId k@(CT.BRKeyId keyId) = do
   timestamp <- generateTimestamp
   _r <- pg $ runUpdate $ update
                 (_keys businessRegistryDB)
-                (\key -> [revocation_time key <-. val_ (Just $ toDbTimestamp timestamp)])
+                (\key -> [ revocation_time key  <-. val_ (Just $ toDbTimestamp timestamp)
+                         , revoking_user_id key <-. val_ (Schema.UserId $ Just $ getUserId userId)])
                 (\key -> key_id key ==. (val_ keyId))
   return $ RevocationTime timestamp
 

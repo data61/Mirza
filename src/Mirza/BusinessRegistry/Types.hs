@@ -10,39 +10,43 @@ module Mirza.BusinessRegistry.Types (
   , module CT
   ) where
 
-import           Mirza.Common.Time          (CreationTime, ExpirationTime,
-                                             RevocationTime)
-import           Mirza.Common.Types         as CT
+import           Mirza.Common.Time                      (CreationTime,
+                                                         ExpirationTime,
+                                                         RevocationTime)
+import           Mirza.Common.Types                     as CT
 import           Mirza.Common.Utils
 
-import           Data.GS1.EPC               as EPC
+import qualified Mirza.BusinessRegistry.Database.Schema as Schema
 
-import           Data.Pool                  as Pool
+import           Data.GS1.EPC                           as EPC
+
+import           Data.Pool                              as Pool
 
 import           Database.Beam
 import           Database.Beam.Backend.SQL
 import           Database.Beam.Postgres.Syntax (PgDataTypeSyntax)
-import           Database.PostgreSQL.Simple (Connection, SqlError)
+import           Database.PostgreSQL.Simple             (Connection, SqlError)
 import           Database.PostgreSQL.Simple.FromField (FromField, fromField)
 import           Database.PostgreSQL.Simple.ToField   (ToField, toField)
 import qualified Database.Beam.Migrate      as BMigrate
 import qualified Database.Beam.Postgres     as BPostgres
 
-import           Crypto.Scrypt              (ScryptParams)
+import           Crypto.Scrypt                          (ScryptParams)
 
 import           Control.Lens.TH
 
-import           Katip                      as K
+import           Katip                                  as K
 
 import           Data.Aeson
 import           Data.Aeson.TH
 import           Data.Swagger
-import           Data.Text                  (Text)
+import           Data.Text                              (Text)
+import           Data.Time                              (LocalTime)
 
-import           GHC.Generics               (Generic)
-import           GHC.Stack                  (CallStack)
+import           GHC.Generics                           (Generic)
+import           GHC.Stack                              (CallStack)
 
-import           Servant                    (FromHttpApiData (..))
+import           Servant                                (FromHttpApiData (..))
 
 
 -- *****************************************************************************
@@ -221,7 +225,7 @@ data KeyInfoResponse = KeyInfoResponse
   , keyInfoUserId         :: UserId  -- TODO: There should be a forien key for Business in here....not sure that user is relevant...
   , keyInfoState          :: KeyState
   , keyInfoCreationTime   :: CreationTime
-  , keyInfoRevocationTime :: Maybe RevocationTime
+  , keyInfoRevocation     :: Maybe (RevocationTime, UserId)
   , keyInfoExpirationTime :: Maybe ExpirationTime
   , keyInfoPEMString      :: PEM_RSAPubKey
   }
@@ -236,10 +240,14 @@ instance ToSchema KeyInfoResponse
 
 data BusinessRegistryError
   = DBErrorBRE SqlError
+  | UnmatchedUniqueViolationBRE SqlError
   -- | The user tried to add a business with the a GS1CompanyPrefix that already exsits.
   | GS1CompanyPrefixExistsBRE
   | BusinessDoesNotExistBRE
-  | UserCreationErrorBRE String
+  -- | When adding a user fails with an underlying error arising from the database.
+  | UserCreationSQLErrorBRE SqlError
+  -- | When adding a user fails for an unknown reason.
+  | UserCreationErrorBRE String CallStack
   | KeyErrorBRE KeyError
   | LocationRemovalErrorBRE
   -- | An error that isn't specifically excluded by the types, but that the
@@ -256,7 +264,18 @@ data KeyError
   | UnauthorisedKeyAccess
   | KeyAlreadyRevoked
   | KeyAlreadyExpired
-  deriving (Show, Eq)
+  -- | If it is detected that the key has a revocation time and no revoking
+  -- user or the key has a revoking user but now revoking time. Hopefully in
+  -- practice it is not possible to produce this error since it probably
+  -- indicates a bug in our code. It is only possible to generate this error
+  -- because we don't store the revoking data in the database as a
+  -- Maybe (Time, User) because this is technically complex. If we encounter
+  -- this error it might be a good time to re-evaulate whether it is better to
+  -- fix the storage datatype so its not possible to generate this error in the
+  -- first place.
+  | InvalidRevocation (Maybe LocalTime) (PrimaryKey Schema.UserT (Nullable Identity)) CallStack
+  | AddedExpiredKey
+  deriving (Show)
 
 newtype Bit  = Bit  {getBit :: Int} deriving (Show, Eq, Read, Ord)
 newtype Expected = Expected {getExpected :: Bit} deriving (Show, Eq, Read, Ord)

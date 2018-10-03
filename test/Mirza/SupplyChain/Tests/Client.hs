@@ -11,38 +11,32 @@ import           Servant.API.BasicAuth
 import           Servant.Client                    (BaseUrl)
 
 import           Data.Either                       (isLeft, isRight)
---import           Data.UUID                         (nil)
 
 import           Data.Text.Encoding                (encodeUtf8)
 
-import           Test.Tasty.Hspec
 import           Test.Tasty
+import           Test.Tasty.Hspec
 import           Test.Tasty.HUnit
 
 import           Katip                             (Severity (DebugS))
+import           System.IO.Temp                    (emptySystemTempFile)
 
+
+import           Mirza.SupplyChain.Client.Servant
 import           Mirza.SupplyChain.Main            (ServerOptions (..),
                                                     initApplication,
                                                     initSCSContext)
 import           Mirza.SupplyChain.Types           as ST
-import           Mirza.SupplyChain.Client.Servant
---import           Mirza.BusinessRegistry.Client.Servant (revokePublicKey,
---                                                        addPublicKey)
-import           Mirza.SupplyChain.Tests.Dummies
-import           Mirza.SupplyChain.Tests.Settings
+
 import           Mirza.Common.Tests.ServantUtils
 import           Mirza.Common.Tests.Utils
 import           Mirza.SupplyChain.Database.Schema as Schema
+import           Mirza.SupplyChain.Tests.Dummies
+import           Mirza.SupplyChain.Tests.Settings
 
 import           Database.Beam.Query               (delete, runDelete, val_)
 
--- import           Mirza.Common.Time                (ExpirationTime (..))
--- import           Data.Time.Clock                  (addUTCTime, getCurrentTime)
-
-import           Data.GS1.EPC                     (GS1CompanyPrefix (..))
---import           Data.GS1.EventId                 as EvId
-
---import           Mirza.BusinessRegistry.Tests.Utils
+import           Data.GS1.EPC                      (GS1CompanyPrefix (..))
 
 -- === SCS Client tests
 
@@ -62,7 +56,9 @@ authABC = BasicAuthData
 
 runApp :: IO (ThreadId, BaseUrl)
 runApp = do
-  ctx <- initSCSContext so
+  tempFile <- emptySystemTempFile "supplyChainServerTests.log"
+  let so' = so (Just tempFile)
+  ctx <- initSCSContext so'
   let SupplyChainDb
         usersTable
         businessesTable
@@ -106,10 +102,10 @@ runApp = do
       deleteTable $ hashesTable
       deleteTable $ blockchainTable
   flushDbResult `shouldSatisfy` isRight
-  startWaiApp =<< initApplication so ctx
+  startWaiApp =<< initApplication so' ctx
 
-so :: ServerOptions
-so = ServerOptions Dev False testDbConnStr "127.0.0.1" 8000 14 8 1 DebugS
+so :: Maybe FilePath -> ServerOptions
+so mfp = ServerOptions Dev False testDbConnStr "127.0.0.1" 8000 14 8 1 DebugS mfp
 
 clientSpec :: IO TestTree
 clientSpec = do

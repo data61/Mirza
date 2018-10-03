@@ -32,9 +32,10 @@ import           Data.Proxy                        (Proxy (..))
 
 import qualified Data.GS1.Event                    as Ev
 import           Data.GS1.EventId
+import           Data.GS1.EPC                      as EPC
 
 import           Data.UUID.Types
-
+import           Data.Text                         (Text)
 
 
 -- * Public API
@@ -45,7 +46,7 @@ addUser      :: NewUser -> ClientM UserId
 contactsInfo        :: BasicAuthData -> ClientM [T.User]
 addContact          :: BasicAuthData -> UserId -> ClientM Bool
 removeContact       :: BasicAuthData -> UserId -> ClientM Bool
-userSearch          :: BasicAuthData -> String -> ClientM [T.User]
+userSearch          :: BasicAuthData -> Maybe GS1CompanyPrefix -> Maybe Text -> ClientM [T.User]
 
 addUserToEvent      :: BasicAuthData -> UserId -> EventId -> ClientM ()
 eventSign           :: BasicAuthData -> SignedEvent -> ClientM UUID
@@ -61,7 +62,6 @@ insertObjectEvent   :: BasicAuthData -> ObjectEvent -> ClientM (Ev.Event, Schema
 insertAggEvent      :: BasicAuthData -> AggregationEvent -> ClientM (Ev.Event, Schema.EventId)
 insertTransactEvent :: BasicAuthData -> TransactionEvent -> ClientM (Ev.Event, Schema.EventId)
 insertTransfEvent   :: BasicAuthData -> TransformationEvent -> ClientM (Ev.Event, Schema.EventId)
-
 
 
 _api     :: Client ClientM ServerAPI
