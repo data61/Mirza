@@ -4,7 +4,7 @@
 module Mirza.Common.Tests.InitClient where
 
 import           Mirza.SupplyChain.Database.Schema        as Schema
-import           Mirza.SupplyChain.Main                   (ServerOptions (..),
+import           Mirza.SupplyChain.Main                   (ServerOptionsSCS (..),
                                                            initSCSContext)
 import qualified Mirza.SupplyChain.Main                   as SCSMain
 import           Mirza.SupplyChain.Types                  as ST
@@ -36,8 +36,8 @@ import           Database.Beam.Query                      (delete, runDelete,
 import           Mirza.BusinessRegistry.Database.Schema
 import qualified Mirza.BusinessRegistry.Handlers.Business as BRHB (addBusiness)
 import qualified Mirza.BusinessRegistry.Handlers.Users    as BRHU (addUserQuery)
-import           Mirza.BusinessRegistry.Main              (GlobalOptions (..),
-                                                           RunServerOptions (..),
+import           Mirza.BusinessRegistry.Main              (RunServerOptions (..),
+                                                           ServerOptionsBR (..),
                                                            initBRContext)
 import qualified Mirza.BusinessRegistry.Main              as BRMain
 import           Mirza.BusinessRegistry.Types             as BT
@@ -49,9 +49,9 @@ import           Mirza.BusinessRegistry.Types             as BT
 testDbConnStrSCS :: ByteString
 testDbConnStrSCS = "dbname=testsupplychainserver"
 
-mkSoSCS :: BaseUrl -> Maybe FilePath -> ServerOptions
+mkSoSCS :: BaseUrl -> Maybe FilePath -> ServerOptionsSCS
 mkSoSCS (BaseUrl _ brHost brPrt _) =
-  ServerOptions Dev False testDbConnStrSCS "127.0.0.1" 8000 14 8 1 DebugS brHost brPrt
+  ServerOptionsSCS Dev False testDbConnStrSCS "127.0.0.1" 8000 14 8 1 DebugS brHost brPrt
 
 runSCSApp :: BaseUrl -> IO (ThreadId, BaseUrl)
 runSCSApp brUrl = do
@@ -148,8 +148,8 @@ bootstrapAuthData ctx = do
 randomPassword :: IO Text
 randomPassword = ("PlainTextPassword:" <>) <$> randomText
 
-go :: Maybe FilePath -> GlobalOptions
-go mfp = GlobalOptions testDbConnStrBR 14 8 1 DebugS mfp Dev
+go :: Maybe FilePath -> ServerOptionsBR
+go mfp = ServerOptionsBR testDbConnStrBR 14 8 1 DebugS mfp Dev
 
 runBRApp :: IO (ThreadId, BaseUrl, BasicAuthData)
 runBRApp = do
