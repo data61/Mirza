@@ -285,8 +285,6 @@ clientSpec = do
           -- step "Checking that we got the correct event back"
           -- let (Right retrievedEvent) = eventInfoResult
           -- retrievedEvent `shouldBe` insertedEvent
-          -- TODO: [BLOCKER] EventState should be defined in GS1Combinators
-          --                 and added to the Ev.Event type as well
 
           -- TODO: Check that eventInfo says that the eventState is `AwaitingSignature`
           -- let eventState =
