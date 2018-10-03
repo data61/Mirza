@@ -71,6 +71,7 @@ privateServer =
   :<|> addPublicKey
   :<|> revokePublicKey
   :<|> addLocation
+  :<|> getLocationByGLN
 
 
 instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub) where
@@ -110,7 +111,7 @@ brErrorToHttpError (KeyErrorBRE kError) = keyErrorToHttpError kError
 brErrorToHttpError x@(DBErrorBRE _sqlError)                  = liftIO (print x) >> notImplemented
 brErrorToHttpError x@(UnexpectedErrorBRE _reason)            = liftIO (print x) >> notImplemented
 brErrorToHttpError x@(UnmatchedUniqueViolationBRE _sqlError) = liftIO (print x) >> notImplemented
-brErrorToHttpError x@(LocationRemovalErrorBRE)               = liftIO (print x) >> notImplemented
+brErrorToHttpError x@(LocationNotKnownBRE)                   = liftIO (print x) >> notImplemented
 brErrorToHttpError (GS1CompanyPrefixExistsBRE) =
   throwHttpError err400 "GS1 company prefix already exists."
 brErrorToHttpError (BusinessDoesNotExistBRE) =
