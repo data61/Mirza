@@ -5,7 +5,9 @@ module Mirza.SupplyChain.Handlers.Signatures
   (
     addUserToEvent
   , eventSign, getEventJSON, makeDigest, insertSignature, eventHashed
-  , findSignedEvent
+  , findSignedEventByEvent, findSignatureByEvent
+  , findSignedEventByUser, findSignatureByUser
+  , signatureToSignedEvent
   ) where
 
 import           Mirza.Common.Time
@@ -151,22 +153,42 @@ insertSignature (ST.UserId uId) eId kId (ST.Signature sig) digest = do
 
 findSignatureByEvent :: (AsServiceError err)
                      => EvId.EventId
-                     -> DB environmentUnused err Schema.Signature
-findSignatureByEvent eventId@(EvId.EventId eId) = do
-  r <- pg $ runSelectReturningList $ select $ do
+                     -> DB environmentUnused err [Schema.Signature]
+findSignatureByEvent eventId@(EvId.EventId eId) =
+  pg $ runSelectReturningList $ select $ do
     sig <- all_ (Schema._signatures Schema.supplyChainDb)
     guard_ ((Schema.signature_event_id sig) ==. (val_ (Schema.EventId eId)))
     pure sig
+
+findSignedEventByEvent :: (AsServiceError err)
+                       => EvId.EventId
+                       -> DB environmentUnused err [ST.SignedEvent]
+findSignedEventByEvent eventId = do
+  sigList <- findSignatureByEvent eventId
+  return $ signatureToSignedEvent <$> sigList
+
+findSignatureByUser :: (AsServiceError err)
+                    => ST.UserId
+                    -> EvId.EventId
+                    -> DB environmentUnused err Schema.Signature
+findSignatureByUser (ST.UserId uId) eventId@(EvId.EventId eId) = do
+  r <- pg $ runSelectReturningList $ select $ do
+    sig <- all_ (Schema._signatures Schema.supplyChainDb)
+    guard_ ((Schema.signature_event_id sig) ==. (val_ (Schema.EventId eId)) &&.
+            (Schema.signature_user_id sig) ==. (val_ (Schema.UserId uId)))
+    pure sig
   case r of
     [sig] -> return sig
-    _     -> throwing _InvalidEventId eventId
+    _     -> throwing _InvalidEventId eventId -- TODO: wrong error to throw here
 
-findSignedEvent :: (AsServiceError err)
-                => EvId.EventId
-                -> DB environmentUnused err ST.SignedEvent
-findSignedEvent eventId = do
-  sig <- findSignatureByEvent eventId
+findSignedEventByUser :: (AsServiceError err)
+                      => ST.UserId
+                      -> EvId.EventId
+                      -> DB environmentUnused err ST.SignedEvent
+findSignedEventByUser uId eventId = do
+  sig <- findSignatureByUser uId eventId
   return $ signatureToSignedEvent sig
+
 
 signatureToSignedEvent :: Schema.Signature -> ST.SignedEvent
 signatureToSignedEvent
