@@ -13,18 +13,7 @@ import           Mirza.Common.Tests.ServantUtils
 import           Servant.API.BasicAuth
 import           Servant.Client
 
-import           Control.Monad                         (forM_)
 import           Data.ByteString.Lazy                  (ByteString)
-import           Data.Either                           (isLeft, isRight)
-import           Data.Either.Utils                     (fromRight)
-import           Data.List                             (isSuffixOf)
-import           Data.Maybe                            (fromJust, isJust,
-                                                        isNothing)
-import           Data.Text                             (Text)
-import           Data.Text.Encoding                    (encodeUtf8)
-import           Data.Time.Clock                       (addUTCTime, diffUTCTime,
-                                                        getCurrentTime)
-import           Data.UUID                             (nil)
 
 import           System.Directory                      (listDirectory)
 import           System.FilePath                       ((</>))
@@ -40,9 +29,6 @@ import           Data.Time.Clock                       (addUTCTime, diffUTCTime,
 import           Data.UUID                             (nil)
 
 import qualified Network.HTTP.Types.Status             as NS
-
-import           Katip                                 (Severity (DebugS))
-import           System.IO.Temp                        (emptySystemTempFile)
 
 import           Test.Hspec.Expectations
 import           Test.Tasty
