@@ -82,7 +82,7 @@ eventsByUser (ST.UserId userId) = do
     guard_ (Schema.user_events_event_id userEvent `references_` event &&.
             Schema.user_events_user_id userEvent ==. val_ (Schema.UserId userId))
     pure (Schema.event_json event)
-  return $ catMaybes $ decodeEvent <$> events
+  return $ catMaybes $ decodeEventFromJSON <$> events
 
 
 -- | Given an eventId, list all the users associated with that event

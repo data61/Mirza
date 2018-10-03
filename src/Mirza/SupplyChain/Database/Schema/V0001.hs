@@ -167,6 +167,7 @@ migration () =
           (field "event_foreign_event_id" (maybeType uuid))
           (UserId (field "event_created_by" pkSerialType))
           (field "event_json" text notNull unique)
+          (field "event_to_sign" text notNull unique)
           -- (field "event_state" eventStateType notNull)
     )
     <*> createTable "whats"
@@ -502,6 +503,7 @@ data EventT f = Event
   , event_foreign_event_id :: C f (Maybe UUID) -- Event ID from XML from foreign systems.
   , event_created_by       :: PrimaryKey UserT f
   , event_json             :: C f Text
+  , event_to_sign          :: C f Text -- this is what users will be given for signing purposes
   -- , event_state            :: C f EventState
   }
   deriving Generic
@@ -733,6 +735,7 @@ type SignatureId = PrimaryKey SignatureT Identity
 
 data SignatureT f = Signature
   { signature_id        :: C f PrimaryKeyType
+  -- , signature_user_id   :: PrimaryKey UserT f
   , signature_event_id  :: PrimaryKey EventT f
   , signature_key_id    :: C f BRKeyId
   , signature_signature :: C f ByteString

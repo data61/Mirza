@@ -81,9 +81,10 @@ insertObjectEventQuery
       eventType = Ev.ObjectEventT
       dwhat =  ObjWhat $ ObjectDWhat act labelEpcs
       event = Ev.Event eventType foreignEventId dwhat dwhen dwhy dwhere
-      jsonEvent = QU.encodeEvent event
+      jsonEvent = QU.encodeEventToJSON event
+      toSignEvent = QU.constructEventToSign event
 
-  eventId <- insertEvent userId jsonEvent event
+  eventId <- insertEvent userId jsonEvent toSignEvent event
   whatId <- insertDWhat Nothing dwhat eventId
   labelIds' <- mapM (insertLabel Nothing (Schema.WhatId whatId)) labelEpcs
   let labelIds = Schema.LabelId <$> labelIds'
@@ -120,9 +121,10 @@ insertAggEventQuery
       eventType = Ev.AggregationEventT
       dwhat =  AggWhat $ AggregationDWhat act mParentLabel labelEpcs
       event = Ev.Event eventType foreignEventId dwhat dwhen dwhy dwhere
-      jsonEvent = QU.encodeEvent event
+      jsonEvent = QU.encodeEventToJSON event
+      toSignEvent = QU.constructEventToSign event
 
-  eventId <- insertEvent userId jsonEvent event
+  eventId <- insertEvent userId jsonEvent toSignEvent event
   whatId <- insertDWhat Nothing dwhat eventId
   labelIds' <- mapM (insertLabel Nothing (Schema.WhatId whatId)) labelEpcs
   let labelIds = Schema.LabelId <$> labelIds'
@@ -163,9 +165,10 @@ insertTransactEventQuery
       eventType = Ev.TransactionEventT
       dwhat =  TransactWhat $ TransactionDWhat act mParentLabel bizTransactions labelEpcs
       event = Ev.Event eventType foreignEventId dwhat dwhen dwhy dwhere
-      jsonEvent = QU.encodeEvent event
+      jsonEvent = QU.encodeEventToJSON event
+      toSignEvent = QU.constructEventToSign event
 
-  eventId <- insertEvent userId jsonEvent event
+  eventId <- insertEvent userId jsonEvent toSignEvent event
   whatId <- insertDWhat Nothing dwhat eventId
   labelIds' <- mapM (insertLabel Nothing (Schema.WhatId whatId)) labelEpcs
   let labelIds = Schema.LabelId <$> labelIds'
@@ -203,9 +206,10 @@ insertTransfEventQuery
       eventType = Ev.TransformationEventT
       dwhat =  TransformWhat $ TransformationDWhat mTransfId inputs outputs
       event = Ev.Event eventType foreignEventId dwhat dwhen dwhy dwhere
-      jsonEvent = QU.encodeEvent event
+      jsonEvent = QU.encodeEventToJSON event
+      toSignEvent = QU.constructEventToSign event
 
-  eventId <- insertEvent userId jsonEvent event
+  eventId <- insertEvent userId jsonEvent toSignEvent event
   whatId <- insertDWhat Nothing dwhat eventId
   inputLabelIds <- mapM (\(InputEPC i) -> insertLabel (Just MU.Input) (Schema.WhatId whatId) i) inputs
   outputLabelIds <- mapM (\(OutputEPC o) -> insertLabel (Just MU.Output) (Schema.WhatId whatId) o) outputs
@@ -389,6 +393,7 @@ toStorageEvent :: Schema.EventId
                -> Maybe EvId.EventId
                -> Schema.UserId
                -> T.Text
+               -> T.Text
                -> Schema.Event
 toStorageEvent (Schema.EventId pKey) mEventId =
   Schema.Event pKey (EvId.unEventId <$> mEventId)
@@ -492,11 +497,12 @@ constructLocation whereT =
 
 insertEvent :: Schema.UserId
             -> T.Text
+            -> T.Text
             -> Ev.Event
             -> DB context err Schema.EventId
-insertEvent userId jsonEvent event = fmap (Schema.EventId <$>) QU.withPKey $ \pKey ->
+insertEvent userId jsonEvent toSignEvent event = fmap (Schema.EventId <$>) QU.withPKey $ \pKey ->
   pg $ B.runInsert $ B.insert (Schema._events Schema.supplyChainDb)
-      $ insertValues [toStorageEvent (Schema.EventId pKey) (_eid event) userId jsonEvent]
+      $ insertValues [toStorageEvent (Schema.EventId pKey) (_eid event) userId jsonEvent toSignEvent]
 
 insertUserEvent :: Schema.EventId
                 -> Schema.UserId
