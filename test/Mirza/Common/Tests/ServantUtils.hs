@@ -5,12 +5,12 @@ module Mirza.Common.Tests.ServantUtils
   , manager'
   ) where
 
-import           Control.Concurrent           (ThreadId, forkIO,  killThread)
-import           System.IO.Unsafe             (unsafePerformIO)
+import           Control.Concurrent       (ThreadId, forkIO, killThread)
+import           System.IO.Unsafe         (unsafePerformIO)
 
-import qualified Network.HTTP.Client          as C
+import qualified Network.HTTP.Client      as C
 import           Network.Socket
-import qualified Network.Wai                  as Wai
+import qualified Network.Wai              as Wai
 import           Network.Wai.Handler.Warp
 import           Servant.Client
 

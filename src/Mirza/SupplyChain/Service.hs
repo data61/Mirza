@@ -46,7 +46,7 @@ import           Data.Swagger
 import           Mirza.Common.GS1BeamOrphans                  ()
 
 
-appHandlers :: (HasClientEnv context, AsServantError err, SCSApp context err, HasScryptParams context)
+appHandlers :: (HasBRClientEnv context, AsServantError err, SCSApp context err, HasScryptParams context)
             => ServerT ServerAPI (AppM context err)
 appHandlers = publicServer :<|> privateServer
 
@@ -56,7 +56,7 @@ publicServer =
   -- Users
        addUser
 
-privateServer :: (AsServantError err, HasClientEnv context, SCSApp context err)
+privateServer :: (AsServantError err, HasBRClientEnv context, SCSApp context err)
               => ServerT ProtectedAPI (AppM context err)
 privateServer =
 -- Contacts

@@ -17,8 +17,6 @@ import           Mirza.SupplyChain.Types                  hiding (NewUser (..),
                                                            User (userId))
 import qualified Mirza.SupplyChain.Types                  as ST
 
-import           Data.GS1.EPC                             (GS1CompanyPrefix (..))
-
 import           Database.Beam                            as B
 import           Database.Beam.Backend.SQL.BeamExtensions
 import           Database.PostgreSQL.Simple.Errors        (ConstraintViolation (..),
