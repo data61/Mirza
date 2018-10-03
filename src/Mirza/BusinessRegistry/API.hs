@@ -56,4 +56,3 @@ type PrivateAPI =
   :<|> "key"      :> "add"     :> ReqBody '[JSON] PEM_RSAPubKey :> QueryParam "expirationTime" ExpirationTime :> Post '[JSON] BRKeyId
   :<|> "key"      :> "revoke"  :> Capture "keyId" BRKeyId       :> Post '[JSON] RevocationTime
   :<|> "location" :> "add"     :> ReqBody '[JSON] NewLocation     :> Post '[JSON] LocationId
-  :<|> "location" :> "remove"  :> Capture "locationId" LocationId :> DeleteAccepted '[JSON] NoContent
