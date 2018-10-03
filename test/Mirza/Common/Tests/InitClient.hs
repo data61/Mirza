@@ -26,6 +26,8 @@ import           Data.Text.Encoding                       (encodeUtf8)
 
 import           Test.Tasty.Hspec
 
+import           System.IO.Temp                           (emptySystemTempFile)
+
 import           Katip                                    (Severity (DebugS))
 
 import           Database.Beam.Query                      (delete, runDelete,
@@ -47,14 +49,15 @@ import           Mirza.BusinessRegistry.Types             as BT
 testDbConnStrSCS :: ByteString
 testDbConnStrSCS = "dbname=testsupplychainserver"
 
-mkSoSCS :: BaseUrl -> ServerOptions
+mkSoSCS :: BaseUrl -> Maybe FilePath -> ServerOptions
 mkSoSCS (BaseUrl _ brHost brPrt _) =
-    ServerOptions Dev False testDbConnStrSCS "127.0.0.1" 8000 14 8 1 DebugS brHost brPrt
+  ServerOptions Dev False testDbConnStrSCS "127.0.0.1" 8000 14 8 1 DebugS brHost brPrt
 
-runSCSApp :: BaseUrl -> IO (ThreadId, BaseUrl)
-runSCSApp brUrl = do
-  let soSCS = mkSoSCS brUrl
-  ctx <- initSCSContext soSCS
+runApp :: IO (ThreadId, BaseUrl)
+runApp = do
+  tempFile <- emptySystemTempFile "supplyChainServerTests.log"
+  let so' = so (Just tempFile)
+  ctx <- initSCSContext so'
   let SupplyChainDb
         usersTable
         businessesTable
@@ -98,7 +101,7 @@ runSCSApp brUrl = do
       deleteTable $ hashesTable
       deleteTable $ blockchainTable
   flushDbResult `shouldSatisfy` isRight
-  startWaiApp =<< SCSMain.initApplication soSCS ctx
+  startWaiApp =<< SCSMain.initApplication so' ctx
 
 -- *****************************************************************************
 -- BR Utility Functions

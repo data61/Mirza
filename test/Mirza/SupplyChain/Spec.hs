@@ -24,6 +24,8 @@ import           Data.Pool                          (Pool, destroyAllResources,
 import qualified Data.Pool                          as Pool
 
 import           Katip                              (Severity (DebugS))
+import           System.IO.Temp                     (emptySystemTempFile)
+
 
 
 -- drop all tables created by migration. Equivalent to, at the time of writing;
@@ -49,10 +51,11 @@ defaultPool = Pool.createPool (connectPostgreSQL testDbConnStrSCS) close
 
 openConnection :: IO SCSContext
 openConnection = do
+  tempFile <- emptySystemTempFile "businessRegistryTests.log"
   connpool <- defaultPool
   _ <- withResource connpool dropTables -- drop tables before so if already exist no problems... means tables get overwritten though
   withResource connpool (tryCreateSchema True)
-  initSCSContext (ServerOptions Dev False testDbConnStrSCS "127.0.0.1" 8000 14 8 1 DebugS "127.0.0.1" 8080)
+  initSCSContext (ServerOptions Dev False testDbConnStrSCS "127.0.0.1" 8000 14 8 1 DebugS (Just tempFile))
 
 closeConnection :: SCSContext -> IO ()
 closeConnection = destroyAllResources . ST._scsDbConnPool

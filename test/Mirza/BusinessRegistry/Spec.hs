@@ -27,6 +27,7 @@ import           Data.Pool                               (withResource)
 import qualified Data.Pool                               as Pool
 
 import           Katip                                   (Severity (DebugS))
+import           System.IO.Temp                         (emptySystemTempFile)
 
 -- dbFunc = withDatabaseDebug putStrLn
 
@@ -61,8 +62,8 @@ openConnection :: IO BRContext
 openConnection = do
   connpool <- defaultPool
   _ <- withResource connpool dropTables -- drop tables before so if already exist no problems... means tables get overwritten though
-
-  ctx <- initBRContext (GlobalOptions testDbConnStr 16 10 4 DebugS Dev)
+  tempFile <- emptySystemTempFile "businessRegistryTests.log"
+  ctx <- initBRContext (GlobalOptions testDbConnStr 16 10 4 DebugS (Just tempFile) Dev)
   initRes <- runMigrationWithConfirmation ctx (const (pure Execute))
   case initRes of
     Left err -> print @SqlError err >> error "Database initialisation failed"
