@@ -6,7 +6,6 @@
 
 module Mirza.BusinessRegistry.Handlers.Location
   ( addLocation
-  , removeLocation
   ) where
 
 
@@ -18,12 +17,7 @@ import           Mirza.Common.Types                       (Member)
 import           Database.Beam                            as B
 import           Database.Beam.Backend.SQL.BeamExtensions
 
-import           Control.Lens                             ((#))
-
 import           GHC.Stack                                (HasCallStack, callStack)
-import           Control.Monad.Error.Hoist                (hoistErrorM)
-
-import           Servant (NoContent(NoContent))
 
 
 addLocation :: ( Member context '[HasEnvType, HasConnPool, HasLogging]
@@ -100,30 +94,3 @@ newLocationToLocation
         , geoLocation_address   = newLocAddress
         }
     )
-
-removeLocation :: (Member context '[HasEnvType, HasConnPool, HasLogging]
-                  , Member err    '[AsSqlError, AsBusinessRegistryError]) 
-               => AuthUser
-               -> LocationId
-               -> AppM context err NoContent
-removeLocation auser locId = NoContent <$ runDb (removeLocationQuery auser locId)
-
-removeLocationQuery :: (Member context '[]
-                      , Member err     '[AsBusinessRegistryError]) 
-                    => AuthUser
-                    -> LocationId
-                    -> DB context err [Location]
-removeLocationQuery (AuthUser (BT.UserId auser)) locId = do
-  -- Ensure that the user is a member of the business which owns the location
-  _ <- hoistErrorM (_LocationRemovalErrorBRE #) $
-        pg $ runSelectReturningOne $ select $ do
-          user <- all_ (_users businessRegistryDB)
-          loc  <- all_ (_locations businessRegistryDB)
-          guard_ (  user_id     user  ==. val_            auser
-                &&. primaryKey loc    ==. val_            locId
-                &&. user_biz_id user  ==. location_biz_id loc  )
-          pure user
-
-  pg $ runDeleteReturningList 
-        (_locations businessRegistryDB) 
-        (\loc -> primaryKey loc ==. val_ locId)
