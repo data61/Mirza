@@ -61,10 +61,10 @@ appErrToHttpErr (ParseError err) =
                   "We could not parse the input provided. Error(s) encountered"
                   (parseFailureToErrorMsg err)
   }
+appErrToHttpErr (SigVerificationFailure _) =
+  throwError $ err400 { errBody = "Could not verify signature." }
 appErrToHttpErr (AuthFailed _) =
   throwError $ err403 { errBody = "Authentication failed. Invalid username or password." }
-appErrToHttpErr (SigVerificationFailure _) =
-  throwError $ err403 { errBody = "Could not verify signature." }
 appErrToHttpErr (EventPermissionDenied _ _) =
   throwError $ err403 {
     errBody = "User does not own the event."
