@@ -498,9 +498,9 @@ labelType = textType
 -- ====== EPC.LocationEPC ======
 
 
-instance BSQL.HasSqlValueSyntax be String
+instance BSQL.HasSqlValueSyntax be Text
       => BSQL.HasSqlValueSyntax be EPC.LocationEPC where
-  sqlValueSyntax = BSQL.autoSqlValueSyntax
+  sqlValueSyntax = BSQL.sqlValueSyntax . EPC.renderURL 
 instance BMigrate.IsSql92ColumnSchemaSyntax be
       => BMigrate.HasDefaultSqlDataTypeConstraints be EPC.LocationEPC
 
