@@ -131,7 +131,7 @@ clientSpec = do
               brUrl = brBaseUrl testData
               httpSCS = runClient scsUrl
               httpBR = runClient brUrl
-              globalAuthData = brAuthData testData
+              brAuthUser = brAuthData testData
 
           step "Adding a new user to SCS"
           uid <- httpSCS (addUser userABC)
@@ -148,10 +148,10 @@ clientSpec = do
                           "0400 111 222"
 
           let business = BT.NewBusiness prefix "Business Name"
-          httpBR (BRClient.addBusiness globalAuthData business)
+          httpBR (BRClient.addBusiness brAuthUser business)
             `shouldSatisfyIO` isRight
 
-          httpBR (BRClient.addUser globalAuthData userBR) `shouldSatisfyIO` isRight
+          httpBR (BRClient.addUser brAuthUser userBR) `shouldSatisfyIO` isRight
 
           step "Tying the user with a good key and an expiration time"
           goodPubKey <- goodRsaPublicKey

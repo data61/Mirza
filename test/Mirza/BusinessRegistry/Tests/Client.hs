@@ -51,7 +51,7 @@ import           Mirza.Common.Tests.Utils
 clientSpec :: IO TestTree
 clientSpec = do
   let businessTests = testCaseSteps "Can create businesses" $ \step ->
-        bracket runBRApp (\(a,b,_) -> endWaiApp (a,b)) $ \(_tid,baseurl,globalAuthData) -> do
+        bracket runBRApp (\(a,b,_) -> endWaiApp (a,b)) $ \(_tid,baseurl,brAuthUser) -> do
           let http = runClient baseurl
               biz1Prefix = (GS1CompanyPrefix "2000001")
               biz1 = NewBusiness biz1Prefix "businessTests_biz1Name"
@@ -63,7 +63,7 @@ clientSpec = do
               -- stringPrefix1Biz = NewBusiness (GS1CompanyPrefix "string") "EmptyBusiness"
 
           step "Can create a new business"
-          addBiz1Result <- http (addBusiness globalAuthData biz1)
+          addBiz1Result <- http (addBusiness brAuthUser biz1)
           addBiz1Result `shouldSatisfy` isRight
           addBiz1Result `shouldBe` (Right biz1Prefix)
 
@@ -73,13 +73,13 @@ clientSpec = do
                    (`shouldContain` [biz1Response])
 
           step "Can't add business with the same GS1CompanyPrefix"
-          duplicatePrefixResult <- http (addBusiness globalAuthData biz1{newBusinessName = "businessTests_anotherName"})
+          duplicatePrefixResult <- http (addBusiness brAuthUser biz1{newBusinessName = "businessTests_anotherName"})
           duplicatePrefixResult `shouldSatisfy` isLeft
           duplicatePrefixResult `shouldSatisfy` (checkFailureStatus NS.badRequest400)
           duplicatePrefixResult `shouldSatisfy` (checkFailureMessage "GS1 company prefix already exists.")
 
           step "Can add a second business"
-          addBiz2Result <- http (addBusiness globalAuthData biz2)
+          addBiz2Result <- http (addBusiness brAuthUser biz2)
           addBiz2Result `shouldSatisfy` isRight
           addBiz2Result `shouldBe` (Right biz2Prefix)
 
@@ -91,7 +91,7 @@ clientSpec = do
 
           -- TODO: Include me (github #205):
           -- step "That the GS1CompanyPrefix can't be empty (\"\")."
-          -- emptyPrefixResult <- http (addBusiness globalAuthData emptyPrefixBiz)
+          -- emptyPrefixResult <- http (addBusiness brAuthUser emptyPrefixBiz)
           -- emptyPrefixResult `shouldSatisfy` isLeft
           -- emptyPrefixResult `shouldSatisfy` (checkFailureStatus NS.badRequest400)
           -- emptyPrefixResult `shouldSatisfy` (checkFailureMessage "TODO")
@@ -101,14 +101,14 @@ clientSpec = do
           -- type specification but is logically incorrect if the type
           -- constraint is improved.
           -- step "That the GS1CompanyPrefix can't be a string."
-          -- stringPrefixResult <- http (addBusiness globalAuthData stringPrefix1Biz)
+          -- stringPrefixResult <- http (addBusiness brAuthUser stringPrefix1Biz)
           -- stringPrefixResult `shouldSatisfy` isLeft
           -- stringPrefixResult `shouldSatisfy` (checkFailureStatus NS.badRequest400)
           -- stringPrefixResult `shouldSatisfy` (checkFailureMessage "TODO")
 
 
   let userTests = testCaseSteps "Can create users" $ \step ->
-        bracket runBRApp (\(a,b,_) -> endWaiApp (a,b)) $ \(_tid,baseurl,globalAuthData) -> do
+        bracket runBRApp (\(a,b,_) -> endWaiApp (a,b)) $ \(_tid,baseurl,brAuthUser) -> do
           password <- randomPassword
 
           let http = runClient baseurl
@@ -155,7 +155,7 @@ clientSpec = do
 
           -- Create a business to use from further test cases (this is tested in
           -- the businesses tests so doesn't need to be explicitly tested here).
-          _ <- http (addBusiness globalAuthData business)
+          _ <- http (addBusiness brAuthUser business)
 
           -- Add good RSA Public Key for using from the test cases.
           goodKey <- goodRsaPublicKey
@@ -170,7 +170,7 @@ clientSpec = do
           nonExistantUserResult `shouldSatisfy` (checkFailureMessage "")
 
           step "Can create a new user"
-          http (addUser globalAuthData user1)
+          http (addUser brAuthUser user1)
             `shouldSatisfyIO` isRight
           -- Note: We effectively implicitly test that the value returned is
           --       sensible later when we test that a user with this ID occurs
@@ -198,38 +198,38 @@ clientSpec = do
           emptyPasswordResult `shouldSatisfy` (checkFailureMessage "")
 
           step "Can't create a new user with a GS1CompanyPrefix that isn't registered"
-          invalidPrefixResult <- http (addUser globalAuthData userNonRegisteredBiz)
+          invalidPrefixResult <- http (addUser brAuthUser userNonRegisteredBiz)
           invalidPrefixResult `shouldSatisfy` isLeft
           invalidPrefixResult `shouldSatisfy` (checkFailureStatus NS.badRequest400)
           invalidPrefixResult `shouldSatisfy` (checkFailureMessage "Business does not exist.")
 
           step "Can't create a new user with the same email address"
-          duplicateEmailResult <- http (addUser globalAuthData userSameEmail)
+          duplicateEmailResult <- http (addUser brAuthUser userSameEmail)
           duplicateEmailResult `shouldSatisfy` isLeft
           duplicateEmailResult `shouldSatisfy` (checkFailureStatus NS.badRequest400)
           duplicateEmailResult `shouldSatisfy` (checkFailureMessage "Unable to create user.")
 
           step "Can create a second user"
-          http (addUser globalAuthData user2)
+          http (addUser brAuthUser user2)
             `shouldSatisfyIO` isRight
 
           -- TODO: Include me (github #205):
           -- step "Can't create a user with an empty email."
-          -- emptyEmailResult <- http (addUser globalAuthData userEmptyEmail)
+          -- emptyEmailResult <- http (addUser brAuthUser userEmptyEmail)
           -- emptyEmailResult `shouldSatisfy` isLeft
           -- emptyEmailResult `shouldSatisfy` (checkFailureStatus NS.badRequest400)
           -- emptyEmailResult `shouldSatisfy` (checkFailureMessage "TODO")
 
           -- -- TODO: Include me (github #205):
           -- step "Can't create a user with an empty password."
-          -- emptyUserPasswordResult <- http (addUser globalAuthData userEmptyPassword)
+          -- emptyUserPasswordResult <- http (addUser brAuthUser userEmptyPassword)
           -- emptyUserPasswordResult `shouldSatisfy` isLeft
           -- emptyUserPasswordResult `shouldSatisfy` (checkFailureStatus NS.badRequest400)
           -- emptyUserPasswordResult `shouldSatisfy` (checkFailureMessage "TODO")
 
 
   let keyTests = testCaseSteps "That keys work as expected" $ \step ->
-        bracket runBRApp (\(a,b,_) -> endWaiApp (a,b)) $ \(_tid, baseurl, globalAuthData) -> do
+        bracket runBRApp (\(a,b,_) -> endWaiApp (a,b)) $ \(_tid, baseurl, brAuthUser) -> do
           password <- randomPassword
           let http = runClient baseurl
               biz1Prefix = (GS1CompanyPrefix "4000001")
@@ -261,14 +261,14 @@ clientSpec = do
 
           -- Create a business to use from further test cases (this is tested in
           --  the businesses tests so doesn't need to be explicitly tested here).
-          _ <- http (addBusiness globalAuthData biz1)
-          _ <- http (addBusiness globalAuthData biz2)
+          _ <- http (addBusiness brAuthUser biz1)
+          _ <- http (addBusiness brAuthUser biz2)
 
           -- Create a business to use from further test cases (this is tested in
           -- the businesses tests so doesn't need to be explicitly tested here).
-          userB1U1Response <- http (addUser globalAuthData userB1U1)
-          _                <- http (addUser globalAuthData userB1U2)
-          _                <- http (addUser globalAuthData userB2U1)
+          userB1U1Response <- http (addUser brAuthUser userB1U1)
+          _                <- http (addUser brAuthUser userB1U2)
+          _                <- http (addUser brAuthUser userB2U1)
 
           -- Add good RSA Public Key for using from the test cases.
           goodKey <- goodRsaPublicKey
@@ -358,7 +358,7 @@ clientSpec = do
           b1K2RevokedResponse `shouldSatisfy` (checkFailureStatus NS.badRequest400)
           b1K2RevokedResponse `shouldSatisfy` (checkFailureMessage "Public key already expired.")
 
-          step $ "That it is not possible to add a key that is already expired"
+          step "That it is not possible to add a key that is already expired"
           b1ExpiredKeyExpiry <- (Just . ExpirationTime) <$> ((addUTCTime (fromInteger (-1))) <$> getCurrentTime)
           b1ExpiredKeyExpiryResult <- http (addPublicKey (newUserToBasicAuthData userB1U1) goodKey b1ExpiredKeyExpiry)
           b1ExpiredKeyExpiryResult `shouldSatisfy` isLeft
@@ -509,10 +509,10 @@ clientSpec = do
 --   -- This construct somewhat destroys the integrity of these test since it is
 --   -- necessary to assume that these functions work correctly in order for the
 --   -- test cases to complete.
---   globalAuthData <- bootstrapAuthData ctx
+--   brAuthUser <- bootstrapAuthData ctx
 
 --   (tid,brul) <- startWaiApp =<< initApplication go' (RunServerOptions 8000) ctx
---   pure (tid,brul,globalAuthData)
+--   pure (tid,brul,brAuthUser)
 
 
 
