@@ -42,7 +42,7 @@ import           System.IO                          (IOMode (AppendMode),
                                                      hPutStrLn, openFile,
                                                      stderr, stdout)
 
-data ServerOptions = ServerOptions
+data ServerOptionsSCS = ServerOptionsSCS
   { env           :: EnvType
   , initDB        :: Bool
   , connectionStr :: ByteString
@@ -63,8 +63,8 @@ localhost = "127.0.0.1"
 defaultDbConnectionStr :: ByteString
 defaultDbConnectionStr = "dbname=devsupplychainserver"
 
-serverOptions :: Parser ServerOptions
-serverOptions = ServerOptions
+serverOptions :: Parser ServerOptionsSCS
+serverOptions = ServerOptionsSCS
       <$> option auto
           ( long "env" <> short 'e'
           <> value Dev <> showDefault
@@ -118,8 +118,8 @@ main = runProgram =<< execParser opts
       <> progDesc "Run a supply chain server"
       <> header "SupplyChainServer - A server for capturing GS1 events and recording them on a blockchain")
 
-runProgram :: ServerOptions -> IO ()
-runProgram so@ServerOptions{initDB = False, scsPort} = do
+runProgram :: ServerOptionsSCS -> IO ()
+runProgram so@ServerOptionsSCS{initDB = False, scsPort} = do
   ctx <- initSCSContext so
   app <- initApplication so ctx
   mids <- initMiddleware so
@@ -127,12 +127,12 @@ runProgram so@ServerOptions{initDB = False, scsPort} = do
   Warp.run (fromIntegral scsPort) (mids app) `finally` closeScribes (ctx ^. ST.scsKatipLogEnv)
 runProgram so = migrate $ connectionStr so
 
-initMiddleware :: ServerOptions -> IO Middleware
+initMiddleware :: ServerOptionsSCS -> IO Middleware
 initMiddleware _ = pure id
 
 
-initSCSContext :: ServerOptions -> IO ST.SCSContext
-initSCSContext (ServerOptions envT _ dbConnStr host prt n p r lev brHost brPort mlogPath) = do
+initSCSContext :: ServerOptionsSCS -> IO ST.SCSContext
+initSCSContext (ServerOptionsSCS envT _ dbConnStr _host _prt n p r lev brHost brPort mlogPath) = do
   logHandle <- maybe (pure stdout) (flip openFile AppendMode) mlogPath
   hPutStrLn stderr $ "Logging will be to: " ++ fromMaybe "stdout" mlogPath
   handleScribe <- mkHandleScribe ColorIfTerminal logHandle lev V3
@@ -160,7 +160,7 @@ initSCSContext (ServerOptions envT _ dbConnStr host prt n p r lev brHost brPort 
           mempty
           (mkClientEnv manager baseUrl)
 
-initApplication :: ServerOptions -> ST.SCSContext -> IO Application
+initApplication :: ServerOptionsSCS -> ST.SCSContext -> IO Application
 initApplication _so ev =
   pure $ serveWithContext api
           (basicAuthServerContext ev)
