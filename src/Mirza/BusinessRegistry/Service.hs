@@ -111,7 +111,10 @@ brErrorToHttpError (KeyErrorBRE kError) = keyErrorToHttpError kError
 brErrorToHttpError x@(DBErrorBRE _sqlError)                  = liftIO (print x) >> notImplemented
 brErrorToHttpError x@(UnexpectedErrorBRE _reason)            = liftIO (print x) >> notImplemented
 brErrorToHttpError x@(UnmatchedUniqueViolationBRE _sqlError) = liftIO (print x) >> notImplemented
-brErrorToHttpError x@(LocationNotKnownBRE)                   = liftIO (print x) >> notImplemented
+brErrorToHttpError x@(LocationNotKnownBRE)                   =
+  throwHttpError err404 "Unknown GLN"
+brErrorToHttpError (LocationExistsBRE)                     = 
+  throwHttpError err409 "Location already exists for this GLN"
 brErrorToHttpError (GS1CompanyPrefixExistsBRE) =
   throwHttpError err400 "GS1 company prefix already exists."
 brErrorToHttpError (BusinessDoesNotExistBRE) =
