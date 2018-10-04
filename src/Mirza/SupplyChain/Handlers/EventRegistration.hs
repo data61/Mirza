@@ -387,7 +387,7 @@ toStorageDWhy (Schema.WhyId pKey) (DWhy mBiz mDisp)
 
 toStorageEvent :: Schema.EventId
                -> Schema.UserId
-               -> T.Text
+               -> ByteString
                -> Maybe EvId.EventId
                -> Schema.Event
 toStorageEvent (Schema.EventId pKey) userId jsonEvent mEventId =
@@ -491,7 +491,7 @@ constructLocation whereT =
 
 
 insertEvent :: Schema.UserId
-            -> T.Text
+            -> ByteString
             -> Ev.Event
             -> DB context err Schema.EventId
 insertEvent userId jsonEvent event = fmap (Schema.EventId <$>) QU.withPKey $ \pKey ->

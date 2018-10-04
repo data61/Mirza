@@ -43,6 +43,7 @@ import           Database.Beam.Migrate.Types
 import           Database.Beam.Postgres
 import           Database.Beam.Postgres.Syntax    (PgDataTypeSyntax)
 
+import Crypto.JOSE (CompactJWS, JWSHeader)
 
 
 -- Convention: Table types and constructors are suffixed with T (for Table).
@@ -177,7 +178,7 @@ migration () =
           (field "event_id" pkSerialType)
           (field "event_foreign_event_id" (maybeType uuid))
           (UserId (field "event_created_by" pkSerialType))
-          (field "event_json" text notNull unique)
+          (field "event_json" bytea notNull unique)
     )
     <*> createTable "whats"
     (
@@ -249,7 +250,7 @@ migration () =
           (field "signature_id" pkSerialType)
           (EventId (field "signature_event_id" pkSerialType notNull))
           (field "signature_key_id" brKeyIdType notNull)
-          (field "signature_signature" bytea notNull)
+          (field "signature_signature" json notNull)
           (field "signature_digest" bytea notNull)
           (field "signature_timestamp" timestamptz notNull)
     )
@@ -511,7 +512,7 @@ data EventT f = Event
   { event_id               :: C f PrimaryKeyType
   , event_foreign_event_id :: C f (Maybe UUID) -- Event ID from XML from foreign systems.
   , event_created_by       :: PrimaryKey UserT f
-  , event_json             :: C f Text }
+  , event_json             :: C f ByteString }
   deriving Generic
 
 deriving instance Show Event
@@ -743,7 +744,7 @@ data SignatureT f = Signature
   { signature_id        :: C f PrimaryKeyType
   , signature_event_id  :: PrimaryKey EventT f
   , signature_key_id    :: C f BRKeyId
-  , signature_signature :: C f ByteString
+  , signature_signature :: C f (PgJSON (CompactJWS JWSHeader))
   , signature_digest    :: C f ByteString
   , signature_timestamp :: C f LocalTime -- Stored as UTC Time
   }

@@ -23,13 +23,11 @@ import qualified Mirza.SupplyChain.Types           as ST
 
 import qualified Data.GS1.Event                    as Ev
 
-import           Data.Aeson                        (decode)
-import           Data.Aeson.Text                   (encodeToLazyText)
+import           Data.Aeson                        (decodeStrict, encode)
 import           Data.ByteString                   (ByteString)
+import           Data.ByteString.Lazy              (toStrict)
 import qualified Data.Text                         as T
 import qualified Data.Text.Encoding                as En
-import qualified Data.Text.Lazy                    as TxtL
-import qualified Data.Text.Lazy.Encoding           as LEn
 
 import           Control.Monad.Except              (MonadError, catchError)
 
@@ -68,13 +66,13 @@ userTableToModel (Schema.User uid _ fName lName _ _ _)
     = ST.User (ST.UserId uid) fName lName
 
 
-encodeEvent :: Ev.Event -> T.Text
-encodeEvent event = TxtL.toStrict  (encodeToLazyText event)
+encodeEvent :: Ev.Event -> ByteString
+encodeEvent = toStrict . encode
 
 -- XXX is this the right encoding to use? It's used for checking signatures
 -- and hashing the json.
 eventTxtToBS :: T.Text -> ByteString
 eventTxtToBS = En.encodeUtf8
 
-decodeEvent :: T.Text -> Maybe Ev.Event
-decodeEvent = decode . LEn.encodeUtf8 . TxtL.fromStrict
+decodeEvent :: ByteString -> Maybe Ev.Event
+decodeEvent = decodeStrict

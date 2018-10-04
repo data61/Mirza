@@ -17,19 +17,20 @@ import           Mirza.Common.Time            (ExpirationTime, RevocationTime)
 import           Mirza.Common.Types           (BRKeyId)
 
 import           Data.GS1.EPC                 as EPC
+import           Crypto.JOSE.JWK (JWK)
 
 import           Servant.API
 import           Servant.Client
 
 import           Data.Proxy                   (Proxy (..))
 
-getPublicKey       :: BRKeyId -> ClientM PEM_RSAPubKey
+getPublicKey       :: BRKeyId -> ClientM JWK
 getPublicKeyInfo   :: BRKeyId -> ClientM KeyInfoResponse
 listBusinesses :: ClientM [BusinessResponse]
 
 addUser         :: BasicAuthData -> NewUser     -> ClientM UserId
 addBusiness     :: BasicAuthData -> NewBusiness -> ClientM GS1CompanyPrefix
-addPublicKey    :: BasicAuthData -> PEM_RSAPubKey -> Maybe ExpirationTime -> ClientM BRKeyId
+addPublicKey    :: BasicAuthData -> JWK -> Maybe ExpirationTime -> ClientM BRKeyId
 revokePublicKey :: BasicAuthData -> BRKeyId -> ClientM RevocationTime
 
 _api     :: Client ClientM ServerAPI

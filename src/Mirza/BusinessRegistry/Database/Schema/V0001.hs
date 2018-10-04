@@ -19,15 +19,16 @@ import           Data.ByteString                  (ByteString)
 import           Data.Text                        (Text)
 import           Data.Time                        (LocalTime)
 import           Data.UUID                        (UUID)
+import           Crypto.JOSE.JWK                  (JWK)
 
 import           Database.Beam                    as B
 import           Database.Beam.Migrate.SQL        (DataType)
 import           Database.Beam.Migrate.SQL.Tables
 import           Database.Beam.Migrate.Types
-import           Database.Beam.Postgres
+import           Database.Beam.Postgres           (PgJSON, PgCommandSyntax, Postgres, uuid, json)
 import           Database.Beam.Postgres.Syntax    (PgDataTypeSyntax)
 
-import           Data.Aeson
+import           Data.Aeson                       hiding (json)
 import           Data.Swagger
 
 
@@ -86,7 +87,7 @@ migration () =
       KeyT
           (field "key_id" pkSerialType)
           (UserId (field "key_user_id" pkSerialType))
-          (field "pem_str" text)
+          (field "jwk" json notNull)
           (field "creation_time" timestamptz)
           (field "revocation_time" (maybeType timestamptz))
           (UserId (field "revoking_user_id" (maybeType pkSerialType)))
@@ -174,7 +175,7 @@ deriving instance Show ( PrimaryKey UserT (Nullable Identity))
 data KeyT f = KeyT
   { key_id           :: C f PrimaryKeyType
   , key_user_id      :: PrimaryKey UserT f    -- TODO: We should record the business that is associated with the key...not sure if there is any need to store the user...
-  , pem_str          :: C f Text
+  , key_jwk          :: C f (PgJSON JWK)
   , creation_time    :: C f LocalTime -- Stored as UTC Time
   -- It would be nicer and cleaner to store the revocation time and user as a
   -- Maybe (LocalTime, UserId) rather then as two independent Maybe fields as
