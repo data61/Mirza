@@ -15,6 +15,7 @@ import           Mirza.BusinessRegistry.Database.Schema   as DB
 import           Mirza.BusinessRegistry.Types             as BT
 import           Mirza.Common.Utils
 import           Mirza.Common.Types                       (Member)
+import           Mirza.BusinessRegistry.SqlUtils
 
 import           Data.GS1.EPC                             (LocationEPC)
 
@@ -23,6 +24,7 @@ import           Database.Beam.Backend.SQL.BeamExtensions
 
 import           GHC.Stack                                (HasCallStack, callStack)
 
+import           Control.Lens                             ((#))
 
 addLocation :: ( Member context '[HasEnvType, HasConnPool, HasLogging]
                , Member err     '[AsSqlError, AsBusinessRegistryError])
@@ -33,7 +35,7 @@ addLocation auser newLoc = do
   newLocId <- newUUID
   newGeoLocId <- newUUID
   (fmap primaryKey)
-    -- . (`catchError` errHandler)
+    . (handleError (handleSqlUniqueViloation "location_pkey" (\_sqlerr -> _LocationExistsBRE # ())))
     . runDb
     . addLocationQuery auser newLocId (GeoLocationId newGeoLocId)
     $ newLoc

@@ -533,5 +533,4 @@ instance FromHttpApiData EPC.LocationEPC where
 instance ToParamSchema EPC.LocationEPC where
   toParamSchema _ = mempty
     & type_ .~ SwaggerString
-    & pattern ?~ "urn:epc:id:sgln:\\d+\\.\\d+(\\.\\d+)"
-    
+    & pattern ?~ "urn:epc:id:sgln:\\d+\\.\\d+(\\.\\d+)?"
