@@ -23,6 +23,7 @@ import           Data.GS1.EventId           as EvId
 import           Database.PostgreSQL.Simple (Connection, SqlError)
 
 import           Crypto.Scrypt              (ScryptParams)
+import           Crypto.JOSE                as JOSE hiding (Digest)
 
 import           Servant                    (FromHttpApiData, ToHttpApiData)
 import           Servant.Client             (ClientEnv (..), ServantError (..))
@@ -251,28 +252,30 @@ instance ToSchema EventHash
 -- A signature is an EventHash that's been
 -- signed by one of the parties involved in the
 -- event.
-newtype Signature = Signature String
-  deriving (Generic, Show, Read, Eq)
-$(deriveJSON defaultOptions ''Signature)
-instance ToSchema Signature
+type Signature' = Signature () JWSHeader
+--   deriving (Generic, Show, Read, Eq)
+-- $(deriveJSON defaultOptions ''Signature)
+-- instance ToSchema Signature
 
-data BlockchainPackage = BlockchainPackage EventHash (NonEmpty (Signature, UserId))
-  deriving (Show, Read, Eq, Generic)
+data BlockchainPackage = BlockchainPackage EventHash (NonEmpty (Signature', UserId))
+  deriving (Show, Eq, Generic)
 $(deriveJSON defaultOptions ''BlockchainPackage)
 instance ToSchema BlockchainPackage
 
 
-data Digest = SHA256 | SHA384 | SHA512
+  
+
+data DigestType = SHA256 | SHA384 | SHA512
   deriving (Show, Generic, Eq, Read)
-$(deriveJSON defaultOptions ''Digest)
-instance ToSchema Digest
+$(deriveJSON defaultOptions ''DigestType)
+instance ToSchema DigestType
 
 data SignedEvent = SignedEvent {
-  signed_eventId   :: EventId,
-  signed_keyId     :: BRKeyId,
-  signed_signature :: Signature,
-  signed_digest    :: Digest
-} deriving (Generic)
+  signed_eventId     :: EventId,
+  signed_keyId       :: BRKeyId,
+  signed_signature   :: CompactJWS JWSHeader,
+  signed_digest_type :: DigestType
+  } deriving (Generic)
 $(deriveJSON defaultOptions ''SignedEvent)
 instance ToSchema SignedEvent
 --instance ToParamSchema SignedEvent where
@@ -309,7 +312,8 @@ data ServiceError
   | InvalidKeyId           BRKeyId
   | InvalidUserId          UserId
   | InvalidRSAKeyInDB      Text -- when the key already existing in the DB is wrong
-  | InvalidDigest          Digest
+  | InvalidDigest          DigestType
+  | JOSEError              JOSE.Error
   | InsertionFail          ServerError Text
   | EventPermissionDenied  UserId EvId.EventId
   | EmailExists            ServerError EmailAddress
@@ -339,3 +343,6 @@ instance AsServantError ServiceError where
     _ServantError = _ServantErr
 
 instance AsServantError AppError where _ServantError = _ServantErr
+
+instance JOSE.AsError ServiceError where _Error = _JOSEError
+instance JOSE.AsError AppError where _Error = _JOSEError

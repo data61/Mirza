@@ -24,6 +24,7 @@ import           Database.Beam                          as B
 import           Database.PostgreSQL.Simple             (Connection, SqlError)
 
 import           Crypto.Scrypt                          (ScryptParams)
+import           Crypto.JOSE                            (JWK)
 
 import           Control.Lens.TH
 
@@ -145,7 +146,7 @@ data KeyInfoResponse = KeyInfoResponse
   , keyInfoCreationTime   :: CreationTime
   , keyInfoRevocation     :: Maybe (RevocationTime, UserId)
   , keyInfoExpirationTime :: Maybe ExpirationTime
-  , keyInfoPEMString      :: PEM_RSAPubKey
+  , keyInfoJWK            :: JWK
   }
   deriving (Generic, Show, Eq)
 $(deriveJSON defaultOptions ''KeyInfoResponse)

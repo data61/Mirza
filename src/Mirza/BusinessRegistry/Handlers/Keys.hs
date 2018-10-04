@@ -20,17 +20,17 @@ import           Mirza.Common.Utils
 
 import           Database.Beam                            as B
 import           Database.Beam.Backend.SQL.BeamExtensions
+import           Database.Beam.Postgres                   (PgJSON(..))
 
-import           Data.Text                                (pack, unpack)
 import           Data.Time.Clock                          (UTCTime,
                                                            getCurrentTime)
-import Data.Time.LocalTime
+import           Data.Time.LocalTime
 
-import           OpenSSL.EVP.PKey                         (SomePublicKey,
-                                                           toPublicKey)
-import           OpenSSL.PEM                              (readPublicKey,
-                                                           writePublicKey)
-import           OpenSSL.RSA                              (RSAPubKey, rsaSize)
+-- import           OpenSSL.EVP.PKey                         (SomePublicKey,
+--                                                            toPublicKey)
+-- import           OpenSSL.PEM                              (readPublicKey,
+--                                                            writePublicKey)
+-- import           OpenSSL.RSA                              (RSAPubKey, rsaSize)
 
 import           Control.Monad                            (unless)
 import           Data.Maybe                               (isJust, isNothing)
@@ -41,24 +41,27 @@ import           Control.Monad                            (when)
 
 import           GHC.Stack                                (HasCallStack, callStack)
 
-minPubKeySize :: Bit
-minPubKeySize = Bit 2048
+import           Crypto.JOSE.JWK                          (JWK)
+
+
+-- minPubKeySize :: Bit
+-- minPubKeySize = Bit 2048
 
 getPublicKey :: ( Member context '[HasEnvType, HasConnPool, HasLogging]
                 , Member err     '[AsKeyError, AsSqlError])
              => CT.BRKeyId
-             -> AppM context err PEM_RSAPubKey
+             -> AppM context err JWK
 getPublicKey kid = do
   mpem <- runDb $ getPublicKeyQuery kid
-  maybe (throwing _KeyNotFound kid) pure mpem
+  maybe (throwing _KeyNotFound kid) (pure . (\(PgJSON jwk) -> jwk)) mpem
 
 getPublicKeyQuery :: CT.BRKeyId
-                  -> DB context err (Maybe PEM_RSAPubKey)
-getPublicKeyQuery (CT.BRKeyId uuid) = fmap (fmap PEM_RSAPubKey) $ pg $ runSelectReturningOne $
+                  -> DB context err (Maybe (PgJSON JWK))
+getPublicKeyQuery (CT.BRKeyId uuid) = pg $ runSelectReturningOne $
   select $ do
     keys <- all_ (_keys businessRegistryDB)
-    guard_ (primaryKey keys ==. val_ (Schema.KeyId uuid))
-    pure (pem_str keys)
+    guard_ (primaryKey keys ==. val_ (Schema.KeyId uuid)) 
+    pure (key_jwk keys)
 
 getPublicKeyInfo :: ( Member context '[HasEnvType, HasConnPool, HasLogging]
                     , Member err     '[AsKeyError, AsSqlError])
@@ -74,7 +77,7 @@ keyToKeyInfo :: (MonadError err m, AsKeyError err)
              => UTCTime
              -> Schema.Key
              -> m KeyInfoResponse
-keyToKeyInfo currTime (Schema.KeyT keyId (Schema.UserId keyUserId) pemStr creation revocationTime revocationUser expiration) = do
+keyToKeyInfo currTime (Schema.KeyT keyId (Schema.UserId keyUserId) (PgJSON jwk) creation revocationTime revocationUser expiration) = do
   revocation <- composeRevocation revocationTime revocationUser
   pure $ KeyInfoResponse (CT.BRKeyId keyId) (CT.UserId keyUserId)
     (getKeyState
@@ -84,7 +87,7 @@ keyToKeyInfo currTime (Schema.KeyT keyId (Schema.UserId keyUserId) pemStr creati
     (fromDbTimestamp creation)
     revocation
     (fromDbTimestamp <$> expiration)
-    (PEM_RSAPubKey pemStr)
+    jwk
   where
     -- | This function checks that the Maybe constructor for both the time and
     -- the user matches (i.e. both Just, or both Nothing) and throws an error if
@@ -130,48 +133,49 @@ getPublicKeyInfoQuery (CT.BRKeyId uuid) = pg $ runSelectReturningOne $
 addPublicKey :: ( Member context '[HasEnvType, HasConnPool, HasLogging]
                 , Member err     '[AsKeyError, AsSqlError])
              => BT.AuthUser
-             -> PEM_RSAPubKey
+             -> JWK
              -> Maybe ExpirationTime
              -> AppM context err CT.BRKeyId
-addPublicKey user pemKey@(PEM_RSAPubKey pemStr) mExp = do
-  somePubKey <- liftIO $ readPublicKey (unpack pemStr) -- TODO: Catch exception from OpenSSL - any invalid PEM string causes exception
-  rsaKey <- checkPubKey somePubKey pemKey              -- Input: "x"
-  runDb $ addPublicKeyQuery user mExp rsaKey           -- Error: user error (error:0906D06C:PEM routines:PEM_read_bio:no start line)
+addPublicKey user jwk mExp = do
+  -- rsaKey <- checkPubKey somePubKey pemKey              -- Input: "x"
+  -- TODO: Check JWK is RSA public key
+  runDb $ addPublicKeyQuery user mExp jwk           -- Error: user error (error:0906D06C:PEM routines:PEM_read_bio:no start line)
 
 
-checkPubKey :: (MonadError err m, AsKeyError err)
-            => SomePublicKey
-            -> PEM_RSAPubKey
-            -> m RSAPubKey
-checkPubKey spKey pemKey =
-  maybe (throwing _InvalidRSAKey pemKey)
-  (\pubKey ->
-    -- Note: This constraint implies that we only check that the key is greater then (2^N)-8 bits since rsaSize is the
-    -- number of bytes required to hold the key. See github issue #212
-    -- https://github.csiro.au/Blockchain/supplyChainServer/issues/212#issuecomment-13326 for further information.
-    let keySizeBits = Bit $ rsaSize pubKey * 8 in
-    -- rsaSize returns size in bytes
-    if keySizeBits < minPubKeySize
-      then throwing _InvalidRSAKeySize (Expected minPubKeySize, Received keySizeBits)
-      else pure pubKey
-  )
-  (toPublicKey spKey)
+-- checkPubKey :: (MonadError err m, AsKeyError err)
+--             => SomePublicKey
+--             -> PEM_RSAPubKey
+--             -> m RSAPubKey
+-- checkPubKey spKey pemKey =
+--   maybe (throwing _InvalidRSAKey pemKey)
+--   (\pubKey ->
+--     -- Note: This constraint implies that we only check that the key is greater then (2^N)-8 bits since rsaSize is the
+--     -- number of bytes required to hold the key. See github issue #212
+--     -- https://github.csiro.au/Blockchain/supplyChainServer/issues/212#issuecomment-13326 for further information.
+--     let keySizeBits = Bit $ rsaSize pubKey * 8 in
+--     -- rsaSize returns size in bytes
+--     if keySizeBits < minPubKeySize
+--       then throwing _InvalidRSAKeySize (Expected minPubKeySize, Received keySizeBits)
+--       else pure pubKey
+--   )
+--   (toPublicKey spKey)
 
 
 addPublicKeyQuery :: ( Member err     '[AsKeyError])
                   => AuthUser
                   -> Maybe ExpirationTime
-                  -> RSAPubKey
+                  -> JWK
                   -> DB context err CT.BRKeyId
-addPublicKeyQuery (AuthUser (CT.UserId uid)) expTime rsaPubKey = do
+addPublicKeyQuery (AuthUser (CT.UserId uid)) expTime jwk = do
   now <- liftIO getCurrentTime
   for_ expTime $ \time -> when ((getExpirationTime time) <= now) (throwing_ _AddedExpiredKey)
-  keyStr <- liftIO $ pack <$> writePublicKey rsaPubKey
+  -- keyStr <- liftIO $ pack <$> writePublicKey jwk
+  -- TODO: Verify JWK is an RSA public key only
   keyId <- newUUID
   timestamp <- generateTimestamp
   ks <- pg $ runInsertReturningList (_keys businessRegistryDB) $
         insertValues
-        [ KeyT keyId (Schema.UserId uid) keyStr
+        [ KeyT keyId (Schema.UserId uid) (PgJSON jwk)
             (toDbTimestamp timestamp) Nothing (Schema.UserId Nothing) (toDbTimestamp <$> expTime)
         ]
   case ks of

@@ -55,6 +55,10 @@ appErrToHttpErr (InvalidDigest _) =
   throwError $ err400 {
     errBody = "Invalid Digest given."
   }
+appErrToHttpErr (JOSEError err) =
+  throwError $ err400 {
+    errBody = "JOSE Error: " <> LBSC8.pack (show err)
+  }
 appErrToHttpErr (ParseError err) =
   throwError $ err400 {
     errBody = LBSC8.append

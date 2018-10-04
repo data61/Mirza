@@ -11,6 +11,8 @@
 {-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE TypeOperators              #-}
 {-# LANGUAGE UndecidableInstances       #-}
+{-# LANGUAGE OverloadedLists            #-}
+{-# OPTIONS_GHC -Wno-orphans            #-}
 
 
 module Mirza.Common.Types
@@ -73,6 +75,7 @@ import           Control.Monad.Trans                  (lift)
 import           Data.Pool                            as Pool
 
 import           Crypto.Scrypt                        (ScryptParams)
+import           Crypto.JOSE                          (JWK,JWS,Signature,JWSHeader)
 
 import qualified Data.ByteString                      as BS
 import           Data.Text                            (Text)
@@ -343,3 +346,27 @@ runClientFunc :: (AsServantError err, HasBRClientEnv context)
 runClientFunc func = do
   cEnv <- view clientEnv
   either (throwing _ServantError) pure =<< liftIO (runClientM func cEnv)
+
+
+
+
+-- TODO: Orphan for JWK
+
+instance ToSchema JWK where
+  declareNamedSchema _ = do
+    strSchema <- declareSchemaRef (Proxy :: Proxy String)
+    pure $ NamedSchema (Just "JWK") $ mempty
+      & type_ .~ SwaggerObject
+      & properties .~
+          [ ("kty",strSchema)
+          , ("n",strSchema)
+          , ("e",strSchema)
+          ]
+
+instance ToSchema (JWS Identity () JWSHeader) where
+  declareNamedSchema _ = do
+    return $ NamedSchema (Just "JWS") $ mempty
+
+instance ToSchema (Signature () JWSHeader) where
+  declareNamedSchema _ = do
+    return $ NamedSchema (Just "JWS Signature") $ mempty
