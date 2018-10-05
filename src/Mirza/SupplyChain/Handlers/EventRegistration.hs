@@ -580,8 +580,6 @@ findEvent eventId = do
   case mschemaEvent of
     Just event -> return $ QU.storageToModelEvent event
     Nothing    -> return Nothing
-  -- return $ error ""
-  -- return $ QU.storageToModelEvent <$> mschemaEvent
 
 findSchemaEvent :: AsServiceError err
                 => Schema.EventId
