@@ -133,14 +133,14 @@ getEventJSON eventId = do
 makeDigest :: Digest -> IO (Maybe EVPDigest.Digest)
 makeDigest digest = withOpenSSL $ EVPDigest.getDigestByName . map toLower . show $ digest
 
-insertSignature :: (AsServiceError err) => ST.UserId
+insertSignature :: AsServiceError err => ST.UserId
                 -> EvId.EventId
                 -> BRKeyId
                 -> ST.Signature
                 -> Digest
                 -> DB environmentUnused err PrimaryKeyType
 
-insertSignature (ST.UserId uId) eId kId (ST.Signature sig) digest = do
+insertSignature userId@(ST.UserId uId) eId kId (ST.Signature sig) digest = do
   sigId <- newUUID
   timestamp <- generateTimestamp
   r <- pg $ runInsertReturningList (Schema._signatures Schema.supplyChainDb) $
@@ -149,9 +149,23 @@ insertSignature (ST.UserId uId) eId kId (ST.Signature sig) digest = do
          (BRKeyId $ getBRKeyId kId) (BSC.pack sig)
           (BSC.pack $ show digest) (toDbTimestamp timestamp)]
   case r of
-    [rowId] -> return ( Schema.signature_id rowId)
+    [rowId] -> do
+      updateUserEventSignature userId eId True
+      return ( Schema.signature_id rowId)
     _       -> throwing _BackendErr "Failed to add signature"
 
+updateUserEventSignature :: AsServiceError err
+                         => ST.UserId
+                         -> EvId.EventId
+                         -> Bool
+                         -> DB environmentUnused err ()
+updateUserEventSignature (ST.UserId userId) (EvId.EventId eventId) hasSignedNew = do
+  _r <- pg $ runUpdate $ update
+              (_user_events supplyChainDb)
+              (\userEvent -> [user_events_has_signed userEvent <-. val_ hasSignedNew])
+              (\userEvent -> (user_events_event_id userEvent ==. val_ (Schema.EventId eventId) &&.
+                              (user_events_user_id userEvent ==. val_ (Schema.UserId userId))))
+  pure ()
 
 findSignatureByEvent :: (AsServiceError err)
                      => EvId.EventId
