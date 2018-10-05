@@ -1,16 +1,16 @@
+{-# LANGUAGE ConstraintKinds            #-}
+{-# LANGUAGE DataKinds                  #-}
 {-# LANGUAGE DeriveGeneric              #-}
 {-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE KindSignatures             #-}
 {-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE StandaloneDeriving         #-}
 {-# LANGUAGE TemplateHaskell            #-}
 {-# LANGUAGE TypeApplications           #-}
-{-# LANGUAGE UndecidableInstances       #-}
-{-# LANGUAGE TypeOperators              #-}
-{-# LANGUAGE DataKinds                  #-}
-{-# LANGUAGE ConstraintKinds            #-}
-{-# LANGUAGE KindSignatures             #-}
 {-# LANGUAGE TypeFamilies               #-}
+{-# LANGUAGE TypeOperators              #-}
+{-# LANGUAGE UndecidableInstances       #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans       #-}
 
@@ -31,7 +31,7 @@ module Mirza.Common.Types
   , HasScryptParams(..)
   , HasKatipContext(..)
   , HasKatipLogEnv(..)
-  , HasClientEnv(..)
+  , HasBRClientEnv(..)
   , AsServantError (..)
   , DBConstraint
   , ask, asks
@@ -84,8 +84,8 @@ import           Control.Lens
 import           Control.Monad.Error.Lens
 
 
+import           GHC.Exts                             (Constraint)
 import           GHC.Generics                         (Generic)
-import           GHC.Exts (Constraint)
 
 import           Katip                                as K
 import           Katip.Monadic                        (askLoggerIO)
@@ -286,7 +286,7 @@ instance (HasKatipContext context, HasKatipLogEnv context)
 
 
 
-class HasClientEnv a where
+class HasBRClientEnv a where
   clientEnv :: Lens' a ClientEnv
 
 class AsServantError a where
@@ -349,7 +349,7 @@ runAppM :: context -> AppM context err a -> IO (Either err a)
 runAppM env aM = runExceptT $ (runReaderT . getAppM) aM env
 
 
-runClientFunc :: (AsServantError err, HasClientEnv context)
+runClientFunc :: (AsServantError err, HasBRClientEnv context)
               => ClientM a
               -> AppM context err a
 runClientFunc func = do

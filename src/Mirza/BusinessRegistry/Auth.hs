@@ -12,22 +12,22 @@ module Mirza.BusinessRegistry.Auth
   , listUsersQuery
   ) where
 
-import           Mirza.BusinessRegistry.Database.Schema   as Schema
+import           Mirza.BusinessRegistry.Database.Schema as Schema
 import           Mirza.BusinessRegistry.Handlers.Common
-import           Mirza.BusinessRegistry.Types             as BT
-import           Mirza.Common.Types                       as CT
+import           Mirza.BusinessRegistry.Types           as BT
+import           Mirza.Common.Types                     as CT
 
-import           Database.Beam                            as B
-import           Database.PostgreSQL.Simple               (SqlError)
+import           Database.Beam                          as B
+import           Database.PostgreSQL.Simple             (SqlError)
 
 import           Servant
 
-import qualified Crypto.Scrypt                            as Scrypt
+import qualified Crypto.Scrypt                          as Scrypt
 
 import           Control.Lens
 
-import           Text.Email.Validate                      (EmailAddress,
-                                                           emailAddress)
+import           Text.Email.Validate                    (EmailAddress,
+                                                         emailAddress)
 
 -- | We need to supply our handlers with the right Context. In this case,
 -- Basic Authentication requires a Context Entry with the 'BasicAuthCheck' value
@@ -51,7 +51,7 @@ authCheck context =
                           authCheckQuery email (Password pass)
             case eitherUser of
               Right (Just user) -> return (Authorized user)
-              _                 -> return Unauthorized
+              _                 -> return NoSuchUser
   in BasicAuthCheck check
 
 -- Basic Auth check using Scrypt hashes.

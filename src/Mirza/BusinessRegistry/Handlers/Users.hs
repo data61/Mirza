@@ -11,6 +11,7 @@ module Mirza.BusinessRegistry.Handlers.Users
 
 import           Mirza.BusinessRegistry.Database.Schema   hiding (UserId)
 import qualified Mirza.BusinessRegistry.Database.Schema   as Schema
+import           Mirza.BusinessRegistry.SqlUtils
 
 import           Mirza.BusinessRegistry.Handlers.Common
 import           Mirza.BusinessRegistry.Types             as BRT
@@ -21,11 +22,14 @@ import           Database.Beam.Backend.SQL.BeamExtensions
 
 import qualified Crypto.Scrypt                            as Scrypt
 
-import           Control.Lens                             (view, _2)
+import           Control.Lens                             (view, _2, (#))
 import           Control.Monad                            (when)
 import           Control.Monad.IO.Class                   (liftIO)
 import           Data.Maybe                               (isNothing)
 import           Data.Text.Encoding                       (encodeUtf8)
+
+import           GHC.Stack                                (HasCallStack, callStack)
+
 
 -- This function is an interface adapter and adds the BT.AuthUser argument to
 -- addUser so that we can use it from behind the private API. This argument
@@ -40,10 +44,13 @@ addUserAuth _authUser = addUser
 addUser ::  (BRApp context err, HasScryptParams context)
         => NewUser
         -> AppM context err UserId
-addUser = runDb . addUserQuery
+addUser =
+  (handleError (handleSqlUniqueViloation "users_email_address_key" (_UserCreationSQLErrorBRE #)))
+  . runDb
+  . addUserQuery
 
 -- | Hashes the password of the NewUser and inserts the user into the database
-addUserQuery :: (AsBusinessRegistryError err, HasScryptParams context)
+addUserQuery :: (HasCallStack, AsBusinessRegistryError err, HasScryptParams context)
              => NewUser
              -> DB context err UserId
 addUserQuery (BRT.NewUser userEmail password biz firstName lastName phone) = do
@@ -65,8 +72,8 @@ addUserQuery (BRT.NewUser userEmail password biz firstName lastName phone) = do
        ]
   case res of
       [r] -> return $ UserId $ user_id r
-      -- TODO: Have a proper error response
-      _   -> throwing _UserCreationErrorBRE (show res)
+      -- The user creation has failed, but we can't really think of what would lead to this case.
+      _   -> throwing _UserCreationErrorBRE ((show res), callStack)
 
 
 getUserByIdQuery :: UserId -> DB context err (Maybe Schema.User)

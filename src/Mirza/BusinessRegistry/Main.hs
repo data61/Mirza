@@ -37,8 +37,11 @@ import           Data.Text.Encoding                      (encodeUtf8)
 import qualified Crypto.Scrypt                           as Scrypt
 
 import           Control.Exception                       (finally)
+import           Data.Maybe                              (fromMaybe)
 import           Katip                                   as K
-import           System.IO                               (stdout)
+import           System.IO                               (IOMode (AppendMode),
+                                                          hPutStr, openFile,
+                                                          stderr, stdout)
 
 
 
@@ -57,9 +60,8 @@ defaultDatabaseConnectionString = "dbname=devmirzabusinessregistry"
 --------------------------------------------------------------------------------
 -- Command Line Options Data Types
 --------------------------------------------------------------------------------
-
-data ServerOptions = ServerOptions
-  { soGlobals  :: GlobalOptions
+data InitOptionsBR = InitOptionsBR
+  { soGlobals  :: ServerOptionsBR
   , soExecMode :: ExecMode
   }
 
@@ -70,13 +72,14 @@ data ExecMode
   | BusinessAction BusinessCommand
   | PopulateDatabase  -- TODO: This option should be removed....this is for testing and debugging only.
 
-data GlobalOptions = GlobalOptions
-  { goDbConnStr    :: ByteString
-  , goScryptN      :: Integer
-  , goScryptP      :: Integer
-  , goScryptR      :: Integer
-  , goLoggingLevel :: K.Severity
-  , goEnvType      :: CT.EnvType
+data ServerOptionsBR = ServerOptionsBR
+  { sobDbConnStr    :: ByteString
+  , sobScryptN      :: Integer
+  , sobScryptP      :: Integer
+  , sobScryptR      :: Integer
+  , sobLoggingLevel :: K.Severity
+  , sobLogLocation  :: Maybe FilePath
+  , sobEnvType      :: CT.EnvType
   }
 
 data RunServerOptions = RunServerOptions
@@ -97,41 +100,43 @@ data BusinessCommand
 --------------------------------------------------------------------------------
 
 main :: IO ()
-main = multiplexGlobalOptions =<< execParser opts where
+main = multiplexInitOptions =<< execParser opts where
   opts = Options.Applicative.info (serverOptions <**> helper)
     (fullDesc
     <> progDesc "Here to meet all your business registry needs"
     <> header "Supply Chain Business Registry Service")
 
 
--- Handles the overriding global options (this effectively defines the point
+-- Handles the overriding server options (this effectively defines the point
 -- where the single binary could be split into multiple binaries.
-multiplexGlobalOptions :: ServerOptions -> IO ()
-multiplexGlobalOptions (ServerOptions globals mode) = case mode of
-  RunServer opts    -> launchServer globals opts
-  InitDb            -> runMigration globals
-  UserAction uc     -> runUserCommand globals uc
-  BusinessAction bc -> runBusinessCommand globals bc
-  PopulateDatabase  -> runPopulateDatabase globals
+multiplexInitOptions :: InitOptionsBR -> IO ()
+multiplexInitOptions (InitOptionsBR opts mode) = case mode of
+  RunServer rsOpts  -> launchServer opts rsOpts
+  InitDb            -> runMigration opts
+  UserAction uc     -> runUserCommand opts uc
+  BusinessAction bc -> runBusinessCommand opts bc
+  PopulateDatabase  -> runPopulateDatabase opts
 
 
 --------------------------------------------------------------------------------
 -- Service
 --------------------------------------------------------------------------------
 
-launchServer :: GlobalOptions -> RunServerOptions -> IO ()
-launchServer globals options = do
-      let portNumber = rsoPortNumber options
-      ctx <- initBRContext globals
-      app <- initApplication globals options ctx
-      mids <- initMiddleware globals options
+launchServer :: ServerOptionsBR -> RunServerOptions -> IO ()
+launchServer opts rso = do
+      let portNumber = rsoPortNumber rso
+      ctx <- initBRContext opts
+      app <- initApplication opts rso ctx
+      mids <- initMiddleware opts rso
       putStrLn $ "http://localhost:" ++ show portNumber ++ "/swagger-ui/"
       Warp.run (fromIntegral portNumber) (mids app) `finally` closeScribes (BT._brKatipLogEnv ctx)
 
 
-initBRContext :: GlobalOptions -> IO BT.BRContext
-initBRContext opts@(GlobalOptions dbConnStr _ _ _ lev envT) = do
-  handleScribe <- mkHandleScribe ColorIfTerminal stdout lev V3
+initBRContext :: ServerOptionsBR -> IO BT.BRContext
+initBRContext opts@(ServerOptionsBR dbConnStr _ _ _ lev mlogPath envT) = do
+  logHandle <- maybe (pure stdout) (flip openFile AppendMode) mlogPath
+  hPutStr stderr $ "(Logging will be to: " ++ fromMaybe "stdout" mlogPath ++ ") "
+  handleScribe <- mkHandleScribe ColorIfTerminal logHandle lev V3
   logEnv <- initLogEnv "businessRegistry" (Environment . pack . show $ envT)
             >>= registerScribe "stdout" handleScribe defaultScribeSettings
   params <- createScryptParams opts
@@ -143,14 +148,14 @@ initBRContext opts@(GlobalOptions dbConnStr _ _ _ lev envT) = do
   pure $ BRContext envT connpool params logEnv mempty mempty
 
 
-initApplication :: GlobalOptions -> RunServerOptions -> BT.BRContext -> IO Application
+initApplication :: ServerOptionsBR -> RunServerOptions -> BT.BRContext -> IO Application
 initApplication _go _so ev =
   pure $ serveWithContext api
           (basicAuthServerContext ev)
           (server ev)
 
 
-initMiddleware :: GlobalOptions -> RunServerOptions -> IO Middleware
+initMiddleware :: ServerOptionsBR -> RunServerOptions -> IO Middleware
 initMiddleware _ _ = pure id
 
 -- Implementation
@@ -168,7 +173,7 @@ server ev =
 -- Migration Command
 --------------------------------------------------------------------------------
 
-runMigration :: GlobalOptions -> IO ()
+runMigration :: ServerOptionsBR -> IO ()
 runMigration opts = do
   ctx <- initBRContext opts
   res <- runMigrationWithConfirmation @BRContext @SqlError ctx interactiveMigrationConfirm
@@ -179,15 +184,15 @@ runMigration opts = do
 -- User Command
 --------------------------------------------------------------------------------
 
-runUserCommand :: GlobalOptions -> UserCommand -> IO ()
-runUserCommand globals UserList = do
-   ctx <- initBRContext globals
+runUserCommand :: ServerOptionsBR -> UserCommand -> IO ()
+runUserCommand opts UserList = do
+   ctx <- initBRContext opts
    euser <- runAppM ctx $ runDb listUsersQuery
    either (print @BusinessRegistryError) (mapM_ print) euser
 
-runUserCommand globals UserAdd = do
+runUserCommand opts UserAdd = do
   user <- interactivelyGetNewUser
-  ctx <- initBRContext globals
+  ctx <- initBRContext opts
   euser <- runAppM ctx $ runDb (addUserQuery user)
   either (print @BusinessRegistryError) print euser
 
@@ -211,12 +216,12 @@ getUserEmailInteractive = do
       getUserEmailInteractive
     Right email -> pure email
 
-createScryptParams :: GlobalOptions -> IO Scrypt.ScryptParams
-createScryptParams GlobalOptions{goScryptN,goScryptP,goScryptR} =
-  case Scrypt.scryptParams (max goScryptN 14) (max goScryptP 8) (max goScryptR 1) of
+createScryptParams :: ServerOptionsBR -> IO Scrypt.ScryptParams
+createScryptParams ServerOptionsBR{sobScryptN,sobScryptP,sobScryptR} =
+  case Scrypt.scryptParams (max sobScryptN 14) (max sobScryptP 8) (max sobScryptR 1) of
     Just scparams -> pure scparams
     Nothing -> do
-      putStrLn $  "Invalid Scrypt params:" ++ show (goScryptN,goScryptP,goScryptR)
+      putStrLn $  "Invalid Scrypt params:" ++ show (sobScryptN,sobScryptP,sobScryptR)
                ++ " using defaults"
       pure Scrypt.defaultParams
 
@@ -225,15 +230,15 @@ createScryptParams GlobalOptions{goScryptN,goScryptP,goScryptR} =
 -- Business Command
 --------------------------------------------------------------------------------
 
-runBusinessCommand :: GlobalOptions -> BusinessCommand -> IO ()
-runBusinessCommand globals BusinessList = do
-  ctx <- initBRContext globals
+runBusinessCommand :: ServerOptionsBR -> BusinessCommand -> IO ()
+runBusinessCommand opts BusinessList = do
+  ctx <- initBRContext opts
   ebizs <- runAppM ctx $ runDb listBusinessesQuery
   either (print @BusinessRegistryError) (mapM_ print) ebizs
 
-runBusinessCommand globals BusinessAdd = do
+runBusinessCommand opts BusinessAdd = do
   business <- interactivelyGetBusinessT
-  ctx <- initBRContext globals
+  ctx <- initBRContext opts
   ebiz <- runAppM ctx $ runDb (addBusinessQuery business)
   either (print @BusinessRegistryError) print ebiz
 
@@ -252,9 +257,9 @@ prompt message = putStrLn message *> getLine
 -- Populate Database Command : TODO: This is for testing and debugging only and should be removed.
 --------------------------------------------------------------------------------
 
-runPopulateDatabase :: GlobalOptions -> IO ()
-runPopulateDatabase globals = do
-  ctx     <- initBRContext globals
+runPopulateDatabase :: ServerOptionsBR -> IO ()
+runPopulateDatabase opts = do
+  ctx     <- initBRContext opts
 
   b1      <- dummyBusiness "1"
   _result <- runAppM @_ @BusinessRegistryError ctx $ addBusiness b1
@@ -333,9 +338,9 @@ standardCommand name action desciption =
 
 
 -- The standard format of the main command line options is [Command] [Action], this applies to things like business and user.
-serverOptions :: Parser ServerOptions
-serverOptions = ServerOptions
-  <$> globalOptions
+serverOptions :: Parser InitOptionsBR
+serverOptions = InitOptionsBR
+  <$> parsedServerOptions
   <*> subparser
         ( mconcat
           [ standardCommand "server"   runServer "Run HTTP server"
@@ -361,9 +366,8 @@ runServer = RunServer <$>
       )
   )
 
-
-globalOptions :: Parser GlobalOptions
-globalOptions = GlobalOptions
+parsedServerOptions :: Parser ServerOptionsBR
+parsedServerOptions = ServerOptionsBR
   <$> strOption
       (
           long "conn"
@@ -398,6 +402,12 @@ globalOptions = GlobalOptions
       <> showDefault
       <> help ("Logging level: " ++ show [minBound .. maxBound :: Severity])
       )
+    <*> optional (strOption
+        (  long "log-path"
+        <> short 'l'
+        <> help "Path to write log output to (defaults to stdout)"
+        )
+      )
     <*> option auto
       ( long "env" <> short 'e'
       <> value Dev <> showDefault
@@ -409,13 +419,11 @@ globalOptions = GlobalOptions
 initDb :: Parser ExecMode
 initDb = pure InitDb
 
-
 populateDb :: Parser ExecMode
 populateDb = pure PopulateDatabase
 
 userCommand :: Parser ExecMode
 userCommand = UserAction <$> userCommands
-
 
 userCommands :: Parser UserCommand
 userCommands = subparser

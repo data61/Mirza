@@ -9,13 +9,13 @@ import           Mirza.BusinessRegistry.Database.Migrate
 import           Mirza.BusinessRegistry.Main             hiding (main)
 import           Mirza.BusinessRegistry.Types            as BRT
 
-import           Test.Tasty                              hiding (withResource)
-import           Test.Tasty.Runners                      (NumThreads (..))
 import           Test.Hspec.Core.Spec                    (sequential)
+import           Test.Tasty                              hiding (withResource)
 import           Test.Tasty.Hspec                        (around, testSpec)
+import           Test.Tasty.Runners                      (NumThreads (..))
 
-import           Mirza.BusinessRegistry.Tests.Client
 import           Mirza.BusinessRegistry.Tests.Business   (testBizQueries)
+import           Mirza.BusinessRegistry.Tests.Client
 import           Mirza.BusinessRegistry.Tests.Keys       (testKeyQueries)
 
 import           Control.Exception                       (bracket)
@@ -27,6 +27,7 @@ import           Data.Pool                               (withResource)
 import qualified Data.Pool                               as Pool
 
 import           Katip                                   (Severity (DebugS))
+import           System.IO.Temp                          (emptySystemTempFile)
 
 -- dbFunc = withDatabaseDebug putStrLn
 
@@ -62,8 +63,8 @@ openConnection :: IO BRContext
 openConnection = do
   connpool <- defaultPool
   _ <- withResource connpool dropTables -- drop tables before so if already exist no problems... means tables get overwritten though
-
-  ctx <- initBRContext (GlobalOptions testDbConnStr 16 10 4 DebugS Dev)
+  tempFile <- emptySystemTempFile "businessRegistryTests.log"
+  ctx <- initBRContext (ServerOptionsBR testDbConnStr 16 10 4 DebugS (Just tempFile) Dev)
   initRes <- runMigrationWithConfirmation ctx (const (pure Execute))
   case initRes of
     Left err -> print @SqlError err >> error "Database initialisation failed"

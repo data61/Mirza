@@ -158,10 +158,14 @@ instance ToSchema KeyInfoResponse
 
 data BusinessRegistryError
   = DBErrorBRE SqlError
+  | UnmatchedUniqueViolationBRE SqlError
   -- | The user tried to add a business with the a GS1CompanyPrefix that already exsits.
   | GS1CompanyPrefixExistsBRE
   | BusinessDoesNotExistBRE
-  | UserCreationErrorBRE String
+  -- | When adding a user fails with an underlying error arising from the database.
+  | UserCreationSQLErrorBRE SqlError
+  -- | When adding a user fails for an unknown reason.
+  | UserCreationErrorBRE String CallStack
   | KeyErrorBRE KeyError
   -- | An error that isn't specifically excluded by the types, but that the
   -- | developers don't think is possible to hit, or know of a situation which

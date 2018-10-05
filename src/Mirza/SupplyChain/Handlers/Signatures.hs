@@ -29,7 +29,7 @@ import qualified Data.GS1.EventId                             as EvId
 import           Database.Beam                                as B
 import           Database.Beam.Backend.SQL.BeamExtensions
 
-import           OpenSSL (withOpenSSL)
+import           OpenSSL                                      (withOpenSSL)
 import qualified OpenSSL.EVP.Digest                           as EVPDigest
 import           OpenSSL.EVP.PKey                             (toPublicKey)
 import           OpenSSL.EVP.Verify                           (VerifyStatus (..),
@@ -42,6 +42,7 @@ import           Control.Monad.Error.Hoist                    ((<!?>), (<%?>))
 
 import qualified Data.ByteString.Base64                       as BS64
 import qualified Data.ByteString.Char8                        as BSC
+
 import           Data.Char                                    (toLower)
 import           Data.Text                                    (unpack)
 import qualified Data.Text                                    as T
@@ -92,7 +93,7 @@ addUserToEventQuery (EventOwner lUserId@(ST.UserId loggedInUserId))
    Lets do this after we have everything compiling.
 -}
 
-eventSign :: (HasClientEnv context, AsServantError err, SCSApp context err)
+eventSign :: (HasBRClientEnv context, AsServantError err, SCSApp context err)
           => ST.User
           -> SignedEvent
           -> AppM context err PrimaryKeyType
@@ -102,7 +103,7 @@ eventSign _user (SignedEvent eventId keyId (ST.Signature sigStr) digest') = do
   (pubKey :: RSAPubKey) <- liftIO
       (toPublicKey <$> (readPublicKey . unpack $ keyStr))
       <!?> review _InvalidRSAKeyInDB keyStr
-  sigBS <- BS64.decode (BSC.pack sigStr) <%?> review _InvalidSignature
+  sigBS <- BS64.decode (BSC.pack sigStr) <%?> review _Base64DecodeFailure
   digest <- liftIO (makeDigest digest') <!?> review _InvalidDigest digest'
   runDb $ do
     event <- getEventJSON eventId
@@ -110,7 +111,7 @@ eventSign _user (SignedEvent eventId keyId (ST.Signature sigStr) digest') = do
     verifyStatus <- liftIO $ verifyBS digest sigBS pubKey eventBS
     if verifyStatus == VerifySuccess
       then insertSignature eventId keyId (ST.Signature sigStr) digest'
-      else throwing _InvalidSignature sigStr
+      else throwing _SigVerificationFailure sigStr
 
 -- TODO: Should this return Text or a JSON value?
 getEventJSON :: AsServiceError err => EvId.EventId -> DB context err T.Text
