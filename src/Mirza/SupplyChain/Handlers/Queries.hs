@@ -65,12 +65,12 @@ eventInfoQuery _user eventId@(EvId.EventId eId) = do
   mschemaEvent <- findSchemaEvent (Schema.EventId eId)
   unless (isJust mschemaEvent) $ throwing _InvalidEventId eventId
   let (Just schemaEvent) = mschemaEvent
-  let (Just event) = storageToModelEvent schemaEvent
-  let unsignedUserIds = map (ST.userId . fst) $ filter (not . snd) usersWithEvent
+      (Just event) = storageToModelEvent schemaEvent
+      unsignedUserIds = map (ST.userId . fst) $ filter (not . snd) usersWithEvent
       signedUserIds = (ST.userId . fst) <$> filter snd usersWithEvent
   signedEvents <- mapM ((flip findSignedEventByUser) eventId) signedUserIds
   let usersAndSignedEvents = zip signedUserIds signedEvents
-  return $ EventInfo event usersAndSignedEvents unsignedUserIds (constructEventToSign event) NotSent
+  pure $ EventInfo event usersAndSignedEvents unsignedUserIds (constructEventToSign event) NotSent
 
 
 -- |List events that a particular user was/is involved with
@@ -106,9 +106,8 @@ eventUserSignedList :: EvId.EventId -> DB context err [(ST.User, Bool)]
 eventUserSignedList (EvId.EventId eventId) = do
   usersSignedList <- pg $ runSelectReturningList $ select $ do
     userEvent <- all_ (Schema._user_events Schema.supplyChainDb)
-    user <- all_ (Schema._users Schema.supplyChainDb)
     guard_ (Schema.user_events_event_id userEvent ==. val_ (Schema.EventId eventId))
-    guard_ (Schema.user_events_user_id userEvent `references_` user)
+    user <- related_ (Schema._users Schema.supplyChainDb) (Schema.user_events_user_id userEvent)
     pure (user, Schema.user_events_has_signed userEvent)
   return $ bimap userTableToModel id <$> usersSignedList
 
