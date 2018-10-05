@@ -170,7 +170,7 @@ updateUserEventSignature (ST.UserId userId) (EvId.EventId eventId) hasSignedNew 
 findSignatureByEvent :: (AsServiceError err)
                      => EvId.EventId
                      -> DB context err [Schema.Signature]
-findSignatureByEvent eventId@(EvId.EventId eId) =
+findSignatureByEvent (EvId.EventId eId) =
   pg $ runSelectReturningList $ select $ do
     sig <- all_ (Schema._signatures Schema.supplyChainDb)
     guard_ ((Schema.signature_event_id sig) ==. (val_ (Schema.EventId eId)))
@@ -187,7 +187,7 @@ findSignatureByUser :: AsServiceError err
                     => ST.UserId
                     -> EvId.EventId
                     -> DB context err Schema.Signature
-findSignatureByUser (ST.UserId uId) eventId@(EvId.EventId eId) = do
+findSignatureByUser (ST.UserId uId) (EvId.EventId eId) = do
   r <- pg $ runSelectReturningList $ select $ do
     sig <- all_ (Schema._signatures Schema.supplyChainDb)
     guard_ ((Schema.signature_event_id sig) ==. (val_ (Schema.EventId eId)) &&.
@@ -195,7 +195,7 @@ findSignatureByUser (ST.UserId uId) eventId@(EvId.EventId eId) = do
     pure sig
   case r of
     [sig] -> return sig
-    _     -> throwBackendError "Invalid User - Event pair" -- TODO: wrong error to throw here
+    _     -> throwBackendError ("Invalid User - Event pair" :: String) -- TODO: wrong error to throw here
 
 findSignedEventByUser :: AsServiceError err
                       => ST.UserId
