@@ -76,8 +76,8 @@ addUserToEventQuery (EventOwner lUserId@(ST.UserId loggedInUserId))
   if userCreatedEvent
     then insertUserEvent
             (Schema.EventId eventId)
-            (Schema.UserId loggedInUserId)
             (Schema.UserId otherUserId)
+            (Schema.UserId loggedInUserId)
             False Nothing
     else throwing _EventPermissionDenied (lUserId, evId)
 
