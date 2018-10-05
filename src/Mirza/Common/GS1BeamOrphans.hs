@@ -60,7 +60,6 @@ import           GHC.Generics                         (Generic)
 
 import           Text.Email.Validate                  (EmailAddress, validate)
 
--- Type definitions
 import           Data.Swagger
 import           Servant                              (FromHttpApiData (..),
                                                        ToHttpApiData (..))
@@ -558,7 +557,7 @@ instance BSQL.FromBackendRow BPostgres.Postgres EPC.LocationEPC where
   fromBackendRow = either (fail . show) pure . EPC.readURI =<< BSQL.fromBackendRow
 
 instance FromField EPC.LocationEPC where
-  fromField fld mbs = do
+  fromField fld mbs =
     either (fail . show) pure . EPC.readURI =<< fromField fld mbs
 
 instance ToField EPC.LocationEPC where
