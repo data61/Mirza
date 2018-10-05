@@ -205,7 +205,7 @@ clientSpec = do
           step "Adding a giver user to SCS"
           uidGiver <- httpSCS (addUser userABC)
           uidGiver `shouldSatisfy` isRight
-          let (Right userIdGiver) = uidGiver
+          -- let (Right userIdGiver) = uidGiver
 
           step "Adding business for the Giver"
           let prefixGiver = GS1CompanyPrefix "1000001"
