@@ -179,9 +179,7 @@ findSignatureByEvent (EvId.EventId eId) =
 findSignedEventByEvent :: (AsServiceError err)
                        => EvId.EventId
                        -> DB context err [ST.SignedEvent]
-findSignedEventByEvent eventId = do
-  sigList <- findSignatureByEvent eventId
-  return $ signatureToSignedEvent <$> sigList
+findSignedEventByEvent eventId = fmap signatureToSignedEvent <$> findSignatureByEvent eventId
 
 findSignatureByUser :: AsServiceError err
                     => ST.UserId
@@ -201,10 +199,7 @@ findSignedEventByUser :: AsServiceError err
                       => ST.UserId
                       -> EvId.EventId
                       -> DB context err ST.SignedEvent
-findSignedEventByUser uId eventId = do
-  sig <- findSignatureByUser uId eventId
-  return $ signatureToSignedEvent sig
-
+findSignedEventByUser uId eventId = signatureToSignedEvent <$> (findSignatureByUser uId eventId)
 
 signatureToSignedEvent :: Schema.Signature -> ST.SignedEvent
 signatureToSignedEvent

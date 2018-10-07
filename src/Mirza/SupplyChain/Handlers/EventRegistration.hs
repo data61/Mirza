@@ -577,9 +577,7 @@ findEvent :: AsServiceError err
           -> DB context err (Maybe Ev.Event)
 findEvent eventId = do
   mschemaEvent <- findSchemaEvent eventId
-  case mschemaEvent of
-    Just event -> return $ QU.storageToModelEvent event
-    Nothing    -> return Nothing
+  pure $ mschemaEvent >>= QU.storageToModelEvent
 
 findSchemaEvent :: AsServiceError err
                 => Schema.EventId
