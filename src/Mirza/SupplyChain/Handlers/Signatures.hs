@@ -21,7 +21,6 @@ import           Mirza.SupplyChain.ErrorUtils                 (throwBackendError
 import           Mirza.SupplyChain.Handlers.Common
 import           Mirza.SupplyChain.Handlers.EventRegistration (hasUserCreatedEvent,
                                                                insertUserEvent)
-import qualified Mirza.SupplyChain.QueryUtils                 as QU
 import           Mirza.SupplyChain.Types                      hiding
                                                                (NewUser (..),
                                                                User (userId),
@@ -51,6 +50,7 @@ import qualified Data.ByteString.Char8                        as BSC
 import           Data.Char                                    (toLower)
 import           Data.Text                                    (unpack)
 import qualified Data.Text                                    as T
+import           Data.Text.Encoding                           (encodeUtf8)
 
 import           Mirza.BusinessRegistry.Client.Servant        (getPublicKey)
 
@@ -111,8 +111,8 @@ eventSign user (SignedEvent eventId keyId (ST.Signature sigStr) digest') = do
   sigBS <- BS64.decode (BSC.pack sigStr) <%?> review _Base64DecodeFailure
   digest <- liftIO (makeDigest digest') <!?> review _InvalidDigest digest'
   runDb $ do
-    event <- getEventJSON eventId
-    let eventBS = QU.eventTxtToBS event
+    eventTxt <- getEventJSON eventId
+    let eventBS = encodeUtf8 eventTxt
     verifyStatus <- liftIO $ verifyBS digest sigBS pubKey eventBS
     if verifyStatus == VerifySuccess
       then insertSignature (ST.userId user) eventId keyId (ST.Signature sigStr) digest'

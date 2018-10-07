@@ -11,7 +11,6 @@ module Mirza.SupplyChain.QueryUtils
   (
     storageToModelEvent, userTableToModel
   , encodeEventToJSON, decodeEventFromJSON, constructEventToSign
-  , eventTxtToBS
   , handleError
   , withPKey
   ) where
@@ -25,9 +24,7 @@ import qualified Data.GS1.Event                    as Ev
 
 import           Data.Aeson                        (decode)
 import           Data.Aeson.Text                   (encodeToLazyText)
-import           Data.ByteString                   (ByteString)
 import qualified Data.Text                         as T
-import qualified Data.Text.Encoding                as En
 import qualified Data.Text.Lazy                    as TxtL
 import qualified Data.Text.Lazy.Encoding           as LEn
 
@@ -73,11 +70,6 @@ constructEventToSign = encodeEventToJSON
 
 encodeEventToJSON :: Ev.Event -> T.Text
 encodeEventToJSON event = TxtL.toStrict  (encodeToLazyText event)
-
--- XXX is this the right encoding to use? It's used for checking signatures
--- and hashing the json.
-eventTxtToBS :: T.Text -> ByteString
-eventTxtToBS = En.encodeUtf8
 
 decodeEventFromJSON :: T.Text -> Maybe Ev.Event
 decodeEventFromJSON = decode . LEn.encodeUtf8 . TxtL.fromStrict
