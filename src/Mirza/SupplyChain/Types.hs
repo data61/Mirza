@@ -327,6 +327,7 @@ data ServiceError
   | ParseError             EPC.ParseFailure
   | BackendErr             Text -- fallback
   | DatabaseError          SqlError
+  | UnmatchedUniqueViolation SqlError
   | ServantErr             ServantError
   deriving (Show, Eq, Generic)
 $(makeClassyPrisms ''ServiceError)
