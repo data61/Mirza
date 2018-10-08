@@ -32,10 +32,6 @@ appErrToHttpErr (EmailExists userEmail) =
   throwError $ err400 {
     errBody = LBSC8.fromChunks ["User email ", toByteString userEmail, " exists."]
   }
-appErrToHttpErr (EmailNotFound userEmail) =
-  throwError $ err400 {
-    errBody = LBSC8.fromChunks ["User email ", toByteString userEmail, " not found."]
-  }
 appErrToHttpErr (InvalidKeyId _) =
   throwError $ err400 {
     errBody = "Invalid Key Id entered."
@@ -76,6 +72,8 @@ appErrToHttpErr (EventPermissionDenied _ _) =
   }
 appErrToHttpErr (UserNotFound _) =
   throwError $ err404 { errBody = "Invalid username or password." }
+appErrToHttpErr (EmailNotFound _) =
+  throwError $ err404 { errBody = "User not found." }
 appErrToHttpErr (InvalidRSAKeyInDB _) = generic500err
 appErrToHttpErr (InsertionFail _ _email) = generic500err
 appErrToHttpErr (BlockchainSendFailed _) = generic500err
