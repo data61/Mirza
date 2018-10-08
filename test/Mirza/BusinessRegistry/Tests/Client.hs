@@ -33,7 +33,7 @@ import           Test.Hspec.Expectations
 import           Test.Tasty
 import           Test.Tasty.HUnit
 
-import           Data.GS1.EPC                          (GS1CompanyPrefix (..))
+import           Data.GS1.EPC                          (GS1CompanyPrefix (..), LocationEPC(SGLN), LocationReference(LocationReference))
 
 import           Mirza.BusinessRegistry.Client.Servant
 import           Mirza.BusinessRegistry.Types
@@ -470,12 +470,42 @@ clientSpec = do
 
           step "Can't add any of the bad keys"
           testDirectory "badKeys" isLeft
+  let locationTests = testCaseSteps "That locations work as expected" $ \step ->
+        bracket runBRApp (\(a,b,_) -> endWaiApp (a,b)) $ \(_tid, baseurl, brAuthUser) -> do
+          password <- randomPassword
+          let http = runClient baseurl
+              biz1Prefix = (GS1CompanyPrefix "5000001")
+              biz1 = NewBusiness biz1Prefix "locationTests_businessName1"
+              biz2Prefix = (GS1CompanyPrefix "5000002")
+              biz2 = NewBusiness biz2Prefix "locationTests_businessName2"
+
+          -- Business1User1
+          let userB1U1 = NewUser (EmailAddress "locationTests_email1@example.com")
+                                password
+                                biz1Prefix
+                                "locationTests First Name 1"
+                                "locationTests Last Name 1"
+                                "locationTests Phone Number 1"
+          _ <- http (addBusiness brAuthUser biz1)
+          _ <- http (addBusiness brAuthUser biz2)
+
+          _userB1U1Response <- http (addUser brAuthUser userB1U1)
+
+          
+          step "Can Add a Location"
+          let newLoc1 = NewLocation (SGLN biz1Prefix (LocationReference "98765") Nothing)
+                                    (Just (Latitude 1.0, Longitude 2.0))
+                                    (Just "42 Wallby Way, Sydney")
+          b1K1StoredKeyIdResult <- http (addLocation brAuthUser newLoc1)
+          b1K1StoredKeyIdResult `shouldSatisfy` isRight
+
 
 
   pure $ testGroup "Business Registry HTTP Client tests"
         [ businessTests
         , userTests
         , keyTests
+        , locationTests
         ]
 
 -- Test helper function that enables a predicate to be run on the result of a

@@ -3,6 +3,7 @@
 {-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE StandaloneDeriving         #-}
 {-# LANGUAGE TemplateHaskell            #-}
+{-# LANGUAGE UndecidableInstances       #-}
 
 module Mirza.BusinessRegistry.Types (
     module Mirza.BusinessRegistry.Types
@@ -15,13 +16,18 @@ import           Mirza.Common.Time                      (CreationTime,
 import           Mirza.Common.Types                     as CT
 import           Mirza.Common.Utils
 
-import qualified Mirza.BusinessRegistry.Database.Schema as Schema
-
 import           Data.GS1.EPC                           as EPC
 
 import           Data.Pool                              as Pool
-import           Database.Beam                          as B
+
+import           Database.Beam
+import           Database.Beam.Backend.SQL
+import           Database.Beam.Postgres.Syntax (PgDataTypeSyntax)
 import           Database.PostgreSQL.Simple             (Connection, SqlError)
+import           Database.PostgreSQL.Simple.FromField (FromField, fromField)
+import           Database.PostgreSQL.Simple.ToField   (ToField, toField)
+import qualified Database.Beam.Migrate      as BMigrate
+import qualified Database.Beam.Postgres     as BPostgres
 
 import           Crypto.Scrypt                          (ScryptParams)
 
@@ -117,6 +123,91 @@ instance ToSchema BusinessResponse
 instance ToJSON BusinessResponse
 instance FromJSON BusinessResponse
 
+data NewLocation = NewLocation
+  { newLocGLN     :: LocationEPC
+  , newLocCoords  :: Maybe (Latitude, Longitude)
+  , newLocAddress :: Maybe Text
+  }
+  deriving (Show, Eq, Generic)
+
+instance ToSchema NewLocation
+instance ToJSON NewLocation
+instance FromJSON NewLocation
+
+newtype Latitude  = Latitude  { getLatitude  :: Double }
+        deriving (Show, Eq, Ord, FromJSON, ToJSON, Generic)
+newtype Longitude = Longitude { getLongitude :: Double }
+        deriving (Show, Eq, Ord, FromJSON, ToJSON, Generic)
+
+instance ToSchema Latitude
+instance ToSchema Longitude
+
+instance HasSqlValueSyntax be Double
+      => HasSqlValueSyntax be Latitude where
+  sqlValueSyntax = sqlValueSyntax . getLatitude
+instance (BMigrate.IsSql92ColumnSchemaSyntax be)
+      => BMigrate.HasDefaultSqlDataTypeConstraints be Latitude
+
+instance ( HasSqlValueSyntax (Sql92ExpressionValueSyntax be) Bool
+         , IsSql92ExpressionSyntax be)
+      => HasSqlEqualityCheck be Latitude
+instance ( HasSqlValueSyntax (Sql92ExpressionValueSyntax be) Bool
+         , IsSql92ExpressionSyntax be)
+      => HasSqlQuantifiedEqualityCheck be Latitude
+
+instance FromBackendRow BPostgres.Postgres Latitude where
+  fromBackendRow = Latitude <$> fromBackendRow
+
+instance FromField Latitude where
+  fromField fld mbs = Latitude <$> fromField fld mbs
+
+instance ToField Latitude where
+  toField = toField . getLatitude
+
+latitudeType :: BMigrate.DataType PgDataTypeSyntax Latitude
+latitudeType = BMigrate.DataType doubleType
+
+
+instance HasSqlValueSyntax be Double 
+      => HasSqlValueSyntax be Longitude where
+  sqlValueSyntax = sqlValueSyntax . getLongitude
+instance BMigrate.IsSql92ColumnSchemaSyntax be
+      => BMigrate.HasDefaultSqlDataTypeConstraints be Longitude
+
+instance ( HasSqlValueSyntax (Sql92ExpressionValueSyntax be) Bool
+         , IsSql92ExpressionSyntax be)
+      => HasSqlEqualityCheck be Longitude
+instance ( HasSqlValueSyntax (Sql92ExpressionValueSyntax be) Bool
+         , IsSql92ExpressionSyntax be)
+      => HasSqlQuantifiedEqualityCheck be Longitude
+
+instance FromBackendRow BPostgres.Postgres Longitude where
+  fromBackendRow = Longitude <$> fromBackendRow
+
+instance FromField Longitude where
+  fromField fld mbs = Longitude <$> fromField fld mbs
+
+instance ToField Longitude where
+  toField = toField . getLongitude
+
+longitudeType :: BMigrate.DataType PgDataTypeSyntax Longitude
+longitudeType = BMigrate.DataType doubleType
+
+
+data LocationResponse = LocationResponse
+  { locationId    :: PrimaryKeyType
+  , locationGLN   :: EPC.LocationEPC
+  , locationBiz   :: GS1CompanyPrefix
+  , geoLocId      :: PrimaryKeyType
+  , geoLocCoord   :: Maybe (Latitude, Longitude)
+  , geoLocAddress :: Maybe Text
+  } deriving (Show, Generic)
+
+
+instance ToSchema LocationResponse
+instance ToJSON LocationResponse
+instance FromJSON LocationResponse
+
 data KeyState
   = InEffect -- Can be used
   | Revoked -- Key passed the revocation time
@@ -125,6 +216,8 @@ data KeyState
 $(deriveJSON defaultOptions ''KeyState)
 instance ToSchema KeyState
 instance ToParamSchema KeyState
+
+
 
 -- *****************************************************************************
 -- Signing and Hashing Types
@@ -167,9 +260,11 @@ data BusinessRegistryError
   -- | When adding a user fails for an unknown reason.
   | UserCreationErrorBRE String CallStack
   | KeyErrorBRE KeyError
+  | LocationNotKnownBRE
+  | LocationExistsBRE
   -- | An error that isn't specifically excluded by the types, but that the
-  -- | developers don't think is possible to hit, or know of a situation which
-  -- | could cause this case to be excercised.
+  -- developers don't think is possible to hit, or know of a situation which
+  -- could cause this case to be excercised.
   | UnexpectedErrorBRE CallStack
   deriving (Show, Generic)
 
@@ -190,7 +285,7 @@ data KeyError
   -- this error it might be a good time to re-evaulate whether it is better to
   -- fix the storage datatype so its not possible to generate this error in the
   -- first place.
-  | InvalidRevocation (Maybe LocalTime) (PrimaryKey Schema.UserT (Nullable Identity)) CallStack
+  | InvalidRevocation (Maybe LocalTime) (Maybe PrimaryKeyType) CallStack
   | AddedExpiredKey
   deriving (Show)
 

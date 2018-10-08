@@ -28,6 +28,7 @@ library
                     , Mirza.BusinessRegistry.Handlers.Business
                     , Mirza.BusinessRegistry.Handlers.Common
                     , Mirza.BusinessRegistry.Handlers.Keys
+                    , Mirza.BusinessRegistry.Handlers.Location
                     , Mirza.BusinessRegistry.Main
                     , Mirza.BusinessRegistry.Service
                     , Mirza.BusinessRegistry.Handlers.Users
