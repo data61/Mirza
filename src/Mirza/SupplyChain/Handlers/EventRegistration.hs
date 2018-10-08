@@ -393,10 +393,10 @@ toStorageEvent :: Schema.EventId
                -> Maybe EvId.EventId
                -> Schema.UserId
                -> T.Text
-               -> T.Text
+               -> ByteString
                -> Schema.Event
-toStorageEvent (Schema.EventId pKey) mEventId =
-  Schema.Event pKey (EvId.unEventId <$> mEventId)
+toStorageEvent (Schema.EventId pKey) mEventId userId jsonEvent toSignEvent =
+  Schema.Event pKey (EvId.unEventId <$> mEventId) userId jsonEvent toSignEvent
 
 insertDWhat :: Maybe PrimaryKeyType
             -> DWhat
@@ -497,7 +497,7 @@ constructLocation whereT =
 
 insertEvent :: Schema.UserId
             -> T.Text
-            -> T.Text
+            -> ByteString
             -> Ev.Event
             -> DB context err Schema.EventId
 insertEvent userId jsonEvent toSignEvent event = fmap (Schema.EventId <$>) QU.withPKey $ \pKey ->
@@ -577,7 +577,7 @@ findEvent :: AsServiceError err
           -> DB context err (Maybe Ev.Event)
 findEvent eventId = do
   mschemaEvent <- findSchemaEvent eventId
-  pure $ mschemaEvent >>= QU.storageToModelEvent
+  pure $ mschemaEvent >>= (Just . QU.storageToModelEvent)
 
 findSchemaEvent :: AsServiceError err
                 => Schema.EventId
@@ -590,6 +590,7 @@ findSchemaEvent (Schema.EventId eventId) = do
         pure event
   case r of
     [event] -> return $ Just event
+    []      -> return Nothing
     -- TODO: Do the right thing here
     _       -> throwBackendError r
 
