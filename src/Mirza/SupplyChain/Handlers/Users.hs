@@ -12,6 +12,7 @@ import           Mirza.SupplyChain.ErrorUtils             (throwBackendError,
                                                            toServerError)
 import           Mirza.SupplyChain.Handlers.Common
 import           Mirza.SupplyChain.QueryUtils
+import           Mirza.SupplyChain.SqlUtils
 import           Mirza.SupplyChain.Types                  hiding (NewUser (..),
                                                            User (userId))
 import qualified Mirza.SupplyChain.Types                  as ST
@@ -24,7 +25,8 @@ import           Database.PostgreSQL.Simple.Internal      (SqlError (..))
 
 import qualified Crypto.Scrypt                            as Scrypt
 
-import           Control.Lens                             (view, (^?), _2)
+import           Control.Lens                             (view, ( # ), (^?),
+                                                           _2)
 import           Control.Monad.Except                     (MonadError,
                                                            throwError)
 import           Control.Monad.IO.Class                   (liftIO)
@@ -33,7 +35,15 @@ import           Data.Text.Encoding                       (encodeUtf8)
 addUser :: (SCSApp context err, HasScryptParams context)
         => ST.NewUser
         -> AppM context err ST.UserId
-addUser = runDb . addUserQuery
+addUser user =
+    handleError
+      (handleSqlUniqueViloation
+        "users_user_email_address_key"
+        (const $ _EmailExists # (ST.newUserEmailAddress user))
+      )
+  . runDb
+  . addUserQuery
+  $ user
 
 
 -- | Hashes the password of the ST.NewUser and inserts the user into the database
