@@ -5,20 +5,14 @@ module Mirza.BusinessRegistry.SqlUtils
   ) where
 
 
-import           Mirza.BusinessRegistry.Types      as BT
-import qualified Mirza.Common.Utils                as Utils
+import           Mirza.BusinessRegistry.Types as BT
+import qualified Mirza.Common.Utils           as Utils
 
-import           Database.PostgreSQL.Simple        (SqlError (..))
-import           Database.PostgreSQL.Simple.Errors (ConstraintViolation (UniqueViolation),
-                                                    constraintViolation)
+import           Database.PostgreSQL.Simple   (SqlError (..))
 
-import           Control.Lens                      (( # ), (^?))
-
-import           Control.Monad.Except              (catchError, throwError)
+import           Control.Lens                 (( # ))
 
 import           Data.ByteString
-
-
 
 handleSqlUniqueViloation  :: (AsSqlError err, AsBusinessRegistryError err, MonadError err m, MonadIO m)
                           => ByteString        -- ^ UniqueViolation name.

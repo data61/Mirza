@@ -10,9 +10,7 @@ import           Mirza.SupplyChain.Types    as ST
 
 import           Database.PostgreSQL.Simple (SqlError (..))
 
-import           Control.Lens               (( # ), (^?))
-
-import           Control.Monad.Except       (catchError, throwError)
+import           Control.Lens               (( # ))
 
 import           Data.ByteString            (ByteString)
 

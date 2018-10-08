@@ -32,6 +32,10 @@ appErrToHttpErr (EmailExists userEmail) =
   throwError $ err400 {
     errBody = LBSC8.fromChunks ["User email ", toByteString userEmail, " exists."]
   }
+appErrToHttpErr (EmailNotFound userEmail) =
+  throwError $ err400 {
+    errBody = LBSC8.fromChunks ["User email ", toByteString userEmail, " not found."]
+  }
 appErrToHttpErr (InvalidKeyId _) =
   throwError $ err400 {
     errBody = "Invalid Key Id entered."
@@ -78,6 +82,7 @@ appErrToHttpErr (BlockchainSendFailed _) = generic500err
 appErrToHttpErr (BackendErr _) = generic500err
 appErrToHttpErr (DatabaseError _) = generic500err
 appErrToHttpErr (ST.ServantErr _) = generic500err
+appErrToHttpErr (UnmatchedUniqueViolation _) = generic500err
 
 generic500err :: Handler a
 generic500err = throwError err500 {errBody = "Something went wrong"}
