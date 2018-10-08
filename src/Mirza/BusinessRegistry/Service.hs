@@ -113,7 +113,7 @@ brErrorToHttpError x@(UnexpectedErrorBRE _reason)            = liftIO (print x) 
 brErrorToHttpError x@(UnmatchedUniqueViolationBRE _sqlError) = liftIO (print x) >> notImplemented
 brErrorToHttpError x@(LocationNotKnownBRE)                   =
   throwHttpError err404 "Unknown GLN"
-brErrorToHttpError (LocationExistsBRE)                     = 
+brErrorToHttpError (LocationExistsBRE)                     =
   throwHttpError err409 "Location already exists for this GLN"
 brErrorToHttpError (GS1CompanyPrefixExistsBRE) =
   throwHttpError err400 "GS1 company prefix already exists."
@@ -128,21 +128,21 @@ userCreationError = throwHttpError err400 "Unable to create user."
 
 
 keyErrorToHttpError :: KeyError -> Handler a
-keyErrorToHttpError (InvalidRSAKey _) =
+keyErrorToHttpError (InvalidRSAKeyBRE _) =
   throwHttpError err400 "Failed to parse RSA Public key."
-keyErrorToHttpError (InvalidRSAKeySize (Expected (Bit expSize)) (Received (Bit recSize))) =
+keyErrorToHttpError (InvalidRSAKeySizeBRE (Expected (Bit expSize)) (Received (Bit recSize))) =
   throwHttpError err400 (BSL8.pack $ printf "Invalid RSA Key size. Expected: %d Bits, Received: %d Bits\n" expSize recSize)
-keyErrorToHttpError KeyAlreadyRevoked =
+keyErrorToHttpError KeyAlreadyRevokedBRE =
   throwHttpError err400 "Public key already revoked."
-keyErrorToHttpError KeyAlreadyExpired =
+keyErrorToHttpError KeyAlreadyExpiredBRE =
   throwHttpError err400 "Public key already expired."
-keyErrorToHttpError UnauthorisedKeyAccess =
+keyErrorToHttpError UnauthorisedKeyAccessBRE =
   throwHttpError err403 "Not authorised to access this key."
-keyErrorToHttpError (PublicKeyInsertionError _) =
+keyErrorToHttpError (PublicKeyInsertionErrorBRE _) =
   throwHttpError err500 "Public key could not be inserted."
-keyErrorToHttpError (KeyNotFound _) =
+keyErrorToHttpError (KeyNotFoundBRE _) =
   throwHttpError err404 "Public key with the given id not found."
-keyErrorToHttpError (InvalidRevocation _ _ _) =
+keyErrorToHttpError (InvalidRevocationBRE _ _ _) =
   throwHttpError err500 "Key has been revoked but in an invalid way."
-keyErrorToHttpError (AddedExpiredKey) =
+keyErrorToHttpError (AddedExpiredKeyBRE) =
   throwHttpError err400 "Can't add a key that has already expired."
