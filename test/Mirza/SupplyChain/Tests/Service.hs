@@ -22,6 +22,8 @@ import           Mirza.SupplyChain.Handlers.Users
 import           Mirza.SupplyChain.Types                      as ST
 
 import           Control.Monad                                (void)
+import           Control.Monad.Except                         (catchError)
+
 import           Data.Either                                  (isLeft)
 import           Data.GS1.EPC                                 (GS1CompanyPrefix (..))
 import           Data.Maybe                                   (fromJust)
@@ -97,13 +99,12 @@ testServiceQueries = do
               (Schema.user_id u) == uid
             )
     it "addUser test users with duplicate emails" $ \scsContext -> do
-      res <- testAppM scsContext $  do
-        uid <- addUser dummyNewUser
-        uidDuplicate <- addUser dummyNewUser
-        pure (uid, uidDuplicate)
-      case res of
-        -- (_, _) -> fail "Received Nothing for user"
-        ((ST.UserId _uid), _failure) -> 1 `shouldBe` (1 :: Int)
+      testAppM scsContext $  do
+        _ <- addUser dummyNewUser
+        catchError (addUser dummyNewUser *> pure ()) $ \err -> case err of
+          AppError (EmailExists _) -> pure ()
+          _                        -> throwError err
+        pure ()
   describe "authCheck tests" $
     it "authCheck test 1" $ \scsContext -> do
       res <- testAppM scsContext $ do
