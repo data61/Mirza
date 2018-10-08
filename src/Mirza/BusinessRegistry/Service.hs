@@ -108,12 +108,12 @@ throwHttpError httpStatus errorMessage = throwError $ httpStatus { errBody = err
 -- | Takes in a BusinessRegistryError and converts it to an HTTP error (eg. err400)
 brErrorToHttpError :: BusinessRegistryError -> Handler a
 brErrorToHttpError (KeyErrorBRE kError) = keyErrorToHttpError kError
-brErrorToHttpError x@(DBErrorBRE _sqlError)                  = liftIO (print x) >> notImplemented
-brErrorToHttpError x@(UnexpectedErrorBRE _reason)            = liftIO (print x) >> notImplemented
-brErrorToHttpError x@(UnmatchedUniqueViolationBRE _sqlError) = liftIO (print x) >> notImplemented
-brErrorToHttpError x@(LocationNotKnownBRE)                   =
+brErrorToHttpError x@(DBErrorBRE _sqlError)       = unexpectedError
+brErrorToHttpError x@(UnexpectedErrorBRE _reason) = unexpectedError
+brErrorToHttpError x@(UnmatchedUniqueViolationBRE _sqlError) = unexpectedError
+brErrorToHttpError x@(LocationNotKnownBRE) =
   throwHttpError err404 "Unknown GLN"
-brErrorToHttpError (LocationExistsBRE)                     =
+brErrorToHttpError (LocationExistsBRE) =
   throwHttpError err409 "Location already exists for this GLN"
 brErrorToHttpError (GS1CompanyPrefixExistsBRE) =
   throwHttpError err400 "GS1 company prefix already exists."
@@ -121,6 +121,12 @@ brErrorToHttpError (BusinessDoesNotExistBRE) =
   throwHttpError err400 "Business does not exist."
 brErrorToHttpError (UserCreationErrorBRE _ _) = userCreationError
 brErrorToHttpError (UserCreationSQLErrorBRE _) = userCreationError
+
+-- | A generic internal server error has occured. We include no more information in the result returned to the user to
+-- limit further potential for exploitation, under the expectation that we log the errors to somewhere that is reviewed
+-- regularly so that the development team are informed and can identify and patch the underlying issues.
+unexpectedError :: Handler a
+unexpectedError = throwHttpError err500 "An unknown error has occured."
 
 -- | A common function for handling user errors uniformly irrespective of what the underlying cause is.
 userCreationError :: Handler a
