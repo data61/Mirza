@@ -31,8 +31,6 @@ import qualified Data.Text.Encoding                as En
 import qualified Data.Text.Lazy                    as TxtL
 import qualified Data.Text.Lazy.Encoding           as LEn
 
-import           Control.Monad.Except              (MonadError, catchError)
-
 
 -- | Handles the common case of generating a primary key, using it in some
 -- transaction and then returning the primary key.
