@@ -168,7 +168,7 @@ latitudeType :: BMigrate.DataType PgDataTypeSyntax Latitude
 latitudeType = BMigrate.DataType doubleType
 
 
-instance HasSqlValueSyntax be Double 
+instance HasSqlValueSyntax be Double
       => HasSqlValueSyntax be Longitude where
   sqlValueSyntax = sqlValueSyntax . getLongitude
 instance BMigrate.IsSql92ColumnSchemaSyntax be
@@ -269,13 +269,13 @@ data BusinessRegistryError
   deriving (Show, Generic)
 
 data KeyError
-  = InvalidRSAKey PEM_RSAPubKey
-  | InvalidRSAKeySize Expected Received
-  | PublicKeyInsertionError [CT.BRKeyId]
-  | KeyNotFound CT.BRKeyId
-  | UnauthorisedKeyAccess
-  | KeyAlreadyRevoked
-  | KeyAlreadyExpired
+  = InvalidRSAKeyBRE PEM_RSAPubKey
+  | InvalidRSAKeySizeBRE Expected Received
+  | PublicKeyInsertionErrorBRE [CT.BRKeyId]
+  | KeyNotFoundBRE CT.BRKeyId
+  | UnauthorisedKeyAccessBRE
+  | KeyAlreadyRevokedBRE
+  | KeyAlreadyExpiredBRE
   -- | If it is detected that the key has a revocation time and no revoking
   -- user or the key has a revoking user but now revoking time. Hopefully in
   -- practice it is not possible to produce this error since it probably
@@ -285,8 +285,8 @@ data KeyError
   -- this error it might be a good time to re-evaulate whether it is better to
   -- fix the storage datatype so its not possible to generate this error in the
   -- first place.
-  | InvalidRevocation (Maybe LocalTime) (Maybe PrimaryKeyType) CallStack
-  | AddedExpiredKey
+  | InvalidRevocationBRE (Maybe LocalTime) (Maybe PrimaryKeyType) CallStack
+  | AddedExpiredKeyBRE
   deriving (Show)
 
 newtype Bit  = Bit  {getBit :: Int} deriving (Show, Eq, Read, Ord)
