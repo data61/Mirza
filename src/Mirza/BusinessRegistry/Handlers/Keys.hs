@@ -24,7 +24,7 @@ import           Database.Beam.Backend.SQL.BeamExtensions
 import           Data.Text                                (pack, unpack)
 import           Data.Time.Clock                          (UTCTime,
                                                            getCurrentTime)
-import Data.Time.LocalTime
+import           Data.Time.LocalTime
 
 import           OpenSSL.EVP.PKey                         (SomePublicKey,
                                                            toPublicKey)
@@ -96,9 +96,9 @@ keyToKeyInfo currTime (Schema.KeyT keyId (Schema.UserId keyUserId) pemStr creati
                       => Maybe LocalTime
                       -> PrimaryKey UserT (Nullable Identity)
                       -> m (Maybe (a, CT.UserId))
-    composeRevocation time@Nothing  user@(Schema.UserId (Just _)) = throwing _InvalidRevocation (time, user, callStack)
-    composeRevocation time@(Just _) user@(Schema.UserId Nothing)  = throwing _InvalidRevocation (time, user, callStack)
-    composeRevocation time          (Schema.UserId user)          = pure ((,) <$> (fromDbTimestamp <$> time) <*> (CT.UserId  <$> user))
+    composeRevocation time@Nothing  (Schema.UserId (Just user)) = throwing _InvalidRevocation (time, Just user, callStack)
+    composeRevocation time@(Just _) (Schema.UserId Nothing)     = throwing _InvalidRevocation (time, Nothing, callStack)
+    composeRevocation time          (Schema.UserId user)        = pure $ ((,) <$> (fromDbTimestamp <$> time) <*> (CT.UserId  <$> user))
 
     -- TODO: After migrating to JOSE, there should always be an expiration time.
     getKeyState :: Maybe RevocationTime
