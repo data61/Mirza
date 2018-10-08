@@ -18,6 +18,7 @@ module Mirza.BusinessRegistry.API
   ) where
 
 import           Mirza.BusinessRegistry.Types as ST
+import           Mirza.BusinessRegistry.Database.Schema (LocationId)
 import           Mirza.Common.Time            (ExpirationTime, RevocationTime)
 import           Mirza.Common.Types           (BRKeyId)
 
@@ -54,3 +55,5 @@ type PrivateAPI =
   :<|> "business" :> "add"     :> ReqBody '[JSON] NewBusiness :> Post '[JSON] GS1CompanyPrefix
   :<|> "key"      :> "add"     :> ReqBody '[JSON] PEM_RSAPubKey :> QueryParam "expirationTime" ExpirationTime :> Post '[JSON] BRKeyId
   :<|> "key"      :> "revoke"  :> Capture "keyId" BRKeyId       :> Post '[JSON] RevocationTime
+  :<|> "location" :> "add"     :> ReqBody '[JSON] NewLocation   :> Post '[JSON] LocationId
+  :<|> "location" :> "get"     :> Capture "GLN" EPC.LocationEPC :> Get  '[JSON] LocationResponse
