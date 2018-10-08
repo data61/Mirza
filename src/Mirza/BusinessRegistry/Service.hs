@@ -27,6 +27,7 @@ import           Mirza.BusinessRegistry.API
 import           Mirza.BusinessRegistry.Handlers.Business as Handlers
 import           Mirza.BusinessRegistry.Handlers.Common   as Handlers
 import           Mirza.BusinessRegistry.Handlers.Keys     as Handlers
+import           Mirza.BusinessRegistry.Handlers.Location as Handlers
 import           Mirza.BusinessRegistry.Handlers.Users    as Handlers
 import           Mirza.BusinessRegistry.Types
 import           Mirza.Common.Utils
@@ -69,6 +70,8 @@ privateServer =
   :<|> addBusinessAuth
   :<|> addPublicKey
   :<|> revokePublicKey
+  :<|> addLocation
+  :<|> getLocationByGLN
 
 
 instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub) where
@@ -108,6 +111,10 @@ brErrorToHttpError (KeyErrorBRE kError) = keyErrorToHttpError kError
 brErrorToHttpError x@(DBErrorBRE _sqlError)                  = liftIO (print x) >> notImplemented
 brErrorToHttpError x@(UnexpectedErrorBRE _reason)            = liftIO (print x) >> notImplemented
 brErrorToHttpError x@(UnmatchedUniqueViolationBRE _sqlError) = liftIO (print x) >> notImplemented
+brErrorToHttpError x@(LocationNotKnownBRE)                   =
+  throwHttpError err404 "Unknown GLN"
+brErrorToHttpError (LocationExistsBRE)                     = 
+  throwHttpError err409 "Location already exists for this GLN"
 brErrorToHttpError (GS1CompanyPrefixExistsBRE) =
   throwHttpError err400 "GS1 company prefix already exists."
 brErrorToHttpError (BusinessDoesNotExistBRE) =

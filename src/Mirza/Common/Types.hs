@@ -1,4 +1,3 @@
-{-# LANGUAGE ConstraintKinds            #-}
 {-# LANGUAGE DataKinds                  #-}
 {-# LANGUAGE DeriveGeneric              #-}
 {-# LANGUAGE FlexibleContexts           #-}
@@ -11,10 +10,12 @@
 {-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE TypeOperators              #-}
 {-# LANGUAGE UndecidableInstances       #-}
+{-# LANGUAGE ConstraintKinds            #-}
 
 
 module Mirza.Common.Types
-  ( EmailAddress(..) , Password(..)  , UserId(..)
+  ( EmailAddress(..) , Password(..)
+  , UserId(..)
   , BRKeyId(..)
   , EnvType(..)
   , AppM(..)

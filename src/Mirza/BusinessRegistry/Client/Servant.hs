@@ -9,10 +9,13 @@ module Mirza.BusinessRegistry.Client.Servant
   -- * Authenticated API
   , addPublicKey
   , revokePublicKey
+  , addLocation
+  , getLocationByGLN
   ) where
 
 import           Mirza.BusinessRegistry.API
 import           Mirza.BusinessRegistry.Types as BRT
+import           Mirza.BusinessRegistry.Database.Schema (LocationId)
 import           Mirza.Common.Time            (ExpirationTime, RevocationTime)
 import           Mirza.Common.Types           (BRKeyId)
 
@@ -27,10 +30,13 @@ getPublicKey       :: BRKeyId -> ClientM PEM_RSAPubKey
 getPublicKeyInfo   :: BRKeyId -> ClientM KeyInfoResponse
 listBusinesses :: ClientM [BusinessResponse]
 
-addUser         :: BasicAuthData -> NewUser     -> ClientM UserId
-addBusiness     :: BasicAuthData -> NewBusiness -> ClientM GS1CompanyPrefix
-addPublicKey    :: BasicAuthData -> PEM_RSAPubKey -> Maybe ExpirationTime -> ClientM BRKeyId
-revokePublicKey :: BasicAuthData -> BRKeyId -> ClientM RevocationTime
+addUser          :: BasicAuthData -> NewUser     -> ClientM UserId
+addBusiness      :: BasicAuthData -> NewBusiness -> ClientM GS1CompanyPrefix
+addPublicKey     :: BasicAuthData -> PEM_RSAPubKey -> Maybe ExpirationTime -> ClientM BRKeyId
+revokePublicKey  :: BasicAuthData -> BRKeyId -> ClientM RevocationTime
+addLocation      :: BasicAuthData -> NewLocation -> ClientM LocationId
+getLocationByGLN :: BasicAuthData -> LocationEPC -> ClientM LocationResponse
+
 
 _api     :: Client ClientM ServerAPI
 _privAPI :: Client ClientM ProtectedAPI
@@ -47,5 +53,7 @@ _api@(
     :<|> addBusiness
     :<|> addPublicKey
     :<|> revokePublicKey
+    :<|> addLocation
+    :<|> getLocationByGLN
   )
  ) = client (Proxy :: Proxy ServerAPI)

@@ -30,10 +30,6 @@ module Mirza.Common.GS1BeamOrphans
   , serialNumType
   , itemRefType
   , locationEPCType
-  , Latitude(..)
-  , latitudeType
-  , Longitude(..)
-  , longitudeType
   ) where
 
 import           Mirza.Common.Beam
@@ -54,9 +50,10 @@ import           Database.Beam.Postgres.Syntax        (PgDataTypeSyntax)
 import           Database.PostgreSQL.Simple.ToField   (ToField, toField)
 import           GHC.Generics                         (Generic)
 
-import           Data.Swagger                         (ToParamSchema(..))
-import           Servant                              (FromHttpApiData (..),
-                                                       ToHttpApiData (..))
+import           Servant                              (FromHttpApiData (..), ToHttpApiData (..), ToHttpApiData(toUrlPiece), FromHttpApiData(parseUrlPiece))
+import           Data.Swagger                         (ToParamSchema(..), SwaggerType(SwaggerString))
+import           Data.Swagger.Lens                    (pattern, type_)
+import           Control.Lens.Operators               ((?~), (&), (.~))
 
 instance ToParamSchema EPC.GS1CompanyPrefix
 instance FromHttpApiData EPC.GS1CompanyPrefix where
@@ -501,9 +498,9 @@ labelType = textType
 -- ====== EPC.LocationEPC ======
 
 
-instance BSQL.HasSqlValueSyntax be String
+instance BSQL.HasSqlValueSyntax be Text
       => BSQL.HasSqlValueSyntax be EPC.LocationEPC where
-  sqlValueSyntax = BSQL.autoSqlValueSyntax
+  sqlValueSyntax = BSQL.sqlValueSyntax . EPC.renderURL 
 instance BMigrate.IsSql92ColumnSchemaSyntax be
       => BMigrate.HasDefaultSqlDataTypeConstraints be EPC.LocationEPC
 
@@ -527,57 +524,13 @@ instance ToField EPC.LocationEPC where
 locationEPCType :: BMigrate.DataType PgDataTypeSyntax EPC.LocationEPC
 locationEPCType = textType
 
-newtype Latitude  = Latitude  { getLatitude  :: Double } deriving (Show, Eq, Ord)
-newtype Longitude = Longitude { getLongitude :: Double } deriving (Show, Eq, Ord)
+instance ToHttpApiData EPC.LocationEPC where
+  toUrlPiece = toUrlPiece . EPC.renderURL
 
+instance FromHttpApiData EPC.LocationEPC where
+  parseUrlPiece = either (fail . show) pure . EPC.readURI
 
-instance BSQL.HasSqlValueSyntax be Double
-      => BSQL.HasSqlValueSyntax be Latitude where
-  sqlValueSyntax = BSQL.sqlValueSyntax . getLatitude
-instance (BMigrate.IsSql92ColumnSchemaSyntax be)
-      => BMigrate.HasDefaultSqlDataTypeConstraints be Latitude
-
-instance ( BSQL.HasSqlValueSyntax (BSQL.Sql92ExpressionValueSyntax be) Bool
-         , BSQL.IsSql92ExpressionSyntax be)
-      => B.HasSqlEqualityCheck be Latitude
-instance ( BSQL.HasSqlValueSyntax (BSQL.Sql92ExpressionValueSyntax be) Bool
-         , BSQL.IsSql92ExpressionSyntax be)
-      => B.HasSqlQuantifiedEqualityCheck be Latitude
-
-instance BSQL.FromBackendRow BPostgres.Postgres Latitude where
-  fromBackendRow = Latitude <$> BSQL.fromBackendRow
-
-instance FromField Latitude where
-  fromField fld mbs = Latitude <$> fromField fld mbs
-
-instance ToField Latitude where
-  toField = toField . getLatitude
-
-latitudeType :: BMigrate.DataType PgDataTypeSyntax Latitude
-latitudeType = BMigrate.DataType BSQL.doubleType
-
-
-instance BSQL.HasSqlValueSyntax be Double 
-      => BSQL.HasSqlValueSyntax be Longitude where
-  sqlValueSyntax = BSQL.sqlValueSyntax . getLongitude
-instance BMigrate.IsSql92ColumnSchemaSyntax be
-      => BMigrate.HasDefaultSqlDataTypeConstraints be Longitude
-
-instance ( BSQL.HasSqlValueSyntax (BSQL.Sql92ExpressionValueSyntax be) Bool
-         , BSQL.IsSql92ExpressionSyntax be)
-      => B.HasSqlEqualityCheck be Longitude
-instance ( BSQL.HasSqlValueSyntax (BSQL.Sql92ExpressionValueSyntax be) Bool
-         , BSQL.IsSql92ExpressionSyntax be)
-      => B.HasSqlQuantifiedEqualityCheck be Longitude
-
-instance BSQL.FromBackendRow BPostgres.Postgres Longitude where
-  fromBackendRow = Longitude <$> BSQL.fromBackendRow
-
-instance FromField Longitude where
-  fromField fld mbs = Longitude <$> fromField fld mbs
-
-instance ToField Longitude where
-  toField = toField . getLongitude
-
-longitudeType :: BMigrate.DataType PgDataTypeSyntax Longitude
-longitudeType = BMigrate.DataType BSQL.doubleType
+instance ToParamSchema EPC.LocationEPC where
+  toParamSchema _ = mempty
+    & type_ .~ SwaggerString
+    & pattern ?~ "urn:epc:id:sgln:\\d+\\.\\d+(\\.\\d+)?"
