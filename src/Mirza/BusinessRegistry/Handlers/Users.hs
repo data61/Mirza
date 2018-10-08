@@ -22,7 +22,7 @@ import           Database.Beam.Backend.SQL.BeamExtensions
 
 import qualified Crypto.Scrypt                            as Scrypt
 
-import           Control.Lens                             (view, _2, (#))
+import           Control.Lens                             ((#),view, _2)
 import           Control.Monad                            (when)
 import           Control.Monad.IO.Class                   (liftIO)
 import           Data.Maybe                               (isNothing)
