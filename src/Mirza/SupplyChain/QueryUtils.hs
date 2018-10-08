@@ -30,6 +30,7 @@ import qualified Data.Text.Lazy.Encoding           as LEn
 
 import           Control.Monad.Except              (MonadError, catchError)
 
+import           Database.Beam.Postgres            (PgJSON (..))
 
 -- | Ueful for handling specific errors from, for example, database transactions
 -- @
@@ -55,8 +56,10 @@ withPKey f = do
   pure pKey
 
 
-storageToModelEvent :: Schema.Event -> Maybe Ev.Event
-storageToModelEvent = decodeEventFromJSON . Schema.event_json
+storageToModelEvent :: Schema.Event -> Ev.Event
+storageToModelEvent schemaEvent =
+  let (PgJSON event) = Schema.event_json schemaEvent
+  in event
 
 -- | Converts a DB representation of ``User`` to a Model representation
 -- Schema.User = Schema.User uid bizId fName lName phNum passHash email
