@@ -6,9 +6,10 @@
 {-# LANGUAGE OverloadedStrings     #-}
 {-# LANGUAGE PolyKinds             #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE TemplateHaskell       #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
-{-# OPTIONS_GHC -fno-warn-orphans       #-}
+{-# OPTIONS_GHC -fno-warn-orphans  #-}
 
 -- | Endpoint definitions go here. Most of the endpoint definitions are
 -- light wrappers around functions in BeamQueries
@@ -32,6 +33,8 @@ import           Mirza.BusinessRegistry.Handlers.Users    as Handlers
 import           Mirza.BusinessRegistry.Types
 import           Mirza.Common.Utils
 
+import           Katip
+
 import           Servant
 import           Servant.Swagger
 
@@ -39,6 +42,7 @@ import           GHC.TypeLits                             (KnownSymbol)
 
 import           Control.Lens                             hiding ((.=))
 import           Control.Monad.IO.Class                   (liftIO)
+import           Control.Monad.Trans
 
 import           Data.ByteString.Lazy.Char8               as BSL8
 import qualified Data.HashMap.Strict.InsOrd               as IOrd
@@ -85,11 +89,11 @@ instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub
       & allOperations . security .~ securityRequirements
 
 
-appMToHandler :: forall x context. context -> AppM context BusinessRegistryError x -> Handler x
+appMToHandler :: (HasLogging context) => context -> AppM context BusinessRegistryError x -> Handler x
 appMToHandler context act = do
   res <- liftIO $ runAppM context act
   case res of
-    Left err -> brErrorToHttpError err
+    Left err -> runKatipContextT (context ^. katipLogEnv) () (context ^. katipNamespace) (transformBRErrorAndLog err)
     Right a  -> return a
 
 
@@ -100,6 +104,15 @@ serveSwaggerAPI = toSwagger serverAPI
   & info.version .~ "1.0"
   & info.description ?~ "This is an API that tests swagger integration"
   & info.license ?~ ("MIT" & url ?~ URL "https://opensource.org/licenses/MIT")
+
+
+-- | We log all errors for now so that developers have the oppertunity to skim the logs to look for potential issues.
+-- The brError type contains all the information what we know about the error at this point so we add it in entirity
+-- to the log.
+transformBRErrorAndLog :: BusinessRegistryError -> KatipContextT Handler a
+transformBRErrorAndLog brError = do
+  $(logTM) InfoS (logStr $ show brError)
+  lift (brErrorToHttpError brError)
 
 
 throwHttpError :: ServantErr -> ByteString -> Handler a
