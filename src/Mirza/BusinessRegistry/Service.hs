@@ -112,15 +112,15 @@ serveSwaggerAPI = toSwagger serverAPI
 transformBRErrorAndLog :: BusinessRegistryError -> KatipContextT Handler a
 transformBRErrorAndLog brError = do
   $(logTM) InfoS (logStr $ show brError)
-  lift (brErrorToHttpError brError)
+  brErrorToHttpError brError
 
 
-throwHttpError :: ServantErr -> ByteString -> Handler a
-throwHttpError httpStatus errorMessage = throwError $ httpStatus { errBody = errorMessage }
+throwHttpError :: ServantErr -> ByteString -> KatipContextT Handler a
+throwHttpError httpStatus errorMessage = lift $ throwError $ httpStatus { errBody = errorMessage }
 
 
 -- | Takes in a BusinessRegistryError and converts it to an HTTP error (eg. err400)
-brErrorToHttpError :: BusinessRegistryError -> Handler a
+brErrorToHttpError :: BusinessRegistryError -> KatipContextT Handler a
 brErrorToHttpError (KeyErrorBRE kError) = keyErrorToHttpError kError
 brErrorToHttpError (DBErrorBRE _sqlError)       = unexpectedError
 brErrorToHttpError (UnexpectedErrorBRE _reason) = unexpectedError
@@ -139,15 +139,15 @@ brErrorToHttpError (UserCreationSQLErrorBRE _) = userCreationError
 -- | A generic internal server error has occured. We include no more information in the result returned to the user to
 -- limit further potential for exploitation, under the expectation that we log the errors to somewhere that is reviewed
 -- regularly so that the development team are informed and can identify and patch the underlying issues.
-unexpectedError :: Handler a
+unexpectedError :: KatipContextT Handler a
 unexpectedError = throwHttpError err500 "An unknown error has occured."
 
 -- | A common function for handling user errors uniformly irrespective of what the underlying cause is.
-userCreationError :: Handler a
+userCreationError :: KatipContextT Handler a
 userCreationError = throwHttpError err400 "Unable to create user."
 
 
-keyErrorToHttpError :: KeyError -> Handler a
+keyErrorToHttpError :: KeyError -> KatipContextT Handler a
 keyErrorToHttpError (InvalidRSAKeyBRE _) =
   throwHttpError err400 "Failed to parse RSA Public key."
 keyErrorToHttpError (InvalidRSAKeySizeBRE (Expected (Bit expSize)) (Received (Bit recSize))) =
