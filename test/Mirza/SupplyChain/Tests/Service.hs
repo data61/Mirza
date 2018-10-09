@@ -104,7 +104,6 @@ testServiceQueries = do
         catchError (addUser dummyNewUser *> pure ()) $ \err -> case err of
           AppError (EmailExists _) -> pure ()
           _                        -> throwError err
-        pure ()
   describe "authCheck tests" $
     it "authCheck test 1" $ \scsContext -> do
       res <- testAppM scsContext $ do
