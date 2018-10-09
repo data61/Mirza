@@ -26,34 +26,29 @@ import           Data.Time.Clock                          (UTCTime,
                                                            getCurrentTime)
 import           Data.Time.LocalTime
 
--- import           OpenSSL.EVP.PKey                         (SomePublicKey,
---                                                            toPublicKey)
--- import           OpenSSL.PEM                              (readPublicKey,
---                                                            writePublicKey)
--- import           OpenSSL.RSA                              (RSAPubKey, rsaSize)
-
-import           Control.Monad                            (unless)
+import           Control.Monad                            (unless, when)
 import           Data.Maybe                               (isJust, isNothing)
 import           Control.Monad.Error.Hoist                ((<!?>))
-import           Control.Lens                             ((#))
+import           Control.Lens                             ((#), (^.), to)
 import           Data.Foldable                            (for_)
-import           Control.Monad                            (when)
 
 import           GHC.Stack                                (HasCallStack, callStack)
 
-import           Crypto.JOSE.JWK                          (JWK)
+import           Crypto.JOSE.JWK                          (JWK, jwkMaterial)
+import           Crypto.JOSE.JWA.JWK                      (KeyMaterial(RSAKeyMaterial), RSAKeyParameters(..), rsaPublicKey)
+import           Crypto.PubKey.RSA.Types                  (public_size)
 
 
--- minPubKeySize :: Bit
--- minPubKeySize = Bit 2048
+minPubKeySize :: Bit
+minPubKeySize = Bit 2048
 
 getPublicKey :: ( Member context '[HasEnvType, HasConnPool, HasLogging]
                 , Member err     '[AsKeyError, AsSqlError])
              => CT.BRKeyId
              -> AppM context err JWK
 getPublicKey kid = do
-  mpem <- runDb $ getPublicKeyQuery kid
-  maybe (throwing _KeyNotFound kid) (pure . (\(PgJSON jwk) -> jwk)) mpem
+  jwkjson <- runDb $ getPublicKeyQuery kid
+  maybe (throwing _KeyNotFound kid) (pure . (\(PgJSON jwk) -> jwk)) jwkjson
 
 getPublicKeyQuery :: CT.BRKeyId
                   -> DB context err (Maybe (PgJSON JWK))
@@ -137,28 +132,24 @@ addPublicKey :: ( Member context '[HasEnvType, HasConnPool, HasLogging]
              -> Maybe ExpirationTime
              -> AppM context err CT.BRKeyId
 addPublicKey user jwk mExp = do
-  -- rsaKey <- checkPubKey somePubKey pemKey              -- Input: "x"
-  -- TODO: Check JWK is RSA public key
-  runDb $ addPublicKeyQuery user mExp jwk           -- Error: user error (error:0906D06C:PEM routines:PEM_read_bio:no start line)
+  checkJWKPubKey jwk
+  runDb $ addPublicKeyQuery user mExp jwk 
 
-
--- checkPubKey :: (MonadError err m, AsKeyError err)
---             => SomePublicKey
---             -> PEM_RSAPubKey
---             -> m RSAPubKey
--- checkPubKey spKey pemKey =
---   maybe (throwing _InvalidRSAKey pemKey)
---   (\pubKey ->
---     -- Note: This constraint implies that we only check that the key is greater then (2^N)-8 bits since rsaSize is the
---     -- number of bytes required to hold the key. See github issue #212
---     -- https://github.csiro.au/Blockchain/supplyChainServer/issues/212#issuecomment-13326 for further information.
---     let keySizeBits = Bit $ rsaSize pubKey * 8 in
---     -- rsaSize returns size in bytes
---     if keySizeBits < minPubKeySize
---       then throwing _InvalidRSAKeySize (Expected minPubKeySize, Received keySizeBits)
---       else pure pubKey
---   )
---   (toPublicKey spKey)
+-- | Checks the validity of a JWK to ensure that it is
+-- a) an RSA public key
+-- b) ast least 2040 bits (since it's technically possible to have an RSA public
+-- key which is 256 bytes but not 2048 bits)
+checkJWKPubKey :: ( Member err '[AsKeyError], MonadError err m) 
+               => JWK
+               -> m ()
+checkJWKPubKey jwk = 
+  case jwk ^. jwkMaterial of
+    RSAKeyMaterial params@(RSAKeyParameters _ _ Nothing) ->
+      let keysize = Bit (8 * public_size{-bytes-} (rsaPublicKey params))
+      in when (keysize < minPubKeySize) $
+          throwing _InvalidRSAKeySize (Expected minPubKeySize, Received keysize)
+    RSAKeyMaterial params@(RSAKeyParameters _ _ (Just _)) -> throwing_ _KeyIsPrivateKey
+    _ -> throwing _InvalidRSAKey jwk
 
 
 addPublicKeyQuery :: ( Member err     '[AsKeyError])
