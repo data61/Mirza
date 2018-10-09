@@ -131,13 +131,6 @@ instance ToParamSchema KeyState
 -- Signing and Hashing Types
 -- *****************************************************************************
 
-newtype PEM_RSAPubKey = PEM_RSAPubKey Text
-  deriving (Eq, Show, Generic, ToJSON, FromJSON)
-instance ToSchema PEM_RSAPubKey
-instance ToParamSchema PEM_RSAPubKey
-instance FromHttpApiData PEM_RSAPubKey where
-  parseUrlPiece t = fmap PEM_RSAPubKey (parseUrlPiece t)
-
 
 data KeyInfoResponse = KeyInfoResponse
   { keyInfoId             :: CT.BRKeyId
@@ -175,8 +168,9 @@ data BusinessRegistryError
   deriving (Show, Generic)
 
 data KeyError
-  = InvalidRSAKey PEM_RSAPubKey
+  = InvalidRSAKey JWK
   | InvalidRSAKeySize Expected Received
+  | KeyIsPrivateKey
   | PublicKeyInsertionError [CT.BRKeyId]
   | KeyNotFound CT.BRKeyId
   | UnauthorisedKeyAccess
