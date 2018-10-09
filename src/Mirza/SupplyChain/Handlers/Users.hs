@@ -47,7 +47,7 @@ addUser user =
 
 
 -- | Hashes the password of the ST.NewUser and inserts the user into the database
-addUserQuery :: (AsServiceError err, HasScryptParams context)
+addUserQuery :: (AsServiceError err, AsSqlError err, HasScryptParams context)
              => ST.NewUser
              -> DB context err ST.UserId
 addUserQuery (ST.NewUser phone userEmail firstName lastName biz password) = do
@@ -55,7 +55,8 @@ addUserQuery (ST.NewUser phone userEmail firstName lastName biz password) = do
   encPass <- liftIO $ Scrypt.encryptPassIO params (Scrypt.Pass $ encodeUtf8 password)
   userId <- newUUID
   -- TODO: use Database.Beam.Backend.SQL.runReturningOne?
-  res <- handleError errHandler $ pg $ runInsertReturningList (Schema._users Schema.supplyChainDb) $
+  res <- handleError errHandler
+        $ pg $ runInsertReturningList (Schema._users Schema.supplyChainDb) $
     insertValues
       [Schema.User userId (Schema.BizId  biz) firstName lastName
                phone (Scrypt.getEncryptedPass encPass) userEmail
@@ -65,10 +66,10 @@ addUserQuery (ST.NewUser phone userEmail firstName lastName biz password) = do
         -- TODO: Have a proper error response
         _   -> throwBackendError res
   where
-    errHandler :: (AsServiceError err, MonadError err m) => err -> m a
-    errHandler e = case e ^? _DatabaseError of
-      Nothing -> throwError e
-      Just sqlErr -> case constraintViolation sqlErr of
-        Just (UniqueViolation "user_email_address_key")
-          -> throwing _EmailExists userEmail
-        _ -> throwing _InsertionFail (toServerError (Just . sqlState) sqlErr, emailToText userEmail)
+    errHandler :: (MonadIO m, AsServiceError err, AsSqlError err, MonadError err m)
+               => err -> m a
+    errHandler =
+      (handleSqlUniqueViloation
+        "users_user_email_address_key"
+        (const $ _EmailExists # userEmail)
+      )
