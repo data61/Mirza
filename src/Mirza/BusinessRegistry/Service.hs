@@ -118,13 +118,14 @@ transformBRErrorAndLog brError = do
 throwHttpError :: ServantErr -> ByteString -> Handler a
 throwHttpError httpStatus errorMessage = throwError $ httpStatus { errBody = errorMessage }
 
+
 -- | Takes in a BusinessRegistryError and converts it to an HTTP error (eg. err400)
 brErrorToHttpError :: BusinessRegistryError -> Handler a
 brErrorToHttpError (KeyErrorBRE kError) = keyErrorToHttpError kError
-brErrorToHttpError x@(DBErrorBRE _sqlError)       = unexpectedError
-brErrorToHttpError x@(UnexpectedErrorBRE _reason) = unexpectedError
-brErrorToHttpError x@(UnmatchedUniqueViolationBRE _sqlError) = unexpectedError
-brErrorToHttpError x@(LocationNotKnownBRE) =
+brErrorToHttpError (DBErrorBRE _sqlError)       = unexpectedError
+brErrorToHttpError (UnexpectedErrorBRE _reason) = unexpectedError
+brErrorToHttpError (UnmatchedUniqueViolationBRE _sqlError) = unexpectedError
+brErrorToHttpError (LocationNotKnownBRE) =
   throwHttpError err404 "Unknown GLN"
 brErrorToHttpError (LocationExistsBRE) =
   throwHttpError err409 "Location already exists for this GLN"
