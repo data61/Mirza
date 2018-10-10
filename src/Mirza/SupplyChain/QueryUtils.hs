@@ -10,7 +10,7 @@
 module Mirza.SupplyChain.QueryUtils
   (
     storageToModelEvent, userTableToModel
-  , encodeEventToJSON, decodeEventFromJSON, constructEventToSign
+  , constructEventToSign
   , handleError
   , withPKey
   ) where
@@ -22,11 +22,9 @@ import qualified Mirza.SupplyChain.Types           as ST
 
 import qualified Data.GS1.Event                    as Ev
 
-import           Data.Aeson                        (decode)
-import           Data.Aeson.Text                   (encodeToLazyText)
-import qualified Data.Text                         as T
-import qualified Data.Text.Lazy                    as TxtL
-import qualified Data.Text.Lazy.Encoding           as LEn
+import           Data.Aeson                        (encode)
+import           Data.ByteString                   (ByteString)
+import           Data.ByteString.Lazy              (toStrict)
 
 
 -- | Handles the common case of generating a primary key, using it in some
@@ -43,8 +41,8 @@ withPKey f = do
   pure pKey
 
 
-storageToModelEvent :: Schema.Event -> Maybe Ev.Event
-storageToModelEvent = decodeEventFromJSON . Schema.event_json
+storageToModelEvent :: Schema.Event -> Ev.Event
+storageToModelEvent = fromPgJSON . Schema.event_json
 
 -- | Converts a DB representation of ``User`` to a Model representation
 -- Schema.User = Schema.User uid bizId fName lName phNum passHash email
@@ -52,12 +50,5 @@ userTableToModel :: Schema.User -> ST.User
 userTableToModel (Schema.User uid _ fName lName _ _ _)
     = ST.User (ST.UserId uid) fName lName
 
--- | This function returns the standardised form of event that users can sign
-constructEventToSign :: Ev.Event -> T.Text
-constructEventToSign = encodeEventToJSON
-
-encodeEventToJSON :: Ev.Event -> T.Text
-encodeEventToJSON event = TxtL.toStrict  (encodeToLazyText event)
-
-decodeEventFromJSON :: T.Text -> Maybe Ev.Event
-decodeEventFromJSON = decode . LEn.encodeUtf8 . TxtL.fromStrict
+constructEventToSign :: Ev.Event -> ByteString
+constructEventToSign = toStrict . encode
