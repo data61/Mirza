@@ -28,7 +28,6 @@ import qualified Data.GS1.Event                               as Ev
 import           Data.GS1.EventId                             as EvId
 
 import           Database.Beam                                as B
-import           Database.Beam.Postgres                       (PgJSON (..))
 
 import           Control.Monad                                (unless)
 
@@ -37,6 +36,7 @@ import           Data.Text.Encoding                           (decodeUtf8)
 import           Data.Bifunctor                               (bimap)
 import           Data.Maybe                                   (isJust)
 
+import           Mirza.Common.Utils                           (getEventFromPgEvent)
 
 -- This takes an EPC urn,
 -- and looks up all the events related to that item. First we've got
@@ -96,9 +96,6 @@ eventsByUser (ST.UserId userId) = do
             Schema.user_events_user_id userEvent ==. val_ (Schema.UserId userId))
     pure (Schema.event_json event)
   pure $ getEventFromPgEvent <$> events
-  where
-    getEventFromPgEvent :: PgJSON Ev.Event -> Ev.Event
-    getEventFromPgEvent (PgJSON event) = event
 
 -- | Given an eventId, list all the users associated with that event
 -- This can be used to make sure everything is signed

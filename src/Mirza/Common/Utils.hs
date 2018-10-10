@@ -9,6 +9,7 @@ module Mirza.Common.Utils
   , newUUID
   , handleError
   , handleSqlUniqueViloationTemplate
+  , getEventFromPgEvent
   ) where
 
 
@@ -27,6 +28,8 @@ import           Database.PostgreSQL.Simple        (SqlError (..))
 import           Database.PostgreSQL.Simple.Errors (ConstraintViolation (UniqueViolation),
                                                     constraintViolation)
 
+import           Data.GS1.Event                    as Ev
+
 import           Mirza.Common.Types
 
 import           Control.Lens                      ((^?))
@@ -36,6 +39,7 @@ import           Control.Monad.Except              (MonadError, catchError,
 
 import           Data.ByteString                   (ByteString)
 
+import           Database.Beam.Postgres            (PgJSON (..))
 
 -- | Converts anything to a ``Text``
 toText :: Show a => a -> T.Text
@@ -83,3 +87,6 @@ handleSqlUniqueViloationTemplate f expectedName uniqueViolationError e = case e 
         | violationName == expectedName -> throwError (uniqueViolationError sqlError)
         | otherwise -> throwError (f sqlError)
       _ -> throwError e
+
+getEventFromPgEvent :: PgJSON Ev.Event -> Ev.Event
+getEventFromPgEvent (PgJSON event) = event
