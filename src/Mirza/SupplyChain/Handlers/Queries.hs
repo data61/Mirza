@@ -32,10 +32,10 @@ import           Database.Beam.Postgres                       (PgJSON (..))
 
 import           Control.Lens                                 (( # ))
 import           Control.Monad.Error.Hoist
-import           Data.Text.Encoding                           (decodeUtf8)
 
 import           Data.Bifunctor                               (bimap)
 
+import           Crypto.JOSE.Types                            (Base64Octets (..))
 
 -- This takes an EPC urn,
 -- and looks up all the events related to that item. First we've got
