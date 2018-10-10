@@ -31,6 +31,8 @@ import           Data.ByteString                         (ByteString)
 import           Data.Semigroup                          ((<>))
 import           Data.Text                               (Text, pack)
 import           Options.Applicative                     hiding (action)
+import           Text.Email.Validate
+import           Data.Text.Encoding                      (encodeUtf8)
 
 import qualified Crypto.Scrypt                           as Scrypt
 
@@ -197,7 +199,7 @@ runUserCommand opts UserAdd = do
 
 interactivelyGetNewUser :: IO NewUser
 interactivelyGetNewUser = do
-  newUserEmailAddress <- EmailAddress . pack <$> prompt "Email Address:"
+  newUserEmailAddress <- getUserEmailInteractive
   newUserPassword     <- pack <$> prompt "Password:"
   newUserCompany      <- GS1CompanyPrefix . read <$> prompt "GS1CompanyPrefix:"
   newUserFirstName    <- pack <$> prompt "First Name:"
@@ -205,6 +207,14 @@ interactivelyGetNewUser = do
   newUserPhoneNumber  <- pack <$> prompt "Phone Number:"
   return NewUser{..}
 
+getUserEmailInteractive :: IO EmailAddress
+getUserEmailInteractive = do
+  userEmail <- encodeUtf8 . pack <$> prompt "Email Address"
+  case validate userEmail of
+    Left reason -> do
+      putStrLn $ "Invalid Email. Reason: " ++ reason
+      getUserEmailInteractive
+    Right email -> pure email
 
 createScryptParams :: ServerOptionsBR -> IO Scrypt.ScryptParams
 createScryptParams ServerOptionsBR{sobScryptN,sobScryptP,sobScryptR} =
@@ -291,7 +301,7 @@ dummyBusiness unique = do
 dummyUser :: Text -> GS1CompanyPrefix -> IO NewUser
 dummyUser unique business_uid = do
   passwordEntropy <- randomText
-  let newUserEmailAddress = EmailAddress $ "User" <> unique <> "@example.com"
+  let newUserEmailAddress = unsafeEmailAddress (encodeUtf8 unique) "example.com"
   let newUserPassword     = "User" <> unique <> "Password" <> passwordEntropy
   let newUserCompany      = business_uid
   let newUserFirstName    = "User" <> unique <> "FirstName"
@@ -302,7 +312,7 @@ dummyUser unique business_uid = do
 
 printCredentials :: NewUser -> IO ()
 printCredentials user = do
-  putStrLn $ "Username: " <> show ((getEmailAddress . newUserEmailAddress) user)
+  putStrLn $ "Username: " <> show (newUserEmailAddress user)
   putStrLn $ "Password: " <> show (newUserPassword user)
 
 

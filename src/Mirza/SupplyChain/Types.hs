@@ -261,12 +261,6 @@ data BlockchainPackage = BlockchainPackage EventHash (NonEmpty (Signature, UserI
 $(deriveJSON defaultOptions ''BlockchainPackage)
 instance ToSchema BlockchainPackage
 
-
-data Digest = SHA256 | SHA384 | SHA512
-  deriving (Show, Generic, Eq, Read)
-$(deriveJSON defaultOptions ''Digest)
-instance ToSchema Digest
-
 data SignedEvent = SignedEvent {
   signed_eventId   :: EventId,
   signed_keyId     :: BRKeyId,
@@ -335,13 +329,14 @@ data ServiceError
   | InvalidDigest          Digest
   | InsertionFail          ServerError Text
   | EventPermissionDenied  UserId EvId.EventId
-  | EmailExists            ServerError EmailAddress
+  | EmailExists            EmailAddress
   | EmailNotFound          EmailAddress
   | AuthFailed             EmailAddress
   | UserNotFound           EmailAddress
   | ParseError             EPC.ParseFailure
   | BackendErr             Text -- fallback
   | DatabaseError          SqlError
+  | UnmatchedUniqueViolation SqlError
   | ServantErr             ServantError
   deriving (Show, Eq, Generic)
 $(makeClassyPrisms ''ServiceError)
