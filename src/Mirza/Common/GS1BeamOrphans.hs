@@ -29,7 +29,6 @@ module Mirza.Common.GS1BeamOrphans
   , itemRefType
   , emailAddressType
   , locationEPCType
-  , DigestType (..), digestType
   ) where
 
 import           Mirza.Common.Beam
@@ -52,11 +51,8 @@ import           Data.Text.Encoding                   (decodeUtf8, encodeUtf8)
 import           GHC.Generics                         (Generic)
 
 import           Control.Lens.Operators               ((&), (.~), (?~))
-import           Data.Aeson
-import           Data.Aeson.TH
 import           Data.Swagger                         (SwaggerType (SwaggerString),
-                                                       ToParamSchema (..),
-                                                       ToSchema)
+                                                       ToParamSchema (..))
 import           Data.Swagger.Lens                    (pattern, type_)
 import           Servant                              (FromHttpApiData (..),
                                                        ToHttpApiData (..))
@@ -575,36 +571,3 @@ instance ToParamSchema EPC.LocationEPC where
   toParamSchema _ = mempty
     & type_ .~ SwaggerString
     & pattern ?~ "urn:epc:id:sgln:\\d+\\.\\d+(\\.\\d+)?"
-
-
--- ============= Digest ================
-
-data DigestType = SHA256 | SHA384 | SHA512
-  deriving (Show, Generic, Eq, Read)
-$(deriveJSON defaultOptions ''DigestType)
-instance ToSchema DigestType
-
-instance BSQL.HasSqlValueSyntax be String =>
-  BSQL.HasSqlValueSyntax be DigestType where
-    sqlValueSyntax = BSQL.sqlValueSyntax . show
-instance (BMigrate.IsSql92ColumnSchemaSyntax be) =>
-  BMigrate.HasDefaultSqlDataTypeConstraints be DigestType
-
-instance (BSQL.HasSqlValueSyntax (BSQL.Sql92ExpressionValueSyntax be) Bool,
-          BSQL.IsSql92ExpressionSyntax be) =>
-          B.HasSqlEqualityCheck be DigestType
-instance (BSQL.HasSqlValueSyntax (BSQL.Sql92ExpressionValueSyntax be) Bool,
-          BSQL.IsSql92ExpressionSyntax be) =>
-          B.HasSqlQuantifiedEqualityCheck be DigestType
-
-instance BSQL.FromBackendRow BPostgres.Postgres DigestType where
-  fromBackendRow = defaultFromBackendRow "DigestType"
-
-instance FromField DigestType where
-  fromField = defaultFromField "DigestType"
-
-instance ToField DigestType where
-  toField = toField . show
-
-digestType :: BMigrate.DataType PgDataTypeSyntax DigestType
-digestType = textType

@@ -244,7 +244,6 @@ migration () =
           (EventId (field "signature_event_id" pkSerialType notNull))
           (field "signature_key_id" brKeyIdType notNull)
           (field "signature_signature" json notNull)
-          (field "signature_digest" digestType notNull)
           (field "signature_timestamp" timestamptz notNull)
     )
     <*> createTable "hashes"
@@ -742,7 +741,6 @@ data SignatureT f = Signature
   , signature_event_id  :: PrimaryKey EventT f
   , signature_key_id    :: C f BRKeyId
   , signature_signature :: C f (PgJSON (CompactJWS JWSHeader))
-  , signature_digest    :: C f DigestType -- why is this a ByteString?
   , signature_timestamp :: C f LocalTime -- Stored as UTC Time
   }
   deriving Generic

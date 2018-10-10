@@ -39,7 +39,6 @@ import           Crypto.JOSE                                  (AsError,
                                                                verifyJWS')
 
 import qualified Data.ByteString                              as BS
-import qualified Data.ByteString.Char8                        as BSC
 
 import           Mirza.BusinessRegistry.Client.Servant        (getPublicKey)
 
@@ -91,7 +90,7 @@ eventSign :: (HasBRClientEnv context, AsServantError err, AsError err, SCSApp co
           => ST.User
           -> SignedEvent
           -> AppM context err PrimaryKeyType
-eventSign user (SignedEvent eventId keyId sig digtype) = do
+eventSign user (SignedEvent eventId keyId sig) = do
   jwk <- runClientFunc $ getPublicKey keyId
   -- sigBS <- BS64.decode (BSC.pack sigStr) <%?> review _Base64DecodeFailure
   -- digest <- liftIO (makeDigest digest') <!?> review _InvalidDigest digest'
@@ -100,7 +99,7 @@ eventSign user (SignedEvent eventId keyId sig digtype) = do
     -- let eventBS = QU.eventTxtToBS event
     event' <- verifyJWS' jwk sig
     if event == event'
-      then insertSignature (ST.userId user) eventId keyId sig digtype
+      then insertSignature (ST.userId user) eventId keyId sig
       else throwing _SigVerificationFailure (show sig)
 
 -- TODO: Should this return Text or a JSON value?
@@ -119,17 +118,15 @@ insertSignature :: (AsServiceError err) => ST.UserId
                 -> EvId.EventId
                 -> BRKeyId
                 -> CompactJWS JWSHeader
-                -> DigestType
                 -> DB environmentUnused err PrimaryKeyType
 
-insertSignature userId@(ST.UserId uId) eId kId sig digest = do
+insertSignature userId@(ST.UserId uId) eId kId sig = do
   sigId <- newUUID
   timestamp <- generateTimestamp
   r <- pg $ runInsertReturningList (Schema._signatures Schema.supplyChainDb) $
         insertValues
         [(Schema.Signature sigId) (Schema.UserId uId) (Schema.EventId $ EvId.unEventId eId)
-         (BRKeyId $ getBRKeyId kId) (PgJSON sig)
-          digest (toDbTimestamp timestamp)]
+         (BRKeyId $ getBRKeyId kId) (PgJSON sig) (toDbTimestamp timestamp)]
   case r of
     [rowId] -> do
       updateUserEventSignature userId eId True
@@ -184,18 +181,8 @@ findSignedEventByUser :: AsServiceError err
 findSignedEventByUser uId eventId = signatureToSignedEvent <$> (findSignatureByUser uId eventId)
 
 signatureToSignedEvent :: Schema.Signature -> ST.SignedEvent
-signatureToSignedEvent
-  (Schema.Signature
-    _userId
-    _sigId
-    (Schema.EventId eId)
-    brKeyId
-    (PgJSON sig)
-    digest _) = ST.SignedEvent
-                  (EvId.EventId eId)
-                  brKeyId
-                  sig
-                  digest
+signatureToSignedEvent (Schema.Signature _userId _sigId (Schema.EventId eId) brKeyId (PgJSON sig) _)
+  = ST.SignedEvent (EvId.EventId eId) brKeyId sig
 
 -- do we need this?
 eventHashed :: ST.User -> EvId.EventId -> AppM context err HashedEvent

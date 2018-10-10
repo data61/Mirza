@@ -29,7 +29,7 @@ import           Data.Time.LocalTime
 import           Control.Monad                            (unless, when)
 import           Data.Maybe                               (isJust, isNothing)
 import           Control.Monad.Error.Hoist                ((<!?>))
-import           Control.Lens                             ((#), (^.), to)
+import           Control.Lens                             ((#), (^.))
 import           Data.Foldable                            (for_)
 
 import           GHC.Stack                                (HasCallStack, callStack)
@@ -148,7 +148,7 @@ checkJWKPubKey jwk =
       let keysize = Bit (8 * public_size{-bytes-} (rsaPublicKey params))
       in when (keysize < minPubKeySize) $
           throwing _InvalidRSAKeySize (Expected minPubKeySize, Received keysize)
-    RSAKeyMaterial params@(RSAKeyParameters _ _ (Just _)) -> throwing_ _KeyIsPrivateKey
+    RSAKeyMaterial (RSAKeyParameters _ _ (Just _)) -> throwing_ _KeyIsPrivateKey
     _ -> throwing _InvalidRSAKey jwk
 
 
