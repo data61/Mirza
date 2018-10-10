@@ -9,6 +9,7 @@ module Mirza.Common.Utils
   , newUUID
   , handleError
   , handleSqlUniqueViloationTemplate
+  , fromPgJSON
   ) where
 
 
@@ -36,6 +37,7 @@ import           Control.Monad.Except              (MonadError, catchError,
 
 import           Data.ByteString                   (ByteString)
 
+import           Database.Beam.Postgres            (PgJSON (..))
 
 -- | Converts anything to a ``Text``
 toText :: Show a => a -> T.Text
@@ -83,3 +85,6 @@ handleSqlUniqueViloationTemplate f expectedName uniqueViolationError e = case e 
         | violationName == expectedName -> throwError (uniqueViolationError sqlError)
         | otherwise -> throwError (f sqlError)
       _ -> throwError e
+
+fromPgJSON :: PgJSON a -> a
+fromPgJSON (PgJSON x) = x
