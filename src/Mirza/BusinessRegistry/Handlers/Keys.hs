@@ -46,9 +46,8 @@ getPublicKey :: ( Member context '[HasEnvType, HasConnPool, HasLogging]
                 , Member err     '[AsKeyError, AsSqlError])
              => CT.BRKeyId
              -> AppM context err JWK
-getPublicKey kid = do
-  jwkjson <- runDb $ getPublicKeyQuery kid
-  maybe (throwing _KeyNotFound kid) (pure . (\(PgJSON jwk) -> jwk)) jwkjson
+getPublicKey kid = fmap (\(PgJSON jwk) -> jwk) $ runDb $ getPublicKeyQuery kid 
+                                                      <!?> (_KeyNotFound # kid)
 
 getPublicKeyQuery :: CT.BRKeyId
                   -> DB context err (Maybe (PgJSON JWK))
