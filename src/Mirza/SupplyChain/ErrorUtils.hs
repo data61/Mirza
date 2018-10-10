@@ -52,10 +52,6 @@ appErrToHttpErr (InvalidUserId _) =
   throwError $ err400 {
     errBody = "No such user."
   }
-appErrToHttpErr (InvalidDigest _) =
-  throwError $ err400 {
-    errBody = "Invalid Digest given."
-  }
 appErrToHttpErr (JOSEError err) =
   throwError $ err400 {
     errBody = "JOSE Error: " <> LBSC8.pack (show err)

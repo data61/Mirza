@@ -264,10 +264,9 @@ $(deriveJSON defaultOptions ''BlockchainPackage)
 instance ToSchema BlockchainPackage
 
 data SignedEvent = SignedEvent {
-  signed_eventId     :: EventId,
-  signed_keyId       :: BRKeyId,
-  signed_signature   :: CompactJWS JWSHeader,
-  signed_digest_type :: DigestType
+  signed_eventId   :: EventId,
+  signed_keyId     :: BRKeyId,
+  signed_signature :: CompactJWS JWSHeader
   } deriving (Generic, Show, Eq)
 $(deriveJSON defaultOptions ''SignedEvent)
 instance ToSchema SignedEvent
@@ -328,7 +327,6 @@ data ServiceError
   | InvalidKeyId           BRKeyId
   | InvalidUserId          UserId
   | InvalidRSAKeyInDB      Text -- when the key already existing in the DB is wrong
-  | InvalidDigest          DigestType
   | JOSEError              JOSE.Error
   | InsertionFail          ServerError Text
   | EventPermissionDenied  UserId EvId.EventId

@@ -25,8 +25,6 @@ import qualified Data.GS1.Event                    as Ev
 import           Data.Aeson                        (decodeStrict, encode)
 import           Data.ByteString                   (ByteString)
 import           Data.ByteString.Lazy              (toStrict)
-import qualified Data.Text                         as T
-import qualified Data.Text.Encoding                as En
 
 
 -- | Handles the common case of generating a primary key, using it in some
