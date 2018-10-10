@@ -107,12 +107,12 @@ serveSwaggerAPI = toSwagger serverAPI
 
 errorLogLevel :: ServantErr -> Severity
 errorLogLevel httpStatus
-  | is500Error(httpStatus) = ErrorS
+  | is5XXError(httpStatus) = ErrorS
   | otherwise = WarningS
 
 -- | Is the servant error in the 5XX series?
-is500Error :: ServantErr -> Bool
-is500Error servantError = ((errHTTPCode servantError) `div` 100) == 5
+is5XXError :: ServantErr -> Bool
+is5XXError servantError = ((errHTTPCode servantError) `div` 100) == 5
 
 
 -- | This function simplifies the construction of errors by providing an
