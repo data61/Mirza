@@ -7,6 +7,7 @@ module Mirza.SupplyChain.Handlers.Queries
   ) where
 
 
+import           Mirza.Common.Utils                           (fromPgJSON)
 import           Mirza.SupplyChain.Handlers.Common
 import           Mirza.SupplyChain.Handlers.EventRegistration (findLabelId,
                                                                findSchemaEvent,
@@ -28,7 +29,6 @@ import qualified Data.GS1.Event                               as Ev
 import           Data.GS1.EventId                             as EvId
 
 import           Database.Beam                                as B
-import           Database.Beam.Postgres                       (PgJSON (..))
 
 import           Control.Lens                                 (( # ))
 import           Control.Monad.Error.Hoist
@@ -37,7 +37,6 @@ import           Data.Bifunctor                               (bimap)
 
 import           Crypto.JOSE.Types                            (Base64Octets (..))
 
-import           Mirza.Common.Utils                           (fromPgJSON)
 
 -- This takes an EPC urn,
 -- and looks up all the events related to that item. First we've got
