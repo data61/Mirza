@@ -1,7 +1,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TupleSections         #-}
 
-module Mirza.SupplyChain.Handlers.EventRegistration
+module Mirza.SupplyChain.Handlers.EventUtils
   (
     insertAggEvent
   , insertObjectEvent
