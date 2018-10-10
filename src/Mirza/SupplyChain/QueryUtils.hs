@@ -22,12 +22,9 @@ import qualified Mirza.SupplyChain.Types           as ST
 
 import qualified Data.GS1.Event                    as Ev
 
-import           Data.Aeson.Text                   (encodeToLazyText)
+import           Data.Aeson                        (encode)
 import           Data.ByteString                   (ByteString)
-import           Data.Text.Encoding                (encodeUtf8)
-import qualified Data.Text.Lazy                    as TxtL
-
-import           Database.Beam.Postgres            (PgJSON (..))
+import           Data.ByteString.Lazy              (toStrict)
 
 
 -- | Handles the common case of generating a primary key, using it in some
@@ -45,9 +42,7 @@ withPKey f = do
 
 
 storageToModelEvent :: Schema.Event -> Ev.Event
-storageToModelEvent schemaEvent =
-  let (PgJSON event) = Schema.event_json schemaEvent
-  in event
+storageToModelEvent = fromPgJSON . Schema.event_json
 
 -- | Converts a DB representation of ``User`` to a Model representation
 -- Schema.User = Schema.User uid bizId fName lName phNum passHash email
@@ -56,4 +51,4 @@ userTableToModel (Schema.User uid _ fName lName _ _ _)
     = ST.User (ST.UserId uid) fName lName
 
 constructEventToSign :: Ev.Event -> ByteString
-constructEventToSign event = encodeUtf8 $ TxtL.toStrict (encodeToLazyText event)
+constructEventToSign = toStrict . encode
