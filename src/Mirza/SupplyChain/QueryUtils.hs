@@ -10,8 +10,7 @@
 module Mirza.SupplyChain.QueryUtils
   (
     storageToModelEvent, userTableToModel
-  , encodeEvent, decodeEvent
-  , eventTxtToBS
+  , encodeEventToJSON, decodeEventFromJSON, constructEventToSign
   , handleError
   , withPKey
   ) where
@@ -25,9 +24,7 @@ import qualified Data.GS1.Event                    as Ev
 
 import           Data.Aeson                        (decode)
 import           Data.Aeson.Text                   (encodeToLazyText)
-import           Data.ByteString                   (ByteString)
 import qualified Data.Text                         as T
-import qualified Data.Text.Encoding                as En
 import qualified Data.Text.Lazy                    as TxtL
 import qualified Data.Text.Lazy.Encoding           as LEn
 
@@ -47,7 +44,7 @@ withPKey f = do
 
 
 storageToModelEvent :: Schema.Event -> Maybe Ev.Event
-storageToModelEvent = decodeEvent . Schema.event_json
+storageToModelEvent = decodeEventFromJSON . Schema.event_json
 
 -- | Converts a DB representation of ``User`` to a Model representation
 -- Schema.User = Schema.User uid bizId fName lName phNum passHash email
@@ -55,14 +52,12 @@ userTableToModel :: Schema.User -> ST.User
 userTableToModel (Schema.User uid _ fName lName _ _ _)
     = ST.User (ST.UserId uid) fName lName
 
+-- | This function returns the standardised form of event that users can sign
+constructEventToSign :: Ev.Event -> T.Text
+constructEventToSign = encodeEventToJSON
 
-encodeEvent :: Ev.Event -> T.Text
-encodeEvent event = TxtL.toStrict  (encodeToLazyText event)
+encodeEventToJSON :: Ev.Event -> T.Text
+encodeEventToJSON event = TxtL.toStrict  (encodeToLazyText event)
 
--- XXX is this the right encoding to use? It's used for checking signatures
--- and hashing the json.
-eventTxtToBS :: T.Text -> ByteString
-eventTxtToBS = En.encodeUtf8
-
-decodeEvent :: T.Text -> Maybe Ev.Event
-decodeEvent = decode . LEn.encodeUtf8 . TxtL.fromStrict
+decodeEventFromJSON :: T.Text -> Maybe Ev.Event
+decodeEventFromJSON = decode . LEn.encodeUtf8 . TxtL.fromStrict

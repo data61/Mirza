@@ -3,6 +3,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings     #-}
 {-# LANGUAGE PartialTypeSignatures #-}
+{-# LANGUAGE TemplateHaskell       #-}
 {-# LANGUAGE UndecidableInstances  #-}
 {-# OPTIONS_GHC -fno-warn-orphans  #-}
 
@@ -12,12 +13,8 @@
 -- At the moment, if Database.Beam.BPostgres.Postgres.Syntax is a hidden module
 -- So it is not possible to implement the types yet
 module Mirza.Common.GS1BeamOrphans
-  ( textType
-  , LabelType(..)
-  , labelType
-  , LocationField(..)
-  , locationRefType
-  , locationType
+  ( LabelType(..), labelType
+  , LocationField(..), locationRefType, locationType
   , srcDestType
   , gs1CompanyPrefixType
   , actionType
@@ -32,10 +29,10 @@ module Mirza.Common.GS1BeamOrphans
   , itemRefType
   , emailAddressType
   , locationEPCType
+  , Digest (..), digestType
   ) where
 
 import           Mirza.Common.Beam
-import           Mirza.Common.Types                   (emailToText)
 
 import qualified Data.GS1.EPC                         as EPC
 import qualified Data.GS1.Event                       as Ev
@@ -50,18 +47,22 @@ import           Database.PostgreSQL.Simple.FromField
 import           Database.PostgreSQL.Simple.ToField   (ToField, toField)
 
 import           Data.Text                            (Text)
-import           Data.Text.Encoding                   (encodeUtf8)
+import           Data.Text.Encoding                   (decodeUtf8, encodeUtf8)
 
 import           GHC.Generics                         (Generic)
 
-import           Text.Email.Validate                  (EmailAddress, validate)
-
 import           Control.Lens.Operators               ((&), (.~), (?~))
+import           Data.Aeson
+import           Data.Aeson.TH
 import           Data.Swagger                         (SwaggerType (SwaggerString),
-                                                       ToParamSchema (..))
+                                                       ToParamSchema (..),
+                                                       ToSchema)
 import           Data.Swagger.Lens                    (pattern, type_)
 import           Servant                              (FromHttpApiData (..),
                                                        ToHttpApiData (..))
+import           Text.Email.Validate                  (EmailAddress,
+                                                       toByteString, validate)
+
 
 instance ToParamSchema EPC.GS1CompanyPrefix
 instance FromHttpApiData EPC.GS1CompanyPrefix where
@@ -98,7 +99,6 @@ instance ToField Ev.EventType where
 
 eventType :: BMigrate.DataType PgDataTypeSyntax Ev.EventType
 eventType = textType
-
 
 -- ======= EPC.LocationReference =======
 instance BSQL.HasSqlValueSyntax be String =>
@@ -261,7 +261,7 @@ instance FromField EPC.GS1CompanyPrefix where
   fromField mbs conv = EPC.GS1CompanyPrefix <$> fromField mbs conv
 
 instance ToField EPC.GS1CompanyPrefix where
-  toField (EPC.GS1CompanyPrefix prefix) = toField prefix
+  toField (EPC.GS1CompanyPrefix pfx) = toField pfx
 
 gs1CompanyPrefixType :: BMigrate.DataType PgDataTypeSyntax EPC.GS1CompanyPrefix
 gs1CompanyPrefixType = textType
@@ -502,7 +502,7 @@ labelType = textType
 
 instance BSQL.HasSqlValueSyntax be Text =>
   BSQL.HasSqlValueSyntax be EmailAddress where
-    sqlValueSyntax = BSQL.sqlValueSyntax . emailToText
+    sqlValueSyntax = BSQL.sqlValueSyntax . decodeUtf8 . toByteString
 instance (BMigrate.IsSql92ColumnSchemaSyntax be) =>
   BMigrate.HasDefaultSqlDataTypeConstraints be EmailAddress
 
@@ -527,7 +527,7 @@ instance FromField EmailAddress where
   fromField mbs conv = emailFromBackendRow <$> fromField mbs conv
 
 instance ToField EmailAddress where
-  toField = toField . emailToText
+  toField = toField . decodeUtf8 . toByteString
 
 emailAddressType :: BMigrate.DataType PgDataTypeSyntax EmailAddress
 emailAddressType = textType
@@ -575,3 +575,36 @@ instance ToParamSchema EPC.LocationEPC where
   toParamSchema _ = mempty
     & type_ .~ SwaggerString
     & pattern ?~ "urn:epc:id:sgln:\\d+\\.\\d+(\\.\\d+)?"
+
+
+-- ============= Digest ================
+
+data Digest = SHA256 | SHA384 | SHA512
+  deriving (Show, Generic, Eq, Read)
+$(deriveJSON defaultOptions ''Digest)
+instance ToSchema Digest
+
+instance BSQL.HasSqlValueSyntax be String =>
+  BSQL.HasSqlValueSyntax be Digest where
+    sqlValueSyntax = BSQL.sqlValueSyntax . show
+instance (BMigrate.IsSql92ColumnSchemaSyntax be) =>
+  BMigrate.HasDefaultSqlDataTypeConstraints be Digest
+
+instance (BSQL.HasSqlValueSyntax (BSQL.Sql92ExpressionValueSyntax be) Bool,
+          BSQL.IsSql92ExpressionSyntax be) =>
+          B.HasSqlEqualityCheck be Digest
+instance (BSQL.HasSqlValueSyntax (BSQL.Sql92ExpressionValueSyntax be) Bool,
+          BSQL.IsSql92ExpressionSyntax be) =>
+          B.HasSqlQuantifiedEqualityCheck be Digest
+
+instance BSQL.FromBackendRow BPostgres.Postgres Digest where
+  fromBackendRow = defaultFromBackendRow "Digest"
+
+instance FromField Digest where
+  fromField = defaultFromField "Digest"
+
+instance ToField Digest where
+  toField = toField . show
+
+digestType :: BMigrate.DataType PgDataTypeSyntax Digest
+digestType = textType

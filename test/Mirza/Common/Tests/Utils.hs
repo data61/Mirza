@@ -15,6 +15,7 @@ import           Data.Time.Clock         (UTCTime, diffUTCTime)
 
 import           GHC.Stack               (HasCallStack)
 
+
 --------------------------------------------------------------------------------
 -- Generic Predicate Utils
 --------------------------------------------------------------------------------

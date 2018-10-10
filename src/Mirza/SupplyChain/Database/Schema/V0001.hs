@@ -10,9 +10,7 @@
 {-# OPTIONS_GHC -fno-warn-orphans  #-}
 
 -- | This module contains all the table definitions
--- The migration script has been moved to the module MigrateScript
--- If some definition is changed here, please make the equivalent change
--- in MigrateScript
+-- Convention: Table types and constructors are suffixed with T (for Table).
 module Mirza.SupplyChain.Database.Schema.V0001 where
 
 import qualified Data.GS1.EPC                     as EPC
@@ -45,29 +43,19 @@ import           Database.Beam.Postgres.Syntax    (PgDataTypeSyntax)
 
 import           Text.Email.Validate              (EmailAddress)
 
-
--- Convention: Table types and constructors are suffixed with T (for Table).
-
-
 --------------------------------------------------------------------------------
--- Constants
+-- Constants and Utils
 --------------------------------------------------------------------------------
 
 defaultFieldMaxLength :: Word
 defaultFieldMaxLength = 120
 
-
--- length of the timezone offset
+-- | Length of the timezone offset
 maxTimeZoneLength :: Word
 maxTimeZoneLength = 10
 
---------------------------------------------------------------------------------
--- Database
---------------------------------------------------------------------------------
-
 pkSerialType :: DataType PgDataTypeSyntax UUID
 pkSerialType = uuid
-
 
 -- Database
 data SupplyChainDb f = SupplyChainDb
@@ -179,6 +167,8 @@ migration () =
           (field "event_foreign_event_id" (maybeType uuid))
           (UserId (field "event_created_by" pkSerialType))
           (field "event_json" text notNull unique)
+          (field "event_to_sign" text notNull unique)
+          -- (field "event_state" eventStateType notNull)
     )
     <*> createTable "whats"
     (
@@ -248,10 +238,11 @@ migration () =
     (
      Signature
           (field "signature_id" pkSerialType)
+          (UserId (field "signature_user_id" pkSerialType notNull))
           (EventId (field "signature_event_id" pkSerialType notNull))
           (field "signature_key_id" brKeyIdType notNull)
           (field "signature_signature" bytea notNull)
-          (field "signature_digest" bytea notNull)
+          (field "signature_digest" digestType notNull)
           (field "signature_timestamp" timestamptz notNull)
     )
     <*> createTable "hashes"
@@ -512,7 +503,10 @@ data EventT f = Event
   { event_id               :: C f PrimaryKeyType
   , event_foreign_event_id :: C f (Maybe UUID) -- Event ID from XML from foreign systems.
   , event_created_by       :: PrimaryKey UserT f
-  , event_json             :: C f Text }
+  , event_json             :: C f Text
+  , event_to_sign          :: C f Text -- this is what users will be given for signing purposes
+  -- , event_state            :: C f EventState
+  }
   deriving Generic
 
 deriving instance Show Event
@@ -742,10 +736,11 @@ type SignatureId = PrimaryKey SignatureT Identity
 
 data SignatureT f = Signature
   { signature_id        :: C f PrimaryKeyType
+  , signature_user_id   :: PrimaryKey UserT f
   , signature_event_id  :: PrimaryKey EventT f
   , signature_key_id    :: C f BRKeyId
   , signature_signature :: C f ByteString
-  , signature_digest    :: C f ByteString
+  , signature_digest    :: C f Digest
   , signature_timestamp :: C f LocalTime -- Stored as UTC Time
   }
   deriving Generic
