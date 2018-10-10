@@ -25,7 +25,6 @@ module Mirza.SupplyChain.Service
 import           Mirza.SupplyChain.API
 import           Mirza.SupplyChain.ErrorUtils                 (appErrToHttpErr)
 
-import           Mirza.SupplyChain.EventUtils                 as Handlers
 import           Mirza.SupplyChain.Handlers.Common            as Handlers
 import           Mirza.SupplyChain.Handlers.Contacts          as Handlers
 import           Mirza.SupplyChain.Handlers.EventRegistration as Handlers
