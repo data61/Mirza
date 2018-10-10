@@ -41,6 +41,7 @@ import           Database.Beam.Migrate.Types
 import           Database.Beam.Postgres
 import           Database.Beam.Postgres.Syntax    (PgDataTypeSyntax)
 
+import           Text.Email.Validate              (EmailAddress)
 
 --------------------------------------------------------------------------------
 -- Constants and Utils
@@ -95,7 +96,7 @@ migration () =
           (field "user_last_name" (varchar (Just defaultFieldMaxLength)) notNull)
           (field "user_phone_number" (varchar (Just defaultFieldMaxLength)) notNull)
           (field "user_password_hash" binaryLargeObject notNull)
-          (field "user_email_address" (varchar (Just defaultFieldMaxLength)) unique)
+          (field "user_email_address" emailAddressType unique)
     )
     <*> createTable "businesses"
     (
@@ -279,7 +280,7 @@ data UserT f = User
   , user_last_name     :: C f Text
   , user_phone_number  :: C f Text
   , user_password_hash :: C f ByteString --XXX - should this be blob?
-  , user_email_address :: C f Text }
+  , user_email_address :: C f EmailAddress }
   deriving Generic
 
 deriving instance Show User

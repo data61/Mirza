@@ -9,6 +9,7 @@ export BR_DBNAME="devmirzabusinessregistry"
 
 echo Recreating the database
 ./manage_db.sh $SCS_DBNAME
+./manage_db.sh $BR_DBNAME
 
 # Defaulting opt to avoid error
 GIVEN_OPT=$1
@@ -21,7 +22,7 @@ then
 fi
 
 stack build --fast
-stack exec supplyChainServer-exe -- -i
+stack exec supplyChainServer-exe -- --init-db --brhost localhost --brport 8200
 stack exec businessRegistry -- initdb
 
 # eventuially, we will get an updated list from ASIC and populate the db
@@ -65,8 +66,9 @@ echo "Inserting a user. Username: abc@gmail.com, Password: password"
 curl -X POST "http://localhost:8000/newUser" \
     -H "accept: application/json;charset=utf-8"\
     -H "Content-Type: application/json;charset=utf-8"\
-    -d "{ \"phoneNumber\": \"0412\", \"userEmailAddress\": \"abc@gmail.com\", \"firstName\": \"sajid\", \"lastName\": \"anower\", \"company\": \"4000001\", \"password\": \"password\"}")&
+    -d "{ \"newUserPhoneNumber\": \"0412\", \"newUserEmailAddress\": \"abc@gmail.com\", \"newUserFirstName\": \"sajid\", \"newUserLastName\": \"anower\", \"newUserCompany\": \"4000001\", \"newUserPassword\": \"password\"}")&
+echo; echo
 
-# TODO: Run an instance of businessRegistry as well
+stack exec businessRegistry -- server &
 
-stack exec supplyChainServer-exe -- -e Dev # running in Dev
+stack exec supplyChainServer-exe -- --brhost localhost --brport 8200 -e Dev

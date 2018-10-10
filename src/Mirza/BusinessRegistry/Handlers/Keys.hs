@@ -24,7 +24,7 @@ import           Database.Beam.Backend.SQL.BeamExtensions
 import           Data.Text                                (pack, unpack)
 import           Data.Time.Clock                          (UTCTime,
                                                            getCurrentTime)
-import Data.Time.LocalTime
+import           Data.Time.LocalTime
 
 import           OpenSSL.EVP.PKey                         (SomePublicKey,
                                                            toPublicKey)

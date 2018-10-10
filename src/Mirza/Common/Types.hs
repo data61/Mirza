@@ -12,10 +12,10 @@
 {-# LANGUAGE TypeOperators              #-}
 {-# LANGUAGE UndecidableInstances       #-}
 
+{-# OPTIONS_GHC -fno-warn-orphans       #-}
 
 module Mirza.Common.Types
-  ( EmailAddress(..) , Password(..)
-  , UserId(..)
+  ( EmailAddress, emailToText, Password(..)  , UserId(..)
   , BRKeyId(..)
   , EnvType(..)
   , AppM(..)
@@ -34,13 +34,10 @@ module Mirza.Common.Types
   , HasBRClientEnv(..)
   , AsServantError (..)
   , DBConstraint
-  , ask
-  , asks
+  , ask, asks
   , MonadError
-  , throwing
-  , throwing_
-  , MonadIO
-  , liftIO
+  , throwing, throwing_
+  , MonadIO, liftIO
   , PrimaryKeyType
   , brKeyIdType
   , runClientFunc
@@ -80,13 +77,15 @@ import           Crypto.Scrypt                        (ScryptParams)
 
 import qualified Data.ByteString                      as BS
 import           Data.Text                            (Text)
+import           Data.Text.Encoding                   as T
+import           Text.Email.Validate                  (EmailAddress,
+                                                       toByteString, validate)
 
 import           Data.Aeson
 
 import           Control.Lens
 import           Control.Monad.Error.Lens
 
-import           Data.Swagger
 
 import           GHC.Exts                             (Constraint)
 import           GHC.Generics                         (Generic)
@@ -94,6 +93,7 @@ import           GHC.Generics                         (Generic)
 import           Katip                                as K
 import           Katip.Monadic                        (askLoggerIO)
 
+import           Data.Swagger
 import           Servant                              (FromHttpApiData (..),
                                                        ToHttpApiData (..))
 import           Servant.Client                       (ClientEnv (..), ClientM,
@@ -104,6 +104,27 @@ import           Data.UUID                            (UUID)
 
 type PrimaryKeyType = UUID
 
+
+
+-- *****************************************************************************
+-- Orphan Instances
+-- *****************************************************************************
+
+instance ToJSON EmailAddress where
+  toJSON = toJSON . T.decodeUtf8 . toByteString
+
+instance FromJSON EmailAddress where
+  parseJSON = withText "EmailAddress" $ \t -> case validate (T.encodeUtf8 t) of
+    Left err -> fail err
+    Right e  -> pure e
+
+instance ToSchema EmailAddress where
+  declareNamedSchema _ = declareNamedSchema (Proxy :: Proxy Text)
+    <&> name ?~ "Email address"
+    <&> schema . description ?~ "An RFC 5322 email address"
+
+emailToText :: EmailAddress -> Text
+emailToText = decodeUtf8 . toByteString
 
 -- *****************************************************************************
 -- User Types
@@ -118,22 +139,12 @@ instance ToParamSchema UserId
 deriving instance FromHttpApiData UserId
 deriving instance ToHttpApiData UserId
 
+-- | Do NOT derive an `Eq` instance for Password. We do not want a literal
+-- equality check for password
 newtype Password = Password BS.ByteString
-  -- Is Eq something we want?
-  -- We do not want Show
-  deriving (Eq)
 
 instance Show Password where
   show _ = "Password <redacted>"
-
-
-newtype EmailAddress = EmailAddress {getEmailAddress :: Text}
-  deriving (Show, Eq, Generic, Read, FromJSON, ToJSON)
-instance ToSchema EmailAddress
-instance ToParamSchema EmailAddress
-deriving instance FromHttpApiData EmailAddress
-deriving instance ToHttpApiData EmailAddress
-
 
 newtype BRKeyId = BRKeyId {getBRKeyId :: UUID}
   deriving (Show, Eq, Generic, Read, FromJSON, ToJSON)

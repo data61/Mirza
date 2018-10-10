@@ -329,13 +329,14 @@ data ServiceError
   | InvalidDigest          Digest
   | InsertionFail          ServerError Text
   | EventPermissionDenied  UserId EvId.EventId
-  | EmailExists            ServerError EmailAddress
+  | EmailExists            EmailAddress
   | EmailNotFound          EmailAddress
   | AuthFailed             EmailAddress
   | UserNotFound           EmailAddress
   | ParseError             EPC.ParseFailure
   | BackendErr             Text -- fallback
   | DatabaseError          SqlError
+  | UnmatchedUniqueViolation SqlError
   | ServantErr             ServantError
   deriving (Show, Eq, Generic)
 $(makeClassyPrisms ''ServiceError)
