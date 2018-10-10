@@ -4,7 +4,7 @@
 module Mirza.SupplyChain.Handlers.Signatures
   (
     addUserToEvent
-  , eventSign, getEventJSON, insertSignature, eventHashed
+  , eventSign, getEventBS, makeDigest, insertSignature, eventHashed
   , findSignedEventByEvent, findSignatureByEvent
   , findSignedEventByUser, findSignatureByUser
   , signatureToSignedEvent
@@ -37,8 +37,7 @@ import           Crypto.JOSE                                  (AsError,
                                                                CompactJWS,
                                                                JWSHeader,
                                                                verifyJWS')
-
-import qualified Data.ByteString                              as BS
+import           Data.ByteString                              (ByteString)
 
 import           Mirza.BusinessRegistry.Client.Servant        (getPublicKey)
 
@@ -95,23 +94,22 @@ eventSign user (SignedEvent eventId keyId sig) = do
   -- sigBS <- BS64.decode (BSC.pack sigStr) <%?> review _Base64DecodeFailure
   -- digest <- liftIO (makeDigest digest') <!?> review _InvalidDigest digest'
   runDb $ do
-    event <- getEventJSON eventId
-    -- let eventBS = QU.eventTxtToBS event
+    eventBS <- getEventBS eventId
     event' <- verifyJWS' jwk sig
     if event == event'
       then insertSignature (ST.userId user) eventId keyId sig
       else throwing _SigVerificationFailure (show sig)
 
 -- TODO: Should this return Text or a JSON value?
-getEventJSON :: AsServiceError err => EvId.EventId -> DB context err BS.ByteString
-getEventJSON eventId = do
+getEventBS :: AsServiceError err => EvId.EventId -> DB context err ByteString
+getEventBS eventId = do
   r <- pg $ runSelectReturningList $ select $ do
     allEvents <- all_ (Schema._events Schema.supplyChainDb)
     guard_ ((Schema.event_id allEvents) ==. val_ (EvId.unEventId eventId))
-    pure (Schema.event_json allEvents)
+    pure (Schema.event_to_sign allEvents)
   case r of
-    [jsonEvent] -> return jsonEvent
-    _           -> throwing _InvalidEventId eventId
+    [eventBS] -> return eventBS
+    _         -> throwing _InvalidEventId eventId
 
 
 insertSignature :: (AsServiceError err) => ST.UserId

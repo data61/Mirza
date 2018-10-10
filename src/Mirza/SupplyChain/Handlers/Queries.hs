@@ -28,13 +28,14 @@ import qualified Data.GS1.Event                               as Ev
 import           Data.GS1.EventId                             as EvId
 
 import           Database.Beam                                as B
+import           Database.Beam.Postgres                       (PgJSON (..))
 
 import           Control.Lens                                 (( # ))
 import           Control.Monad.Error.Hoist
-import           Data.Bifunctor                               (bimap)
-import           Data.Maybe                                   (catMaybes)
+import           Data.Text.Encoding                           (decodeUtf8)
 
-import           Crypto.JOSE.Types                            (Base64Octets (..))
+import           Data.Bifunctor                               (bimap)
+
 
 -- This takes an EPC urn,
 -- and looks up all the events related to that item. First we've got
@@ -63,8 +64,8 @@ eventInfoQuery :: AsServiceError err
 eventInfoQuery _user eventId@(EvId.EventId eId) = do
   usersWithEvent <- eventUserSignedList eventId
   schemaEvent <- findSchemaEvent (Schema.EventId eId) <!?> (_InvalidEventId # eventId)
-  event <- storageToModelEvent schemaEvent <?> ({-TODO: NOPE-}error "Event stored in database could not be parsed!")
-  let unsignedUserIds = map (ST.userId . fst) $ filter (not . snd) usersWithEvent
+  let event = storageToModelEvent schemaEvent
+      unsignedUserIds = map (ST.userId . fst) $ filter (not . snd) usersWithEvent
       signedUserIds = (ST.userId . fst) <$> filter snd usersWithEvent
   signedEvents <- mapM (flip findSignedEventByUser eventId) signedUserIds
   let usersAndSignedEvents = zip signedUserIds signedEvents
@@ -88,7 +89,10 @@ eventsByUser (ST.UserId userId) = do
     guard_ (Schema.user_events_event_id userEvent `references_` event &&.
             Schema.user_events_user_id userEvent ==. val_ (Schema.UserId userId))
     pure (Schema.event_json event)
-  return $ catMaybes $ decodeEventFromJSON <$> events
+  pure $ getEventFromPgEvent <$> events
+  where
+    getEventFromPgEvent :: PgJSON Ev.Event -> Ev.Event
+    getEventFromPgEvent (PgJSON event) = event
 
 -- | Given an eventId, list all the users associated with that event
 -- This can be used to make sure everything is signed
