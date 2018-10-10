@@ -48,9 +48,8 @@ getPublicKey :: ( Member context '[HasEnvType, HasConnPool, HasLogging]
                 , Member err     '[AsBRKeyError, AsSqlError])
              => CT.BRKeyId
              -> AppM context err PEM_RSAPubKey
-getPublicKey kid = do
-  mpem <- runDb $ getPublicKeyQuery kid
-  maybe (throwing _KeyNotFoundBRKE kid) pure mpem
+getPublicKey kid = runDb $ getPublicKeyQuery kid <!?> (_KeyNotFoundBRKE # kid)
+
 
 getPublicKeyQuery :: CT.BRKeyId
                   -> DB context err (Maybe PEM_RSAPubKey)
