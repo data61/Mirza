@@ -14,7 +14,6 @@ import           Mirza.Common.Time                      (CreationTime,
                                                          ExpirationTime,
                                                          RevocationTime)
 import           Mirza.Common.Types                     as CT
-import           Mirza.Common.Utils
 
 import           Data.GS1.EPC                           as EPC
 
@@ -102,8 +101,6 @@ newtype AuthUser = AuthUser { authUserId :: UserId }
   deriving (Show, Eq, Read, Generic)
 instance ToSchema AuthUser
 instance ToParamSchema AuthUser
-instance FromHttpApiData AuthUser where
-  parseUrlPiece = notImplemented
 
 
 data NewBusiness = NewBusiness
