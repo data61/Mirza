@@ -254,9 +254,6 @@ instance ToSchema EventHash
 -- signed by one of the parties involved in the
 -- event.
 type Signature' = Signature () JWSHeader
---   deriving (Generic, Show, Read, Eq)
--- $(deriveJSON defaultOptions ''Signature)
--- instance ToSchema Signature
 
 data BlockchainPackage = BlockchainPackage EventHash (NonEmpty (Signature', UserId))
   deriving (Show, Eq, Generic)

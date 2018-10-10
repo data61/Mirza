@@ -15,19 +15,20 @@ import           Mirza.Common.Types            (PrimaryKeyType)
 
 import           Control.Lens
 
+import           Crypto.JOSE.JWK               (JWK)
 import           Data.ByteString               (ByteString)
 import           Data.Text                     (Text)
 import           Data.Time                     (LocalTime)
 import           Data.UUID                     (UUID)
-import           Crypto.JOSE.JWK               (JWK)
 
 import           Database.Beam                 as B
 import           Database.Beam.Migrate.SQL     as BSQL
 import           Database.Beam.Migrate.Types
-import           Database.Beam.Postgres           (PgJSON, PgCommandSyntax, Postgres, uuid, json)
+import           Database.Beam.Postgres        (PgCommandSyntax, PgJSON,
+                                                Postgres, json, uuid)
 import           Database.Beam.Postgres.Syntax (PgDataTypeSyntax)
 
-import           Data.Aeson                       hiding (json)
+import           Data.Aeson                    hiding (json)
 import           Data.Swagger
 
 import           Text.Email.Validate           (EmailAddress)
