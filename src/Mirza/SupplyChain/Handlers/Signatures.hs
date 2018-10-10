@@ -4,7 +4,7 @@
 module Mirza.SupplyChain.Handlers.Signatures
   (
     addUserToEvent
-  , eventSign, getEventBS, makeDigest, insertSignature, eventHashed
+  , eventSign, getEventBS, insertSignature, eventHashed
   , findSignedEventByEvent, findSignatureByEvent
   , findSignedEventByUser, findSignatureByUser
   , signatureToSignedEvent
@@ -96,7 +96,7 @@ eventSign user (SignedEvent eventId keyId sig) = do
   runDb $ do
     eventBS <- getEventBS eventId
     event' <- verifyJWS' jwk sig
-    if event == event'
+    if eventBS == event'
       then insertSignature (ST.userId user) eventId keyId sig
       else throwing _SigVerificationFailure (show sig)
 
