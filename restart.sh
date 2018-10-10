@@ -9,6 +9,7 @@ export BR_DBNAME="devmirzabusinessregistry"
 
 echo Recreating the database
 ./manage_db.sh $SCS_DBNAME
+./manage_db.sh $BR_DBNAME
 
 # Defaulting opt to avoid error
 GIVEN_OPT=$1
@@ -21,7 +22,7 @@ then
 fi
 
 stack build --fast
-stack exec supplyChainServer-exe -- --init-db
+stack exec supplyChainServer-exe -- --init-db --brhost localhost --brport 8200
 stack exec businessRegistry -- initdb
 
 # eventuially, we will get an updated list from ASIC and populate the db
@@ -68,6 +69,6 @@ curl -X POST "http://localhost:8000/newUser" \
     -d "{ \"newUserPhoneNumber\": \"0412\", \"newUserEmailAddress\": \"abc@gmail.com\", \"newUserFirstName\": \"sajid\", \"newUserLastName\": \"anower\", \"newUserCompany\": \"4000001\", \"newUserPassword\": \"password\"}")&
 echo; echo
 
-# TODO: Run an instance of businessRegistry as well
+stack exec businessRegistry -- server &
 
-stack exec supplyChainServer-exe -- -e Dev # running in Dev
+stack exec supplyChainServer-exe -- --brhost localhost --brport 8200 -e Dev
