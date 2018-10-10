@@ -4,7 +4,6 @@
 
 module Mirza.BusinessRegistry.Tests.Client where
 
-
 import           Control.Concurrent                    (threadDelay)
 import           Control.Exception                     (bracket)
 
@@ -14,6 +13,7 @@ import           Servant.API.BasicAuth
 import           Servant.Client
 
 import           Data.ByteString.Lazy                  (ByteString)
+import           Data.Text.Encoding                    (encodeUtf8)
 
 import           System.Directory                      (listDirectory)
 import           System.FilePath                       ((</>))
@@ -27,6 +27,7 @@ import           Data.Maybe                            (fromJust, isJust,
 import           Data.Time.Clock                       (addUTCTime, diffUTCTime,
                                                         getCurrentTime)
 import           Data.UUID                             (nil)
+import           Text.Email.Validate                   (toByteString)
 
 import qualified Network.HTTP.Types.Status             as NS
 
@@ -34,7 +35,9 @@ import           Test.Hspec.Expectations
 import           Test.Tasty
 import           Test.Tasty.HUnit
 
-import           Data.GS1.EPC                          (GS1CompanyPrefix (..), LocationEPC(SGLN), LocationReference(LocationReference))
+import           Data.GS1.EPC                          (GS1CompanyPrefix (..),
+                                                        LocationEPC (SGLN),
+                                                        LocationReference (LocationReference))
 
 import           Mirza.BusinessRegistry.Client.Servant
 import           Mirza.BusinessRegistry.Types
@@ -45,8 +48,20 @@ import           Mirza.BusinessRegistry.Tests.Utils
 import           Mirza.Common.Tests.InitClient
 import           Mirza.Common.Tests.Utils
 
-
 -- === BR Servant Client tests
+userABC :: NewUser
+userABC = NewUser
+  { newUserPhoneNumber = "0400 111 222"
+  , newUserEmailAddress = unsafeMkEmailAddress "abc@example.com"
+  , newUserFirstName = "Johnny"
+  , newUserLastName = "Smith"
+  , newUserCompany = GS1CompanyPrefix "something"
+  , newUserPassword = "re4lly$ecret14!"}
+
+authABC :: BasicAuthData
+authABC = BasicAuthData
+  (toByteString . newUserEmailAddress $ userABC)
+  (encodeUtf8   . newUserPassword     $ userABC)
 
 clientSpec :: IO TestTree
 clientSpec = do
@@ -115,13 +130,13 @@ clientSpec = do
               companyPrefix = (GS1CompanyPrefix "3000001")
               business = NewBusiness companyPrefix "userTests_businessName"
 
-          let user1 = NewUser (EmailAddress "userTests_email1@example.com")
+          let user1 = NewUser (unsafeMkEmailAddress "userTests_email1@example.com")
                               password
                               companyPrefix
                               "userTests First Name 1"
                               "userTests Last Name 1"
                               "userTests Phone Number 1"
-              user2 = NewUser (EmailAddress "userTests_email2@example.com")
+              user2 = NewUser (unsafeMkEmailAddress "userTests_email2@example.com")
                               password
                               companyPrefix
                               "userTests First Name 2"
@@ -134,7 +149,7 @@ clientSpec = do
                                       "userTests First Name Same Email"
                                       "userTests Last Name Same Email"
                                       "userTests Phone Number Same Email"
-              userNonRegisteredBiz = NewUser (EmailAddress "userTests_unregisteredBusiness@example.com")
+              userNonRegisteredBiz = NewUser (unsafeMkEmailAddress "userTests_unregisteredBusiness@example.com")
                                              password
                                              (GS1CompanyPrefix "unregistered")
                                              "userTests First Name Unregistered Business"
@@ -238,21 +253,21 @@ clientSpec = do
               biz2 = NewBusiness biz2Prefix "userTests_businessName2"
 
           -- Business1User1
-          let userB1U1 = NewUser (EmailAddress "keysTests_email1@example.com")
+          let userB1U1 = NewUser (unsafeMkEmailAddress "keysTests_email1@example.com")
                                  password
                                  biz1Prefix
                                  "keysTests First Name 1"
                                  "keysTests Last Name 1"
                                  "keysTests Phone Number 1"
           -- Business1User2
-          let userB1U2 = NewUser (EmailAddress "keysTests_email2@example.com")
+          let userB1U2 = NewUser (unsafeMkEmailAddress "keysTests_email2@example.com")
                                  password
                                  biz1Prefix
                                  "keysTests First Name 2"
                                  "keysTests Last Name 2"
                                  "keysTests Phone Number 2"
           -- Business2User1
-          let userB2U1 = NewUser (EmailAddress "keysTests_email3@example.com")
+          let userB2U1 = NewUser (unsafeMkEmailAddress "keysTests_email3@example.com")
                                  password
                                  biz2Prefix
                                  "keysTests First Name 3"
@@ -456,7 +471,7 @@ clientSpec = do
                 let directory = "test" </> "Mirza" </> "Common" </> "TestData" </> "testKeys" </> keyDirectory
                 files <- filter (".pub" `isSuffixOf`) <$> listDirectory directory
                 let fullyQualifiedFiles = (directory </>) <$> files
-                keys <- traverse readRsaPubKey fullyQualifiedFiles
+                keys <- traverse readRsaPublicKey fullyQualifiedFiles
                 forM_ (zip files keys) $ \(keyName,key) -> do
                   step $ "Testing " ++ keyDirectory ++ " key: " ++ keyName
                   http (addPublicKey (newUserToBasicAuthData userB1U1) key Nothing)
@@ -482,7 +497,7 @@ clientSpec = do
               biz2 = NewBusiness biz2Prefix "locationTests_businessName2"
 
           -- Business1User1
-          let userB1U1 = NewUser (EmailAddress "locationTests_email1@example.com")
+          let userB1U1 = NewUser (unsafeMkEmailAddress "locationTests_email1@example.com")
                                 password
                                 biz1Prefix
                                 "locationTests First Name 1"
@@ -493,7 +508,7 @@ clientSpec = do
 
           _userB1U1Response <- http (addUser brAuthUser userB1U1)
 
-          
+
           step "Can Add a Location"
           let newLoc1 = NewLocation (SGLN biz1Prefix (LocationReference "98765") Nothing)
                                     (Just (Latitude 1.0, Longitude 2.0))
@@ -524,4 +539,3 @@ checkFailureMessage = checkFailureField responseBody
 checkFailureField :: (Eq a) => (Response -> a) -> a -> Either ServantError b -> Bool
 checkFailureField accessor x (Left (FailureResponse failure)) = x == (accessor failure)
 checkFailureField _        _ _                                = False
-

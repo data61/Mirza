@@ -113,7 +113,7 @@ deriving instance ToHttpApiData LabelEPCUrn
 -- *****************************************************************************
 -- TODO: The factory functions should probably be removed from here.
 
-newtype EventOwner  = EventOwner UserId deriving(Generic, Show, Eq, Read)
+newtype EventOwner = EventOwner UserId deriving(Generic, Show, Eq, Read)
 
 data ObjectEvent = ObjectEvent {
   obj_foreign_event_id :: Maybe EventId,
@@ -261,18 +261,12 @@ data BlockchainPackage = BlockchainPackage EventHash (NonEmpty (Signature, UserI
 $(deriveJSON defaultOptions ''BlockchainPackage)
 instance ToSchema BlockchainPackage
 
-
-data Digest = SHA256 | SHA384 | SHA512
-  deriving (Show, Generic, Eq, Read)
-$(deriveJSON defaultOptions ''Digest)
-instance ToSchema Digest
-
 data SignedEvent = SignedEvent {
   signed_eventId   :: EventId,
   signed_keyId     :: BRKeyId,
   signed_signature :: Signature,
   signed_digest    :: Digest
-} deriving (Generic)
+} deriving (Generic, Show, Eq)
 $(deriveJSON defaultOptions ''SignedEvent)
 instance ToSchema SignedEvent
 --instance ToParamSchema SignedEvent where
@@ -285,6 +279,29 @@ data HashedEvent = HashedEvent {
 $(deriveJSON defaultOptions ''HashedEvent)
 instance ToSchema HashedEvent
 
+newtype BlockchainId = BlockchainId Text
+  deriving (Show, Generic, Eq)
+$(deriveJSON defaultOptions ''BlockchainId)
+instance ToSchema BlockchainId
+
+data EventBlockchainStatus
+  = Sent -- BlockchainId -- commented out for the moment because ToSchema cannot be auto-derived
+  | ReadyAndWaiting
+  | SendFailed -- sending was attempted but failed
+  | NotSent -- sending not attempted yet because of lack of signatures, etc
+  deriving (Show, Generic, Eq)
+$(deriveJSON defaultOptions ''EventBlockchainStatus)
+instance ToSchema EventBlockchainStatus
+
+data EventInfo = EventInfo {
+  eventInfoEvent            :: Ev.Event,
+  eventInfoUserSigs         :: [(UserId, SignedEvent)],
+  eventInfoUnsignedUsers    :: [UserId],
+  eventToSign               :: Text, --this is the json stored in the db atm
+  eventInfoBlockChainStatus :: EventBlockchainStatus
+} deriving (Show, Eq, Generic)
+$(deriveJSON defaultOptions ''EventInfo)
+instance ToSchema EventInfo
 
 -- *****************************************************************************
 -- Error Types
@@ -312,13 +329,14 @@ data ServiceError
   | InvalidDigest          Digest
   | InsertionFail          ServerError Text
   | EventPermissionDenied  UserId EvId.EventId
-  | EmailExists            ServerError EmailAddress
+  | EmailExists            EmailAddress
   | EmailNotFound          EmailAddress
   | AuthFailed             EmailAddress
   | UserNotFound           EmailAddress
   | ParseError             EPC.ParseFailure
   | BackendErr             Text -- fallback
   | DatabaseError          SqlError
+  | UnmatchedUniqueViolation SqlError
   | ServantErr             ServantError
   deriving (Show, Eq, Generic)
 $(makeClassyPrisms ''ServiceError)
@@ -333,9 +351,9 @@ instance AsSqlError AppError where
   _SqlError = _DatabaseError
 
 instance AsServantError ServantError where
-    _ServantError = id
+  _ServantError = id
 
 instance AsServantError ServiceError where
-    _ServantError = _ServantErr
+  _ServantError = _ServantErr
 
 instance AsServantError AppError where _ServantError = _ServantErr

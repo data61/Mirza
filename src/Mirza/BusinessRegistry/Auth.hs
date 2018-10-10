@@ -12,23 +12,22 @@ module Mirza.BusinessRegistry.Auth
   , listUsersQuery
   ) where
 
-import           Database.Beam                            as B
-import           Mirza.BusinessRegistry.Database.Schema   as Schema
+import           Mirza.BusinessRegistry.Database.Schema as Schema
 import           Mirza.BusinessRegistry.Handlers.Common
+import           Mirza.BusinessRegistry.Types           as BT
+import           Mirza.Common.Types                     as CT
 
-import           Database.PostgreSQL.Simple               (SqlError)
-
-import           Data.Text.Encoding                       (decodeUtf8)
-
-import           Mirza.BusinessRegistry.Types             as BT
-import           Mirza.Common.Types                       as CT
+import           Database.Beam                          as B
+import           Database.PostgreSQL.Simple             (SqlError)
 
 import           Servant
 
-import qualified Crypto.Scrypt                            as Scrypt
+import qualified Crypto.Scrypt                          as Scrypt
 
 import           Control.Lens
 
+import           Text.Email.Validate                    (EmailAddress,
+                                                         emailAddress)
 
 -- | We need to supply our handlers with the right Context. In this case,
 -- Basic Authentication requires a Context Entry with the 'BasicAuthCheck' value
@@ -44,24 +43,29 @@ basicAuthServerContext context = authCheck context :. EmptyContext
 authCheck :: (HasScryptParams context, DBConstraint context SqlError)
           => context -> BasicAuthCheck AuthUser
 authCheck context =
-  let check (BasicAuthData useremail pass) = do
-        eitherUser <- runAppM @_ @SqlError context . runDb $
-                      authCheckQuery (EmailAddress $ decodeUtf8 useremail) (Password pass)
-        case eitherUser of
-          Right (Just user) -> return (Authorized user)
-          _                 -> return NoSuchUser -- We always return no such user so that we don't leak information about which users are registered and which are not.
+  let check (BasicAuthData userEmail pass) =
+        case emailAddress userEmail of
+          Nothing -> return Unauthorized
+          Just email -> do
+            eitherUser <- runAppM @_ @SqlError context . runDb $
+                          authCheckQuery email (Password pass)
+            case eitherUser of
+              Right (Just user) -> return (Authorized user)
+              _                 -> return NoSuchUser
   in BasicAuthCheck check
-
 
 -- Basic Auth check using Scrypt hashes.
 -- TODO: How safe is this to timing attacks? Can we tell which emails are in the
 -- system easily?
-authCheckQuery :: (AsSqlError err, HasScryptParams context) =>  EmailAddress -> Password -> DB context err (Maybe AuthUser)
-authCheckQuery (EmailAddress email) (Password password) = do
+authCheckQuery :: (AsSqlError err, HasScryptParams context)
+               => EmailAddress
+               -> Password
+               -> DB context err (Maybe AuthUser)
+authCheckQuery userEmail (Password password) = do
   let userTable = _users businessRegistryDB
   r <- pg $ runSelectReturningList $ select $ do
         user <- all_ userTable
-        guard_ (email_address user  ==. val_ email)
+        guard_ (email_address user  ==. val_ userEmail)
         pure user
   params <- view $ _2 . scryptParams
   case r of

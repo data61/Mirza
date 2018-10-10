@@ -31,7 +31,6 @@ import           Data.Text.Encoding                       (encodeUtf8)
 import           GHC.Stack                                (HasCallStack, callStack)
 
 
-
 -- This function is an interface adapter and adds the BT.AuthUser argument to
 -- addUser so that we can use it from behind the private API. This argument
 -- is not used in the current implementation as it is assumed that all users
@@ -54,22 +53,22 @@ addUser =
 addUserQuery :: (HasCallStack, AsBRError err, HasScryptParams context)
              => NewUser
              -> DB context err UserId
-addUserQuery (NewUser (EmailAddress email) password companyPrefix firstName lastName phone) = do
+addUserQuery (BRT.NewUser userEmail password biz firstName lastName phone) = do
   params <- view $ _2 . scryptParams
   encPass <- liftIO $ Scrypt.encryptPassIO params (Scrypt.Pass $ encodeUtf8 password)
   userId <- newUUID
 
   business <- pg $ runSelectReturningOne $ select $ do
     businesses <- all_ (Schema._businesses Schema.businessRegistryDB)
-    guard_ (biz_gs1_company_prefix businesses ==. val_ companyPrefix)
+    guard_ (biz_gs1_company_prefix businesses ==. val_ biz)
     pure businesses
   when (isNothing business) $ throwing_ _BusinessDoesNotExistBRE
 
   -- TODO: use Database.Beam.Backend.SQL.runReturningOne?
   res <- pg $ runInsertReturningList (Schema._users Schema.businessRegistryDB) $
       insertValues
-       [Schema.UserT userId (Schema.BizId companyPrefix) firstName lastName
-               phone (Scrypt.getEncryptedPass encPass) email
+       [Schema.UserT userId (Schema.BizId  biz) firstName lastName
+               phone (Scrypt.getEncryptedPass encPass) userEmail
        ]
   case res of
       [r] -> return $ UserId $ user_id r
