@@ -19,7 +19,7 @@ import           Data.ByteString
 handleError :: MonadError err m => (err -> m a) -> m a -> m a
 handleError = flip catchError
 
-handleSqlUniqueViloation  :: (AsSqlError err, AsBusinessRegistryError err, MonadError err m, MonadIO m)
+handleSqlUniqueViloation  :: (AsSqlError err, AsBRError err, MonadError err m, MonadIO m)
                           => ByteString        -- ^ UniqueViolation name.
                           -> (SqlError -> err) -- ^ A function which takes the original SQL error for the
                                                --   UniqueViolation and turns it into the error that is thrown

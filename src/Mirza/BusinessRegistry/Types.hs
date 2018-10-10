@@ -246,7 +246,7 @@ instance ToSchema KeyInfoResponse
 -- Error Types
 -- *****************************************************************************
 
-data BusinessRegistryError
+data BRError
   = DBErrorBRE SqlError
   | UnmatchedUniqueViolationBRE SqlError
   -- | The user tried to add a business with the a GS1CompanyPrefix that already exsits.
@@ -256,7 +256,7 @@ data BusinessRegistryError
   | UserCreationSQLErrorBRE SqlError
   -- | When adding a user fails for an unknown reason.
   | UserCreationErrorBRE String CallStack
-  | KeyErrorBRE KeyError
+  | BRKeyErrorBRE BRKeyError
   | LocationNotKnownBRE
   | LocationExistsBRE
   -- | An error that isn't specifically excluded by the types, but that the
@@ -265,7 +265,7 @@ data BusinessRegistryError
   | UnexpectedErrorBRE CallStack
   deriving (Show, Generic)
 
-data KeyError
+data BRKeyError
   = InvalidRSAKeyBRE PEM_RSAPubKey
   | InvalidRSAKeySizeBRE Expected Received
   | PublicKeyInsertionErrorBRE [CT.BRKeyId]
@@ -292,8 +292,8 @@ newtype Received = Received {getReceived :: Bit} deriving (Show, Eq, Read, Ord)
 
 
 -- Lens definitions for Error Types.
-$(makeClassyPrisms ''BusinessRegistryError)
-$(makeClassyPrisms ''KeyError)
+$(makeClassyPrisms ''BRError)
+$(makeClassyPrisms ''BRKeyError)
 
-instance AsSqlError BusinessRegistryError where _SqlError = _DBErrorBRE
-instance AsKeyError BusinessRegistryError where _KeyError = _KeyErrorBRE
+instance AsSqlError BRError where _SqlError = _DBErrorBRE
+instance AsBRKeyError BRError where _BRKeyError = _BRKeyErrorBRE

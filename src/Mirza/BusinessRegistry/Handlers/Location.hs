@@ -27,7 +27,7 @@ import           GHC.Stack                                (HasCallStack, callSta
 import           Control.Lens                             ((#))
 
 addLocation :: ( Member context '[HasEnvType, HasConnPool, HasLogging]
-               , Member err     '[AsSqlError, AsBusinessRegistryError])
+               , Member err     '[AsSqlError, AsBRError])
             => AuthUser
             -> NewLocation
             -> AppM context err LocationId
@@ -42,7 +42,7 @@ addLocation auser newLoc = do
   -- TODO: discover which constraints are needed and what we should catch here
   -- (awaiting tests)
   -- where
-  --   errHandler :: (AsSqlError err, AsBusinessRegistryError err, MonadError err m, MonadIO m) => err -> m a
+  --   errHandler :: (AsSqlError err, AsBRError err, MonadError err m, MonadIO m) => err -> m a
   --   errHandler e = case e ^? _SqlError of
   --     Nothing -> throwError e
   --     Just sqlErr ->
@@ -51,7 +51,7 @@ addLocation auser newLoc = do
   --         _ -> throwError e
 
 addLocationQuery  :: ( Member context '[]
-                     , Member err     '[AsBusinessRegistryError]
+                     , Member err     '[AsBRError]
                      , HasCallStack)
                   => AuthUser
                   -> PrimaryKeyType
@@ -79,20 +79,20 @@ addLocationQuery (AuthUser (BT.UserId uId)) locId geoLocId newLoc = do
         _   -> throwing _UnexpectedErrorBRE callStack
 
 
-newLocationToLocation :: PrimaryKeyType 
+newLocationToLocation :: PrimaryKeyType
                       -> GeoLocationId
-                      -> BizId 
-                      -> NewLocation 
+                      -> BizId
+                      -> NewLocation
                       -> (Location, GeoLocation)
-newLocationToLocation 
-  locId (GeoLocationId geoLocId) bizId 
+newLocationToLocation
+  locId (GeoLocationId geoLocId) bizId
   NewLocation{newLocGLN, newLocCoords, newLocAddress} =
     ( LocationT
         { location_id        = locId
         , location_biz_id    = bizId
         , location_gln       = newLocGLN
         }
-      , GeoLocationT 
+      , GeoLocationT
         { geoLocation_id        = geoLocId
         , geoLocation_gln       = LocationId newLocGLN
         , geoLocation_latitude  = fst <$> newLocCoords
@@ -103,15 +103,15 @@ newLocationToLocation
 
 
 getLocationByGLN :: ( Member context '[HasLogging, HasConnPool, HasEnvType]
-                    , Member err     '[AsBusinessRegistryError, AsSqlError]
-                    , HasCallStack) 
+                    , Member err     '[AsBRError, AsSqlError]
+                    , HasCallStack)
                     => AuthUser
                     -> LocationEPC
                     -> AppM context err LocationResponse
 getLocationByGLN _user gln = do
   res <- runDb $ getLocationByGLNQuery gln
   case res of
-    Nothing -> throwing_ _LocationNotKnownBRE 
+    Nothing -> throwing_ _LocationNotKnownBRE
     Just (LocationT{location_biz_id = BizId bizId,..} , GeoLocationT{..}) -> pure $ LocationResponse
       { locationId    = location_id
       , locationGLN   = location_gln
@@ -123,13 +123,13 @@ getLocationByGLN _user gln = do
 
 
 getLocationByGLNQuery :: ( Member context '[]
-                         , Member err     '[AsBusinessRegistryError])
-                         => LocationEPC 
+                         , Member err     '[AsBRError])
+                         => LocationEPC
                          -> DB context err (Maybe (Location, GeoLocation))
 getLocationByGLNQuery gln = pg $ runSelectReturningOne $ select $ do
   loc   <- all_ (_locations businessRegistryDB)
   geoloc <- all_ (_geoLocations businessRegistryDB)
   guard_ (primaryKey loc ==. val_ (LocationId gln))
-  guard_ (geoLocation_gln geoloc ==. primaryKey loc) 
+  guard_ (geoLocation_gln geoloc ==. primaryKey loc)
   -- TODO: Add ORDER BY when we have a date modified field
   pure (loc,geoloc)
