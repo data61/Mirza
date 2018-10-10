@@ -147,7 +147,7 @@ insertSignature userId@(ST.UserId uId) eId kId (ST.Signature sig) digest = do
         insertValues
         [(Schema.Signature sigId) (Schema.UserId uId) (Schema.EventId $ EvId.unEventId eId)
          (BRKeyId $ getBRKeyId kId) (BSC.pack sig)
-          (BSC.pack $ show digest) (toDbTimestamp timestamp)]
+          digest (toDbTimestamp timestamp)]
   case r of
     [rowId] -> do
       updateUserEventSignature userId eId True
@@ -213,7 +213,7 @@ signatureToSignedEvent
                   (EvId.EventId eId)
                   brKeyId
                   (ST.Signature $ BSC.unpack sig)
-                  (read . BSC.unpack $ digest)
+                  digest
 
 -- do we need this?
 eventHashed :: ST.User -> EvId.EventId -> AppM context err HashedEvent

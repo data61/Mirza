@@ -91,7 +91,6 @@ eventsByUser (ST.UserId userId) = do
     pure (Schema.event_json event)
   return $ catMaybes $ decodeEventFromJSON <$> events
 
-
 -- | Given an eventId, list all the users associated with that event
 -- This can be used to make sure everything is signed
 eventUserList :: SCSApp context err
