@@ -166,7 +166,7 @@ migration () =
           (field "event_id" pkSerialType)
           (field "event_foreign_event_id" (maybeType uuid))
           (UserId (field "event_created_by" pkSerialType))
-          (field "event_json" json notNull unique)
+          (field "event_json" json notNull)
           (field "event_to_sign" bytea notNull unique)
     )
     <*> createTable "whats"
