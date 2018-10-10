@@ -42,6 +42,9 @@ import           Mirza.BusinessRegistry.Main              (RunServerOptions (..)
 import qualified Mirza.BusinessRegistry.Main              as BRMain
 import           Mirza.BusinessRegistry.Types             as BT
 
+import           Mirza.Common.Tests.Utils                 (unsafeMkEmailAddress)
+import           Text.Email.Validate                      (toByteString)
+
 -- *****************************************************************************
 -- SCS Utility Functions
 -- *****************************************************************************
@@ -117,7 +120,7 @@ newBusinessToBusinessResponse =
 newUserToBasicAuthData :: BT.NewUser -> BasicAuthData
 newUserToBasicAuthData =
   BasicAuthData
-  <$> encodeUtf8 . getEmailAddress . BT.newUserEmailAddress
+  <$> toByteString . BT.newUserEmailAddress
   <*> encodeUtf8 . BT.newUserPassword
 
 
@@ -131,7 +134,7 @@ bootstrapAuthData ctx = do
   let business = NewBusiness prefix "Business Name"
   insertBusinessResult  <- runAppM @_ @BRError ctx $ BRHB.addBusiness business
   insertBusinessResult `shouldSatisfy` isRight
-  let user = BT.NewUser  (EmailAddress email)
+  let user = BT.NewUser  (unsafeMkEmailAddress email)
                       password
                       prefix
                       "Test User First Name"

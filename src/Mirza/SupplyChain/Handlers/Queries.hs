@@ -8,9 +8,10 @@ module Mirza.SupplyChain.Handlers.Queries
 
 
 import           Mirza.SupplyChain.Handlers.Common
-import           Mirza.SupplyChain.Handlers.EventRegistration (findEvent,
-                                                               findLabelId,
+import           Mirza.SupplyChain.Handlers.EventRegistration (findLabelId,
+                                                               findSchemaEvent,
                                                                getEventList)
+import           Mirza.SupplyChain.Handlers.Signatures
 import           Mirza.SupplyChain.Handlers.Users             (userTableToModel)
 
 import           Mirza.SupplyChain.Database.Schema            as Schema
@@ -28,8 +29,11 @@ import           Data.GS1.EventId                             as EvId
 
 import           Database.Beam                                as B
 
+import           Control.Monad                                (unless)
+
 import           Data.Bifunctor                               (bimap)
-import           Data.Maybe                                   (catMaybes)
+import           Data.Maybe                                   (catMaybes,
+                                                               isJust)
 
 
 -- This takes an EPC urn,
@@ -37,7 +41,7 @@ import           Data.Maybe                                   (catMaybes)
 -- to find all the related "Whats"
 listEvents :: SCSApp context err
            => ST.User
-           ->  LabelEPCUrn
+           -> LabelEPCUrn
            -> AppM context err [Ev.Event]
 listEvents _user = either throwParseError (runDb . listEventsQuery) . urn2LabelEPC . getLabelEPCUrn
 
@@ -46,13 +50,27 @@ listEventsQuery labelEpc =
   maybe (return []) (getEventList . Schema.LabelId) =<< findLabelId labelEpc
 
 
-
-eventInfo :: SCSApp context err
+eventInfo :: (SCSApp context err, AsServantError err)
           => ST.User
           -> EvId.EventId
-          -> AppM context err (Maybe Ev.Event)
-eventInfo _user = runDb . findEvent . Schema.EventId . EvId.unEventId
+          -> AppM context err EventInfo
+eventInfo user eventId = runDb $ eventInfoQuery user eventId
 
+eventInfoQuery :: AsServiceError err
+               => ST.User
+               -> EvId.EventId
+               -> DB context err EventInfo
+eventInfoQuery _user eventId@(EvId.EventId eId) = do
+  usersWithEvent <- eventUserSignedList eventId
+  mschemaEvent <- findSchemaEvent (Schema.EventId eId)
+  unless (isJust mschemaEvent) $ throwing _InvalidEventId eventId
+  let (Just schemaEvent) = mschemaEvent
+      (Just event) = storageToModelEvent schemaEvent
+      unsignedUserIds = map (ST.userId . fst) $ filter (not . snd) usersWithEvent
+      signedUserIds = (ST.userId . fst) <$> filter snd usersWithEvent
+  signedEvents <- mapM ((flip findSignedEventByUser) eventId) signedUserIds
+  let usersAndSignedEvents = zip signedUserIds signedEvents
+  pure $ EventInfo event usersAndSignedEvents unsignedUserIds (constructEventToSign event) NotSent
 
 
 -- |List events that a particular user was/is involved with
@@ -71,12 +89,10 @@ eventsByUser (ST.UserId userId) = do
     guard_ (Schema.user_events_event_id userEvent `references_` event &&.
             Schema.user_events_user_id userEvent ==. val_ (Schema.UserId userId))
     pure (Schema.event_json event)
-  return $ catMaybes $ decodeEvent <$> events
+  return $ catMaybes $ decodeEventFromJSON <$> events
 
-
-
--- given an event Id, list all the users associated with that event
--- this can be used to make sure everything is signed
+-- | Given an eventId, list all the users associated with that event
+-- This can be used to make sure everything is signed
 eventUserList :: SCSApp context err
               => ST.User
               -> EvId.EventId
@@ -89,9 +105,8 @@ eventUserSignedList :: EvId.EventId -> DB context err [(ST.User, Bool)]
 eventUserSignedList (EvId.EventId eventId) = do
   usersSignedList <- pg $ runSelectReturningList $ select $ do
     userEvent <- all_ (Schema._user_events Schema.supplyChainDb)
-    user <- all_ (Schema._users Schema.supplyChainDb)
     guard_ (Schema.user_events_event_id userEvent ==. val_ (Schema.EventId eventId))
-    guard_ (Schema.user_events_user_id userEvent `references_` user)
+    user <- related_ (Schema._users Schema.supplyChainDb) (Schema.user_events_user_id userEvent)
     pure (user, Schema.user_events_has_signed userEvent)
   return $ bimap userTableToModel id <$> usersSignedList
 

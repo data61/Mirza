@@ -24,7 +24,7 @@ import           Database.Beam.Backend.SQL.BeamExtensions
 import           Data.Text                                (pack, unpack)
 import           Data.Time.Clock                          (UTCTime,
                                                            getCurrentTime)
-import Data.Time.LocalTime
+import           Data.Time.LocalTime
 
 import           OpenSSL.EVP.PKey                         (SomePublicKey,
                                                            toPublicKey)
@@ -32,12 +32,11 @@ import           OpenSSL.PEM                              (readPublicKey,
                                                            writePublicKey)
 import           OpenSSL.RSA                              (RSAPubKey, rsaSize)
 
-import           Control.Monad                            (unless)
+import           Control.Monad                            (when, unless)
 import           Data.Maybe                               (isJust, isNothing)
 import           Control.Monad.Error.Hoist                ((<!?>))
 import           Control.Lens                             ((#))
 import           Data.Foldable                            (for_)
-import           Control.Monad                            (when)
 
 import           GHC.Stack                                (HasCallStack, callStack)
 
