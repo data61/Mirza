@@ -136,7 +136,7 @@ brErrorToHttpError :: BusinessRegistryError -> KatipContextT Handler a
 brErrorToHttpError brError =
   let httpError = (\x y -> throwHttpError x y brError)
   in case brError of
-    (KeyErrorBRE keyError)           -> keyErrorToHttpError keyError
+    (KeyErrorBRE keyError)          -> keyErrorToHttpError keyError
     (DBErrorBRE _)                  -> unexpectedError brError
     (UnexpectedErrorBRE _)          -> unexpectedError brError
     (UnmatchedUniqueViolationBRE _) -> unexpectedError brError
