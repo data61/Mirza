@@ -55,6 +55,7 @@ import qualified Data.Text                         as T
 import           Data.Time.LocalTime               (timeZoneOffsetString)
 
 import           Database.Beam                     as B
+import           Database.Beam.Postgres            (PgJSON (..))
 
 import           Control.Monad                     (void)
 
@@ -380,11 +381,11 @@ toStorageDWhy (Schema.WhyId pKey) (DWhy mBiz mDisp)
 toStorageEvent :: Schema.EventId
                -> Maybe EvId.EventId
                -> Schema.UserId
-               -> T.Text
+               -> PgJSON Ev.Event
                -> ByteString
                -> Schema.Event
-toStorageEvent (Schema.EventId pKey) mEventId userId jsonEvent toSignEvent =
-  Schema.Event pKey (EvId.unEventId <$> mEventId) userId jsonEvent toSignEvent
+toStorageEvent (Schema.EventId pKey) mEventId =
+  Schema.Event pKey (EvId.unEventId <$> mEventId)
 
 insertDWhat :: Maybe PrimaryKeyType
             -> DWhat
@@ -487,11 +488,12 @@ insertEvent :: Schema.UserId
             -> Ev.Event
             -> DB context err Schema.EventId
 insertEvent userId event = fmap (Schema.EventId <$>) QU.withPKey $ \pKey ->
-  let jsonEvent = QU.encodeEventToJSON event
-      toSignEvent = QU.constructEventToSign event
+  -- let jsonEvent = event
+  let toSignEvent = QU.constructEventToSign event
   in
     pg $ B.runInsert $ B.insert (Schema._events Schema.supplyChainDb)
-        $ insertValues [toStorageEvent (Schema.EventId pKey) (_eid event) userId jsonEvent toSignEvent]
+        $ insertValues
+            [toStorageEvent (Schema.EventId pKey) (_eid event) userId (PgJSON event) toSignEvent]
 
 insertUserEvent :: Schema.EventId
                 -> Schema.UserId

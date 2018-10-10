@@ -184,7 +184,7 @@ clientSpec = do
           step "Signing the key"
           let myDigest = SHA256
           (Just sha256) <- makeDigest myDigest
-          mySignBS <- signBS sha256 goodPrivKey $ encodeUtf8 . QU.encodeEventToJSON $ insertedEvent
+          mySignBS <- signBS sha256 goodPrivKey $ QU.constructEventToSign insertedEvent
           let mySign = ST.Signature . BS.unpack . BS64.encode $ mySignBS
           let mySignedEvent = SignedEvent (EvId.EventId eventId) keyId mySign myDigest
 
@@ -241,7 +241,7 @@ clientSpec = do
           step "Signing the object event with the giver"
           let myDigest = SHA256
           (Just sha256) <- makeDigest myDigest
-          mySignBS <- signBS sha256 goodPrivKeyGiver $ encodeUtf8 . QU.encodeEventToJSON $ insertedEvent
+          mySignBS <- signBS sha256 goodPrivKeyGiver $ QU.constructEventToSign insertedEvent
           let mySign = ST.Signature . BS.unpack . BS64.encode $ mySignBS
           let mySignedEvent = SignedEvent eventId keyIdGiver mySign myDigest
           httpSCS (eventSign authABC mySignedEvent) `shouldSatisfyIO` isRight
@@ -310,7 +310,7 @@ clientSpec = do
               transactionEventId = EvId.EventId transactEvId
 
           step "Signing the transaction event with the receiver user"
-          receiverSignBS <- signBS sha256 goodPrivKeyReceiver $ encodeUtf8 . QU.encodeEventToJSON $ insertedTransactEvent
+          receiverSignBS <- signBS sha256 goodPrivKeyReceiver $ QU.constructEventToSign insertedTransactEvent
           let receiverSign = ST.Signature . BS.unpack . BS64.encode $ receiverSignBS
           let receiverSignedEvent = SignedEvent transactionEventId keyIdReceiver receiverSign myDigest
           httpSCS (eventSign authDEF receiverSignedEvent) `shouldSatisfyIO` isRight

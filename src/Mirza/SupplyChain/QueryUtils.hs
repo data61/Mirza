@@ -10,7 +10,7 @@
 module Mirza.SupplyChain.QueryUtils
   (
     storageToModelEvent, userTableToModel
-  , encodeEventToJSON, decodeEventFromJSON, constructEventToSign
+  , decodeEventFromJSON, constructEventToSign
   , handleError
   , withPKey
   ) where
@@ -24,7 +24,9 @@ import qualified Data.GS1.Event                    as Ev
 
 import           Data.Aeson                        (decode)
 import           Data.Aeson.Text                   (encodeToLazyText)
+import           Data.ByteString                   (ByteString)
 import qualified Data.Text                         as T
+import           Data.Text.Encoding                (encodeUtf8)
 import qualified Data.Text.Lazy                    as TxtL
 import qualified Data.Text.Lazy.Encoding           as LEn
 
@@ -56,12 +58,8 @@ userTableToModel :: Schema.User -> ST.User
 userTableToModel (Schema.User uid _ fName lName _ _ _)
     = ST.User (ST.UserId uid) fName lName
 
--- | This function returns the standardised form of event that users can sign
-constructEventToSign :: Ev.Event -> T.Text
-constructEventToSign = encodeEventToJSON
-
-encodeEventToJSON :: Ev.Event -> T.Text
-encodeEventToJSON event = TxtL.toStrict  (encodeToLazyText event)
+constructEventToSign :: Ev.Event -> ByteString
+constructEventToSign event = encodeUtf8 $ TxtL.toStrict (encodeToLazyText event)
 
 decodeEventFromJSON :: T.Text -> Maybe Ev.Event
 decodeEventFromJSON = decode . LEn.encodeUtf8 . TxtL.fromStrict
