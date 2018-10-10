@@ -129,7 +129,7 @@ insertSignature userId@(ST.UserId uId) eId kId sig digest = do
         insertValues
         [(Schema.Signature sigId) (Schema.UserId uId) (Schema.EventId $ EvId.unEventId eId)
          (BRKeyId $ getBRKeyId kId) (PgJSON sig)
-          (BSC.pack $ show digest) (toDbTimestamp timestamp)]
+          digest (toDbTimestamp timestamp)]
   case r of
     [rowId] -> do
       updateUserEventSignature userId eId True

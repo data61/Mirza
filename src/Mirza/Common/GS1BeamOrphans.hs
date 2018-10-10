@@ -29,7 +29,7 @@ module Mirza.Common.GS1BeamOrphans
   , itemRefType
   , emailAddressType
   , locationEPCType
-  , Digest (..), digestType
+  , DigestType (..), digestType
   ) where
 
 import           Mirza.Common.Beam
@@ -579,32 +579,32 @@ instance ToParamSchema EPC.LocationEPC where
 
 -- ============= Digest ================
 
-data Digest = SHA256 | SHA384 | SHA512
+data DigestType = SHA256 | SHA384 | SHA512
   deriving (Show, Generic, Eq, Read)
-$(deriveJSON defaultOptions ''Digest)
-instance ToSchema Digest
+$(deriveJSON defaultOptions ''DigestType)
+instance ToSchema DigestType
 
 instance BSQL.HasSqlValueSyntax be String =>
-  BSQL.HasSqlValueSyntax be Digest where
+  BSQL.HasSqlValueSyntax be DigestType where
     sqlValueSyntax = BSQL.sqlValueSyntax . show
 instance (BMigrate.IsSql92ColumnSchemaSyntax be) =>
-  BMigrate.HasDefaultSqlDataTypeConstraints be Digest
+  BMigrate.HasDefaultSqlDataTypeConstraints be DigestType
 
 instance (BSQL.HasSqlValueSyntax (BSQL.Sql92ExpressionValueSyntax be) Bool,
           BSQL.IsSql92ExpressionSyntax be) =>
-          B.HasSqlEqualityCheck be Digest
+          B.HasSqlEqualityCheck be DigestType
 instance (BSQL.HasSqlValueSyntax (BSQL.Sql92ExpressionValueSyntax be) Bool,
           BSQL.IsSql92ExpressionSyntax be) =>
-          B.HasSqlQuantifiedEqualityCheck be Digest
+          B.HasSqlQuantifiedEqualityCheck be DigestType
 
-instance BSQL.FromBackendRow BPostgres.Postgres Digest where
-  fromBackendRow = defaultFromBackendRow "Digest"
+instance BSQL.FromBackendRow BPostgres.Postgres DigestType where
+  fromBackendRow = defaultFromBackendRow "DigestType"
 
-instance FromField Digest where
-  fromField = defaultFromField "Digest"
+instance FromField DigestType where
+  fromField = defaultFromField "DigestType"
 
-instance ToField Digest where
+instance ToField DigestType where
   toField = toField . show
 
-digestType :: BMigrate.DataType PgDataTypeSyntax Digest
+digestType :: BMigrate.DataType PgDataTypeSyntax DigestType
 digestType = textType

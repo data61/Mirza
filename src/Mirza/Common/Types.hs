@@ -43,7 +43,7 @@ module Mirza.Common.Types
   , PrimaryKeyType
   , brKeyIdType
   , runClientFunc
-  , Digest(..) -- reexporting from Mirza.Common.GS1BeamOrphans
+  , DigestType(..) -- reexporting from Mirza.Common.GS1BeamOrphans
   ) where
 
 import qualified Database.Beam                        as B
@@ -61,7 +61,7 @@ import           Database.PostgreSQL.Simple.ToField   (ToField, toField)
 
 import           Data.Proxy                           (Proxy (..))
 
-import           Mirza.Common.GS1BeamOrphans          (Digest (..))
+import           Mirza.Common.GS1BeamOrphans          (DigestType (..))
 
 import qualified Control.Exception                    as Exc
 import qualified Control.Exception                    as E

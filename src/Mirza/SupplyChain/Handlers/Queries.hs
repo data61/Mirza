@@ -62,10 +62,8 @@ eventInfoQuery :: AsServiceError err
                -> DB context err EventInfo
 eventInfoQuery _user eventId@(EvId.EventId eId) = do
   usersWithEvent <- eventUserSignedList eventId
-  schemaEvent <- findSchemaEvent (Schema.EventId eId)
+  schemaEvent <- findSchemaEvent (Schema.EventId eId) <!?> (_InvalidEventId # eventId)
   event <- storageToModelEvent schemaEvent <?> ({-TODO: NOPE-}error "Event stored in database could not be parsed!")
-  let (Just schemaEvent) = mschemaEvent
-  let event = storageToModelEvent <$> schemaEvent
   let unsignedUserIds = map (ST.userId . fst) $ filter (not . snd) usersWithEvent
       signedUserIds = (ST.userId . fst) <$> filter snd usersWithEvent
   signedEvents <- mapM (flip findSignedEventByUser eventId) signedUserIds
