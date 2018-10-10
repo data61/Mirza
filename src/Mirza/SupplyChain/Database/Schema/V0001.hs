@@ -168,7 +168,6 @@ migration () =
           (UserId (field "event_created_by" pkSerialType))
           (field "event_json" json notNull unique)
           (field "event_to_sign" bytea notNull unique)
-          -- (field "event_state" eventStateType notNull)
     )
     <*> createTable "whats"
     (
