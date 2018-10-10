@@ -4,7 +4,7 @@
 module Mirza.SupplyChain.Handlers.Signatures
   (
     addUserToEvent
-  , eventSign, getEventJSON, makeDigest, insertSignature, eventHashed
+  , eventSign, getEventBS, makeDigest, insertSignature, eventHashed
   , findSignedEventByEvent, findSignatureByEvent
   , findSignedEventByUser, findSignatureByUser
   , signatureToSignedEvent
@@ -44,13 +44,12 @@ import           OpenSSL.RSA                                  (RSAPubKey)
 import           Control.Lens                                 hiding ((.=))
 import           Control.Monad.Error.Hoist                    ((<!?>), (<%?>))
 
+import           Data.ByteString                              (ByteString)
 import qualified Data.ByteString.Base64                       as BS64
 import qualified Data.ByteString.Char8                        as BSC
 
 import           Data.Char                                    (toLower)
 import           Data.Text                                    (unpack)
-import qualified Data.Text                                    as T
-import           Data.Text.Encoding                           (encodeUtf8)
 
 import           Mirza.BusinessRegistry.Client.Servant        (getPublicKey)
 
@@ -111,23 +110,22 @@ eventSign user (SignedEvent eventId keyId (ST.Signature sigStr) digest') = do
   sigBS <- BS64.decode (BSC.pack sigStr) <%?> review _Base64DecodeFailure
   digest <- liftIO (makeDigest digest') <!?> review _InvalidDigest digest'
   runDb $ do
-    eventTxt <- getEventJSON eventId
-    let eventBS = encodeUtf8 eventTxt
+    eventBS <- getEventBS eventId
     verifyStatus <- liftIO $ verifyBS digest sigBS pubKey eventBS
     if verifyStatus == VerifySuccess
       then insertSignature (ST.userId user) eventId keyId (ST.Signature sigStr) digest'
       else throwing _SigVerificationFailure sigStr
 
 -- TODO: Should this return Text or a JSON value?
-getEventJSON :: AsServiceError err => EvId.EventId -> DB context err T.Text
-getEventJSON eventId = do
+getEventBS :: AsServiceError err => EvId.EventId -> DB context err ByteString
+getEventBS eventId = do
   r <- pg $ runSelectReturningList $ select $ do
     allEvents <- all_ (Schema._events Schema.supplyChainDb)
     guard_ ((Schema.event_id allEvents) ==. val_ (EvId.unEventId eventId))
-    pure (Schema.event_json allEvents)
+    pure (Schema.event_to_sign allEvents)
   case r of
-    [jsonEvent] -> return jsonEvent
-    _           -> throwing _InvalidEventId eventId
+    [eventBS] -> return eventBS
+    _         -> throwing _InvalidEventId eventId
 
 
 makeDigest :: Digest -> IO (Maybe EVPDigest.Digest)
