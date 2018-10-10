@@ -160,8 +160,6 @@ addPublicKeyQuery :: ( Member err     '[AsKeyError])
 addPublicKeyQuery (AuthUser (CT.UserId uid)) expTime jwk = do
   now <- liftIO getCurrentTime
   for_ expTime $ \time -> when ((getExpirationTime time) <= now) (throwing_ _AddedExpiredKey)
-  -- keyStr <- liftIO $ pack <$> writePublicKey jwk
-  -- TODO: Verify JWK is an RSA public key only
   keyId <- newUUID
   timestamp <- generateTimestamp
   ks <- pg $ runInsertReturningList (_keys businessRegistryDB) $

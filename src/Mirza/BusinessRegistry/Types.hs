@@ -23,8 +23,8 @@ import           Data.Pool                              as Pool
 import           Database.Beam                          as B
 import           Database.PostgreSQL.Simple             (Connection, SqlError)
 
-import           Crypto.Scrypt                          (ScryptParams)
 import           Crypto.JOSE                            (JWK)
+import           Crypto.Scrypt                          (ScryptParams)
 
 import           Control.Lens.TH
 

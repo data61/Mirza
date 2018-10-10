@@ -8,9 +8,10 @@ module Mirza.SupplyChain.Handlers.Queries
 
 
 import           Mirza.SupplyChain.Handlers.Common
-import           Mirza.SupplyChain.Handlers.EventRegistration (findEvent,
-                                                               findLabelId,
+import           Mirza.SupplyChain.Handlers.EventRegistration (findLabelId,
+                                                               findSchemaEvent,
                                                                getEventList)
+import           Mirza.SupplyChain.Handlers.Signatures
 import           Mirza.SupplyChain.Handlers.Users             (userTableToModel)
 
 import           Mirza.SupplyChain.Database.Schema            as Schema
@@ -28,16 +29,19 @@ import           Data.GS1.EventId                             as EvId
 
 import           Database.Beam                                as B
 
+import           Control.Lens                                 (( # ))
+import           Control.Monad.Error.Hoist
 import           Data.Bifunctor                               (bimap)
 import           Data.Maybe                                   (catMaybes)
 
+import           Crypto.JOSE.Types                            (Base64Octets (..))
 
 -- This takes an EPC urn,
 -- and looks up all the events related to that item. First we've got
 -- to find all the related "Whats"
 listEvents :: SCSApp context err
            => ST.User
-           ->  LabelEPCUrn
+           -> LabelEPCUrn
            -> AppM context err [Ev.Event]
 listEvents _user = either throwParseError (runDb . listEventsQuery) . urn2LabelEPC . getLabelEPCUrn
 
@@ -46,13 +50,30 @@ listEventsQuery labelEpc =
   maybe (return []) (getEventList . Schema.LabelId) =<< findLabelId labelEpc
 
 
-
-eventInfo :: SCSApp context err
+eventInfo :: (SCSApp context err, AsServantError err)
           => ST.User
           -> EvId.EventId
-          -> AppM context err (Maybe Ev.Event)
-eventInfo _user = runDb . findEvent . Schema.EventId . EvId.unEventId
+          -> AppM context err EventInfo
+eventInfo user eventId = runDb $ eventInfoQuery user eventId
 
+eventInfoQuery :: AsServiceError err
+               => ST.User
+               -> EvId.EventId
+               -> DB context err EventInfo
+eventInfoQuery _user eventId@(EvId.EventId eId) = do
+  usersWithEvent <- eventUserSignedList eventId
+  schemaEvent <- findSchemaEvent (Schema.EventId eId) <!?> (_InvalidEventId # eventId)
+  event <- storageToModelEvent schemaEvent <?> ({-TODO: NOPE-}error "Event stored in database could not be parsed!")
+  let unsignedUserIds = map (ST.userId . fst) $ filter (not . snd) usersWithEvent
+      signedUserIds = (ST.userId . fst) <$> filter snd usersWithEvent
+  signedEvents <- mapM (flip findSignedEventByUser eventId) signedUserIds
+  let usersAndSignedEvents = zip signedUserIds signedEvents
+  pure $ EventInfo event usersAndSignedEvents unsignedUserIds
+                  (Base64Octets $ event_to_sign schemaEvent) NotSent
+ -- return $ error "Event Info Query not implemented yet"
+
+
+-- pairUsersAndSignedEvents eventId userIds = sequence $ map ((flip findSignedEventByUser) eventId) userIds
 
 
 -- |List events that a particular user was/is involved with
@@ -71,12 +92,11 @@ eventsByUser (ST.UserId userId) = do
     guard_ (Schema.user_events_event_id userEvent `references_` event &&.
             Schema.user_events_user_id userEvent ==. val_ (Schema.UserId userId))
     pure (Schema.event_json event)
-  return $ catMaybes $ decodeEvent <$> events
+  return $ catMaybes $ decodeEventFromJSON <$> events
 
 
-
--- given an event Id, list all the users associated with that event
--- this can be used to make sure everything is signed
+-- | Given an eventId, list all the users associated with that event
+-- This can be used to make sure everything is signed
 eventUserList :: SCSApp context err
               => ST.User
               -> EvId.EventId

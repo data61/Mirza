@@ -12,11 +12,8 @@
 -- At the moment, if Database.Beam.BPostgres.Postgres.Syntax is a hidden module
 -- So it is not possible to implement the types yet
 module Mirza.Common.GS1BeamOrphans
-  ( LabelType(..)
-  , labelType
-  , LocationField(..)
-  , locationRefType
-  , locationType
+  ( LabelType(..), labelType
+  , LocationField(..), locationRefType, locationType
   , srcDestType
   , gs1CompanyPrefixType
   , actionType
@@ -30,10 +27,9 @@ module Mirza.Common.GS1BeamOrphans
   , serialNumType
   , itemRefType
   , locationEPCType
-  , Latitude(..)
-  , latitudeType
-  , Longitude(..)
-  , longitudeType
+  , Latitude(..), latitudeType
+  , Longitude(..), longitudeType
+  -- , EventState (..), eventStateType
   ) where
 
 import           Mirza.Common.Beam
@@ -93,6 +89,40 @@ instance ToField Ev.EventType where
 
 eventType :: BMigrate.DataType PgDataTypeSyntax Ev.EventType
 eventType = textType
+
+-- ======= EventState =======
+
+-- data EventState
+--   = AwaitingSignature
+--   | Signed
+--   | AwaitingBlockChain
+--   | SentToBlockChain
+--   deriving (Generic, Show, Eq, Read)
+
+-- instance BSQL.HasSqlValueSyntax be String =>
+--   BSQL.HasSqlValueSyntax be EventState where
+--     sqlValueSyntax = BSQL.autoSqlValueSyntax
+-- instance (BMigrate.IsSql92ColumnSchemaSyntax be) =>
+--   BMigrate.HasDefaultSqlDataTypeConstraints be EventState
+
+-- instance (BSQL.HasSqlValueSyntax (BSQL.Sql92ExpressionValueSyntax be) Bool,
+--           BSQL.IsSql92ExpressionSyntax be) =>
+--           B.HasSqlEqualityCheck be EventState
+-- instance (BSQL.HasSqlValueSyntax (BSQL.Sql92ExpressionValueSyntax be) Bool,
+--           BSQL.IsSql92ExpressionSyntax be) =>
+--           B.HasSqlQuantifiedEqualityCheck be EventState
+
+-- instance BSQL.FromBackendRow BPostgres.Postgres EventState where
+--   fromBackendRow = defaultFromBackendRow "EventState"
+
+-- instance FromField EventState where
+--   fromField = defaultFromField "EventState"
+
+-- instance ToField EventState where
+--   toField = toField . show
+
+-- eventStateType :: BMigrate.DataType PgDataTypeSyntax EventState
+-- eventStateType = textType
 
 
 -- ======= EPC.LocationReference =======
@@ -256,7 +286,7 @@ instance FromField EPC.GS1CompanyPrefix where
   fromField mbs conv = EPC.GS1CompanyPrefix <$> fromField mbs conv
 
 instance ToField EPC.GS1CompanyPrefix where
-  toField (EPC.GS1CompanyPrefix prefix) = toField prefix
+  toField (EPC.GS1CompanyPrefix pfx) = toField pfx
 
 gs1CompanyPrefixType :: BMigrate.DataType PgDataTypeSyntax EPC.GS1CompanyPrefix
 gs1CompanyPrefixType = textType
@@ -557,7 +587,7 @@ latitudeType :: BMigrate.DataType PgDataTypeSyntax Latitude
 latitudeType = BMigrate.DataType BSQL.doubleType
 
 
-instance BSQL.HasSqlValueSyntax be Double 
+instance BSQL.HasSqlValueSyntax be Double
       => BSQL.HasSqlValueSyntax be Longitude where
   sqlValueSyntax = BSQL.sqlValueSyntax . getLongitude
 instance BMigrate.IsSql92ColumnSchemaSyntax be
