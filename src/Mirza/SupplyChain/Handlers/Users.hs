@@ -8,8 +8,7 @@ module Mirza.SupplyChain.Handlers.Users
 
 import           Mirza.Common.Utils
 import           Mirza.SupplyChain.Database.Schema        as Schema
-import           Mirza.SupplyChain.ErrorUtils             (throwBackendError,
-                                                           toServerError)
+import           Mirza.SupplyChain.ErrorUtils             (throwBackendError)
 import           Mirza.SupplyChain.Handlers.Common
 import           Mirza.SupplyChain.QueryUtils
 import           Mirza.SupplyChain.SqlUtils
@@ -19,16 +18,10 @@ import qualified Mirza.SupplyChain.Types                  as ST
 
 import           Database.Beam                            as B
 import           Database.Beam.Backend.SQL.BeamExtensions
-import           Database.PostgreSQL.Simple.Errors        (ConstraintViolation (..),
-                                                           constraintViolation)
-import           Database.PostgreSQL.Simple.Internal      (SqlError (..))
 
 import qualified Crypto.Scrypt                            as Scrypt
 
-import           Control.Lens                             (view, ( # ), (^?),
-                                                           _2)
-import           Control.Monad.Except                     (MonadError,
-                                                           throwError)
+import           Control.Lens                             (view, ( # ), _2)
 import           Control.Monad.IO.Class                   (liftIO)
 import           Data.Text.Encoding                       (encodeUtf8)
 
@@ -55,8 +48,7 @@ addUserQuery (ST.NewUser phone userEmail firstName lastName biz password) = do
   encPass <- liftIO $ Scrypt.encryptPassIO params (Scrypt.Pass $ encodeUtf8 password)
   userId <- newUUID
   -- TODO: use Database.Beam.Backend.SQL.runReturningOne?
-  res <- handleError errHandler
-        $ pg $ runInsertReturningList (Schema._users Schema.supplyChainDb) $
+  res <- pg $ runInsertReturningList (Schema._users Schema.supplyChainDb) $
     insertValues
       [Schema.User userId (Schema.BizId  biz) firstName lastName
                phone (Scrypt.getEncryptedPass encPass) userEmail
@@ -65,11 +57,3 @@ addUserQuery (ST.NewUser phone userEmail firstName lastName biz password) = do
         [r] -> return . ST.UserId . Schema.user_id $ r
         -- TODO: Have a proper error response
         _   -> throwBackendError res
-  where
-    errHandler :: (MonadIO m, AsServiceError err, AsSqlError err, MonadError err m)
-               => err -> m a
-    errHandler =
-      (handleSqlUniqueViloation
-        "users_user_email_address_key"
-        (const $ _EmailExists # userEmail)
-      )
