@@ -261,12 +261,6 @@ data BlockchainPackage = BlockchainPackage EventHash (NonEmpty (Signature, UserI
 $(deriveJSON defaultOptions ''BlockchainPackage)
 instance ToSchema BlockchainPackage
 
-
-data Digest = SHA256 | SHA384 | SHA512
-  deriving (Show, Generic, Eq, Read)
-$(deriveJSON defaultOptions ''Digest)
-instance ToSchema Digest
-
 data SignedEvent = SignedEvent {
   signed_eventId   :: EventId,
   signed_keyId     :: BRKeyId,

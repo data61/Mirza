@@ -1,3 +1,4 @@
+{-# LANGUAGE ConstraintKinds            #-}
 {-# LANGUAGE DataKinds                  #-}
 {-# LANGUAGE DeriveGeneric              #-}
 {-# LANGUAGE FlexibleContexts           #-}
@@ -10,7 +11,6 @@
 {-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE TypeOperators              #-}
 {-# LANGUAGE UndecidableInstances       #-}
-{-# LANGUAGE ConstraintKinds            #-}
 
 
 module Mirza.Common.Types
@@ -44,6 +44,7 @@ module Mirza.Common.Types
   , PrimaryKeyType
   , brKeyIdType
   , runClientFunc
+  , Digest(..) -- reexporting from Mirza.Common.GS1BeamOrphans
   ) where
 
 import qualified Database.Beam                        as B
@@ -60,6 +61,8 @@ import           Database.PostgreSQL.Simple.FromField (FromField, fromField)
 import           Database.PostgreSQL.Simple.ToField   (ToField, toField)
 
 import           Data.Proxy                           (Proxy (..))
+
+import           Mirza.Common.GS1BeamOrphans          (Digest (..))
 
 import qualified Control.Exception                    as Exc
 import qualified Control.Exception                    as E
