@@ -163,13 +163,13 @@ brKeyErrorToHttpError :: BRKeyError -> KatipContextT Handler a
 brKeyErrorToHttpError keyError =
   let httpError = (\x y -> throwHttpError x y keyError)
   in case keyError of
-    (InvalidRSAKeyBRE _)           -> httpError err400 "Failed to parse RSA Public key."
-    KeyAlreadyRevokedBRE           -> httpError err400 "Public key already revoked."
-    KeyAlreadyExpiredBRE           -> httpError err400 "Public key already expired."
-    UnauthorisedKeyAccessBRE       -> httpError err403 "Not authorised to access this key."
-    (PublicKeyInsertionErrorBRE _) -> httpError err500 "Public key could not be inserted."
-    (KeyNotFoundBRE _)             -> httpError err404 "Public key with the given id not found."
-    (InvalidRevocationBRE _ _ _)   -> httpError err500 "Key has been revoked but in an invalid way."
-    (AddedExpiredKeyBRE)           -> httpError err400 "Can't add a key that has already expired."
-    (InvalidRSAKeySizeBRE (Expected (Bit expSize)) (Received (Bit recSize)))
-                                   -> httpError err400 (BSL8.pack $ printf "Invalid RSA Key size. Expected: %d Bits, Received: %d Bits\n" expSize recSize)
+    (InvalidRSAKeyBRKE _)           -> httpError err400 "Failed to parse RSA Public key."
+    KeyAlreadyRevokedBRKE           -> httpError err400 "Public key already revoked."
+    KeyAlreadyExpiredBRKE           -> httpError err400 "Public key already expired."
+    UnauthorisedKeyAccessBRKE       -> httpError err403 "Not authorised to access this key."
+    (PublicKeyInsertionErrorBRKE _) -> httpError err500 "Public key could not be inserted."
+    (KeyNotFoundBRKE _)             -> httpError err404 "Public key with the given id not found."
+    (InvalidRevocationBRKE _ _ _)   -> httpError err500 "Key has been revoked but in an invalid way."
+    (AddedExpiredKeyBRKE)           -> httpError err400 "Can't add a key that has already expired."
+    (InvalidRSAKeySizeBRKE (Expected (Bit expSize)) (Received (Bit recSize)))
+                                    -> httpError err400 (BSL8.pack $ printf "Invalid RSA Key size. Expected: %d Bits, Received: %d Bits\n" expSize recSize)
