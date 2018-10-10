@@ -125,8 +125,8 @@ is5XXError servantError = ((errHTTPCode servantError) `div` 100) == 5
 -- TODO: Transform Show error so that we can only log BR and BRKeyErrors to
 -- further constrain the type and prevent accidental errors in the argument
 -- provided, even though all we need is show.
-throwHttpError :: (Show error) => ServantErr -> ByteString -> error -> KatipContextT Handler a
-throwHttpError httpStatus errorMessage err = do
+throwHttpError :: (Show error) => error -> ServantErr -> ByteString -> KatipContextT Handler a
+throwHttpError err httpStatus errorMessage = do
   $(logTM) (errorLogLevel httpStatus) (logStr $ show err)
   lift $ throwError $ httpStatus { errBody = errorMessage }
 
@@ -134,7 +134,7 @@ throwHttpError httpStatus errorMessage err = do
 -- | Takes a BRError and converts it to an HTTP error.
 brErrorToHttpError :: BRError -> KatipContextT Handler a
 brErrorToHttpError brError =
-  let httpError = (\x y -> throwHttpError x y brError)
+  let httpError = throwHttpError brError
   in case brError of
     (BRKeyErrorBRE keyError)        -> brKeyErrorToHttpError keyError
     (DBErrorBRE _)                  -> unexpectedError brError
@@ -151,17 +151,17 @@ brErrorToHttpError brError =
 -- limit further potential for exploitation, under the expectation that we log the errors to somewhere that is reviewed
 -- regularly so that the development team are informed and can identify and patch the underlying issues.
 unexpectedError :: BRError -> KatipContextT Handler a
-unexpectedError = throwHttpError err500 "An unknown error has occured."
+unexpectedError brError = throwHttpError brError err500 "An unknown error has occured."
 
 -- | A common function for handling user errors uniformly irrespective of what the underlying cause is.
 userCreationError :: BRError -> KatipContextT Handler a
-userCreationError = throwHttpError err400 "Unable to create user."
+userCreationError brError = throwHttpError brError err400 "Unable to create user."
 
 
 -- | Takes a BRKeyError and converts it to an HTTP error.
 brKeyErrorToHttpError :: BRKeyError -> KatipContextT Handler a
 brKeyErrorToHttpError keyError =
-  let httpError = (\x y -> throwHttpError x y keyError)
+  let httpError = throwHttpError keyError
   in case keyError of
     (InvalidRSAKeyBRKE _)           -> httpError err400 "Failed to parse RSA Public key."
     KeyAlreadyRevokedBRKE           -> httpError err400 "Public key already revoked."
