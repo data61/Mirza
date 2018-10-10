@@ -11,47 +11,46 @@ module Mirza.SupplyChain.Handlers.Signatures
   ) where
 
 import           Mirza.Common.Time
-import           Mirza.Common.Types                           (BRKeyId)
+import           Mirza.Common.Types                       (BRKeyId)
 import           Mirza.Common.Utils
 
-import qualified Mirza.BusinessRegistry.Types                 as BT
+import qualified Mirza.BusinessRegistry.Types             as BT
 
-import           Mirza.SupplyChain.Database.Schema            as Schema
-import           Mirza.SupplyChain.ErrorUtils                 (throwBackendError)
+import           Mirza.SupplyChain.Database.Schema        as Schema
+import           Mirza.SupplyChain.ErrorUtils             (throwBackendError)
 import           Mirza.SupplyChain.Handlers.Common
-import           Mirza.SupplyChain.Handlers.EventRegistration (hasUserCreatedEvent,
-                                                               insertUserEvent)
-import           Mirza.SupplyChain.Types                      hiding
-                                                               (NewUser (..),
-                                                               User (userId),
-                                                               UserId)
-import qualified Mirza.SupplyChain.Types                      as ST
+import           Mirza.SupplyChain.Handlers.EventUtils    (hasUserCreatedEvent,
+                                                           insertUserEvent)
+import           Mirza.SupplyChain.Types                  hiding (NewUser (..),
+                                                           User (userId),
+                                                           UserId)
+import qualified Mirza.SupplyChain.Types                  as ST
 
 
-import qualified Data.GS1.EventId                             as EvId
+import qualified Data.GS1.EventId                         as EvId
 
-import           Database.Beam                                as B
+import           Database.Beam                            as B
 import           Database.Beam.Backend.SQL.BeamExtensions
 
-import           OpenSSL                                      (withOpenSSL)
-import qualified OpenSSL.EVP.Digest                           as EVPDigest
-import           OpenSSL.EVP.PKey                             (toPublicKey)
-import           OpenSSL.EVP.Verify                           (VerifyStatus (..),
-                                                               verifyBS)
-import           OpenSSL.PEM                                  (readPublicKey)
-import           OpenSSL.RSA                                  (RSAPubKey)
+import           OpenSSL                                  (withOpenSSL)
+import qualified OpenSSL.EVP.Digest                       as EVPDigest
+import           OpenSSL.EVP.PKey                         (toPublicKey)
+import           OpenSSL.EVP.Verify                       (VerifyStatus (..),
+                                                           verifyBS)
+import           OpenSSL.PEM                              (readPublicKey)
+import           OpenSSL.RSA                              (RSAPubKey)
 
-import           Control.Lens                                 hiding ((.=))
-import           Control.Monad.Error.Hoist                    ((<!?>), (<%?>))
+import           Control.Lens                             hiding ((.=))
+import           Control.Monad.Error.Hoist                ((<!?>), (<%?>))
 
-import           Data.ByteString                              (ByteString)
-import qualified Data.ByteString.Base64                       as BS64
-import qualified Data.ByteString.Char8                        as BSC
+import           Data.ByteString                          (ByteString)
+import qualified Data.ByteString.Base64                   as BS64
+import qualified Data.ByteString.Char8                    as BSC
 
-import           Data.Char                                    (toLower)
-import           Data.Text                                    (unpack)
+import           Data.Char                                (toLower)
+import           Data.Text                                (unpack)
 
-import           Mirza.BusinessRegistry.Client.Servant        (getPublicKey)
+import           Mirza.BusinessRegistry.Client.Servant    (getPublicKey)
 
 -- | A function to tie a user to an event
 -- Populates the ``UserEvents`` table

@@ -8,34 +8,33 @@ module Mirza.SupplyChain.Handlers.Queries
 
 
 import           Mirza.SupplyChain.Handlers.Common
-import           Mirza.SupplyChain.Handlers.EventRegistration (findLabelId,
-                                                               findSchemaEvent,
-                                                               getEventList)
+import           Mirza.SupplyChain.Handlers.EventUtils (findLabelId,
+                                                        findSchemaEvent,
+                                                        getEventList)
 import           Mirza.SupplyChain.Handlers.Signatures
-import           Mirza.SupplyChain.Handlers.Users             (userTableToModel)
+import           Mirza.SupplyChain.Handlers.Users      (userTableToModel)
 
-import           Mirza.SupplyChain.Database.Schema            as Schema
-import           Mirza.SupplyChain.ErrorUtils                 (throwParseError)
+import           Mirza.SupplyChain.Database.Schema     as Schema
+import           Mirza.SupplyChain.ErrorUtils          (throwParseError)
 import           Mirza.SupplyChain.QueryUtils
-import           Mirza.SupplyChain.Types                      hiding
-                                                               (NewUser (..),
-                                                               User (..))
-import qualified Mirza.SupplyChain.Types                      as ST
+import           Mirza.SupplyChain.Types               hiding (NewUser (..),
+                                                        User (..))
+import qualified Mirza.SupplyChain.Types               as ST
 
-import           Data.GS1.DWhat                               (LabelEPC (..),
-                                                               urn2LabelEPC)
-import qualified Data.GS1.Event                               as Ev
-import           Data.GS1.EventId                             as EvId
+import           Data.GS1.DWhat                        (LabelEPC (..),
+                                                        urn2LabelEPC)
+import qualified Data.GS1.Event                        as Ev
+import           Data.GS1.EventId                      as EvId
 
-import           Database.Beam                                as B
-import           Database.Beam.Postgres                       (PgJSON (..))
+import           Database.Beam                         as B
+import           Database.Beam.Postgres                (PgJSON (..))
 
-import           Control.Monad                                (unless)
+import           Control.Monad                         (unless)
 
-import           Data.Text.Encoding                           (decodeUtf8)
+import           Data.Text.Encoding                    (decodeUtf8)
 
-import           Data.Bifunctor                               (bimap)
-import           Data.Maybe                                   (isJust)
+import           Data.Bifunctor                        (bimap)
+import           Data.Maybe                            (isJust)
 
 
 -- This takes an EPC urn,

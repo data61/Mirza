@@ -47,7 +47,7 @@ library
                     , Mirza.SupplyChain.Database.Schema.V0001
                     , Mirza.SupplyChain.Handlers.Common
                     , Mirza.SupplyChain.Handlers.Contacts
-                    , Mirza.SupplyChain.Handlers.EventRegistration
+                    , Mirza.SupplyChain.Handlers.EventUtils
                     , Mirza.SupplyChain.Handlers.Queries
                     , Mirza.SupplyChain.Handlers.Signatures
                     , Mirza.SupplyChain.Handlers.Users
