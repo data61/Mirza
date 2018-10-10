@@ -55,6 +55,7 @@ import qualified Data.Text                         as T
 import           Data.Time.LocalTime               (timeZoneOffsetString)
 
 import           Database.Beam                     as B
+import           Database.Beam.Postgres            (PgJSON (..))
 
 import           Control.Monad                     (void)
 
@@ -81,6 +82,8 @@ insertObjectEventQuery
       dwhat =  ObjWhat $ ObjectDWhat act labelEpcs
       event = Ev.Event Ev.ObjectEventT foreignEventId dwhat dwhen dwhy dwhere
 
+  -- insertEvent has to be the first thing that happens here so that
+  -- uniqueness of the JSON event is enforced
   eventId <- insertEvent userId event
   whatId <- insertDWhat Nothing dwhat eventId
   labelIds' <- mapM (insertLabel Nothing (Schema.WhatId whatId)) labelEpcs
@@ -118,6 +121,8 @@ insertAggEventQuery
       dwhat =  AggWhat $ AggregationDWhat act mParentLabel labelEpcs
       event = Ev.Event Ev.AggregationEventT foreignEventId dwhat dwhen dwhy dwhere
 
+  -- insertEvent has to be the first thing that happens here so that
+  -- uniqueness of the JSON event is enforced
   eventId <- insertEvent userId event
   whatId <- insertDWhat Nothing dwhat eventId
   labelIds' <- mapM (insertLabel Nothing (Schema.WhatId whatId)) labelEpcs
@@ -159,6 +164,8 @@ insertTransactEventQuery
       dwhat =  TransactWhat $ TransactionDWhat act mParentLabel bizTransactions labelEpcs
       event = Ev.Event Ev.TransactionEventT foreignEventId dwhat dwhen dwhy dwhere
 
+  -- insertEvent has to be the first thing that happens here so that
+  -- uniqueness of the JSON event is enforced
   eventId <- insertEvent userId event
   whatId <- insertDWhat Nothing dwhat eventId
   labelIds' <- mapM (insertLabel Nothing (Schema.WhatId whatId)) labelEpcs
@@ -197,6 +204,8 @@ insertTransfEventQuery
       dwhat =  TransformWhat $ TransformationDWhat mTransfId inputs outputs
       event = Ev.Event Ev.TransformationEventT foreignEventId dwhat dwhen dwhy dwhere
 
+  -- insertEvent has to be the first thing that happens here so that
+  -- uniqueness of the JSON event is enforced
   eventId <- insertEvent userId event
   whatId <- insertDWhat Nothing dwhat eventId
   inputLabelIds <- mapM (\(InputEPC i) -> insertLabel (Just MU.Input) (Schema.WhatId whatId) i) inputs
@@ -380,7 +389,7 @@ toStorageDWhy (Schema.WhyId pKey) (DWhy mBiz mDisp)
 toStorageEvent :: Schema.EventId
                -> Maybe EvId.EventId
                -> Schema.UserId
-               -> ByteString
+               -> PgJSON Ev.Event
                -> ByteString
                -> Schema.Event
 toStorageEvent (Schema.EventId pKey) mEventId =
@@ -487,11 +496,12 @@ insertEvent :: Schema.UserId
             -> Ev.Event
             -> DB context err Schema.EventId
 insertEvent userId event = fmap (Schema.EventId <$>) QU.withPKey $ \pKey ->
-  let jsonEvent = QU.encodeEventToJSON event
-      toSignEvent = QU.constructEventToSign event
+  -- let jsonEvent = event
+  let toSignEvent = QU.constructEventToSign event
   in
     pg $ B.runInsert $ B.insert (Schema._events Schema.supplyChainDb)
-        $ insertValues [toStorageEvent (Schema.EventId pKey) (_eid event) userId jsonEvent toSignEvent]
+        $ insertValues
+            [toStorageEvent (Schema.EventId pKey) (_eid event) userId (PgJSON event) toSignEvent]
 
 insertUserEvent :: Schema.EventId
                 -> Schema.UserId
@@ -566,7 +576,7 @@ findEvent :: AsServiceError err
           -> DB context err (Maybe Ev.Event)
 findEvent eventId = do
   mschemaEvent <- findSchemaEvent eventId
-  pure $ mschemaEvent >>= QU.storageToModelEvent
+  pure $ mschemaEvent >>= (Just . QU.storageToModelEvent)
 
 findSchemaEvent :: AsServiceError err
                 => Schema.EventId
@@ -579,6 +589,7 @@ findSchemaEvent (Schema.EventId eventId) = do
         pure event
   case r of
     [event] -> return $ Just event
+    []      -> return Nothing
     -- TODO: Do the right thing here
     _       -> throwBackendError r
 

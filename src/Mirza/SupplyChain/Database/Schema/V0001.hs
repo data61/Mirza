@@ -168,9 +168,8 @@ migration () =
           (field "event_id" pkSerialType)
           (field "event_foreign_event_id" (maybeType uuid))
           (UserId (field "event_created_by" pkSerialType))
-          (field "event_json"    bytea notNull unique)
+          (field "event_json" json notNull)
           (field "event_to_sign" bytea notNull unique)
-          -- (field "event_state" eventStateType notNull)
     )
     <*> createTable "whats"
     (
@@ -504,9 +503,8 @@ data EventT f = Event
   { event_id               :: C f PrimaryKeyType
   , event_foreign_event_id :: C f (Maybe UUID) -- Event ID from XML from foreign systems.
   , event_created_by       :: PrimaryKey UserT f
-  , event_json             :: C f ByteString
+  , event_json             :: C f (PgJSON Ev.Event)
   , event_to_sign          :: C f ByteString -- this is what users will be given for signing purposes
-  -- , event_state            :: C f EventState
   }
   deriving Generic
 
