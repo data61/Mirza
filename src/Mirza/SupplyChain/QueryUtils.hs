@@ -22,10 +22,9 @@ import qualified Mirza.SupplyChain.Types           as ST
 
 import qualified Data.GS1.Event                    as Ev
 
-import           Data.Aeson.Text                   (encodeToLazyText)
+import           Data.Aeson                        (encode)
 import           Data.ByteString                   (ByteString)
-import           Data.Text.Encoding                (encodeUtf8)
-import qualified Data.Text.Lazy                    as TxtL
+import           Data.ByteString.Lazy              (toStrict)
 
 import           Database.Beam.Postgres            (PgJSON (..))
 
@@ -56,4 +55,4 @@ userTableToModel (Schema.User uid _ fName lName _ _ _)
     = ST.User (ST.UserId uid) fName lName
 
 constructEventToSign :: Ev.Event -> ByteString
-constructEventToSign event = encodeUtf8 $ TxtL.toStrict (encodeToLazyText event)
+constructEventToSign = toStrict . encode
