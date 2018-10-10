@@ -101,8 +101,8 @@ testServiceQueries = do
 
   describe "Object Event" $ do
     it "Insert Object Event" $ \scsContext -> do
-      (insertedEvent, _) <- testAppM scsContext $ insertObjectEvent dummyUser dummyObject
-      insertedEvent `shouldBe` dummyObjEvent
+      (evInfo, _) <- testAppM scsContext $ insertObjectEvent dummyUser dummyObject
+      (eventInfoEvent evInfo) `shouldBe` dummyObjEvent
 
     it "Should not allow duplicate Object events" $ \scsContext -> do
       _res <- runAppM @_ @AppError scsContext $ insertObjectEvent dummyUser dummyObject
@@ -111,9 +111,9 @@ testServiceQueries = do
 
     it "List event" $ \scsContext -> do
       res <- testAppM scsContext $ do
-        (insertedEvent, _) <- insertObjectEvent dummyUser dummyObject
+        (evInfo, _) <- insertObjectEvent dummyUser dummyObject
         evtList <- listEvents dummyUser (LabelEPCUrn dummyLabelEpcUrn)
-        pure (insertedEvent, evtList)
+        pure (eventInfoEvent evInfo, evtList)
       case res of
         (insertedEvent, evtList) -> do
           insertedEvent `shouldBe` dummyObjEvent
@@ -121,8 +121,8 @@ testServiceQueries = do
 
   describe "Aggregation Event" $ do
     it "Insert Aggregation Event" $ \scsContext -> do
-      (insertedEvent, _) <- testAppM scsContext $ insertAggEvent dummyUser dummyAggregation
-      insertedEvent `shouldBe` dummyAggEvent
+      (evInfo, _) <- testAppM scsContext $ insertAggEvent dummyUser dummyAggregation
+      (eventInfoEvent evInfo) `shouldBe` dummyAggEvent
 
     it "Should not allow duplicate Aggregation events" $ \scsContext -> do
       _res <- runAppM @_ @AppError scsContext $ insertAggEvent dummyUser dummyAggregation
@@ -131,9 +131,9 @@ testServiceQueries = do
 
     it "List event" $ \scsContext -> do
       res <- testAppM scsContext $ do
-        (insertedEvent, _) <- insertAggEvent dummyUser dummyAggregation
+        (evInfo, _) <- insertAggEvent dummyUser dummyAggregation
         evtList <- listEvents dummyUser (LabelEPCUrn dummyLabelEpcUrn)
-        pure (insertedEvent, evtList)
+        pure (eventInfoEvent evInfo, evtList)
       case res of
         (insertedEvent, evtList) -> do
           insertedEvent `shouldBe` dummyAggEvent
@@ -141,8 +141,8 @@ testServiceQueries = do
 
   describe "Transformation Event" $ do
     it "Insert Transformation Event" $ \scsContext -> do
-      (insertedEvent, _) <- testAppM scsContext $ insertTransfEvent dummyUser dummyTransformation
-      insertedEvent `shouldBe` dummyTransfEvent
+      (evInfo, _) <- testAppM scsContext $ insertTransfEvent dummyUser dummyTransformation
+      (eventInfoEvent evInfo) `shouldBe` dummyTransfEvent
 
     it "Should not allow duplicate Transformation events" $ \scsContext -> do
       _res <- runAppM @_ @AppError scsContext $ insertTransfEvent dummyUser dummyTransformation
@@ -151,9 +151,9 @@ testServiceQueries = do
 
     it "List event" $ \scsContext -> do
       res <- testAppM scsContext $ do
-        (insertedEvent, _) <- insertTransfEvent dummyUser dummyTransformation
+        (evInfo, _) <- insertTransfEvent dummyUser dummyTransformation
         evtList <- listEvents dummyUser (LabelEPCUrn dummyLabelEpcUrn)
-        pure (insertedEvent, evtList)
+        pure (eventInfoEvent evInfo, evtList)
       case res of
         (insertedEvent, evtList) -> do
           insertedEvent `shouldBe` dummyTransfEvent
@@ -161,8 +161,8 @@ testServiceQueries = do
 
   describe "Transaction Event" $ do
     it "Insert Transaction Event" $ \scsContext -> do
-      (insertedEvent, _) <- testAppM scsContext $ insertTransactEvent dummyUser dummyTransaction
-      insertedEvent `shouldBe` dummyTransactEvent
+      (evInfo, _) <- testAppM scsContext $ insertTransactEvent dummyUser dummyTransaction
+      (eventInfoEvent evInfo) `shouldBe` dummyTransactEvent
 
     it "Should not allow duplicate Transaction events" $ \scsContext -> do
       _res <- runAppM @_ @AppError scsContext $ insertTransactEvent dummyUser dummyTransaction
@@ -171,9 +171,9 @@ testServiceQueries = do
 
     it "List event" $ \scsContext -> do
       res <- testAppM scsContext $ do
-        (insertedEvent, _) <- insertTransactEvent dummyUser dummyTransaction
+        (evInfo, _) <- insertTransactEvent dummyUser dummyTransaction
         evtList <- listEvents dummyUser (LabelEPCUrn dummyLabelEpcUrn)
-        pure (insertedEvent, evtList)
+        pure (eventInfoEvent evInfo, evtList)
       case res of
         (insertedEvent, evtList) -> do
           insertedEvent `shouldBe` dummyTransactEvent

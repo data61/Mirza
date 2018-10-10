@@ -32,13 +32,13 @@ import           Data.GS1.EventId                   as EvId
 
 insertObjectEvent :: SCSApp context err => ST.User
                   -> ObjectEvent
-                  -> AppM context err EventInfo
+                  -> AppM context err (EventInfo, Schema.EventId)
 insertObjectEvent user ob = runDb $ insertObjectEventQuery user ob
 
 insertObjectEventQuery :: AsServiceError err
                        => ST.User
                        -> ObjectEvent
-                       -> DB context err EventInfo
+                       -> DB context err (EventInfo, Schema.EventId)
 insertObjectEventQuery
   user@(ST.User (ST.UserId tUserId) _ _ )
   (ObjectEvent
@@ -65,18 +65,19 @@ insertObjectEventQuery
   insertUserEvent eventId userId userId False Nothing
   mapM_ (insertWhatLabel (Schema.WhatId whatId)) labelIds
   mapM_ (insertLabelEvent eventId) labelIds
-  eventInfoQuery user (EvId.EventId schemaEventId)
+  evInfo <- eventInfoQuery user (EvId.EventId schemaEventId)
+  return (evInfo, eventId)
 
 
 insertAggEvent :: SCSApp context err => ST.User
                -> AggregationEvent
-               -> AppM context err EventInfo
+               -> AppM context err (EventInfo, Schema.EventId)
 insertAggEvent user ev = runDb $ insertAggEventQuery user ev
 
 insertAggEventQuery :: AsServiceError err
                     => ST.User
                     -> AggregationEvent
-                    -> DB context err EventInfo
+                    -> DB context err (EventInfo, Schema.EventId)
 insertAggEventQuery
   user@(ST.User (ST.UserId tUserId) _ _ )
   (AggregationEvent
@@ -105,18 +106,19 @@ insertAggEventQuery
   mapM_ (insertWhatLabel (Schema.WhatId whatId)) labelIds
   mapM_ (insertLabelEvent eventId) labelIds
 
-  eventInfoQuery user (EvId.EventId schemaEventId)
+  evInfo <- eventInfoQuery user (EvId.EventId schemaEventId)
+  return (evInfo, eventId)
 
 
 insertTransactEvent :: SCSApp context err => ST.User
                     -> TransactionEvent
-                    -> AppM context err EventInfo
+                    -> AppM context err (EventInfo, Schema.EventId)
 insertTransactEvent user ev = runDb $ insertTransactEventQuery user ev
 
 insertTransactEventQuery :: AsServiceError err
                          => ST.User
                          -> TransactionEvent
-                         -> DB context err EventInfo
+                         -> DB context err (EventInfo, Schema.EventId)
 insertTransactEventQuery
   user@(ST.User (ST.UserId tUserId) _ _ )
   (TransactionEvent
@@ -147,18 +149,19 @@ insertTransactEventQuery
   mapM_ (insertWhatLabel (Schema.WhatId whatId)) labelIds
   mapM_ (insertLabelEvent eventId) labelIds
 
-  eventInfoQuery user (EvId.EventId schemaEventId)
+  evInfo <- eventInfoQuery user (EvId.EventId schemaEventId)
+  return (evInfo, eventId)
 
 
 insertTransfEvent :: SCSApp context err => ST.User
                   -> TransformationEvent
-                  -> AppM context err EventInfo
+                  -> AppM context err (EventInfo, Schema.EventId)
 insertTransfEvent user ev = runDb $ insertTransfEventQuery user ev
 
 insertTransfEventQuery :: AsServiceError err
-                    => ST.User
+                       => ST.User
                        -> TransformationEvent
-                       -> DB context err EventInfo
+                       -> DB context err (EventInfo, Schema.EventId)
 insertTransfEventQuery
   user@(ST.User (ST.UserId tUserId) _ _ )
   (TransformationEvent
@@ -187,4 +190,5 @@ insertTransfEventQuery
   mapM_ (insertWhatLabel (Schema.WhatId whatId)) labelIds
   mapM_ (insertLabelEvent eventId) labelIds
 
-  eventInfoQuery user (EvId.EventId schemaEventId)
+  evInfo <- eventInfoQuery user (EvId.EventId schemaEventId)
+  return (evInfo, eventId)
