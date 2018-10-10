@@ -50,6 +50,7 @@ library
                     , Mirza.SupplyChain.EventUtils
                     , Mirza.SupplyChain.Handlers.Queries
                     , Mirza.SupplyChain.Handlers.Signatures
+                    , Mirza.SupplyChain.Handlers.EventRegistration
                     , Mirza.SupplyChain.Handlers.Users
                     , Mirza.SupplyChain.Main
                     , Mirza.SupplyChain.QueryUtils

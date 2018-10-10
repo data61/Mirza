@@ -23,27 +23,29 @@ module Mirza.SupplyChain.Service
  ) where
 
 import           Mirza.SupplyChain.API
-import           Mirza.SupplyChain.ErrorUtils          (appErrToHttpErr)
+import           Mirza.SupplyChain.ErrorUtils                 (appErrToHttpErr)
 
-import           Mirza.SupplyChain.EventUtils          as Handlers
-import           Mirza.SupplyChain.Handlers.Common     as Handlers
-import           Mirza.SupplyChain.Handlers.Contacts   as Handlers
-import           Mirza.SupplyChain.Handlers.Queries    as Handlers
-import           Mirza.SupplyChain.Handlers.Signatures as Handlers
-import           Mirza.SupplyChain.Handlers.Users      as Handlers
+import           Mirza.SupplyChain.EventUtils                 as Handlers
+import           Mirza.SupplyChain.Handlers.Common            as Handlers
+import           Mirza.SupplyChain.Handlers.Contacts          as Handlers
+import           Mirza.SupplyChain.Handlers.EventRegistration as Handlers
+import           Mirza.SupplyChain.Handlers.Queries           as Handlers
+import           Mirza.SupplyChain.Handlers.Signatures        as Handlers
+import           Mirza.SupplyChain.Handlers.Users             as Handlers
+
 import           Mirza.SupplyChain.Types
 
 import           Servant
 import           Servant.Swagger
 
-import           GHC.TypeLits                          (KnownSymbol)
+import           GHC.TypeLits                                 (KnownSymbol)
 
-import           Control.Lens                          hiding ((.=))
-import           Control.Monad.IO.Class                (liftIO)
-import qualified Data.HashMap.Strict.InsOrd            as IOrd
+import           Control.Lens                                 hiding ((.=))
+import           Control.Monad.IO.Class                       (liftIO)
+import qualified Data.HashMap.Strict.InsOrd                   as IOrd
 import           Data.Swagger
 
-import           Mirza.Common.GS1BeamOrphans           ()
+import           Mirza.Common.GS1BeamOrphans                  ()
 
 
 appHandlers :: (HasBRClientEnv context, AsServantError err, SCSApp context err, HasScryptParams context)
