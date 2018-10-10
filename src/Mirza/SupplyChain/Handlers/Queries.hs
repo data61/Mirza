@@ -62,18 +62,16 @@ eventInfoQuery :: AsServiceError err
                -> DB context err EventInfo
 eventInfoQuery _user eventId@(EvId.EventId eId) = do
   usersWithEvent <- eventUserSignedList eventId
-  schemaEvent <- findSchemaEvent (Schema.EventId eId) <!?> (_InvalidEventId # eventId)
+  schemaEvent <- findSchemaEvent (Schema.EventId eId)
   event <- storageToModelEvent schemaEvent <?> ({-TODO: NOPE-}error "Event stored in database could not be parsed!")
+  let (Just schemaEvent) = mschemaEvent
+  let event = storageToModelEvent <$> schemaEvent
   let unsignedUserIds = map (ST.userId . fst) $ filter (not . snd) usersWithEvent
       signedUserIds = (ST.userId . fst) <$> filter snd usersWithEvent
   signedEvents <- mapM (flip findSignedEventByUser eventId) signedUserIds
   let usersAndSignedEvents = zip signedUserIds signedEvents
-  pure $ EventInfo event usersAndSignedEvents unsignedUserIds
+  return $ EventInfo event usersAndSignedEvents unsignedUserIds
                   (Base64Octets $ event_to_sign schemaEvent) NotSent
- -- return $ error "Event Info Query not implemented yet"
-
-
--- pairUsersAndSignedEvents eventId userIds = sequence $ map ((flip findSignedEventByUser) eventId) userIds
 
 
 -- |List events that a particular user was/is involved with
@@ -94,7 +92,6 @@ eventsByUser (ST.UserId userId) = do
     pure (Schema.event_json event)
   return $ catMaybes $ decodeEventFromJSON <$> events
 
-
 -- | Given an eventId, list all the users associated with that event
 -- This can be used to make sure everything is signed
 eventUserList :: SCSApp context err
@@ -109,9 +106,8 @@ eventUserSignedList :: EvId.EventId -> DB context err [(ST.User, Bool)]
 eventUserSignedList (EvId.EventId eventId) = do
   usersSignedList <- pg $ runSelectReturningList $ select $ do
     userEvent <- all_ (Schema._user_events Schema.supplyChainDb)
-    user <- all_ (Schema._users Schema.supplyChainDb)
     guard_ (Schema.user_events_event_id userEvent ==. val_ (Schema.EventId eventId))
-    guard_ (Schema.user_events_user_id userEvent `references_` user)
+    user <- related_ (Schema._users Schema.supplyChainDb) (Schema.user_events_user_id userEvent)
     pure (user, Schema.user_events_has_signed userEvent)
   return $ bimap userTableToModel id <$> usersSignedList
 

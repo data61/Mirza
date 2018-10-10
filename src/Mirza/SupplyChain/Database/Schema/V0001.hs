@@ -43,6 +43,8 @@ import           Database.Beam.Postgres.Syntax    (PgDataTypeSyntax)
 
 import           Crypto.JOSE                      (CompactJWS, JWSHeader)
 
+import           Text.Email.Validate              (EmailAddress)
+
 --------------------------------------------------------------------------------
 -- Constants and Utils
 --------------------------------------------------------------------------------
@@ -96,7 +98,7 @@ migration () =
           (field "user_last_name" (varchar (Just defaultFieldMaxLength)) notNull)
           (field "user_phone_number" (varchar (Just defaultFieldMaxLength)) notNull)
           (field "user_password_hash" binaryLargeObject notNull)
-          (field "user_email_address" (varchar (Just defaultFieldMaxLength)) unique)
+          (field "user_email_address" emailAddressType unique)
     )
     <*> createTable "businesses"
     (
@@ -242,7 +244,7 @@ migration () =
           (EventId (field "signature_event_id" pkSerialType notNull))
           (field "signature_key_id" brKeyIdType notNull)
           (field "signature_signature" json notNull)
-          (field "signature_digest" bytea notNull)
+          (field "signature_digest" digestType notNull)
           (field "signature_timestamp" timestamptz notNull)
     )
     <*> createTable "hashes"
@@ -280,7 +282,7 @@ data UserT f = User
   , user_last_name     :: C f Text
   , user_phone_number  :: C f Text
   , user_password_hash :: C f ByteString --XXX - should this be blob?
-  , user_email_address :: C f Text }
+  , user_email_address :: C f EmailAddress }
   deriving Generic
 
 deriving instance Show User
@@ -740,7 +742,7 @@ data SignatureT f = Signature
   , signature_event_id  :: PrimaryKey EventT f
   , signature_key_id    :: C f BRKeyId
   , signature_signature :: C f (PgJSON (CompactJWS JWSHeader))
-  , signature_digest    :: C f ByteString
+  , signature_digest    :: C f ByteString -- why is this a ByteString?
   , signature_timestamp :: C f LocalTime -- Stored as UTC Time
   }
   deriving Generic

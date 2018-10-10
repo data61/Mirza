@@ -28,6 +28,7 @@ library
                     , Mirza.BusinessRegistry.Handlers.Business
                     , Mirza.BusinessRegistry.Handlers.Common
                     , Mirza.BusinessRegistry.Handlers.Keys
+                    , Mirza.BusinessRegistry.Handlers.Location
                     , Mirza.BusinessRegistry.Main
                     , Mirza.BusinessRegistry.Service
                     , Mirza.BusinessRegistry.Handlers.Users
@@ -54,6 +55,7 @@ library
                     , Mirza.SupplyChain.QueryUtils
                     , Mirza.SupplyChain.Service
                     , Mirza.SupplyChain.Types
+                    , Mirza.SupplyChain.SqlUtils
 
 
   other-modules:      Mirza.SupplyChain.ErrorUtils
@@ -65,6 +67,7 @@ library
                     , beam-migrate
                     , beam-postgres
                     , bytestring
+                    , email-validate
                     , hoist-error >= 0.2
                     , http-client
                     , insert-ordered-containers
@@ -121,6 +124,7 @@ test-suite supplyChainServer-test
                     , Mirza.SupplyChain.Tests.Service
                     , Mirza.SupplyChain.Tests.Dummies
                     , Mirza.SupplyChain.Tests.Client
+                    , Mirza.Common.Tests.Utils
                     , Mirza.BusinessRegistry.Tests.Utils
   default-extensions:  OverloadedStrings
   build-depends:       base
@@ -131,9 +135,11 @@ test-suite supplyChainServer-test
                      , beam-core
                      , beam-postgres
                      , bytestring
+                     , email-validate
                      , hspec
                      , hspec-core
                      , http-client
+                     , mtl
                      , network
                      , postgresql-simple
                      , scrypt
@@ -167,6 +173,7 @@ test-suite businessRegistry-test
                     , Mirza.BusinessRegistry.Tests.Business
                     , Mirza.BusinessRegistry.Tests.Client
                     , Mirza.BusinessRegistry.Tests.Settings
+                    , Mirza.Common.Tests.Utils
                     , Mirza.BusinessRegistry.Tests.Utils
   default-extensions:  OverloadedStrings
   build-depends:       base
@@ -177,6 +184,7 @@ test-suite businessRegistry-test
                      , beam-postgres
                      , beam-core
                      , bytestring
+                     , email-validate
                      , directory
                      , filepath
                      , hspec

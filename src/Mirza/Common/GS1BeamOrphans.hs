@@ -3,6 +3,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings     #-}
 {-# LANGUAGE PartialTypeSignatures #-}
+{-# LANGUAGE TemplateHaskell       #-}
 {-# LANGUAGE UndecidableInstances  #-}
 {-# OPTIONS_GHC -fno-warn-orphans  #-}
 
@@ -26,15 +27,12 @@ module Mirza.Common.GS1BeamOrphans
   , lotType
   , serialNumType
   , itemRefType
+  , emailAddressType
   , locationEPCType
-  , Latitude(..), latitudeType
-  , Longitude(..), longitudeType
-  -- , EventState (..), eventStateType
+  , Digest (..), digestType
   ) where
 
 import           Mirza.Common.Beam
-
-import           Data.Text                            (Text)
 
 import qualified Data.GS1.EPC                         as EPC
 import qualified Data.GS1.Event                       as Ev
@@ -44,15 +42,27 @@ import qualified Database.Beam.Backend.SQL            as BSQL
 import qualified Database.Beam.Migrate                as BMigrate
 import qualified Database.Beam.Postgres               as BPostgres
 
-import           Database.PostgreSQL.Simple.FromField (FromField (..))
-
 import           Database.Beam.Postgres.Syntax        (PgDataTypeSyntax)
+import           Database.PostgreSQL.Simple.FromField
 import           Database.PostgreSQL.Simple.ToField   (ToField, toField)
+
+import           Data.Text                            (Text)
+import           Data.Text.Encoding                   (decodeUtf8, encodeUtf8)
+
 import           GHC.Generics                         (Generic)
 
-import           Data.Swagger                         (ToParamSchema(..))
+import           Control.Lens.Operators               ((&), (.~), (?~))
+import           Data.Aeson
+import           Data.Aeson.TH
+import           Data.Swagger                         (SwaggerType (SwaggerString),
+                                                       ToParamSchema (..),
+                                                       ToSchema)
+import           Data.Swagger.Lens                    (pattern, type_)
 import           Servant                              (FromHttpApiData (..),
                                                        ToHttpApiData (..))
+import           Text.Email.Validate                  (EmailAddress,
+                                                       toByteString, validate)
+
 
 instance ToParamSchema EPC.GS1CompanyPrefix
 instance FromHttpApiData EPC.GS1CompanyPrefix where
@@ -89,41 +99,6 @@ instance ToField Ev.EventType where
 
 eventType :: BMigrate.DataType PgDataTypeSyntax Ev.EventType
 eventType = textType
-
--- ======= EventState =======
-
--- data EventState
---   = AwaitingSignature
---   | Signed
---   | AwaitingBlockChain
---   | SentToBlockChain
---   deriving (Generic, Show, Eq, Read)
-
--- instance BSQL.HasSqlValueSyntax be String =>
---   BSQL.HasSqlValueSyntax be EventState where
---     sqlValueSyntax = BSQL.autoSqlValueSyntax
--- instance (BMigrate.IsSql92ColumnSchemaSyntax be) =>
---   BMigrate.HasDefaultSqlDataTypeConstraints be EventState
-
--- instance (BSQL.HasSqlValueSyntax (BSQL.Sql92ExpressionValueSyntax be) Bool,
---           BSQL.IsSql92ExpressionSyntax be) =>
---           B.HasSqlEqualityCheck be EventState
--- instance (BSQL.HasSqlValueSyntax (BSQL.Sql92ExpressionValueSyntax be) Bool,
---           BSQL.IsSql92ExpressionSyntax be) =>
---           B.HasSqlQuantifiedEqualityCheck be EventState
-
--- instance BSQL.FromBackendRow BPostgres.Postgres EventState where
---   fromBackendRow = defaultFromBackendRow "EventState"
-
--- instance FromField EventState where
---   fromField = defaultFromField "EventState"
-
--- instance ToField EventState where
---   toField = toField . show
-
--- eventStateType :: BMigrate.DataType PgDataTypeSyntax EventState
--- eventStateType = textType
-
 
 -- ======= EPC.LocationReference =======
 instance BSQL.HasSqlValueSyntax be String =>
@@ -523,6 +498,39 @@ instance ToField LabelType where
 labelType :: BMigrate.DataType PgDataTypeSyntax LabelType
 labelType = textType
 
+-- ======= EmailAddress =======
+
+instance BSQL.HasSqlValueSyntax be Text =>
+  BSQL.HasSqlValueSyntax be EmailAddress where
+    sqlValueSyntax = BSQL.sqlValueSyntax . decodeUtf8 . toByteString
+instance (BMigrate.IsSql92ColumnSchemaSyntax be) =>
+  BMigrate.HasDefaultSqlDataTypeConstraints be EmailAddress
+
+instance (BSQL.HasSqlValueSyntax (BSQL.Sql92ExpressionValueSyntax be) Bool,
+          BSQL.IsSql92ExpressionSyntax be) =>
+          B.HasSqlEqualityCheck be EmailAddress
+instance (BSQL.HasSqlValueSyntax (BSQL.Sql92ExpressionValueSyntax be) Bool,
+          BSQL.IsSql92ExpressionSyntax be) =>
+          B.HasSqlQuantifiedEqualityCheck be EmailAddress
+
+emailFromBackendRow :: Text -> EmailAddress
+emailFromBackendRow emailTxt =
+  let emailByte = encodeUtf8 emailTxt in
+    case validate emailByte of
+      Right userEmail -> userEmail
+      Left reason     -> error reason -- shouldn't ever happen
+
+instance BSQL.FromBackendRow BPostgres.Postgres EmailAddress where
+  fromBackendRow = emailFromBackendRow <$> BSQL.fromBackendRow
+
+instance FromField EmailAddress where
+  fromField mbs conv = emailFromBackendRow <$> fromField mbs conv
+
+instance ToField EmailAddress where
+  toField = toField . decodeUtf8 . toByteString
+
+emailAddressType :: BMigrate.DataType PgDataTypeSyntax EmailAddress
+emailAddressType = textType
 
 -- *****************************************************************************
 --  Location types
@@ -531,9 +539,9 @@ labelType = textType
 -- ====== EPC.LocationEPC ======
 
 
-instance BSQL.HasSqlValueSyntax be String
+instance BSQL.HasSqlValueSyntax be Text
       => BSQL.HasSqlValueSyntax be EPC.LocationEPC where
-  sqlValueSyntax = BSQL.autoSqlValueSyntax
+  sqlValueSyntax = BSQL.sqlValueSyntax . EPC.renderURL
 instance BMigrate.IsSql92ColumnSchemaSyntax be
       => BMigrate.HasDefaultSqlDataTypeConstraints be EPC.LocationEPC
 
@@ -557,57 +565,46 @@ instance ToField EPC.LocationEPC where
 locationEPCType :: BMigrate.DataType PgDataTypeSyntax EPC.LocationEPC
 locationEPCType = textType
 
-newtype Latitude  = Latitude  { getLatitude  :: Double } deriving (Show, Eq, Ord)
-newtype Longitude = Longitude { getLongitude :: Double } deriving (Show, Eq, Ord)
+instance ToHttpApiData EPC.LocationEPC where
+  toUrlPiece = toUrlPiece . EPC.renderURL
+
+instance FromHttpApiData EPC.LocationEPC where
+  parseUrlPiece = either (fail . show) pure . EPC.readURI
+
+instance ToParamSchema EPC.LocationEPC where
+  toParamSchema _ = mempty
+    & type_ .~ SwaggerString
+    & pattern ?~ "urn:epc:id:sgln:\\d+\\.\\d+(\\.\\d+)?"
 
 
-instance BSQL.HasSqlValueSyntax be Double
-      => BSQL.HasSqlValueSyntax be Latitude where
-  sqlValueSyntax = BSQL.sqlValueSyntax . getLatitude
-instance (BMigrate.IsSql92ColumnSchemaSyntax be)
-      => BMigrate.HasDefaultSqlDataTypeConstraints be Latitude
+-- ============= Digest ================
 
-instance ( BSQL.HasSqlValueSyntax (BSQL.Sql92ExpressionValueSyntax be) Bool
-         , BSQL.IsSql92ExpressionSyntax be)
-      => B.HasSqlEqualityCheck be Latitude
-instance ( BSQL.HasSqlValueSyntax (BSQL.Sql92ExpressionValueSyntax be) Bool
-         , BSQL.IsSql92ExpressionSyntax be)
-      => B.HasSqlQuantifiedEqualityCheck be Latitude
+data Digest = SHA256 | SHA384 | SHA512
+  deriving (Show, Generic, Eq, Read)
+$(deriveJSON defaultOptions ''Digest)
+instance ToSchema Digest
 
-instance BSQL.FromBackendRow BPostgres.Postgres Latitude where
-  fromBackendRow = Latitude <$> BSQL.fromBackendRow
+instance BSQL.HasSqlValueSyntax be String =>
+  BSQL.HasSqlValueSyntax be Digest where
+    sqlValueSyntax = BSQL.sqlValueSyntax . show
+instance (BMigrate.IsSql92ColumnSchemaSyntax be) =>
+  BMigrate.HasDefaultSqlDataTypeConstraints be Digest
 
-instance FromField Latitude where
-  fromField fld mbs = Latitude <$> fromField fld mbs
+instance (BSQL.HasSqlValueSyntax (BSQL.Sql92ExpressionValueSyntax be) Bool,
+          BSQL.IsSql92ExpressionSyntax be) =>
+          B.HasSqlEqualityCheck be Digest
+instance (BSQL.HasSqlValueSyntax (BSQL.Sql92ExpressionValueSyntax be) Bool,
+          BSQL.IsSql92ExpressionSyntax be) =>
+          B.HasSqlQuantifiedEqualityCheck be Digest
 
-instance ToField Latitude where
-  toField = toField . getLatitude
+instance BSQL.FromBackendRow BPostgres.Postgres Digest where
+  fromBackendRow = defaultFromBackendRow "Digest"
 
-latitudeType :: BMigrate.DataType PgDataTypeSyntax Latitude
-latitudeType = BMigrate.DataType BSQL.doubleType
+instance FromField Digest where
+  fromField = defaultFromField "Digest"
 
+instance ToField Digest where
+  toField = toField . show
 
-instance BSQL.HasSqlValueSyntax be Double
-      => BSQL.HasSqlValueSyntax be Longitude where
-  sqlValueSyntax = BSQL.sqlValueSyntax . getLongitude
-instance BMigrate.IsSql92ColumnSchemaSyntax be
-      => BMigrate.HasDefaultSqlDataTypeConstraints be Longitude
-
-instance ( BSQL.HasSqlValueSyntax (BSQL.Sql92ExpressionValueSyntax be) Bool
-         , BSQL.IsSql92ExpressionSyntax be)
-      => B.HasSqlEqualityCheck be Longitude
-instance ( BSQL.HasSqlValueSyntax (BSQL.Sql92ExpressionValueSyntax be) Bool
-         , BSQL.IsSql92ExpressionSyntax be)
-      => B.HasSqlQuantifiedEqualityCheck be Longitude
-
-instance BSQL.FromBackendRow BPostgres.Postgres Longitude where
-  fromBackendRow = Longitude <$> BSQL.fromBackendRow
-
-instance FromField Longitude where
-  fromField fld mbs = Longitude <$> fromField fld mbs
-
-instance ToField Longitude where
-  toField = toField . getLongitude
-
-longitudeType :: BMigrate.DataType PgDataTypeSyntax Longitude
-longitudeType = BMigrate.DataType BSQL.doubleType
+digestType :: BMigrate.DataType PgDataTypeSyntax Digest
+digestType = textType

@@ -42,6 +42,9 @@ import           Mirza.BusinessRegistry.Main              (RunServerOptions (..)
 import qualified Mirza.BusinessRegistry.Main              as BRMain
 import           Mirza.BusinessRegistry.Types             as BT
 
+import           Mirza.Common.Tests.Utils                 (unsafeMkEmailAddress)
+import           Text.Email.Validate                      (toByteString)
+
 -- *****************************************************************************
 -- SCS Utility Functions
 -- *****************************************************************************
@@ -117,7 +120,7 @@ newBusinessToBusinessResponse =
 newUserToBasicAuthData :: BT.NewUser -> BasicAuthData
 newUserToBasicAuthData =
   BasicAuthData
-  <$> encodeUtf8 . getEmailAddress . BT.newUserEmailAddress
+  <$> toByteString . BT.newUserEmailAddress
   <*> encodeUtf8 . BT.newUserPassword
 
 
@@ -131,7 +134,7 @@ bootstrapAuthData ctx = do
   let business = NewBusiness prefix "Business Name"
   insertBusinessResult  <- runAppM @_ @BusinessRegistryError ctx $ BRHB.addBusiness business
   insertBusinessResult `shouldSatisfy` isRight
-  let user = BT.NewUser  (EmailAddress email)
+  let user = BT.NewUser  (unsafeMkEmailAddress email)
                       password
                       prefix
                       "Test User First Name"
@@ -156,7 +159,7 @@ runBRApp = do
   tempFile <- emptySystemTempFile "businessRegistryTests.log"
   let go' = go (Just tempFile)
   ctx <- initBRContext go'
-  let BusinessRegistryDB usersTable businessesTable keysTable locationsTable
+  let BusinessRegistryDB usersTable businessesTable keysTable locationsTable geolocationsTable
         = businessRegistryDB
 
   flushDbResult <- runAppM @_ @BusinessRegistryError ctx $ runDb $ do
@@ -165,6 +168,7 @@ runBRApp = do
       deleteTable usersTable
       deleteTable businessesTable
       deleteTable locationsTable
+      deleteTable geolocationsTable
   flushDbResult `shouldSatisfy` isRight
 
   -- This construct somewhat destroys the integrity of these test since it is

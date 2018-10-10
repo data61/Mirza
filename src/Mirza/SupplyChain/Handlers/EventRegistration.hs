@@ -78,13 +78,10 @@ insertObjectEventQuery
 
   let
       userId = Schema.UserId tUserId -- converting from model to storage UserId
-      eventType = Ev.ObjectEventT
       dwhat =  ObjWhat $ ObjectDWhat act labelEpcs
-      event = Ev.Event eventType foreignEventId dwhat dwhen dwhy dwhere
-      jsonEvent = QU.encodeEventToJSON event
-      toSignEvent = QU.constructEventToSign event
+      event = Ev.Event Ev.ObjectEventT foreignEventId dwhat dwhen dwhy dwhere
 
-  eventId <- insertEvent userId jsonEvent toSignEvent event
+  eventId <- insertEvent userId event
   whatId <- insertDWhat Nothing dwhat eventId
   labelIds' <- mapM (insertLabel Nothing (Schema.WhatId whatId)) labelEpcs
   let labelIds = Schema.LabelId <$> labelIds'
@@ -118,13 +115,10 @@ insertAggEventQuery
   ) = do
   let
       userId = Schema.UserId tUserId
-      eventType = Ev.AggregationEventT
       dwhat =  AggWhat $ AggregationDWhat act mParentLabel labelEpcs
-      event = Ev.Event eventType foreignEventId dwhat dwhen dwhy dwhere
-      jsonEvent = QU.encodeEventToJSON event
-      toSignEvent = QU.constructEventToSign event
+      event = Ev.Event Ev.AggregationEventT foreignEventId dwhat dwhen dwhy dwhere
 
-  eventId <- insertEvent userId jsonEvent toSignEvent event
+  eventId <- insertEvent userId event
   whatId <- insertDWhat Nothing dwhat eventId
   labelIds' <- mapM (insertLabel Nothing (Schema.WhatId whatId)) labelEpcs
   let labelIds = Schema.LabelId <$> labelIds'
@@ -162,13 +156,10 @@ insertTransactEventQuery
   ) = do
   let
       userId = Schema.UserId tUserId
-      eventType = Ev.TransactionEventT
       dwhat =  TransactWhat $ TransactionDWhat act mParentLabel bizTransactions labelEpcs
-      event = Ev.Event eventType foreignEventId dwhat dwhen dwhy dwhere
-      jsonEvent = QU.encodeEventToJSON event
-      toSignEvent = QU.constructEventToSign event
+      event = Ev.Event Ev.TransactionEventT foreignEventId dwhat dwhen dwhy dwhere
 
-  eventId <- insertEvent userId jsonEvent toSignEvent event
+  eventId <- insertEvent userId event
   whatId <- insertDWhat Nothing dwhat eventId
   labelIds' <- mapM (insertLabel Nothing (Schema.WhatId whatId)) labelEpcs
   let labelIds = Schema.LabelId <$> labelIds'
@@ -203,13 +194,10 @@ insertTransfEventQuery
   ) = do
   let
       userId = Schema.UserId tUserId
-      eventType = Ev.TransformationEventT
       dwhat =  TransformWhat $ TransformationDWhat mTransfId inputs outputs
-      event = Ev.Event eventType foreignEventId dwhat dwhen dwhy dwhere
-      jsonEvent = QU.encodeEventToJSON event
-      toSignEvent = QU.constructEventToSign event
+      event = Ev.Event Ev.TransformationEventT foreignEventId dwhat dwhen dwhy dwhere
 
-  eventId <- insertEvent userId jsonEvent toSignEvent event
+  eventId <- insertEvent userId event
   whatId <- insertDWhat Nothing dwhat eventId
   inputLabelIds <- mapM (\(InputEPC i) -> insertLabel (Just MU.Input) (Schema.WhatId whatId) i) inputs
   outputLabelIds <- mapM (\(OutputEPC o) -> insertLabel (Just MU.Output) (Schema.WhatId whatId) o) outputs
@@ -333,10 +321,10 @@ findInstLabelId' cp sn msfv mir mat = do
 
 
 getUser :: EmailAddress -> DB context err (Maybe ST.User)
-getUser (EmailAddress email) = do
+getUser userEmail = do
   r <- pg $ runSelectReturningList $ select $ do
     allUsers <- all_ (Schema._users Schema.supplyChainDb)
-    guard_ (Schema.user_email_address allUsers ==. val_ email)
+    guard_ (Schema.user_email_address allUsers ==. val_ userEmail)
     pure allUsers
   return $ case r of
     [u] -> Just . QU.userTableToModel $ u
@@ -496,13 +484,14 @@ constructLocation whereT =
 
 
 insertEvent :: Schema.UserId
-            -> ByteString
-            -> ByteString
             -> Ev.Event
             -> DB context err Schema.EventId
-insertEvent userId jsonEvent toSignEvent event = fmap (Schema.EventId <$>) QU.withPKey $ \pKey ->
-  pg $ B.runInsert $ B.insert (Schema._events Schema.supplyChainDb)
-      $ insertValues [toStorageEvent (Schema.EventId pKey) (_eid event) userId jsonEvent toSignEvent]
+insertEvent userId event = fmap (Schema.EventId <$>) QU.withPKey $ \pKey ->
+  let jsonEvent = QU.encodeEventToJSON event
+      toSignEvent = QU.constructEventToSign event
+  in
+    pg $ B.runInsert $ B.insert (Schema._events Schema.supplyChainDb)
+        $ insertValues [toStorageEvent (Schema.EventId pKey) (_eid event) userId jsonEvent toSignEvent]
 
 insertUserEvent :: Schema.EventId
                 -> Schema.UserId
@@ -577,11 +566,7 @@ findEvent :: AsServiceError err
           -> DB context err (Maybe Ev.Event)
 findEvent eventId = do
   mschemaEvent <- findSchemaEvent eventId
-  case mschemaEvent of
-    Just event -> return $ QU.storageToModelEvent event
-    Nothing    -> return Nothing
-  -- return $ error ""
-  -- return $ QU.storageToModelEvent <$> mschemaEvent
+  pure $ mschemaEvent >>= QU.storageToModelEvent
 
 findSchemaEvent :: AsServiceError err
                 => Schema.EventId
