@@ -92,7 +92,7 @@ appMToHandler :: (HasLogging context) => context -> AppM context BusinessRegistr
 appMToHandler context act = do
   res <- liftIO $ runAppM context act
   case res of
-    Left err -> runKatipContextT (context ^. katipLogEnv) () (context ^. katipNamespace) (transformBRErrorAndLog err)
+    Left err -> runKatipContextT (context ^. katipLogEnv) () (context ^. katipNamespace) (brErrorToHttpError err)
     Right a  -> return a
 
 
@@ -105,58 +105,47 @@ serveSwaggerAPI = toSwagger serverAPI
   & info.license ?~ ("MIT" & url ?~ URL "https://opensource.org/licenses/MIT")
 
 
--- | We log all errors for now so that developers have the oppertunity to skim the logs to look for potential issues.
--- The brError type contains all the information what we know about the error at this point so we add it in entirity
--- to the log.
-transformBRErrorAndLog :: BusinessRegistryError -> KatipContextT Handler a
-transformBRErrorAndLog brError = do
-  $(logTM) WarningS (logStr $ show brError)
-  brErrorToHttpError brError
-
-
--- | This function simplifies the construction of errors by providing an
--- interface with just the arguments necessary. This function logs the error if
--- the status code is 500.
--- TODO: Transform Show error so that we can only log BR and KeyErrors to
--- further constrain the type and prevent accidental errors in the argument
--- provided, even though all we need is show.
-throwHttpError :: (Show error) => ServantErr -> ByteString -> error -> KatipContextT Handler a
-throwHttpError httpStatus errorMessage brError
-  | is500Error(httpStatus) = logThrowHttpError httpStatus errorMessage brError
-  | otherwise = throwHttpError' httpStatus errorMessage
+errorLogLevel :: ServantErr -> Severity
+errorLogLevel httpStatus
+  | is500Error(httpStatus) = ErrorS
+  | otherwise = WarningS
 
 -- | Is the servant error in the 5XX series?
 is500Error :: ServantErr -> Bool
 is500Error servantError = ((errHTTPCode servantError) `div` 100) == 5
 
 
+-- | This function simplifies the construction of errors by providing an
+-- interface with just the arguments necessary. This function logs the error
+-- and if the the status code is in the 5XX the log level is escalated. We log
+-- all errors for now so that developers have the oppertunity to skim the logs
+-- to look for potential issues. The error type contains all the information
+-- that we know about the error at this point so we add it in entirity to the
+-- log.
 -- TODO: Transform Show error so that we can only log BR and KeyErrors to
 -- further constrain the type and prevent accidental errors in the argument
 -- provided, even though all we need is show.
-logThrowHttpError :: (Show error) => ServantErr -> ByteString -> error -> KatipContextT Handler a
-logThrowHttpError httpStatus errorMessage err = do
-  $(logTM) ErrorS (logStr $ show err)
-  throwHttpError' httpStatus errorMessage
-
-throwHttpError' :: ServantErr -> ByteString -> KatipContextT Handler a
-throwHttpError' httpStatus errorMessage = lift $ throwError $ httpStatus { errBody = errorMessage }
+throwHttpError :: (Show error) => ServantErr -> ByteString -> error -> KatipContextT Handler a
+throwHttpError httpStatus errorMessage err = do
+  $(logTM) (errorLogLevel httpStatus) (logStr $ show err)
+  lift $ throwError $ httpStatus { errBody = errorMessage }
 
 
--- | Takes in a BusinessRegistryError and converts it to an HTTP error (eg. err400)
+-- | Takes a BusinessRegistryError and converts it to an HTTP error.
 brErrorToHttpError :: BusinessRegistryError -> KatipContextT Handler a
-brErrorToHttpError err =
-  let httpError = (\x y -> throwHttpError x y err)
-  in case err of
+brErrorToHttpError brError =
+  let httpError = (\x y -> throwHttpError x y brError)
+  in case brError of
     (KeyErrorBRE keyError)           -> keyErrorToHttpError keyError
-    (DBErrorBRE _)                  -> unexpectedError err
-    (UnexpectedErrorBRE _)          -> unexpectedError err
-    (UnmatchedUniqueViolationBRE _) -> unexpectedError err
+    (DBErrorBRE _)                  -> unexpectedError brError
+    (UnexpectedErrorBRE _)          -> unexpectedError brError
+    (UnmatchedUniqueViolationBRE _) -> unexpectedError brError
     (LocationNotKnownBRE)           -> httpError err404 "Unknown GLN"
     (LocationExistsBRE)             -> httpError err409 "Location already exists for this GLN"
     (GS1CompanyPrefixExistsBRE)     -> httpError err400 "GS1 company prefix already exists."
     (BusinessDoesNotExistBRE)       -> httpError err400 "Business does not exist."
-    (UserCreationErrorBRE _ _)      -> userCreationError err
-    (UserCreationSQLErrorBRE _)     -> userCreationError err
+    (UserCreationErrorBRE _ _)      -> userCreationError brError
+    (UserCreationSQLErrorBRE _)     -> userCreationError brError
 
 -- | A generic internal server error has occured. We include no more information in the result returned to the user to
 -- limit further potential for exploitation, under the expectation that we log the errors to somewhere that is reviewed
@@ -169,10 +158,11 @@ userCreationError :: BusinessRegistryError -> KatipContextT Handler a
 userCreationError = throwHttpError err400 "Unable to create user."
 
 
+-- | Takes a KeyError and converts it to an HTTP error.
 keyErrorToHttpError :: KeyError -> KatipContextT Handler a
-keyErrorToHttpError err =
-  let httpError = (\x y -> throwHttpError x y err)
-  in case err of
+keyErrorToHttpError keyError =
+  let httpError = (\x y -> throwHttpError x y keyError)
+  in case keyError of
     (InvalidRSAKeyBRE _)           -> httpError err400 "Failed to parse RSA Public key."
     KeyAlreadyRevokedBRE           -> httpError err400 "Public key already revoked."
     KeyAlreadyExpiredBRE           -> httpError err400 "Public key already expired."
