@@ -3,6 +3,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings     #-}
 {-# LANGUAGE PartialTypeSignatures #-}
+{-# LANGUAGE TemplateHaskell       #-}
 {-# LANGUAGE UndecidableInstances  #-}
 {-# OPTIONS_GHC -fno-warn-orphans  #-}
 
@@ -27,6 +28,7 @@ module Mirza.Common.GS1BeamOrphans
   , serialNumType
   , itemRefType
   , locationEPCType
+  , Digest (..), digestType
   ) where
 
 import           Mirza.Common.Beam
@@ -48,8 +50,11 @@ import           Database.PostgreSQL.Simple.ToField   (ToField, toField)
 import           GHC.Generics                         (Generic)
 
 import           Control.Lens.Operators               ((&), (.~), (?~))
+import           Data.Aeson
+import           Data.Aeson.TH
 import           Data.Swagger                         (SwaggerType (SwaggerString),
-                                                       ToParamSchema (..))
+                                                       ToParamSchema (..),
+                                                       ToSchema)
 import           Data.Swagger.Lens                    (pattern, type_)
 import           Servant                              (FromHttpApiData (..),
                                                        ToHttpApiData (..))
@@ -532,3 +537,36 @@ instance ToParamSchema EPC.LocationEPC where
   toParamSchema _ = mempty
     & type_ .~ SwaggerString
     & pattern ?~ "urn:epc:id:sgln:\\d+\\.\\d+(\\.\\d+)?"
+
+
+-- ============= Digest ================
+
+data Digest = SHA256 | SHA384 | SHA512
+  deriving (Show, Generic, Eq, Read)
+$(deriveJSON defaultOptions ''Digest)
+instance ToSchema Digest
+
+instance BSQL.HasSqlValueSyntax be String =>
+  BSQL.HasSqlValueSyntax be Digest where
+    sqlValueSyntax = BSQL.sqlValueSyntax . show
+instance (BMigrate.IsSql92ColumnSchemaSyntax be) =>
+  BMigrate.HasDefaultSqlDataTypeConstraints be Digest
+
+instance (BSQL.HasSqlValueSyntax (BSQL.Sql92ExpressionValueSyntax be) Bool,
+          BSQL.IsSql92ExpressionSyntax be) =>
+          B.HasSqlEqualityCheck be Digest
+instance (BSQL.HasSqlValueSyntax (BSQL.Sql92ExpressionValueSyntax be) Bool,
+          BSQL.IsSql92ExpressionSyntax be) =>
+          B.HasSqlQuantifiedEqualityCheck be Digest
+
+instance BSQL.FromBackendRow BPostgres.Postgres Digest where
+  fromBackendRow = defaultFromBackendRow "Digest"
+
+instance FromField Digest where
+  fromField = defaultFromField "Digest"
+
+instance ToField Digest where
+  toField = toField . show
+
+digestType :: BMigrate.DataType PgDataTypeSyntax Digest
+digestType = textType

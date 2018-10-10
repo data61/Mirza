@@ -241,7 +241,7 @@ migration () =
           (EventId (field "signature_event_id" pkSerialType notNull))
           (field "signature_key_id" brKeyIdType notNull)
           (field "signature_signature" bytea notNull)
-          (field "signature_digest" bytea notNull)
+          (field "signature_digest" digestType notNull)
           (field "signature_timestamp" timestamptz notNull)
     )
     <*> createTable "hashes"
@@ -739,7 +739,7 @@ data SignatureT f = Signature
   , signature_event_id  :: PrimaryKey EventT f
   , signature_key_id    :: C f BRKeyId
   , signature_signature :: C f ByteString
-  , signature_digest    :: C f ByteString -- why is this a ByteString?
+  , signature_digest    :: C f Digest
   , signature_timestamp :: C f LocalTime -- Stored as UTC Time
   }
   deriving Generic
