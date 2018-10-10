@@ -36,7 +36,7 @@ import           Data.Text.Encoding                           (decodeUtf8)
 import           Data.Bifunctor                               (bimap)
 import           Data.Maybe                                   (isJust)
 
-import           Mirza.Common.Utils                           (getEventFromPgEvent)
+import           Mirza.Common.Utils                           (fromPgJSON)
 
 -- This takes an EPC urn,
 -- and looks up all the events related to that item. First we've got
@@ -95,7 +95,7 @@ eventsByUser (ST.UserId userId) = do
     guard_ (Schema.user_events_event_id userEvent `references_` event &&.
             Schema.user_events_user_id userEvent ==. val_ (Schema.UserId userId))
     pure (Schema.event_json event)
-  pure $ getEventFromPgEvent <$> events
+  pure $ fromPgJSON <$> events
 
 -- | Given an eventId, list all the users associated with that event
 -- This can be used to make sure everything is signed
