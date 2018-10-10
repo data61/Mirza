@@ -136,7 +136,7 @@ brErrorToHttpError :: BRError -> KatipContextT Handler a
 brErrorToHttpError brError =
   let httpError = (\x y -> throwHttpError x y brError)
   in case brError of
-    (BRKeyErrorBRE BRKeyError)      -> BRKeyErrorToHttpError BRKeyError
+    (BRKeyErrorBRE keyError)        -> brKeyErrorToHttpError keyError
     (DBErrorBRE _)                  -> unexpectedError brError
     (UnexpectedErrorBRE _)          -> unexpectedError brError
     (UnmatchedUniqueViolationBRE _) -> unexpectedError brError
@@ -159,10 +159,10 @@ userCreationError = throwHttpError err400 "Unable to create user."
 
 
 -- | Takes a BRKeyError and converts it to an HTTP error.
-BRKeyErrorToHttpError :: BRKeyError -> KatipContextT Handler a
-BRKeyErrorToHttpError BRKeyError =
-  let httpError = (\x y -> throwHttpError x y BRKeyError)
-  in case BRKeyError of
+brKeyErrorToHttpError :: BRKeyError -> KatipContextT Handler a
+brKeyErrorToHttpError keyError =
+  let httpError = (\x y -> throwHttpError x y keyError)
+  in case keyError of
     (InvalidRSAKeyBRE _)           -> httpError err400 "Failed to parse RSA Public key."
     KeyAlreadyRevokedBRE           -> httpError err400 "Public key already revoked."
     KeyAlreadyExpiredBRE           -> httpError err400 "Public key already expired."
