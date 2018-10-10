@@ -9,7 +9,7 @@ module Mirza.SupplyChain.Handlers.EventRegistration
   , insertTransfEvent
   , hasUserCreatedEvent
   , insertUserEvent
-  , findEvent
+  , findEvent, findSchemaEvent
   , findLabelId
   , getEventList
   , getUser, getUserById
@@ -81,9 +81,10 @@ insertObjectEventQuery
       eventType = Ev.ObjectEventT
       dwhat =  ObjWhat $ ObjectDWhat act labelEpcs
       event = Ev.Event eventType foreignEventId dwhat dwhen dwhy dwhere
-      jsonEvent = QU.encodeEvent event
+      jsonEvent = QU.encodeEventToJSON event
+      toSignEvent = QU.constructEventToSign event
 
-  eventId <- insertEvent userId jsonEvent event
+  eventId <- insertEvent userId jsonEvent toSignEvent event
   whatId <- insertDWhat Nothing dwhat eventId
   labelIds' <- mapM (insertLabel Nothing (Schema.WhatId whatId)) labelEpcs
   let labelIds = Schema.LabelId <$> labelIds'
@@ -120,9 +121,10 @@ insertAggEventQuery
       eventType = Ev.AggregationEventT
       dwhat =  AggWhat $ AggregationDWhat act mParentLabel labelEpcs
       event = Ev.Event eventType foreignEventId dwhat dwhen dwhy dwhere
-      jsonEvent = QU.encodeEvent event
+      jsonEvent = QU.encodeEventToJSON event
+      toSignEvent = QU.constructEventToSign event
 
-  eventId <- insertEvent userId jsonEvent event
+  eventId <- insertEvent userId jsonEvent toSignEvent event
   whatId <- insertDWhat Nothing dwhat eventId
   labelIds' <- mapM (insertLabel Nothing (Schema.WhatId whatId)) labelEpcs
   let labelIds = Schema.LabelId <$> labelIds'
@@ -163,9 +165,10 @@ insertTransactEventQuery
       eventType = Ev.TransactionEventT
       dwhat =  TransactWhat $ TransactionDWhat act mParentLabel bizTransactions labelEpcs
       event = Ev.Event eventType foreignEventId dwhat dwhen dwhy dwhere
-      jsonEvent = QU.encodeEvent event
+      jsonEvent = QU.encodeEventToJSON event
+      toSignEvent = QU.constructEventToSign event
 
-  eventId <- insertEvent userId jsonEvent event
+  eventId <- insertEvent userId jsonEvent toSignEvent event
   whatId <- insertDWhat Nothing dwhat eventId
   labelIds' <- mapM (insertLabel Nothing (Schema.WhatId whatId)) labelEpcs
   let labelIds = Schema.LabelId <$> labelIds'
@@ -203,9 +206,10 @@ insertTransfEventQuery
       eventType = Ev.TransformationEventT
       dwhat =  TransformWhat $ TransformationDWhat mTransfId inputs outputs
       event = Ev.Event eventType foreignEventId dwhat dwhen dwhy dwhere
-      jsonEvent = QU.encodeEvent event
+      jsonEvent = QU.encodeEventToJSON event
+      toSignEvent = QU.constructEventToSign event
 
-  eventId <- insertEvent userId jsonEvent event
+  eventId <- insertEvent userId jsonEvent toSignEvent event
   whatId <- insertDWhat Nothing dwhat eventId
   inputLabelIds <- mapM (\(InputEPC i) -> insertLabel (Just MU.Input) (Schema.WhatId whatId) i) inputs
   outputLabelIds <- mapM (\(OutputEPC o) -> insertLabel (Just MU.Output) (Schema.WhatId whatId) o) outputs
@@ -386,12 +390,13 @@ toStorageDWhy (Schema.WhyId pKey) (DWhy mBiz mDisp)
   = Schema.Why pKey (renderURL <$> mBiz) (renderURL <$> mDisp)
 
 toStorageEvent :: Schema.EventId
+               -> Maybe EvId.EventId
                -> Schema.UserId
                -> ByteString
-               -> Maybe EvId.EventId
+               -> ByteString
                -> Schema.Event
-toStorageEvent (Schema.EventId pKey) userId jsonEvent mEventId =
-  Schema.Event pKey (EvId.unEventId <$> mEventId) userId jsonEvent
+toStorageEvent (Schema.EventId pKey) mEventId =
+  Schema.Event pKey (EvId.unEventId <$> mEventId)
 
 insertDWhat :: Maybe PrimaryKeyType
             -> DWhat
@@ -492,11 +497,12 @@ constructLocation whereT =
 
 insertEvent :: Schema.UserId
             -> ByteString
+            -> ByteString
             -> Ev.Event
             -> DB context err Schema.EventId
-insertEvent userId jsonEvent event = fmap (Schema.EventId <$>) QU.withPKey $ \pKey ->
+insertEvent userId jsonEvent toSignEvent event = fmap (Schema.EventId <$>) QU.withPKey $ \pKey ->
   pg $ B.runInsert $ B.insert (Schema._events Schema.supplyChainDb)
-      $ insertValues [toStorageEvent (Schema.EventId pKey) userId jsonEvent (_eid event)]
+      $ insertValues [toStorageEvent (Schema.EventId pKey) (_eid event) userId jsonEvent toSignEvent]
 
 insertUserEvent :: Schema.EventId
                 -> Schema.UserId
@@ -569,14 +575,25 @@ getEventList (Schema.LabelId labelId) = do
 findEvent :: AsServiceError err
           => Schema.EventId
           -> DB context err (Maybe Ev.Event)
-findEvent (Schema.EventId eventId) = do
+findEvent eventId = do
+  mschemaEvent <- findSchemaEvent eventId
+  case mschemaEvent of
+    Just event -> return $ QU.storageToModelEvent event
+    Nothing    -> return Nothing
+  -- return $ error ""
+  -- return $ QU.storageToModelEvent <$> mschemaEvent
+
+findSchemaEvent :: AsServiceError err
+                => Schema.EventId
+                -> DB context err (Maybe Schema.Event)
+findSchemaEvent (Schema.EventId eventId) = do
   r <- pg $
         runSelectReturningList $ select $ do
         event <- all_ (Schema._events Schema.supplyChainDb)
         guard_ (Schema.event_id event ==. (val_ eventId))
         pure event
   case r of
-    [event] -> return $ QU.storageToModelEvent event
+    [event] -> return $ Just event
     -- TODO: Do the right thing here
     _       -> throwBackendError r
 

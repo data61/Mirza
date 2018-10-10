@@ -22,8 +22,9 @@ import           Data.GS1.EventId           as EvId
 
 import           Database.PostgreSQL.Simple (Connection, SqlError)
 
-import           Crypto.Scrypt              (ScryptParams)
 import           Crypto.JOSE                as JOSE hiding (Digest)
+import           Crypto.JOSE.Types          (Base64Octets)
+import           Crypto.Scrypt              (ScryptParams)
 
 import           Servant                    (FromHttpApiData, ToHttpApiData)
 import           Servant.Client             (ClientEnv (..), ServantError (..))
@@ -114,7 +115,7 @@ deriving instance ToHttpApiData LabelEPCUrn
 -- *****************************************************************************
 -- TODO: The factory functions should probably be removed from here.
 
-newtype EventOwner  = EventOwner UserId deriving(Generic, Show, Eq, Read)
+newtype EventOwner = EventOwner UserId deriving(Generic, Show, Eq, Read)
 
 data ObjectEvent = ObjectEvent {
   obj_foreign_event_id :: Maybe EventId,
@@ -263,7 +264,7 @@ $(deriveJSON defaultOptions ''BlockchainPackage)
 instance ToSchema BlockchainPackage
 
 
-  
+
 
 data DigestType = SHA256 | SHA384 | SHA512
   deriving (Show, Generic, Eq, Read)
@@ -275,7 +276,7 @@ data SignedEvent = SignedEvent {
   signed_keyId       :: BRKeyId,
   signed_signature   :: CompactJWS JWSHeader,
   signed_digest_type :: DigestType
-  } deriving (Generic)
+  } deriving (Generic, Show, Eq)
 $(deriveJSON defaultOptions ''SignedEvent)
 instance ToSchema SignedEvent
 --instance ToParamSchema SignedEvent where
@@ -288,6 +289,29 @@ data HashedEvent = HashedEvent {
 $(deriveJSON defaultOptions ''HashedEvent)
 instance ToSchema HashedEvent
 
+newtype BlockchainId = BlockchainId Text
+  deriving (Show, Generic, Eq)
+$(deriveJSON defaultOptions ''BlockchainId)
+instance ToSchema BlockchainId
+
+data EventBlockchainStatus
+  = Sent -- BlockchainId -- commented out for the moment because ToSchema cannot be auto-derived
+  | ReadyAndWaiting
+  | SendFailed -- sending was attempted but failed
+  | NotSent -- sending not attempted yet because of lack of signatures, etc
+  deriving (Show, Generic, Eq)
+$(deriveJSON defaultOptions ''EventBlockchainStatus)
+instance ToSchema EventBlockchainStatus
+
+data EventInfo = EventInfo {
+  eventInfoEvent            :: Ev.Event,
+  eventInfoUserSigs         :: [(UserId, SignedEvent)],
+  eventInfoUnsignedUsers    :: [UserId],
+  eventToSign               :: Base64Octets, --this is the json stored in the db atm
+  eventInfoBlockChainStatus :: EventBlockchainStatus
+} deriving (Show, Eq, Generic)
+$(deriveJSON defaultOptions ''EventInfo)
+instance ToSchema EventInfo
 
 -- *****************************************************************************
 -- Error Types
@@ -337,10 +361,10 @@ instance AsSqlError AppError where
   _SqlError = _DatabaseError
 
 instance AsServantError ServantError where
-    _ServantError = id
+  _ServantError = id
 
 instance AsServantError ServiceError where
-    _ServantError = _ServantErr
+  _ServantError = _ServantErr
 
 instance AsServantError AppError where _ServantError = _ServantErr
 

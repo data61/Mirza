@@ -5,6 +5,9 @@ module Mirza.SupplyChain.Handlers.Signatures
   (
     addUserToEvent
   , eventSign, getEventJSON, insertSignature, eventHashed
+  , findSignedEventByEvent, findSignatureByEvent
+  , findSignedEventByUser, findSignatureByUser
+  , signatureToSignedEvent
   ) where
 
 import           Mirza.Common.Time
@@ -14,6 +17,7 @@ import           Mirza.Common.Utils
 -- import qualified Mirza.BusinessRegistry.Types                 as BT
 
 import           Mirza.SupplyChain.Database.Schema            as Schema
+import           Mirza.SupplyChain.ErrorUtils                 (throwBackendError)
 import           Mirza.SupplyChain.Handlers.Common
 import           Mirza.SupplyChain.Handlers.EventRegistration (hasUserCreatedEvent,
                                                                insertUserEvent)
@@ -23,17 +27,21 @@ import           Mirza.SupplyChain.Types                      hiding
                                                                UserId)
 import qualified Mirza.SupplyChain.Types                      as ST
 
+
 import qualified Data.GS1.EventId                             as EvId
 
 import           Database.Beam                                as B
 import           Database.Beam.Backend.SQL.BeamExtensions
+import           Database.Beam.Postgres                       (PgJSON (..))
 
 
-import           Crypto.JOSE                                  (verifyJWS', CompactJWS, JWSHeader, AsError)
-import           Database.Beam.Postgres                       (PgJSON(..))
+import           Crypto.JOSE                                  (AsError,
+                                                               CompactJWS,
+                                                               JWSHeader,
+                                                               verifyJWS')
 
-import qualified Data.ByteString.Char8                        as BSC
 import qualified Data.ByteString                              as BS
+import qualified Data.ByteString.Char8                        as BSC
 
 import           Mirza.BusinessRegistry.Client.Servant        (getPublicKey)
 
@@ -57,7 +65,7 @@ addUserToEventQuery (EventOwner lUserId@(ST.UserId loggedInUserId))
                 evId@(EvId.EventId eventId) = do
   userCreatedEvent <- hasUserCreatedEvent lUserId evId
   if userCreatedEvent
-    then insertUserEvent 
+    then insertUserEvent
             (Schema.EventId eventId)
             (Schema.UserId loggedInUserId)
             (Schema.UserId otherUserId)
@@ -85,7 +93,7 @@ eventSign :: (HasBRClientEnv context, AsServantError err, AsError err, SCSApp co
           => ST.User
           -> SignedEvent
           -> AppM context err PrimaryKeyType
-eventSign _user (SignedEvent eventId keyId sig digtype) = do
+eventSign user (SignedEvent eventId keyId sig digtype) = do
   jwk <- runClientFunc $ getPublicKey keyId
   -- sigBS <- BS64.decode (BSC.pack sigStr) <%?> review _Base64DecodeFailure
   -- digest <- liftIO (makeDigest digest') <!?> review _InvalidDigest digest'
@@ -94,7 +102,7 @@ eventSign _user (SignedEvent eventId keyId sig digtype) = do
     -- let eventBS = QU.eventTxtToBS event
     event' <- verifyJWS' jwk sig
     if event == event'
-      then insertSignature eventId keyId sig digtype
+      then insertSignature (ST.userId user) eventId keyId sig digtype
       else throwing _SigVerificationFailure (show sig)
 
 -- TODO: Should this return Text or a JSON value?
@@ -109,27 +117,78 @@ getEventJSON eventId = do
     _           -> throwing _InvalidEventId eventId
 
 
--- makeDigest :: DigestType -> IO (Maybe EVPDigest.Digest)
--- makeDigest digest = withOpenSSL $ EVPDigest.getDigestByName . map toLower . show $ digest
-
-insertSignature :: (AsServiceError err) => EvId.EventId
+insertSignature :: (AsServiceError err) => ST.UserId
+                -> EvId.EventId
                 -> BRKeyId
                 -> CompactJWS JWSHeader
                 -> DigestType
                 -> DB environmentUnused err PrimaryKeyType
 
-insertSignature eId kId sig digest = do
+insertSignature (ST.UserId uId) eId kId sig digest = do
   sigId <- newUUID
   timestamp <- generateTimestamp
   r <- pg $ runInsertReturningList (Schema._signatures Schema.supplyChainDb) $
         insertValues
-        [Schema.Signature sigId (Schema.EventId $ EvId.unEventId eId)
+        [(Schema.Signature sigId) (Schema.UserId uId) (Schema.EventId $ EvId.unEventId eId)
          (BRKeyId $ getBRKeyId kId) (PgJSON sig)
           (BSC.pack $ show digest) (toDbTimestamp timestamp)]
   case r of
     [rowId] -> return ( Schema.signature_id rowId)
     _       -> throwing _BackendErr "Failed to add signature"
 
+
+findSignatureByEvent :: (AsServiceError err)
+                     => EvId.EventId
+                     -> DB context err [Schema.Signature]
+findSignatureByEvent (EvId.EventId eId) =
+  pg $ runSelectReturningList $ select $ do
+    sig <- all_ (Schema._signatures Schema.supplyChainDb)
+    guard_ ((Schema.signature_event_id sig) ==. (val_ (Schema.EventId eId)))
+    pure sig
+
+findSignedEventByEvent :: (AsServiceError err)
+                       => EvId.EventId
+                       -> DB context err [ST.SignedEvent]
+findSignedEventByEvent eventId = do
+  sigList <- findSignatureByEvent eventId
+  return $ signatureToSignedEvent <$> sigList
+
+findSignatureByUser :: AsServiceError err
+                    => ST.UserId
+                    -> EvId.EventId
+                    -> DB context err Schema.Signature
+findSignatureByUser (ST.UserId uId) (EvId.EventId eId) = do
+  r <- pg $ runSelectReturningList $ select $ do
+    sig <- all_ (Schema._signatures Schema.supplyChainDb)
+    guard_ ((Schema.signature_event_id sig) ==. (val_ (Schema.EventId eId)) &&.
+            (Schema.signature_user_id sig) ==. (val_ (Schema.UserId uId)))
+    pure sig
+  case r of
+    [sig] -> return sig
+    _     -> throwBackendError "Invalid User - Event pair" -- TODO: wrong error to throw here
+
+findSignedEventByUser :: AsServiceError err
+                      => ST.UserId
+                      -> EvId.EventId
+                      -> DB context err ST.SignedEvent
+findSignedEventByUser uId eventId = do
+  sig <- findSignatureByUser uId eventId
+  return $ signatureToSignedEvent sig
+
+
+signatureToSignedEvent :: Schema.Signature -> ST.SignedEvent
+signatureToSignedEvent
+  (Schema.Signature
+    _userId
+    _sigId
+    (Schema.EventId eId)
+    brKeyId
+    (PgJSON sig)
+    digest _) = ST.SignedEvent
+                  (EvId.EventId eId)
+                  brKeyId
+                  sig
+                  (read . BSC.unpack $ digest)
 
 -- do we need this?
 eventHashed :: ST.User -> EvId.EventId -> AppM context err HashedEvent

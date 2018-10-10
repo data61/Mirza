@@ -13,12 +13,11 @@ import           Mirza.Common.Tests.ServantUtils
 import           Servant.API.BasicAuth
 import           Servant.Client
 
-import           Data.ByteString.Lazy                  (ByteString)
-
 import           System.Directory                      (listDirectory)
 import           System.FilePath                       ((</>))
 
 import           Control.Monad                         (forM_)
+import           Data.ByteString.Lazy                  (ByteString)
 import           Data.Either                           (isLeft, isRight)
 import           Data.Either.Utils                     (fromRight)
 import           Data.List                             (isSuffixOf)
@@ -44,7 +43,6 @@ import           Mirza.Common.Time
 import           Mirza.BusinessRegistry.Tests.Utils
 import           Mirza.Common.Tests.InitClient
 import           Mirza.Common.Tests.Utils
-
 
 -- === BR Servant Client tests
 
@@ -456,7 +454,7 @@ clientSpec = do
                 let directory = "test" </> "Mirza" </> "Common" </> "TestData" </> "testKeys" </> keyDirectory
                 files <- filter (".pub" `isSuffixOf`) <$> listDirectory directory
                 let fullyQualifiedFiles = (directory </>) <$> files
-                keys <- traverse readRsaPubKey fullyQualifiedFiles
+                keys <- traverse readRsaPublicKey fullyQualifiedFiles
                 forM_ (zip files keys) $ \(keyName,key) -> do
                   step $ "Testing " ++ keyDirectory ++ " key: " ++ keyName
                   http (addPublicKey (newUserToBasicAuthData userB1U1) key Nothing)
@@ -494,4 +492,3 @@ checkFailureMessage = checkFailureField responseBody
 checkFailureField :: (Eq a) => (Response -> a) -> a -> Either ServantError b -> Bool
 checkFailureField accessor x (Left (FailureResponse failure)) = x == (accessor failure)
 checkFailureField _        _ _                                = False
-

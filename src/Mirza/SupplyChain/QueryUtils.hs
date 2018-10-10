@@ -10,8 +10,7 @@
 module Mirza.SupplyChain.QueryUtils
   (
     storageToModelEvent, userTableToModel
-  , encodeEvent, decodeEvent
-  , eventTxtToBS
+  , encodeEventToJSON, decodeEventFromJSON, constructEventToSign
   , handleError
   , withPKey
   ) where
@@ -57,7 +56,7 @@ withPKey f = do
 
 
 storageToModelEvent :: Schema.Event -> Maybe Ev.Event
-storageToModelEvent = decodeEvent . Schema.event_json
+storageToModelEvent = decodeEventFromJSON . Schema.event_json
 
 -- | Converts a DB representation of ``User`` to a Model representation
 -- Schema.User = Schema.User uid bizId fName lName phNum passHash email
@@ -65,14 +64,12 @@ userTableToModel :: Schema.User -> ST.User
 userTableToModel (Schema.User uid _ fName lName _ _ _)
     = ST.User (ST.UserId uid) fName lName
 
+-- | This function returns the standardised form of event that users can sign
+constructEventToSign :: Ev.Event ->ByteString
+constructEventToSign = encodeEventToJSON
 
-encodeEvent :: Ev.Event -> ByteString
-encodeEvent = toStrict . encode
+encodeEventToJSON :: Ev.Event -> ByteString
+encodeEventToJSON = toStrict . encode
 
--- XXX is this the right encoding to use? It's used for checking signatures
--- and hashing the json.
-eventTxtToBS :: T.Text -> ByteString
-eventTxtToBS = En.encodeUtf8
-
-decodeEvent :: ByteString -> Maybe Ev.Event
-decodeEvent = decodeStrict
+decodeEventFromJSON :: ByteString -> Maybe Ev.Event
+decodeEventFromJSON = decodeStrict

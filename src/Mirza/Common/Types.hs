@@ -5,13 +5,13 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE KindSignatures             #-}
 {-# LANGUAGE MultiParamTypeClasses      #-}
+{-# LANGUAGE OverloadedLists            #-}
 {-# LANGUAGE StandaloneDeriving         #-}
 {-# LANGUAGE TemplateHaskell            #-}
 {-# LANGUAGE TypeApplications           #-}
 {-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE TypeOperators              #-}
 {-# LANGUAGE UndecidableInstances       #-}
-{-# LANGUAGE OverloadedLists            #-}
 {-# OPTIONS_GHC -Wno-orphans            #-}
 
 
@@ -74,8 +74,10 @@ import           Control.Monad.Trans                  (lift)
 
 import           Data.Pool                            as Pool
 
+import           Crypto.JOSE                          (JWK, JWS, JWSHeader,
+                                                       Signature)
+import           Crypto.JOSE.Types                    (Base64Octets)
 import           Crypto.Scrypt                        (ScryptParams)
-import           Crypto.JOSE                          (JWK,JWS,Signature,JWSHeader)
 
 import qualified Data.ByteString                      as BS
 import           Data.Text                            (Text)
@@ -364,9 +366,14 @@ instance ToSchema JWK where
           ]
 
 instance ToSchema (JWS Identity () JWSHeader) where
-  declareNamedSchema _ = do
+  declareNamedSchema _ =
     return $ NamedSchema (Just "JWS") $ mempty
 
 instance ToSchema (Signature () JWSHeader) where
-  declareNamedSchema _ = do
+  declareNamedSchema _ =
     return $ NamedSchema (Just "JWS Signature") $ mempty
+
+instance ToSchema Base64Octets where
+  declareNamedSchema _ =
+    return $ NamedSchema (Just "Base64 Encoded Bytes") $ mempty
+      & type_ .~ SwaggerString
