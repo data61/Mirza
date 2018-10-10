@@ -171,4 +171,5 @@ keyErrorToHttpError keyError =
     (KeyNotFoundBRE _)             -> httpError err404 "Public key with the given id not found."
     (InvalidRevocationBRE _ _ _)   -> httpError err500 "Key has been revoked but in an invalid way."
     (AddedExpiredKeyBRE)           -> httpError err400 "Can't add a key that has already expired."
-    (InvalidRSAKeySizeBRE (Expected (Bit expSize)) (Received (Bit recSize))) -> httpError err400 (BSL8.pack $ printf "Invalid RSA Key size. Expected: %d Bits, Received: %d Bits\n" expSize recSize)
+    (InvalidRSAKeySizeBRE (Expected (Bit expSize)) (Received (Bit recSize)))
+                                   -> httpError err400 (BSL8.pack $ printf "Invalid RSA Key size. Expected: %d Bits, Received: %d Bits\n" expSize recSize)
