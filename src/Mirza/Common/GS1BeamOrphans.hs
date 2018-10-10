@@ -27,13 +27,12 @@ module Mirza.Common.GS1BeamOrphans
   , lotType
   , serialNumType
   , itemRefType
+  , emailAddressType
   , locationEPCType
   , Digest (..), digestType
   ) where
 
 import           Mirza.Common.Beam
-
-import           Data.Text                            (Text)
 
 import qualified Data.GS1.EPC                         as EPC
 import qualified Data.GS1.Event                       as Ev
@@ -43,10 +42,13 @@ import qualified Database.Beam.Backend.SQL            as BSQL
 import qualified Database.Beam.Migrate                as BMigrate
 import qualified Database.Beam.Postgres               as BPostgres
 
-import           Database.PostgreSQL.Simple.FromField (FromField (..))
-
 import           Database.Beam.Postgres.Syntax        (PgDataTypeSyntax)
+import           Database.PostgreSQL.Simple.FromField
 import           Database.PostgreSQL.Simple.ToField   (ToField, toField)
+
+import           Data.Text                            (Text)
+import           Data.Text.Encoding                   (decodeUtf8, encodeUtf8)
+
 import           GHC.Generics                         (Generic)
 
 import           Control.Lens.Operators               ((&), (.~), (?~))
@@ -58,6 +60,9 @@ import           Data.Swagger                         (SwaggerType (SwaggerStrin
 import           Data.Swagger.Lens                    (pattern, type_)
 import           Servant                              (FromHttpApiData (..),
                                                        ToHttpApiData (..))
+import           Text.Email.Validate                  (EmailAddress,
+                                                       toByteString, validate)
+
 
 instance ToParamSchema EPC.GS1CompanyPrefix
 instance FromHttpApiData EPC.GS1CompanyPrefix where
@@ -493,6 +498,39 @@ instance ToField LabelType where
 labelType :: BMigrate.DataType PgDataTypeSyntax LabelType
 labelType = textType
 
+-- ======= EmailAddress =======
+
+instance BSQL.HasSqlValueSyntax be Text =>
+  BSQL.HasSqlValueSyntax be EmailAddress where
+    sqlValueSyntax = BSQL.sqlValueSyntax . decodeUtf8 . toByteString
+instance (BMigrate.IsSql92ColumnSchemaSyntax be) =>
+  BMigrate.HasDefaultSqlDataTypeConstraints be EmailAddress
+
+instance (BSQL.HasSqlValueSyntax (BSQL.Sql92ExpressionValueSyntax be) Bool,
+          BSQL.IsSql92ExpressionSyntax be) =>
+          B.HasSqlEqualityCheck be EmailAddress
+instance (BSQL.HasSqlValueSyntax (BSQL.Sql92ExpressionValueSyntax be) Bool,
+          BSQL.IsSql92ExpressionSyntax be) =>
+          B.HasSqlQuantifiedEqualityCheck be EmailAddress
+
+emailFromBackendRow :: Text -> EmailAddress
+emailFromBackendRow emailTxt =
+  let emailByte = encodeUtf8 emailTxt in
+    case validate emailByte of
+      Right userEmail -> userEmail
+      Left reason     -> error reason -- shouldn't ever happen
+
+instance BSQL.FromBackendRow BPostgres.Postgres EmailAddress where
+  fromBackendRow = emailFromBackendRow <$> BSQL.fromBackendRow
+
+instance FromField EmailAddress where
+  fromField mbs conv = emailFromBackendRow <$> fromField mbs conv
+
+instance ToField EmailAddress where
+  toField = toField . decodeUtf8 . toByteString
+
+emailAddressType :: BMigrate.DataType PgDataTypeSyntax EmailAddress
+emailAddressType = textType
 
 -- *****************************************************************************
 --  Location types

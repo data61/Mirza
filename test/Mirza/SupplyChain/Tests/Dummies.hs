@@ -18,16 +18,16 @@ import qualified Data.Text               as T
 import           Data.Time
 import           Data.UUID               (nil)
 
--- add function to generate and take dummyLabelEpc
+import           Text.Email.Validate     (emailAddress)
 
 -- General Utils
 dummyNewUser :: ST.NewUser
-dummyNewUser = makeDummyNewUser (EmailAddress "fake@gmail.com")
+dummyNewUser = makeDummyNewUser (fromJust $ emailAddress "fake@gmail.com")
 
 -- | Utility function to make many users on the fly
 makeDummyNewUser :: EmailAddress -> ST.NewUser
-makeDummyNewUser emailAddress =
-    ST.NewUser "000" emailAddress "Bob" "Smith" (GS1CompanyPrefix "blah Ltd") "password"
+makeDummyNewUser userEmail =
+    ST.NewUser "000" userEmail "Bob" "Smith" (GS1CompanyPrefix "blah Ltd") "password"
 
 dummyLocation :: LocationEPC
 dummyLocation = SGLN (GS1CompanyPrefix "blah Ltd") (LocationReference "11111") Nothing
