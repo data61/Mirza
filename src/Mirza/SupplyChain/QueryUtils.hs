@@ -10,7 +10,7 @@
 module Mirza.SupplyChain.QueryUtils
   (
     storageToModelEvent, userTableToModel
-  , decodeEventFromJSON, constructEventToSign
+  , constructEventToSign
   , handleError
   , withPKey
   ) where
@@ -22,13 +22,10 @@ import qualified Mirza.SupplyChain.Types           as ST
 
 import qualified Data.GS1.Event                    as Ev
 
-import           Data.Aeson                        (decode)
 import           Data.Aeson.Text                   (encodeToLazyText)
 import           Data.ByteString                   (ByteString)
-import qualified Data.Text                         as T
 import           Data.Text.Encoding                (encodeUtf8)
 import qualified Data.Text.Lazy                    as TxtL
-import qualified Data.Text.Lazy.Encoding           as LEn
 
 import           Database.Beam.Postgres            (PgJSON (..))
 
@@ -60,6 +57,3 @@ userTableToModel (Schema.User uid _ fName lName _ _ _)
 
 constructEventToSign :: Ev.Event -> ByteString
 constructEventToSign event = encodeUtf8 $ TxtL.toStrict (encodeToLazyText event)
-
-decodeEventFromJSON :: T.Text -> Maybe Ev.Event
-decodeEventFromJSON = decode . LEn.encodeUtf8 . TxtL.fromStrict
