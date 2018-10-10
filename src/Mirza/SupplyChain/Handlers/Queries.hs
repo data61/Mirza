@@ -31,10 +31,12 @@ import           Database.Beam                                as B
 
 import           Control.Monad                                (unless)
 
-import           Data.Bifunctor                               (bimap)
-import           Data.Maybe                                   (catMaybes,
-                                                               isJust)
+import           Data.Text.Encoding                           (decodeUtf8)
 
+import           Data.Bifunctor                               (bimap)
+import           Data.Maybe                                   (isJust)
+
+import           Mirza.Common.Utils                           (fromPgJSON)
 
 -- This takes an EPC urn,
 -- and looks up all the events related to that item. First we've got
@@ -65,13 +67,17 @@ eventInfoQuery _user eventId@(EvId.EventId eId) = do
   mschemaEvent <- findSchemaEvent (Schema.EventId eId)
   unless (isJust mschemaEvent) $ throwing _InvalidEventId eventId
   let (Just schemaEvent) = mschemaEvent
-      (Just event) = storageToModelEvent schemaEvent
+      event = storageToModelEvent schemaEvent
       unsignedUserIds = map (ST.userId . fst) $ filter (not . snd) usersWithEvent
       signedUserIds = (ST.userId . fst) <$> filter snd usersWithEvent
   signedEvents <- mapM ((flip findSignedEventByUser) eventId) signedUserIds
   let usersAndSignedEvents = zip signedUserIds signedEvents
-  pure $ EventInfo event usersAndSignedEvents unsignedUserIds (constructEventToSign event) NotSent
-
+  pure $ EventInfo
+          event
+          usersAndSignedEvents
+          unsignedUserIds
+          (decodeUtf8 $ constructEventToSign event)
+          NotSent
 
 -- |List events that a particular user was/is involved with
 -- use BizTransactions and events (createdby) tables
@@ -89,7 +95,7 @@ eventsByUser (ST.UserId userId) = do
     guard_ (Schema.user_events_event_id userEvent `references_` event &&.
             Schema.user_events_user_id userEvent ==. val_ (Schema.UserId userId))
     pure (Schema.event_json event)
-  return $ catMaybes $ decodeEventFromJSON <$> events
+  pure $ fromPgJSON <$> events
 
 -- | Given an eventId, list all the users associated with that event
 -- This can be used to make sure everything is signed
