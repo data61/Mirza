@@ -12,7 +12,7 @@ module Mirza.SupplyChain.Handlers.EventRegistration
 import qualified Mirza.Common.GS1BeamOrphans        as MU
 import           Mirza.SupplyChain.Database.Schema  as Schema
 import           Mirza.SupplyChain.Handlers.Common
-import           Mirza.SupplyChain.Handlers.Queries (eventInfo)
+import           Mirza.SupplyChain.Handlers.Queries (eventInfoQuery)
 import           Mirza.SupplyChain.Types            hiding (User (..))
 import qualified Mirza.SupplyChain.Types            as ST
 
@@ -27,18 +27,20 @@ import           Data.GS1.DWhat                     (AggregationDWhat (..),
                                                      TransactionDWhat (..),
                                                      TransformationDWhat (..))
 import           Data.GS1.Event                     as Ev
+import           Data.GS1.EventId                   as EvId
 
 
 insertObjectEvent :: SCSApp context err => ST.User
                   -> ObjectEvent
-                  -> AppM context err (Ev.Event, Schema.EventId)
+                  -> AppM context err EventInfo
 insertObjectEvent user ob = runDb $ insertObjectEventQuery user ob
 
-insertObjectEventQuery :: ST.User
+insertObjectEventQuery :: AsServiceError err
+                       => ST.User
                        -> ObjectEvent
-                       -> DB context err (Ev.Event, Schema.EventId)
+                       -> DB context err EventInfo
 insertObjectEventQuery
-  (ST.User (ST.UserId tUserId) _ _ )
+  user@(ST.User (ST.UserId tUserId) _ _ )
   (ObjectEvent
     foreignEventId
     act
@@ -53,7 +55,7 @@ insertObjectEventQuery
 
   -- insertEvent has to be the first thing that happens here so that
   -- uniqueness of the JSON event is enforced
-  eventId <- insertEvent userId event
+  eventId@(Schema.EventId schemaEventId) <- insertEvent userId event
   whatId <- insertDWhat Nothing dwhat eventId
   labelIds' <- mapM (insertLabel Nothing (Schema.WhatId whatId)) labelEpcs
   let labelIds = Schema.LabelId <$> labelIds'
@@ -63,21 +65,20 @@ insertObjectEventQuery
   insertUserEvent eventId userId userId False Nothing
   mapM_ (insertWhatLabel (Schema.WhatId whatId)) labelIds
   mapM_ (insertLabelEvent eventId) labelIds
-
-  return (event, eventId)
-
+  eventInfoQuery user (EvId.EventId schemaEventId)
 
 
 insertAggEvent :: SCSApp context err => ST.User
                -> AggregationEvent
-               -> AppM context err (Ev.Event, Schema.EventId)
+               -> AppM context err EventInfo
 insertAggEvent user ev = runDb $ insertAggEventQuery user ev
 
-insertAggEventQuery :: ST.User
+insertAggEventQuery :: AsServiceError err
+                    => ST.User
                     -> AggregationEvent
-                    -> DB context err (Ev.Event, Schema.EventId)
+                    -> DB context err EventInfo
 insertAggEventQuery
-  (ST.User (ST.UserId tUserId) _ _ )
+  user@(ST.User (ST.UserId tUserId) _ _ )
   (AggregationEvent
     foreignEventId
     act
@@ -92,7 +93,7 @@ insertAggEventQuery
 
   -- insertEvent has to be the first thing that happens here so that
   -- uniqueness of the JSON event is enforced
-  eventId <- insertEvent userId event
+  eventId@(Schema.EventId schemaEventId) <- insertEvent userId event
   whatId <- insertDWhat Nothing dwhat eventId
   labelIds' <- mapM (insertLabel Nothing (Schema.WhatId whatId)) labelEpcs
   let labelIds = Schema.LabelId <$> labelIds'
@@ -104,21 +105,20 @@ insertAggEventQuery
   mapM_ (insertWhatLabel (Schema.WhatId whatId)) labelIds
   mapM_ (insertLabelEvent eventId) labelIds
 
-  -- FIXME: This should return the event as it has been inserted - the user has
-  -- no idea what the ID for the transaction is so can't query it later.
-  return (event, eventId)
+  eventInfoQuery user (EvId.EventId schemaEventId)
 
 
 insertTransactEvent :: SCSApp context err => ST.User
                     -> TransactionEvent
-                    -> AppM context err (Ev.Event, Schema.EventId)
+                    -> AppM context err EventInfo
 insertTransactEvent user ev = runDb $ insertTransactEventQuery user ev
 
-insertTransactEventQuery :: ST.User
+insertTransactEventQuery :: AsServiceError err
+                         => ST.User
                          -> TransactionEvent
-                         -> DB context err (Ev.Event, Schema.EventId)
+                         -> DB context err EventInfo
 insertTransactEventQuery
-  (ST.User (ST.UserId tUserId) _ _ )
+  user@(ST.User (ST.UserId tUserId) _ _ )
   (TransactionEvent
     foreignEventId
     act
@@ -135,7 +135,7 @@ insertTransactEventQuery
 
   -- insertEvent has to be the first thing that happens here so that
   -- uniqueness of the JSON event is enforced
-  eventId <- insertEvent userId event
+  eventId@(Schema.EventId schemaEventId) <- insertEvent userId event
   whatId <- insertDWhat Nothing dwhat eventId
   labelIds' <- mapM (insertLabel Nothing (Schema.WhatId whatId)) labelEpcs
   let labelIds = Schema.LabelId <$> labelIds'
@@ -147,20 +147,20 @@ insertTransactEventQuery
   mapM_ (insertWhatLabel (Schema.WhatId whatId)) labelIds
   mapM_ (insertLabelEvent eventId) labelIds
 
-  return (event, eventId)
-
+  eventInfoQuery user (EvId.EventId schemaEventId)
 
 
 insertTransfEvent :: SCSApp context err => ST.User
                   -> TransformationEvent
-                  -> AppM context err (Ev.Event, Schema.EventId)
+                  -> AppM context err EventInfo
 insertTransfEvent user ev = runDb $ insertTransfEventQuery user ev
 
-insertTransfEventQuery :: ST.User
+insertTransfEventQuery :: AsServiceError err
+                    => ST.User
                        -> TransformationEvent
-                       -> DB context err (Ev.Event, Schema.EventId)
+                       -> DB context err EventInfo
 insertTransfEventQuery
-  (ST.User (ST.UserId tUserId) _ _ )
+  user@(ST.User (ST.UserId tUserId) _ _ )
   (TransformationEvent
     foreignEventId
     mTransfId
@@ -175,7 +175,7 @@ insertTransfEventQuery
 
   -- insertEvent has to be the first thing that happens here so that
   -- uniqueness of the JSON event is enforced
-  eventId <- insertEvent userId event
+  eventId@(Schema.EventId schemaEventId) <- insertEvent userId event
   whatId <- insertDWhat Nothing dwhat eventId
   inputLabelIds <- mapM (\(InputEPC i) -> insertLabel (Just MU.Input) (Schema.WhatId whatId) i) inputs
   outputLabelIds <- mapM (\(OutputEPC o) -> insertLabel (Just MU.Output) (Schema.WhatId whatId) o) outputs
@@ -187,4 +187,4 @@ insertTransfEventQuery
   mapM_ (insertWhatLabel (Schema.WhatId whatId)) labelIds
   mapM_ (insertLabelEvent eventId) labelIds
 
-  return (event, eventId)
+  eventInfoQuery user (EvId.EventId schemaEventId)
