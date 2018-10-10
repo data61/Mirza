@@ -26,8 +26,6 @@ import           Data.Aeson                        (encode)
 import           Data.ByteString                   (ByteString)
 import           Data.ByteString.Lazy              (toStrict)
 
-import           Database.Beam.Postgres            (PgJSON (..))
-
 
 -- | Handles the common case of generating a primary key, using it in some
 -- transaction and then returning the primary key.
@@ -44,9 +42,7 @@ withPKey f = do
 
 
 storageToModelEvent :: Schema.Event -> Ev.Event
-storageToModelEvent schemaEvent =
-  let (PgJSON event) = Schema.event_json schemaEvent
-  in event
+storageToModelEvent = getEventFromPgEvent . Schema.event_json
 
 -- | Converts a DB representation of ``User`` to a Model representation
 -- Schema.User = Schema.User uid bizId fName lName phNum passHash email
