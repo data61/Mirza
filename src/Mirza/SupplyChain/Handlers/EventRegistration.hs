@@ -82,6 +82,8 @@ insertObjectEventQuery
       dwhat =  ObjWhat $ ObjectDWhat act labelEpcs
       event = Ev.Event Ev.ObjectEventT foreignEventId dwhat dwhen dwhy dwhere
 
+  -- insertEvent has to be the first thing that happens here so that
+  -- uniqueness of the JSON event is enforced
   eventId <- insertEvent userId event
   whatId <- insertDWhat Nothing dwhat eventId
   labelIds' <- mapM (insertLabel Nothing (Schema.WhatId whatId)) labelEpcs
@@ -119,6 +121,8 @@ insertAggEventQuery
       dwhat =  AggWhat $ AggregationDWhat act mParentLabel labelEpcs
       event = Ev.Event Ev.AggregationEventT foreignEventId dwhat dwhen dwhy dwhere
 
+  -- insertEvent has to be the first thing that happens here so that
+  -- uniqueness of the JSON event is enforced
   eventId <- insertEvent userId event
   whatId <- insertDWhat Nothing dwhat eventId
   labelIds' <- mapM (insertLabel Nothing (Schema.WhatId whatId)) labelEpcs
@@ -160,6 +164,8 @@ insertTransactEventQuery
       dwhat =  TransactWhat $ TransactionDWhat act mParentLabel bizTransactions labelEpcs
       event = Ev.Event Ev.TransactionEventT foreignEventId dwhat dwhen dwhy dwhere
 
+  -- insertEvent has to be the first thing that happens here so that
+  -- uniqueness of the JSON event is enforced
   eventId <- insertEvent userId event
   whatId <- insertDWhat Nothing dwhat eventId
   labelIds' <- mapM (insertLabel Nothing (Schema.WhatId whatId)) labelEpcs
@@ -198,6 +204,8 @@ insertTransfEventQuery
       dwhat =  TransformWhat $ TransformationDWhat mTransfId inputs outputs
       event = Ev.Event Ev.TransformationEventT foreignEventId dwhat dwhen dwhy dwhere
 
+  -- insertEvent has to be the first thing that happens here so that
+  -- uniqueness of the JSON event is enforced
   eventId <- insertEvent userId event
   whatId <- insertDWhat Nothing dwhat eventId
   inputLabelIds <- mapM (\(InputEPC i) -> insertLabel (Just MU.Input) (Schema.WhatId whatId) i) inputs
