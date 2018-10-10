@@ -1,10 +1,19 @@
+{-# LANGUAGE FlexibleContexts #-}
+
+-- | General utility functions used throughout the codebase
 module Mirza.Common.Tests.Utils where
 
-import           Test.Hspec.Expectations      (Expectation, shouldSatisfy)
+import           Data.Maybe              (fromJust)
 
-import           Data.Time.Clock (UTCTime, diffUTCTime)
+import           Data.ByteString         as BS
 
-import           GHC.Stack                    (HasCallStack)
+import           Text.Email.Validate     (EmailAddress, emailAddress)
+
+import           Test.Hspec.Expectations (Expectation, shouldSatisfy)
+
+import           Data.Time.Clock         (UTCTime, diffUTCTime)
+
+import           GHC.Stack               (HasCallStack)
 
 --------------------------------------------------------------------------------
 -- Generic Predicate Utils
@@ -31,5 +40,14 @@ betweenInclusive bound1 bound2 x = (bound1 `comparitor` x) && (x `comparitor` bo
 -- Hspec Utils
 --------------------------------------------------------------------------------
 
+
+--------------------------------------------------------------------------------
+-- Email Utils
+--------------------------------------------------------------------------------
 shouldSatisfyIO :: (HasCallStack, Show a, Eq a) => IO a -> (a -> Bool) -> Expectation
 action `shouldSatisfyIO` p = action >>= (`shouldSatisfy` p)
+
+-- | Only use this with hardcodes email addresses that are guaranteed to return
+-- a ``Just``
+unsafeMkEmailAddress :: BS.ByteString -> EmailAddress
+unsafeMkEmailAddress = fromJust . emailAddress

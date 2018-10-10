@@ -272,7 +272,7 @@ data SignedEvent = SignedEvent {
   signed_keyId     :: BRKeyId,
   signed_signature :: Signature,
   signed_digest    :: Digest
-} deriving (Generic)
+} deriving (Generic, Show, Eq)
 $(deriveJSON defaultOptions ''SignedEvent)
 instance ToSchema SignedEvent
 --instance ToParamSchema SignedEvent where
@@ -285,6 +285,14 @@ data HashedEvent = HashedEvent {
 $(deriveJSON defaultOptions ''HashedEvent)
 instance ToSchema HashedEvent
 
+
+data EventInfo = EventInfo {
+  eventInfoEvent         :: Ev.Event,
+  eventInfoUserSigs      :: [(UserId, SignedEvent)],
+  eventInfoUnsignedUsers :: [UserId]
+} deriving (Show, Eq, Generic)
+$(deriveJSON defaultOptions ''EventInfo)
+instance ToSchema EventInfo
 
 -- *****************************************************************************
 -- Error Types
@@ -312,13 +320,14 @@ data ServiceError
   | InvalidDigest          Digest
   | InsertionFail          ServerError Text
   | EventPermissionDenied  UserId EvId.EventId
-  | EmailExists            ServerError EmailAddress
+  | EmailExists            EmailAddress
   | EmailNotFound          EmailAddress
   | AuthFailed             EmailAddress
   | UserNotFound           EmailAddress
   | ParseError             EPC.ParseFailure
   | BackendErr             Text -- fallback
   | DatabaseError          SqlError
+  | UnmatchedUniqueViolation SqlError
   | ServantErr             ServantError
   deriving (Show, Eq, Generic)
 $(makeClassyPrisms ''ServiceError)

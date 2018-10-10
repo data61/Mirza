@@ -8,58 +8,52 @@ module Mirza.SupplyChain.Handlers.Users
 
 import           Mirza.Common.Utils
 import           Mirza.SupplyChain.Database.Schema        as Schema
-import           Mirza.SupplyChain.ErrorUtils             (getSqlErrorCode,
-                                                           throwBackendError,
-                                                           toServerError)
+import           Mirza.SupplyChain.ErrorUtils             (throwBackendError)
 import           Mirza.SupplyChain.Handlers.Common
 import           Mirza.SupplyChain.QueryUtils
+import           Mirza.SupplyChain.SqlUtils
 import           Mirza.SupplyChain.Types                  hiding (NewUser (..),
                                                            User (userId))
 import qualified Mirza.SupplyChain.Types                  as ST
 
 import           Database.Beam                            as B
 import           Database.Beam.Backend.SQL.BeamExtensions
-import           Database.PostgreSQL.Simple.Errors        (ConstraintViolation (..),
-                                                           constraintViolation)
-import           Database.PostgreSQL.Simple.Internal      (SqlError (..))
 
 import qualified Crypto.Scrypt                            as Scrypt
 
-import           Control.Lens                             (view, (^?), _2)
-import           Control.Monad.Except                     (MonadError,
-                                                           throwError)
+import           Control.Lens                             (view, ( # ), _2)
 import           Control.Monad.IO.Class                   (liftIO)
 import           Data.Text.Encoding                       (encodeUtf8)
 
 addUser :: (SCSApp context err, HasScryptParams context)
         => ST.NewUser
         -> AppM context err ST.UserId
-addUser = runDb . addUserQuery
+addUser user =
+    handleError
+      (handleSqlUniqueViloation
+        "users_user_email_address_key"
+        (const $ _EmailExists # (ST.newUserEmailAddress user))
+      )
+  . runDb
+  . addUserQuery
+  $ user
 
 
 -- | Hashes the password of the ST.NewUser and inserts the user into the database
-addUserQuery :: (AsServiceError err, HasScryptParams context)
+addUserQuery :: (AsServiceError err, AsSqlError err, HasScryptParams context)
              => ST.NewUser
              -> DB context err ST.UserId
-addUserQuery (ST.NewUser phone (EmailAddress email) firstName lastName biz password) = do
+addUserQuery (ST.NewUser phone userEmail firstName lastName biz password) = do
   params <- view $ _2 . scryptParams
   encPass <- liftIO $ Scrypt.encryptPassIO params (Scrypt.Pass $ encodeUtf8 password)
   userId <- newUUID
   -- TODO: use Database.Beam.Backend.SQL.runReturningOne?
-  res <- handleError errHandler $ pg $ runInsertReturningList (Schema._users Schema.supplyChainDb) $
+  res <- pg $ runInsertReturningList (Schema._users Schema.supplyChainDb) $
     insertValues
       [Schema.User userId (Schema.BizId  biz) firstName lastName
-               phone (Scrypt.getEncryptedPass encPass) email
+               phone (Scrypt.getEncryptedPass encPass) userEmail
       ]
   case res of
         [r] -> return . ST.UserId . Schema.user_id $ r
         -- TODO: Have a proper error response
         _   -> throwBackendError res
-  where
-    errHandler :: (AsServiceError err, MonadError err m) => err -> m a
-    errHandler e = case e ^? _DatabaseError of
-      Nothing -> throwError e
-      Just sqlErr -> case constraintViolation sqlErr of
-        Just (UniqueViolation "users_email_address_key")
-          -> throwing _EmailExists (toServerError getSqlErrorCode sqlErr, EmailAddress email)
-        _ -> throwing _InsertionFail (toServerError (Just . sqlState) sqlErr, email)

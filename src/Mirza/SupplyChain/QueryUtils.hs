@@ -31,18 +31,6 @@ import qualified Data.Text.Encoding                as En
 import qualified Data.Text.Lazy                    as TxtL
 import qualified Data.Text.Lazy.Encoding           as LEn
 
-import           Control.Monad.Except              (MonadError, catchError)
-
-
--- | Ueful for handling specific errors from, for example, database transactions
--- @
---  handleError errHandler $ runDb ...
---  ...
---  where errHandler (AppError (DatabaseError sqlErr)) = ...
---        errHandler e = throwError e
--- @
-handleError :: MonadError e m => (e -> m a) -> m a -> m a
-handleError = flip catchError
 
 -- | Handles the common case of generating a primary key, using it in some
 -- transaction and then returning the primary key.
