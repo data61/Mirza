@@ -130,7 +130,6 @@ runProgram so = migrate $ connectionStr so
 initMiddleware :: ServerOptionsSCS -> IO Middleware
 initMiddleware _ = pure id
 
-
 initSCSContext :: ServerOptionsSCS -> IO ST.SCSContext
 initSCSContext (ServerOptionsSCS envT _ dbConnStr _host _prt n p r lev brHost brPort mlogPath) = do
   logHandle <- maybe (pure stdout) (flip openFile AppendMode) mlogPath
