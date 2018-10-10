@@ -28,7 +28,7 @@ import           Database.PostgreSQL.Simple        (SqlError (..))
 import           Database.PostgreSQL.Simple.Errors (ConstraintViolation (UniqueViolation),
                                                     constraintViolation)
 
-import           Data.GS1.Event                    as Ev
+-- import           Data.GS1.Event                    as Ev
 
 import           Mirza.Common.Types
 
