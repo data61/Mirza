@@ -9,7 +9,7 @@ module Mirza.Common.Utils
   , newUUID
   , handleError
   , handleSqlUniqueViloationTemplate
-  , getEventFromPgEvent
+  , fromPgJSON
   ) where
 
 
@@ -88,5 +88,5 @@ handleSqlUniqueViloationTemplate f expectedName uniqueViolationError e = case e 
         | otherwise -> throwError (f sqlError)
       _ -> throwError e
 
-getEventFromPgEvent :: PgJSON Ev.Event -> Ev.Event
-getEventFromPgEvent (PgJSON event) = event
+fromPgJSON :: PgJSON a -> a
+fromPgJSON (PgJSON x) = x

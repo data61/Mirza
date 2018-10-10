@@ -42,7 +42,7 @@ withPKey f = do
 
 
 storageToModelEvent :: Schema.Event -> Ev.Event
-storageToModelEvent = getEventFromPgEvent . Schema.event_json
+storageToModelEvent = fromPgJSON . Schema.event_json
 
 -- | Converts a DB representation of ``User`` to a Model representation
 -- Schema.User = Schema.User uid bizId fName lName phNum passHash email
