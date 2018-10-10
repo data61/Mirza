@@ -37,22 +37,24 @@ import           Mirza.Common.Tests.ServantUtils
 import           Mirza.Common.Tests.Utils
 import           Mirza.SupplyChain.Tests.Dummies
 
-import           Data.GS1.EPC                          (GS1CompanyPrefix (..))
 import           Data.GS1.EventId                      as EvId
 
 import           OpenSSL.EVP.Sign                      (signBS)
 
 import qualified Data.ByteString.Char8                 as BS
+import           Data.GS1.EPC                          (GS1CompanyPrefix (..))
+import           Text.Email.Validate                   (toByteString)
 
 import qualified Data.ByteString.Base64                as BS64
 import           Mirza.SupplyChain.Handlers.Signatures (makeDigest)
 
 -- === SCS Client tests
 
+
 userABC :: NewUser
 userABC = NewUser
   { newUserPhoneNumber = "0400 111 222"
-  , newUserEmailAddress = EmailAddress "abc@example.com"
+  , newUserEmailAddress = unsafeMkEmailAddress "abc@example.com"
   , newUserFirstName = "Biz Johnny"
   , newUserLastName = "Smith Biz"
   , newUserCompany = GS1CompanyPrefix "something"
@@ -60,8 +62,8 @@ userABC = NewUser
 
 authABC :: BasicAuthData
 authABC = BasicAuthData
-  (encodeUtf8 . getEmailAddress . newUserEmailAddress $ userABC)
-  (encodeUtf8 . newUserPassword                       $ userABC)
+  (toByteString . newUserEmailAddress $ userABC)
+  (encodeUtf8   . newUserPassword     $ userABC)
 
 
 clientSpec :: IO TestTree
@@ -74,7 +76,7 @@ clientSpec = do
               http = runClient baseurl
 
           let user1 = userABC
-              user2 = userABC {newUserEmailAddress= EmailAddress "different@example.com"}
+              user2 = userABC {newUserEmailAddress= unsafeMkEmailAddress "different@example.com"}
               -- Same email address as user1 other fields different.
               userSameEmail = userABC {newUserFirstName="First"}
 
@@ -140,7 +142,7 @@ clientSpec = do
           step "Adding the same user to BR"
           let prefix = GS1CompanyPrefix "1000001"
           let userBR = BT.NewUser
-                          (EmailAddress "abc@example.com")
+                          (unsafeMkEmailAddress "abc@example.com")
                           "re4lly$ecret14!"
                           prefix
                           "Biz Johnny"

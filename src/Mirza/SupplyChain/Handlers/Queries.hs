@@ -37,7 +37,7 @@ import           Data.Maybe                                   (catMaybes)
 -- to find all the related "Whats"
 listEvents :: SCSApp context err
            => ST.User
-           ->  LabelEPCUrn
+           -> LabelEPCUrn
            -> AppM context err [Ev.Event]
 listEvents _user = either throwParseError (runDb . listEventsQuery) . urn2LabelEPC . getLabelEPCUrn
 
@@ -46,13 +46,21 @@ listEventsQuery labelEpc =
   maybe (return []) (getEventList . Schema.LabelId) =<< findLabelId labelEpc
 
 
-
 eventInfo :: SCSApp context err
           => ST.User
           -> EvId.EventId
-          -> AppM context err (Maybe Ev.Event)
-eventInfo _user = runDb . findEvent . Schema.EventId . EvId.unEventId
+          -> AppM context err EventInfo
+eventInfo user eventId = runDb $ eventInfoQuery user eventId
 
+eventInfoQuery :: SCSApp context err
+               => ST.User
+               -> EvId.EventId
+               -> DB context err EventInfo
+eventInfoQuery _user eventId@(EvId.EventId eId) = do
+  usersWithEvent <- eventUserSignedList eventId
+  event <- findEvent (Schema.EventId eId)
+  -- return $ EventInfo event
+  error "Event Info Query not implemented yet"
 
 
 -- |List events that a particular user was/is involved with
@@ -74,9 +82,8 @@ eventsByUser (ST.UserId userId) = do
   return $ catMaybes $ decodeEvent <$> events
 
 
-
--- given an event Id, list all the users associated with that event
--- this can be used to make sure everything is signed
+-- | Given an eventId, list all the users associated with that event
+-- This can be used to make sure everything is signed
 eventUserList :: SCSApp context err
               => ST.User
               -> EvId.EventId

@@ -19,17 +19,18 @@ import           Control.Monad.Except                (MonadError (..),
                                                       throwError)
 import           Data.ByteString                     (ByteString)
 import qualified Data.ByteString.Lazy.Char8          as LBSC8
-import           Data.Text.Encoding                  (encodeUtf8)
 
 import           Data.GS1.EPC
 import           Database.PostgreSQL.Simple.Internal (SqlError (..))
 import           Servant.Server
 
+import           Text.Email.Validate                 (toByteString)
+
 -- | Takes in a ServiceError and converts it to an HTTP error (eg. err400)
 appErrToHttpErr :: ServiceError -> Handler a
-appErrToHttpErr (EmailExists _ (EmailAddress email)) =
+appErrToHttpErr (EmailExists userEmail) =
   throwError $ err400 {
-    errBody = LBSC8.fromChunks ["User email ", encodeUtf8 email, " exists."]
+    errBody = LBSC8.fromChunks ["User email ", toByteString userEmail, " exists."]
   }
 appErrToHttpErr (InvalidKeyId _) =
   throwError $ err400 {
@@ -69,9 +70,9 @@ appErrToHttpErr (EventPermissionDenied _ _) =
   throwError $ err403 {
     errBody = "User does not own the event."
   }
-appErrToHttpErr (UserNotFound (EmailAddress _email)) =
-  throwError $ err404 { errBody = "User not found." }
-appErrToHttpErr (EmailNotFound (EmailAddress _email)) =
+appErrToHttpErr (UserNotFound _) =
+  throwError $ err404 { errBody = "Invalid username or password." }
+appErrToHttpErr (EmailNotFound _) =
   throwError $ err404 { errBody = "User not found." }
 appErrToHttpErr (InvalidRSAKeyInDB _) = generic500err
 appErrToHttpErr (InsertionFail _ _email) = generic500err
@@ -79,6 +80,7 @@ appErrToHttpErr (BlockchainSendFailed _) = generic500err
 appErrToHttpErr (BackendErr _) = generic500err
 appErrToHttpErr (DatabaseError _) = generic500err
 appErrToHttpErr (ST.ServantErr _) = generic500err
+appErrToHttpErr (UnmatchedUniqueViolation _) = generic500err
 
 generic500err :: Handler a
 generic500err = throwError err500 {errBody = "Something went wrong"}

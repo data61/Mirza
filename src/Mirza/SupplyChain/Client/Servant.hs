@@ -1,3 +1,4 @@
+
 module Mirza.SupplyChain.Client.Servant
   (
   -- * Public API
@@ -30,12 +31,12 @@ import           Servant.Client
 
 import           Data.Proxy                        (Proxy (..))
 
+import           Data.GS1.EPC                      as EPC
 import qualified Data.GS1.Event                    as Ev
 import           Data.GS1.EventId
-import           Data.GS1.EPC                      as EPC
 
-import           Data.UUID.Types
 import           Data.Text                         (Text)
+import           Data.UUID.Types
 
 
 -- * Public API
@@ -53,7 +54,7 @@ eventSign           :: BasicAuthData -> SignedEvent -> ClientM UUID
 eventHashed         :: BasicAuthData -> EventId -> ClientM HashedEvent
 
 listEvents          :: BasicAuthData -> LabelEPCUrn -> ClientM [Ev.Event]
-eventInfo           :: BasicAuthData -> EventId -> ClientM (Maybe Ev.Event)
+eventInfo           :: BasicAuthData -> EventId -> ClientM EventInfo
 eventList           :: BasicAuthData -> UserId -> ClientM [Ev.Event]
 eventUserList       :: BasicAuthData -> EventId -> ClientM [(T.User, Bool)]
 queryUserId         :: BasicAuthData -> ClientM UserId

@@ -7,19 +7,34 @@ module Mirza.Common.Utils
   , randomText
   , notImplemented
   , newUUID
+  , handleError
+  , handleSqlUniqueViloationTemplate
   ) where
 
 
-import           Control.Monad          (replicateM)
-import           Control.Monad.IO.Class (MonadIO, liftIO)
+import           Control.Monad                     (replicateM)
+import           Control.Monad.IO.Class            (MonadIO, liftIO)
 
-import qualified Data.Text              as T
-import           Data.UUID              (UUID)
-import           Data.UUID.V4           (nextRandom)
+import qualified Data.Text                         as T
+import           Data.UUID                         (UUID)
+import           Data.UUID.V4                      (nextRandom)
 
-import           System.Random          (randomRIO)
+import           System.Random                     (randomRIO)
 
-import           GHC.Stack              (HasCallStack)
+import           GHC.Stack                         (HasCallStack)
+
+import           Database.PostgreSQL.Simple        (SqlError (..))
+import           Database.PostgreSQL.Simple.Errors (ConstraintViolation (UniqueViolation),
+                                                    constraintViolation)
+
+import           Mirza.Common.Types
+
+import           Control.Lens                      ((^?))
+
+import           Control.Monad.Except              (MonadError, catchError,
+                                                    throwError)
+
+import           Data.ByteString                   (ByteString)
 
 
 -- | Converts anything to a ``Text``
@@ -41,3 +56,30 @@ notImplemented = error "FIXME"
 -- is retried a new UUID will be generated.
 newUUID :: MonadIO m => m UUID
 newUUID = liftIO nextRandom
+
+-- | Ueful for handling specific errors from, for example, database transactions
+-- @
+--  handleError errHandler $ runDb ...
+--  ...
+--  where errHandler (AppError (DatabaseError sqlErr)) = ...
+--        errHandler e = throwError e
+-- @
+handleError :: MonadError err m => (err -> m a) -> m a -> m a
+handleError = flip catchError
+
+handleSqlUniqueViloationTemplate  :: (AsSqlError err, MonadError err m, MonadIO m)
+                          => (SqlError -> err) -- ^ Handles every other unique constraint violation
+                          -> ByteString        -- ^ UniqueViolation name.
+                          -> (SqlError -> err) -- ^ A function which takes the original SQL error for the
+                                               --   UniqueViolation and turns it into the error that is thrown
+                                               --   when the UniqueViolation name is matched.
+                          -> err               -- ^ The error that we are catching.
+                          -> m a
+handleSqlUniqueViloationTemplate f expectedName uniqueViolationError e = case e ^? _SqlError of
+  Nothing -> throwError e
+  Just sqlError ->
+    case constraintViolation sqlError of
+      Just (UniqueViolation violationName)
+        | violationName == expectedName -> throwError (uniqueViolationError sqlError)
+        | otherwise -> throwError (f sqlError)
+      _ -> throwError e
