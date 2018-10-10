@@ -1,34 +1,40 @@
 {-# LANGUAGE DeriveGeneric         #-}
+{-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE StandaloneDeriving    #-}
 {-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE UndecidableInstances  #-}
 
 -- | This module contains all the table definitions
 -- Convention: Table types and constructors are suffixed with T (for Table).
 module Mirza.BusinessRegistry.Database.Schema.V0001 where
 
-import qualified Data.GS1.EPC                     as EPC
+import qualified Data.GS1.EPC                  as EPC
 import           Mirza.Common.GS1BeamOrphans
-import           Mirza.Common.Types               (PrimaryKeyType)
+import           Mirza.Common.Types            (PrimaryKeyType)
 
 import           Control.Lens
 
-import           Data.ByteString                  (ByteString)
-import           Data.Text                        (Text)
-import           Data.Time                        (LocalTime)
-import           Data.UUID                        (UUID)
-import           Crypto.JOSE.JWK                  (JWK)
+import           Data.ByteString               (ByteString)
+import           Data.Text                     (Text)
+import           Data.Time                     (LocalTime)
+import           Data.UUID                     (UUID)
+import           Crypto.JOSE.JWK               (JWK)
 
-import           Database.Beam                    as B
-import           Database.Beam.Migrate.SQL        (DataType)
-import           Database.Beam.Migrate.SQL.Tables
+import           Database.Beam                 as B
+import           Database.Beam.Migrate.SQL     as BSQL
 import           Database.Beam.Migrate.Types
 import           Database.Beam.Postgres           (PgJSON, PgCommandSyntax, Postgres, uuid, json)
-import           Database.Beam.Postgres.Syntax    (PgDataTypeSyntax)
+import           Database.Beam.Postgres.Syntax (PgDataTypeSyntax)
 
 import           Data.Aeson                       hiding (json)
 import           Data.Swagger
 
+import           Text.Email.Validate           (EmailAddress)
+
+import           GHC.Generics                  (Generic)
+
+-- Convention: Table types and constructors are suffixed with T (for Table).
 
 --------------------------------------------------------------------------------
 -- Constants and Utils
@@ -50,7 +56,6 @@ data BusinessRegistryDB f = BusinessRegistryDB
   deriving Generic
 instance Database anybackend BusinessRegistryDB
 
-
 -- Migration: Intialisation -> V1.
 migration :: () -> Migration PgCommandSyntax (CheckedDatabaseSettings Postgres BusinessRegistryDB)
 migration () =
@@ -64,14 +69,14 @@ migration () =
           (field "last_name" (varchar (Just defaultFieldMaxLength)) notNull)
           (field "phone_number" (varchar (Just defaultFieldMaxLength)) notNull)
           (field "password_hash" binaryLargeObject notNull)
-          (field "email_address" (varchar (Just defaultFieldMaxLength)) unique notNull)
+          (field "email_address" emailAddressType unique)
     )
     <*> createTable "businesses"
-      (
-        BusinessT
-            (field "biz_gs1_company_prefix" gs1CompanyPrefixType)
-            (field "biz_name" (varchar (Just defaultFieldMaxLength)) notNull)
-      )
+    (
+      BusinessT
+          (field "biz_gs1_company_prefix" gs1CompanyPrefixType)
+          (field "biz_name" (varchar (Just defaultFieldMaxLength)) notNull)
+    )
     <*> createTable "keys"
     (
       KeyT
@@ -83,7 +88,6 @@ migration () =
           (UserId (field "revoking_user_id" (maybeType pkSerialType)))
           (field "expiration_time" (maybeType timestamptz))
     )
-
 
 --------------------------------------------------------------------------------
 -- User table.
@@ -99,7 +103,7 @@ data UserT f = UserT
   , last_name     :: C f Text
   , phone_number  :: C f Text
   , password_hash :: C f ByteString
-  , email_address :: C f Text }
+  , email_address :: C f EmailAddress }
   deriving Generic
 
 type UserId = PrimaryKey UserT Identity

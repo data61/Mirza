@@ -38,22 +38,24 @@ import           Mirza.Common.Tests.ServantUtils
 import           Mirza.Common.Tests.Utils
 import           Mirza.SupplyChain.Tests.Dummies
 
-import           Data.GS1.EPC                          (GS1CompanyPrefix (..))
 import           Data.GS1.EventId                      as EvId
 
 import           OpenSSL.EVP.Sign                      (signBS)
 
 import qualified Data.ByteString.Char8                 as BS
+import           Data.GS1.EPC                          (GS1CompanyPrefix (..))
+import           Text.Email.Validate                   (toByteString)
 
 import qualified Data.ByteString.Base64                as BS64
 import           Mirza.SupplyChain.Handlers.Signatures (makeDigest)
 
 -- === SCS Client tests
 
+
 userABC :: NewUser
 userABC = NewUser
   { newUserPhoneNumber = "0400 111 222"
-  , newUserEmailAddress = EmailAddress "abc@example.com"
+  , newUserEmailAddress = unsafeMkEmailAddress "abc@example.com"
   , newUserFirstName = "Biz Johnny"
   , newUserLastName = "Smith Biz"
   , newUserCompany = GS1CompanyPrefix "something"
@@ -61,14 +63,14 @@ userABC = NewUser
 
 authABC :: BasicAuthData
 authABC = BasicAuthData
-  (encodeUtf8 . getEmailAddress . newUserEmailAddress $ userABC)
-  (encodeUtf8 . newUserPassword                       $ userABC)
+  (toByteString . newUserEmailAddress $ userABC)
+  (encodeUtf8   . newUserPassword     $ userABC)
 
 
 userDEF :: NewUser
 userDEF = NewUser
   { newUserPhoneNumber = "0400 111 222"
-  , newUserEmailAddress = EmailAddress "def@example.com"
+  , newUserEmailAddress = unsafeMkEmailAddress "def@example.com"
   , newUserFirstName = "Biz Johnny"
   , newUserLastName = "Smith Biz"
   , newUserCompany = GS1CompanyPrefix "something"
@@ -76,8 +78,8 @@ userDEF = NewUser
 
 authDEF :: BasicAuthData
 authDEF = BasicAuthData
-  (encodeUtf8 . getEmailAddress . newUserEmailAddress $ userDEF)
-  (encodeUtf8 . newUserPassword                       $ userDEF)
+  (toByteString . newUserEmailAddress $ userDEF)
+  (encodeUtf8   . newUserPassword     $ userDEF)
 
 clientSpec :: IO TestTree
 clientSpec = do
@@ -89,7 +91,7 @@ clientSpec = do
               http = runClient baseurl
 
           let user1 = userABC
-              user2 = userABC {newUserEmailAddress= EmailAddress "different@example.com"}
+              user2 = userABC {newUserEmailAddress= unsafeMkEmailAddress "different@example.com"}
               -- Same email address as user1 other fields different.
               userSameEmail = userABC {newUserFirstName="First"}
 
@@ -154,7 +156,7 @@ clientSpec = do
           step "Adding the same user to BR"
           let prefix = GS1CompanyPrefix "1000001"
           let userBR = BT.NewUser
-                          (EmailAddress "abc@example.com")
+                          (unsafeMkEmailAddress "abc@example.com")
                           "re4lly$ecret14!"
                           prefix
                           "Biz Johnny"
@@ -215,7 +217,7 @@ clientSpec = do
 
           step "Adding the giver user to BR"
           let userBRGiver = BT.NewUser
-                          (EmailAddress "abc@example.com")
+                          (unsafeMkEmailAddress "abc@example.com")
                           "re4lly$ecret14!"
                           prefixGiver
                           "Biz Giver"
@@ -236,7 +238,7 @@ clientSpec = do
           let (insertedEvent, (Schema.EventId eid)) = fromRight (error "Should be right") objInsertionResponse
               eventId = EvId.EventId eid
 
-          step "Signing the key"
+          step "Signing the object event with the giver"
           let myDigest = SHA256
           (Just sha256) <- makeDigest myDigest
           mySignBS <- signBS sha256 goodPrivKeyGiver $ encodeUtf8 . QU.encodeEventToJSON $ insertedEvent
@@ -261,7 +263,7 @@ clientSpec = do
 
           step "Adding the receiving user to BR"
           let userBRReceiver = BT.NewUser
-                          (EmailAddress "def@example.com")
+                          (unsafeMkEmailAddress "def@example.com")
                           "re4lly$ecret14!"
                           prefixReceiver
                           "Biz Receiver"
@@ -273,7 +275,6 @@ clientSpec = do
           httpSCS (addUserToEvent authDEF userIdReceiver eventId)
             `shouldSatisfyIO` isLeft
 
-          -- TODO: Add userReceiver to event
           step "Adding receiver to the event using the giver"
           httpSCS (addUserToEvent authABC userIdReceiver eventId)
             `shouldSatisfyIO` isRight
@@ -281,13 +282,44 @@ clientSpec = do
           step "Retrieving the event info"
           eventInfoResult <- httpSCS (eventInfo authABC eventId)
           eventInfoResult `shouldSatisfy` isRight
+          let (Right eInfo) = eventInfoResult
 
-          -- step "Checking that we got the correct event back"
-          -- let (Right retrievedEvent) = eventInfoResult
-          -- retrievedEvent `shouldBe` insertedEvent
+          step "Checking that we got the correct event back"
+          let retrievedEvent = (eventInfoEvent eInfo)
+          retrievedEvent `shouldBe` insertedEvent
 
-          -- TODO: Check that eventInfo says that the eventState is `AwaitingSignature`
-          -- let eventState =
+          step "Checking event blockchain status"
+          let eventStatus = (eventInfoBlockChainStatus eInfo)
+          eventStatus `shouldBe` NotSent
+
+          step "Checking that receiving user is among the unsigned users"
+          let unsignedUsers = (eventInfoUnsignedUsers eInfo)
+          unsignedUsers `shouldBe` [userIdReceiver]
+          -- step "Signing the event with the second user"
+          step "Tying the receiver user with a good key"
+          goodPubKeyReceiver <- readRsaPublicKey "./test/Mirza/Common/TestData/testKeys/goodKeys/16384bit_rsa_key.pub"
+          goodPrivKeyReceiver <- readRsaPrivateKey "./test/Mirza/Common/TestData/testKeys/goodKeys/16384bit_rsa_key.key"
+          keyIdResponseReceiver <- httpBR (addPublicKey authDEF goodPubKeyReceiver Nothing)
+          keyIdResponseReceiver `shouldSatisfy` isRight
+          let keyIdReceiver = fromRight (BRKeyId nil) keyIdResponseReceiver
+
+          step "Inserting the object event with the giver user"
+          transactInsertionResponse <- httpSCS (insertTransactEvent authDEF dummyTransaction)
+          transactInsertionResponse `shouldSatisfy` isRight
+          let (insertedTransactEvent, (Schema.EventId transactEvId)) = fromRight (error "Should be right") transactInsertionResponse
+              transactionEventId = EvId.EventId transactEvId
+
+          step "Signing the transaction event with the receiver user"
+          receiverSignBS <- signBS sha256 goodPrivKeyReceiver $ encodeUtf8 . QU.encodeEventToJSON $ insertedTransactEvent
+          let receiverSign = ST.Signature . BS.unpack . BS64.encode $ receiverSignBS
+          let receiverSignedEvent = SignedEvent transactionEventId keyIdReceiver receiverSign myDigest
+          httpSCS (eventSign authDEF receiverSignedEvent) `shouldSatisfyIO` isRight
+
+          -- step "Retrieving the event info again"
+          -- eventInfoResult2 <- httpSCS (eventInfo authABC eventId)
+          -- eventInfoResult2 `shouldSatisfy` isRight
+          -- let (Right eInfo2) = eventInfoResult2
+
           -- TODO: Sign the event with the second user
           -- TODO: Check that eventInfo says that the eventState is `Signed`
 

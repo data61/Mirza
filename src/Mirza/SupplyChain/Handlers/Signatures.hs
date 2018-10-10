@@ -14,8 +14,6 @@ import           Mirza.Common.Time
 import           Mirza.Common.Types                           (BRKeyId)
 import           Mirza.Common.Utils
 
--- import qualified Mirza.BusinessRegistry.Types                 as BT
-
 import           Mirza.SupplyChain.Database.Schema            as Schema
 import           Mirza.SupplyChain.ErrorUtils                 (throwBackendError)
 import           Mirza.SupplyChain.Handlers.Common
@@ -67,8 +65,8 @@ addUserToEventQuery (EventOwner lUserId@(ST.UserId loggedInUserId))
   if userCreatedEvent
     then insertUserEvent
             (Schema.EventId eventId)
-            (Schema.UserId loggedInUserId)
             (Schema.UserId otherUserId)
+            (Schema.UserId loggedInUserId)
             False Nothing
     else throwing _EventPermissionDenied (lUserId, evId)
 
@@ -124,7 +122,7 @@ insertSignature :: (AsServiceError err) => ST.UserId
                 -> DigestType
                 -> DB environmentUnused err PrimaryKeyType
 
-insertSignature (ST.UserId uId) eId kId sig digest = do
+insertSignature userId@(ST.UserId uId) eId kId sig digest = do
   sigId <- newUUID
   timestamp <- generateTimestamp
   r <- pg $ runInsertReturningList (Schema._signatures Schema.supplyChainDb) $
@@ -133,9 +131,23 @@ insertSignature (ST.UserId uId) eId kId sig digest = do
          (BRKeyId $ getBRKeyId kId) (PgJSON sig)
           (BSC.pack $ show digest) (toDbTimestamp timestamp)]
   case r of
-    [rowId] -> return ( Schema.signature_id rowId)
+    [rowId] -> do
+      updateUserEventSignature userId eId True
+      return ( Schema.signature_id rowId)
     _       -> throwing _BackendErr "Failed to add signature"
 
+updateUserEventSignature :: AsServiceError err
+                         => ST.UserId
+                         -> EvId.EventId
+                         -> Bool
+                         -> DB environmentUnused err ()
+updateUserEventSignature (ST.UserId userId) (EvId.EventId eventId) hasSignedNew = do
+  _r <- pg $ runUpdate $ update
+              (_user_events supplyChainDb)
+              (\userEvent -> [user_events_has_signed userEvent <-. val_ hasSignedNew])
+              (\userEvent -> (user_events_event_id userEvent ==. val_ (Schema.EventId eventId) &&.
+                              (user_events_user_id userEvent ==. val_ (Schema.UserId userId))))
+  pure ()
 
 findSignatureByEvent :: (AsServiceError err)
                      => EvId.EventId
@@ -149,9 +161,7 @@ findSignatureByEvent (EvId.EventId eId) =
 findSignedEventByEvent :: (AsServiceError err)
                        => EvId.EventId
                        -> DB context err [ST.SignedEvent]
-findSignedEventByEvent eventId = do
-  sigList <- findSignatureByEvent eventId
-  return $ signatureToSignedEvent <$> sigList
+findSignedEventByEvent eventId = fmap signatureToSignedEvent <$> findSignatureByEvent eventId
 
 findSignatureByUser :: AsServiceError err
                     => ST.UserId
@@ -165,16 +175,13 @@ findSignatureByUser (ST.UserId uId) (EvId.EventId eId) = do
     pure sig
   case r of
     [sig] -> return sig
-    _     -> throwBackendError "Invalid User - Event pair" -- TODO: wrong error to throw here
+    _     -> throwBackendError ("Invalid User - Event pair" :: String) -- TODO: wrong error to throw here
 
 findSignedEventByUser :: AsServiceError err
                       => ST.UserId
                       -> EvId.EventId
                       -> DB context err ST.SignedEvent
-findSignedEventByUser uId eventId = do
-  sig <- findSignatureByUser uId eventId
-  return $ signatureToSignedEvent sig
-
+findSignedEventByUser uId eventId = signatureToSignedEvent <$> (findSignatureByUser uId eventId)
 
 signatureToSignedEvent :: Schema.Signature -> ST.SignedEvent
 signatureToSignedEvent
@@ -188,7 +195,7 @@ signatureToSignedEvent
                   (EvId.EventId eId)
                   brKeyId
                   sig
-                  (read . BSC.unpack $ digest)
+                  digest
 
 -- do we need this?
 eventHashed :: ST.User -> EvId.EventId -> AppM context err HashedEvent
