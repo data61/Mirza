@@ -45,7 +45,7 @@ minPubKeySize :: Bit
 minPubKeySize = Bit 2048
 
 getPublicKey :: ( Member context '[HasEnvType, HasConnPool, HasLogging]
-                , Member err     '[AsKeyError, AsSqlError])
+                , Member err     '[AsBRKeyError, AsSqlError])
              => CT.BRKeyId
              -> AppM context err PEM_RSAPubKey
 getPublicKey kid = do
@@ -61,7 +61,7 @@ getPublicKeyQuery (CT.BRKeyId uuid) = fmap (fmap PEM_RSAPubKey) $ pg $ runSelect
     pure (pem_str keys)
 
 getPublicKeyInfo :: ( Member context '[HasEnvType, HasConnPool, HasLogging]
-                    , Member err     '[AsKeyError, AsSqlError])
+                    , Member err     '[AsBRKeyError, AsSqlError])
                  => CT.BRKeyId
                  -> AppM context err BT.KeyInfoResponse
 getPublicKeyInfo kid = do
@@ -70,7 +70,7 @@ getPublicKeyInfo kid = do
   keyToKeyInfo currTime key
 
 
-keyToKeyInfo :: (MonadError err m, AsKeyError err)
+keyToKeyInfo :: (MonadError err m, AsBRKeyError err)
              => UTCTime
              -> Schema.Key
              -> m KeyInfoResponse
@@ -93,7 +93,7 @@ keyToKeyInfo currTime (Schema.KeyT keyId (Schema.UserId keyUserId) pemStr creati
     -- since we store in the database as two separate fields (because of
     -- complexity storing natively as a (Maybe (time, user)), see database
     -- comment for more info) we need to verify when we combine them here.
-    composeRevocation :: (HasCallStack, MonadError e m, AsKeyError e, ModelTimestamp a)
+    composeRevocation :: (HasCallStack, MonadError e m, AsBRKeyError e, ModelTimestamp a)
                       => Maybe LocalTime
                       -> PrimaryKey UserT (Nullable Identity)
                       -> m (Maybe (a, CT.UserId))
@@ -128,7 +128,7 @@ getPublicKeyInfoQuery (CT.BRKeyId uuid) = pg $ runSelectReturningOne $
     pure keys
 
 addPublicKey :: ( Member context '[HasEnvType, HasConnPool, HasLogging]
-                , Member err     '[AsKeyError, AsSqlError])
+                , Member err     '[AsBRKeyError, AsSqlError])
              => BT.AuthUser
              -> PEM_RSAPubKey
              -> Maybe ExpirationTime
@@ -139,7 +139,7 @@ addPublicKey user pemKey@(PEM_RSAPubKey pemStr) mExp = do
   runDb $ addPublicKeyQuery user mExp rsaKey           -- Error: user error (error:0906D06C:PEM routines:PEM_read_bio:no start line)
 
 
-checkPubKey :: (MonadError err m, AsKeyError err)
+checkPubKey :: (MonadError err m, AsBRKeyError err)
             => SomePublicKey
             -> PEM_RSAPubKey
             -> m RSAPubKey
@@ -158,7 +158,7 @@ checkPubKey spKey pemKey =
   (toPublicKey spKey)
 
 
-addPublicKeyQuery :: ( Member err     '[AsKeyError])
+addPublicKeyQuery :: ( Member err     '[AsBRKeyError])
                   => AuthUser
                   -> Maybe ExpirationTime
                   -> RSAPubKey
@@ -180,7 +180,7 @@ addPublicKeyQuery (AuthUser (CT.UserId uid)) expTime rsaPubKey = do
 
 
 revokePublicKey :: ( Member context '[HasEnvType, HasConnPool, HasLogging]
-                   , Member err     '[AsKeyError, AsSqlError])
+                   , Member err     '[AsBRKeyError, AsSqlError])
                 => BT.AuthUser
                 -> CT.BRKeyId
                 -> AppM context err RevocationTime
@@ -188,7 +188,7 @@ revokePublicKey (AuthUser uId) keyId =
     runDb $ revokePublicKeyQuery uId keyId
 
 
-keyStateQuery :: AsKeyError err
+keyStateQuery :: AsBRKeyError err
               => CT.BRKeyId
               -> DB context err KeyState
 keyStateQuery kid = do
@@ -201,7 +201,7 @@ keyStateQuery kid = do
 -- or revoked. The function can be modified in the future to add additional
 -- constraints that must be checked before the key is updated in anyway
 -- (effectively controling the minimum state for write access to the key).
-protectKeyUpdate :: ( Member err     '[AsKeyError])
+protectKeyUpdate :: ( Member err     '[AsBRKeyError])
                  =>  CT.BRKeyId
                  -> CT.UserId
                  -> DB context err ()
@@ -221,7 +221,7 @@ protectKeyUpdate keyId userId = do
     Expired  -> throwing_ _KeyAlreadyExpiredBRE
     InEffect -> pure ()
 
-revokePublicKeyQuery :: ( Member err     '[AsKeyError])
+revokePublicKeyQuery :: ( Member err     '[AsBRKeyError])
                      => CT.UserId
                      -> CT.BRKeyId
                      -> DB context err RevocationTime

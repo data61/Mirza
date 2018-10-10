@@ -164,7 +164,7 @@ server ev =
         (Proxy @ServerAPI)
         (Proxy @'[BasicAuthCheck BT.AuthUser])
         (appMToHandler ev)
-        (appHandlers @BRContext @BusinessRegistryError)
+        (appHandlers @BRContext @BRError)
 
 
 --------------------------------------------------------------------------------
@@ -186,13 +186,13 @@ runUserCommand :: ServerOptionsBR -> UserCommand -> IO ()
 runUserCommand opts UserList = do
    ctx <- initBRContext opts
    euser <- runAppM ctx $ runDb listUsersQuery
-   either (print @BusinessRegistryError) (mapM_ print) euser
+   either (print @BRError) (mapM_ print) euser
 
 runUserCommand opts UserAdd = do
   user <- interactivelyGetNewUser
   ctx <- initBRContext opts
   euser <- runAppM ctx $ runDb (addUserQuery user)
-  either (print @BusinessRegistryError) print euser
+  either (print @BRError) print euser
 
 
 interactivelyGetNewUser :: IO NewUser
@@ -224,13 +224,13 @@ runBusinessCommand :: ServerOptionsBR -> BusinessCommand -> IO ()
 runBusinessCommand opts BusinessList = do
   ctx <- initBRContext opts
   ebizs <- runAppM ctx $ runDb listBusinessesQuery
-  either (print @BusinessRegistryError) (mapM_ print) ebizs
+  either (print @BRError) (mapM_ print) ebizs
 
 runBusinessCommand opts BusinessAdd = do
   business <- interactivelyGetBusinessT
   ctx <- initBRContext opts
   ebiz <- runAppM ctx $ runDb (addBusinessQuery business)
-  either (print @BusinessRegistryError) print ebiz
+  either (print @BRError) print ebiz
 
 
 interactivelyGetBusinessT :: IO Business
@@ -252,17 +252,17 @@ runPopulateDatabase opts = do
   ctx     <- initBRContext opts
 
   b1      <- dummyBusiness "1"
-  _result <- runAppM @_ @BusinessRegistryError ctx $ addBusiness b1
+  _result <- runAppM @_ @BRError ctx $ addBusiness b1
   u1b1    <- dummyUser "B1U1" (newBusinessGS1CompanyPrefix b1)
   u2b1    <- dummyUser "B1U2" (newBusinessGS1CompanyPrefix b1)
-  _result <- runAppM @_ @BusinessRegistryError ctx $
+  _result <- runAppM @_ @BRError ctx $
              runDb (mapM addUserQuery [u1b1, u2b1])
 
   b2      <- dummyBusiness "2"
-  _result <- runAppM @_ @BusinessRegistryError ctx $ addBusiness b2
+  _result <- runAppM @_ @BRError ctx $ addBusiness b2
   u1b2    <- dummyUser "B2U1" (newBusinessGS1CompanyPrefix b2)
   u2b2    <- dummyUser "B2U2" (newBusinessGS1CompanyPrefix b2)
-  _result <- runAppM @_ @BusinessRegistryError ctx $
+  _result <- runAppM @_ @BRError ctx $
              runDb (mapM addUserQuery [u1b2, u2b2])
 
   putStrLn "Credentials"

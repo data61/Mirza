@@ -4,12 +4,12 @@ module Mirza.BusinessRegistry.Handlers.Common where
 
 
 
-import           Mirza.BusinessRegistry.Types (AsBusinessRegistryError)
+import           Mirza.BusinessRegistry.Types (AsBRError)
 import           Mirza.Common.Types           (DBConstraint)
 
 
 
 type BRApp context err =
-  ( AsBusinessRegistryError err -- TODO: Remove this
+  ( AsBRError err -- TODO: Remove this
   , DBConstraint context err
   )

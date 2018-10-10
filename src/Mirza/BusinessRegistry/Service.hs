@@ -51,7 +51,7 @@ import           Data.Swagger
 
 
 -- All possible error types that could be thrown through the handlers.
-type PossibleErrors err = (AsKeyError err)
+type PossibleErrors err = (AsBRKeyError err)
 
 
 appHandlers :: (BRApp context err, HasScryptParams context, PossibleErrors err)
@@ -88,7 +88,7 @@ instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub
       & allOperations . security .~ securityRequirements
 
 
-appMToHandler :: (HasLogging context) => context -> AppM context BusinessRegistryError x -> Handler x
+appMToHandler :: (HasLogging context) => context -> AppM context BRError x -> Handler x
 appMToHandler context act = do
   res <- liftIO $ runAppM context act
   case res of
@@ -122,7 +122,7 @@ is500Error servantError = ((errHTTPCode servantError) `div` 100) == 5
 -- to look for potential issues. The error type contains all the information
 -- that we know about the error at this point so we add it in entirity to the
 -- log.
--- TODO: Transform Show error so that we can only log BR and KeyErrors to
+-- TODO: Transform Show error so that we can only log BR and BRKeyErrors to
 -- further constrain the type and prevent accidental errors in the argument
 -- provided, even though all we need is show.
 throwHttpError :: (Show error) => ServantErr -> ByteString -> error -> KatipContextT Handler a
@@ -131,12 +131,12 @@ throwHttpError httpStatus errorMessage err = do
   lift $ throwError $ httpStatus { errBody = errorMessage }
 
 
--- | Takes a BusinessRegistryError and converts it to an HTTP error.
-brErrorToHttpError :: BusinessRegistryError -> KatipContextT Handler a
+-- | Takes a BRError and converts it to an HTTP error.
+brErrorToHttpError :: BRError -> KatipContextT Handler a
 brErrorToHttpError brError =
   let httpError = (\x y -> throwHttpError x y brError)
   in case brError of
-    (KeyErrorBRE keyError)          -> keyErrorToHttpError keyError
+    (BRKeyErrorBRE BRKeyError)      -> BRKeyErrorToHttpError BRKeyError
     (DBErrorBRE _)                  -> unexpectedError brError
     (UnexpectedErrorBRE _)          -> unexpectedError brError
     (UnmatchedUniqueViolationBRE _) -> unexpectedError brError
@@ -150,19 +150,19 @@ brErrorToHttpError brError =
 -- | A generic internal server error has occured. We include no more information in the result returned to the user to
 -- limit further potential for exploitation, under the expectation that we log the errors to somewhere that is reviewed
 -- regularly so that the development team are informed and can identify and patch the underlying issues.
-unexpectedError :: BusinessRegistryError -> KatipContextT Handler a
+unexpectedError :: BRError -> KatipContextT Handler a
 unexpectedError = throwHttpError err500 "An unknown error has occured."
 
 -- | A common function for handling user errors uniformly irrespective of what the underlying cause is.
-userCreationError :: BusinessRegistryError -> KatipContextT Handler a
+userCreationError :: BRError -> KatipContextT Handler a
 userCreationError = throwHttpError err400 "Unable to create user."
 
 
--- | Takes a KeyError and converts it to an HTTP error.
-keyErrorToHttpError :: KeyError -> KatipContextT Handler a
-keyErrorToHttpError keyError =
-  let httpError = (\x y -> throwHttpError x y keyError)
-  in case keyError of
+-- | Takes a BRKeyError and converts it to an HTTP error.
+BRKeyErrorToHttpError :: BRKeyError -> KatipContextT Handler a
+BRKeyErrorToHttpError BRKeyError =
+  let httpError = (\x y -> throwHttpError x y BRKeyError)
+  in case BRKeyError of
     (InvalidRSAKeyBRE _)           -> httpError err400 "Failed to parse RSA Public key."
     KeyAlreadyRevokedBRE           -> httpError err400 "Public key already revoked."
     KeyAlreadyExpiredBRE           -> httpError err400 "Public key already expired."
