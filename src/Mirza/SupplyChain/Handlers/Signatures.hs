@@ -18,9 +18,9 @@ import qualified Mirza.BusinessRegistry.Types             as BT
 
 import           Mirza.SupplyChain.Database.Schema        as Schema
 import           Mirza.SupplyChain.ErrorUtils             (throwBackendError)
-import           Mirza.SupplyChain.Handlers.Common
-import           Mirza.SupplyChain.Handlers.EventUtils    (hasUserCreatedEvent,
+import           Mirza.SupplyChain.EventUtils             (hasUserCreatedEvent,
                                                            insertUserEvent)
+import           Mirza.SupplyChain.Handlers.Common
 import           Mirza.SupplyChain.Types                  hiding (NewUser (..),
                                                            User (userId),
                                                            UserId)

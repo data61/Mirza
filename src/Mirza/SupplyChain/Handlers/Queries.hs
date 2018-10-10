@@ -7,10 +7,10 @@ module Mirza.SupplyChain.Handlers.Queries
   ) where
 
 
-import           Mirza.SupplyChain.Handlers.Common
-import           Mirza.SupplyChain.Handlers.EventUtils (findLabelId,
+import           Mirza.SupplyChain.EventUtils          (findLabelId,
                                                         findSchemaEvent,
                                                         getEventList)
+import           Mirza.SupplyChain.Handlers.Common
 import           Mirza.SupplyChain.Handlers.Signatures
 import           Mirza.SupplyChain.Handlers.Users      (userTableToModel)
 

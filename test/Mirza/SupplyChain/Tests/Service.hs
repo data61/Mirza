@@ -9,37 +9,37 @@ module Mirza.SupplyChain.Tests.Service
   ( testServiceQueries
   ) where
 
-import           Mirza.Common.Tests.InitClient         (testDbConnStrSCS)
-import           Mirza.Common.Tests.Utils              (unsafeMkEmailAddress)
+import           Mirza.Common.Tests.InitClient       (testDbConnStrSCS)
+import           Mirza.Common.Tests.Utils            (unsafeMkEmailAddress)
 import           Mirza.SupplyChain.Tests.Dummies
 
 import           Mirza.SupplyChain.Auth
-import           Mirza.SupplyChain.Database.Schema     as Schema
+import           Mirza.SupplyChain.Database.Schema   as Schema
+import           Mirza.SupplyChain.EventUtils
 import           Mirza.SupplyChain.Handlers.Contacts
-import           Mirza.SupplyChain.Handlers.EventUtils
 import           Mirza.SupplyChain.Handlers.Queries
 import           Mirza.SupplyChain.Handlers.Users
-import           Mirza.SupplyChain.Types               as ST
+import           Mirza.SupplyChain.Types             as ST
 
-import           Control.Monad                         (void)
-import           Control.Monad.Except                  (catchError)
+import           Control.Monad                       (void)
+import           Control.Monad.Except                (catchError)
 
-import           Data.Either                           (isLeft)
-import           Data.GS1.EPC                          (GS1CompanyPrefix (..))
-import           Data.Maybe                            (fromJust)
+import           Data.Either                         (isLeft)
+import           Data.GS1.EPC                        (GS1CompanyPrefix (..))
+import           Data.Maybe                          (fromJust)
 
-import           Data.Text.Encoding                    (encodeUtf8)
+import           Data.Text.Encoding                  (encodeUtf8)
 
 import           Database.Beam
-import           Database.PostgreSQL.Simple            (connectPostgreSQL,
-                                                        execute_)
-import           GHC.Stack                             (HasCallStack)
+import           Database.PostgreSQL.Simple          (connectPostgreSQL,
+                                                      execute_)
+import           GHC.Stack                           (HasCallStack)
 import           Servant
 import           Test.Hspec
 
-import           Text.Email.Validate                   (toByteString)
+import           Text.Email.Validate                 (toByteString)
 
-import qualified Crypto.Scrypt                         as Scrypt
+import qualified Crypto.Scrypt                       as Scrypt
 
 testAppM :: context -> AppM context AppError a -> IO a
 testAppM scsContext act = runAppM scsContext act >>= \case
