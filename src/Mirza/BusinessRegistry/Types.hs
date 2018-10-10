@@ -266,13 +266,13 @@ data BRError
   deriving (Show, Generic)
 
 data BRKeyError
-  = InvalidRSAKeyBRE PEM_RSAPubKey
-  | InvalidRSAKeySizeBRE Expected Received
-  | PublicKeyInsertionErrorBRE [CT.BRKeyId]
-  | KeyNotFoundBRE CT.BRKeyId
-  | UnauthorisedKeyAccessBRE
-  | KeyAlreadyRevokedBRE
-  | KeyAlreadyExpiredBRE
+  = InvalidRSAKeyBRKE PEM_RSAPubKey
+  | InvalidRSAKeySizeBRKE Expected Received
+  | PublicKeyInsertionErrorBRKE [CT.BRKeyId]
+  | KeyNotFoundBRKE CT.BRKeyId
+  | UnauthorisedKeyAccessBRKE
+  | KeyAlreadyRevokedBRKE
+  | KeyAlreadyExpiredBRKE
   -- | If it is detected that the key has a revocation time and no revoking
   -- user or the key has a revoking user but now revoking time. Hopefully in
   -- practice it is not possible to produce this error since it probably
@@ -282,8 +282,8 @@ data BRKeyError
   -- this error it might be a good time to re-evaulate whether it is better to
   -- fix the storage datatype so its not possible to generate this error in the
   -- first place.
-  | InvalidRevocationBRE (Maybe LocalTime) (Maybe PrimaryKeyType) CallStack
-  | AddedExpiredKeyBRE
+  | InvalidRevocationBRKE (Maybe LocalTime) (Maybe PrimaryKeyType) CallStack
+  | AddedExpiredKeyBRKE
   deriving (Show)
 
 newtype Bit  = Bit  {getBit :: Int} deriving (Show, Eq, Read, Ord)
