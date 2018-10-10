@@ -91,8 +91,6 @@ eventSign :: (HasBRClientEnv context, AsServantError err, AsError err, SCSApp co
           -> AppM context err PrimaryKeyType
 eventSign user (SignedEvent eventId keyId sig) = do
   jwk <- runClientFunc $ getPublicKey keyId
-  -- sigBS <- BS64.decode (BSC.pack sigStr) <%?> review _Base64DecodeFailure
-  -- digest <- liftIO (makeDigest digest') <!?> review _InvalidDigest digest'
   runDb $ do
     eventBS <- getEventBS eventId
     event' <- verifyJWS' jwk sig

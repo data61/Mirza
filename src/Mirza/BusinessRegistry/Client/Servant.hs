@@ -14,18 +14,20 @@ module Mirza.BusinessRegistry.Client.Servant
   ) where
 
 import           Mirza.BusinessRegistry.API
-import           Mirza.BusinessRegistry.Types as BRT
 import           Mirza.BusinessRegistry.Database.Schema (LocationId)
-import           Mirza.Common.Time            (ExpirationTime, RevocationTime)
-import           Mirza.Common.Types           (BRKeyId)
+import           Mirza.BusinessRegistry.Types           as BRT
+import           Mirza.Common.Time                      (ExpirationTime,
+                                                         RevocationTime)
+import           Mirza.Common.Types                     (BRKeyId)
 
-import           Data.GS1.EPC                 as EPC
-import           Crypto.JOSE.JWK (JWK)
+import           Data.GS1.EPC                           as EPC
+
+import           Crypto.JOSE.JWK                        (JWK)
 
 import           Servant.API
 import           Servant.Client
 
-import           Data.Proxy                   (Proxy (..))
+import           Data.Proxy                             (Proxy (..))
 
 getPublicKey       :: BRKeyId -> ClientM JWK
 getPublicKeyInfo   :: BRKeyId -> ClientM KeyInfoResponse

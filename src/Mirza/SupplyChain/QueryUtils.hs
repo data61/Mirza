@@ -52,4 +52,3 @@ userTableToModel (Schema.User uid _ fName lName _ _ _)
 
 constructEventToSign :: Ev.Event -> ByteString
 constructEventToSign = toStrict . encode
-
