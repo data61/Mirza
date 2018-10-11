@@ -8,13 +8,19 @@ import qualified Database.Beam                        as B
 import qualified Database.Beam.Backend.SQL            as BSQL
 import qualified Database.Beam.Migrate                as BMigrate
 
+import           Database.PostgreSQL.Simple.FromField
+
 import           Data.ByteString                      (ByteString)
 import qualified Data.Text                            as T
-import           Database.PostgreSQL.Simple.FromField
+import           Data.Time                            (LocalTime)
 import           Text.Read
 
-import           Database.Beam.Postgres.Syntax        (PgDataTypeSyntax,
+import           Database.Beam.Migrate.SQL
+import           Database.Beam.Postgres
+import           Database.Beam.Postgres.Syntax        (PgColumnSchemaSyntax,
+                                                       PgDataTypeSyntax,
                                                        pgTextType)
+
 
 
 
@@ -37,6 +43,11 @@ defaultFromField fName f bs = do
 -- | Shorthand for using postgres text type
 textType :: BMigrate.DataType PgDataTypeSyntax a
 textType = BMigrate.DataType pgTextType
+
+-- | Field definition to use for last updated columns
+lastUpdateField :: BMigrate.TableFieldSchema PgColumnSchemaSyntax (Maybe LocalTime)
+lastUpdateField = field "last_update" (maybeType timestamptz) (defaultTo_ (B.just_ now_))
+
 
 -- | Helper function to manage the returnValue of ``readMaybe`` or gracefully
 -- fail

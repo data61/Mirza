@@ -10,6 +10,7 @@
 module Mirza.BusinessRegistry.Database.Schema.V0001 where
 
 import qualified Data.GS1.EPC                  as EPC
+import           Mirza.Common.Beam             (lastUpdateField)
 import           Mirza.Common.GS1BeamOrphans
 import           Mirza.Common.Types            (PrimaryKeyType)
 
@@ -24,8 +25,7 @@ import           Database.Beam                 as B
 import           Database.Beam.Migrate.SQL     as BSQL
 import           Database.Beam.Migrate.Types
 import           Database.Beam.Postgres        as BPostgres
-import           Database.Beam.Postgres.Syntax (PgColumnSchemaSyntax,
-                                                PgDataTypeSyntax)
+import           Database.Beam.Postgres.Syntax (PgDataTypeSyntax)
 
 import           Data.Aeson
 import           Data.Swagger
@@ -45,9 +45,6 @@ defaultFieldMaxLength = 120
 
 pkSerialType :: DataType PgDataTypeSyntax UUID
 pkSerialType = uuid
-
-lastUpdateField :: TableFieldSchema PgColumnSchemaSyntax (Maybe LocalTime)
-lastUpdateField = field "last_update" (maybeType timestamptz) (defaultTo_ (just_ now_))
 
 -- Database
 data BusinessRegistryDB f = BusinessRegistryDB
