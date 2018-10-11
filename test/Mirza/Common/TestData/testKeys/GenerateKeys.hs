@@ -1,4 +1,5 @@
-
+#!/usr/bin/env stack
+-- stack --resolver lts-12.12 script --package jose,aeson-pretty,cryptonite,lens,bytestring
 
 module Main where
 
