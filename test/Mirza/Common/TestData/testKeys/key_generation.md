@@ -1,3 +1,11 @@
+Keys an be generated using the `GenerateKeys.hs` file, which can be run directly
+from the command line:
+
+    ./GenerateKeys.hs
+
+Below is how we previously created PEM keys
+
+
 This file contains some useful information for generating and working with RSA keys.
 
 Generate a 1024 bit RSA private key.
