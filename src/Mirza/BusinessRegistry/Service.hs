@@ -141,7 +141,7 @@ brErrorToHttpError brError =
     (UnexpectedErrorBRE _)          -> unexpectedError brError
     (UnmatchedUniqueViolationBRE _) -> unexpectedError brError
     (LocationNotKnownBRE)           -> httpError err404 "Unknown GLN"
-    (LocationExistsBRE)             -> httpError err409 "Location already exists for this GLN"
+    (LocationExistsBRE)             -> httpError err409 "GLN already exists"
     (GS1CompanyPrefixExistsBRE)     -> httpError err400 "GS1 company prefix already exists."
     (BusinessDoesNotExistBRE)       -> httpError err400 "Business does not exist."
     (UserCreationErrorBRE _ _)      -> userCreationError brError
