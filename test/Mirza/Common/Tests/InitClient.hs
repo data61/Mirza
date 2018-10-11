@@ -132,7 +132,7 @@ bootstrapAuthData ctx = do
   password <- randomPassword
   let prefix = GS1CompanyPrefix "1000000"
   let business = NewBusiness prefix "Business Name"
-  insertBusinessResult  <- runAppM @_ @BusinessRegistryError ctx $ BRHB.addBusiness business
+  insertBusinessResult  <- runAppM @_ @BRError ctx $ BRHB.addBusiness business
   insertBusinessResult `shouldSatisfy` isRight
   let user = BT.NewUser  (unsafeMkEmailAddress email)
                       password
@@ -140,7 +140,7 @@ bootstrapAuthData ctx = do
                       "Test User First Name"
                       "Test User Last Name"
                       "Test User Phone Number"
-  insertUserResult <- runAppM @_ @BusinessRegistryError ctx $ runDb (BRHU.addUserQuery user)
+  insertUserResult <- runAppM @_ @BRError ctx $ runDb (BRHU.addUserQuery user)
   insertUserResult `shouldSatisfy` isRight
 
   return $ newUserToBasicAuthData user
@@ -162,7 +162,7 @@ runBRApp = do
   let BusinessRegistryDB usersTable businessesTable keysTable locationsTable geolocationsTable
         = businessRegistryDB
 
-  flushDbResult <- runAppM @_ @BusinessRegistryError ctx $ runDb $ do
+  flushDbResult <- runAppM @_ @BRError ctx $ runDb $ do
       let deleteTable table = pg $ runDelete $ delete table (const (val_ True))
       deleteTable keysTable
       deleteTable usersTable

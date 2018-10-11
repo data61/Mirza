@@ -36,7 +36,7 @@ timeStampIO :: MonadIO m => m LocalTime
 timeStampIO = liftIO $ (utcToLocalTime utc) <$> getCurrentTime
 
 testAppM :: context
-         -> AppM context BusinessRegistryError a
+         -> AppM context BRError a
          -> IO a
 testAppM brContext act = runAppM brContext act >>= \case
     Left err -> fail (show err)
@@ -161,7 +161,7 @@ testKeyQueries = do
 -- *****************************************************************************
 
 -- | Adds the dummy business and user and returns the user id and auth user.
-insertDummies :: AppM BRContext BusinessRegistryError AuthUser
+insertDummies :: AppM BRContext BRError AuthUser
 insertDummies = do
   businessPfx <- addBusiness dummyBusiness
   uid <- addUser dummyNewUser {newUserCompany=businessPfx}

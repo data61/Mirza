@@ -50,7 +50,7 @@ addUser =
   . addUserQuery
 
 -- | Hashes the password of the NewUser and inserts the user into the database
-addUserQuery :: (HasCallStack, AsBusinessRegistryError err, HasScryptParams context)
+addUserQuery :: (HasCallStack, AsBRError err, HasScryptParams context)
              => NewUser
              -> DB context err UserId
 addUserQuery (BRT.NewUser userEmail password biz firstName lastName phone) = do

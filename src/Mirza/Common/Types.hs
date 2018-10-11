@@ -215,7 +215,7 @@ newtype DB context error a = DB (ReaderT (Connection,context) (ExceptT error Pg)
 -- | Helper to make constraints on functions cleaner:
 --
 -- bazQuery :: ( Member context '[HasEnvType, HasConnPool, HasLogging]
---             , Member err     '[AsBusinessRegistryError, AsKeyError])
+--             , Member err     '[AsBRError, AsBRKeyError])
 --             => Foo
 --             -> DB context err Bar
 type family Member (e :: *) (cs :: [* -> Constraint]) :: Constraint where

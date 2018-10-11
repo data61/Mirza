@@ -44,12 +44,11 @@ minPubKeySize :: Bit
 minPubKeySize = Bit 2048
 
 getPublicKey :: ( Member context '[HasEnvType, HasConnPool, HasLogging]
-                , Member err     '[AsKeyError, AsSqlError])
+                , Member err     '[AsBRKeyError, AsSqlError])
              => CT.BRKeyId
              -> AppM context err PEM_RSAPubKey
-getPublicKey kid = do
-  mpem <- runDb $ getPublicKeyQuery kid
-  maybe (throwing _KeyNotFound kid) pure mpem
+getPublicKey kid = runDb $ getPublicKeyQuery kid <!?> (_KeyNotFoundBRKE # kid)
+
 
 getPublicKeyQuery :: CT.BRKeyId
                   -> DB context err (Maybe PEM_RSAPubKey)
@@ -60,16 +59,16 @@ getPublicKeyQuery (CT.BRKeyId uuid) = fmap (fmap PEM_RSAPubKey) $ pg $ runSelect
     pure (pem_str keys)
 
 getPublicKeyInfo :: ( Member context '[HasEnvType, HasConnPool, HasLogging]
-                    , Member err     '[AsKeyError, AsSqlError])
+                    , Member err     '[AsBRKeyError, AsSqlError])
                  => CT.BRKeyId
                  -> AppM context err BT.KeyInfoResponse
 getPublicKeyInfo kid = do
   currTime <- liftIO getCurrentTime
-  key <- runDb $ getPublicKeyInfoQuery kid <!?> (_KeyNotFound # kid)
+  key <- runDb $ getPublicKeyInfoQuery kid <!?> (_KeyNotFoundBRKE # kid)
   keyToKeyInfo currTime key
 
 
-keyToKeyInfo :: (MonadError err m, AsKeyError err)
+keyToKeyInfo :: (MonadError err m, AsBRKeyError err)
              => UTCTime
              -> Schema.Key
              -> m KeyInfoResponse
@@ -92,12 +91,12 @@ keyToKeyInfo currTime (Schema.KeyT keyId (Schema.UserId keyUserId) pemStr creati
     -- since we store in the database as two separate fields (because of
     -- complexity storing natively as a (Maybe (time, user)), see database
     -- comment for more info) we need to verify when we combine them here.
-    composeRevocation :: (HasCallStack, MonadError e m, AsKeyError e, ModelTimestamp a)
+    composeRevocation :: (HasCallStack, MonadError e m, AsBRKeyError e, ModelTimestamp a)
                       => Maybe LocalTime
                       -> PrimaryKey UserT (Nullable Identity)
                       -> m (Maybe (a, CT.UserId))
-    composeRevocation time@Nothing  (Schema.UserId (Just user)) = throwing _InvalidRevocation (time, Just user, callStack)
-    composeRevocation time@(Just _) (Schema.UserId Nothing)     = throwing _InvalidRevocation (time, Nothing, callStack)
+    composeRevocation time@Nothing  (Schema.UserId (Just user)) = throwing _InvalidRevocationBRKE (time, Just user, callStack)
+    composeRevocation time@(Just _) (Schema.UserId Nothing)     = throwing _InvalidRevocationBRKE (time, Nothing, callStack)
     composeRevocation time          (Schema.UserId user)        = pure $ ((,) <$> (fromDbTimestamp <$> time) <*> (CT.UserId  <$> user))
 
     -- TODO: After migrating to JOSE, there should always be an expiration time.
@@ -127,7 +126,7 @@ getPublicKeyInfoQuery (CT.BRKeyId uuid) = pg $ runSelectReturningOne $
     pure keys
 
 addPublicKey :: ( Member context '[HasEnvType, HasConnPool, HasLogging]
-                , Member err     '[AsKeyError, AsSqlError])
+                , Member err     '[AsBRKeyError, AsSqlError])
              => BT.AuthUser
              -> PEM_RSAPubKey
              -> Maybe ExpirationTime
@@ -138,12 +137,12 @@ addPublicKey user pemKey@(PEM_RSAPubKey pemStr) mExp = do
   runDb $ addPublicKeyQuery user mExp rsaKey           -- Error: user error (error:0906D06C:PEM routines:PEM_read_bio:no start line)
 
 
-checkPubKey :: (MonadError err m, AsKeyError err)
+checkPubKey :: (MonadError err m, AsBRKeyError err)
             => SomePublicKey
             -> PEM_RSAPubKey
             -> m RSAPubKey
 checkPubKey spKey pemKey =
-  maybe (throwing _InvalidRSAKey pemKey)
+  maybe (throwing _InvalidRSAKeyBRKE pemKey)
   (\pubKey ->
     -- Note: This constraint implies that we only check that the key is greater then (2^N)-8 bits since rsaSize is the
     -- number of bytes required to hold the key. See github issue #212
@@ -151,20 +150,20 @@ checkPubKey spKey pemKey =
     let keySizeBits = Bit $ rsaSize pubKey * 8 in
     -- rsaSize returns size in bytes
     if keySizeBits < minPubKeySize
-      then throwing _InvalidRSAKeySize (Expected minPubKeySize, Received keySizeBits)
+      then throwing _InvalidRSAKeySizeBRKE (Expected minPubKeySize, Received keySizeBits)
       else pure pubKey
   )
   (toPublicKey spKey)
 
 
-addPublicKeyQuery :: ( Member err     '[AsKeyError])
+addPublicKeyQuery :: ( Member err     '[AsBRKeyError])
                   => AuthUser
                   -> Maybe ExpirationTime
                   -> RSAPubKey
                   -> DB context err CT.BRKeyId
 addPublicKeyQuery (AuthUser (CT.UserId uid)) expTime rsaPubKey = do
   now <- liftIO getCurrentTime
-  for_ expTime $ \time -> when ((getExpirationTime time) <= now) (throwing_ _AddedExpiredKey)
+  for_ expTime $ \time -> when ((getExpirationTime time) <= now) (throwing_ _AddedExpiredKeyBRKE)
   keyStr <- liftIO $ pack <$> writePublicKey rsaPubKey
   keyId <- newUUID
   timestamp <- generateTimestamp
@@ -175,11 +174,11 @@ addPublicKeyQuery (AuthUser (CT.UserId uid)) expTime rsaPubKey = do
         ]
   case ks of
     [rowId] -> return (CT.BRKeyId $ key_id rowId)
-    _       -> throwing _PublicKeyInsertionError (map (CT.BRKeyId . key_id) ks)
+    _       -> throwing _PublicKeyInsertionErrorBRKE (map (CT.BRKeyId . key_id) ks)
 
 
 revokePublicKey :: ( Member context '[HasEnvType, HasConnPool, HasLogging]
-                   , Member err     '[AsKeyError, AsSqlError])
+                   , Member err     '[AsBRKeyError, AsSqlError])
                 => BT.AuthUser
                 -> CT.BRKeyId
                 -> AppM context err RevocationTime
@@ -187,12 +186,12 @@ revokePublicKey (AuthUser uId) keyId =
     runDb $ revokePublicKeyQuery uId keyId
 
 
-keyStateQuery :: AsKeyError err
+keyStateQuery :: AsBRKeyError err
               => CT.BRKeyId
               -> DB context err KeyState
 keyStateQuery kid = do
   currTime <- liftIO getCurrentTime
-  fmap keyInfoState . keyToKeyInfo currTime =<< getPublicKeyInfoQuery kid <!?> (_KeyNotFound # kid)
+  fmap keyInfoState . keyToKeyInfo currTime =<< getPublicKeyInfoQuery kid <!?> (_KeyNotFoundBRKE # kid)
 
 
 -- | Checks that the key is useable and throws a key error if the key is not
@@ -200,7 +199,7 @@ keyStateQuery kid = do
 -- or revoked. The function can be modified in the future to add additional
 -- constraints that must be checked before the key is updated in anyway
 -- (effectively controling the minimum state for write access to the key).
-protectKeyUpdate :: ( Member err     '[AsKeyError])
+protectKeyUpdate :: ( Member err     '[AsBRKeyError])
                  =>  CT.BRKeyId
                  -> CT.UserId
                  -> DB context err ()
@@ -209,18 +208,18 @@ protectKeyUpdate keyId userId = do
   -- logically and progressively builds constraints in order and so that the correct error message is shown when the
   -- keyId is not found, rather then failing because the user id check in doesUserOwnKeyQuery fails.
   key <- getKeyById keyId
-  when (isNothing key) $ throwing _KeyNotFound keyId
+  when (isNothing key) $ throwing _KeyNotFoundBRKE keyId
 
   userOwnsKey <- doesUserOwnKeyQuery userId keyId
-  unless userOwnsKey $ throwing_ _UnauthorisedKeyAccess
+  unless userOwnsKey $ throwing_ _UnauthorisedKeyAccessBRKE
 
   state <- keyStateQuery keyId
   case state of
-    Revoked  -> throwing_ _KeyAlreadyRevoked
-    Expired  -> throwing_ _KeyAlreadyExpired
+    Revoked  -> throwing_ _KeyAlreadyRevokedBRKE
+    Expired  -> throwing_ _KeyAlreadyExpiredBRKE
     InEffect -> pure ()
 
-revokePublicKeyQuery :: ( Member err     '[AsKeyError])
+revokePublicKeyQuery :: ( Member err     '[AsBRKeyError])
                      => CT.UserId
                      -> CT.BRKeyId
                      -> DB context err RevocationTime
