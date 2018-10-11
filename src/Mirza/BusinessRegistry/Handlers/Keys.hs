@@ -137,7 +137,8 @@ addPublicKey user jwk mExp = do
 -- | Checks the validity of a JWK to ensure that it is
 -- a) an RSA public key
 -- b) ast least 2040 bits (since it's technically possible to have an RSA public
--- key which is 256 bytes but not 2048 bits)
+--    key which is 256 bytes but not 2048 bits)
+-- c) Key does not also contain a private key
 checkJWKPubKey :: ( Member err '[AsKeyError], MonadError err m) 
                => JWK
                -> m ()
