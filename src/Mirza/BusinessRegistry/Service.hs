@@ -6,9 +6,10 @@
 {-# LANGUAGE OverloadedStrings     #-}
 {-# LANGUAGE PolyKinds             #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE TemplateHaskell       #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
-{-# OPTIONS_GHC -fno-warn-orphans       #-}
+{-# OPTIONS_GHC -fno-warn-orphans  #-}
 
 -- | Endpoint definitions go here. Most of the endpoint definitions are
 -- light wrappers around functions in BeamQueries
@@ -30,7 +31,8 @@ import           Mirza.BusinessRegistry.Handlers.Keys     as Handlers
 import           Mirza.BusinessRegistry.Handlers.Location as Handlers
 import           Mirza.BusinessRegistry.Handlers.Users    as Handlers
 import           Mirza.BusinessRegistry.Types
-import           Mirza.Common.Utils
+
+import           Katip
 
 import           Servant
 import           Servant.Swagger
@@ -39,6 +41,7 @@ import           GHC.TypeLits                             (KnownSymbol)
 
 import           Control.Lens                             hiding ((.=))
 import           Control.Monad.IO.Class                   (liftIO)
+import           Control.Monad.Trans
 
 import           Data.ByteString.Lazy.Char8               as BSL8
 import qualified Data.HashMap.Strict.InsOrd               as IOrd
@@ -48,7 +51,7 @@ import           Data.Swagger
 
 
 -- All possible error types that could be thrown through the handlers.
-type PossibleErrors err = (AsKeyError err)
+type PossibleErrors err = (AsBRKeyError err)
 
 
 appHandlers :: (BRApp context err, HasScryptParams context, PossibleErrors err)
@@ -85,11 +88,11 @@ instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub
       & allOperations . security .~ securityRequirements
 
 
-appMToHandler :: forall x context. context -> AppM context BusinessRegistryError x -> Handler x
+appMToHandler :: (HasLogging context) => context -> AppM context BRError x -> Handler x
 appMToHandler context act = do
   res <- liftIO $ runAppM context act
   case res of
-    Left err -> brErrorToHttpError err
+    Left err -> runKatipContextT (context ^. katipLogEnv) () (context ^. katipNamespace) (brErrorToHttpError err)
     Right a  -> return a
 
 
@@ -102,49 +105,72 @@ serveSwaggerAPI = toSwagger serverAPI
   & info.license ?~ ("MIT" & url ?~ URL "https://opensource.org/licenses/MIT")
 
 
-throwHttpError :: ServantErr -> ByteString -> Handler a
-throwHttpError httpStatus errorMessage = throwError $ httpStatus { errBody = errorMessage }
+errorLogLevel :: ServantErr -> Severity
+errorLogLevel httpStatus
+  | is5XXError(httpStatus) = ErrorS
+  | otherwise = WarningS
 
--- | Takes in a BusinessRegistryError and converts it to an HTTP error (eg. err400)
-brErrorToHttpError :: BusinessRegistryError -> Handler a
-brErrorToHttpError (KeyErrorBRE kError) = keyErrorToHttpError kError
-brErrorToHttpError x@(DBErrorBRE _sqlError)                  = liftIO (print x) >> notImplemented
-brErrorToHttpError x@(UnexpectedErrorBRE _reason)            = liftIO (print x) >> notImplemented
-brErrorToHttpError x@(UnmatchedUniqueViolationBRE _sqlError) = liftIO (print x) >> notImplemented
-brErrorToHttpError x@(LocationNotKnownBRE)                   =
-  throwHttpError err404 "Unknown GLN"
-brErrorToHttpError (LocationExistsBRE)                     = 
-  throwHttpError err409 "Location already exists for this GLN"
-brErrorToHttpError (GS1CompanyPrefixExistsBRE) =
-  throwHttpError err400 "GS1 company prefix already exists."
-brErrorToHttpError (BusinessDoesNotExistBRE) =
-  throwHttpError err400 "Business does not exist."
-brErrorToHttpError (UserCreationErrorBRE _ _) = userCreationError
-brErrorToHttpError (UserCreationSQLErrorBRE _) = userCreationError
+-- | Is the servant error in the 5XX series?
+is5XXError :: ServantErr -> Bool
+is5XXError servantError = ((errHTTPCode servantError) `div` 100) == 5
+
+
+-- | This function simplifies the construction of errors by providing an
+-- interface with just the arguments necessary. This function logs the error
+-- and if the the status code is in the 5XX the log level is escalated. We log
+-- all errors for now so that developers have the oppertunity to skim the logs
+-- to look for potential issues. The error type contains all the information
+-- that we know about the error at this point so we add it in entirity to the
+-- log.
+-- TODO: Transform Show error so that we can only log BR and BRKeyErrors to
+-- further constrain the type and prevent accidental errors in the argument
+-- provided, even though all we need is show.
+throwHttpError :: (Show error) => error -> ServantErr -> ByteString -> KatipContextT Handler a
+throwHttpError err httpStatus errorMessage = do
+  $(logTM) (errorLogLevel httpStatus) (logStr $ show err)
+  lift $ throwError $ httpStatus { errBody = errorMessage }
+
+
+-- | Takes a BRError and converts it to an HTTP error.
+brErrorToHttpError :: BRError -> KatipContextT Handler a
+brErrorToHttpError brError =
+  let httpError = throwHttpError brError
+  in case brError of
+    (BRKeyErrorBRE keyError)        -> brKeyErrorToHttpError keyError
+    (DBErrorBRE _)                  -> unexpectedError brError
+    (UnexpectedErrorBRE _)          -> unexpectedError brError
+    (UnmatchedUniqueViolationBRE _) -> unexpectedError brError
+    (LocationNotKnownBRE)           -> httpError err404 "Unknown GLN"
+    (LocationExistsBRE)             -> httpError err409 "GLN already exists"
+    (GS1CompanyPrefixExistsBRE)     -> httpError err400 "GS1 company prefix already exists."
+    (BusinessDoesNotExistBRE)       -> httpError err400 "Business does not exist."
+    (UserCreationErrorBRE _ _)      -> userCreationError brError
+    (UserCreationSQLErrorBRE _)     -> userCreationError brError
+
+-- | A generic internal server error has occured. We include no more information in the result returned to the user to
+-- limit further potential for exploitation, under the expectation that we log the errors to somewhere that is reviewed
+-- regularly so that the development team are informed and can identify and patch the underlying issues.
+unexpectedError :: BRError -> KatipContextT Handler a
+unexpectedError brError = throwHttpError brError err500 "An unknown error has occured."
 
 -- | A common function for handling user errors uniformly irrespective of what the underlying cause is.
-userCreationError :: Handler a
-userCreationError = throwHttpError err400 "Unable to create user."
+userCreationError :: BRError -> KatipContextT Handler a
+userCreationError brError = throwHttpError brError err400 "Unable to create user."
 
 
-keyErrorToHttpError :: KeyError -> Handler a
-keyErrorToHttpError (InvalidRSAKey _) =
-  throwHttpError err400 "Failed to parse RSA Public key."
-keyErrorToHttpError (InvalidRSAKeySize (Expected (Bit expSize)) (Received (Bit recSize))) =
-  throwHttpError err400 (BSL8.pack $ printf "Invalid RSA Key size. Expected: %d Bits, Received: %d Bits\n" expSize recSize)
-keyErrorToHttpError KeyAlreadyRevoked =
-  throwHttpError err400 "Public key already revoked."
-keyErrorToHttpError KeyAlreadyExpired =
-  throwHttpError err400 "Public key already expired."
-keyErrorToHttpError UnauthorisedKeyAccess =
-  throwHttpError err403 "Not authorised to access this key."
-keyErrorToHttpError (PublicKeyInsertionError _) =
-  throwHttpError err500 "Public key could not be inserted."
-keyErrorToHttpError (KeyNotFound _) =
-  throwHttpError err404 "Public key with the given id not found."
-keyErrorToHttpError (InvalidRevocation _ _ _) =
-  throwHttpError err500 "Key has been revoked but in an invalid way."
-keyErrorToHttpError (AddedExpiredKey) =
-  throwHttpError err400 "Can't add a key that has already expired."
-keyErrorToHttpError (KeyIsPrivateKey) =
-  throwHttpError err400 "WARNING! Submitted Key was a Private Key, you should no longer continue to use it!"
+-- | Takes a BRKeyError and converts it to an HTTP error.
+brKeyErrorToHttpError :: BRKeyError -> KatipContextT Handler a
+brKeyErrorToHttpError keyError =
+  let httpError = throwHttpError keyError
+  in case keyError of
+    (InvalidRSAKeyBRKE _)           -> httpError err400 "Failed to parse RSA Public key."
+    KeyAlreadyRevokedBRKE           -> httpError err400 "Public key already revoked."
+    KeyAlreadyExpiredBRKE           -> httpError err400 "Public key already expired."
+    UnauthorisedKeyAccessBRKE       -> httpError err403 "Not authorised to access this key."
+    (PublicKeyInsertionErrorBRKE _) -> httpError err500 "Public key could not be inserted."
+    (KeyNotFoundBRKE _)             -> httpError err404 "Public key with the given id not found."
+    (InvalidRevocationBRKE _ _ _)   -> httpError err500 "Key has been revoked but in an invalid way."
+    (AddedExpiredKeyBRKE)           -> httpError err400 "Can't add a key that has already expired."
+    (InvalidRSAKeySizeBRKE (Expected (Bit expSize)) (Received (Bit recSize)))
+                                    -> httpError err400 (BSL8.pack $ printf "Invalid RSA Key size. Expected: %d Bits, Received: %d Bits\n" expSize recSize)
+    (KeyIsPrivateKeyBRKE)           -> httpError err400 "WARNING! Submitted Key was a Private Key, you should no longer continue to use it!"

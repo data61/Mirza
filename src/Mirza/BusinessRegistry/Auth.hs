@@ -33,7 +33,7 @@ import           Text.Email.Validate                    (EmailAddress,
 -- Basic Authentication requires a Context Entry with the 'BasicAuthCheck' value
 -- tagged with "foo-tag" This context is then supplied to 'server' and threaded
 -- to the BasicAuth HasServer handlers.
-basicAuthServerContext :: (HasScryptParams context, DBConstraint context BusinessRegistryError)
+basicAuthServerContext :: (HasScryptParams context, DBConstraint context BRError)
                        => context  -> Servant.Context '[BasicAuthCheck AuthUser]
 basicAuthServerContext context = authCheck context :. EmptyContext
 

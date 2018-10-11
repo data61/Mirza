@@ -14,7 +14,7 @@ import           Control.Lens                 (( # ))
 
 import           Data.ByteString
 
-handleSqlUniqueViloation  :: (AsSqlError err, AsBusinessRegistryError err, MonadError err m, MonadIO m)
+handleSqlUniqueViloation  :: (AsSqlError err, AsBRError err, MonadError err m, MonadIO m)
                           => ByteString        -- ^ UniqueViolation name.
                           -> (SqlError -> err) -- ^ A function which takes the original SQL error for the
                                                --   UniqueViolation and turns it into the error that is thrown
