@@ -146,3 +146,5 @@ keyErrorToHttpError (InvalidRevocation _ _ _) =
   throwHttpError err500 "Key has been revoked but in an invalid way."
 keyErrorToHttpError (AddedExpiredKey) =
   throwHttpError err400 "Can't add a key that has already expired."
+keyErrorToHttpError (KeyIsPrivateKey) =
+  throwHttpError err400 "WARNING! Submitted Key was a Private Key, you should no longer continue to use it!"
