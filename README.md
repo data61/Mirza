@@ -91,6 +91,11 @@ as:
 # If you want to launch the report in the browser
 ./coverage.sh --launch
 ```
+# To initialise the BR test DB, run the following:
+```shell
+stack build --fast && dropdb testmirzabusinessregistry && createdb testmirzabusinessregistry && stack exec businessRegistry -- -c 'postgresql:///testmirzabusinessregistry' --env Dev --log-level DebugS initdb
+```
+You'll need to run the above each time the BR db schema changes.
 
 ## Acronyms
 
