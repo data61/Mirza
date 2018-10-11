@@ -31,6 +31,7 @@ import           Mirza.SupplyChain.Handlers.EventRegistration as Handlers
 import           Mirza.SupplyChain.Handlers.Queries           as Handlers
 import           Mirza.SupplyChain.Handlers.Signatures        as Handlers
 import           Mirza.SupplyChain.Handlers.Users             as Handlers
+
 import           Mirza.SupplyChain.Types
 
 import           Servant

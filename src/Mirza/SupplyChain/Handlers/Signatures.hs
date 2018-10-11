@@ -11,24 +11,23 @@ module Mirza.SupplyChain.Handlers.Signatures
   ) where
 
 import           Mirza.Common.Time
-import           Mirza.Common.Types                           (BRKeyId)
+import           Mirza.Common.Types                       (BRKeyId)
 import           Mirza.Common.Utils
 
-import           Mirza.SupplyChain.Database.Schema            as Schema
-import           Mirza.SupplyChain.ErrorUtils                 (throwBackendError)
+import           Mirza.SupplyChain.Database.Schema        as Schema
+import           Mirza.SupplyChain.ErrorUtils             (throwBackendError)
+import           Mirza.SupplyChain.EventUtils             (hasUserCreatedEvent,
+                                                           insertUserEvent)
 import           Mirza.SupplyChain.Handlers.Common
-import           Mirza.SupplyChain.Handlers.EventRegistration (hasUserCreatedEvent,
-                                                               insertUserEvent)
-import           Mirza.SupplyChain.Types                      hiding
-                                                               (NewUser (..),
-                                                               User (userId),
-                                                               UserId)
-import qualified Mirza.SupplyChain.Types                      as ST
+import           Mirza.SupplyChain.Types                  hiding (NewUser (..),
+                                                           User (userId),
+                                                           UserId)
+import qualified Mirza.SupplyChain.Types                  as ST
 
 
-import qualified Data.GS1.EventId                             as EvId
+import qualified Data.GS1.EventId                         as EvId
 
-import           Database.Beam                                as B
+import           Database.Beam                            as B
 import           Database.Beam.Backend.SQL.BeamExtensions
 import           Database.Beam.Postgres                       (PgJSON (..))
 
@@ -37,9 +36,9 @@ import           Crypto.JOSE                                  (AsError,
                                                                CompactJWS,
                                                                JWSHeader,
                                                                verifyJWS')
-import           Data.ByteString                              (ByteString)
+import           Data.ByteString                          (ByteString)
 
-import           Mirza.BusinessRegistry.Client.Servant        (getPublicKey)
+import           Mirza.BusinessRegistry.Client.Servant    (getPublicKey)
 
 -- | A function to tie a user to an event
 -- Populates the ``UserEvents`` table
@@ -79,7 +78,7 @@ eventSign user (SignedEvent eventId keyId sig) = do
     event' <- verifyJWS' jwk sig
     if eventBS == event'
       then insertSignature (ST.userId user) eventId keyId sig
-      else throwing _SigVerificationFailure (show sig)
+      else throwing _SigVerificationFailure (show sig) -- TODO: This should be more than show
 
 -- TODO: Should this return Text or a JSON value?
 getEventBS :: AsServiceError err => EvId.EventId -> DB context err ByteString

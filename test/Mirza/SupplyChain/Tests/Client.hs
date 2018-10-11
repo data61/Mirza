@@ -179,7 +179,7 @@ clientSpec = do
           step "Inserting the object event"
           objInsertionResponse <- httpSCS (insertObjectEvent authABC dummyObject)
           objInsertionResponse `shouldSatisfy` isRight
-          let (insertedEvent, (Schema.EventId eventId)) = fromRight (error "Should be right") objInsertionResponse
+          let (EventInfo insertedEvent _ _ _ _, (Schema.EventId eventId)) = fromRight (error "Should be right") objInsertionResponse
 
           step "Signing the key"
           Right mySig <- runExceptT @JOSE.Error (
@@ -235,7 +235,7 @@ clientSpec = do
           step "Inserting the object event with the giver user"
           objInsertionResponse <- httpSCS (insertObjectEvent authABC dummyObject)
           objInsertionResponse `shouldSatisfy` isRight
-          let (insertedEvent, (Schema.EventId eid)) = fromRight (error "Should be right") objInsertionResponse
+          let (EventInfo insertedEvent _ _ _ _, (Schema.EventId eid)) = fromRight (error "Should be right") objInsertionResponse
               eventId = EvId.EventId eid
 
           step "Signing the object event with the giver"
@@ -305,7 +305,7 @@ clientSpec = do
           step "Inserting the object event with the giver user"
           transactInsertionResponse <- httpSCS (insertTransactEvent authDEF dummyTransaction)
           transactInsertionResponse `shouldSatisfy` isRight
-          let (insertedTransactEvent, (Schema.EventId transactEvId)) = fromRight (error "Should be right") transactInsertionResponse
+          let (EventInfo insertedTransactEvent _ _ _ _, (Schema.EventId transactEvId)) = fromRight (error "Should be right") transactInsertionResponse
               transactionEventId = EvId.EventId transactEvId
 
           step "Signing the transaction event with the receiver user"
