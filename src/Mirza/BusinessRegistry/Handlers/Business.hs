@@ -13,17 +13,18 @@ module Mirza.BusinessRegistry.Handlers.Business
 
 import           Mirza.BusinessRegistry.Database.Schema
 import           Mirza.BusinessRegistry.Handlers.Common
-import           Mirza.BusinessRegistry.Types             as BT
 import           Mirza.BusinessRegistry.SqlUtils
+import           Mirza.BusinessRegistry.Types             as BT
 
 import           Data.GS1.EPC                             as EPC
 
 import           Database.Beam                            as B
 import           Database.Beam.Backend.SQL.BeamExtensions
 
-import           Control.Lens                             ((#))
+import           Control.Lens                             (( # ))
 
-import           GHC.Stack                                (HasCallStack, callStack)
+import           GHC.Stack                                (HasCallStack,
+                                                           callStack)
 
 
 listBusinesses :: BRApp context err => AppM context err [BusinessResponse]
@@ -61,6 +62,7 @@ newBusinessToBusiness NewBusiness{..} =
   BusinessT
     { biz_gs1_company_prefix = newBusinessGS1CompanyPrefix
     , biz_name               = newBusinessName
+    , biz_last_update        = Nothing
     }
 
 

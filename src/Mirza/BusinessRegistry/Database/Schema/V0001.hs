@@ -24,7 +24,8 @@ import           Database.Beam                 as B
 import           Database.Beam.Migrate.SQL     as BSQL
 import           Database.Beam.Migrate.Types
 import           Database.Beam.Postgres        as BPostgres
-import           Database.Beam.Postgres.Syntax (PgDataTypeSyntax)
+import           Database.Beam.Postgres.Syntax (PgColumnSchemaSyntax,
+                                                PgDataTypeSyntax)
 
 import           Data.Aeson
 import           Data.Swagger
@@ -45,6 +46,8 @@ defaultFieldMaxLength = 120
 pkSerialType :: DataType PgDataTypeSyntax UUID
 pkSerialType = uuid
 
+lastUpdateField :: TableFieldSchema PgColumnSchemaSyntax (Maybe LocalTime)
+lastUpdateField = field "last_update" (maybeType timestamptz) (defaultTo_ (just_ now_))
 
 -- Database
 data BusinessRegistryDB f = BusinessRegistryDB
@@ -69,12 +72,14 @@ migration () =
           (field "phone_number" (varchar (Just defaultFieldMaxLength)) notNull)
           (field "password_hash" binaryLargeObject notNull)
           (field "email_address" emailAddressType unique)
+          lastUpdateField
     )
     <*> createTable "businesses"
     (
       BusinessT
           (field "biz_gs1_company_prefix" gs1CompanyPrefixType)
           (field "biz_name" (varchar (Just defaultFieldMaxLength)) notNull)
+          lastUpdateField
     )
     <*> createTable "keys"
     (
@@ -86,6 +91,7 @@ migration () =
           (field "revocation_time" (maybeType timestamptz))
           (UserId (field "revoking_user_id" (maybeType pkSerialType)))
           (field "expiration_time" (maybeType timestamptz))
+          lastUpdateField
     )
 
 --------------------------------------------------------------------------------
@@ -96,14 +102,15 @@ type User = UserT Identity
 deriving instance Show User
 
 data UserT f = UserT
-  { user_id       :: C f PrimaryKeyType
-  , user_biz_id   :: PrimaryKey BusinessT f
-  , first_name    :: C f Text
-  , last_name     :: C f Text
-  , phone_number  :: C f Text
-  , password_hash :: C f ByteString
-  , email_address :: C f EmailAddress }
-  deriving Generic
+  { user_id          :: C f PrimaryKeyType
+  , user_biz_id      :: PrimaryKey BusinessT f
+  , first_name       :: C f Text
+  , last_name        :: C f Text
+  , phone_number     :: C f Text
+  , password_hash    :: C f ByteString
+  , email_address    :: C f EmailAddress
+  , user_last_update :: C f (Maybe LocalTime)
+  } deriving Generic
 
 type UserId = PrimaryKey UserT Identity
 deriving instance Show (PrimaryKey UserT Identity)
@@ -136,6 +143,7 @@ deriving instance Show Business
 data BusinessT f = BusinessT
   { biz_gs1_company_prefix :: C f EPC.GS1CompanyPrefix
   , biz_name               :: C f Text
+  , biz_last_update        :: C f (Maybe LocalTime)
   }
   deriving Generic
 
@@ -179,6 +187,7 @@ data KeyT f = KeyT
   , revocation_time  :: C f (Maybe LocalTime) -- Stored as UTC Time
   , revoking_user_id :: PrimaryKey UserT (Nullable f)
   , expiration_time  :: C f (Maybe LocalTime) -- Stored as UTC Time
+  , key_last_update  :: C f (Maybe LocalTime)
   }
   deriving Generic
 
