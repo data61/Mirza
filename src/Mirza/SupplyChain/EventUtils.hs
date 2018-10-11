@@ -45,6 +45,7 @@ import           Data.GS1.DWhy                     (DWhy (..))
 import           Data.Maybe                        (catMaybes)
 
 import           Data.ByteString                   (ByteString)
+import           Data.Text.Encoding                (decodeUtf8)
 import qualified Data.Text                         as T
 
 import           Data.Time.LocalTime               (timeZoneOffsetString)
@@ -327,14 +328,17 @@ constructLocation whereT =
 
 insertEvent :: Schema.UserId
             -> Ev.Event
-            -> DB context err Schema.EventId
-insertEvent userId event = fmap (Schema.EventId <$>) QU.withPKey $ \pKey ->
-  -- let jsonEvent = event
+            -> DB context err (EventInfo, Schema.EventId)
+insertEvent userId@(Schema.UserId uuid) event = do
   let toSignEvent = QU.constructEventToSign event
-  in
+  eventId <- fmap (Schema.EventId <$>) QU.withPKey $ \pKey ->
     pg $ B.runInsert $ B.insert (Schema._events Schema.supplyChainDb)
         $ insertValues
-            [toStorageEvent (Schema.EventId pKey) (_eid event) userId (PgJSON event) toSignEvent]
+            [toStorageEvent (Schema.EventId pKey) (_eid event)
+              userId (PgJSON event) toSignEvent]
+  return ((EventInfo event [] [(ST.UserId uuid)] (decodeUtf8 $ toSignEvent) NotSent),
+      eventId)
+
 
 insertUserEvent :: Schema.EventId
                 -> Schema.UserId

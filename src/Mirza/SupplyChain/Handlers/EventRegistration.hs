@@ -55,7 +55,7 @@ insertObjectEventQuery
 
   -- insertEvent has to be the first thing that happens here so that
   -- uniqueness of the JSON event is enforced
-  eventId@(Schema.EventId schemaEventId) <- insertEvent userId event
+  (evInfo, eventId@(Schema.EventId schemaEventId)) <- insertEvent userId event
   whatId <- insertDWhat Nothing dwhat eventId
   labelIds' <- mapM (insertLabel Nothing (Schema.WhatId whatId)) labelEpcs
   let labelIds = Schema.LabelId <$> labelIds'
@@ -94,7 +94,7 @@ insertAggEventQuery
 
   -- insertEvent has to be the first thing that happens here so that
   -- uniqueness of the JSON event is enforced
-  eventId@(Schema.EventId schemaEventId) <- insertEvent userId event
+  (evInfo, eventId@(Schema.EventId schemaEventId)) <- insertEvent userId event
   whatId <- insertDWhat Nothing dwhat eventId
   labelIds' <- mapM (insertLabel Nothing (Schema.WhatId whatId)) labelEpcs
   let labelIds = Schema.LabelId <$> labelIds'
@@ -105,8 +105,6 @@ insertAggEventQuery
   insertUserEvent eventId userId userId False Nothing
   mapM_ (insertWhatLabel (Schema.WhatId whatId)) labelIds
   mapM_ (insertLabelEvent eventId) labelIds
-
-  evInfo <- eventInfoQuery user (EvId.EventId schemaEventId)
   return (evInfo, eventId)
 
 
@@ -137,7 +135,7 @@ insertTransactEventQuery
 
   -- insertEvent has to be the first thing that happens here so that
   -- uniqueness of the JSON event is enforced
-  eventId@(Schema.EventId schemaEventId) <- insertEvent userId event
+  (evInfo, eventId@(Schema.EventId schemaEventId)) <- insertEvent userId event
   whatId <- insertDWhat Nothing dwhat eventId
   labelIds' <- mapM (insertLabel Nothing (Schema.WhatId whatId)) labelEpcs
   let labelIds = Schema.LabelId <$> labelIds'
@@ -178,7 +176,7 @@ insertTransfEventQuery
 
   -- insertEvent has to be the first thing that happens here so that
   -- uniqueness of the JSON event is enforced
-  eventId@(Schema.EventId schemaEventId) <- insertEvent userId event
+  (evInfo, eventId@(Schema.EventId schemaEventId)) <- insertEvent userId event
   whatId <- insertDWhat Nothing dwhat eventId
   inputLabelIds <- mapM (\(InputEPC i) -> insertLabel (Just MU.Input) (Schema.WhatId whatId) i) inputs
   outputLabelIds <- mapM (\(OutputEPC o) -> insertLabel (Just MU.Output) (Schema.WhatId whatId) o) outputs
