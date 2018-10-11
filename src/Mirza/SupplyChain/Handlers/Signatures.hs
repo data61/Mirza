@@ -1,4 +1,5 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedLists       #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 
 module Mirza.SupplyChain.Handlers.Signatures
@@ -29,14 +30,19 @@ import qualified Data.GS1.EventId                         as EvId
 
 import           Database.Beam                            as B
 import           Database.Beam.Backend.SQL.BeamExtensions
-import           Database.Beam.Postgres                       (PgJSON (..))
+import           Database.Beam.Postgres                   (PgJSON (..))
 
 
-import           Crypto.JOSE                                  (AsError,
-                                                               CompactJWS,
-                                                               JWSHeader,
-                                                               verifyJWS')
+import           Crypto.JOSE                              (Alg (..), AsError,
+                                                           CompactJWS,
+                                                           JWSHeader,
+                                                           ValidationSettings,
+                                                           defaultValidationSettings,
+                                                           validationSettingsAlgorithms,
+                                                           verifyJWS)
 import           Data.ByteString                          (ByteString)
+
+import           Control.Lens                             ((&), (.~))
 
 import           Mirza.BusinessRegistry.Client.Servant    (getPublicKey)
 
@@ -67,6 +73,11 @@ addUserToEventQuery (EventOwner lUserId@(ST.UserId loggedInUserId))
             False Nothing
     else throwing _EventPermissionDenied (lUserId, evId)
 
+
+scsJWSValidationSettings :: ValidationSettings
+scsJWSValidationSettings = defaultValidationSettings
+    & validationSettingsAlgorithms .~ [RS256,RS384,RS512,PS256,PS384,PS512]
+
 eventSign :: (HasBRClientEnv context, AsServantError err, AsError err, SCSApp context err)
           => ST.User
           -> SignedEvent
@@ -75,7 +86,7 @@ eventSign user (SignedEvent eventId keyId sig) = do
   jwk <- runClientFunc $ getPublicKey keyId
   runDb $ do
     eventBS <- getEventBS eventId
-    event' <- verifyJWS' jwk sig
+    event' <- verifyJWS scsJWSValidationSettings jwk sig
     if eventBS == event'
       then insertSignature (ST.userId user) eventId keyId sig
       else throwing _SigVerificationFailure (show sig) -- TODO: This should be more than show
