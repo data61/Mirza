@@ -73,7 +73,10 @@ keyToKeyInfo :: (MonadError err m, AsKeyError err)
              => UTCTime
              -> Schema.Key
              -> m KeyInfoResponse
-keyToKeyInfo currTime (Schema.KeyT keyId (Schema.UserId keyUserId) pemStr creation revocationTime revocationUser expiration) = do
+keyToKeyInfo currTime 
+             (Schema.KeyT keyId (Schema.UserId keyUserId) pemStr creation
+                          revocationTime revocationUser expiration _lastUpdated) 
+  = do
   revocation <- composeRevocation revocationTime revocationUser
   pure $ KeyInfoResponse (CT.BRKeyId keyId) (CT.UserId keyUserId)
     (getKeyState
@@ -172,6 +175,7 @@ addPublicKeyQuery (AuthUser (CT.UserId uid)) expTime rsaPubKey = do
         insertValues
         [ KeyT keyId (Schema.UserId uid) keyStr
             (toDbTimestamp timestamp) Nothing (Schema.UserId Nothing) (toDbTimestamp <$> expTime)
+            Nothing
         ]
   case ks of
     [rowId] -> return (CT.BRKeyId $ key_id rowId)

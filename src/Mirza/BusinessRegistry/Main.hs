@@ -30,9 +30,9 @@ import qualified Network.Wai.Handler.Warp                as Warp
 import           Data.ByteString                         (ByteString)
 import           Data.Semigroup                          ((<>))
 import           Data.Text                               (Text, pack)
+import           Data.Text.Encoding                      (encodeUtf8)
 import           Options.Applicative                     hiding (action)
 import           Text.Email.Validate
-import           Data.Text.Encoding                      (encodeUtf8)
 
 import qualified Crypto.Scrypt                           as Scrypt
 
@@ -247,6 +247,7 @@ interactivelyGetBusinessT :: IO Business
 interactivelyGetBusinessT = do
   biz_gs1_company_prefix <- GS1CompanyPrefix . pack <$>  prompt "GS1CompanyPrefix"
   biz_name      <- pack <$> prompt "Name"
+  let biz_last_update = Nothing
   return BusinessT{..}
 
 prompt :: String -> IO String

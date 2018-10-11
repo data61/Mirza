@@ -1,7 +1,7 @@
+{-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE NamedFieldPuns        #-}
-{-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE RecordWildCards       #-}
 
 
@@ -12,19 +12,20 @@ module Mirza.BusinessRegistry.Handlers.Location
 
 
 import           Mirza.BusinessRegistry.Database.Schema   as DB
-import           Mirza.BusinessRegistry.Types             as BT
-import           Mirza.Common.Utils
-import           Mirza.Common.Types                       (Member)
 import           Mirza.BusinessRegistry.SqlUtils
+import           Mirza.BusinessRegistry.Types             as BT
+import           Mirza.Common.Types                       (Member)
+import           Mirza.Common.Utils
 
 import           Data.GS1.EPC                             (LocationEPC)
 
 import           Database.Beam                            as B
 import           Database.Beam.Backend.SQL.BeamExtensions
 
-import           GHC.Stack                                (HasCallStack, callStack)
+import           GHC.Stack                                (HasCallStack,
+                                                           callStack)
 
-import           Control.Lens                             ((#))
+import           Control.Lens                             (( # ))
 
 addLocation :: ( Member context '[HasEnvType, HasConnPool, HasLogging]
                , Member err     '[AsSqlError, AsBusinessRegistryError])
@@ -79,39 +80,41 @@ addLocationQuery (AuthUser (BT.UserId uId)) locId geoLocId newLoc = do
         _   -> throwing _UnexpectedErrorBRE callStack
 
 
-newLocationToLocation :: PrimaryKeyType 
+newLocationToLocation :: PrimaryKeyType
                       -> GeoLocationId
-                      -> BizId 
-                      -> NewLocation 
+                      -> BizId
+                      -> NewLocation
                       -> (Location, GeoLocation)
-newLocationToLocation 
-  locId (GeoLocationId geoLocId) bizId 
+newLocationToLocation
+  locId (GeoLocationId geoLocId) bizId
   NewLocation{newLocGLN, newLocCoords, newLocAddress} =
     ( LocationT
-        { location_id        = locId
-        , location_biz_id    = bizId
-        , location_gln       = newLocGLN
+        { location_id          = locId
+        , location_biz_id      = bizId
+        , location_gln         = newLocGLN
+        , location_last_update = Nothing
         }
-      , GeoLocationT 
-        { geoLocation_id        = geoLocId
-        , geoLocation_gln       = LocationId newLocGLN
-        , geoLocation_latitude  = fst <$> newLocCoords
-        , geoLocation_longitude = snd <$> newLocCoords
-        , geoLocation_address   = newLocAddress
+      , GeoLocationT
+        { geoLocation_id          = geoLocId
+        , geoLocation_gln         = LocationId newLocGLN
+        , geoLocation_latitude    = fst <$> newLocCoords
+        , geoLocation_longitude   = snd <$> newLocCoords
+        , geoLocation_address     = newLocAddress
+        , geoLocation_last_update = Nothing
         }
     )
 
 
 getLocationByGLN :: ( Member context '[HasLogging, HasConnPool, HasEnvType]
                     , Member err     '[AsBusinessRegistryError, AsSqlError]
-                    , HasCallStack) 
+                    , HasCallStack)
                     => AuthUser
                     -> LocationEPC
                     -> AppM context err LocationResponse
 getLocationByGLN _user gln = do
   res <- runDb $ getLocationByGLNQuery gln
   case res of
-    Nothing -> throwing_ _LocationNotKnownBRE 
+    Nothing -> throwing_ _LocationNotKnownBRE
     Just (LocationT{location_biz_id = BizId bizId,..} , GeoLocationT{..}) -> pure $ LocationResponse
       { locationId    = location_id
       , locationGLN   = location_gln
@@ -124,12 +127,12 @@ getLocationByGLN _user gln = do
 
 getLocationByGLNQuery :: ( Member context '[]
                          , Member err     '[AsBusinessRegistryError])
-                         => LocationEPC 
+                         => LocationEPC
                          -> DB context err (Maybe (Location, GeoLocation))
 getLocationByGLNQuery gln = pg $ runSelectReturningOne $ select $ do
   loc   <- all_ (_locations businessRegistryDB)
   geoloc <- all_ (_geoLocations businessRegistryDB)
   guard_ (primaryKey loc ==. val_ (LocationId gln))
-  guard_ (geoLocation_gln geoloc ==. primaryKey loc) 
+  guard_ (geoLocation_gln geoloc ==. primaryKey loc)
   -- TODO: Add ORDER BY when we have a date modified field
   pure (loc,geoloc)
