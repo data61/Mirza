@@ -18,7 +18,6 @@ import           Test.Tasty.Hspec
 import           Test.Tasty.HUnit
 
 import qualified Mirza.BusinessRegistry.Types          as BT
-import qualified Mirza.SupplyChain.QueryUtils          as QU
 import           Mirza.SupplyChain.Types               as ST
 
 import qualified Mirza.BusinessRegistry.Client.Servant as BRClient
@@ -45,6 +44,7 @@ import           Control.Monad.Identity
 import           Crypto.JOSE                           (Alg (RS256),
                                                         newJWSHeader, signJWS)
 import qualified Crypto.JOSE                           as JOSE
+import           Crypto.JOSE.Types                     (Base64Octets (..))
 
 import           Data.GS1.EPC                          (GS1CompanyPrefix (..))
 import           Text.Email.Validate                   (toByteString)
@@ -179,12 +179,11 @@ clientSpec = do
           step "Inserting the object event"
           objInsertionResponse <- httpSCS (insertObjectEvent authABC dummyObject)
           objInsertionResponse `shouldSatisfy` isRight
-          let (EventInfo insertedEvent _ _ _ _, (Schema.EventId eventId)) = fromRight (error "Should be right") objInsertionResponse
+          let (EventInfo _ _ _ (Base64Octets to_sign_event) _, (Schema.EventId eventId)) = fromRight (error "Should be right") objInsertionResponse
 
           step "Signing the key"
           Right mySig <- runExceptT @JOSE.Error (
-                    signJWS (QU.constructEventToSign insertedEvent)
-                            (Identity (newJWSHeader ((), RS256),goodPrivKey))
+                    signJWS to_sign_event (Identity (newJWSHeader ((), RS256),goodPrivKey))
                     )
           let mySignedEvent = SignedEvent (EvId.EventId eventId) keyId mySig
 
@@ -235,13 +234,12 @@ clientSpec = do
           step "Inserting the object event with the giver user"
           objInsertionResponse <- httpSCS (insertObjectEvent authABC dummyObject)
           objInsertionResponse `shouldSatisfy` isRight
-          let (EventInfo insertedEvent _ _ _ _, (Schema.EventId eid)) = fromRight (error "Should be right") objInsertionResponse
+          let (EventInfo insertedEvent _ _ (Base64Octets to_sign_event) _, (Schema.EventId eid)) = fromRight (error "Should be right") objInsertionResponse
               eventId = EvId.EventId eid
 
           step "Signing the object event with the giver"
           Right mySig <- runExceptT @JOSE.Error $
-                    signJWS (QU.constructEventToSign insertedEvent)
-                            (Identity (newJWSHeader ((), RS256),goodPrivKeyGiver))
+                    signJWS to_sign_event (Identity (newJWSHeader ((), RS256),goodPrivKeyGiver))
           let mySignedEvent = SignedEvent eventId keyIdGiver mySig
           httpSCS (eventSign authABC mySignedEvent) `shouldSatisfyIO` isRight
 
@@ -305,13 +303,12 @@ clientSpec = do
           step "Inserting the object event with the giver user"
           transactInsertionResponse <- httpSCS (insertTransactEvent authDEF dummyTransaction)
           transactInsertionResponse `shouldSatisfy` isRight
-          let (EventInfo insertedTransactEvent _ _ _ _, (Schema.EventId transactEvId)) = fromRight (error "Should be right") transactInsertionResponse
+          let (EventInfo _ _ _ (Base64Octets to_sign_event2) _, (Schema.EventId transactEvId)) = fromRight (error "Should be right") transactInsertionResponse
               transactionEventId = EvId.EventId transactEvId
 
           step "Signing the transaction event with the receiver user"
           Right myTransSig <- runExceptT @JOSE.Error $
-                    signJWS (QU.constructEventToSign insertedTransactEvent)
-                            (Identity (newJWSHeader ((), RS256),goodPrivKeyReceiver))
+                    signJWS to_sign_event2 (Identity (newJWSHeader ((), RS256),goodPrivKeyReceiver))
           let receiverSignedEvent = SignedEvent transactionEventId keyIdReceiver myTransSig
 
           httpSCS (eventSign authDEF receiverSignedEvent) `shouldSatisfyIO` isRight
