@@ -68,23 +68,6 @@ addUserToEventQuery (EventOwner lUserId@(ST.UserId loggedInUserId))
             False Nothing
     else throwing _EventPermissionDenied (lUserId, evId)
 
-{-
-   The default padding is PKCS1-1.5, which is deprecated
-   for new applications. We should be using PSS instead.
-
-   In the OpenSSL wrapper, the verify function in generic,
-   and does not allow you to specify a padding type, as this
-   is an RSA specific property.
-
-   I propose we modify OpenSSL to add a function called
-   verifyBSRSA :: Digest -> BS -> key -> BS -> PaddingType -> IO VerifyStatus
-
-   We'll need to use the foreign function interface to call:
-   EVP_PKEY_CTX_set_rsa_padding in libSSL.
-
-   Lets do this after we have everything compiling.
--}
-
 eventSign :: (HasBRClientEnv context, AsServantError err, AsError err, SCSApp context err)
           => ST.User
           -> SignedEvent
