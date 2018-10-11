@@ -18,7 +18,6 @@ extra-deps:
 - hspec-discover-2.5.0
 - katip-0.5.5.0
 - hoist-error-0.2.1.0
-- HsOpenSSL-0.11.4.14
 
 resolver: lts-12.0
 # allow-newer: true
