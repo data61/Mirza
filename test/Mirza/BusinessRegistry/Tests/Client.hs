@@ -173,7 +173,7 @@ clientSpec = do
           _ <- http (addBusiness brAuthUser business)
 
           -- Add good RSA Public Key for using from the test cases.
-          goodKey <- goodRsaPublicKey
+          Just goodKey <- goodRsaPublicKey
 
           -- We delibrately test the "good user" that we will later add so that
           -- we know that we are failing because they aren't in the DB rather
@@ -286,7 +286,7 @@ clientSpec = do
           _                <- http (addUser brAuthUser userB2U1)
 
           -- Add good RSA Public Key for using from the test cases.
-          goodKey <- goodRsaPublicKey
+          Just goodKey <- goodRsaPublicKey
 
           step "Can add a good key (no exipry time)"
           b1K1PreInsertionTime <- getCurrentTime
@@ -472,7 +472,7 @@ clientSpec = do
                 files <- filter (".pub" `isSuffixOf`) <$> listDirectory directory
                 let fullyQualifiedFiles = (directory </>) <$> files
                 keys <- traverse readRsaPublicKey fullyQualifiedFiles
-                forM_ (zip files keys) $ \(keyName,key) -> do
+                forM_ (zip files keys) $ \(keyName,Just key) -> do
                   step $ "Testing " ++ keyDirectory ++ " key: " ++ keyName
                   http (addPublicKey (newUserToBasicAuthData userB1U1) key Nothing)
                     `shouldSatisfyIO` predicate
