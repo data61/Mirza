@@ -72,7 +72,7 @@ type PrivateAPI =
   :<|> "event"    :> "listUsers"            :> Capture "eventId" EventId                                      :> Get '[JSON] [(User, Bool)]
   :<|> "user"     :> "getId"                                                                                  :> Get '[JSON] UserId
 -- Event Registration
-  :<|> "event"    :> "objectEvent"          :> ReqBody '[JSON] ObjectEvent                                    :> Post '[JSON] (Ev.Event, Schema.EventId)
-  :<|> "event"    :> "aggregateEvent"       :> ReqBody '[JSON] AggregationEvent                               :> Post '[JSON] (Ev.Event, Schema.EventId)
-  :<|> "event"    :> "transactionEvent"     :> ReqBody '[JSON] TransactionEvent                               :> Post '[JSON] (Ev.Event, Schema.EventId)
-  :<|> "event"    :> "transformationEvent"  :> ReqBody '[JSON] TransformationEvent                            :> Post '[JSON] (Ev.Event, Schema.EventId)
+  :<|> "event"    :> "objectEvent"          :> ReqBody '[JSON] ObjectEvent                                    :> Post '[JSON] (EventInfo, Schema.EventId)
+  :<|> "event"    :> "aggregateEvent"       :> ReqBody '[JSON] AggregationEvent                               :> Post '[JSON] (EventInfo, Schema.EventId)
+  :<|> "event"    :> "transactionEvent"     :> ReqBody '[JSON] TransactionEvent                               :> Post '[JSON] (EventInfo, Schema.EventId)
+  :<|> "event"    :> "transformationEvent"  :> ReqBody '[JSON] TransformationEvent                            :> Post '[JSON] (EventInfo, Schema.EventId)

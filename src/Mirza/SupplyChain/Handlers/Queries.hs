@@ -1,42 +1,41 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 
 module Mirza.SupplyChain.Handlers.Queries
-  ( listEvents, eventInfo, eventList, eventUserList, eventsByUser
+  ( listEvents, eventInfo, eventInfoQuery, eventList, eventUserList, eventsByUser
   , eventUserSignedList
   , queryUserId
   ) where
 
 
+import           Mirza.SupplyChain.EventUtils          (findLabelId,
+                                                        findSchemaEvent,
+                                                        getEventList)
 import           Mirza.SupplyChain.Handlers.Common
-import           Mirza.SupplyChain.Handlers.EventRegistration (findLabelId,
-                                                               findSchemaEvent,
-                                                               getEventList)
 import           Mirza.SupplyChain.Handlers.Signatures
-import           Mirza.SupplyChain.Handlers.Users             (userTableToModel)
+import           Mirza.SupplyChain.Handlers.Users      (userTableToModel)
 
-import           Mirza.SupplyChain.Database.Schema            as Schema
-import           Mirza.SupplyChain.ErrorUtils                 (throwParseError)
+import           Mirza.SupplyChain.Database.Schema     as Schema
+import           Mirza.SupplyChain.ErrorUtils          (throwParseError)
 import           Mirza.SupplyChain.QueryUtils
-import           Mirza.SupplyChain.Types                      hiding
-                                                               (NewUser (..),
-                                                               User (..))
-import qualified Mirza.SupplyChain.Types                      as ST
+import           Mirza.SupplyChain.Types               hiding (NewUser (..),
+                                                        User (..))
+import qualified Mirza.SupplyChain.Types               as ST
 
-import           Data.GS1.DWhat                               (LabelEPC (..),
-                                                               urn2LabelEPC)
-import qualified Data.GS1.Event                               as Ev
-import           Data.GS1.EventId                             as EvId
+import           Data.GS1.DWhat                        (LabelEPC (..),
+                                                        urn2LabelEPC)
+import qualified Data.GS1.Event                        as Ev
+import           Data.GS1.EventId                      as EvId
 
-import           Database.Beam                                as B
+import           Database.Beam                         as B
 
-import           Control.Monad                                (unless)
+import           Control.Monad                         (unless)
 
-import           Data.Text.Encoding                           (decodeUtf8)
+import           Data.Text.Encoding                    (decodeUtf8)
 
-import           Data.Bifunctor                               (bimap)
-import           Data.Maybe                                   (isJust)
+import           Data.Bifunctor                        (bimap)
+import           Data.Maybe                            (isJust)
 
-import           Mirza.Common.Utils                           (fromPgJSON)
+import           Mirza.Common.Utils                    (fromPgJSON)
 
 -- This takes an EPC urn,
 -- and looks up all the events related to that item. First we've got
