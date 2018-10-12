@@ -22,7 +22,7 @@ then
 fi
 
 stack build --fast
-stack exec supplyChainServer-exe -- --init-db --brhost localhost --brport 8200
+stack exec supplyChainServer -- --init-db --brhost localhost --brport 8200
 stack exec businessRegistry -- initdb
 
 # eventuially, we will get an updated list from ASIC and populate the db
@@ -60,7 +60,7 @@ sleep $START_IN
 google-chrome "http://localhost:8000/swagger-ui/"
 
 # The sleep here is to queue this process so that it fires AFTER
-# the supplyChainServer-exe executable is run
+# the supplyChainServer executable is run
 (sleep 2 && \
 echo "Inserting a user. Username: abc@gmail.com, Password: password"
 curl -X POST "http://localhost:8000/newUser" \
@@ -71,4 +71,4 @@ echo; echo
 
 stack exec businessRegistry -- server &
 
-stack exec supplyChainServer-exe -- --brhost localhost --brport 8200 -e Dev
+stack exec supplyChainServer -- --brhost localhost --brport 8200 -e Dev
