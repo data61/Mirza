@@ -19,14 +19,14 @@ import           Mirza.SupplyChain.Handlers.Users  as SCS
 
 import           Mirza.SupplyChain.Handlers.Common
 
-genNUsersSCS :: Int -> [ST.NewUser]
-genNUsersSCS 0 = []
-genNUsersSCS n = mkNewUserByNumber n : genNUsersSCS (n - 1)
+genNUsersSCS :: String -> Int -> [ST.NewUser]
+genNUsersSCS _ 0        = []
+genNUsersSCS testName n = mkNewUserByNumber testName n : genNUsersSCS testName (n - 1)
 
-mkNewUserByNumber :: Int -> ST.NewUser
-mkNewUserByNumber n =
-  let numStr = show n
-      numT = T.pack  numStr
+mkNewUserByNumber :: String -> Int -> ST.NewUser
+mkNewUserByNumber testName n =
+  let numStr = testName ++ "_" ++ show n
+      numT = T.pack numStr
       numBS = BS.pack numStr
   in
   ST.NewUser
@@ -39,9 +39,10 @@ mkNewUserByNumber n =
 
 
 insertNUsersSCS :: (SCSApp context err, HasScryptParams context)
-                => Int
+                => String
+                -> Int
                 -> [AppM context err UserId]
-insertNUsersSCS n =
-  let users = genNUsersSCS n
+insertNUsersSCS testName n =
+  let users = genNUsersSCS testName n
   in
     SCS.addUser <$> users
