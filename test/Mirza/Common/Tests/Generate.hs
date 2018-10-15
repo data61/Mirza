@@ -38,10 +38,10 @@ mkNewUserByNumber n =
   , ST.newUserPassword = "re4lly$ecret14!"}
 
 
-insertNUsers :: (SCSApp context err, HasScryptParams context)
-             => Int
-             -> [AppM context err UserId]
-insertNUsers n =
+insertNUsersSCS :: (SCSApp context err, HasScryptParams context)
+                => Int
+                -> [AppM context err UserId]
+insertNUsersSCS n =
   let users = genNUsersSCS n
   in
     SCS.addUser <$> users
