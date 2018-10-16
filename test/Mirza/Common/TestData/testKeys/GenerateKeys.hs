@@ -1,6 +1,11 @@
 #!/usr/bin/env stack
 -- stack --resolver lts-12.12 script --package jose,aeson-pretty,cryptonite,lens,bytestring
 
+-- Used to generate good and bad keys for use with the tests. To runm just
+-- execute
+--    ./GenerateKeys.hs
+-- The file should be marked executable, and uses stack's `script` support.
+
 module Main where
 
 import           Crypto.JOSE
