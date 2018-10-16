@@ -16,11 +16,6 @@ To build the server, run:
 
 `stack build`
 
-The following is no longer necessary. *On MacOS, you need to `brew install openssl` and then run:*
-`stack build --extra-include-dirs=/usr/local/opt/openssl/include --extra-lib-dirs=/usr/local/opt/openssl/lib`
-
-*This is because Apple has deprecated the use of OpenSSL in favour of its own SSL and TLS libs.*
-
 ## Installing PostgreSQL
 
 PostgreSQL is used as the database backend. Before you run the server, make sure you have PostgreSQL 9 or higher installed.
