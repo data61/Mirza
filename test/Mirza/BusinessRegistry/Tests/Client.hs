@@ -173,7 +173,7 @@ clientSpec = do
           _ <- http (addBusiness brAuthUser business)
 
           -- Add good RSA Public Key for using from the test cases.
-          goodKey <- goodRsaPublicKey
+          Just goodKey <- goodRsaPublicKey
 
           -- We delibrately test the "good user" that we will later add so that
           -- we know that we are failing because they aren't in the DB rather
@@ -286,7 +286,7 @@ clientSpec = do
           _                <- http (addUser brAuthUser userB2U1)
 
           -- Add good RSA Public Key for using from the test cases.
-          goodKey <- goodRsaPublicKey
+          Just goodKey <- goodRsaPublicKey
 
           step "Can add a good key (no exipry time)"
           b1K1PreInsertionTime <- getCurrentTime
@@ -467,18 +467,18 @@ clientSpec = do
 
 
           -- Function to run a test predicate over all the keys in one of the test keys subdirectories.
-          let testDirectory keyDirectory predicate = do
+          let testDirectory keyDirectory suffix predicate = do
                 let directory = "test" </> "Mirza" </> "Common" </> "TestData" </> "testKeys" </> keyDirectory
-                files <- filter (".pub" `isSuffixOf`) <$> listDirectory directory
+                files <- filter (suffix `isSuffixOf`) <$> listDirectory directory
                 let fullyQualifiedFiles = (directory </>) <$> files
-                keys <- traverse readRsaPublicKey fullyQualifiedFiles
-                forM_ (zip files keys) $ \(keyName,key) -> do
+                keys <- traverse readJWK fullyQualifiedFiles
+                forM_ (zip files keys) $ \(keyName,Just key) -> do
                   step $ "Testing " ++ keyDirectory ++ " key: " ++ keyName
                   http (addPublicKey (newUserToBasicAuthData userB1U1) key Nothing)
                     `shouldSatisfyIO` predicate
 
           step "Can add all of the good keys"
-          testDirectory "goodKeys" isRight
+          testDirectory "goodJWKs" "_pub.json" isRight
           -- Note: 2041 / 2047 bit key tests have been moved to the good tests because we know that there is an issue
           -- with the implementation here based on limitiations of the library that we are using and have accepted that
           -- we will allow keys with this size to be supported even though we hope that our users will only use keys
@@ -486,7 +486,10 @@ clientSpec = do
           -- https://github.csiro.au/Blockchain/supplyChainServer/issues/212#issuecomment-13326 for further information.
 
           step "Can't add any of the bad keys"
-          testDirectory "badKeys" isLeft
+          -- The private keys from the goodJWKs dirctory are also bad keys
+          testDirectory "goodJWKs" "rsa.json" isLeft
+          testDirectory "badJWKs" "rsa.json" isLeft
+          testDirectory "badJWKs" "_pub.json" isLeft
   let locationTests = testCaseSteps "That locations work as expected" $ \step ->
         bracket runBRApp (\(a,b,_) -> endWaiApp (a,b)) $ \(_tid, baseurl, brAuthUser) -> do
           password <- randomPassword

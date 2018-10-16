@@ -70,7 +70,6 @@ library
                     , bytestring
                     , email-validate
                     , hoist-error >= 0.2
-                    , HsOpenSSL >= 0.11.4.14
                     , http-client
                     , insert-ordered-containers
                     , katip >= 0.5.4
@@ -95,6 +94,8 @@ library
                     , uuid-types
                     , wai
                     , warp
+                    , jose
+                    , cryptonite
   default-language:   Haskell2010
 
 
@@ -145,7 +146,6 @@ test-suite supplyChainServer-test
                      , scrypt
                      , servant
                      , servant-server
-                     , HsOpenSSL >= 0.11.4.14
                      , text
                      , time
                      , uuid
@@ -158,6 +158,8 @@ test-suite supplyChainServer-test
                      , servant-client
                      , katip
                      , temporary
+                     , jose
+                     , aeson
   default-language:    Haskell2010
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N -Wall -Werror
 
@@ -188,7 +190,6 @@ test-suite businessRegistry-test
                      , directory
                      , filepath
                      , hspec
-                     , HsOpenSSL >= 0.11.4.14
                      , hspec-core
                      , http-client
                      , http-types
@@ -208,6 +209,8 @@ test-suite businessRegistry-test
                      , katip
                      , uuid
                      , temporary
+                     , jose
+                     , aeson
   default-language:    Haskell2010
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N -Wall -Werror
 

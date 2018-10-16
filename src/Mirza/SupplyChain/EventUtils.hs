@@ -45,7 +45,6 @@ import           Data.GS1.DWhy                     (DWhy (..))
 import           Data.Maybe                        (catMaybes)
 
 import           Data.ByteString                   (ByteString)
-import           Data.Text.Encoding                (decodeUtf8)
 import qualified Data.Text                         as T
 
 import           Data.Time.LocalTime               (timeZoneOffsetString)
@@ -54,6 +53,8 @@ import           Database.Beam                     as B
 import           Database.Beam.Postgres            (PgJSON (..))
 
 import           Control.Monad                     (void)
+
+import           Crypto.JOSE.Types                 (Base64Octets (..))
 
 -- Helper functions
 
@@ -336,7 +337,7 @@ insertEvent userId@(Schema.UserId uuid) event = do
         $ insertValues
             [toStorageEvent (Schema.EventId pKey) (_eid event)
               userId (PgJSON event) toSignEvent]
-  return ((EventInfo event [] [(ST.UserId uuid)] (decodeUtf8 $ toSignEvent) NotSent),
+  return ((EventInfo event [] [(ST.UserId uuid)] (Base64Octets toSignEvent) NotSent),
       eventId)
 
 
