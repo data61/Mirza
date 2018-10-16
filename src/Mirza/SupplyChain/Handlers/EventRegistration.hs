@@ -65,7 +65,7 @@ insertObjectEventQuery
   mapM_ (insertWhatLabel (Schema.WhatId whatId)) labelIds
   mapM_ (insertLabelEvent eventId) labelIds
   evtInfo <- eventInfoQuery user (EvId.EventId schemaEventId)
-  return (evtInfo, eventId)
+  pure (evtInfo, eventId)
 
 
 insertAggEvent :: SCSApp context err => ST.User
@@ -104,7 +104,7 @@ insertAggEventQuery
   insertUserEvent eventId userId userId False Nothing
   mapM_ (insertWhatLabel (Schema.WhatId whatId)) labelIds
   mapM_ (insertLabelEvent eventId) labelIds
-  return (evInfo, eventId)
+  pure (evInfo, eventId)
 
 
 insertTransactEvent :: SCSApp context err => ST.User
@@ -147,7 +147,7 @@ insertTransactEventQuery
   mapM_ (insertLabelEvent eventId) labelIds
 
   evtInfo <- eventInfoQuery user (EvId.EventId schemaEventId)
-  return (evtInfo, eventId)
+  pure (evtInfo, eventId)
 
 
 insertTransfEvent :: SCSApp context err => ST.User
@@ -188,4 +188,4 @@ insertTransfEventQuery
   mapM_ (insertLabelEvent eventId) labelIds
 
   evtInfo <- eventInfoQuery user (EvId.EventId schemaEventId)
-  return (evtInfo, eventId)
+  pure (evtInfo, eventId)
