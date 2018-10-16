@@ -166,4 +166,4 @@ insertDummies = do
   businessPfx <- addBusiness dummyBusiness
   uid <- addUser dummyNewUser {newUserCompany=businessPfx}
   tableUser <- runDb $ getUserByIdQuery uid
-  return (tableToAuthUser . fromJust $ tableUser)
+  pure (tableToAuthUser . fromJust $ tableUser)

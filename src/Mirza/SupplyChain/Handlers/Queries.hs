@@ -7,7 +7,7 @@ module Mirza.SupplyChain.Handlers.Queries
   ) where
 
 
-import           Mirza.Common.Utils                           (fromPgJSON)
+import           Mirza.Common.Utils                    (fromPgJSON)
 import           Mirza.SupplyChain.EventUtils          (findLabelId,
                                                         findSchemaEvent,
                                                         getEventList)
@@ -29,12 +29,12 @@ import           Data.GS1.EventId                      as EvId
 
 import           Database.Beam                         as B
 
-import           Control.Lens                                 (( # ))
+import           Control.Lens                          (( # ))
 import           Control.Monad.Error.Hoist
 
 import           Data.Bifunctor                        (bimap)
 
-import           Crypto.JOSE.Types                            (Base64Octets (..))
+import           Crypto.JOSE.Types                     (Base64Octets (..))
 
 
 -- This takes an EPC urn,
@@ -48,7 +48,7 @@ listEvents _user = either throwParseError (runDb . listEventsQuery) . urn2LabelE
 
 listEventsQuery :: AsServiceError err => LabelEPC -> DB context err [Ev.Event]
 listEventsQuery labelEpc =
-  maybe (return []) (getEventList . Schema.LabelId) =<< findLabelId labelEpc
+  maybe (pure []) (getEventList . Schema.LabelId) =<< findLabelId labelEpc
 
 
 eventInfo :: (SCSApp context err, AsServantError err)
@@ -69,7 +69,7 @@ eventInfoQuery _user eventId@(EvId.EventId eId) = do
       signedUserIds = (ST.userId . fst) <$> filter snd usersWithEvent
   signedEvents <- mapM (flip findSignedEventByUser eventId) signedUserIds
   let usersAndSignedEvents = zip signedUserIds signedEvents
-  return $ EventInfo event usersAndSignedEvents unsignedUserIds
+  pure $ EventInfo event usersAndSignedEvents unsignedUserIds
                   (Base64Octets $ event_to_sign schemaEvent) NotSent
 
 
@@ -108,7 +108,7 @@ eventUserSignedList (EvId.EventId eventId) = do
     guard_ (Schema.user_events_event_id userEvent ==. val_ (Schema.EventId eventId))
     user <- related_ (Schema._users Schema.supplyChainDb) (Schema.user_events_user_id userEvent)
     pure (user, Schema.user_events_has_signed userEvent)
-  return $ bimap userTableToModel id <$> usersSignedList
+  pure $ bimap userTableToModel id <$> usersSignedList
 
 queryUserId :: SCSApp context err => ST.User -> AppM context err ST.UserId
-queryUserId = return . ST.userId
+queryUserId = pure . ST.userId

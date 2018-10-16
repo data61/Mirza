@@ -379,13 +379,13 @@ instance ToSchema JWK where
 
 instance ToSchema (JWS Identity () JWSHeader) where
   declareNamedSchema _ =
-    return $ NamedSchema (Just "JWS") $ mempty
+    pure $ NamedSchema (Just "JWS") mempty
 
 instance ToSchema (Signature () JWSHeader) where
   declareNamedSchema _ =
-    return $ NamedSchema (Just "JWS Signature") $ mempty
+    pure $ NamedSchema (Just "JWS Signature") mempty
 
 instance ToSchema Base64Octets where
   declareNamedSchema _ =
-    return $ NamedSchema (Just "Base64 Encoded Bytes") $ mempty
+    pure $ NamedSchema (Just "Base64 Encoded Bytes") $ mempty
       & type_ .~ SwaggerString
