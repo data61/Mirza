@@ -30,8 +30,7 @@ import           Mirza.SupplyChain.Database.Schema     as Schema
 import           Mirza.BusinessRegistry.Client.Servant (addPublicKey)
 import           Mirza.BusinessRegistry.Tests.Utils    (goodRsaPrivateKey,
                                                         goodRsaPublicKey,
-                                                        readRsaPrivateKey,
-                                                        readRsaPublicKey)
+                                                        readJWK)
 
 import           Mirza.Common.Tests.ServantUtils
 import           Mirza.Common.Tests.Utils
@@ -225,8 +224,8 @@ clientSpec = do
           httpBR (BRClient.addUser globalAuthData userBRGiver) `shouldSatisfyIO` isRight
 
           step "Tying the giver user with a good key"
-          Just goodPubKeyGiver <- readRsaPublicKey "./test/Mirza/Common/TestData/testKeys/goodJWKs/4096bit_rsa_pub.json"
-          Just goodPrivKeyGiver <- readRsaPrivateKey "./test/Mirza/Common/TestData/testKeys/goodJWKs/4096bit_rsa.json"
+          Just goodPubKeyGiver <- readJWK "./test/Mirza/Common/TestData/testKeys/goodJWKs/4096bit_rsa_pub.json"
+          Just goodPrivKeyGiver <- readJWK "./test/Mirza/Common/TestData/testKeys/goodJWKs/4096bit_rsa.json"
           keyIdResponseGiver <- httpBR (addPublicKey authABC goodPubKeyGiver Nothing)
           keyIdResponseGiver `shouldSatisfy` isRight
           let keyIdGiver = fromRight (BRKeyId nil) keyIdResponseGiver
@@ -294,8 +293,8 @@ clientSpec = do
           unsignedUsers `shouldBe` [userIdReceiver]
           -- step "Signing the event with the second user"
           step "Tying the receiver user with a good key"
-          Just goodPubKeyReceiver <- readRsaPublicKey "./test/Mirza/Common/TestData/testKeys/goodJWKs/16384bit_rsa_pub.json"
-          Just goodPrivKeyReceiver <- readRsaPrivateKey "./test/Mirza/Common/TestData/testKeys/goodJWKs/16384bit_rsa.json"
+          Just goodPubKeyReceiver <- readJWK "./test/Mirza/Common/TestData/testKeys/goodJWKs/16384bit_rsa_pub.json"
+          Just goodPrivKeyReceiver <- readJWK "./test/Mirza/Common/TestData/testKeys/goodJWKs/16384bit_rsa.json"
           keyIdResponseReceiver <- httpBR (addPublicKey authDEF goodPubKeyReceiver Nothing)
           keyIdResponseReceiver `shouldSatisfy` isRight
           let keyIdReceiver = fromRight (BRKeyId nil) keyIdResponseReceiver
