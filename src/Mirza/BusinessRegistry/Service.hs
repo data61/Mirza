@@ -93,7 +93,7 @@ appMToHandler context act = do
   res <- liftIO $ runAppM context act
   case res of
     Left err -> runKatipContextT (context ^. katipLogEnv) () (context ^. katipNamespace) (brErrorToHttpError err)
-    Right a  -> return a
+    Right a  -> pure a
 
 
 -- | Swagger spec for server API.

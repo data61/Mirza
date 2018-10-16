@@ -71,7 +71,7 @@ addUserQuery (BRT.NewUser userEmail password biz firstName lastName phone) = do
                phone (Scrypt.getEncryptedPass encPass) userEmail
        ]
   case res of
-      [r] -> return $ UserId $ user_id r
+      [r] -> pure $ UserId $ user_id r
       -- The user creation has failed, but we can't really think of what would lead to this case.
       _   -> throwing _UserCreationErrorBRE ((show res), callStack)
 
@@ -83,8 +83,8 @@ getUserByIdQuery (UserId uid) = do
           guard_ (user_id user ==. val_ uid)
           pure user
   case r of
-    [user] -> return $ Just user
-    _      -> return Nothing
+    [user] -> pure $ Just user
+    _      -> pure Nothing
 
 
 -- | Converts a DB representation of ``User`` to ``AuthUser``
