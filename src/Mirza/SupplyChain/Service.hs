@@ -101,7 +101,7 @@ appMToHandler context act = do
   res <- liftIO $ runAppM context act
   case res of
     Left (AppError e) -> appErrToHttpErr e
-    Right a           -> return a
+    Right a           -> pure a
 
 -- | Swagger spec for server API.
 serveSwaggerAPI :: Swagger

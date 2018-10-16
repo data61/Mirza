@@ -171,7 +171,7 @@ addPublicKeyQuery (AuthUser (CT.UserId uid)) expTime jwk = do
             (toDbTimestamp timestamp) Nothing (Schema.UserId Nothing) (toDbTimestamp <$> expTime)
         ]
   case ks of
-    [rowId] -> return (CT.BRKeyId $ key_id rowId)
+    [rowId] -> pure (CT.BRKeyId $ key_id rowId)
     _       -> throwing _PublicKeyInsertionErrorBRKE (map (CT.BRKeyId . key_id) ks)
 
 
@@ -229,7 +229,7 @@ revokePublicKeyQuery userId k@(CT.BRKeyId keyId) = do
                 (\key -> [ revocation_time key  <-. val_ (Just $ toDbTimestamp timestamp)
                          , revoking_user_id key <-. val_ (Schema.UserId $ Just $ getUserId userId)])
                 (\key -> key_id key ==. (val_ keyId))
-  return $ RevocationTime timestamp
+  pure $ RevocationTime timestamp
 
 
 doesUserOwnKeyQuery :: CT.UserId
@@ -241,7 +241,7 @@ doesUserOwnKeyQuery (CT.UserId uId) (CT.BRKeyId keyId) = do
           guard_ (key_id key ==. val_ keyId)
           guard_ (val_ (Schema.UserId uId) ==. (key_user_id key))
           pure key
-  return $ isJust r
+  pure $ isJust r
 
 getKeyById :: CT.BRKeyId
            -> DB context err (Maybe Key)
