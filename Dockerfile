@@ -13,4 +13,4 @@ EXPOSE 8000
 
 WORKDIR /app/supplyChainServer
 
-CMD ["stack", "exec", "supplyChainServer-exe", "--", "run"]
+CMD ["stack", "exec", "supplyChainServer", "--", "run"]
