@@ -9,6 +9,7 @@ module Mirza.BusinessRegistry.Handlers.Keys
   , revokePublicKey
   , addPublicKey
   , getKeyById
+  , getKeyState
   ) where
 
 
@@ -75,7 +76,7 @@ keyToKeyInfo :: (MonadError err m, AsBRKeyError err)
 keyToKeyInfo currTime (Schema.KeyT keyId (Schema.UserId keyUserId) pemStr creation revocationTime revocationUser expiration) = do
   revocation <- composeRevocation revocationTime revocationUser
   pure $ KeyInfoResponse (CT.BRKeyId keyId) (CT.UserId keyUserId)
-    (getKeyState
+    (getKeyState currTime
       (fromDbTimestamp <$> revocationTime)
       (fromDbTimestamp <$> expiration)
     )
@@ -99,22 +100,23 @@ keyToKeyInfo currTime (Schema.KeyT keyId (Schema.UserId keyUserId) pemStr creati
     composeRevocation time@(Just _) (Schema.UserId Nothing)     = throwing _InvalidRevocationBRKE (time, Nothing, callStack)
     composeRevocation time          (Schema.UserId user)        = pure $ ((,) <$> (fromDbTimestamp <$> time) <*> (CT.UserId  <$> user))
 
-    -- TODO: After migrating to JOSE, there should always be an expiration time.
-    getKeyState :: Maybe RevocationTime
-                -> Maybe ExpirationTime
-                -> KeyState
-    -- order of precedence - Revoked > Expired
-    getKeyState (Just (RevocationTime rTime)) (Just (ExpirationTime eTime))
-      | currTime >= rTime = Revoked
-      | currTime >= eTime = Expired
-      | otherwise        = InEffect
-    getKeyState Nothing (Just (ExpirationTime eTime))
-      | currTime >= eTime = Expired
-      | otherwise        = InEffect
-    getKeyState (Just (RevocationTime rTime)) Nothing
-      | currTime >= rTime = Revoked
-      | otherwise        = InEffect
-    getKeyState Nothing Nothing = InEffect
+-- TODO: After migrating to JOSE, there should always be an expiration time.
+getKeyState :: UTCTime
+            -> Maybe RevocationTime
+            -> Maybe ExpirationTime
+            -> KeyState
+-- order of precedence - Revoked > Expired
+getKeyState currTime (Just (RevocationTime rTime)) (Just (ExpirationTime eTime))
+  | currTime >= rTime = Revoked
+  | currTime >= eTime = Expired
+  | otherwise        = InEffect
+getKeyState currTime Nothing (Just (ExpirationTime eTime))
+  | currTime >= eTime = Expired
+  | otherwise        = InEffect
+getKeyState currTime (Just (RevocationTime rTime)) Nothing
+  | currTime >= rTime = Revoked
+  | otherwise        = InEffect
+getKeyState _ Nothing Nothing = InEffect
 
 
 getPublicKeyInfoQuery :: CT.BRKeyId
