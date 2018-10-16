@@ -1,5 +1,6 @@
+{-# LANGUAGE DataKinds             #-}
+{-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE DataKinds #-}
 
 
 module Mirza.BusinessRegistry.Handlers.Keys
@@ -20,22 +21,24 @@ import           Mirza.Common.Utils
 
 import           Database.Beam                            as B
 import           Database.Beam.Backend.SQL.BeamExtensions
-import           Database.Beam.Postgres                   (PgJSON(..))
+import           Database.Beam.Postgres                   (PgJSON (..))
 
 import           Data.Time.Clock                          (UTCTime,
                                                            getCurrentTime)
 import           Data.Time.LocalTime
 
+import           Control.Lens                             (( # ), (^.))
 import           Control.Monad                            (unless, when)
-import           Data.Maybe                               (isJust, isNothing)
 import           Control.Monad.Error.Hoist                ((<!?>))
-import           Control.Lens                             ((#), (^.))
 import           Data.Foldable                            (for_)
+import           Data.Maybe                               (isJust, isNothing)
+import           GHC.Stack                                (HasCallStack,
+                                                           callStack)
 
-import           GHC.Stack                                (HasCallStack, callStack)
-
+import           Crypto.JOSE.JWA.JWK                      (KeyMaterial (RSAKeyMaterial),
+                                                           RSAKeyParameters (..),
+                                                           rsaPublicKey)
 import           Crypto.JOSE.JWK                          (JWK, jwkMaterial)
-import           Crypto.JOSE.JWA.JWK                      (KeyMaterial(RSAKeyMaterial), RSAKeyParameters(..), rsaPublicKey)
 import           Crypto.PubKey.RSA.Types                  (public_size)
 
 
@@ -54,7 +57,7 @@ getPublicKeyQuery :: CT.BRKeyId
 getPublicKeyQuery (CT.BRKeyId uuid) = pg $ runSelectReturningOne $
   select $ do
     keys <- all_ (_keys businessRegistryDB)
-    guard_ (primaryKey keys ==. val_ (Schema.KeyId uuid)) 
+    guard_ (primaryKey keys ==. val_ (Schema.KeyId uuid))
     pure (key_jwk keys)
 
 getPublicKeyInfo :: ( Member context '[HasEnvType, HasConnPool, HasLogging]
@@ -132,17 +135,17 @@ addPublicKey :: ( Member context '[HasEnvType, HasConnPool, HasLogging]
              -> AppM context err CT.BRKeyId
 addPublicKey user jwk mExp = do
   checkJWKPubKey jwk
-  runDb $ addPublicKeyQuery user mExp jwk 
+  runDb $ addPublicKeyQuery user mExp jwk
 
 -- | Checks the validity of a JWK to ensure that it is
 -- a) an RSA public key
--- b) at least 2040 bits (since it's technically possible to have an RSA public
---    key which is 256 bytes but not 2048 bits)
+-- b) at least `minPubKeySize`-7 bits (since it's technically possible to have an RSA
+-- public key which is n/8 bytes but not n bits)
 -- c) Key does not also contain a private key
-checkJWKPubKey :: ( Member err '[AsBRKeyError], MonadError err m) 
+checkJWKPubKey :: ( Member err '[AsBRKeyError], MonadError err m)
                => JWK
                -> m ()
-checkJWKPubKey jwk = 
+checkJWKPubKey jwk =
   case jwk ^. jwkMaterial of
     RSAKeyMaterial params@(RSAKeyParameters _ _ Nothing) ->
       let keysize = Bit (8 * public_size{-bytes-} (rsaPublicKey params))

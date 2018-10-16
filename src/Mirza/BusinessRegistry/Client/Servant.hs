@@ -29,13 +29,13 @@ import           Servant.Client
 
 import           Data.Proxy                             (Proxy (..))
 
-getPublicKey       :: BRKeyId -> ClientM JWK
-getPublicKeyInfo   :: BRKeyId -> ClientM KeyInfoResponse
-listBusinesses :: ClientM [BusinessResponse]
+getPublicKey     :: BRKeyId -> ClientM JWK
+getPublicKeyInfo :: BRKeyId -> ClientM KeyInfoResponse
+listBusinesses   :: ClientM [BusinessResponse]
 
 addUser          :: BasicAuthData -> NewUser     -> ClientM UserId
 addBusiness      :: BasicAuthData -> NewBusiness -> ClientM GS1CompanyPrefix
-addPublicKey    :: BasicAuthData -> JWK -> Maybe ExpirationTime -> ClientM BRKeyId
+addPublicKey     :: BasicAuthData -> JWK -> Maybe ExpirationTime -> ClientM BRKeyId
 revokePublicKey  :: BasicAuthData -> BRKeyId -> ClientM RevocationTime
 addLocation      :: BasicAuthData -> NewLocation -> ClientM LocationId
 getLocationByGLN :: BasicAuthData -> LocationEPC -> ClientM LocationResponse
