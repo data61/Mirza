@@ -1,0 +1,7 @@
+{
+  "kty": "RSA",
+  "e": "AQAB",
+  "use": "sig",
+  "kid": "MkJWKs example key",
+  "n": "vd4nt2FMhocDWwfIjCFVVpyKQN6Xs9p-4ARsorlUIXNbJaIflpTI80JjUjudHifR3Wban8gNONGtscJ3D2ZdI9wxnnAhzTvwcDhnhHLLvMkF0X_S6WQzW36V4dfHT6as10ScFP08aS8RM0XtcG6nAF2Pm8pZvKzqp0t-Cktnm5VZ8mXV5Ov3aHSg-mwcVFH3IrT0PW2amDOHQcU7dT5-Cs1qHvnfOi_1bffGK9cLsUiiiHfpFJ3CzJzd47yBqfpGNn7BZ64vVATWciclIQMZyNPHvqQnnECfVzI4y4ajWWa9FB4iTRuPCFwE1EXrig3tY9n_MTBCu-wZ11zJWM73ZQ"
+}
