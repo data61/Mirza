@@ -471,7 +471,7 @@ clientSpec = do
                 let directory = "test" </> "Mirza" </> "Common" </> "TestData" </> "testKeys" </> keyDirectory
                 files <- filter (suffix `isSuffixOf`) <$> listDirectory directory
                 let fullyQualifiedFiles = (directory </>) <$> files
-                keys <- traverse readRsaPublicKey fullyQualifiedFiles
+                keys <- traverse readJWK fullyQualifiedFiles
                 forM_ (zip files keys) $ \(keyName,Just key) -> do
                   step $ "Testing " ++ keyDirectory ++ " key: " ++ keyName
                   http (addPublicKey (newUserToBasicAuthData userB1U1) key Nothing)
