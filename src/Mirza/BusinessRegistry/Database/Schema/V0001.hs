@@ -61,9 +61,7 @@ instance Database anybackend BusinessRegistryDB
 migration :: () -> Migration PgCommandSyntax (CheckedDatabaseSettings Postgres BusinessRegistryDB)
 migration () =
   BusinessRegistryDB
-    <$> createTable "users"
-    (
-      UserT
+    <$> createTable "users" (UserT
           (field "user_id" pkSerialType)
           (BizId (field "user_biz_id" gs1CompanyPrefixType))
           (field "first_name" (varchar (Just defaultFieldMaxLength)) notNull)
@@ -71,16 +69,12 @@ migration () =
           (field "phone_number" (varchar (Just defaultFieldMaxLength)) notNull)
           (field "password_hash" binaryLargeObject notNull)
           (field "email_address" emailAddressType unique)
-    )
-    <*> createTable "businesses"
-    (
-      BusinessT
+          )
+    <*> createTable "businesses" (BusinessT
           (field "biz_gs1_company_prefix" gs1CompanyPrefixType)
           (field "biz_name" (varchar (Just defaultFieldMaxLength)) notNull)
-    )
-    <*> createTable "keys"
-    (
-      KeyT
+          )
+    <*> createTable "keys" (KeyT
           (field "key_id" pkSerialType)
           (UserId (field "key_user_id" pkSerialType))
           (field "jwk" json notNull)
@@ -88,7 +82,7 @@ migration () =
           (field "revocation_time" (maybeType timestamptz))
           (UserId (field "revoking_user_id" (maybeType pkSerialType)))
           (field "expiration_time" (maybeType timestamptz))
-    )
+          )
 
 --------------------------------------------------------------------------------
 -- User table.
