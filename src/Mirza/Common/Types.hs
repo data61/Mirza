@@ -5,12 +5,14 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE KindSignatures             #-}
 {-# LANGUAGE MultiParamTypeClasses      #-}
+{-# LANGUAGE OverloadedLists            #-}
 {-# LANGUAGE StandaloneDeriving         #-}
 {-# LANGUAGE TemplateHaskell            #-}
 {-# LANGUAGE TypeApplications           #-}
 {-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE TypeOperators              #-}
 {-# LANGUAGE UndecidableInstances       #-}
+{-# OPTIONS_GHC -Wno-orphans            #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans       #-}
 
@@ -41,7 +43,6 @@ module Mirza.Common.Types
   , PrimaryKeyType
   , brKeyIdType
   , runClientFunc
-  , Digest(..) -- reexporting from Mirza.Common.GS1BeamOrphans
   ) where
 
 import qualified Database.Beam                        as B
@@ -59,8 +60,6 @@ import           Database.PostgreSQL.Simple.ToField   (ToField, toField)
 
 import           Data.Proxy                           (Proxy (..))
 
-import           Mirza.Common.GS1BeamOrphans          (Digest (..))
-
 import qualified Control.Exception                    as Exc
 import qualified Control.Exception                    as E
 import           Control.Monad.Except                 (ExceptT (..), MonadError,
@@ -73,6 +72,9 @@ import           Control.Monad.Trans                  (lift)
 
 import           Data.Pool                            as Pool
 
+import           Crypto.JOSE                          (JWK, JWS, JWSHeader,
+                                                       Signature)
+import           Crypto.JOSE.Types                    (Base64Octets)
 import           Crypto.Scrypt                        (ScryptParams)
 
 import qualified Data.ByteString                      as BS
@@ -358,3 +360,32 @@ runClientFunc :: (AsServantError err, HasBRClientEnv context)
 runClientFunc func = do
   cEnv <- view clientEnv
   either (throwing _ServantError) pure =<< liftIO (runClientM func cEnv)
+
+
+
+
+-- TODO: Orphan for JWK
+
+instance ToSchema JWK where
+  declareNamedSchema _ = do
+    strSchema <- declareSchemaRef (Proxy :: Proxy String)
+    pure $ NamedSchema (Just "JWK") $ mempty
+      & type_ .~ SwaggerObject
+      & properties .~
+          [ ("kty",strSchema)
+          , ("n",strSchema)
+          , ("e",strSchema)
+          ]
+
+instance ToSchema (JWS Identity () JWSHeader) where
+  declareNamedSchema _ =
+    return $ NamedSchema (Just "JWS") $ mempty
+
+instance ToSchema (Signature () JWSHeader) where
+  declareNamedSchema _ =
+    return $ NamedSchema (Just "JWS Signature") $ mempty
+
+instance ToSchema Base64Octets where
+  declareNamedSchema _ =
+    return $ NamedSchema (Just "Base64 Encoded Bytes") $ mempty
+      & type_ .~ SwaggerString

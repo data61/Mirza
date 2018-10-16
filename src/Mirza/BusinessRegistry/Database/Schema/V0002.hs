@@ -1,7 +1,7 @@
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE TypeFamilies          #-}
-{-# LANGUAGE StandaloneDeriving    #-}
 {-# LANGUAGE DeriveGeneric         #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE StandaloneDeriving    #-}
+{-# LANGUAGE TypeFamilies          #-}
 
 
 
@@ -11,27 +11,29 @@ module Mirza.BusinessRegistry.Database.Schema.V0002
 
  ) where
 
-import qualified Data.GS1.EPC                     as EPC
+import qualified Data.GS1.EPC                                 as EPC
 import           Mirza.BusinessRegistry.Types
 import           Mirza.Common.GS1BeamOrphans
-import           Mirza.Common.Types               (PrimaryKeyType)
+import           Mirza.Common.Types                           (PrimaryKeyType)
 
 import           Control.Lens
-import           Data.Text                        (Text)
+import           Data.Text                                    (Text)
 
-import           Database.Beam                    as B
+import           Database.Beam                                as B
 import           Database.Beam.Migrate.SQL.Tables
 import           Database.Beam.Migrate.Types
 import           Database.Beam.Postgres
 
 import           Data.Aeson
 import           Data.Swagger
-import           Servant (ToHttpApiData(toUrlPiece), FromHttpApiData(parseUrlPiece))
+import           Servant                                      (FromHttpApiData (parseUrlPiece),
+                                                               ToHttpApiData (toUrlPiece))
 
-import           GHC.Generics (Generic)
+import           GHC.Generics                                 (Generic)
 
+import           Mirza.BusinessRegistry.Database.Schema.V0001 as V0001' hiding (BusinessRegistryDB (..),
+                                                                         migration)
 import qualified Mirza.BusinessRegistry.Database.Schema.V0001 as V0001
-import           Mirza.BusinessRegistry.Database.Schema.V0001 as V0001' hiding (BusinessRegistryDB(..), migration)
 
 
 
@@ -53,28 +55,26 @@ migration v0001 = BusinessRegistryDB
   <$> preserve (V0001._users      v0001)
   <*> preserve (V0001._businesses v0001)
   <*> preserve (V0001._keys       v0001)
-  <*> createTable "location"
-        (LocationT
-          (field "location_id" V0001.pkSerialType)
-          (field "location_gln" locationEPCType)
-          (V0001.BizId (field "location_biz_id" gs1CompanyPrefixType))
+  <*> createTable "location" (LocationT
+        (field "location_id" V0001.pkSerialType)
+        (field "location_gln" locationEPCType)
+        (V0001.BizId (field "location_biz_id" gs1CompanyPrefixType))
         )
-  <*> createTable "geo_location"
-        (GeoLocationT
-          (field "geo_location_id"      V0001.pkSerialType)
-          (LocationId (field "geo_location_gln"     locationEPCType))
-          (field "geo_location_lat"     (maybeType latitudeType))
-          (field "geo_location_lon"     (maybeType longitudeType))
-          (field "geo_location_address" (maybeType $ varchar Nothing))
+  <*> createTable "geo_location" (GeoLocationT
+        (field "geo_location_id"      V0001.pkSerialType)
+        (LocationId (field "geo_location_gln"     locationEPCType))
+        (field "geo_location_lat"     (maybeType latitudeType))
+        (field "geo_location_lon"     (maybeType longitudeType))
+        (field "geo_location_address" (maybeType $ varchar Nothing))
         )
 
 type Location = LocationT Identity
 deriving instance Show Location
 
 data LocationT f = LocationT
-  { location_id        :: C f PrimaryKeyType
-  , location_gln       :: C f EPC.LocationEPC
-  , location_biz_id    :: PrimaryKey V0001.BusinessT f
+  { location_id     :: C f PrimaryKeyType
+  , location_gln    :: C f EPC.LocationEPC
+  , location_biz_id :: PrimaryKey V0001.BusinessT f
   }
   deriving Generic
 
@@ -131,7 +131,7 @@ instance Beamable (PrimaryKey GeoLocationT)
 instance Table GeoLocationT where
   newtype PrimaryKey GeoLocationT f = GeoLocationId (C f PrimaryKeyType)
     deriving Generic
-  primaryKey = GeoLocationId . geoLocation_id 
+  primaryKey = GeoLocationId . geoLocation_id
 deriving instance Eq (PrimaryKey GeoLocationT Identity)
 
 instance ToHttpApiData (PrimaryKey GeoLocationT Identity) where

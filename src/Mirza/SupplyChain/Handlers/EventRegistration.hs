@@ -1,5 +1,4 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE TupleSections         #-}
 
 module Mirza.SupplyChain.Handlers.EventRegistration
   (
@@ -65,8 +64,8 @@ insertObjectEventQuery
   insertUserEvent eventId userId userId False Nothing
   mapM_ (insertWhatLabel (Schema.WhatId whatId)) labelIds
   mapM_ (insertLabelEvent eventId) labelIds
-  evInfo <- eventInfoQuery user (EvId.EventId schemaEventId)
-  return (evInfo, eventId)
+  evtInfo <- eventInfoQuery user (EvId.EventId schemaEventId)
+  return (evtInfo, eventId)
 
 
 insertAggEvent :: SCSApp context err => ST.User
@@ -147,8 +146,8 @@ insertTransactEventQuery
   mapM_ (insertWhatLabel (Schema.WhatId whatId)) labelIds
   mapM_ (insertLabelEvent eventId) labelIds
 
-  evInfo <- eventInfoQuery user (EvId.EventId schemaEventId)
-  return (evInfo, eventId)
+  evtInfo <- eventInfoQuery user (EvId.EventId schemaEventId)
+  return (evtInfo, eventId)
 
 
 insertTransfEvent :: SCSApp context err => ST.User
@@ -188,5 +187,5 @@ insertTransfEventQuery
   mapM_ (insertWhatLabel (Schema.WhatId whatId)) labelIds
   mapM_ (insertLabelEvent eventId) labelIds
 
-  evInfo <- eventInfoQuery user (EvId.EventId schemaEventId)
-  return (evInfo, eventId)
+  evtInfo <- eventInfoQuery user (EvId.EventId schemaEventId)
+  return (evtInfo, eventId)

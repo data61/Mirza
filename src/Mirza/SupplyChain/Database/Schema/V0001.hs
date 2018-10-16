@@ -41,6 +41,8 @@ import           Database.Beam.Migrate.Types
 import           Database.Beam.Postgres
 import           Database.Beam.Postgres.Syntax    (PgDataTypeSyntax)
 
+import           Crypto.JOSE                      (CompactJWS, JWSHeader)
+
 import           Text.Email.Validate              (EmailAddress)
 
 --------------------------------------------------------------------------------
@@ -240,8 +242,7 @@ migration () =
           (UserId (field "signature_user_id" pkSerialType notNull))
           (EventId (field "signature_event_id" pkSerialType notNull))
           (field "signature_key_id" brKeyIdType notNull)
-          (field "signature_signature" bytea notNull)
-          (field "signature_digest" digestType notNull)
+          (field "signature_signature" json notNull)
           (field "signature_timestamp" timestamptz notNull)
     )
     <*> createTable "hashes"
@@ -737,8 +738,7 @@ data SignatureT f = Signature
   , signature_user_id   :: PrimaryKey UserT f
   , signature_event_id  :: PrimaryKey EventT f
   , signature_key_id    :: C f BRKeyId
-  , signature_signature :: C f ByteString
-  , signature_digest    :: C f Digest
+  , signature_signature :: C f (PgJSON (CompactJWS JWSHeader))
   , signature_timestamp :: C f LocalTime -- Stored as UTC Time
   }
   deriving Generic

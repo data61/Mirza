@@ -18,6 +18,7 @@ import           Mirza.BusinessRegistry.Tests.Dummies
 import           Mirza.BusinessRegistry.Types             as BT
 import           Mirza.Common.Time                        (CreationTime (..),
                                                            ExpirationTime (..))
+import           Mirza.Common.Utils                       (fromPgJSON)
 
 import           Mirza.BusinessRegistry.Tests.Utils
 
@@ -30,7 +31,7 @@ import           Data.Time.LocalTime                      (LocalTime, utc,
 import           GHC.Stack                                (HasCallStack)
 import           Test.Hspec
 
-import           Control.Concurrent                     (threadDelay)
+import           Control.Concurrent                       (threadDelay)
 
 timeStampIO :: MonadIO m => m LocalTime
 timeStampIO = liftIO $ (utcToLocalTime utc) <$> getCurrentTime
@@ -48,23 +49,22 @@ testKeyQueries = do
 
   describe "addPublicKey tests" $
     it "addPublicKey test 1" $ \brContext -> do
-      pubKey <- goodRsaPublicKey
+      Just pubKey <- goodRsaPublicKey
       tStart <- timeStampIO
       res <- testAppM brContext $ do
         user <- insertDummies
         let uid = authUserId user
-        let (BT.PEM_RSAPubKey keyStr) = pubKey
         keyId <- addPublicKey user pubKey Nothing
         tEnd <- timeStampIO
         insertedKey <- getPublicKey keyId
         storageKey <- runDb $ BKey.getKeyById keyId
-        pure (storageKey, keyStr, keyId, uid, tEnd, insertedKey)
+        pure (storageKey, keyId, uid, tEnd, insertedKey)
       case res of
-        (Nothing, _, _, _, _, _) -> fail "Received Nothing for key"
-        (Just key, keyStr, (BRKeyId keyId), (BT.UserId uid), tEnd, insertedKey) -> do
+        (Nothing, _, _, _, _) -> fail "Received Nothing for key"
+        (Just key, (BRKeyId keyId), (BT.UserId uid), tEnd, insertedKey) -> do
           key `shouldSatisfy`
             (\k ->
-              (BSchema.pem_str k) == keyStr &&
+              (fromPgJSON $ BSchema.key_jwk k) == pubKey &&
               (BSchema.key_id k) == keyId &&
               (BSchema.key_user_id k) == (BSchema.UserId uid) &&
               (BSchema.creation_time k) > tStart &&
@@ -75,7 +75,7 @@ testKeyQueries = do
   describe "getPublicKeyInfo tests" $
     it "getPublicKeyInfo test 1" $ \brContext -> do
       tStart <- liftIO getCurrentTime
-      pubKey <- goodRsaPublicKey
+      Just pubKey <- goodRsaPublicKey
       (keyInfo, uid, tEnd) <- testAppM brContext $ do
         user <- insertDummies
         let uid = authUserId user
@@ -93,7 +93,7 @@ testKeyQueries = do
 
   describe "revokePublicKey tests" $ do
     it "Revoke public key with permissions" $ \brContext -> do
-      pubKey <- goodRsaPublicKey
+      Just pubKey <- goodRsaPublicKey
       myKeyState <- testAppM brContext $ do
         user <- insertDummies
         keyId <- addPublicKey user pubKey Nothing
@@ -125,7 +125,7 @@ testKeyQueries = do
       nowish <- getCurrentTime
       let smallDelayInSeconds = 1
           nearExpiry = addUTCTime (fromInteger smallDelayInSeconds) nowish
-      pubKey <- goodRsaPublicKey
+      Just pubKey <- goodRsaPublicKey
       keyId <- testAppM brContext $ do
         user <- insertDummies
         keyId <- addPublicKey user pubKey (Just . ExpirationTime $ nearExpiry)
@@ -140,7 +140,7 @@ testKeyQueries = do
       nowish <- getCurrentTime
       let hundredMinutes = 100 * 60
           someTimeLater = addUTCTime hundredMinutes nowish
-      pubKey <- goodRsaPublicKey
+      Just pubKey <- goodRsaPublicKey
       myKeyState <- testAppM brContext $ do
         user <- insertDummies
         keyId <- addPublicKey user pubKey (Just . ExpirationTime $ someTimeLater)

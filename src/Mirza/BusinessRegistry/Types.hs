@@ -28,6 +28,7 @@ import           Database.PostgreSQL.Simple.ToField   (ToField, toField)
 import qualified Database.Beam.Migrate      as BMigrate
 import qualified Database.Beam.Postgres     as BPostgres
 
+import           Crypto.JOSE                            (JWK)
 import           Crypto.Scrypt                          (ScryptParams)
 
 import           Katip                                  as K
@@ -42,9 +43,6 @@ import           Data.Time                              (LocalTime)
 
 import           GHC.Generics                           (Generic)
 import           GHC.Stack                              (CallStack)
-
-import           Servant                                (FromHttpApiData (..))
-
 
 -- *****************************************************************************
 -- Context Types
@@ -220,13 +218,6 @@ instance ToParamSchema KeyState
 -- Signing and Hashing Types
 -- *****************************************************************************
 
-newtype PEM_RSAPubKey = PEM_RSAPubKey Text
-  deriving (Eq, Show, Generic, ToJSON, FromJSON)
-instance ToSchema PEM_RSAPubKey
-instance ToParamSchema PEM_RSAPubKey
-instance FromHttpApiData PEM_RSAPubKey where
-  parseUrlPiece t = fmap PEM_RSAPubKey (parseUrlPiece t)
-
 
 data KeyInfoResponse = KeyInfoResponse
   { keyInfoId             :: CT.BRKeyId
@@ -235,7 +226,7 @@ data KeyInfoResponse = KeyInfoResponse
   , keyInfoCreationTime   :: CreationTime
   , keyInfoRevocation     :: Maybe (RevocationTime, UserId)
   , keyInfoExpirationTime :: Maybe ExpirationTime
-  , keyInfoPEMString      :: PEM_RSAPubKey
+  , keyInfoJWK            :: JWK
   }
   deriving (Generic, Show, Eq)
 $(deriveJSON defaultOptions ''KeyInfoResponse)
@@ -266,8 +257,9 @@ data BRError
   deriving (Show, Generic)
 
 data BRKeyError
-  = InvalidRSAKeyBRKE PEM_RSAPubKey
+  = InvalidRSAKeyBRKE JWK
   | InvalidRSAKeySizeBRKE Expected Received
+  | KeyIsPrivateKeyBRKE
   | PublicKeyInsertionErrorBRKE [CT.BRKeyId]
   | KeyNotFoundBRKE CT.BRKeyId
   | UnauthorisedKeyAccessBRKE
