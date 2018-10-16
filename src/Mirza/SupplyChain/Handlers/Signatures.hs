@@ -1,10 +1,11 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedLists       #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 
 module Mirza.SupplyChain.Handlers.Signatures
   (
     addUserToEvent
-  , eventSign, getEventBS, makeDigest, insertSignature, eventHashed
+  , eventSign, getEventBS, insertSignature, eventHashed
   , findSignedEventByEvent, findSignatureByEvent
   , findSignedEventByUser, findSignatureByUser
   , signatureToSignedEvent
@@ -13,8 +14,6 @@ module Mirza.SupplyChain.Handlers.Signatures
 import           Mirza.Common.Time
 import           Mirza.Common.Types                       (BRKeyId)
 import           Mirza.Common.Utils
-
-import qualified Mirza.BusinessRegistry.Types             as BT
 
 import           Mirza.SupplyChain.Database.Schema        as Schema
 import           Mirza.SupplyChain.ErrorUtils             (throwBackendError)
@@ -31,24 +30,19 @@ import qualified Data.GS1.EventId                         as EvId
 
 import           Database.Beam                            as B
 import           Database.Beam.Backend.SQL.BeamExtensions
+import           Database.Beam.Postgres                   (PgJSON (..))
 
-import           OpenSSL                                  (withOpenSSL)
-import qualified OpenSSL.EVP.Digest                       as EVPDigest
-import           OpenSSL.EVP.PKey                         (toPublicKey)
-import           OpenSSL.EVP.Verify                       (VerifyStatus (..),
-                                                           verifyBS)
-import           OpenSSL.PEM                              (readPublicKey)
-import           OpenSSL.RSA                              (RSAPubKey)
 
-import           Control.Lens                             hiding ((.=))
-import           Control.Monad.Error.Hoist                ((<!?>), (<%?>))
-
+import           Crypto.JOSE                              (Alg (..), AsError,
+                                                           CompactJWS,
+                                                           JWSHeader,
+                                                           ValidationSettings,
+                                                           defaultValidationSettings,
+                                                           validationSettingsAlgorithms,
+                                                           verifyJWS)
 import           Data.ByteString                          (ByteString)
-import qualified Data.ByteString.Base64                   as BS64
-import qualified Data.ByteString.Char8                    as BSC
 
-import           Data.Char                                (toLower)
-import           Data.Text                                (unpack)
+import           Control.Lens                             ((&), (.~))
 
 import           Mirza.BusinessRegistry.Client.Servant    (getPublicKey)
 
@@ -79,41 +73,23 @@ addUserToEventQuery (EventOwner lUserId@(ST.UserId loggedInUserId))
             False Nothing
     else throwing _EventPermissionDenied (lUserId, evId)
 
-{-
-   The default padding is PKCS1-1.5, which is deprecated
-   for new applications. We should be using PSS instead.
 
-   In the OpenSSL wrapper, the verify function in generic,
-   and does not allow you to specify a padding type, as this
-   is an RSA specific property.
+scsJWSValidationSettings :: ValidationSettings
+scsJWSValidationSettings = defaultValidationSettings
+    & validationSettingsAlgorithms .~ [RS256,RS384,RS512,PS256,PS384,PS512]
 
-   I propose we modify OpenSSL to add a function called
-   verifyBSRSA :: Digest -> BS -> key -> BS -> PaddingType -> IO VerifyStatus
-
-   We'll need to use the foreign function interface to call:
-   EVP_PKEY_CTX_set_rsa_padding in libSSL.
-
-   Lets do this after we have everything compiling.
--}
-
-eventSign :: (HasBRClientEnv context, AsServantError err, SCSApp context err)
+eventSign :: (HasBRClientEnv context, AsServantError err, AsError err, SCSApp context err)
           => ST.User
           -> SignedEvent
           -> AppM context err PrimaryKeyType
-eventSign user (SignedEvent eventId keyId (ST.Signature sigStr) digest') = do
-  rsaPublicKey <- runClientFunc $ getPublicKey keyId
-  let (BT.PEM_RSAPubKey keyStr) = rsaPublicKey
-  (pubKey :: RSAPubKey) <- liftIO
-      (toPublicKey <$> (readPublicKey . unpack $ keyStr))
-      <!?> review _InvalidRSAKeyInDB keyStr
-  sigBS <- BS64.decode (BSC.pack sigStr) <%?> review _Base64DecodeFailure
-  digest <- liftIO (makeDigest digest') <!?> review _InvalidDigest digest'
+eventSign user (SignedEvent eventId keyId sig) = do
+  jwk <- runClientFunc $ getPublicKey keyId
   runDb $ do
     eventBS <- getEventBS eventId
-    verifyStatus <- liftIO $ verifyBS digest sigBS pubKey eventBS
-    if verifyStatus == VerifySuccess
-      then insertSignature (ST.userId user) eventId keyId (ST.Signature sigStr) digest'
-      else throwing _SigVerificationFailure sigStr
+    event' <- verifyJWS scsJWSValidationSettings jwk sig
+    if eventBS == event'
+      then insertSignature (ST.userId user) eventId keyId sig
+      else throwing _SigVerificationFailure (show sig) -- TODO: This should be more than show
 
 -- TODO: Should this return Text or a JSON value?
 getEventBS :: AsServiceError err => EvId.EventId -> DB context err ByteString
@@ -127,24 +103,19 @@ getEventBS eventId = do
     _         -> throwing _InvalidEventId eventId
 
 
-makeDigest :: Digest -> IO (Maybe EVPDigest.Digest)
-makeDigest digest = withOpenSSL $ EVPDigest.getDigestByName . map toLower . show $ digest
-
-insertSignature :: AsServiceError err => ST.UserId
+insertSignature :: (AsServiceError err) => ST.UserId
                 -> EvId.EventId
                 -> BRKeyId
-                -> ST.Signature
-                -> Digest
+                -> CompactJWS JWSHeader
                 -> DB environmentUnused err PrimaryKeyType
 
-insertSignature userId@(ST.UserId uId) eId kId (ST.Signature sig) digest = do
+insertSignature userId@(ST.UserId uId) eId kId sig = do
   sigId <- newUUID
   timestamp <- generateTimestamp
   r <- pg $ runInsertReturningList (Schema._signatures Schema.supplyChainDb) $
         insertValues
         [(Schema.Signature sigId) (Schema.UserId uId) (Schema.EventId $ EvId.unEventId eId)
-         (BRKeyId $ getBRKeyId kId) (BSC.pack sig)
-          digest (toDbTimestamp timestamp)]
+         (BRKeyId $ getBRKeyId kId) (PgJSON sig) (toDbTimestamp timestamp)]
   case r of
     [rowId] -> do
       updateUserEventSignature userId eId True
@@ -199,18 +170,8 @@ findSignedEventByUser :: AsServiceError err
 findSignedEventByUser uId eventId = signatureToSignedEvent <$> (findSignatureByUser uId eventId)
 
 signatureToSignedEvent :: Schema.Signature -> ST.SignedEvent
-signatureToSignedEvent
-  (Schema.Signature
-    _userId
-    _sigId
-    (Schema.EventId eId)
-    brKeyId
-    sig
-    digest _) = ST.SignedEvent
-                  (EvId.EventId eId)
-                  brKeyId
-                  (ST.Signature $ BSC.unpack sig)
-                  digest
+signatureToSignedEvent (Schema.Signature _userId _sigId (Schema.EventId eId) brKeyId (PgJSON sig) _)
+  = ST.SignedEvent (EvId.EventId eId) brKeyId sig
 
 -- do we need this?
 eventHashed :: ST.User -> EvId.EventId -> AppM context err HashedEvent
