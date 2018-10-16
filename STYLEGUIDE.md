@@ -31,6 +31,10 @@ No:
     aeson parsers, and tests are usually fine)
 * incomplete pattern matches (GHC will warn you)
 
+## Use ``pure`` instead of ``return``
+
+This is self-explanatory. Unless you have a good reason to use `return`, of course.
+
 ## Use newtypes
 
 Specific types are always better than general ones when defining data types,
