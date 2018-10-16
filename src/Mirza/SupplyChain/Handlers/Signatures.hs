@@ -99,7 +99,7 @@ getEventBS eventId = do
     guard_ ((Schema.event_id allEvents) ==. val_ (EvId.unEventId eventId))
     pure (Schema.event_to_sign allEvents)
   case r of
-    [eventBS] -> return eventBS
+    [eventBS] -> pure eventBS
     _         -> throwing _InvalidEventId eventId
 
 
@@ -119,7 +119,7 @@ insertSignature userId@(ST.UserId uId) eId kId sig = do
   case r of
     [rowId] -> do
       updateUserEventSignature userId eId True
-      return ( Schema.signature_id rowId)
+      pure ( Schema.signature_id rowId)
     _       -> throwing _BackendErr "Failed to add signature"
 
 updateUserEventSignature :: AsServiceError err
@@ -160,7 +160,7 @@ findSignatureByUser (ST.UserId uId) (EvId.EventId eId) = do
             (Schema.signature_user_id sig) ==. (val_ (Schema.UserId uId)))
     pure sig
   case r of
-    [sig] -> return sig
+    [sig] -> pure sig
     _     -> throwBackendError ("Invalid User - Event pair" :: String) -- TODO: wrong error to throw here
 
 findSignedEventByUser :: AsServiceError err
@@ -176,14 +176,14 @@ signatureToSignedEvent (Schema.Signature _userId _sigId (Schema.EventId eId) brK
 -- do we need this?
 eventHashed :: ST.User -> EvId.EventId -> AppM context err HashedEvent
 eventHashed _user _eventId = error "not implemented yet"
--- return (HashedEvent eventId (EventHash "Blob"))
+-- pure (HashedEvent eventId (EventHash "Blob"))
 
 {-
 eventHashed user eventId = do
   mHash <- liftIO $ Storage.eventHashed user eventId
   case mHash of
     Nothing -> throwError err404 { errBody = "Unknown eventId" }
-    Just i -> return i
+    Just i -> pure i
 -}
 
 -- BeamQueries residue
@@ -202,12 +202,12 @@ eventHashed user eventId = do
 --       let (plainHash, userID) = head r
 --           signatures = NonEmpty.fromList (map (\(s, u) -> ((Signature s), u)) (tail r))
 --       in
---         return $ C.BlockchainPackage (EventHash plainHash) signatures
+--         pure $ C.BlockchainPackage (EventHash plainHash) signatures
 --     else throwError SE_BlockchainSendFailed
 -- --TODO - Implement me
 -- -- sendToBlockchain ::  (MonadError SigError m, MonadIO m) =>  C.BlockchainPackage -> m ()
 -- sendToBlockchain :: Monad m => C.BlockchainPackage -> m ()
--- sendToBlockchain package = return () -- if it fails, raise SE_SEND_TO_BLOCKCHAIN_FAILED error.
+-- sendToBlockchain package = pure () -- if it fails, raise SE_SEND_TO_BLOCKCHAIN_FAILED error.
 
 -- checkSignature :: (MonadError SigError m, MonadIO m) => PEM_RSAPubKey -> ByteString.ByteString -> Signature -> m ()
 -- checkSignature pubkey blob signature =

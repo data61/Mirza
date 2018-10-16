@@ -45,13 +45,13 @@ authCheck :: (HasScryptParams context, DBConstraint context SqlError)
 authCheck context =
   let check (BasicAuthData userEmail pass) =
         case emailAddress userEmail of
-          Nothing -> return Unauthorized
+          Nothing -> pure Unauthorized
           Just email -> do
             eitherUser <- runAppM @_ @SqlError context . runDb $
                           authCheckQuery email (Password pass)
             case eitherUser of
-              Right (Just user) -> return (Authorized user)
-              _                 -> return NoSuchUser
+              Right (Just user) -> pure (Authorized user)
+              _                 -> pure NoSuchUser
   in BasicAuthCheck check
 
 -- Basic Auth check using Scrypt hashes.
