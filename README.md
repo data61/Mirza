@@ -16,11 +16,6 @@ To build the server, run:
 
 `stack build`
 
-On MacOS, you need to `brew install openssl` and then run:
-`stack build --extra-include-dirs=/usr/local/opt/openssl/include --extra-lib-dirs=/usr/local/opt/openssl/lib`
-
-This is because Apple has deprecated the use of OpenSSL in favour of its own SSL and TLS libs.
-
 ## Installing PostgreSQL
 
 PostgreSQL is used as the database backend. Before you run the server, make sure you have PostgreSQL 9 or higher installed.
@@ -42,7 +37,7 @@ After that, to create the database, run:
 `createdb 'devsupplychainserver'`
 
 To initalise the database run:
-`stack exec supplyChainServer-exe -- -init-db -c "dbname=devsupplychainserver"`
+`stack exec supplyChainServer -- -init-db -c "dbname=devsupplychainserver"`
 
 The -c option takes a database connection string in libpq format. See: https://www.postgresql.org/docs/9.5/static/libpq-connect.html#LIBPQ-CONNSTRING
 
@@ -59,7 +54,7 @@ Not giving it the `-c` flag will result in a database named `devsupplychainserve
 
 Finally, to run the server, do:
 
-`stack exec supplyChainServer-exe -c "dbname=devsupplychainserver"`
+`stack exec supplyChainServer -c "dbname=devsupplychainserver"`
 
 Then you can check out the API at:
 
