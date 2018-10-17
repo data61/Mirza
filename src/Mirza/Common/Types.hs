@@ -34,7 +34,7 @@ module Mirza.Common.Types
   , HasKatipContext(..)
   , HasKatipLogEnv(..)
   , HasBRClientEnv(..)
-  , HasDB(..)
+  , HasDB
   , AsServantError (..)
   , DBConstraint
   , ask, asks
