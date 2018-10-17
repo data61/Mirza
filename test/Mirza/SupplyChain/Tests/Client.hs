@@ -55,8 +55,8 @@ userABC :: NewUser
 userABC = NewUser
   { newUserPhoneNumber = "0400 111 222"
   , newUserEmailAddress = unsafeMkEmailAddress "abc@example.com"
-  , newUserFirstName = "Biz Johnny"
-  , newUserLastName = "Smith Biz"
+  , newUserFirstName = "User ABC"
+  , newUserLastName = "Giver"
   , newUserCompany = GS1CompanyPrefix "something"
   , newUserPassword = "re4lly$ecret14!"}
 
@@ -70,8 +70,8 @@ userDEF :: NewUser
 userDEF = NewUser
   { newUserPhoneNumber = "0400 111 222"
   , newUserEmailAddress = unsafeMkEmailAddress "def@example.com"
-  , newUserFirstName = "Biz Johnny"
-  , newUserLastName = "Smith Biz"
+  , newUserFirstName = "User DEF"
+  , newUserLastName = "Receiver"
   , newUserCompany = GS1CompanyPrefix "something"
   , newUserPassword = "re4lly$ecret14!"}
 
@@ -205,7 +205,7 @@ clientSpec = do
           step "Adding a giver user to SCS"
           uidGiver <- httpSCS (addUser userABC)
           uidGiver `shouldSatisfy` isRight
-          -- let (Right userIdGiver) = uidGiver
+          let (Right userIdGiver) = uidGiver
 
           step "Adding business for the Giver"
           let prefixGiver = GS1CompanyPrefix "1000001"
@@ -233,13 +233,13 @@ clientSpec = do
           step "Inserting the object event with the giver user"
           objInsertionResponse <- httpSCS (insertObjectEvent authABC dummyObject)
           objInsertionResponse `shouldSatisfy` isRight
-          let (EventInfo insertedEvent _ _ (Base64Octets to_sign_event) _, (Schema.EventId eid)) = fromRight (error "Should be right") objInsertionResponse
-              eventId = EvId.EventId eid
+          let (EventInfo _ _ _ (Base64Octets to_sign_event) _, (Schema.EventId objEvId)) = fromRight (error "Should be right") objInsertionResponse
+              objEventId = EvId.EventId objEvId
 
           step "Signing the object event with the giver"
           Right mySig <- runExceptT @JOSE.Error $
                     signJWS to_sign_event (Identity (newJWSHeader ((), RS256),goodPrivKeyGiver))
-          let mySignedEvent = SignedEvent eventId keyIdGiver mySig
+          let mySignedEvent = SignedEvent objEventId keyIdGiver mySig
           httpSCS (eventSign authABC mySignedEvent) `shouldSatisfyIO` isRight
 
           -- ===============================================
@@ -268,22 +268,6 @@ clientSpec = do
           httpBR (BRClient.addUser globalAuthData userBRReceiver) `shouldSatisfyIO` isRight
 
 
-          step "Retrieving the event info"
-          eventInfoResult <- httpSCS (eventInfo authABC eventId)
-          eventInfoResult `shouldSatisfy` isRight
-          let (Right eInfo) = eventInfoResult
-
-          step "Checking that we got the correct event back"
-          let retrievedEvent = (eventInfoEvent eInfo)
-          retrievedEvent `shouldBe` insertedEvent
-
-          step "Checking event blockchain status"
-          let eventStatus = (eventInfoBlockChainStatus eInfo)
-          eventStatus `shouldBe` NotSent
-
-          step "Checking that receiving user is among the unsigned users"
-          let unsignedUsers = (eventInfoUnsignedUsers eInfo)
-          unsignedUsers `shouldBe` [userIdReceiver]
           -- step "Signing the event with the second user"
           step "Tying the receiver user with a good key"
           Just goodPubKeyReceiver <- readJWK "./test/Mirza/Common/TestData/testKeys/goodJWKs/16384bit_rsa_pub.json"
@@ -292,11 +276,32 @@ clientSpec = do
           keyIdResponseReceiver `shouldSatisfy` isRight
           let keyIdReceiver = fromRight (BRKeyId nil) keyIdResponseReceiver
 
-          step "Inserting the object event with the giver user"
-          transactInsertionResponse <- httpSCS (insertTransactEvent authDEF dummyTransaction)
+          step "Inserting the transaction event with the giver user"
+          let myTransactionEvent = dummyTransaction {transaction_other_user_ids=[userIdReceiver]}
+          transactInsertionResponse <- httpSCS (insertTransactEvent authABC myTransactionEvent)
           transactInsertionResponse `shouldSatisfy` isRight
-          let (EventInfo _ _ _ (Base64Octets to_sign_event2) _, (Schema.EventId transactEvId)) = fromRight (error "Should be right") transactInsertionResponse
+          let (_transactEvInfo@(EventInfo insertedTransactEvent _ _ (Base64Octets to_sign_event2) _), (Schema.EventId transactEvId)) = fromRight (error "Should be right") transactInsertionResponse
               transactionEventId = EvId.EventId transactEvId
+              transactEventId = EvId.EventId transactEvId
+
+          step "Retrieving the event info"
+
+          eventInfoResult <- httpSCS (eventInfo authABC transactEventId)
+          eventInfoResult `shouldSatisfy` isRight
+          let (Right eInfo) = eventInfoResult
+          -- eInfo `shouldBe` transactEvInfo
+
+          step "Checking that we got the correct event back"
+          let retrievedTransactEvent = (eventInfoEvent eInfo)
+          retrievedTransactEvent `shouldBe` insertedTransactEvent
+
+          step "Checking event blockchain status"
+          let eventStatus = (eventInfoBlockChainStatus eInfo)
+          eventStatus `shouldBe` NotSent
+
+          step "Checking that receiving user is among the unsigned users"
+          let unsignedUsers = (eventInfoUnsignedUsers eInfo)
+          unsignedUsers `shouldBe` [userIdGiver, userIdReceiver]
 
           step "Signing the transaction event with the receiver user"
           Right myTransSig <- runExceptT @JOSE.Error $

@@ -210,7 +210,7 @@ data TransactionEvent = TransactionEvent {
   transaction_parent_label         :: Maybe ParentLabel,
   transaction_biz_transaction_list :: [BizTransaction],
   transaction_epc_list             :: [LabelEPC],
-  transaction_user_ids             :: [UserId],
+  transaction_other_user_ids       :: [UserId],
   transaction_when                 :: DWhen,
   transaction_why                  :: DWhy,
   transaction_where                :: DWhere
