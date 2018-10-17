@@ -67,8 +67,9 @@ eventInfoQuery _user eventId@(EvId.EventId eId) = do
   let event = storageToModelEvent schemaEvent
       unsignedUserIds = map (ST.userId . fst) $ filter (not . snd) usersWithEvent
       signedUserIds = (ST.userId . fst) <$> filter snd usersWithEvent
-  signedEvents <- mapM (flip findSignedEventByUser eventId) signedUserIds
+  signedEvents <- mapM (`findSignedEventByUser` eventId) signedUserIds
   let usersAndSignedEvents = zip signedUserIds signedEvents
+  -- let eventStatus = if null unsignedUserIds then ReadyAndWaiting else NotSent
   pure $ EventInfo event usersAndSignedEvents unsignedUserIds
                   (Base64Octets $ event_to_sign schemaEvent) NotSent
 
