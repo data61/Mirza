@@ -16,6 +16,8 @@ import qualified Mirza.SupplyChain.Types           as ST
 
 import           Mirza.SupplyChain.EventUtils
 
+import           Control.Monad                     (when)
+
 import           Data.GS1.DWhat                    (AggregationDWhat (..),
                                                     DWhat (..), InputEPC (..),
                                                     LabelEPC (..),
@@ -27,6 +29,7 @@ import           Data.GS1.DWhat                    (AggregationDWhat (..),
 import           Data.GS1.Event                    as Ev
 import qualified Data.GS1.EventId                  as EvId
 
+import           Data.List.NonEmpty                (NonEmpty (..))
 
 insertObjectEvent :: SCSApp context err => ST.User
                   -> ObjectEvent
@@ -45,7 +48,6 @@ insertObjectEventQuery
     labelEpcs
     dwhen dwhy dwhere
   ) = do
-
   let
       schemaUserId = Schema.UserId tUserId -- converting from model to storage UserId
       dwhat =  ObjWhat $ ObjectDWhat act labelEpcs
@@ -122,9 +124,10 @@ insertTransactEventQuery
     mParentLabel
     bizTransactions
     labelEpcs
-    users
+    otherUsers
     dwhen dwhy dwhere
   ) = do
+  -- when (null otherUsers) $ error "go away - empty users in a transaction event"
   let
       schemaUserId = Schema.UserId tUserId
       dwhat =  TransactWhat $ TransactionDWhat act mParentLabel bizTransactions labelEpcs
@@ -134,7 +137,6 @@ insertTransactEventQuery
   -- uniqueness of the JSON event is enforced
   (evInfo, eventId@(Schema.EventId eventIdUuid)) <- insertEvent schemaUserId event
   let ownerId = EventOwner userId
-  _r <- sequence $ addUserToEvent ownerId (EvId.EventId eventIdUuid) <$> SigningUser <$> users
 
   whatId <- insertDWhat Nothing dwhat eventId
   labelIds' <- mapM (insertLabel Nothing (Schema.WhatId whatId)) labelEpcs
@@ -146,6 +148,7 @@ insertTransactEventQuery
   insertUserEvent eventId schemaUserId schemaUserId False Nothing
   mapM_ (insertWhatLabel (Schema.WhatId whatId)) labelIds
   mapM_ (insertLabelEvent eventId) labelIds
+  _r <- sequence $ addUserToEvent ownerId (EvId.EventId eventIdUuid) <$> SigningUser <$> otherUsers
 
   pure (evInfo, eventId)
 
