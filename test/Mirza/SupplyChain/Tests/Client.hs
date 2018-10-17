@@ -312,13 +312,14 @@ clientSpec = do
 
           httpSCS (eventSign authDEF receiverSignedEvent) `shouldSatisfyIO` isRight
 
-          -- step "Retrieving the event info again"
-          -- eventInfoResult2 <- httpSCS (eventInfo authABC eventId)
-          -- eventInfoResult2 `shouldSatisfy` isRight
-          -- let (Right eInfo2) = eventInfoResult2
+          step "Retrieving the event info again"
+          eventInfoResult2 <- httpSCS (eventInfo authABC eventId)
+          eventInfoResult2 `shouldSatisfy` isRight
 
-          -- TODO: Sign the event with the second user
-          -- TODO: Check that eventInfo says that the eventState is `Signed`
+          step "Failure expected: Checking that the status of the event has changed to Ready"
+          let (Right eInfo2) = eventInfoResult2
+          let eventStatus2 = (eventInfoBlockChainStatus eInfo2)
+          eventStatus2 `shouldBe` ReadyAndWaiting
 
 
   pure $ testGroup "Supply Chain Service Client Tests"
