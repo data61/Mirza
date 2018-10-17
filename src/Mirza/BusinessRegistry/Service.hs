@@ -93,7 +93,7 @@ appMToHandler context act = do
   res <- liftIO $ runAppM context act
   case res of
     Left err -> runKatipContextT (context ^. katipLogEnv) () (context ^. katipNamespace) (brErrorToHttpError err)
-    Right a  -> return a
+    Right a  -> pure a
 
 
 -- | Swagger spec for server API.
@@ -173,3 +173,4 @@ brKeyErrorToHttpError keyError =
     (AddedExpiredKeyBRKE)           -> httpError err400 "Can't add a key that has already expired."
     (InvalidRSAKeySizeBRKE (Expected (Bit expSize)) (Received (Bit recSize)))
                                     -> httpError err400 (BSL8.pack $ printf "Invalid RSA Key size. Expected: %d Bits, Received: %d Bits\n" expSize recSize)
+    (KeyIsPrivateKeyBRKE)           -> httpError err400 "WARNING! Submitted Key was a Private Key, you should no longer continue to use it!"
