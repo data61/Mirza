@@ -27,7 +27,7 @@ import           GHC.Stack                                (HasCallStack,
                                                            callStack)
 
 
-listBusinesses :: ( HasDB context
+listBusinesses :: ( Member context '[HasDB]
                   , Member err     '[AsBRError, AsSqlError])
                => AppM context err [BusinessResponse]
 listBusinesses = fmap businessToBusinessResponse <$> runDb listBusinessesQuery
@@ -48,12 +48,12 @@ listBusinessesQuery = pg $ runSelectReturningList $ select $
 -- addBusiness so that we can use it from behind the private API. This argument
 -- is not used in the current implementation as it is assumed that all users
 -- will have the ability to act globally.
-addBusinessAuth :: ( HasDB context
+addBusinessAuth :: ( Member context '[HasDB]
                    , Member err     '[AsBRError, AsSqlError])
                 => BT.AuthUser -> NewBusiness -> AppM context err GS1CompanyPrefix
 addBusinessAuth _ = addBusiness
 
-addBusiness :: ( HasDB context
+addBusiness :: ( Member context '[HasDB]
                , Member err     '[AsBRError, AsSqlError])
             => NewBusiness -> AppM context err GS1CompanyPrefix
 addBusiness = (fmap biz_gs1_company_prefix)
