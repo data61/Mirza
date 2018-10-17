@@ -102,7 +102,9 @@ keyToKeyInfo currTime (Schema.KeyT keyId (Schema.UserId keyUserId) (PgJSON jwk) 
     composeRevocation time@(Just _) (Schema.UserId Nothing)     = throwing _InvalidRevocationBRKE (time, Nothing, callStack)
     composeRevocation time          (Schema.UserId user)        = pure $ ((,) <$> (fromDbTimestamp <$> time) <*> (CT.UserId  <$> user))
 
--- TODO: After migrating to JOSE, there should always be an expiration time.
+
+-- TODO: After migrating entirely to X509, there should always be an expiration
+-- time (no Maybe wrapping ExpirationTime).
 getKeyState :: UTCTime
             -> Maybe RevocationTime
             -> Maybe ExpirationTime
