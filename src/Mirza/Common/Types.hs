@@ -34,6 +34,7 @@ module Mirza.Common.Types
   , HasKatipContext(..)
   , HasKatipLogEnv(..)
   , HasBRClientEnv(..)
+  , HasDB(..)
   , AsServantError (..)
   , DBConstraint
   , ask, asks
@@ -297,12 +298,22 @@ class HasBRClientEnv a where
 class AsServantError a where
     _ServantError :: Prism' a ServantError
 
+
+-- Useage of this type is depricated prefer HasDb.
+-- TODO: Remove DBConstraint once SCS is converted to use Member notation.
 type DBConstraint context err =
     ( HasEnvType context
     , HasConnPool context
     , HasKatipContext context
     , HasKatipLogEnv context
     , AsSqlError err)
+
+-- | Convenience class for contexts which require DB.
+class (HasEnvType context, HasConnPool context, HasLogging context)
+  => HasDB context where
+instance (HasEnvType context, HasConnPool context, HasLogging context)
+  => HasDB context
+
 
 -- | Run a DB action within a transaction. See the documentation for
 -- 'withTransaction'. SqlError exceptions will be caught and lifted into the
@@ -312,7 +323,9 @@ type DBConstraint context err =
 -- Exceptions which are thrown which are not SqlErrors will be caught by Servant
 -- and cause 500 errors (these are not exceptions we'll generally know how to
 -- deal with).
-runDb ::  DBConstraint context err => DB context err a -> AppM context err a
+runDb :: (HasDB context
+         , Member err     '[AsSqlError])
+      => DB context err a -> AppM context err a
 runDb (DB act) = katipAddNamespace "runDb" $ do
   env <- ask
   e <- view envType
