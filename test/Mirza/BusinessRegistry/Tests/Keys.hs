@@ -207,7 +207,7 @@ testKeyQueries = do
       now <- getCurrentTime
       getKeyState now (Just $ RevocationTime now) (Just $ ExpirationTime now) `shouldBe` Revoked -- 111, 222, 333
 
-    it "results in Revoked when RevocationTime is equal or after the comparison time irrespective of what ExpirationTime is" $ \_-> do
+    it "results in Revoked when comparison time is equal to or after the RevocationTime irrespective of what ExpirationTime is" $ \_-> do
       now <- getCurrentTime
       let next = nextUTCTime now
           beyond = nextUTCTime next
@@ -219,14 +219,14 @@ testKeyQueries = do
       getKeyState beyond (Just $ RevocationTime now)  (Just $ ExpirationTime next)   `shouldBe` Revoked -- 312
       getKeyState beyond (Just $ RevocationTime next) (Just $ ExpirationTime now)    `shouldBe` Revoked -- 321
 
-    it "results in Expired when ExpirationTime is equal to or after the comparison time and RevocationTime is before the comparison time" $ \_-> do
+    it "results in Expired when the comparison time is equal to or after the ExpirationTime and comparison time is before the RevocationTime" $ \_-> do
       now <- getCurrentTime
       let next = nextUTCTime now
           beyond = nextUTCTime next
       getKeyState now  (Just $ RevocationTime next)   (Just $ ExpirationTime now) `shouldBe` Expired -- 121, 131, 232
       getKeyState next (Just $ RevocationTime beyond) (Just $ ExpirationTime now) `shouldBe` Expired -- 231
 
-    it "results in InEffect when both RevocationTime and ExpirationTime are after the comparison time" $ \_-> do
+    it "results in InEffect when the comparison time is before both RevocationTime and ExpirationTime" $ \_-> do
       now <- getCurrentTime
       let next = nextUTCTime now
           beyond = nextUTCTime next
