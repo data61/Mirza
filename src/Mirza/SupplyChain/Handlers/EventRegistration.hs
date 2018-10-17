@@ -46,20 +46,20 @@ insertObjectEventQuery
   ) = do
 
   let
-      userId = Schema.UserId tUserId -- converting from model to storage UserId
+      schemaUserId = Schema.UserId tUserId -- converting from model to storage UserId
       dwhat =  ObjWhat $ ObjectDWhat act labelEpcs
       event = Ev.Event Ev.ObjectEventT foreignEventId dwhat dwhen dwhy dwhere
 
   -- insertEvent has to be the first thing that happens here so that
   -- uniqueness of the JSON event is enforced
-  (evInfo, eventId) <- insertEvent userId event
+  (evInfo, eventId) <- insertEvent schemaUserId event
   whatId <- insertDWhat Nothing dwhat eventId
   labelIds' <- mapM (insertLabel Nothing (Schema.WhatId whatId)) labelEpcs
   let labelIds = Schema.LabelId <$> labelIds'
   _whenId <- insertDWhen dwhen eventId
   _whyId <- insertDWhy dwhy eventId
   insertDWhere dwhere eventId
-  insertUserEvent eventId userId userId False Nothing
+  insertUserEvent eventId schemaUserId schemaUserId False Nothing
   mapM_ (insertWhatLabel (Schema.WhatId whatId)) labelIds
   mapM_ (insertLabelEvent eventId) labelIds
   pure (evInfo, eventId)
@@ -84,13 +84,13 @@ insertAggEventQuery
     dwhen dwhy dwhere
   ) = do
   let
-      userId = Schema.UserId tUserId
+      schemaUserId = Schema.UserId tUserId
       dwhat =  AggWhat $ AggregationDWhat act mParentLabel labelEpcs
       event = Ev.Event Ev.AggregationEventT foreignEventId dwhat dwhen dwhy dwhere
 
   -- insertEvent has to be the first thing that happens here so that
   -- uniqueness of the JSON event is enforced
-  (evInfo, eventId) <- insertEvent userId event
+  (evInfo, eventId) <- insertEvent schemaUserId event
   whatId <- insertDWhat Nothing dwhat eventId
   labelIds' <- mapM (insertLabel Nothing (Schema.WhatId whatId)) labelEpcs
   let labelIds = Schema.LabelId <$> labelIds'
@@ -98,7 +98,7 @@ insertAggEventQuery
   _whenId <- insertDWhen dwhen eventId
   _whyId <- insertDWhy dwhy eventId
   insertDWhere dwhere eventId
-  insertUserEvent eventId userId userId False Nothing
+  insertUserEvent eventId schemaUserId schemaUserId False Nothing
   mapM_ (insertWhatLabel (Schema.WhatId whatId)) labelIds
   mapM_ (insertLabelEvent eventId) labelIds
   pure (evInfo, eventId)
@@ -114,7 +114,7 @@ insertTransactEventQuery :: AsServiceError err
                          -> TransactionEvent
                          -> DB context err (EventInfo, Schema.EventId)
 insertTransactEventQuery
-  owner@(ST.User (ST.UserId tUserId) _ _ )
+  (ST.User (ST.UserId tUserId) _ _ )
   (TransactionEvent
     foreignEventId
     act
@@ -125,13 +125,13 @@ insertTransactEventQuery
     dwhen dwhy dwhere
   ) = do
   let
-      userId = Schema.UserId tUserId
+      schemaUserId = Schema.UserId tUserId
       dwhat =  TransactWhat $ TransactionDWhat act mParentLabel bizTransactions labelEpcs
       event = Ev.Event Ev.TransactionEventT foreignEventId dwhat dwhen dwhy dwhere
 
   -- insertEvent has to be the first thing that happens here so that
   -- uniqueness of the JSON event is enforced
-  (evInfo, eventId) <- insertEvent userId event
+  (evInfo, eventId) <- insertEvent schemaUserId event
 
   whatId <- insertDWhat Nothing dwhat eventId
   labelIds' <- mapM (insertLabel Nothing (Schema.WhatId whatId)) labelEpcs
@@ -140,7 +140,7 @@ insertTransactEventQuery
   _whenId <- insertDWhen dwhen eventId
   _whyId <- insertDWhy dwhy eventId
   insertDWhere dwhere eventId
-  insertUserEvent eventId userId userId False Nothing
+  insertUserEvent eventId schemaUserId schemaUserId False Nothing
   mapM_ (insertWhatLabel (Schema.WhatId whatId)) labelIds
   mapM_ (insertLabelEvent eventId) labelIds
 
@@ -166,13 +166,13 @@ insertTransfEventQuery
     dwhen dwhy dwhere
   ) = do
   let
-      userId = Schema.UserId tUserId
+      schemaUserId = Schema.UserId tUserId
       dwhat =  TransformWhat $ TransformationDWhat mTransfId inputs outputs
       event = Ev.Event Ev.TransformationEventT foreignEventId dwhat dwhen dwhy dwhere
 
   -- insertEvent has to be the first thing that happens here so that
   -- uniqueness of the JSON event is enforced
-  (evInfo, eventId) <- insertEvent userId event
+  (evInfo, eventId) <- insertEvent schemaUserId event
   whatId <- insertDWhat Nothing dwhat eventId
   inputLabelIds <- mapM (\(InputEPC i) -> insertLabel (Just MU.Input) (Schema.WhatId whatId) i) inputs
   outputLabelIds <- mapM (\(OutputEPC o) -> insertLabel (Just MU.Output) (Schema.WhatId whatId) o) outputs
@@ -180,7 +180,7 @@ insertTransfEventQuery
   _whenId <- insertDWhen dwhen eventId
   _whyId <- insertDWhy dwhy eventId
   insertDWhere dwhere eventId
-  insertUserEvent eventId userId userId False Nothing
+  insertUserEvent eventId schemaUserId schemaUserId False Nothing
   mapM_ (insertWhatLabel (Schema.WhatId whatId)) labelIds
   mapM_ (insertLabelEvent eventId) labelIds
 
