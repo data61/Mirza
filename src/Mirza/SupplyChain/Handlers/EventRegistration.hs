@@ -25,6 +25,7 @@ import           Data.GS1.DWhat                    (AggregationDWhat (..),
                                                     TransactionDWhat (..),
                                                     TransformationDWhat (..))
 import           Data.GS1.Event                    as Ev
+import qualified Data.GS1.EventId                  as EvId
 
 
 insertObjectEvent :: SCSApp context err => ST.User
@@ -114,7 +115,7 @@ insertTransactEventQuery :: AsServiceError err
                          -> TransactionEvent
                          -> DB context err (EventInfo, Schema.EventId)
 insertTransactEventQuery
-  (ST.User (ST.UserId tUserId) _ _ )
+  (ST.User userId@(ST.UserId tUserId) _ _ )
   (TransactionEvent
     foreignEventId
     act
@@ -131,7 +132,9 @@ insertTransactEventQuery
 
   -- insertEvent has to be the first thing that happens here so that
   -- uniqueness of the JSON event is enforced
-  (evInfo, eventId) <- insertEvent schemaUserId event
+  (evInfo, eventId@(Schema.EventId eventIdUuid)) <- insertEvent schemaUserId event
+  let ownerId = EventOwner userId
+  _r <- sequence $ addUserToEvent ownerId (EvId.EventId eventIdUuid) <$> SigningUser <$> users
 
   whatId <- insertDWhat Nothing dwhat eventId
   labelIds' <- mapM (insertLabel Nothing (Schema.WhatId whatId)) labelEpcs

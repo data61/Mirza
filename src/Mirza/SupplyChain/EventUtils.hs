@@ -447,12 +447,12 @@ hasUserCreatedEvent (ST.UserId userId) (EvId.EventId eventId) = do
 -- Populates the ``UserEvents`` table
 addUserToEvent  :: AsServiceError err
                 => EventOwner
-                -> SigningUser
                 -> EvId.EventId
+                -> SigningUser
                 -> DB context err ()
 addUserToEvent (EventOwner lUserId@(ST.UserId loggedInUserId))
-                (SigningUser (ST.UserId otherUserId))
-                evId@(EvId.EventId eventId) = do
+                evId@(EvId.EventId eventId)
+                (SigningUser (ST.UserId otherUserId)) = do
   userCreatedEvent <- hasUserCreatedEvent lUserId evId
   if userCreatedEvent
     then insertUserEvent
