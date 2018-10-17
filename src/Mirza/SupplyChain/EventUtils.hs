@@ -6,7 +6,7 @@ module Mirza.SupplyChain.EventUtils
   , insertDWhat, insertDWhen, insertDWhere, insertDWhy
   , insertWhatLabel, insertLabelEvent, insertLabel
   , hasUserCreatedEvent
-  , insertUserEvent
+  , insertUserEvent, addUserToEvent
   , findEvent, findSchemaEvent
   , findLabelId
   , getEventList
@@ -442,3 +442,22 @@ hasUserCreatedEvent (ST.UserId userId) (EvId.EventId eventId) = do
   pure $ case r of
     [_userEvent] -> True
     _            -> False
+
+-- | A function to tie a user to an event
+-- Populates the ``UserEvents`` table
+addUserToEvent  :: AsServiceError err
+                => EventOwner
+                -> SigningUser
+                -> EvId.EventId
+                -> DB context err ()
+addUserToEvent (EventOwner lUserId@(ST.UserId loggedInUserId))
+                (SigningUser (ST.UserId otherUserId))
+                evId@(EvId.EventId eventId) = do
+  userCreatedEvent <- hasUserCreatedEvent lUserId evId
+  if userCreatedEvent
+    then insertUserEvent
+            (Schema.EventId eventId)
+            (Schema.UserId otherUserId)
+            (Schema.UserId loggedInUserId)
+            False Nothing
+    else throwing _EventPermissionDenied (lUserId, evId)
