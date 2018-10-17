@@ -267,13 +267,6 @@ clientSpec = do
                           "0400 123 432"
           httpBR (BRClient.addUser globalAuthData userBRReceiver) `shouldSatisfyIO` isRight
 
-          step "Checking that the receiver cannot add themselves to the event"
-          httpSCS (addUserToEvent authDEF userIdReceiver eventId)
-            `shouldSatisfyIO` isLeft
-
-          step "Adding receiver to the event using the giver"
-          httpSCS (addUserToEvent authABC userIdReceiver eventId)
-            `shouldSatisfyIO` isRight
 
           step "Retrieving the event info"
           eventInfoResult <- httpSCS (eventInfo authABC eventId)
