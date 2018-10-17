@@ -1,4 +1,5 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE DataKinds             #-}
 
 module Mirza.BusinessRegistry.Handlers.Users
   (
@@ -13,7 +14,6 @@ import           Mirza.BusinessRegistry.Database.Schema   hiding (UserId)
 import qualified Mirza.BusinessRegistry.Database.Schema   as Schema
 import           Mirza.BusinessRegistry.SqlUtils
 
-import           Mirza.BusinessRegistry.Handlers.Common
 import           Mirza.BusinessRegistry.Types             as BRT
 import           Mirza.Common.Utils
 
@@ -35,13 +35,15 @@ import           GHC.Stack                                (HasCallStack, callSta
 -- addUser so that we can use it from behind the private API. This argument
 -- is not used in the current implementation as it is assumed that all users
 -- will have the ability to act globally.
-addUserAuth ::  (BRApp context err, HasScryptParams context)
-        => AuthUser
-        -> NewUser
-        -> AppM context err UserId
+addUserAuth :: ( Member context '[HasDB, HasScryptParams]
+               , Member err     '[AsBRError, AsSqlError])
+            => AuthUser
+            -> NewUser
+            -> AppM context err UserId
 addUserAuth _authUser = addUser
 
-addUser ::  (BRApp context err, HasScryptParams context)
+addUser :: ( Member context '[HasDB, HasScryptParams]
+           , Member err     '[AsBRError, AsSqlError])
         => NewUser
         -> AppM context err UserId
 addUser =
@@ -50,7 +52,7 @@ addUser =
   . addUserQuery
 
 -- | Hashes the password of the NewUser and inserts the user into the database
-addUserQuery :: (HasCallStack, AsBRError err, HasScryptParams context)
+addUserQuery :: (HasScryptParams context, AsBRError err, HasCallStack)
              => NewUser
              -> DB context err UserId
 addUserQuery (BRT.NewUser userEmail password biz firstName lastName phone) = do
