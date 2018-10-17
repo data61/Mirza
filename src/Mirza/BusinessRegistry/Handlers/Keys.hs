@@ -202,7 +202,7 @@ keyStateQuery kid = do
 -- constraints that must be checked before the key is updated in anyway
 -- (effectively controling the minimum state for write access to the key).
 protectKeyUpdate :: ( Member err     '[AsBRKeyError])
-                 =>  CT.BRKeyId
+                 => CT.BRKeyId
                  -> CT.UserId
                  -> DB context err ()
 protectKeyUpdate keyId userId = do
