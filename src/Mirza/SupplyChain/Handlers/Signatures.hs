@@ -4,8 +4,7 @@
 
 module Mirza.SupplyChain.Handlers.Signatures
   (
-    addUserToEvent
-  , eventSign, getEventBS, insertSignature, eventHashed
+    eventSign, getEventBS, insertSignature, eventHashed
   , findSignedEventByEvent, findSignatureByEvent
   , findSignedEventByUser, findSignatureByUser
   , signatureToSignedEvent
@@ -45,34 +44,6 @@ import           Data.ByteString                          (ByteString)
 import           Control.Lens                             ((&), (.~))
 
 import           Mirza.BusinessRegistry.Client.Servant    (getPublicKey)
-
--- | A function to tie a user to an event
--- Populates the ``UserEvents`` table
-addUserToEvent :: SCSApp context err
-               => ST.User
-               -> ST.UserId
-               -> EvId.EventId
-               -> AppM context err ()
-addUserToEvent (ST.User loggedInUserId _ _) anotherUserId eventId =
-    runDb $ addUserToEventQuery (EventOwner loggedInUserId) (SigningUser anotherUserId) eventId
-
-addUserToEventQuery :: AsServiceError err
-                    => EventOwner
-                    -> SigningUser
-                    -> EvId.EventId
-                    -> DB context err ()
-addUserToEventQuery (EventOwner lUserId@(ST.UserId loggedInUserId))
-                (SigningUser (ST.UserId otherUserId))
-                evId@(EvId.EventId eventId) = do
-  userCreatedEvent <- hasUserCreatedEvent lUserId evId
-  if userCreatedEvent
-    then insertUserEvent
-            (Schema.EventId eventId)
-            (Schema.UserId otherUserId)
-            (Schema.UserId loggedInUserId)
-            False Nothing
-    else throwing _EventPermissionDenied (lUserId, evId)
-
 
 scsJWSValidationSettings :: ValidationSettings
 scsJWSValidationSettings = defaultValidationSettings

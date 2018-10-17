@@ -8,7 +8,6 @@ module Mirza.SupplyChain.Client.Servant
   , addContact
   , removeContact
   , userSearch
-  , addUserToEvent
   , eventSign
   , eventHashed
   , listEvents
@@ -49,7 +48,6 @@ addContact          :: BasicAuthData -> UserId -> ClientM Bool
 removeContact       :: BasicAuthData -> UserId -> ClientM Bool
 userSearch          :: BasicAuthData -> Maybe GS1CompanyPrefix -> Maybe Text -> ClientM [T.User]
 
-addUserToEvent      :: BasicAuthData -> UserId -> EventId -> ClientM ()
 eventSign           :: BasicAuthData -> SignedEvent -> ClientM UUID
 eventHashed         :: BasicAuthData -> EventId -> ClientM HashedEvent
 
@@ -79,7 +77,6 @@ _api@(
     :<|> removeContact
     :<|> userSearch
 
-    :<|> addUserToEvent
     :<|> eventSign
     :<|> eventHashed
 

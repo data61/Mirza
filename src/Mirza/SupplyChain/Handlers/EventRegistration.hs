@@ -114,14 +114,14 @@ insertTransactEventQuery :: AsServiceError err
                          -> TransactionEvent
                          -> DB context err (EventInfo, Schema.EventId)
 insertTransactEventQuery
-  (ST.User (ST.UserId tUserId) _ _ )
+  owner@(ST.User (ST.UserId tUserId) _ _ )
   (TransactionEvent
     foreignEventId
     act
     mParentLabel
     bizTransactions
     labelEpcs
-    _users
+    users
     dwhen dwhy dwhere
   ) = do
   let
@@ -132,6 +132,7 @@ insertTransactEventQuery
   -- insertEvent has to be the first thing that happens here so that
   -- uniqueness of the JSON event is enforced
   (evInfo, eventId) <- insertEvent userId event
+
   whatId <- insertDWhat Nothing dwhat eventId
   labelIds' <- mapM (insertLabel Nothing (Schema.WhatId whatId)) labelEpcs
   let labelIds = Schema.LabelId <$> labelIds'
