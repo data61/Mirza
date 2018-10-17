@@ -29,7 +29,6 @@ module Mirza.Common.GS1BeamOrphans
   , itemRefType
   , emailAddressType
   , locationEPCType
-  , Digest (..), digestType
   ) where
 
 import           Mirza.Common.Beam
@@ -52,11 +51,8 @@ import           Data.Text.Encoding                   (decodeUtf8, encodeUtf8)
 import           GHC.Generics                         (Generic)
 
 import           Control.Lens.Operators               ((&), (.~), (?~))
-import           Data.Aeson
-import           Data.Aeson.TH
 import           Data.Swagger                         (SwaggerType (SwaggerString),
-                                                       ToParamSchema (..),
-                                                       ToSchema)
+                                                       ToParamSchema (..))
 import           Data.Swagger.Lens                    (pattern, type_)
 import           Servant                              (FromHttpApiData (..),
                                                        ToHttpApiData (..))
@@ -77,7 +73,7 @@ instance ToHttpApiData EPC.GS1CompanyPrefix where
 
 instance BSQL.HasSqlValueSyntax be String =>
   BSQL.HasSqlValueSyntax be Ev.EventType where
-    sqlValueSyntax = BSQL.autoSqlValueSyntax
+    sqlValueSyntax = BSQL.sqlValueSyntax . show
 instance (BMigrate.IsSql92ColumnSchemaSyntax be) =>
   BMigrate.HasDefaultSqlDataTypeConstraints be Ev.EventType
 
@@ -103,7 +99,7 @@ eventType = textType
 -- ======= EPC.LocationReference =======
 instance BSQL.HasSqlValueSyntax be String =>
   BSQL.HasSqlValueSyntax be EPC.LocationReference where
-    sqlValueSyntax = BSQL.autoSqlValueSyntax
+    sqlValueSyntax = BSQL.sqlValueSyntax . show
 instance (BMigrate.IsSql92ColumnSchemaSyntax be) =>
   BMigrate.HasDefaultSqlDataTypeConstraints be EPC.LocationReference
 
@@ -130,7 +126,7 @@ locationRefType = textType
 
 instance BSQL.HasSqlValueSyntax be String =>
   BSQL.HasSqlValueSyntax be EPC.SourceDestType where
-    sqlValueSyntax = BSQL.autoSqlValueSyntax
+    sqlValueSyntax = BSQL.sqlValueSyntax . show
 instance (BMigrate.IsSql92ColumnSchemaSyntax be) =>
   BMigrate.HasDefaultSqlDataTypeConstraints be EPC.SourceDestType
 
@@ -157,7 +153,7 @@ srcDestType = textType
 
 instance BSQL.HasSqlValueSyntax be String =>
   BSQL.HasSqlValueSyntax be EPC.Action where
-    sqlValueSyntax = BSQL.autoSqlValueSyntax
+    sqlValueSyntax = BSQL.sqlValueSyntax . show
 instance (BMigrate.IsSql92ColumnSchemaSyntax be) =>
   BMigrate.HasDefaultSqlDataTypeConstraints be EPC.Action
 
@@ -184,7 +180,7 @@ actionType = textType
 
 instance BSQL.HasSqlValueSyntax be String =>
   BSQL.HasSqlValueSyntax be EPC.SGTINFilterValue where
-    sqlValueSyntax = BSQL.autoSqlValueSyntax
+    sqlValueSyntax = BSQL.sqlValueSyntax . show
 instance (BMigrate.IsSql92ColumnSchemaSyntax be) =>
   BMigrate.HasDefaultSqlDataTypeConstraints be EPC.SGTINFilterValue
 
@@ -215,7 +211,7 @@ data LocationField =
 
 instance BSQL.HasSqlValueSyntax be String =>
   BSQL.HasSqlValueSyntax be LocationField where
-    sqlValueSyntax = BSQL.autoSqlValueSyntax
+    sqlValueSyntax = BSQL.sqlValueSyntax . show
 instance (BMigrate.IsSql92ColumnSchemaSyntax be) =>
   BMigrate.HasDefaultSqlDataTypeConstraints be LocationField
 
@@ -271,7 +267,7 @@ gs1CompanyPrefixType = textType
 
 instance BSQL.HasSqlValueSyntax be String =>
   BSQL.HasSqlValueSyntax be EPC.SGLNExtension where
-    sqlValueSyntax = BSQL.autoSqlValueSyntax
+    sqlValueSyntax = BSQL.sqlValueSyntax . show
 instance (BMigrate.IsSql92ColumnSchemaSyntax be) =>
   BMigrate.HasDefaultSqlDataTypeConstraints be EPC.SGLNExtension
 
@@ -299,7 +295,7 @@ sglnExtType = textType
 
 instance BSQL.HasSqlValueSyntax be String =>
   BSQL.HasSqlValueSyntax be EPC.Uom where
-    sqlValueSyntax = BSQL.autoSqlValueSyntax
+    sqlValueSyntax = BSQL.sqlValueSyntax . show
 instance (BMigrate.IsSql92ColumnSchemaSyntax be) =>
   BMigrate.HasDefaultSqlDataTypeConstraints be EPC.Uom
 
@@ -328,7 +324,7 @@ uomType = textType
 
 instance BSQL.HasSqlValueSyntax be String =>
   BSQL.HasSqlValueSyntax be EPC.Amount where
-    sqlValueSyntax = BSQL.autoSqlValueSyntax
+    sqlValueSyntax = BSQL.sqlValueSyntax . show
 instance (BMigrate.IsSql92ColumnSchemaSyntax be) =>
   BMigrate.HasDefaultSqlDataTypeConstraints be EPC.Amount
 
@@ -356,7 +352,7 @@ amountType = BMigrate.DataType BSQL.doubleType
 
 instance BSQL.HasSqlValueSyntax be String =>
   BSQL.HasSqlValueSyntax be EPC.AssetType where
-    sqlValueSyntax = BSQL.autoSqlValueSyntax
+    sqlValueSyntax = BSQL.sqlValueSyntax . show
 instance (BMigrate.IsSql92ColumnSchemaSyntax be) =>
   BMigrate.HasDefaultSqlDataTypeConstraints be EPC.AssetType
 
@@ -385,7 +381,7 @@ assetType = textType
 
 instance BSQL.HasSqlValueSyntax be String =>
   BSQL.HasSqlValueSyntax be EPC.Lot where
-    sqlValueSyntax = BSQL.autoSqlValueSyntax
+    sqlValueSyntax = BSQL.sqlValueSyntax . show
 instance (BMigrate.IsSql92ColumnSchemaSyntax be) =>
   BMigrate.HasDefaultSqlDataTypeConstraints be EPC.Lot
 
@@ -413,7 +409,7 @@ lotType = textType
 
 instance BSQL.HasSqlValueSyntax be String =>
   BSQL.HasSqlValueSyntax be EPC.SerialNumber where
-    sqlValueSyntax = BSQL.autoSqlValueSyntax
+    sqlValueSyntax = BSQL.sqlValueSyntax . show
 instance (BMigrate.IsSql92ColumnSchemaSyntax be) =>
   BMigrate.HasDefaultSqlDataTypeConstraints be EPC.SerialNumber
 
@@ -440,7 +436,7 @@ serialNumType = textType
 
 instance BSQL.HasSqlValueSyntax be String =>
   BSQL.HasSqlValueSyntax be EPC.ItemReference where
-    sqlValueSyntax = BSQL.autoSqlValueSyntax
+    sqlValueSyntax = BSQL.sqlValueSyntax . show
 instance (BMigrate.IsSql92ColumnSchemaSyntax be) =>
   BMigrate.HasDefaultSqlDataTypeConstraints be EPC.ItemReference
 
@@ -475,7 +471,7 @@ data LabelType
 
 instance BSQL.HasSqlValueSyntax be String =>
   BSQL.HasSqlValueSyntax be LabelType where
-    sqlValueSyntax = BSQL.autoSqlValueSyntax
+    sqlValueSyntax = BSQL.sqlValueSyntax . show
 instance (BMigrate.IsSql92ColumnSchemaSyntax be) =>
   BMigrate.HasDefaultSqlDataTypeConstraints be LabelType
 
@@ -575,36 +571,3 @@ instance ToParamSchema EPC.LocationEPC where
   toParamSchema _ = mempty
     & type_ .~ SwaggerString
     & pattern ?~ "urn:epc:id:sgln:\\d+\\.\\d+(\\.\\d+)?"
-
-
--- ============= Digest ================
-
-data Digest = SHA256 | SHA384 | SHA512
-  deriving (Show, Generic, Eq, Read)
-$(deriveJSON defaultOptions ''Digest)
-instance ToSchema Digest
-
-instance BSQL.HasSqlValueSyntax be String =>
-  BSQL.HasSqlValueSyntax be Digest where
-    sqlValueSyntax = BSQL.sqlValueSyntax . show
-instance (BMigrate.IsSql92ColumnSchemaSyntax be) =>
-  BMigrate.HasDefaultSqlDataTypeConstraints be Digest
-
-instance (BSQL.HasSqlValueSyntax (BSQL.Sql92ExpressionValueSyntax be) Bool,
-          BSQL.IsSql92ExpressionSyntax be) =>
-          B.HasSqlEqualityCheck be Digest
-instance (BSQL.HasSqlValueSyntax (BSQL.Sql92ExpressionValueSyntax be) Bool,
-          BSQL.IsSql92ExpressionSyntax be) =>
-          B.HasSqlQuantifiedEqualityCheck be Digest
-
-instance BSQL.FromBackendRow BPostgres.Postgres Digest where
-  fromBackendRow = defaultFromBackendRow "Digest"
-
-instance FromField Digest where
-  fromField = defaultFromField "Digest"
-
-instance ToField Digest where
-  toField = toField . show
-
-digestType :: BMigrate.DataType PgDataTypeSyntax Digest
-digestType = textType
