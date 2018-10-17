@@ -1,6 +1,7 @@
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE RecordWildCards       #-}
+{-# LANGUAGE DataKinds             #-}
 
 module Mirza.BusinessRegistry.Handlers.Business
   ( listBusinesses
@@ -12,7 +13,6 @@ module Mirza.BusinessRegistry.Handlers.Business
 
 
 import           Mirza.BusinessRegistry.Database.Schema
-import           Mirza.BusinessRegistry.Handlers.Common
 import           Mirza.BusinessRegistry.SqlUtils
 import           Mirza.BusinessRegistry.Types             as BT
 
@@ -27,7 +27,9 @@ import           GHC.Stack                                (HasCallStack,
                                                            callStack)
 
 
-listBusinesses :: BRApp context err => AppM context err [BusinessResponse]
+listBusinesses :: ( Member context '[HasDB]
+                  , Member err     '[AsBRError, AsSqlError])
+               => AppM context err [BusinessResponse]
 listBusinesses = fmap businessToBusinessResponse <$> runDb listBusinessesQuery
 
 
@@ -38,7 +40,7 @@ businessToBusinessResponse BusinessT{..} = BusinessResponse
   }
 
 
-listBusinessesQuery :: BRApp context err => DB context err [Business]
+listBusinessesQuery :: DB context err [Business]
 listBusinessesQuery = pg $ runSelectReturningList $ select $
   all_ (_businesses businessRegistryDB)
 
@@ -46,10 +48,14 @@ listBusinessesQuery = pg $ runSelectReturningList $ select $
 -- addBusiness so that we can use it from behind the private API. This argument
 -- is not used in the current implementation as it is assumed that all users
 -- will have the ability to act globally.
-addBusinessAuth ::  (BRApp context err) => BT.AuthUser -> NewBusiness -> AppM context err GS1CompanyPrefix
+addBusinessAuth :: ( Member context '[HasDB]
+                   , Member err     '[AsBRError, AsSqlError])
+                => BT.AuthUser -> NewBusiness -> AppM context err GS1CompanyPrefix
 addBusinessAuth _ = addBusiness
 
-addBusiness ::  (BRApp context err) => NewBusiness -> AppM context err GS1CompanyPrefix
+addBusiness :: ( Member context '[HasDB]
+               , Member err     '[AsBRError, AsSqlError])
+            => NewBusiness -> AppM context err GS1CompanyPrefix
 addBusiness = (fmap biz_gs1_company_prefix)
   . (handleError (handleSqlUniqueViloation "businesses_pkey" (const $ _GS1CompanyPrefixExistsBRE # ())))
   . runDb
@@ -65,7 +71,8 @@ newBusinessToBusiness NewBusiness{..} =
     }
 
 
-addBusinessQuery :: (HasCallStack, BRApp context err) => Business -> DB context err Business
+addBusinessQuery :: (AsBRError err, HasCallStack)
+                 => Business -> DB context err Business
 addBusinessQuery biz@BusinessT{..} = do
   res <- pg $ runInsertReturningList (_businesses businessRegistryDB)
             $ insertValues [biz]
