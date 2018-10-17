@@ -194,11 +194,14 @@ testKeyQueries = do
       getKeyState now Nothing (Just $ ExpirationTime next) `shouldBe` InEffect
 
 
-    -- For the following tests we enumerate all possibilites and document afterwards which cases are identical. To
-    -- reduce notation length we document using the notation `1` to mean the earliest reference time, `2` to mean the
-    -- value epsilon after `1` and `3` to mean the value epsilon after `2`. We use the positional location in the
-    -- function call i.e. `123` means `getKeyState 1 (RevocationTime 2) (ExpirationTime 3)`. Hence `121` is the same
-    -- test as `232` (since in both cases the times used are identical realative to each other).
+    -- For the following tests we enumerate all possibilites and document
+    -- afterwards which cases are identical. To reduce notation length we
+    -- document using the notation `1` to mean the earliest reference time, `2`
+    -- to mean the value epsilon after `1` and `3` to mean the value epsilon
+    -- after `2`. We use the positional location in the function call i.e. `123`
+    -- means `getKeyState 1 (RevocationTime 2) (ExpirationTime 3)`. Hence `121`
+    -- is the same test as `232` (since in both cases the times used are
+    -- identical realative to each other).
 
     it "results in Revoked when RevocationTime and ExpirationTime is the same as the comparison time" $ \_-> do
       now <- getCurrentTime
