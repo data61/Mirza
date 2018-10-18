@@ -59,10 +59,10 @@ eventList           :: BasicAuthData -> UserId -> ClientM [Ev.Event]
 eventUserList       :: BasicAuthData -> EventId -> ClientM [(T.User, Bool)]
 queryUserId         :: BasicAuthData -> ClientM UserId
 
-insertObjectEvent   :: BasicAuthData -> ObjectEvent -> ClientM (Ev.Event, Schema.EventId)
-insertAggEvent      :: BasicAuthData -> AggregationEvent -> ClientM (Ev.Event, Schema.EventId)
-insertTransactEvent :: BasicAuthData -> TransactionEvent -> ClientM (Ev.Event, Schema.EventId)
-insertTransfEvent   :: BasicAuthData -> TransformationEvent -> ClientM (Ev.Event, Schema.EventId)
+insertObjectEvent   :: BasicAuthData -> ObjectEvent -> ClientM (EventInfo, Schema.EventId)
+insertAggEvent      :: BasicAuthData -> AggregationEvent -> ClientM (EventInfo, Schema.EventId)
+insertTransactEvent :: BasicAuthData -> TransactionEvent -> ClientM (EventInfo, Schema.EventId)
+insertTransfEvent   :: BasicAuthData -> TransformationEvent -> ClientM (EventInfo, Schema.EventId)
 
 
 _api     :: Client ClientM ServerAPI

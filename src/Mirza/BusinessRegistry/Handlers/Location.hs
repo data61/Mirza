@@ -28,7 +28,7 @@ import           GHC.Stack                                (HasCallStack,
 import           Control.Lens                             (( # ))
 
 addLocation :: ( Member context '[HasEnvType, HasConnPool, HasLogging]
-               , Member err     '[AsSqlError, AsBusinessRegistryError])
+               , Member err     '[AsSqlError, AsBRError])
             => AuthUser
             -> NewLocation
             -> AppM context err LocationId
@@ -43,7 +43,7 @@ addLocation auser newLoc = do
   -- TODO: discover which constraints are needed and what we should catch here
   -- (awaiting tests)
   -- where
-  --   errHandler :: (AsSqlError err, AsBusinessRegistryError err, MonadError err m, MonadIO m) => err -> m a
+  --   errHandler :: (AsSqlError err, AsBRError err, MonadError err m, MonadIO m) => err -> m a
   --   errHandler e = case e ^? _SqlError of
   --     Nothing -> throwError e
   --     Just sqlErr ->
@@ -52,7 +52,7 @@ addLocation auser newLoc = do
   --         _ -> throwError e
 
 addLocationQuery  :: ( Member context '[]
-                     , Member err     '[AsBusinessRegistryError]
+                     , Member err     '[AsBRError]
                      , HasCallStack)
                   => AuthUser
                   -> PrimaryKeyType
@@ -106,7 +106,7 @@ newLocationToLocation
 
 
 getLocationByGLN :: ( Member context '[HasLogging, HasConnPool, HasEnvType]
-                    , Member err     '[AsBusinessRegistryError, AsSqlError]
+                    , Member err     '[AsBRError, AsSqlError]
                     , HasCallStack)
                     => AuthUser
                     -> LocationEPC
@@ -126,7 +126,7 @@ getLocationByGLN _user gln = do
 
 
 getLocationByGLNQuery :: ( Member context '[]
-                         , Member err     '[AsBusinessRegistryError])
+                         , Member err     '[AsBRError])
                          => LocationEPC
                          -> DB context err (Maybe (Location, GeoLocation))
 getLocationByGLNQuery gln = pg $ runSelectReturningOne $ select $ do
