@@ -14,7 +14,6 @@ import           Mirza.Common.Time                      (CreationTime,
                                                          ExpirationTime,
                                                          RevocationTime)
 import           Mirza.Common.Types                     as CT
-import           Mirza.Common.Utils
 
 import           Data.GS1.EPC                           as EPC
 
@@ -29,6 +28,7 @@ import           Database.PostgreSQL.Simple.ToField   (ToField, toField)
 import qualified Database.Beam.Migrate      as BMigrate
 import qualified Database.Beam.Postgres     as BPostgres
 
+import           Crypto.JOSE                            (JWK)
 import           Crypto.Scrypt                          (ScryptParams)
 
 import           Katip                                  as K
@@ -43,9 +43,6 @@ import           Data.Time                              (LocalTime)
 
 import           GHC.Generics                           (Generic)
 import           GHC.Stack                              (CallStack)
-
-import           Servant                                (FromHttpApiData (..))
-
 
 -- *****************************************************************************
 -- Context Types
@@ -102,8 +99,6 @@ newtype AuthUser = AuthUser { authUserId :: UserId }
   deriving (Show, Eq, Read, Generic)
 instance ToSchema AuthUser
 instance ToParamSchema AuthUser
-instance FromHttpApiData AuthUser where
-  parseUrlPiece = notImplemented
 
 
 data NewBusiness = NewBusiness
@@ -168,7 +163,7 @@ latitudeType :: BMigrate.DataType PgDataTypeSyntax Latitude
 latitudeType = BMigrate.DataType doubleType
 
 
-instance HasSqlValueSyntax be Double 
+instance HasSqlValueSyntax be Double
       => HasSqlValueSyntax be Longitude where
   sqlValueSyntax = sqlValueSyntax . getLongitude
 instance BMigrate.IsSql92ColumnSchemaSyntax be
@@ -223,13 +218,6 @@ instance ToParamSchema KeyState
 -- Signing and Hashing Types
 -- *****************************************************************************
 
-newtype PEM_RSAPubKey = PEM_RSAPubKey Text
-  deriving (Eq, Show, Generic, ToJSON, FromJSON)
-instance ToSchema PEM_RSAPubKey
-instance ToParamSchema PEM_RSAPubKey
-instance FromHttpApiData PEM_RSAPubKey where
-  parseUrlPiece t = fmap PEM_RSAPubKey (parseUrlPiece t)
-
 
 data KeyInfoResponse = KeyInfoResponse
   { keyInfoId             :: CT.BRKeyId
@@ -238,7 +226,7 @@ data KeyInfoResponse = KeyInfoResponse
   , keyInfoCreationTime   :: CreationTime
   , keyInfoRevocation     :: Maybe (RevocationTime, UserId)
   , keyInfoExpirationTime :: Maybe ExpirationTime
-  , keyInfoPEMString      :: PEM_RSAPubKey
+  , keyInfoJWK            :: JWK
   }
   deriving (Generic, Show, Eq)
 $(deriveJSON defaultOptions ''KeyInfoResponse)
@@ -249,7 +237,7 @@ instance ToSchema KeyInfoResponse
 -- Error Types
 -- *****************************************************************************
 
-data BusinessRegistryError
+data BRError
   = DBErrorBRE SqlError
   | UnmatchedUniqueViolationBRE SqlError
   -- | The user tried to add a business with the a GS1CompanyPrefix that already exsits.
@@ -259,7 +247,7 @@ data BusinessRegistryError
   | UserCreationSQLErrorBRE SqlError
   -- | When adding a user fails for an unknown reason.
   | UserCreationErrorBRE String CallStack
-  | KeyErrorBRE KeyError
+  | BRKeyErrorBRE BRKeyError
   | LocationNotKnownBRE
   | LocationExistsBRE
   -- | An error that isn't specifically excluded by the types, but that the
@@ -268,14 +256,15 @@ data BusinessRegistryError
   | UnexpectedErrorBRE CallStack
   deriving (Show, Generic)
 
-data KeyError
-  = InvalidRSAKey PEM_RSAPubKey
-  | InvalidRSAKeySize Expected Received
-  | PublicKeyInsertionError [CT.BRKeyId]
-  | KeyNotFound CT.BRKeyId
-  | UnauthorisedKeyAccess
-  | KeyAlreadyRevoked
-  | KeyAlreadyExpired
+data BRKeyError
+  = InvalidRSAKeyBRKE JWK
+  | InvalidRSAKeySizeBRKE Expected Received
+  | KeyIsPrivateKeyBRKE
+  | PublicKeyInsertionErrorBRKE [CT.BRKeyId]
+  | KeyNotFoundBRKE CT.BRKeyId
+  | UnauthorisedKeyAccessBRKE
+  | KeyAlreadyRevokedBRKE
+  | KeyAlreadyExpiredBRKE
   -- | If it is detected that the key has a revocation time and no revoking
   -- user or the key has a revoking user but now revoking time. Hopefully in
   -- practice it is not possible to produce this error since it probably
@@ -285,8 +274,8 @@ data KeyError
   -- this error it might be a good time to re-evaulate whether it is better to
   -- fix the storage datatype so its not possible to generate this error in the
   -- first place.
-  | InvalidRevocation (Maybe LocalTime) (Maybe PrimaryKeyType) CallStack
-  | AddedExpiredKey
+  | InvalidRevocationBRKE (Maybe LocalTime) (Maybe PrimaryKeyType) CallStack
+  | AddedExpiredKeyBRKE
   deriving (Show)
 
 newtype Bit  = Bit  {getBit :: Int} deriving (Show, Eq, Read, Ord)
@@ -295,8 +284,8 @@ newtype Received = Received {getReceived :: Bit} deriving (Show, Eq, Read, Ord)
 
 
 -- Lens definitions for Error Types.
-$(makeClassyPrisms ''BusinessRegistryError)
-$(makeClassyPrisms ''KeyError)
+$(makeClassyPrisms ''BRError)
+$(makeClassyPrisms ''BRKeyError)
 
-instance AsSqlError BusinessRegistryError where _SqlError = _DBErrorBRE
-instance AsKeyError BusinessRegistryError where _KeyError = _KeyErrorBRE
+instance AsSqlError BRError where _SqlError = _DBErrorBRE
+instance AsBRKeyError BRError where _BRKeyError = _BRKeyErrorBRE

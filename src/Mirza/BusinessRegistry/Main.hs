@@ -166,7 +166,7 @@ server ev =
         (Proxy @ServerAPI)
         (Proxy @'[BasicAuthCheck BT.AuthUser])
         (appMToHandler ev)
-        (appHandlers @BRContext @BusinessRegistryError)
+        (appHandlers @BRContext @BRError)
 
 
 --------------------------------------------------------------------------------
@@ -188,13 +188,13 @@ runUserCommand :: ServerOptionsBR -> UserCommand -> IO ()
 runUserCommand opts UserList = do
    ctx <- initBRContext opts
    euser <- runAppM ctx $ runDb listUsersQuery
-   either (print @BusinessRegistryError) (mapM_ print) euser
+   either (print @BRError) (mapM_ print) euser
 
 runUserCommand opts UserAdd = do
   user <- interactivelyGetNewUser
   ctx <- initBRContext opts
   euser <- runAppM ctx $ runDb (addUserQuery user)
-  either (print @BusinessRegistryError) print euser
+  either (print @BRError) print euser
 
 
 interactivelyGetNewUser :: IO NewUser
@@ -205,7 +205,7 @@ interactivelyGetNewUser = do
   newUserFirstName    <- pack <$> prompt "First Name:"
   newUserLastName     <- pack <$> prompt "Last Name:"
   newUserPhoneNumber  <- pack <$> prompt "Phone Number:"
-  return NewUser{..}
+  pure NewUser{..}
 
 getUserEmailInteractive :: IO EmailAddress
 getUserEmailInteractive = do
@@ -234,13 +234,13 @@ runBusinessCommand :: ServerOptionsBR -> BusinessCommand -> IO ()
 runBusinessCommand opts BusinessList = do
   ctx <- initBRContext opts
   ebizs <- runAppM ctx $ runDb listBusinessesQuery
-  either (print @BusinessRegistryError) (mapM_ print) ebizs
+  either (print @BRError) (mapM_ print) ebizs
 
 runBusinessCommand opts BusinessAdd = do
   business <- interactivelyGetBusinessT
   ctx <- initBRContext opts
   ebiz <- runAppM ctx $ runDb (addBusinessQuery business)
-  either (print @BusinessRegistryError) print ebiz
+  either (print @BRError) print ebiz
 
 
 interactivelyGetBusinessT :: IO Business
@@ -248,7 +248,7 @@ interactivelyGetBusinessT = do
   biz_gs1_company_prefix <- GS1CompanyPrefix . pack <$>  prompt "GS1CompanyPrefix"
   biz_name      <- pack <$> prompt "Name"
   let biz_last_update = Nothing
-  return BusinessT{..}
+  pure BusinessT{..}
 
 prompt :: String -> IO String
 prompt message = putStrLn message *> getLine
@@ -263,17 +263,17 @@ runPopulateDatabase opts = do
   ctx     <- initBRContext opts
 
   b1      <- dummyBusiness "1"
-  _result <- runAppM @_ @BusinessRegistryError ctx $ addBusiness b1
+  _result <- runAppM @_ @BRError ctx $ addBusiness b1
   u1b1    <- dummyUser "B1U1" (newBusinessGS1CompanyPrefix b1)
   u2b1    <- dummyUser "B1U2" (newBusinessGS1CompanyPrefix b1)
-  _result <- runAppM @_ @BusinessRegistryError ctx $
+  _result <- runAppM @_ @BRError ctx $
              runDb (mapM addUserQuery [u1b1, u2b1])
 
   b2      <- dummyBusiness "2"
-  _result <- runAppM @_ @BusinessRegistryError ctx $ addBusiness b2
+  _result <- runAppM @_ @BRError ctx $ addBusiness b2
   u1b2    <- dummyUser "B2U1" (newBusinessGS1CompanyPrefix b2)
   u2b2    <- dummyUser "B2U2" (newBusinessGS1CompanyPrefix b2)
-  _result <- runAppM @_ @BusinessRegistryError ctx $
+  _result <- runAppM @_ @BRError ctx $
              runDb (mapM addUserQuery [u1b2, u2b2])
 
   putStrLn "Credentials"
@@ -296,7 +296,7 @@ dummyBusiness :: Text -> IO NewBusiness
 dummyBusiness unique = do
   let newBusinessGS1CompanyPrefix = GS1CompanyPrefix ("Business" <> unique <> "Prefix")
   let newBusinessName             = "Business" <> unique <> "Name"
-  return NewBusiness{..}
+  pure NewBusiness{..}
 
 
 dummyUser :: Text -> GS1CompanyPrefix -> IO NewUser
@@ -308,7 +308,7 @@ dummyUser unique business_uid = do
   let newUserFirstName    = "User" <> unique <> "FirstName"
   let newUserLastName     = "User" <> unique <> "LastName"
   let newUserPhoneNumber  = "User" <> unique <> "PhoneNumber"
-  return NewUser{..}
+  pure NewUser{..}
 
 
 printCredentials :: NewUser -> IO ()

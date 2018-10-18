@@ -13,7 +13,6 @@ module Mirza.BusinessRegistry.Auth
   ) where
 
 import           Mirza.BusinessRegistry.Database.Schema as Schema
-import           Mirza.BusinessRegistry.Handlers.Common
 import           Mirza.BusinessRegistry.Types           as BT
 import           Mirza.Common.Types                     as CT
 
@@ -33,31 +32,31 @@ import           Text.Email.Validate                    (EmailAddress,
 -- Basic Authentication requires a Context Entry with the 'BasicAuthCheck' value
 -- tagged with "foo-tag" This context is then supplied to 'server' and threaded
 -- to the BasicAuth HasServer handlers.
-basicAuthServerContext :: (HasScryptParams context, DBConstraint context BusinessRegistryError)
-                       => context  -> Servant.Context '[BasicAuthCheck AuthUser]
+basicAuthServerContext :: ( Member context '[HasScryptParams, HasDB])
+                       => context -> Servant.Context '[BasicAuthCheck AuthUser]
 basicAuthServerContext context = authCheck context :. EmptyContext
 
 
 -- 'BasicAuthCheck' holds the handler we'll use to verify a username and password.
 -- authCheck :: SCSContext -> BasicAuthCheck ST.User
-authCheck :: (HasScryptParams context, DBConstraint context SqlError)
+authCheck ::  ( Member context '[HasScryptParams, HasDB])
           => context -> BasicAuthCheck AuthUser
 authCheck context =
   let check (BasicAuthData userEmail pass) =
         case emailAddress userEmail of
-          Nothing -> return Unauthorized
+          Nothing -> pure Unauthorized
           Just email -> do
             eitherUser <- runAppM @_ @SqlError context . runDb $
                           authCheckQuery email (Password pass)
             case eitherUser of
-              Right (Just user) -> return (Authorized user)
-              _                 -> return NoSuchUser
+              Right (Just user) -> pure (Authorized user)
+              _                 -> pure NoSuchUser
   in BasicAuthCheck check
 
 -- Basic Auth check using Scrypt hashes.
 -- TODO: How safe is this to timing attacks? Can we tell which emails are in the
 -- system easily?
-authCheckQuery :: (AsSqlError err, HasScryptParams context)
+authCheckQuery :: (HasScryptParams context)
                => EmailAddress
                -> Password
                -> DB context err (Maybe AuthUser)
@@ -87,6 +86,6 @@ userToAuthUser :: Schema.User -> AuthUser
 userToAuthUser user = AuthUser (CT.UserId $ user_id user)
 
 
-listUsersQuery :: BRApp context err => DB context err [Schema.User]
+listUsersQuery :: DB context err [Schema.User]
 listUsersQuery = pg $ runSelectReturningList $ select $
     all_ (_users businessRegistryDB)

@@ -31,6 +31,10 @@ No:
     aeson parsers, and tests are usually fine)
 * incomplete pattern matches (GHC will warn you)
 
+## Use ``pure`` instead of ``return``
+
+This is self-explanatory. Unless you have a good reason to use `return`, of course.
+
 ## Use newtypes
 
 Specific types are always better than general ones when defining data types,
@@ -107,6 +111,22 @@ discovered that `naming_variables_like_this_keeps_things_intact`.
 
 Since we want our column names to be consistent with the column names we
 put in the migration function, this seemed like the way to go.
+
+### Deriving sqlValueSyntax
+
+Make the marshalling from custom types as explicit as possible.
+Even in the case where the data type is to be stored as a string,
+i.e, the result of calling `show` on it is to be used as its database representation,
+make that explicit. The example code below shows how to:
+
+```haskell
+import Database.Beam.Backend.SQL (HasSqlValueSyntax (..), sqlValueSyntax)
+
+instance HasSqlValueSyntax be String =>
+  BSQL.HasSqlValueSyntax be MyType where
+    sqlValueSyntax = sqlValueSyntax . show
+    -- instead of: sqlValueSyntax = autoSqlValueSyntax
+```
 
 ### Database transactions
 

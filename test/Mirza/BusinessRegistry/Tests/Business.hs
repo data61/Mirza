@@ -19,7 +19,7 @@ import           GHC.Stack                                (HasCallStack)
 import           Test.Hspec
 
 testAppM :: context
-         -> AppM context BusinessRegistryError a
+         -> AppM context BRError a
          -> IO a
 testAppM brContext act = runAppM brContext act >>= \case
     Left err -> fail (show err)
