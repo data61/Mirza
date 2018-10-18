@@ -6,7 +6,7 @@ module Mirza.BusinessRegistry.Database.Schema
   , primaryKey
   ) where
 
-import           Control.Arrow ((>>>))
+import           Control.Arrow                                ((>>>))
 
 import           Database.Beam                                (DatabaseSettings)
 import           Database.Beam.Migrate.Types                  hiding
