@@ -128,7 +128,7 @@ addLastUpdateTriggers db = forM_ (getTableNames db) $ \tName -> do
         \RETURN NEW; \
       \END; \
       \$$ LANGUAGE plpgsql; \
-      \DROP TRIGGER IF EXISTS sync_lastmod ON " <> tName <> ";" <>
+      \DROP TRIGGER IF EXISTS sync_lastmod ON \"" <> tName <> "\";" <>
       "CREATE TRIGGER sync_lastmod \
-      \BEFORE UPDATE OR INSERT ON " <> tName <>
-      " FOR EACH ROW EXECUTE PROCEDURE sync_lastmod();"
+      \BEFORE UPDATE OR INSERT ON \"" <> tName <>
+        "\" FOR EACH ROW EXECUTE PROCEDURE sync_lastmod();"
