@@ -39,7 +39,7 @@ import           Data.Aeson.TH
 
 import           Data.Swagger
 import           Data.Text                              (Text)
-import           Data.Time                              (LocalTime)
+import           Data.Time                              (LocalTime, UTCTime)
 
 import           GHC.Generics                           (Generic)
 import           GHC.Stack                              (CallStack)
@@ -112,6 +112,7 @@ instance ToSchema NewBusiness
 data BusinessResponse = BusinessResponse
   { businessGS1CompanyPrefix :: EPC.GS1CompanyPrefix
   , businessName             :: Text
+  , businessLastModified     :: UTCTime
   }
   deriving (Show, Eq, Read, Generic)
 instance ToSchema BusinessResponse
@@ -190,12 +191,14 @@ longitudeType = BMigrate.DataType doubleType
 
 
 data LocationResponse = LocationResponse
-  { locationId    :: PrimaryKeyType
-  , locationGLN   :: EPC.LocationEPC
-  , locationBiz   :: GS1CompanyPrefix
-  , geoLocId      :: PrimaryKeyType
-  , geoLocCoord   :: Maybe (Latitude, Longitude)
-  , geoLocAddress :: Maybe Text
+  { locationId         :: PrimaryKeyType
+  , locationGLN        :: EPC.LocationEPC
+  , locationBiz        :: GS1CompanyPrefix
+  , geoLocId           :: PrimaryKeyType
+  , geoLocCoord        :: Maybe (Latitude, Longitude)
+  , geoLocAddress      :: Maybe Text
+  , locLastModified    :: UTCTime
+  , geoLocLastModified :: UTCTime 
   } deriving (Show, Generic)
 
 
@@ -227,6 +230,7 @@ data KeyInfoResponse = KeyInfoResponse
   , keyInfoRevocation     :: Maybe (RevocationTime, UserId)
   , keyInfoExpirationTime :: Maybe ExpirationTime
   , keyInfoJWK            :: JWK
+  , keyInfoLastModified   :: UTCTime
   }
   deriving (Generic, Show, Eq)
 $(deriveJSON defaultOptions ''KeyInfoResponse)
