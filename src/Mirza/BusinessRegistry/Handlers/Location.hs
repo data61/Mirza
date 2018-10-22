@@ -138,7 +138,7 @@ getLocationByGLNQuery :: ( Member context '[]
 getLocationByGLNQuery gln = pg $ runSelectReturningOne $ select $ do
   loc   <- all_ (_locations businessRegistryDB)
   geoloc <- all_ (_geoLocations businessRegistryDB)
+             & orderBy_ (desc_ . geoLocation_last_update)
   guard_ (primaryKey loc ==. val_ (LocationId gln))
   guard_ (geoLocation_gln geoloc ==. primaryKey loc)
-  -- TODO: Add ORDER BY when we have a date modified field
   pure (loc,geoloc)
