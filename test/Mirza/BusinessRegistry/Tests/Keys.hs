@@ -125,10 +125,10 @@ testKeyQueries = do
 --}
 
     it "Expired but NOT revoked pub key" $ \brContext -> do
+      Just pubKey <- goodRsaPublicKey
       nowish <- getCurrentTime
       let smallDelayInSeconds = 1
           nearExpiry = addUTCTime (fromInteger smallDelayInSeconds) nowish
-      Just pubKey <- goodRsaPublicKey
       keyId <- testAppM brContext $ do
         user <- insertDummies
         keyId <- addPublicKey user pubKey (Just . ExpirationTime $ nearExpiry)
