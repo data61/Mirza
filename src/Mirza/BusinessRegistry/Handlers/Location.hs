@@ -14,6 +14,7 @@ module Mirza.BusinessRegistry.Handlers.Location
 import           Mirza.BusinessRegistry.Database.Schema   as DB
 import           Mirza.BusinessRegistry.SqlUtils
 import           Mirza.BusinessRegistry.Types             as BT
+import           Mirza.Common.Time
 import           Mirza.Common.Types                       (Member)
 import           Mirza.Common.Utils
 
@@ -26,6 +27,8 @@ import           GHC.Stack                                (HasCallStack,
                                                            callStack)
 
 import           Control.Lens                             (( # ))
+import           Control.Lens.Operators                   ((&))
+import           Data.Maybe                               (fromJust)
 
 addLocation :: ( Member context '[HasEnvType, HasConnPool, HasLogging]
                , Member err     '[AsSqlError, AsBRError])
@@ -122,6 +125,9 @@ getLocationByGLN _user gln = do
       , geoLocId      = geoLocation_id
       , geoLocCoord   = (,) <$> geoLocation_latitude <*> geoLocation_longitude
       , geoLocAddress = geoLocation_address
+      -- These should never by Nothing
+      , locLastModified = onLocalTime id (fromJust location_last_update)
+      , geoLocLastModified = onLocalTime id (fromJust geoLocation_last_update)
       }
 
 
