@@ -3,7 +3,7 @@
 
 module Main where
 
-import           Mirza.BusinessRegistry.Tests.Settings   (testDbConnStr)
+import           Mirza.Common.Tests.InitClient           (testDbConnStrBR)
 
 import           Mirza.BusinessRegistry.Database.Migrate
 import           Mirza.BusinessRegistry.Main             hiding (main)
@@ -51,7 +51,7 @@ dropTables conn =
 
 
 defaultPool :: IO (Pool.Pool Connection)
-defaultPool = Pool.createPool (connectPostgreSQL testDbConnStr) close
+defaultPool = Pool.createPool (connectPostgreSQL testDbConnStrBR) close
                 1 -- Number of "sub-pools",
                 60 -- How long in seconds to keep a connection open for reuse
                 10 -- Max number of connections to have open at any one time
@@ -63,7 +63,7 @@ openConnection = do
   connpool <- defaultPool
   _ <- withResource connpool dropTables -- drop tables before so if already exist no problems... means tables get overwritten though
   tempFile <- emptySystemTempFile "businessRegistryTests.log"
-  ctx <- initBRContext (ServerOptionsBR testDbConnStr 16 10 4 DebugS (Just tempFile) Dev)
+  ctx <- initBRContext (ServerOptionsBR testDbConnStrBR 16 10 4 DebugS (Just tempFile) Dev)
   initRes <- runMigrationWithConfirmation ctx (const (pure Execute))
   case initRes of
     Left err -> print @SqlError err >> error "Database initialisation failed"

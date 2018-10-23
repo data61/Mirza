@@ -49,6 +49,9 @@ import           Text.Email.Validate                      (toByteString)
 -- SCS Utility Functions
 -- *****************************************************************************
 
+-- | Default database connection string used when running tests for the SCS. Be
+-- careful using this construct as it could lead to problems...users not
+-- specifying the database and accidentally operating on the wrong database.
 testDbConnStrSCS :: ByteString
 testDbConnStrSCS = "dbname=testsupplychainserver"
 
@@ -106,11 +109,18 @@ runSCSApp brUrl = do
   flushDbResult `shouldSatisfy` isRight
   startWaiApp =<< SCSMain.initApplication so' ctx
 
+
+
 -- *****************************************************************************
 -- BR Utility Functions
 -- *****************************************************************************
+
+-- | Default database connection string used when running tests for the BR. Be
+-- careful using this construct as it could lead to problems...users not
+-- specifying the database and accidentally operating on the wrong database.
 testDbConnStrBR :: ByteString
-testDbConnStrBR = "dbname=testmirzabusinessregistry"
+testDbConnStrBR = "dbname=testbusinessregistry"
+
 
 newBusinessToBusinessResponse :: NewBusiness -> BusinessResponse
 newBusinessToBusinessResponse =
