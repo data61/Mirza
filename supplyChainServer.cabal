@@ -173,7 +173,6 @@ test-suite businessRegistry-test
                     , Mirza.BusinessRegistry.Tests.Dummies
                     , Mirza.BusinessRegistry.Tests.Business
                     , Mirza.BusinessRegistry.Tests.Client
-                    , Mirza.BusinessRegistry.Tests.Settings
                     , Mirza.Common.Tests.Utils
                     , Mirza.BusinessRegistry.Tests.Utils
   default-extensions:  OverloadedStrings
