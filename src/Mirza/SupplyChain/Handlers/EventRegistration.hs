@@ -185,3 +185,9 @@ insertTransfEventQuery
   mapM_ (insertLabelEvent eventId) labelIds
 
   pure (evInfo, eventId)
+
+
+-- -- sendToBlockchain ::  (MonadError SigError m, MonadIO m) =>  C.BlockchainPackage -> m ()
+-- sendToBlockchain :: Monad m => C.BlockchainPackage -> m ()
+-- sendToBlockchain package = pure () -- if it fails, raise SE_SEND_TO_BLOCKCHAIN_FAILED error.
+
