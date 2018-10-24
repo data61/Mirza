@@ -127,7 +127,7 @@ testKeyQueries = do
       Just pubKey <- goodRsaPublicKey
       nowish <- getCurrentTime
       -- A delay of 2 seconds is used here because
-      -- insertDummies can take up to 1 second to run
+      -- insertDummies can take up to 1 second to run. See github #257 for more info.
       let smallDelayInSeconds = 2
           nearExpiry = addUTCTime (fromInteger smallDelayInSeconds) nowish
       keyId <- testAppM brContext $ do
