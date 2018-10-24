@@ -47,7 +47,7 @@ randomText :: IO T.Text
 randomText = do
   count <- randomRIO (8 :: Int, 32)
   randomString <- (take count) <$> replicateM count (randomRIO ('a', 'z'))
-  return $ T.pack randomString
+  pure $ T.pack randomString
 
 {-# WARNING notImplemented "notImplemented should not be used" #-}
 notImplemented :: HasCallStack => a
