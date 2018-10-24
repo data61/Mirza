@@ -342,17 +342,20 @@ insertEvent userId@(Schema.UserId uuid) event = do
 
 
 insertUserEvent :: Schema.EventId
-                -> Schema.UserId
-                -> Schema.UserId
+                -> EventOwner
                 -> Bool
                 -> (Maybe ByteString)
+                -> SigningUser
                 -> DB context err ()
-insertUserEvent eventId userId addedByUserId signed signedHash =
-  void $ QU.withPKey $ \pKey ->
-    pg $ B.runInsert $ B.insert (Schema._user_events Schema.supplyChainDb)
-        $ insertValues
-          [ Schema.UserEvent pKey eventId userId signed addedByUserId signedHash
-          ]
+insertUserEvent eventId (EventOwner addedByUserId) signed signedHash (SigningUser userId) =
+  let signingId = Schema.UserId . getUserId $ userId
+      ownerId = Schema.UserId . getUserId $ addedByUserId
+  in
+    void $ QU.withPKey $ \pKey ->
+      pg $ B.runInsert $ B.insert (Schema._user_events Schema.supplyChainDb)
+          $ insertValues
+            [ Schema.UserEvent pKey eventId signingId signed ownerId signedHash
+            ]
 
 insertWhatLabel :: Schema.WhatId
                 -> Schema.LabelId

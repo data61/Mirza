@@ -25,7 +25,8 @@ import           Data.GS1.DWhat                    (AggregationDWhat (..),
                                                     TransactionDWhat (..),
                                                     TransformationDWhat (..))
 import           Data.GS1.Event                    as Ev
-import qualified Data.GS1.EventId                  as EvId
+
+import           Data.List.NonEmpty                ((<|))
 
 insertObjectEvent :: SCSApp context err => ST.User
                   -> ObjectEvent
@@ -37,7 +38,7 @@ insertObjectEventQuery :: AsServiceError err
                        -> ObjectEvent
                        -> DB context err (EventInfo, Schema.EventId)
 insertObjectEventQuery
-  (ST.User (ST.UserId tUserId) _ _ )
+  (ST.User ownerUserId@(ST.UserId tUserId) _ _ )
   (ObjectEvent
     foreignEventId
     act
@@ -58,7 +59,7 @@ insertObjectEventQuery
   _whenId <- insertDWhen dwhen eventId
   _whyId <- insertDWhy dwhy eventId
   insertDWhere dwhere eventId
-  insertUserEvent eventId schemaUserId schemaUserId False Nothing
+  insertUserEvent eventId (EventOwner ownerUserId) False Nothing (SigningUser ownerUserId)
   mapM_ (insertWhatLabel (Schema.WhatId whatId)) labelIds
   mapM_ (insertLabelEvent eventId) labelIds
   pure (evInfo, eventId)
@@ -74,7 +75,7 @@ insertAggEventQuery :: AsServiceError err
                     -> AggregationEvent
                     -> DB context err (EventInfo, Schema.EventId)
 insertAggEventQuery
-  (ST.User (ST.UserId tUserId) _ _ )
+  (ST.User ownerUserId@(ST.UserId tUserId) _ _ )
   (AggregationEvent
     foreignEventId
     act
@@ -97,7 +98,7 @@ insertAggEventQuery
   _whenId <- insertDWhen dwhen eventId
   _whyId <- insertDWhy dwhy eventId
   insertDWhere dwhere eventId
-  insertUserEvent eventId schemaUserId schemaUserId False Nothing
+  insertUserEvent eventId (EventOwner ownerUserId) False Nothing (SigningUser ownerUserId)
   mapM_ (insertWhatLabel (Schema.WhatId whatId)) labelIds
   mapM_ (insertLabelEvent eventId) labelIds
   pure (evInfo, eventId)
@@ -130,7 +131,7 @@ insertTransactEventQuery
 
   -- insertEvent has to be the first thing that happens here so that
   -- uniqueness of the JSON event is enforced
-  (evInfo, eventId@(Schema.EventId eventIdUuid)) <- insertEvent schemaUserId event
+  (evInfo, eventId) <- insertEvent schemaUserId event
   let ownerId = EventOwner userId
 
   whatId <- insertDWhat Nothing dwhat eventId
@@ -140,28 +141,11 @@ insertTransactEventQuery
   _whenId <- insertDWhen dwhen eventId
   _whyId <- insertDWhy dwhy eventId
   insertDWhere dwhere eventId
-  insertUserEvent eventId schemaUserId schemaUserId False Nothing
+  _r <- sequence $ insertUserEvent eventId ownerId False Nothing <$> SigningUser <$> userId <| otherUsers
   mapM_ (insertWhatLabel (Schema.WhatId whatId)) labelIds
   mapM_ (insertLabelEvent eventId) labelIds
-  _r <- sequence $ addUserToEvent ownerId (EvId.EventId eventIdUuid) <$> SigningUser <$> otherUsers
 
   pure (evInfo, eventId)
-  where
-      -- | A function to tie a user to an event
-    -- Populates the ``UserEvents`` table
-    addUserToEvent  :: AsServiceError err
-                    => EventOwner
-                    -> EvId.EventId
-                    -> SigningUser
-                    -> DB context err ()
-    addUserToEvent (EventOwner (ST.UserId loggedInUserId))
-                   (EvId.EventId eventId)
-                   (SigningUser (ST.UserId otherUserId)) = do
-        insertUserEvent
-            (Schema.EventId eventId)
-            (Schema.UserId otherUserId)
-            (Schema.UserId loggedInUserId)
-            False Nothing
 
 insertTransfEvent :: SCSApp context err => ST.User
                   -> TransformationEvent
@@ -173,7 +157,7 @@ insertTransfEventQuery :: AsServiceError err
                        -> TransformationEvent
                        -> DB context err (EventInfo, Schema.EventId)
 insertTransfEventQuery
-  (ST.User (ST.UserId tUserId) _ _ )
+  (ST.User ownerUserId@(ST.UserId tUserId) _ _ )
   (TransformationEvent
     foreignEventId
     mTransfId
@@ -196,7 +180,7 @@ insertTransfEventQuery
   _whenId <- insertDWhen dwhen eventId
   _whyId <- insertDWhy dwhy eventId
   insertDWhere dwhere eventId
-  insertUserEvent eventId schemaUserId schemaUserId False Nothing
+  insertUserEvent eventId (EventOwner ownerUserId) False Nothing (SigningUser ownerUserId)
   mapM_ (insertWhatLabel (Schema.WhatId whatId)) labelIds
   mapM_ (insertLabelEvent eventId) labelIds
 
