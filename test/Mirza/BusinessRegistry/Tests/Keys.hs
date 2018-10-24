@@ -25,10 +25,9 @@ import           Mirza.BusinessRegistry.Tests.Utils
 
 import           Data.Maybe                               (fromJust, isNothing)
 
-import           Data.Time.Clock                          (addUTCTime,
-                                                           getCurrentTime,
-                                                           NominalDiffTime,
-                                                           UTCTime)
+import           Data.Time.Clock                          (NominalDiffTime,
+                                                           UTCTime, addUTCTime,
+                                                           getCurrentTime)
 import           Data.Time.LocalTime                      (LocalTime, utc,
                                                            utcToLocalTime)
 import           GHC.Stack                                (HasCallStack)
@@ -127,7 +126,9 @@ testKeyQueries = do
     it "Expired but NOT revoked pub key" $ \brContext -> do
       Just pubKey <- goodRsaPublicKey
       nowish <- getCurrentTime
-      let smallDelayInSeconds = 1
+      -- A delay of 2 seconds is used here because
+      -- insertDummies can take up to 1 second to run. See github #257 for more info.
+      let smallDelayInSeconds = 2
           nearExpiry = addUTCTime (fromInteger smallDelayInSeconds) nowish
       keyId <- testAppM brContext $ do
         user <- insertDummies
