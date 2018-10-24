@@ -16,8 +16,6 @@ import           Mirza.Common.Utils
 
 import           Mirza.SupplyChain.Database.Schema        as Schema
 import           Mirza.SupplyChain.ErrorUtils             (throwBackendError)
-import           Mirza.SupplyChain.EventUtils             (hasUserCreatedEvent,
-                                                           insertUserEvent)
 import           Mirza.SupplyChain.Handlers.Common
 import           Mirza.SupplyChain.Types                  hiding (NewUser (..),
                                                            User (userId),
