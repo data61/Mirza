@@ -27,7 +27,7 @@ import           Data.GS1.DWhat                    (AggregationDWhat (..),
 import           Data.GS1.Event                    as Ev
 import qualified Data.GS1.EventId                  as EvId
 
-import           Data.List.NonEmpty                (NonEmpty (..))
+-- import           Data.List.NonEmpty                (NonEmpty (..))
 
 insertObjectEvent :: SCSApp context err => ST.User
                   -> ObjectEvent
@@ -148,7 +148,22 @@ insertTransactEventQuery
   _r <- sequence $ addUserToEvent ownerId (EvId.EventId eventIdUuid) <$> SigningUser <$> otherUsers
 
   pure (evInfo, eventId)
-
+  where
+      -- | A function to tie a user to an event
+    -- Populates the ``UserEvents`` table
+    addUserToEvent  :: AsServiceError err
+                    => EventOwner
+                    -> EvId.EventId
+                    -> SigningUser
+                    -> DB context err ()
+    addUserToEvent (EventOwner (ST.UserId loggedInUserId))
+                   (EvId.EventId eventId)
+                   (SigningUser (ST.UserId otherUserId)) = do
+        insertUserEvent
+            (Schema.EventId eventId)
+            (Schema.UserId otherUserId)
+            (Schema.UserId loggedInUserId)
+            False Nothing
 
 insertTransfEvent :: SCSApp context err => ST.User
                   -> TransformationEvent
