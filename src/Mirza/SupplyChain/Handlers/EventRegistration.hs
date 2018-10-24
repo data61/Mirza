@@ -27,8 +27,6 @@ import           Data.GS1.DWhat                    (AggregationDWhat (..),
 import           Data.GS1.Event                    as Ev
 import qualified Data.GS1.EventId                  as EvId
 
--- import           Data.List.NonEmpty                (NonEmpty (..))
-
 insertObjectEvent :: SCSApp context err => ST.User
                   -> ObjectEvent
                   -> AppM context err (EventInfo, Schema.EventId)
