@@ -20,6 +20,8 @@ import           Data.UUID               (nil)
 
 import           Text.Email.Validate     (emailAddress)
 
+import           Data.List.NonEmpty      (NonEmpty)
+
 -- General Utils
 dummyNewUser :: ST.NewUser
 dummyNewUser = makeDummyNewUser (fromJust $ emailAddress "fake@gmail.com")
@@ -36,7 +38,7 @@ sampleObjectFile :: FilePath
 sampleObjectFile = "../GS1Combinators/test/test-xml/ObjectEvent.xml"
 
 dummyUser :: User
-dummyUser = User (UserId nil) "Sajid" "Anower"
+dummyUser = User (UserId dummyId) "Sajid" "Anower"
 
 dummyId :: ST.PrimaryKeyType
 dummyId = nil
@@ -134,8 +136,8 @@ dummyTransactEvent =
     dummyDWhy
     dummyDWhere
 
-dummyTransaction :: TransactionEvent
-dummyTransaction = fromJust $ mkTransactEvent dummyTransactEvent
+dummyTransaction :: NonEmpty UserId -> TransactionEvent
+dummyTransaction otherUserIds = fromJust $ mkTransactEvent dummyTransactEvent otherUserIds
 
 
 -- Transformation Events
