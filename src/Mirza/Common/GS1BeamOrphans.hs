@@ -509,18 +509,14 @@ instance (BSQL.HasSqlValueSyntax (BSQL.Sql92ExpressionValueSyntax be) Bool,
           BSQL.IsSql92ExpressionSyntax be) =>
           B.HasSqlQuantifiedEqualityCheck be EmailAddress
 
-emailFromBackendRow :: Text -> EmailAddress
-emailFromBackendRow emailTxt =
-  let emailByte = encodeUtf8 emailTxt in
-    case validate emailByte of
-      Right userEmail -> userEmail
-      Left reason     -> error reason -- shouldn't ever happen
+emailFromBackendRow :: (Monad m) => Text -> m EmailAddress
+emailFromBackendRow = either fail pure . validate . encodeUtf8
 
 instance BSQL.FromBackendRow BPostgres.Postgres EmailAddress where
-  fromBackendRow = emailFromBackendRow <$> BSQL.fromBackendRow
+  fromBackendRow = emailFromBackendRow =<< BSQL.fromBackendRow
 
 instance FromField EmailAddress where
-  fromField mbs conv = emailFromBackendRow <$> fromField mbs conv
+  fromField mbs conv = emailFromBackendRow =<< fromField mbs conv
 
 instance ToField EmailAddress where
   toField = toField . decodeUtf8 . toByteString
