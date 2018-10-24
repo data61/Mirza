@@ -11,6 +11,8 @@ import           Data.Either                           (fromRight, isLeft,
                                                         isRight)
 import           Data.UUID                             (nil)
 
+import           Data.List.NonEmpty                    (NonEmpty (..))
+
 import           Data.Text.Encoding                    (encodeUtf8)
 
 import           Test.Tasty
@@ -132,8 +134,13 @@ clientSpec = do
           http (insertAggEvent authABC dummyAggregation)
             `shouldSatisfyIO` isRight
 
+          step "Adding further users for transaction events"
+          resReceiver <- http (addUser userDEF)
+          resReceiver `shouldSatisfy` isRight
+          let (Right userIdSigning) = resReceiver
+
           step "User Can insert Transaction events"
-          http (insertTransactEvent authABC dummyTransaction)
+          http (insertTransactEvent authABC $ dummyTransaction $ userIdSigning :| [])
             `shouldSatisfyIO` isRight
 
           step "User Can insert Transformation events"
@@ -277,7 +284,7 @@ clientSpec = do
           let keyIdReceiver = fromRight (BRKeyId nil) keyIdResponseReceiver
 
           step "Inserting the transaction event with the giver user"
-          let myTransactionEvent = dummyTransaction {transaction_other_user_ids=[userIdReceiver]}
+          let myTransactionEvent = dummyTransaction $ userIdReceiver :| []
           transactInsertionResponse <- httpSCS (insertTransactEvent authABC myTransactionEvent)
           transactInsertionResponse `shouldSatisfy` isRight
           let (_transactEvInfo@(EventInfo insertedTransactEvent _ _ (Base64Octets to_sign_event2) _), (Schema.EventId transactEvId)) = fromRight (error "Should be right") transactInsertionResponse

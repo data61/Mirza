@@ -16,8 +16,6 @@ import qualified Mirza.SupplyChain.Types           as ST
 
 import           Mirza.SupplyChain.EventUtils
 
-import           Control.Monad                     (when)
-
 import           Data.GS1.DWhat                    (AggregationDWhat (..),
                                                     DWhat (..), InputEPC (..),
                                                     LabelEPC (..),
@@ -127,7 +125,6 @@ insertTransactEventQuery
     otherUsers
     dwhen dwhy dwhere
   ) = do
-  -- when (null otherUsers) $ error "go away - empty users in a transaction event"
   let
       schemaUserId = Schema.UserId tUserId
       dwhat =  TransactWhat $ TransactionDWhat act mParentLabel bizTransactions labelEpcs

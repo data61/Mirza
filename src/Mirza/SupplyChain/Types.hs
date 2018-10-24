@@ -210,7 +210,7 @@ data TransactionEvent = TransactionEvent {
   transaction_parent_label         :: Maybe ParentLabel,
   transaction_biz_transaction_list :: [BizTransaction],
   transaction_epc_list             :: [LabelEPC],
-  transaction_other_user_ids       :: [UserId],
+  transaction_other_user_ids       :: NonEmpty UserId,
   transaction_when                 :: DWhen,
   transaction_why                  :: DWhy,
   transaction_where                :: DWhere
@@ -218,17 +218,17 @@ data TransactionEvent = TransactionEvent {
 $(deriveJSON defaultOptions ''TransactionEvent)
 instance ToSchema TransactionEvent
 
-mkTransactEvent :: Ev.Event -> Maybe TransactionEvent
+mkTransactEvent :: Ev.Event -> NonEmpty UserId -> Maybe TransactionEvent
 mkTransactEvent
   (Ev.Event Ev.TransactionEventT
     mEid
     (TransactWhat (TransactionDWhat act mParentLabel bizTransactions epcList))
     dwhen dwhy dwhere
-  ) = Just $
+  ) otherUsers = Just $
       TransactionEvent
-        mEid act mParentLabel bizTransactions epcList []
+        mEid act mParentLabel bizTransactions epcList otherUsers
         dwhen dwhy dwhere
-mkTransactEvent _ = Nothing
+mkTransactEvent _ _  = Nothing
 
 fromTransactEvent :: TransactionEvent ->  Ev.Event
 fromTransactEvent

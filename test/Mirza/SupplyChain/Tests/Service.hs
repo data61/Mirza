@@ -25,9 +25,12 @@ import           Mirza.SupplyChain.Types                      as ST
 import           Control.Monad                                (void)
 import           Control.Monad.Except                         (catchError)
 
-import           Data.Either                                  (isLeft)
 import           Data.GS1.EPC                                 (GS1CompanyPrefix (..))
+
+import           Data.Either                                  (isLeft)
+import           Data.List.NonEmpty                           (NonEmpty (..))
 import           Data.Maybe                                   (fromJust)
+
 
 import           Data.Text.Encoding                           (encodeUtf8)
 
@@ -160,18 +163,19 @@ testServiceQueries = do
           evtList `shouldBe` [insertedEvent]
 
   describe "Transaction Event" $ do
+  -- The otherUserIds are being stubbed out here
     it "Insert Transaction Event" $ \scsContext -> do
-      (evInfo, _) <- testAppM scsContext $ insertTransactEvent dummyUser dummyTransaction
+      (evInfo, _) <- testAppM scsContext $ insertTransactEvent dummyUser (dummyTransaction $ ST.UserId dummyId :| [])
       (eventInfoEvent evInfo) `shouldBe` dummyTransactEvent
 
     it "Should not allow duplicate Transaction events" $ \scsContext -> do
-      _res <- runAppM @_ @AppError scsContext $ insertTransactEvent dummyUser dummyTransaction
-      res <- runAppM @_ @AppError scsContext $ insertTransactEvent dummyUser dummyTransaction
+      _res <- runAppM @_ @AppError scsContext $ insertTransactEvent dummyUser (dummyTransaction $ ST.UserId dummyId :| [])
+      res <- runAppM @_ @AppError scsContext $ insertTransactEvent dummyUser (dummyTransaction $ ST.UserId dummyId :| [])
       res `shouldSatisfy` isLeft
 
     it "List event" $ \scsContext -> do
       res <- testAppM scsContext $ do
-        (evInfo, _) <- insertTransactEvent dummyUser dummyTransaction
+        (evInfo, _) <- insertTransactEvent dummyUser (dummyTransaction $ ST.UserId dummyId :| [])
         evtList <- listEvents dummyUser (LabelEPCUrn dummyLabelEpcUrn)
         pure (eventInfoEvent evInfo, evtList)
       case res of
