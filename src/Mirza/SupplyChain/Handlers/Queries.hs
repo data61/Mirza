@@ -101,7 +101,8 @@ eventUserList :: SCSApp context err
 eventUserList _user = runDb . eventUserSignedList
 
 -- TODO: Write tests
--- Returns the user and whether or not that user had signed the event
+-- Returns all the users related to the event
+-- and whether or not that user had signed the event
 eventUserSignedList :: EvId.EventId -> DB context err [(ST.User, Bool)]
 eventUserSignedList (EvId.EventId eventId) = do
   usersSignedList <- pg $ runSelectReturningList $ select $ do
