@@ -60,7 +60,6 @@ eventSign user (SignedEvent eventId keyId sig) = do
       then insertSignature (ST.userId user) eventId keyId sig
       else throwing _SigVerificationFailure (show sig) -- TODO: This should be more than show
 
--- TODO: Should this return Text or a JSON value?
 getEventBS :: AsServiceError err => EvId.EventId -> DB context err ByteString
 getEventBS eventId = do
   r <- pg $ runSelectReturningList $ select $ do
@@ -174,10 +173,6 @@ eventHashed user eventId = do
 --         pure $ C.BlockchainPackage (EventHash plainHash) signatures
 --     else throwError SE_BlockchainSendFailed
 -- --TODO - Implement me
--- -- sendToBlockchain ::  (MonadError SigError m, MonadIO m) =>  C.BlockchainPackage -> m ()
--- sendToBlockchain :: Monad m => C.BlockchainPackage -> m ()
--- sendToBlockchain package = pure () -- if it fails, raise SE_SEND_TO_BLOCKCHAIN_FAILED error.
-
 -- checkSignature :: (MonadError SigError m, MonadIO m) => PEM_RSAPubKey -> ByteString.ByteString -> Signature -> m ()
 -- checkSignature pubkey blob signature =
 --   unless (C.verifySignature pubkey blob signature) $
