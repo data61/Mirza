@@ -69,7 +69,6 @@ privateServer =
 --  :<|> contactsSearch
   :<|> userSearch
 -- Signatures
-  :<|> addUserToEvent
   :<|> eventSign
   :<|> eventHashed
 -- Queries
