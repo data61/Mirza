@@ -255,10 +255,11 @@ instance ToSchema EventHash
 -- event.
 type Signature' = Signature () JWSHeader
 
-data BlockchainPackage = BlockchainPackage EventHash (NonEmpty (Signature', UserId))
+newtype EventToSign = EventToSign BS.ByteString
   deriving (Show, Eq, Generic)
-$(deriveJSON defaultOptions ''BlockchainPackage)
-instance ToSchema BlockchainPackage
+
+data BlockchainPackage = BlockchainPackage Base64Octets (NonEmpty (UserId, SignedEvent))
+  deriving (Show, Eq, Generic)
 
 data SignedEvent = SignedEvent {
   signed_eventId   :: EventId,
@@ -295,7 +296,7 @@ data EventInfo = EventInfo {
   eventInfoEvent            :: Ev.Event,
   eventInfoUserSigs         :: [(UserId, SignedEvent)],
   eventInfoUnsignedUsers    :: [UserId],
-  eventToSign               :: Base64Octets, --this is the json stored in the db atm
+  eventToSign               :: Base64Octets, --this is what users would be required to sign
   eventInfoBlockChainStatus :: EventBlockchainStatus
 } deriving (Show, Eq, Generic)
 $(deriveJSON defaultOptions ''EventInfo)
