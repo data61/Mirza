@@ -8,25 +8,28 @@ module Mirza.SupplyChain.Handlers.EventRegistration
   , insertTransfEvent
   ) where
 
-import qualified Mirza.Common.GS1BeamOrphans       as MU
-import           Mirza.SupplyChain.Database.Schema as Schema
+import qualified Mirza.Common.GS1BeamOrphans        as MU
+import           Mirza.SupplyChain.Database.Schema  as Schema
 import           Mirza.SupplyChain.Handlers.Common
-import           Mirza.SupplyChain.Types           hiding (User (..))
-import qualified Mirza.SupplyChain.Types           as ST
+import           Mirza.SupplyChain.Types            hiding (User (..))
+import qualified Mirza.SupplyChain.Types            as ST
+
+import           Mirza.SupplyChain.Handlers.Queries
 
 import           Mirza.SupplyChain.EventUtils
 
-import           Data.GS1.DWhat                    (AggregationDWhat (..),
-                                                    DWhat (..), InputEPC (..),
-                                                    LabelEPC (..),
-                                                    ObjectDWhat (..),
-                                                    OutputEPC (..),
-                                                    ParentLabel (..),
-                                                    TransactionDWhat (..),
-                                                    TransformationDWhat (..))
-import           Data.GS1.Event                    as Ev
+import           Data.GS1.DWhat                     (AggregationDWhat (..),
+                                                     DWhat (..), InputEPC (..),
+                                                     LabelEPC (..),
+                                                     ObjectDWhat (..),
+                                                     OutputEPC (..),
+                                                     ParentLabel (..),
+                                                     TransactionDWhat (..),
+                                                     TransformationDWhat (..))
+import           Data.GS1.Event                     as Ev
+import           Data.GS1.EventId                   as EvId
 
-import           Data.List.NonEmpty                ((<|))
+import           Data.List.NonEmpty                 (nonEmpty, (<|))
 
 insertObjectEvent :: SCSApp context err => ST.User
                   -> ObjectEvent
@@ -187,7 +190,19 @@ insertTransfEventQuery
   pure (evInfo, eventId)
 
 
--- sendToBlockchain :: EventId -> AppM context0 err (EventBlockchainStatus, Maybe BlockchainId)
--- sendToBlockchain eventId = do -- if it fails, raise SE_SEND_TO_BLOCKCHAIN_FAILED error.
---   eInfo <- eventInfo eventId
---   pure ()
+sendToBlockchain :: (SCSApp context err, AsServantError err)
+                 => ST.User
+                 -> EvId.EventId
+                 -> AppM context err (EventBlockchainStatus, Maybe BlockchainId)
+sendToBlockchain user eventId = do
+  evInfo <- eventInfo user eventId
+  let eventStatus = eventInfoBlockChainStatus evInfo
+  return $ case eventStatus of
+    ReadyAndWaiting -> do
+      case (nonEmpty . eventInfoUserSigs $ evInfo) of
+        Nothing -> error "it should never get here"
+        Just userSigs -> do
+              let evToSign = eventToSign evInfo
+              let bcPackage = BlockchainPackage evToSign userSigs
+              error "not implemented yet"
+    _               -> (NeedMoreSignatures, Nothing)
