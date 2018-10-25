@@ -70,7 +70,7 @@ eventInfoQuery _user eventId@(EvId.EventId eId) = do
   signedEvents <- mapM (flip findSignedEventByUser eventId) signedUserIds
   let usersAndSignedEvents = zip signedUserIds signedEvents
   pure $ EventInfo event usersAndSignedEvents unsignedUserIds
-                  (Base64Octets $ event_to_sign schemaEvent) NotSent
+                  (Base64Octets $ event_to_sign schemaEvent) NeedMoreSignatures
 
 
 -- |List events that a particular user was/is involved with
