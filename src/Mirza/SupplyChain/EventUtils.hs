@@ -337,7 +337,7 @@ insertEvent userId@(Schema.UserId uuid) event = do
         $ insertValues
             [toStorageEvent (Schema.EventId pKey) (_eid event)
               userId (PgJSON event) toSignEvent]
-  pure ((EventInfo event [] [(ST.UserId uuid)] (Base64Octets toSignEvent) NotSent),
+  pure ((EventInfo event [] [(ST.UserId uuid)] (Base64Octets toSignEvent) NeedMoreSignatures),
       eventId)
 
 

@@ -286,7 +286,7 @@ data EventBlockchainStatus
   = Sent -- BlockchainId -- commented out for the moment because ToSchema cannot be auto-derived
   | ReadyAndWaiting
   | SendFailed -- sending was attempted but failed
-  | NotSent -- sending not attempted yet because of lack of signatures, etc
+  | NeedMoreSignatures
   deriving (Show, Generic, Eq)
 $(deriveJSON defaultOptions ''EventBlockchainStatus)
 instance ToSchema EventBlockchainStatus
