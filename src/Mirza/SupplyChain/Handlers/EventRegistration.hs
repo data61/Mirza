@@ -31,6 +31,8 @@ import           Data.GS1.EventId                   as EvId
 
 import           Data.List.NonEmpty                 (nonEmpty, (<|))
 
+import           Data.Maybe                         (maybe)
+
 insertObjectEvent :: SCSApp context err => ST.User
                   -> ObjectEvent
                   -> AppM context err (EventInfo, Schema.EventId)
@@ -199,10 +201,9 @@ sendToBlockchain user eventId = do
   let eventStatus = eventInfoBlockChainStatus evInfo
   return $ case eventStatus of
     ReadyAndWaiting -> do
-      case (nonEmpty . eventInfoUserSigs $ evInfo) of
-        Nothing -> error "it should never get here"
-        Just userSigs -> do
-              let evToSign = eventToSign evInfo
-              let bcPackage = BlockchainPackage evToSign userSigs
-              error "not implemented yet"
+      (flip $ maybe (error "it should happen"))
+        (nonEmpty . eventInfoUserSigs $ evInfo) $ \userSigs -> do
+            let evToSign = eventToSign evInfo
+            let bcPackage = BlockchainPackage evToSign userSigs
+            error "not implemented yet"
     _               -> (NeedMoreSignatures, Nothing)
