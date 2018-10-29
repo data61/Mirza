@@ -83,7 +83,7 @@ withDatabaseConnection = bracket openConnection closeConnection
 
 main :: IO ()
 main = do
-  _ <- liftIO $ runEitherT $ makeDatabase (DatabaseName "testbusinessregistry")
+  either (error . show) pure =<< (liftIO $ runEitherT $ makeDatabase (DatabaseName "testbusinessregistry"))
 
   keyTests <- testSpec "HSpec" (sequential $ around withDatabaseConnection testKeyQueries)
   bizTests <- testSpec "HSpec" (sequential $ around withDatabaseConnection testBizQueries)
