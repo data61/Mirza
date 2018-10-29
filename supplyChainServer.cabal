@@ -142,6 +142,7 @@ test-suite supplyChainServer-test
                      , mtl
                      , network
                      , postgresql-simple
+                     , process
                      , scrypt
                      , servant
                      , servant-server
@@ -151,6 +152,8 @@ test-suite supplyChainServer-test
                      , tasty
                      , tasty-hspec
                      , tasty-hunit
+                     , transformers
+                     , transformers-either
                      , hspec-expectations
                      , wai
                      , warp
@@ -194,12 +197,15 @@ test-suite businessRegistry-test
                      , MissingH
                      , network
                      , postgresql-simple
+                     , process
                      , servant
                      , text
                      , time
                      , tasty
                      , tasty-hspec
                      , tasty-hunit
+                     , transformers
+                     , transformers-either
                      , hspec-expectations
                      , wai
                      , warp
