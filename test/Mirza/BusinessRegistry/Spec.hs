@@ -20,7 +20,7 @@ import           Mirza.BusinessRegistry.Tests.Client
 import           Mirza.BusinessRegistry.Tests.Keys       (testKeyQueries)
 
 import           Control.Exception                       (bracket)
-import           Control.Monad.Trans.Either              (runEitherT)
+import           Control.Monad.Except                    (runExceptT)
 import           Data.Int
 import           Database.Beam.Postgres
 import           Database.PostgreSQL.Simple
@@ -83,7 +83,7 @@ withDatabaseConnection = bracket openConnection closeConnection
 
 main :: IO ()
 main = do
-  either (error . show) pure =<< (liftIO $ runEitherT $ makeDatabase (DatabaseName "testbusinessregistry"))
+  either (error . show) pure =<< (liftIO $ runExceptT $ makeDatabase (DatabaseName "testbusinessregistry"))
 
   keyTests <- testSpec "HSpec" (sequential $ around withDatabaseConnection testKeyQueries)
   bizTests <- testSpec "HSpec" (sequential $ around withDatabaseConnection testBizQueries)

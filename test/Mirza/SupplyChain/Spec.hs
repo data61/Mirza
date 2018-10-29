@@ -17,7 +17,7 @@ import           Mirza.SupplyChain.Tests.Client
 import           Mirza.SupplyChain.Tests.Service    (testServiceQueries)
 
 import           Control.Exception                  (bracket)
-import           Control.Monad.Trans.Either         (runEitherT)
+import           Control.Monad.Except               (runExceptT)
 import           Data.Int
 import           Database.Beam.Postgres
 import           Database.PostgreSQL.Simple
@@ -72,7 +72,7 @@ withDatabaseConnection = bracket openConnection closeConnection
 
 main :: IO ()
 main = do
-  either (error . show) pure =<< (liftIO $ runEitherT $ makeDatabase (DatabaseName "testsupplychainserver"))
+  either (error . show) pure =<< (liftIO $ runExceptT $ makeDatabase (DatabaseName "testsupplychainserver"))
 
   serviceTests <- testSpec "HSpec" (sequential $ around withDatabaseConnection testServiceQueries)
   clientTests <- clientSpec
