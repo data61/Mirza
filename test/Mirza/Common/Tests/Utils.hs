@@ -91,6 +91,8 @@ databaseNameToConnectionString dbName = DatabaseConnectionString $ "dbname=" <> 
 data DatabaseCreationError = DatabaseCreationError deriving (Eq, Show)
 
 
+-- | Makes sure the database exists (or fails). If the database exists nothing
+-- is done, if the database doesn't exist it is created if possible.
 makeDatabase :: DatabaseName -> ExceptT DatabaseCreationError IO ()
 makeDatabase databaseName = do
   exits <- liftIO $ databaseExists $ databaseNameToConnectionString databaseName
