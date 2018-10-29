@@ -29,8 +29,7 @@ import           GHC.Stack               (HasCallStack)
 
 import           Control.Exception
 import           Control.Monad.IO.Class
-import           Control.Monad.Trans.Either
-import           Control.Monad.Trans.Except
+import           Control.Monad.Except
 
 import           Database.PostgreSQL.Simple
 
@@ -128,4 +127,4 @@ createDatabase (DatabaseName databaseName) = do
   exitCode <- liftIO $ waitForProcess processHandle
   case exitCode of
     ExitSuccess -> pure ()
-    _           -> hoistEither (Left DatabaseCreationError)
+    _           -> liftEither (Left DatabaseCreationError)
