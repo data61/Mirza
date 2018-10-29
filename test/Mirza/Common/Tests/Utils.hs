@@ -8,6 +8,7 @@ module Mirza.Common.Tests.Utils
   , unsafeMkEmailAddress
   , DatabaseName (..)
   , DatabaseConnectionString (..)
+  , DatabaseCreationError(..)
   , databaseNameToConnectionString
   , makeDatabase
   )
@@ -99,7 +100,12 @@ makeDatabase databaseName = do
 
 
 databaseExists :: DatabaseConnectionString -> IO Bool
-databaseExists databaseConnectionString = bracket (openConnection databaseConnectionString) closeConnection (const $ pure True) `catch` ioExceptionIsFalse
+databaseExists databaseConnectionString =
+  bracket (openConnection databaseConnectionString)
+          closeConnection
+          (const $ pure True)
+    `catch`
+      ioExceptionIsFalse
 
 
 ioExceptionIsFalse :: IOException -> IO Bool
