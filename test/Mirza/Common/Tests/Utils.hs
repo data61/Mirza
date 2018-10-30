@@ -95,22 +95,28 @@ data DatabaseCreationError = DatabaseCreationError deriving (Eq, Show)
 makeDatabase :: DatabaseName -> ExceptT DatabaseCreationError IO ()
 makeDatabase databaseName = do
   exits <- liftIO $ databaseExists $ databaseNameToConnectionString databaseName
-  case exits of
-    True -> pure ()
-    False -> createDatabase $ databaseName
+  unless exits $ createDatabase databaseName
 
 
 databaseExists :: DatabaseConnectionString -> IO Bool
 databaseExists databaseConnectionString =
+  -- This function is effectively an interface adapter turning the interface
+  -- from an open/close -> exception is thrown interface to a bool interface
+  -- where the result is True when an exception is not thrown and False when
+  -- one is.
   bracket (openConnection databaseConnectionString)
           closeConnection
           (const $ pure True)
     `catch`
       ioExceptionIsFalse
-
-
-ioExceptionIsFalse :: IOException -> IO Bool
-ioExceptionIsFalse _ = pure False
+      where
+    -- We expect an exception when the database doesn't exist and this is
+    -- a normal mode of operation. Unfortunately we can't disambiguate between
+    -- when the database exists and we fail for another reason because in all
+    -- cases an exception of the same type is thrown and we don't want to make
+    -- this code brittle by matching based on the string.
+    ioExceptionIsFalse :: IOException -> IO Bool
+    ioExceptionIsFalse _ = pure False
 
 
 openConnection :: DatabaseConnectionString -> IO Connection
@@ -123,8 +129,8 @@ closeConnection = close
 
 createDatabase :: DatabaseName -> ExceptT DatabaseCreationError IO ()
 createDatabase (DatabaseName databaseName) = do
-  processHandle <- liftIO $ spawnProcess "createdb" [(unpack databaseName)]
+  processHandle <- liftIO $ spawnProcess "createdb" [unpack databaseName]
   exitCode <- liftIO $ waitForProcess processHandle
   case exitCode of
     ExitSuccess -> pure ()
-    _           -> liftEither (Left DatabaseCreationError)
+    _           -> throwError DatabaseCreationError
