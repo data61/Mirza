@@ -90,7 +90,6 @@ keyToKeyInfo currTime (Schema.KeyT keyId (Schema.UserId keyUserId) (PgJSON jwk)
     revocation
     (fromDbTimestamp <$> expiration)
     jwk
-    (onLocalTime id lastUpdated)
   where
     -- | This function checks that the Maybe constructor for both the time and
     -- the user matches (i.e. both Just, or both Nothing) and throws an error if
