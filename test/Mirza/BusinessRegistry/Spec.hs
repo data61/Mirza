@@ -3,7 +3,8 @@
 
 module Main where
 
-import           Mirza.Common.Tests.InitClient           (testDbConnectionStringBR)
+import           Mirza.Common.Tests.InitClient           (testDbConnectionStringBR,
+                                                          testDbNameBR)
 import           Mirza.Common.Tests.Utils
 
 import           Mirza.BusinessRegistry.Database.Migrate
@@ -83,7 +84,7 @@ withDatabaseConnection = bracket openConnection closeConnection
 
 main :: IO ()
 main = do
-  either (error . show) pure =<< (liftIO $ runExceptT $ makeDatabase (DatabaseName "testbusinessregistry"))
+  either (error . show) pure =<< (liftIO $ runExceptT $ makeDatabase testDbNameBR)
 
   keyTests <- testSpec "HSpec" (sequential $ around withDatabaseConnection testKeyQueries)
   bizTests <- testSpec "HSpec" (sequential $ around withDatabaseConnection testBizQueries)

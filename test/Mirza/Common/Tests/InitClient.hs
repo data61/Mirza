@@ -179,16 +179,16 @@ bootstrapAuthData ctx = do
 randomPassword :: IO Text
 randomPassword = ("PlainTextPassword:" <>) <$> randomText
 
-go :: Maybe FilePath -> ServerOptionsBR
-go mfp = ServerOptionsBR connectionString 14 8 1 DebugS mfp Dev where
+brOptions :: Maybe FilePath -> ServerOptionsBR
+brOptions mfp = ServerOptionsBR connectionString 14 8 1 DebugS mfp Dev where
   connectionString = getDatabaseConnectionString testDbConnectionStringBR
 
 
 runBRApp :: IO (ThreadId, BaseUrl, BasicAuthData)
 runBRApp = do
   tempFile <- emptySystemTempFile "businessRegistryTests.log"
-  let go' = go (Just tempFile)
-  ctx <- initBRContext go'
+  let currentBrOptions = brOptions (Just tempFile)
+  ctx <- initBRContext currentBrOptions
   let BusinessRegistryDB usersTable businessesTable keysTable locationsTable geolocationsTable
         = businessRegistryDB
 
@@ -206,7 +206,7 @@ runBRApp = do
   -- test cases to complete.
   brAuthUser <- bootstrapAuthData ctx
 
-  (tid,brul) <- startWaiApp =<< BRMain.initApplication go' (RunServerOptions 8000) ctx
+  (tid,brul) <- startWaiApp =<< BRMain.initApplication currentBrOptions (RunServerOptions 8000) ctx
   pure (tid,brul,brAuthUser)
 
 -- *****************************************************************************

@@ -10,7 +10,8 @@ import           Test.Tasty                         hiding (withResource)
 import           Test.Tasty.Hspec                   (around, testSpec)
 import           Test.Tasty.Runners                 (NumThreads (..))
 
-import           Mirza.Common.Tests.InitClient      (testDbConnectionStringSCS)
+import           Mirza.Common.Tests.InitClient      (testDbConnectionStringSCS,
+                                                     testDbNameSCS)
 import           Mirza.Common.Tests.Utils
 
 import           Mirza.SupplyChain.Tests.Client
@@ -72,7 +73,7 @@ withDatabaseConnection = bracket openConnection closeConnection
 
 main :: IO ()
 main = do
-  either (error . show) pure =<< (liftIO $ runExceptT $ makeDatabase (DatabaseName "testsupplychainserver"))
+  either (error . show) pure =<< (liftIO $ runExceptT $ makeDatabase testDbNameSCS)
 
   serviceTests <- testSpec "HSpec" (sequential $ around withDatabaseConnection testServiceQueries)
   clientTests <- clientSpec
