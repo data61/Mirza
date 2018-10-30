@@ -247,6 +247,7 @@ interactivelyGetBusinessT :: IO Business
 interactivelyGetBusinessT = do
   biz_gs1_company_prefix <- GS1CompanyPrefix . pack <$>  prompt "GS1CompanyPrefix"
   biz_name      <- pack <$> prompt "Name"
+  let biz_last_update = Nothing
   pure BusinessT{..}
 
 prompt :: String -> IO String
