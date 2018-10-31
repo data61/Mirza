@@ -10,11 +10,15 @@ import           Test.Tasty                         hiding (withResource)
 import           Test.Tasty.Hspec                   (around, testSpec)
 import           Test.Tasty.Runners                 (NumThreads (..))
 
-import           Mirza.Common.Tests.InitClient      (testDbConnStrSCS)
+import           Mirza.Common.Tests.InitClient      (testDbConnectionStringSCS,
+                                                     testDbNameSCS)
+import           Mirza.Common.Tests.Utils
+
 import           Mirza.SupplyChain.Tests.Client
 import           Mirza.SupplyChain.Tests.Service    (testServiceQueries)
 
 import           Control.Exception                  (bracket)
+import           Control.Monad.Except               (runExceptT)
 import           Data.Int
 import           Database.Beam.Postgres
 import           Database.PostgreSQL.Simple
@@ -43,10 +47,12 @@ dropTables conn =
 
 
 defaultPool :: IO (Pool Connection)
-defaultPool = Pool.createPool (connectPostgreSQL testDbConnStrSCS) close
+defaultPool = Pool.createPool (connectPostgreSQL connectionString) close
                 1 -- Number of "sub-pools",
                 60 -- How long in seconds to keep a connection open for reuse
                 10 -- Max number of connections to have open at any one time
+                where
+              connectionString = getDatabaseConnectionString testDbConnectionStringSCS
 
 
 openConnection :: IO SCSContext
@@ -55,7 +61,8 @@ openConnection = do
   connpool <- defaultPool
   _ <- withResource connpool dropTables -- drop tables before so if already exist no problems... means tables get overwritten though
   withResource connpool (tryCreateSchema True)
-  initSCSContext (ServerOptionsSCS Dev False testDbConnStrSCS "127.0.0.1" 8000 14 8 1 DebugS
+  let connectionString = getDatabaseConnectionString testDbConnectionStringSCS
+  initSCSContext (ServerOptionsSCS Dev False connectionString "127.0.0.1" 8000 14 8 1 DebugS
                                 "127.0.0.1" (error "Port should not be used") (Just tempFile))
 
 closeConnection :: SCSContext -> IO ()
@@ -66,6 +73,8 @@ withDatabaseConnection = bracket openConnection closeConnection
 
 main :: IO ()
 main = do
+  either (error . show) pure =<< (liftIO $ runExceptT $ makeDatabase testDbNameSCS)
+
   serviceTests <- testSpec "HSpec" (sequential $ around withDatabaseConnection testServiceQueries)
   clientTests <- clientSpec
 

@@ -142,6 +142,7 @@ test-suite supplyChainServer-test
                      , mtl
                      , network
                      , postgresql-simple
+                     , process
                      , scrypt
                      , servant
                      , servant-server
@@ -151,6 +152,7 @@ test-suite supplyChainServer-test
                      , tasty
                      , tasty-hspec
                      , tasty-hunit
+                     , transformers
                      , hspec-expectations
                      , wai
                      , warp
@@ -173,7 +175,6 @@ test-suite businessRegistry-test
                     , Mirza.BusinessRegistry.Tests.Dummies
                     , Mirza.BusinessRegistry.Tests.Business
                     , Mirza.BusinessRegistry.Tests.Client
-                    , Mirza.BusinessRegistry.Tests.Settings
                     , Mirza.Common.Tests.Utils
                     , Mirza.BusinessRegistry.Tests.Utils
   default-extensions:  OverloadedStrings
@@ -193,14 +194,17 @@ test-suite businessRegistry-test
                      , http-client
                      , http-types
                      , MissingH
+                     , mtl
                      , network
                      , postgresql-simple
+                     , process
                      , servant
                      , text
                      , time
                      , tasty
                      , tasty-hspec
                      , tasty-hunit
+                     , transformers
                      , hspec-expectations
                      , wai
                      , warp
