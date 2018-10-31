@@ -78,7 +78,7 @@ keyToKeyInfo :: (MonadError err m, AsBRKeyError err)
 keyToKeyInfo _ (Schema.KeyT _ _ _ _ _ _ _ Nothing) = error "keyToKeyInfo: Received Nothing last modified time!"
 keyToKeyInfo currTime (Schema.KeyT keyId (Schema.UserId keyUserId) (PgJSON jwk)
                                    creation revocationTime revocationUser
-                                   expiration (Just lastUpdated)) -- This should never be Nothing
+                                   expiration _)
   = do
   revocation <- composeRevocation revocationTime revocationUser
   pure $ KeyInfoResponse (CT.BRKeyId keyId) (CT.UserId keyUserId)
@@ -90,7 +90,6 @@ keyToKeyInfo currTime (Schema.KeyT keyId (Schema.UserId keyUserId) (PgJSON jwk)
     revocation
     (fromDbTimestamp <$> expiration)
     jwk
-    (onLocalTime id lastUpdated)
   where
     -- | This function checks that the Maybe constructor for both the time and
     -- the user matches (i.e. both Just, or both Nothing) and throws an error if
