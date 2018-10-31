@@ -15,7 +15,6 @@ module Mirza.BusinessRegistry.Handlers.Business
 import           Mirza.BusinessRegistry.Database.Schema
 import           Mirza.BusinessRegistry.SqlUtils
 import           Mirza.BusinessRegistry.Types             as BT
-import           Mirza.Common.Time                        (onLocalTime)
 
 import           Data.GS1.EPC                             as EPC
 
@@ -23,7 +22,6 @@ import           Database.Beam                            as B
 import           Database.Beam.Backend.SQL.BeamExtensions
 
 import           Control.Lens                             (( # ))
-import           Data.Maybe                               (fromJust)
 
 import           GHC.Stack                                (HasCallStack,
                                                            callStack)
@@ -39,8 +37,6 @@ businessToBusinessResponse :: Business -> BusinessResponse
 businessToBusinessResponse BusinessT{..} = BusinessResponse
   { businessGS1CompanyPrefix = biz_gs1_company_prefix
   , businessName             = biz_name
-  -- biz_last_update should never be Nothing
-  , businessLastModified     = onLocalTime id (fromJust biz_last_update)
   }
 
 
