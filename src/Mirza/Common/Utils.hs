@@ -13,6 +13,7 @@ module Mirza.Common.Utils
   , handleSqlUniqueViloationTemplate
   , fromPgJSON
   , addLastUpdateTriggers
+  , getTableNames
   ) where
 
 

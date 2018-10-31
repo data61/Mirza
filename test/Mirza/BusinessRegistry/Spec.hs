@@ -8,6 +8,7 @@ import           Mirza.Common.Tests.InitClient           (testDbConnectionString
 import           Mirza.Common.Tests.Utils
 
 import           Mirza.BusinessRegistry.Database.Migrate
+import           Mirza.BusinessRegistry.Database.Schema
 import           Mirza.BusinessRegistry.Main             hiding (main)
 import           Mirza.BusinessRegistry.Types            as BRT
 
@@ -22,35 +23,13 @@ import           Mirza.BusinessRegistry.Tests.Keys       (testKeyQueries)
 
 import           Control.Exception                       (bracket)
 import           Control.Monad.Except                    (runExceptT)
-import           Data.Int
 import           Database.Beam.Postgres
-import           Database.PostgreSQL.Simple
 
 import           Data.Pool                               (withResource)
 import qualified Data.Pool                               as Pool
 
 import           Katip                                   (Severity (DebugS))
 import           System.IO.Temp                          (emptySystemTempFile)
-
--- dbFunc = withDatabaseDebug putStrLn
-
--- INTERESTING NOTE ON MIGRATION
--- receive this error if the tables already exist (not in tests anymore since delete them beforehand)
---  uncaught exception: ErrorCall (Data.Either.Combinators.fromRight: Argument takes form 'Left _'
---  CallStack (from HasCallStack):
---    error, called at src/Data/Either/Combinators.hs:106:24 in either-4.4.1.1-6PiwKYkn4v6B4KO2R2Fu1b:Data.Either.Combinators)
-
--- drop all tables created by migration
-dropTables :: Connection -> IO Int64
-dropTables conn =
-  --https://stackoverflow.com/questions/3327312/drop-all-tables-in-postgresql
-  execute_ conn "DO $$ DECLARE                                                                              \
-               \     r RECORD;                                                                              \
-               \ BEGIN                                                                                      \
-               \     FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = current_schema()) LOOP    \
-               \         EXECUTE 'DROP TABLE IF EXISTS ' || quote_ident(r.tablename) || ' CASCADE';         \
-               \     END LOOP;                                                                              \
-               \ END $$;                                                                                    "
 
 
 defaultPool :: IO (Pool.Pool Connection)
@@ -66,7 +45,7 @@ defaultPool = Pool.createPool (connectPostgreSQL connectionString) close
 openConnection :: IO BRContext
 openConnection = do
   connpool <- defaultPool
-  _ <- withResource connpool dropTables -- drop tables before so if already exist no problems... means tables get overwritten though
+  _ <- withResource connpool $ dropTables businessRegistryDB -- drop tables before so if already exist no problems... means tables get overwritten though
   tempFile <- emptySystemTempFile "businessRegistryTests.log"
   let connectionString = getDatabaseConnectionString testDbConnectionStringBR
   ctx <- initBRContext (ServerOptionsBR connectionString 16 10 4 DebugS (Just tempFile) Dev)
