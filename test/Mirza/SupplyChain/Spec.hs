@@ -4,6 +4,7 @@ module Main where
 import           Mirza.SupplyChain.Database.Migrate
 import           Mirza.SupplyChain.Main             hiding (main)
 import           Mirza.SupplyChain.Types            as ST
+import           Mirza.SupplyChain.Database.Schema
 
 import           Test.Hspec.Core.Spec               (sequential)
 import           Test.Tasty                         hiding (withResource)
@@ -19,9 +20,7 @@ import           Mirza.SupplyChain.Tests.Service    (testServiceQueries)
 
 import           Control.Exception                  (bracket)
 import           Control.Monad.Except               (runExceptT)
-import           Data.Int
 import           Database.Beam.Postgres
-import           Database.PostgreSQL.Simple
 
 import           Data.Pool                          (Pool, destroyAllResources,
                                                      withResource)
@@ -29,21 +28,6 @@ import qualified Data.Pool                          as Pool
 
 import           Katip                              (Severity (DebugS))
 import           System.IO.Temp                     (emptySystemTempFile)
-
-
-
--- drop all tables created by migration. Equivalent to, at the time of writing;
--- execute_ conn "DROP TABLE IF EXISTS users, keys, businesses, contacts, labels, what_labels, items, transformations, locations, events, whats, \"bizTransactions\", whys, wheres, whens, \"labelEvents\", \"userEvents\", hashes, blockchain;"
-dropTables :: Connection -> IO Int64
-dropTables conn =
-  --https://stackoverflow.com/questions/3327312/drop-all-tables-in-postgresql
-  execute_ conn "DO $$ DECLARE                                                                              \
-               \     r RECORD;                                                                              \
-               \ BEGIN                                                                                      \
-               \     FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = current_schema()) LOOP    \
-               \         EXECUTE 'DROP TABLE IF EXISTS ' || quote_ident(r.tablename) || ' CASCADE';         \
-               \     END LOOP;                                                                              \
-               \ END $$;                                                                                    "
 
 
 defaultPool :: IO (Pool Connection)
@@ -59,7 +43,7 @@ openConnection :: IO SCSContext
 openConnection = do
   tempFile <- emptySystemTempFile "supplyChainServerTests.log"
   connpool <- defaultPool
-  _ <- withResource connpool dropTables -- drop tables before so if already exist no problems... means tables get overwritten though
+  _ <- withResource connpool $ dropTables supplyChainDb -- drop tables before so if already exist no problems... means tables get overwritten though
   withResource connpool (tryCreateSchema True)
   let connectionString = getDatabaseConnectionString testDbConnectionStringSCS
   initSCSContext (ServerOptionsSCS Dev False connectionString "127.0.0.1" 8000 14 8 1 DebugS
