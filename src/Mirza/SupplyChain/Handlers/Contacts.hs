@@ -52,7 +52,7 @@ addContactQuery :: ST.User -> ST.UserId -> DB context err Bool
 addContactQuery (ST.User (ST.UserId uid1) _ _) (ST.UserId uid2) = do
   pKey <- U.newUUID
   r <- pg $ runInsertReturningList (Schema._contacts Schema.supplyChainDb) $
-               insertValues [Schema.Contact pKey (Schema.UserId uid1) (Schema.UserId uid2)]
+               insertValues [Schema.Contact Nothing pKey (Schema.UserId uid1) (Schema.UserId uid2)]
   pure $ verifyContact r (Schema.UserId uid1) (Schema.UserId uid2)
 
 
