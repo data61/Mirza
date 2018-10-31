@@ -11,27 +11,35 @@ module Mirza.Common.Tests.Utils
   , DatabaseCreationError(..)
   , databaseNameToConnectionString
   , makeDatabase
+  , dropTables
   )
   where
 
 import           Data.Maybe              (fromJust)
 
 import           Data.ByteString         as BS hiding (unpack, putStrLn)
-import           Data.ByteString.Char8   (unpack)
+import qualified Data.ByteString.Char8   as C8 (unpack)
 
 import           Text.Email.Validate     (EmailAddress, emailAddress)
 
 import           Test.Hspec.Expectations (Expectation, shouldSatisfy)
 
+import           Data.Foldable           (forM_)
+import           Data.String             (fromString)
+import qualified Data.Text               as T (unpack)
 import           Data.Time.Clock         (UTCTime, diffUTCTime)
 
 import           GHC.Stack               (HasCallStack)
 
 import           Control.Exception
 import           Control.Monad.IO.Class
-import           Control.Monad.Except
+import           Control.Monad.Except    (ExceptT (..), throwError, unless, void)
 
 import           Database.PostgreSQL.Simple
+import           Database.Beam.Schema.Tables (Database, DatabaseSettings)
+import           Database.Beam.Postgres      (Postgres)
+
+import           Mirza.Common.Utils
 
 import           System.Process
 import           System.Exit
@@ -129,8 +137,24 @@ closeConnection = close
 
 createDatabase :: DatabaseName -> ExceptT DatabaseCreationError IO ()
 createDatabase (DatabaseName databaseName) = do
-  processHandle <- liftIO $ spawnProcess "createdb" [unpack databaseName]
+  processHandle <- liftIO $ spawnProcess "createdb" [C8.unpack databaseName]
   exitCode <- liftIO $ waitForProcess processHandle
   case exitCode of
     ExitSuccess -> pure ()
     _           -> throwError DatabaseCreationError
+
+
+-- | Drop all tables currently specified in the table definition.
+-- Note: This potentially means that legacy tables that no longer exist in the
+--       current schema maybe retained accidentally. This function should be
+--       updated accordingly once we support proper migrations.
+dropTables :: Database Postgres db => DatabaseSettings Postgres db -> Connection -> IO ()
+dropTables db conn = do
+  let tables = getTableNames db
+  -- Note: Its not clear why it is seemingly ok to remove tables in apparently
+  --       arbitrary order which might contain primary keys that are referenced
+  --       as foreign keys from other tables and that postgres doesn't complain
+  --       about this. If this function breaks in the future this could be worth
+  --       investigating.
+  void $ forM_ tables $ \tableName -> do
+    execute_ conn $ fromString $ T.unpack $ "DROP TABLE IF EXISTS " <> tableName <> ";"
