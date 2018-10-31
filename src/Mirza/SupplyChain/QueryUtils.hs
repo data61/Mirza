@@ -47,7 +47,7 @@ storageToModelEvent = fromPgJSON . Schema.event_json
 -- | Converts a DB representation of ``User`` to a Model representation
 -- Schema.User = Schema.User uid bizId fName lName phNum passHash email
 userTableToModel :: Schema.User -> ST.User
-userTableToModel (Schema.User uid _ fName lName _ _ _)
+userTableToModel (Schema.User _ uid _ fName lName _ _ _)
     = ST.User (ST.UserId uid) fName lName
 
 constructEventToSign :: Ev.Event -> ByteString
