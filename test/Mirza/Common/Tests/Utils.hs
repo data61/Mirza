@@ -151,5 +151,10 @@ createDatabase (DatabaseName databaseName) = do
 dropTables :: Database Postgres db => DatabaseSettings Postgres db -> Connection -> IO ()
 dropTables db conn = do
   let tables = getTableNames db
+  -- Note: Its not clear why it is seemingly ok to remove tables in apparently
+  --       arbitrary order which might contain primary keys that are referenced
+  --       as foreign keys from other tables and that postgres doesn't complain
+  --       about this. If this function breaks in the future this could be worth
+  --       investigating.
   void $ forM_ tables $ \tableName -> do
     execute_ conn $ fromString $ T.unpack $ "DROP TABLE IF EXISTS " <> tableName <> ";"
