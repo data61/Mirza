@@ -68,7 +68,7 @@ publicServer :: ( Member context '[HasScryptParams, HasDB]
                 , APIPossibleErrors err)
              => ServerT PublicAPI (AppM context err)
 publicServer =
-       brHealth
+       health
   :<|> getPublicKey
   :<|> getPublicKeyInfo
   :<|> listBusinesses
