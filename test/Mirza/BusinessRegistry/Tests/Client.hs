@@ -490,6 +490,8 @@ clientSpec = do
           testDirectory "goodJWKs" "rsa.json" isLeft
           testDirectory "badJWKs" "rsa.json" isLeft
           testDirectory "badJWKs" "_pub.json" isLeft
+
+
   let locationTests = testCaseSteps "That locations work as expected" $ \step ->
         bracket runBRApp (\(a,b,_) -> endWaiApp (a,b)) $ \(_tid, baseurl, brAuthUser) -> do
           password <- randomPassword
@@ -520,12 +522,23 @@ clientSpec = do
           b1K1StoredKeyIdResult `shouldSatisfy` isRight
 
 
+  let healthTests = testCaseSteps "Provides health status" $ \step ->
+        bracket runBRApp (\(a,b,_) -> endWaiApp (a,b)) $ \(_tid, baseurl, _brAuthUser) -> do
+          let http = runClient baseurl
+
+          step "Status results in 200"
+          healthResult <- http (brHealth)
+          healthResult `shouldSatisfy` isRight
+          healthResult `shouldBe` (Right $ BusinessHealthResponse ())
+
+
 
   pure $ testGroup "Business Registry HTTP Client tests"
         [ businessTests
         , userTests
         , keyTests
         , locationTests
+        , healthTests
         ]
 
 -- Test helper function that enables a predicate to be run on the result of a
