@@ -527,9 +527,9 @@ clientSpec = do
           let http = runClient baseurl
 
           step "Status results in 200"
-          healthResult <- http (brHealth)
+          healthResult <- http (health)
           healthResult `shouldSatisfy` isRight
-          healthResult `shouldBe` (Right $ BusinessHealthResponse ())
+          healthResult `shouldBe` (Right $ HealthResponse ())
 
 
 

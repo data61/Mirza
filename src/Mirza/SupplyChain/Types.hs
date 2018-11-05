@@ -301,6 +301,18 @@ data EventInfo = EventInfo {
 $(deriveJSON defaultOptions ''EventInfo)
 instance ToSchema EventInfo
 
+
+-- *****************************************************************************
+-- Health Types
+-- *****************************************************************************
+
+newtype HealthResponse = HealthResponse ()
+  deriving (Show, Eq, Read, Generic)
+instance ToSchema HealthResponse
+instance ToJSON HealthResponse
+instance FromJSON HealthResponse
+
+
 -- *****************************************************************************
 -- Error Types
 -- *****************************************************************************
