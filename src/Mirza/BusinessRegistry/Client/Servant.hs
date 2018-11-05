@@ -4,6 +4,7 @@ module Mirza.BusinessRegistry.Client.Servant
     getPublicKey
   , getPublicKeyInfo
   , listBusinesses
+  , brHealth
   , addUser
   , addBusiness
   -- * Authenticated API
@@ -29,6 +30,7 @@ import           Servant.Client
 
 import           Data.Proxy                             (Proxy (..))
 
+brHealth         :: ClientM BusinessHealthResponse
 getPublicKey     :: BRKeyId -> ClientM JWK
 getPublicKeyInfo :: BRKeyId -> ClientM KeyInfoResponse
 listBusinesses   :: ClientM [BusinessResponse]
@@ -46,7 +48,8 @@ _privAPI :: Client ClientM ProtectedAPI
 _pubAPI  :: Client ClientM PublicAPI
 _api@(
   _pubAPI@(
-         getPublicKey
+         brHealth
+    :<|> getPublicKey
     :<|> getPublicKeyInfo
     :<|> listBusinesses
   )
