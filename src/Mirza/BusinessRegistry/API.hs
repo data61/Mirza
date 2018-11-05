@@ -48,7 +48,7 @@ serverAPI = Proxy
 
 
 type PublicAPI =
-       "health"                                           :> Get '[JSON] BusinessHealthResponse
+       "health"                                           :> Get '[JSON] HealthResponse
   :<|> "key"      :> "get"     :> Capture "keyId" BRKeyId :> Get '[JSON] JWK
   :<|> "key"      :> "getInfo" :> Capture "keyId" BRKeyId :> Get '[JSON] KeyInfoResponse
   :<|> "business" :> "list"                               :> Get '[JSON] [BusinessResponse]

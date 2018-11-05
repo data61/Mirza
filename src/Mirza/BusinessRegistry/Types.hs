@@ -214,11 +214,11 @@ instance ToParamSchema KeyState
 
 
 -- Health Types:
-newtype BusinessHealthResponse = BusinessHealthResponse ()
+newtype HealthResponse = HealthResponse ()
   deriving (Show, Eq, Read, Generic)
-instance ToSchema BusinessHealthResponse
-instance ToJSON BusinessHealthResponse
-instance FromJSON BusinessHealthResponse
+instance ToSchema HealthResponse
+instance ToJSON HealthResponse
+instance FromJSON HealthResponse
 
 
 
