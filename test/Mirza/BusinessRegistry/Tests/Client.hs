@@ -529,7 +529,7 @@ clientSpec = do
           step "Status results in 200"
           healthResult <- http (health)
           healthResult `shouldSatisfy` isRight
-          healthResult `shouldBe` (Right $ HealthResponse ())
+          healthResult `shouldBe` (Right HealthResponse)
 
 
 
