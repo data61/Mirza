@@ -27,6 +27,7 @@ module Mirza.BusinessRegistry.Service
 import           Mirza.BusinessRegistry.API
 
 import           Mirza.BusinessRegistry.Handlers.Business as Handlers
+import           Mirza.BusinessRegistry.Handlers.Health   as Handlers
 import           Mirza.BusinessRegistry.Handlers.Keys     as Handlers
 import           Mirza.BusinessRegistry.Handlers.Location as Handlers
 import           Mirza.BusinessRegistry.Handlers.Users    as Handlers
@@ -67,10 +68,10 @@ publicServer :: ( Member context '[HasScryptParams, HasDB]
                 , APIPossibleErrors err)
              => ServerT PublicAPI (AppM context err)
 publicServer =
-       getPublicKey
+       health
+  :<|> getPublicKey
   :<|> getPublicKeyInfo
   :<|> listBusinesses
-
 
 privateServer :: ( Member context '[HasScryptParams, HasDB]
                  , APIPossibleErrors err)
