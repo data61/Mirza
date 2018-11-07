@@ -26,6 +26,7 @@ library
                     , Mirza.BusinessRegistry.Database.Schema.V0001
                     , Mirza.BusinessRegistry.Database.Schema.V0002
                     , Mirza.BusinessRegistry.Handlers.Business
+                    , Mirza.BusinessRegistry.Handlers.Health
                     , Mirza.BusinessRegistry.Handlers.Keys
                     , Mirza.BusinessRegistry.Handlers.Location
                     , Mirza.BusinessRegistry.Main
@@ -46,6 +47,7 @@ library
                     , Mirza.SupplyChain.Database.Schema.V0001
                     , Mirza.SupplyChain.Handlers.Common
                     , Mirza.SupplyChain.Handlers.Contacts
+                    , Mirza.SupplyChain.Handlers.Health
                     , Mirza.SupplyChain.EventUtils
                     , Mirza.SupplyChain.Handlers.Queries
                     , Mirza.SupplyChain.Handlers.Signatures
