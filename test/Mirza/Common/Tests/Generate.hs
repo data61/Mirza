@@ -49,24 +49,27 @@ insertNUsersSCS testName n =
   in
     SCS.addUser <$> users
 
-{-
+
 type Firstname = Text
 
--- Insert multpile users into the DB given a list of first names and company prefixes.
-insertMultipleUsers ::
+-- Insert multiple users into the SCS DB given a
+-- list of first names and company prefixes.
+insertMultipleUsersSCS ::
     TestName ->
     [Firstname] ->
     [GS1CompanyPrefix] ->
     [AppM context err UserId]
-insertMultipleUsers name fn pfx = SCS.addUser <$> genMultpleUsers' n name fn pfx
+insertMultipleUsersSCS name fn pfx =
+  SCS.addUser <$> genMultpleUsersSCS n name fn pfx
   where
     n = min (length fn) (length pfx)
 
 
-insertMultipleUsers' :: Int ->  TestName -> [Firstname] -> [GS1CompanyPrefix] -> [UserId]
-insertMultipleUsers' 0 _ _ _ = 0
-insertMultipleUsers' n testName (f:fx) (p:px) =
-  newUser : genMultpleUsers' (n-1) fx px
+genMultipleUsersSCS :: Int ->  TestName -> [Firstname] ->
+    [GS1CompanyPrefix] -> [UserId]
+genMultipleUsersSCS 0 _ _ _ = 0
+genMultipleUsersSCS n testName (f:fx) (p:px) =
+  newUser : genMultpleUsers (n-1) fx px
       where
         numT = T.pack $ show n
         newUser = ST.NewUser
@@ -78,5 +81,7 @@ insertMultipleUsers' n testName (f:fx) (p:px) =
           , ST.newUserCompany = p
           , ST.newUserPassword = "re4lly$ecret14!"}
 
--}
+
+
+
 
