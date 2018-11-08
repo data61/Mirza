@@ -331,41 +331,4 @@ clientSpec = do
         , transactionEventTest
         ]
 
-{-
-Check Provenance of a labelEPC
-where I've used head, you need to use map to actually do it for all elements in the list. I've just done one element for illustrative purposes.
-eventList ← listEvents <labelEPC>
-let event = head eventList
-eventInfo ← eventInfo(eventID)
-(sig, uid) = head (signatures eventInfo)
-publicKey ← getPublicKey uid
-assert $ decrypt(sig, publicKey) == (joseText eventInfo)
 
-Sign AND countersign a TransactionEvent
-(eventID, joseTxt) ← insertTransactionEvent transactionEvent
-signedEvent = sign(joseTxt, privKey)
-sign(signedEvent)
-addUserToEvent(user2ID, eventID)
-.. then user2 does the same thing with their priv key, and sends it using the "event/sign" api call.
-
-Check for tampering by comparing to Blockchain hash
-eventInfo ← eventInfo(eventID)
-joseTxt = joseText eventInfo
-expectedHash = hash joseText
-blockchainID = blockchainID eventInfo
-bcHash = getBlockchainHash(blockchainID)
-assert (bcHash == expectedHash)
-Get all events that relate to a labelEPC
-eventList ← listEvents <labelEPC>
-subEvents eventList = [e | e ← eventList, if
-(eventType e == aggregationEvent || eventType e == transformationEvent)
-then (map subEvents $ map listEvents (getSubEPCs e)]
-Keys
-add, get, getInfo public key
-revoke public key
-..these will be moved into the registery soon.
-Contacts
-Add, remove and search for contacts.
-
-
--}

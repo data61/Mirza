@@ -1,6 +1,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 
--- | Utility functions to generate test data
+-- | Utility functions to generate test data using
+-- each service's client
 module Mirza.Common.Tests.Generate where
 
 import           Mirza.BusinessRegistry.Types      as BT
@@ -20,6 +21,21 @@ import           Mirza.SupplyChain.Handlers.Users  as SCS
 import           Mirza.SupplyChain.Handlers.Common
 
 type TestName = String
+
+firstUser :: NewUser
+firstUser = NewUser  { newUserPhoneNumber = "0400 111 222"
+  , newUserEmailAddress = unsafeMkEmailAddress "first_honcho@example.com"
+  , newUserFirstName = "First"
+  , newUserLastName = "User"
+  , newUserCompany = GS1CompanyPrefix "100000000"
+  , newUserPassword = "re4lly$ecret14!"}
+
+authFirstUser :: BasicAuthData
+authFirstUser = BasicAuthData
+  (toByteString . newUserEmailAddress $ firstUser)
+  (encodeUtf8   . newUserPassword     $ firstUser)
+
+
 
 genNUsersSCS :: TestName -> Int -> [ST.NewUser]
 genNUsersSCS _ 0        = []
@@ -83,5 +99,5 @@ genMultipleUsersSCS n testName (f:fx) (p:px) =
 
 
 
-
+insertMultipleUsersBR ::
 
