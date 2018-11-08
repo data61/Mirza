@@ -3,7 +3,34 @@
 
 module Mirza.SupplyChain.Tests.Citrus where
 
+{-
 
+Tests that should be implemented here
+
+Check Provenance of a labelEPC
+where I've used head, you need to use map to actually do it for all elements in the list. I've just done one element for illustrative purposes.
+eventList ← listEvents <labelEPC>
+let event = head eventList
+eventInfo ← eventInfo(eventID)
+(sig, uid) = head (signatures eventInfo)
+publicKey ← getPublicKey uid
+assert $ decrypt(sig, publicKey) == (joseText eventInfo)
+
+
+Get all events that relate to a labelEPC
+eventList ← listEvents <labelEPC>
+subEvents eventList = [e | e ← eventList, if
+(eventType e == aggregationEvent || eventType e == transformationEvent)
+then (map subEvents $ map listEvents (getSubEPCs e)]
+Keys
+add, get, getInfo public key
+revoke public key
+..these will be moved into the registery soon.
+Contacts
+Add, remove and search for contacts.
+
+
+-}
 citrusEvents :: [Event]
 citrusEvents =
   [pestControl,
@@ -20,6 +47,19 @@ citrusEvents =
    shippingToChina,
    quarantineChina
   ]
+
+
+scsUsers :: [AppM context err UserId]
+scsUsers = do
+  let userNames = ["regulator1", "regulator2", "farmer", "truckDriver1",
+  "packingHouseOperator", "truckDriver2", "portsOperator1",
+  "shippingCompany", "regulator3"]
+  let nUsers = length userNames
+  let initPrefix = 11111111
+  let gs1companyPrefixes = map show [initPrefix.. initPrefix+nUsers]
+  pure $ insertMultipleUsersSCS
+    "citrusSupplyChain" userNames gs1companyPrefixes
+
 
 
 citrusEntities :: []
