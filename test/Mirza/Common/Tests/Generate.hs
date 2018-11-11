@@ -22,6 +22,12 @@ import           Mirza.SupplyChain.Handlers.Common
 
 type TestName = String
 
+--TODO: All the functions in this file should be
+--converted to functions that can run from the client.
+--for example, insertNUsersSCS should create a http client
+--and insert the users over the network, just like the client
+--tests do.
+
 firstUser :: NewUser
 firstUser = NewUser  { newUserPhoneNumber = "0400 111 222"
   , newUserEmailAddress = unsafeMkEmailAddress "first_honcho@example.com"
