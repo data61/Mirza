@@ -34,6 +34,7 @@ import           Control.Lens
 import           GHC.Generics               (Generic)
 
 import           Data.Aeson
+import           Data.Aeson.Types
 import           Data.Aeson.TH
 import qualified Data.ByteString            as BS
 import           Data.List.NonEmpty         (NonEmpty)
@@ -300,6 +301,26 @@ data EventInfo = EventInfo {
 } deriving (Show, Eq, Generic)
 $(deriveJSON defaultOptions ''EventInfo)
 instance ToSchema EventInfo
+
+
+-- *****************************************************************************
+-- Health Types
+-- *****************************************************************************
+
+successHealthResponseText :: Text
+successHealthResponseText = "Status OK"
+
+data HealthResponse = HealthResponse
+  deriving (Show, Eq, Read, Generic)
+instance ToSchema HealthResponse
+instance ToJSON HealthResponse where
+  toJSON _ = toJSON successHealthResponseText
+instance FromJSON HealthResponse where
+  parseJSON (String value)
+    | value == successHealthResponseText = pure HealthResponse
+    | otherwise                          = fail "Invalid health response string."
+  parseJSON value                        = typeMismatch "HealthResponse" value
+
 
 -- *****************************************************************************
 -- Error Types

@@ -1,7 +1,7 @@
+{-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE RecordWildCards       #-}
-{-# LANGUAGE DataKinds             #-}
 
 module Mirza.BusinessRegistry.Handlers.Business
   ( listBusinesses
@@ -68,6 +68,7 @@ newBusinessToBusiness NewBusiness{..} =
   BusinessT
     { biz_gs1_company_prefix = newBusinessGS1CompanyPrefix
     , biz_name               = newBusinessName
+    , biz_last_update        = Nothing
     }
 
 

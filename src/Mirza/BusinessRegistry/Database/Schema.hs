@@ -6,7 +6,7 @@ module Mirza.BusinessRegistry.Database.Schema
   , primaryKey
   ) where
 
-import           Control.Arrow ((>>>))
+import           Control.Arrow                                ((>>>))
 
 import           Database.Beam                                (DatabaseSettings)
 import           Database.Beam.Migrate.Types                  hiding
@@ -22,8 +22,8 @@ import qualified Mirza.BusinessRegistry.Database.Schema.V0002 as V0002 (migratio
 
 
 migration :: MigrationSteps PgCommandSyntax () (CheckedDatabaseSettings Postgres Current.BusinessRegistryDB)
-migration = migrationStep "Initial commit" V0001.migration
-           >>> migrationStep "Add LocationT table" V0002.migration
+migration = migrationStep "Initial commit"      V0001.migration
+        >>> migrationStep "Add LocationT table" V0002.migration
 
 businessRegistryDB :: DatabaseSettings Postgres Current.BusinessRegistryDB
 businessRegistryDB = unCheckDatabase checkedBusinessRegistryDB

@@ -9,8 +9,9 @@ module Mirza.SupplyChain.Tests.Service
   ( testServiceQueries
   ) where
 
-import           Mirza.Common.Tests.InitClient                (testDbConnStrSCS)
-import           Mirza.Common.Tests.Utils                     (unsafeMkEmailAddress)
+import           Mirza.Common.Tests.InitClient                (testDbConnectionStringSCS)
+import           Mirza.Common.Tests.Utils                     (unsafeMkEmailAddress,
+                                                               getDatabaseConnectionString)
 import           Mirza.SupplyChain.Tests.Dummies
 
 import           Mirza.SupplyChain.Auth
@@ -385,5 +386,6 @@ testServiceQueries = do
 
 clearContact :: IO ()
 clearContact = do
-  conn <- connectPostgreSQL testDbConnStrSCS
+  let connectionString = getDatabaseConnectionString testDbConnectionStringSCS
+  conn <- connectPostgreSQL connectionString
   void $ execute_ conn "DELETE FROM contacts;"

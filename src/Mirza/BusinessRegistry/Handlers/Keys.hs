@@ -75,7 +75,11 @@ keyToKeyInfo :: (MonadError err m, AsBRKeyError err)
              => UTCTime
              -> Schema.Key
              -> m KeyInfoResponse
-keyToKeyInfo currTime (Schema.KeyT keyId (Schema.UserId keyUserId) (PgJSON jwk) creation revocationTime revocationUser expiration) = do
+keyToKeyInfo _ (Schema.KeyT _ _ _ _ _ _ _ Nothing) = error "keyToKeyInfo: Received Nothing last modified time!"
+keyToKeyInfo currTime (Schema.KeyT keyId (Schema.UserId keyUserId) (PgJSON jwk)
+                                   creation revocationTime revocationUser
+                                   expiration _)
+  = do
   revocation <- composeRevocation revocationTime revocationUser
   pure $ KeyInfoResponse (CT.BRKeyId keyId) (CT.UserId keyUserId)
     (getKeyState currTime
@@ -173,6 +177,7 @@ addPublicKeyQuery (AuthUser (CT.UserId uid)) expTime jwk = do
         insertValues
         [ KeyT keyId (Schema.UserId uid) (PgJSON jwk)
             (toDbTimestamp timestamp) Nothing (Schema.UserId Nothing) (toDbTimestamp <$> expTime)
+            Nothing
         ]
   case ks of
     [rowId] -> pure (CT.BRKeyId $ key_id rowId)
