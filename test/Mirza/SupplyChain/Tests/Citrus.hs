@@ -31,6 +31,9 @@ Add, remove and search for contacts.
 
 
 -}
+
+-- Need to first create the users for these events (see citrusEntities
+-- below), and instantitate them with appropriate labelEPCs.
 citrusEvents :: [Event]
 citrusEvents =
   [pestControl,
@@ -49,6 +52,9 @@ citrusEvents =
   ]
 
 
+-- Create users in the SCS db. Need to also create them in
+-- the BR. This should be re-implemented as a client fucntion, so
+-- you can do it the same way in both SCS and BR.
 scsUsers :: [AppM context err UserId]
 scsUsers = do
   let userNames = ["regulator1", "regulator2", "farmer", "truckDriver1",
@@ -61,6 +67,8 @@ scsUsers = do
     "citrusSupplyChain" userNames gs1companyPrefixes
 
 
+{- This is not a real list (obviously) but
+    I wrote it up to help implement the other functions.
 
 citrusEntities :: []
 citrusEntities =
@@ -77,8 +85,10 @@ citrusEntities =
    (portsOperator1, shippingCompany),
    regulator3
   ]
+-}
 
 
+-- A series of events in a citrus supply chain.
 
 --pest control
 pestControl :: LabelEPC -> EPCISTime -> Timezone ->
