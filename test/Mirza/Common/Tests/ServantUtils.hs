@@ -24,7 +24,7 @@ startWaiApp app = do
     (prt, sock) <- openTestSocket
     let settings = setPort prt defaultSettings
     thread <- forkIO $ runSettingsSocket settings sock app
-    return (thread, BaseUrl Http "localhost" prt "")
+    pure (thread, BaseUrl Http "localhost" prt "")
 
 endWaiApp :: (ThreadId, BaseUrl) -> IO ()
 endWaiApp (thread, _) = killThread thread
@@ -36,7 +36,7 @@ openTestSocket = do
   bind s (SockAddrInet aNY_PORT localhost)
   listen s 1
   prt <- socketPort s
-  return (fromIntegral prt, s)
+  pure (fromIntegral prt, s)
 
 {-# NOINLINE manager' #-}
 manager' :: C.Manager

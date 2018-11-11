@@ -143,7 +143,7 @@ bootstrapAuthData ctx = do
   insertUserResult <- runAppM @_ @BRError ctx $ runDb (BRHU.addUserQuery user)
   insertUserResult `shouldSatisfy` isRight
 
-  return $ newUserToBasicAuthData user
+  pure $ newUserToBasicAuthData user
 
 -- We specifically prefix the password with "PlainTextPassword:" so that it
 -- makes it more obvious if this password shows up anywhere in plain text by
@@ -200,4 +200,4 @@ runApps :: IO TestData
 runApps = do
   (brThreadId, brUrl, brAuthUser) <- runBRApp
   (scsThreadId, scsUrl) <- runSCSApp brUrl
-  return $ TestData brThreadId scsThreadId brUrl scsUrl brAuthUser
+  pure $ TestData brThreadId scsThreadId brUrl scsUrl brAuthUser
