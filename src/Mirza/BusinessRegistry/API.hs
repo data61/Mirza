@@ -28,6 +28,9 @@ import           Servant
 import           Servant.API.Flatten
 import           Servant.Swagger.UI
 
+import           Crypto.JOSE.JWK
+
+
 type API
     -- this serves both: swagger.json and swagger-ui
     = SwaggerSchemaUI "swagger-ui" "swagger.json"
@@ -45,7 +48,7 @@ serverAPI = Proxy
 
 
 type PublicAPI =
-       "key"      :> "get"     :> Capture "keyId" BRKeyId :> Get '[JSON] PEM_RSAPubKey
+       "key"      :> "get"     :> Capture "keyId" BRKeyId :> Get '[JSON] JWK
   :<|> "key"      :> "getInfo" :> Capture "keyId" BRKeyId :> Get '[JSON] KeyInfoResponse
   :<|> "business" :> "list"                               :> Get '[JSON] [BusinessResponse]
 
@@ -53,7 +56,7 @@ type PublicAPI =
 type PrivateAPI =
        "user"     :> "add"     :> ReqBody '[JSON] NewUser     :> Post '[JSON] UserId
   :<|> "business" :> "add"     :> ReqBody '[JSON] NewBusiness :> Post '[JSON] GS1CompanyPrefix
-  :<|> "key"      :> "add"     :> ReqBody '[JSON] PEM_RSAPubKey :> QueryParam "expirationTime" ExpirationTime :> Post '[JSON] BRKeyId
-  :<|> "key"      :> "revoke"  :> Capture "keyId" BRKeyId       :> Post '[JSON] RevocationTime
+  :<|> "key"      :> "add"     :> ReqBody '[JSON] JWK         :> QueryParam "expirationTime" ExpirationTime :> Post '[JSON] BRKeyId
+  :<|> "key"      :> "revoke"  :> Capture "keyId" BRKeyId     :> Post '[JSON] RevocationTime
   :<|> "location" :> "add"     :> ReqBody '[JSON] NewLocation   :> Post '[JSON] LocationId
   :<|> "location" :> "get"     :> Capture "GLN" EPC.LocationEPC :> Get  '[JSON] LocationResponse

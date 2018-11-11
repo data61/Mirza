@@ -7,6 +7,7 @@ module Mirza.SupplyChain.Handlers.Queries
   ) where
 
 
+import           Mirza.Common.Utils                    (fromPgJSON)
 import           Mirza.SupplyChain.EventUtils          (findLabelId,
                                                         findSchemaEvent,
                                                         getEventList)
@@ -28,14 +29,13 @@ import           Data.GS1.EventId                      as EvId
 
 import           Database.Beam                         as B
 
-import           Control.Monad                         (unless)
-
-import           Data.Text.Encoding                    (decodeUtf8)
+import           Control.Lens                          (( # ))
+import           Control.Monad.Error.Hoist
 
 import           Data.Bifunctor                        (bimap)
-import           Data.Maybe                            (isJust)
 
-import           Mirza.Common.Utils                    (fromPgJSON)
+import           Crypto.JOSE.Types                     (Base64Octets (..))
+
 
 -- This takes an EPC urn,
 -- and looks up all the events related to that item. First we've got
@@ -48,7 +48,7 @@ listEvents _user = either throwParseError (runDb . listEventsQuery) . urn2LabelE
 
 listEventsQuery :: AsServiceError err => LabelEPC -> DB context err [Ev.Event]
 listEventsQuery labelEpc =
-  maybe (return []) (getEventList . Schema.LabelId) =<< findLabelId labelEpc
+  maybe (pure []) (getEventList . Schema.LabelId) =<< findLabelId labelEpc
 
 
 eventInfo :: (SCSApp context err, AsServantError err)
@@ -63,20 +63,15 @@ eventInfoQuery :: AsServiceError err
                -> DB context err EventInfo
 eventInfoQuery _user eventId@(EvId.EventId eId) = do
   usersWithEvent <- eventUserSignedList eventId
-  mschemaEvent <- findSchemaEvent (Schema.EventId eId)
-  unless (isJust mschemaEvent) $ throwing _InvalidEventId eventId
-  let (Just schemaEvent) = mschemaEvent
-      event = storageToModelEvent schemaEvent
+  schemaEvent <- findSchemaEvent (Schema.EventId eId) <!?> (_InvalidEventId # eventId)
+  let event = storageToModelEvent schemaEvent
       unsignedUserIds = map (ST.userId . fst) $ filter (not . snd) usersWithEvent
       signedUserIds = (ST.userId . fst) <$> filter snd usersWithEvent
-  signedEvents <- mapM ((flip findSignedEventByUser) eventId) signedUserIds
+  signedEvents <- mapM (flip findSignedEventByUser eventId) signedUserIds
   let usersAndSignedEvents = zip signedUserIds signedEvents
-  pure $ EventInfo
-          event
-          usersAndSignedEvents
-          unsignedUserIds
-          (decodeUtf8 $ constructEventToSign event)
-          NotSent
+  pure $ EventInfo event usersAndSignedEvents unsignedUserIds
+                  (Base64Octets $ event_to_sign schemaEvent) NotSent
+
 
 -- |List events that a particular user was/is involved with
 -- use BizTransactions and events (createdby) tables
@@ -105,7 +100,8 @@ eventUserList :: SCSApp context err
 eventUserList _user = runDb . eventUserSignedList
 
 -- TODO: Write tests
--- Returns the user and whether or not that user had signed the event
+-- Returns all the users related to the event
+-- and whether or not that user had signed the event
 eventUserSignedList :: EvId.EventId -> DB context err [(ST.User, Bool)]
 eventUserSignedList (EvId.EventId eventId) = do
   usersSignedList <- pg $ runSelectReturningList $ select $ do
@@ -113,7 +109,7 @@ eventUserSignedList (EvId.EventId eventId) = do
     guard_ (Schema.user_events_event_id userEvent ==. val_ (Schema.EventId eventId))
     user <- related_ (Schema._users Schema.supplyChainDb) (Schema.user_events_user_id userEvent)
     pure (user, Schema.user_events_has_signed userEvent)
-  return $ bimap userTableToModel id <$> usersSignedList
+  pure $ bimap userTableToModel id <$> usersSignedList
 
 queryUserId :: SCSApp context err => ST.User -> AppM context err ST.UserId
-queryUserId = return . ST.userId
+queryUserId = pure . ST.userId

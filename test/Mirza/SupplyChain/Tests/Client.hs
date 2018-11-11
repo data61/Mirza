@@ -11,6 +11,8 @@ import           Data.Either                           (fromRight, isLeft,
                                                         isRight)
 import           Data.UUID                             (nil)
 
+import           Data.List.NonEmpty                    (NonEmpty (..))
+
 import           Data.Text.Encoding                    (encodeUtf8)
 
 import           Test.Tasty
@@ -18,7 +20,6 @@ import           Test.Tasty.Hspec
 import           Test.Tasty.HUnit
 
 import qualified Mirza.BusinessRegistry.Types          as BT
-import qualified Mirza.SupplyChain.QueryUtils          as QU
 import           Mirza.SupplyChain.Types               as ST
 
 import qualified Mirza.BusinessRegistry.Client.Servant as BRClient
@@ -31,8 +32,7 @@ import           Mirza.SupplyChain.Database.Schema     as Schema
 import           Mirza.BusinessRegistry.Client.Servant (addPublicKey)
 import           Mirza.BusinessRegistry.Tests.Utils    (goodRsaPrivateKey,
                                                         goodRsaPublicKey,
-                                                        readRsaPrivateKey,
-                                                        readRsaPublicKey)
+                                                        readJWK)
 
 import           Mirza.Common.Tests.ServantUtils
 import           Mirza.Common.Tests.Utils
@@ -40,14 +40,15 @@ import           Mirza.SupplyChain.Tests.Dummies
 
 import           Data.GS1.EventId                      as EvId
 
-import           OpenSSL.EVP.Sign                      (signBS)
+import           Control.Monad.Except
+import           Control.Monad.Identity
+import           Crypto.JOSE                           (Alg (RS256),
+                                                        newJWSHeader, signJWS)
+import qualified Crypto.JOSE                           as JOSE
+import           Crypto.JOSE.Types                     (Base64Octets (..))
 
-import qualified Data.ByteString.Char8                 as BS
 import           Data.GS1.EPC                          (GS1CompanyPrefix (..))
 import           Text.Email.Validate                   (toByteString)
-
-import qualified Data.ByteString.Base64                as BS64
-import           Mirza.SupplyChain.Handlers.Signatures (makeDigest)
 
 -- === SCS Client tests
 
@@ -56,8 +57,8 @@ userABC :: NewUser
 userABC = NewUser
   { newUserPhoneNumber = "0400 111 222"
   , newUserEmailAddress = unsafeMkEmailAddress "abc@example.com"
-  , newUserFirstName = "Biz Johnny"
-  , newUserLastName = "Smith Biz"
+  , newUserFirstName = "User ABC"
+  , newUserLastName = "Giver"
   , newUserCompany = GS1CompanyPrefix "something"
   , newUserPassword = "re4lly$ecret14!"}
 
@@ -71,8 +72,8 @@ userDEF :: NewUser
 userDEF = NewUser
   { newUserPhoneNumber = "0400 111 222"
   , newUserEmailAddress = unsafeMkEmailAddress "def@example.com"
-  , newUserFirstName = "Biz Johnny"
-  , newUserLastName = "Smith Biz"
+  , newUserFirstName = "User DEF"
+  , newUserLastName = "Receiver"
   , newUserCompany = GS1CompanyPrefix "something"
   , newUserPassword = "re4lly$ecret14!"}
 
@@ -133,8 +134,13 @@ clientSpec = do
           http (insertAggEvent authABC dummyAggregation)
             `shouldSatisfyIO` isRight
 
+          step "Adding further users for transaction events"
+          resReceiver <- http (addUser userDEF)
+          resReceiver `shouldSatisfy` isRight
+          let (Right userIdSigning) = resReceiver
+
           step "User Can insert Transaction events"
-          http (insertTransactEvent authABC dummyTransaction)
+          http (insertTransactEvent authABC $ dummyTransaction $ userIdSigning :| [])
             `shouldSatisfyIO` isRight
 
           step "User Can insert Transformation events"
@@ -170,8 +176,8 @@ clientSpec = do
           httpBR (BRClient.addUser brAuthUser userBR) `shouldSatisfyIO` isRight
 
           step "Tying the user with a good key"
-          goodPubKey <- goodRsaPublicKey
-          goodPrivKey <- goodRsaPrivateKey
+          Just goodPubKey <- goodRsaPublicKey
+          Just goodPrivKey <- goodRsaPrivateKey
           keyIdResponse <- httpBR (addPublicKey authABC goodPubKey Nothing)
           keyIdResponse `shouldSatisfy` isRight
           let keyId = fromRight (BRKeyId nil) keyIdResponse
@@ -179,14 +185,13 @@ clientSpec = do
           step "Inserting the object event"
           objInsertionResponse <- httpSCS (insertObjectEvent authABC dummyObject)
           objInsertionResponse `shouldSatisfy` isRight
-          let (EventInfo insertedEvent _ _ _ _, (Schema.EventId eventId)) = fromRight (error "Should be right") objInsertionResponse
+          let (EventInfo _ _ _ (Base64Octets to_sign_event) _, (Schema.EventId eventId)) = fromRight (error "Should be right") objInsertionResponse
 
           step "Signing the key"
-          let myDigest = SHA256
-          (Just sha256) <- makeDigest myDigest
-          mySignBS <- signBS sha256 goodPrivKey $ QU.constructEventToSign insertedEvent
-          let mySign = ST.Signature . BS.unpack . BS64.encode $ mySignBS
-          let mySignedEvent = SignedEvent (EvId.EventId eventId) keyId mySign myDigest
+          Right mySig <- runExceptT @JOSE.Error (
+                    signJWS to_sign_event (Identity (newJWSHeader ((), RS256),goodPrivKey))
+                    )
+          let mySignedEvent = SignedEvent (EvId.EventId eventId) keyId mySig
 
           httpSCS (eventSign authABC mySignedEvent) `shouldSatisfyIO` isRight
 
@@ -207,7 +212,7 @@ clientSpec = do
           step "Adding a giver user to SCS"
           uidGiver <- httpSCS (addUser userABC)
           uidGiver `shouldSatisfy` isRight
-          -- let (Right userIdGiver) = uidGiver
+          let (Right userIdGiver) = uidGiver
 
           step "Adding business for the Giver"
           let prefixGiver = GS1CompanyPrefix "1000001"
@@ -226,8 +231,8 @@ clientSpec = do
           httpBR (BRClient.addUser globalAuthData userBRGiver) `shouldSatisfyIO` isRight
 
           step "Tying the giver user with a good key"
-          goodPubKeyGiver <- readRsaPublicKey "./test/Mirza/Common/TestData/testKeys/goodKeys/4096bit_rsa_key.pub"
-          goodPrivKeyGiver <- readRsaPrivateKey "./test/Mirza/Common/TestData/testKeys/goodKeys/4096bit_rsa_key.key"
+          Just goodPubKeyGiver <- readJWK "./test/Mirza/Common/TestData/testKeys/goodJWKs/4096bit_rsa_pub.json"
+          Just goodPrivKeyGiver <- readJWK "./test/Mirza/Common/TestData/testKeys/goodJWKs/4096bit_rsa.json"
           keyIdResponseGiver <- httpBR (addPublicKey authABC goodPubKeyGiver Nothing)
           keyIdResponseGiver `shouldSatisfy` isRight
           let keyIdGiver = fromRight (BRKeyId nil) keyIdResponseGiver
@@ -235,15 +240,13 @@ clientSpec = do
           step "Inserting the object event with the giver user"
           objInsertionResponse <- httpSCS (insertObjectEvent authABC dummyObject)
           objInsertionResponse `shouldSatisfy` isRight
-          let (EventInfo insertedEvent _ _ _ _, (Schema.EventId eid)) = fromRight (error "Should be right") objInsertionResponse
-              eventId = EvId.EventId eid
+          let (EventInfo _ _ _ (Base64Octets to_sign_event) _, (Schema.EventId objEvId)) = fromRight (error "Should be right") objInsertionResponse
+              objEventId = EvId.EventId objEvId
 
           step "Signing the object event with the giver"
-          let myDigest = SHA256
-          (Just sha256) <- makeDigest myDigest
-          mySignBS <- signBS sha256 goodPrivKeyGiver $ QU.constructEventToSign insertedEvent
-          let mySign = ST.Signature . BS.unpack . BS64.encode $ mySignBS
-          let mySignedEvent = SignedEvent eventId keyIdGiver mySign myDigest
+          Right mySig <- runExceptT @JOSE.Error $
+                    signJWS to_sign_event (Identity (newJWSHeader ((), RS256),goodPrivKeyGiver))
+          let mySignedEvent = SignedEvent objEventId keyIdGiver mySig
           httpSCS (eventSign authABC mySignedEvent) `shouldSatisfyIO` isRight
 
           -- ===============================================
@@ -271,22 +274,33 @@ clientSpec = do
                           "0400 123 432"
           httpBR (BRClient.addUser globalAuthData userBRReceiver) `shouldSatisfyIO` isRight
 
-          step "Checking that the receiver cannot add themselves to the event"
-          httpSCS (addUserToEvent authDEF userIdReceiver eventId)
-            `shouldSatisfyIO` isLeft
 
-          step "Adding receiver to the event using the giver"
-          httpSCS (addUserToEvent authABC userIdReceiver eventId)
-            `shouldSatisfyIO` isRight
+          -- step "Signing the event with the second user"
+          step "Tying the receiver user with a good key"
+          Just goodPubKeyReceiver <- readJWK "./test/Mirza/Common/TestData/testKeys/goodJWKs/16384bit_rsa_pub.json"
+          Just goodPrivKeyReceiver <- readJWK "./test/Mirza/Common/TestData/testKeys/goodJWKs/16384bit_rsa.json"
+          keyIdResponseReceiver <- httpBR (addPublicKey authDEF goodPubKeyReceiver Nothing)
+          keyIdResponseReceiver `shouldSatisfy` isRight
+          let keyIdReceiver = fromRight (BRKeyId nil) keyIdResponseReceiver
+
+          step "Inserting the transaction event with the giver user"
+          let myTransactionEvent = dummyTransaction $ userIdReceiver :| []
+          transactInsertionResponse <- httpSCS (insertTransactEvent authABC myTransactionEvent)
+          transactInsertionResponse `shouldSatisfy` isRight
+          let (_transactEvInfo@(EventInfo insertedTransactEvent _ _ (Base64Octets to_sign_event2) _), (Schema.EventId transactEvId)) = fromRight (error "Should be right") transactInsertionResponse
+              transactionEventId = EvId.EventId transactEvId
+              transactEventId = EvId.EventId transactEvId
 
           step "Retrieving the event info"
-          eventInfoResult <- httpSCS (eventInfo authABC eventId)
+
+          eventInfoResult <- httpSCS (eventInfo authABC transactEventId)
           eventInfoResult `shouldSatisfy` isRight
           let (Right eInfo) = eventInfoResult
+          -- eInfo `shouldBe` transactEvInfo
 
           step "Checking that we got the correct event back"
-          let retrievedEvent = (eventInfoEvent eInfo)
-          retrievedEvent `shouldBe` insertedEvent
+          let retrievedTransactEvent = (eventInfoEvent eInfo)
+          retrievedTransactEvent `shouldBe` insertedTransactEvent
 
           step "Checking event blockchain status"
           let eventStatus = (eventInfoBlockChainStatus eInfo)
@@ -294,25 +308,13 @@ clientSpec = do
 
           step "Checking that receiving user is among the unsigned users"
           let unsignedUsers = (eventInfoUnsignedUsers eInfo)
-          unsignedUsers `shouldBe` [userIdReceiver]
-          -- step "Signing the event with the second user"
-          step "Tying the receiver user with a good key"
-          goodPubKeyReceiver <- readRsaPublicKey "./test/Mirza/Common/TestData/testKeys/goodKeys/16384bit_rsa_key.pub"
-          goodPrivKeyReceiver <- readRsaPrivateKey "./test/Mirza/Common/TestData/testKeys/goodKeys/16384bit_rsa_key.key"
-          keyIdResponseReceiver <- httpBR (addPublicKey authDEF goodPubKeyReceiver Nothing)
-          keyIdResponseReceiver `shouldSatisfy` isRight
-          let keyIdReceiver = fromRight (BRKeyId nil) keyIdResponseReceiver
-
-          step "Inserting the object event with the giver user"
-          transactInsertionResponse <- httpSCS (insertTransactEvent authDEF dummyTransaction)
-          transactInsertionResponse `shouldSatisfy` isRight
-          let (EventInfo insertedTransactEvent _ _ _ _, (Schema.EventId transactEvId)) = fromRight (error "Should be right") transactInsertionResponse
-              transactionEventId = EvId.EventId transactEvId
+          unsignedUsers `shouldBe` [userIdGiver, userIdReceiver]
 
           step "Signing the transaction event with the receiver user"
-          receiverSignBS <- signBS sha256 goodPrivKeyReceiver $ QU.constructEventToSign insertedTransactEvent
-          let receiverSign = ST.Signature . BS.unpack . BS64.encode $ receiverSignBS
-          let receiverSignedEvent = SignedEvent transactionEventId keyIdReceiver receiverSign myDigest
+          Right myTransSig <- runExceptT @JOSE.Error $
+                    signJWS to_sign_event2 (Identity (newJWSHeader ((), RS256),goodPrivKeyReceiver))
+          let receiverSignedEvent = SignedEvent transactionEventId keyIdReceiver myTransSig
+
           httpSCS (eventSign authDEF receiverSignedEvent) `shouldSatisfyIO` isRight
 
           -- step "Retrieving the event info again"

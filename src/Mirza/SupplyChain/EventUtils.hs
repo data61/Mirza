@@ -45,7 +45,6 @@ import           Data.GS1.DWhy                     (DWhy (..))
 import           Data.Maybe                        (catMaybes)
 
 import           Data.ByteString                   (ByteString)
-import           Data.Text.Encoding                (decodeUtf8)
 import qualified Data.Text                         as T
 
 import           Data.Time.LocalTime               (timeZoneOffsetString)
@@ -54,6 +53,8 @@ import           Database.Beam                     as B
 import           Database.Beam.Postgres            (PgJSON (..))
 
 import           Control.Monad                     (void)
+
+import           Crypto.JOSE.Types                 (Base64Octets (..))
 
 -- Helper functions
 
@@ -158,7 +159,7 @@ findInstLabelId' cp sn msfv mir mat = do
             Schema.label_asset_type labels ==. val_ mat &&.
             Schema.label_item_reference labels ==. val_ mir)
     pure labels
-  return $ case r of
+  pure $ case r of
     [l] -> Just (Schema.label_id l)
     _   -> Nothing
 
@@ -169,7 +170,7 @@ getUser userEmail = do
     allUsers <- all_ (Schema._users Schema.supplyChainDb)
     guard_ (Schema.user_email_address allUsers ==. val_ userEmail)
     pure allUsers
-  return $ case r of
+  pure $ case r of
     [u] -> Just . QU.userTableToModel $ u
     _   -> Nothing
 
@@ -193,8 +194,8 @@ findClassLabelId' cp msfv ir lot = do
            )
     pure labels
   case r of
-    [l] -> return $ Just (Schema.label_id l)
-    _   -> return Nothing
+    [l] -> pure $ Just (Schema.label_id l)
+    _   -> pure Nothing
 
 
 findLabelId :: LabelEPC -> DB context err (Maybe PrimaryKeyType)
@@ -204,7 +205,7 @@ findLabelId (CL c _) = findClassLabelId c
 getParentId :: DWhat -> DB context err (Maybe PrimaryKeyType)
 getParentId (TransactWhat (TransactionDWhat _ (Just p) _ _)) = findInstLabelId . unParentLabel $ p
 getParentId (AggWhat (AggregationDWhat _ (Just p) _) )  = findInstLabelId . unParentLabel $ p
-getParentId _                                 = return Nothing
+getParentId _                                 = pure Nothing
 
 toStorageDWhen :: Schema.WhenId
                -> DWhen
@@ -288,7 +289,7 @@ findDWhere eventId = do
   bizLocs <- findDWhereByLocationField MU.BizLocation eventId
   srcTs <- findDWhereByLocationField MU.Src eventId
   destTs <- findDWhereByLocationField MU.Dest eventId
-  return $ mergeSBWheres [rPoints, bizLocs, srcTs, destTs]
+  pure $ mergeSBWheres [rPoints, bizLocs, srcTs, destTs]
 
 findDWhereByLocationField :: MU.LocationField -> Schema.EventId -> DB context err [Schema.WhereT Identity]
 findDWhereByLocationField locField eventId = pg $ runSelectReturningList $ select $ do
@@ -336,22 +337,25 @@ insertEvent userId@(Schema.UserId uuid) event = do
         $ insertValues
             [toStorageEvent (Schema.EventId pKey) (_eid event)
               userId (PgJSON event) toSignEvent]
-  return ((EventInfo event [] [(ST.UserId uuid)] (decodeUtf8 $ toSignEvent) NotSent),
+  pure ((EventInfo event [] [(ST.UserId uuid)] (Base64Octets toSignEvent) NotSent),
       eventId)
 
 
 insertUserEvent :: Schema.EventId
-                -> Schema.UserId
-                -> Schema.UserId
+                -> EventOwner
                 -> Bool
                 -> (Maybe ByteString)
+                -> SigningUser
                 -> DB context err ()
-insertUserEvent eventId userId addedByUserId signed signedHash =
-  void $ QU.withPKey $ \pKey ->
-    pg $ B.runInsert $ B.insert (Schema._user_events Schema.supplyChainDb)
-        $ insertValues
-          [ Schema.UserEvent pKey eventId userId signed addedByUserId signedHash
-          ]
+insertUserEvent eventId (EventOwner addedByUserId) signed signedHash (SigningUser userId) =
+  let signingId = Schema.UserId . getUserId $ userId
+      ownerId = Schema.UserId . getUserId $ addedByUserId
+  in
+    void $ QU.withPKey $ \pKey ->
+      pg $ B.runInsert $ B.insert (Schema._user_events Schema.supplyChainDb)
+          $ insertValues
+            [ Schema.UserEvent pKey eventId signingId signed ownerId signedHash
+            ]
 
 insertWhatLabel :: Schema.WhatId
                 -> Schema.LabelId
@@ -393,8 +397,8 @@ getUserById (ST.UserId uid) = do
           guard_ (Schema.user_id user ==. val_ uid)
           pure user
   case r of
-    [user] -> return $ Just user
-    _      -> return Nothing
+    [user] -> pure $ Just user
+    _      -> pure Nothing
 
 getEventList :: AsServiceError err
              => Schema.LabelId
@@ -425,8 +429,8 @@ findSchemaEvent (Schema.EventId eventId) = do
         guard_ (Schema.event_id event ==. (val_ eventId))
         pure event
   case r of
-    [event] -> return $ Just event
-    []      -> return Nothing
+    [event] -> pure $ Just event
+    []      -> pure Nothing
     -- TODO: Do the right thing here
     _       -> throwBackendError r
 
@@ -438,6 +442,7 @@ hasUserCreatedEvent (ST.UserId userId) (EvId.EventId eventId) = do
         guard_ (Schema.user_events_owner userEvent ==. (val_ . Schema.UserId $ userId) &&.
                 Schema.user_events_event_id userEvent ==. (val_ . Schema.EventId $ eventId))
         pure userEvent
-  return $ case r of
+  pure $ case r of
     [_userEvent] -> True
     _            -> False
+
