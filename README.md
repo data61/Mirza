@@ -46,13 +46,13 @@ Some examples are:
 - "dbname=devsupplychainserver"`
 - "postgresql://localhost/devsupplychainserver"
 
-The default connection string is `dbname=devsupplychainserver"`.
+The default connection string is `dbname=devsupplychainserver`.
 
 ## Running the server
 
 Finally, to run the server, do:
 
-`stack exec supplyChainServer -- brhost localhost --brport 8200`
+`stack exec supplyChainServer -- --brhost localhost --brport 8200`
 
 Then you can check out the API at:
 
@@ -71,7 +71,7 @@ To do a clean build instead, do `./restart.sh --clean`.
 
 ## Running the tests
 
-The `runTests.sh` script will run the tests (and makes sure they run single
+The `run_tests.sh` script will run the tests (and makes sure they run single
 threaded because the tests depend on previous tests), it should usually be run
 as:
 
