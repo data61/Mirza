@@ -49,8 +49,10 @@ serverAPI = Proxy
 
 
 type PublicAPI =
+  -- Health
+       "health" :> Get '[JSON] HealthResponse
   -- Users
-       "newUser"                            :> ReqBody '[JSON] NewUser                                      :> Post '[JSON] UserId
+  :<|> "newUser"                            :> ReqBody '[JSON] NewUser                                      :> Post '[JSON] UserId
 
 type PrivateAPI =
 -- Contacts
