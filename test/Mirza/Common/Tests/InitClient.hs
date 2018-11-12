@@ -20,7 +20,6 @@ import           Servant.Client                           (BaseUrl (..))
 
 import           Data.Either                              (isRight)
 
-import           Data.ByteString.Char8                    (ByteString)
 import           Data.Text
 import           Data.Text.Encoding                       (encodeUtf8)
 
@@ -42,19 +41,34 @@ import           Mirza.BusinessRegistry.Main              (RunServerOptions (..)
 import qualified Mirza.BusinessRegistry.Main              as BRMain
 import           Mirza.BusinessRegistry.Types             as BT
 
-import           Mirza.Common.Tests.Utils                 (unsafeMkEmailAddress)
+import           Mirza.Common.Tests.Utils                 (unsafeMkEmailAddress,
+                                                           DatabaseName (..),
+                                                           DatabaseConnectionString (..),
+                                                           getDatabaseConnectionString,
+                                                           databaseNameToConnectionString)
 import           Text.Email.Validate                      (toByteString)
 
 -- *****************************************************************************
 -- SCS Utility Functions
 -- *****************************************************************************
 
-testDbConnStrSCS :: ByteString
-testDbConnStrSCS = "dbname=testsupplychainserver"
+-- | Default database name when running tests for the SCS. Be careful using this
+-- construct as it could lead to problems...users not specifying the database
+-- and accidentally operating on the wrong database.
+-- See: testDbConnectionStringSCS if you need a full connection string.
+testDbNameSCS :: DatabaseName
+testDbNameSCS = DatabaseName "testsupplychainserver"
+
+-- | Default database connection string used when running tests for the SCS. Be
+-- careful using this construct as it could lead to problems...users not
+-- specifying the database and accidentally operating on the wrong database.
+testDbConnectionStringSCS :: DatabaseConnectionString
+testDbConnectionStringSCS = databaseNameToConnectionString testDbNameSCS
 
 mkSoSCS :: BaseUrl -> Maybe FilePath -> ServerOptionsSCS
 mkSoSCS (BaseUrl _ brHost brPrt _) =
-  ServerOptionsSCS Dev False testDbConnStrSCS "127.0.0.1" 8000 14 8 1 DebugS brHost brPrt
+  ServerOptionsSCS Dev False connectionString "127.0.0.1" 8000 14 8 1 DebugS brHost brPrt where
+    connectionString = getDatabaseConnectionString testDbConnectionStringSCS
 
 runSCSApp :: BaseUrl -> IO (ThreadId, BaseUrl)
 runSCSApp brUrl = do
@@ -106,11 +120,25 @@ runSCSApp brUrl = do
   flushDbResult `shouldSatisfy` isRight
   startWaiApp =<< SCSMain.initApplication so' ctx
 
+
+
 -- *****************************************************************************
 -- BR Utility Functions
 -- *****************************************************************************
-testDbConnStrBR :: ByteString
-testDbConnStrBR = "dbname=testmirzabusinessregistry"
+
+-- | Default database name when running tests for the BR. Be careful using this
+-- construct as it could lead to problems...users not specifying the database
+-- and accidentally operating on the wrong database.
+-- See: testDbConnectionStringBR if you need a full connection string.
+testDbNameBR :: DatabaseName
+testDbNameBR = DatabaseName "testbusinessregistry"
+
+-- | Default database connection string used when running tests for the BR. Be
+-- careful using this construct as it could lead to problems...users not
+-- specifying the database and accidentally operating on the wrong database.
+testDbConnectionStringBR :: DatabaseConnectionString
+testDbConnectionStringBR = databaseNameToConnectionString testDbNameBR
+
 
 newBusinessToBusinessResponse :: NewBusiness -> BusinessResponse
 newBusinessToBusinessResponse =
@@ -151,14 +179,16 @@ bootstrapAuthData ctx = do
 randomPassword :: IO Text
 randomPassword = ("PlainTextPassword:" <>) <$> randomText
 
-go :: Maybe FilePath -> ServerOptionsBR
-go mfp = ServerOptionsBR testDbConnStrBR 14 8 1 DebugS mfp Dev
+brOptions :: Maybe FilePath -> ServerOptionsBR
+brOptions mfp = ServerOptionsBR connectionString 14 8 1 DebugS mfp Dev where
+  connectionString = getDatabaseConnectionString testDbConnectionStringBR
+
 
 runBRApp :: IO (ThreadId, BaseUrl, BasicAuthData)
 runBRApp = do
   tempFile <- emptySystemTempFile "businessRegistryTests.log"
-  let go' = go (Just tempFile)
-  ctx <- initBRContext go'
+  let currentBrOptions = brOptions (Just tempFile)
+  ctx <- initBRContext currentBrOptions
   let BusinessRegistryDB usersTable businessesTable keysTable locationsTable geolocationsTable
         = businessRegistryDB
 
@@ -176,7 +206,7 @@ runBRApp = do
   -- test cases to complete.
   brAuthUser <- bootstrapAuthData ctx
 
-  (tid,brul) <- startWaiApp =<< BRMain.initApplication go' (RunServerOptions 8000) ctx
+  (tid,brul) <- startWaiApp =<< BRMain.initApplication currentBrOptions (RunServerOptions 8000) ctx
   pure (tid,brul,brAuthUser)
 
 -- *****************************************************************************

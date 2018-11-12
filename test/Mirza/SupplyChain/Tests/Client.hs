@@ -326,11 +326,24 @@ clientSpec = do
           -- TODO: Check that eventInfo says that the eventState is `Signed`
 
 
+  let healthTests = testCaseSteps "Provides health status" $ \step ->
+        bracket runApps endApps $ \testData-> do
+          let baseurl = scsBaseUrl testData
+              http = runClient baseurl
+
+          step "Status results in 200"
+          healthResult <- http (health)
+          healthResult `shouldSatisfy` isRight
+          healthResult `shouldBe` (Right HealthResponse)
+
+
+
   pure $ testGroup "Supply Chain Service Client Tests"
         [ userCreationTests
         , eventInsertionTests
         , eventSignTests
         , transactionEventTest
+        , healthTests
         ]
 
 {-
