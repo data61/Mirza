@@ -4,7 +4,7 @@
 -- each service's client
 module Mirza.Common.Tests.Generate where
 
-import           Mirza.BusinessRegistry.Types      as BT
+-- import           Mirza.BusinessRegistry.Types      as BT
 
 import           Mirza.SupplyChain.Types           as ST
 
@@ -12,13 +12,18 @@ import           Mirza.Common.Tests.Utils          (unsafeMkEmailAddress)
 
 import           Data.GS1.EPC                      (GS1CompanyPrefix (..))
 
-import           Data.Text                         as T
+import qualified Data.Text                         as T
+import           Data.Text.Encoding                (encodeUtf8)
 
-import           Data.ByteString.Char8             as BS
+import qualified Data.ByteString.Char8             as BS
 
 import           Mirza.SupplyChain.Handlers.Users  as SCS
 
 import           Mirza.SupplyChain.Handlers.Common
+
+import           Servant.API.BasicAuth             (BasicAuthData (..))
+
+import           Text.Email.Validate               (toByteString)
 
 type TestName = String
 
@@ -40,7 +45,6 @@ authFirstUser :: BasicAuthData
 authFirstUser = BasicAuthData
   (toByteString . newUserEmailAddress $ firstUser)
   (encodeUtf8   . newUserPassword     $ firstUser)
-
 
 
 genNUsersSCS :: TestName -> Int -> [ST.NewUser]
@@ -71,39 +75,38 @@ insertNUsersSCS testName n =
   in
     SCS.addUser <$> users
 
-
-type Firstname = Text
+type Firstname = T.Text
 
 -- Insert multiple users into the SCS DB given a
 -- list of first names and company prefixes.
-insertMultipleUsersSCS ::
-    TestName ->
-    [Firstname] ->
-    [GS1CompanyPrefix] ->
-    [AppM context err UserId]
+insertMultipleUsersSCS  :: (SCSApp context err, HasScryptParams context)
+                        => TestName
+                        -> [Firstname]
+                        -> [GS1CompanyPrefix]
+                        -> [AppM context err UserId]
 insertMultipleUsersSCS name fn pfx =
-  SCS.addUser <$> genMultpleUsersSCS n name fn pfx
+  SCS.addUser <$> genMultipleUsersSCS n name fn pfx
   where
     n = min (length fn) (length pfx)
 
 
 genMultipleUsersSCS :: Int ->  TestName -> [Firstname] ->
-    [GS1CompanyPrefix] -> [UserId]
-genMultipleUsersSCS 0 _ _ _ = 0
+    [GS1CompanyPrefix] -> [ST.NewUser]
+genMultipleUsersSCS 0 _ _ _ = []
+genMultipleUsersSCS _ _ [] _ = []
+genMultipleUsersSCS _ _ _ [] = []
 genMultipleUsersSCS n testName (f:fx) (p:px) =
-  newUser : genMultpleUsers (n-1) fx px
-      where
-        numT = T.pack $ show n
-        newUser = ST.NewUser
-          { ST.newUserPhoneNumber = T.append "0400 111 22" numT
-          , ST.newUserEmailAddress =
-              unsafeMkEmailAddress $ BS.concat [BS.pack f, "@example.com"]
-          , ST.newUserFirstName = f
-          , ST.newUserLastName = T.append "Last: " numT
-          , ST.newUserCompany = p
-          , ST.newUserPassword = "re4lly$ecret14!"}
+  newUser : genMultipleUsersSCS (n-1) testName fx px
+  where
+    numT = T.pack $ show n
+    newUser = ST.NewUser
+      { ST.newUserPhoneNumber = T.append "0400 111 22" numT
+      , ST.newUserEmailAddress =
+          unsafeMkEmailAddress $ BS.concat [encodeUtf8 f, "@example.com"]
+      , ST.newUserFirstName = f
+      , ST.newUserLastName = T.append "Last: " numT
+      , ST.newUserCompany = p
+      , ST.newUserPassword = "re4lly$ecret14!"}
 
 
-
-insertMultipleUsersBR ::
-
+-- insertMultipleUsersBR ::
