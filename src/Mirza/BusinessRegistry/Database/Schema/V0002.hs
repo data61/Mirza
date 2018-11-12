@@ -13,11 +13,14 @@ module Mirza.BusinessRegistry.Database.Schema.V0002
 
 import qualified Data.GS1.EPC                                 as EPC
 import           Mirza.BusinessRegistry.Types
+import           Mirza.Common.Beam                            (lastUpdateField)
 import           Mirza.Common.GS1BeamOrphans
 import           Mirza.Common.Types                           (PrimaryKeyType)
 
 import           Control.Lens
 import           Data.Text                                    (Text)
+import           Data.Time                                    (LocalTime)
+
 
 import           Database.Beam                                as B
 import           Database.Beam.Migrate.SQL.Tables
@@ -59,6 +62,7 @@ migration v0001 = BusinessRegistryDB
         (field "location_id" V0001.pkSerialType)
         (field "location_gln" locationEPCType)
         (V0001.BizId (field "location_biz_id" gs1CompanyPrefixType))
+        lastUpdateField
         )
   <*> createTable "geo_location" (GeoLocationT
         (field "geo_location_id"      V0001.pkSerialType)
@@ -66,15 +70,17 @@ migration v0001 = BusinessRegistryDB
         (field "geo_location_lat"     (maybeType latitudeType))
         (field "geo_location_lon"     (maybeType longitudeType))
         (field "geo_location_address" (maybeType $ varchar Nothing))
+        lastUpdateField
         )
 
 type Location = LocationT Identity
 deriving instance Show Location
 
 data LocationT f = LocationT
-  { location_id     :: C f PrimaryKeyType
-  , location_gln    :: C f EPC.LocationEPC
-  , location_biz_id :: PrimaryKey V0001.BusinessT f
+  { location_id        :: C f PrimaryKeyType
+  , location_gln       :: C f EPC.LocationEPC
+  , location_biz_id    :: PrimaryKey V0001.BusinessT f
+  , location_last_update :: C f (Maybe LocalTime)
   }
   deriving Generic
 
@@ -108,11 +114,12 @@ type GeoLocation = GeoLocationT Identity
 deriving instance Show GeoLocation
 
 data GeoLocationT f = GeoLocationT
-  { geoLocation_id        :: C f PrimaryKeyType
-  , geoLocation_gln       :: PrimaryKey LocationT f
-  , geoLocation_latitude  :: C f (Maybe Latitude)
-  , geoLocation_longitude :: C f (Maybe Longitude)
-  , geoLocation_address   :: C f (Maybe Text)
+  { geoLocation_id          :: C f PrimaryKeyType
+  , geoLocation_gln         :: PrimaryKey LocationT f
+  , geoLocation_latitude    :: C f (Maybe Latitude)
+  , geoLocation_longitude   :: C f (Maybe Longitude)
+  , geoLocation_address     :: C f (Maybe Text)
+  , geoLocation_last_update :: C f (Maybe LocalTime)
   }
   deriving Generic
 

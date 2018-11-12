@@ -13,7 +13,7 @@
 module Mirza.Common.Time
   ( CreationTime(..), RevocationTime(..), ExpirationTime(..)
   , DBTimestamp, ModelTimestamp, fromDbTimestamp, toDbTimestamp
-  , generateTimestamp
+  , generateTimestamp, onLocalTime
   ) where
 
 import           GHC.Generics           (Generic)

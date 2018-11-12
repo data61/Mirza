@@ -82,7 +82,7 @@ insertSignature userId@(ST.UserId uId) eId kId sig = do
   timestamp <- generateTimestamp
   r <- pg $ runInsertReturningList (Schema._signatures Schema.supplyChainDb) $
         insertValues
-        [(Schema.Signature sigId) (Schema.UserId uId) (Schema.EventId $ EvId.unEventId eId)
+        [Schema.Signature Nothing sigId (Schema.UserId uId) (Schema.EventId $ EvId.unEventId eId)
          (BRKeyId $ getBRKeyId kId) (PgJSON sig) (toDbTimestamp timestamp)]
   case r of
     [rowId] -> do
@@ -138,7 +138,7 @@ findSignedEventByUser :: AsServiceError err
 findSignedEventByUser uId eventId = signatureToSignedEvent <$> (findSignatureByUser uId eventId)
 
 signatureToSignedEvent :: Schema.Signature -> ST.SignedEvent
-signatureToSignedEvent (Schema.Signature _userId _sigId (Schema.EventId eId) brKeyId (PgJSON sig) _)
+signatureToSignedEvent (Schema.Signature _ _userId _sigId (Schema.EventId eId) brKeyId (PgJSON sig) _)
   = ST.SignedEvent (EvId.EventId eId) brKeyId sig
 
 -- do we need this?
