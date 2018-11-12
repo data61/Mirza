@@ -237,18 +237,6 @@ clientSpec = do
           keyIdResponseGiver `shouldSatisfy` isRight
           let keyIdGiver = fromRight (BRKeyId nil) keyIdResponseGiver
 
-          step "Inserting the object event with the giver user"
-          objInsertionResponse <- httpSCS (insertObjectEvent authABC dummyObject)
-          objInsertionResponse `shouldSatisfy` isRight
-          let (EventInfo _ _ _ (Base64Octets to_sign_obj_event) _, (Schema.EventId objEvId)) = fromRight (error "Should be right") objInsertionResponse
-              objEventId = EvId.EventId objEvId
-
-          step "Signing the object event with the giver"
-          Right giverSigObj <- runExceptT @JOSE.Error $
-                    signJWS to_sign_obj_event (Identity (newJWSHeader ((), RS256), goodPrivKeyGiver))
-          let myObjSignedEvent = SignedEvent objEventId keyIdGiver giverSigObj
-          httpSCS (eventSign authABC myObjSignedEvent) `shouldSatisfyIO` isRight
-
           -- ===============================================
           -- Receiving user
           -- ===============================================
