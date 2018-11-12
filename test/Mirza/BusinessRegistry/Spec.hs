@@ -3,9 +3,12 @@
 
 module Main where
 
-import           Mirza.BusinessRegistry.Tests.Settings   (testDbConnStr)
+import           Mirza.Common.Tests.InitClient           (testDbConnectionStringBR,
+                                                          testDbNameBR)
+import           Mirza.Common.Tests.Utils
 
 import           Mirza.BusinessRegistry.Database.Migrate
+import           Mirza.BusinessRegistry.Database.Schema
 import           Mirza.BusinessRegistry.Main             hiding (main)
 import           Mirza.BusinessRegistry.Types            as BRT
 
@@ -19,9 +22,8 @@ import           Mirza.BusinessRegistry.Tests.Client
 import           Mirza.BusinessRegistry.Tests.Keys       (testKeyQueries)
 
 import           Control.Exception                       (bracket)
-import           Data.Int
+import           Control.Monad.Except                    (runExceptT)
 import           Database.Beam.Postgres
-import           Database.PostgreSQL.Simple
 
 import           Data.Pool                               (withResource)
 import qualified Data.Pool                               as Pool
@@ -29,41 +31,24 @@ import qualified Data.Pool                               as Pool
 import           Katip                                   (Severity (DebugS))
 import           System.IO.Temp                          (emptySystemTempFile)
 
--- dbFunc = withDatabaseDebug putStrLn
-
--- INTERESTING NOTE ON MIGRATION
--- receive this error if the tables already exist (not in tests anymore since delete them beforehand)
---  uncaught exception: ErrorCall (Data.Either.Combinators.fromRight: Argument takes form 'Left _'
---  CallStack (from HasCallStack):
---    error, called at src/Data/Either/Combinators.hs:106:24 in either-4.4.1.1-6PiwKYkn4v6B4KO2R2Fu1b:Data.Either.Combinators)
-
--- drop all tables created by migration
-dropTables :: Connection -> IO Int64
-dropTables conn =
-  --https://stackoverflow.com/questions/3327312/drop-all-tables-in-postgresql
-  execute_ conn "DO $$ DECLARE                                                                              \
-               \     r RECORD;                                                                              \
-               \ BEGIN                                                                                      \
-               \     FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = current_schema()) LOOP    \
-               \         EXECUTE 'DROP TABLE IF EXISTS ' || quote_ident(r.tablename) || ' CASCADE';         \
-               \     END LOOP;                                                                              \
-               \ END $$;                                                                                    "
-
 
 defaultPool :: IO (Pool.Pool Connection)
-defaultPool = Pool.createPool (connectPostgreSQL testDbConnStr) close
+defaultPool = Pool.createPool (connectPostgreSQL connectionString) close
                 1 -- Number of "sub-pools",
                 60 -- How long in seconds to keep a connection open for reuse
                 10 -- Max number of connections to have open at any one time
+                where
+              connectionString = getDatabaseConnectionString testDbConnectionStringBR
 
 
 
 openConnection :: IO BRContext
 openConnection = do
   connpool <- defaultPool
-  _ <- withResource connpool dropTables -- drop tables before so if already exist no problems... means tables get overwritten though
+  _ <- withResource connpool $ dropTables businessRegistryDB -- drop tables before so if already exist no problems... means tables get overwritten though
   tempFile <- emptySystemTempFile "businessRegistryTests.log"
-  ctx <- initBRContext (ServerOptionsBR testDbConnStr 16 10 4 DebugS (Just tempFile) Dev)
+  let connectionString = getDatabaseConnectionString testDbConnectionStringBR
+  ctx <- initBRContext (ServerOptionsBR connectionString 16 10 4 DebugS (Just tempFile) Dev)
   initRes <- runMigrationWithConfirmation ctx (const (pure Execute))
   case initRes of
     Left err -> print @SqlError err >> error "Database initialisation failed"
@@ -78,6 +63,8 @@ withDatabaseConnection = bracket openConnection closeConnection
 
 main :: IO ()
 main = do
+  either (error . show) pure =<< (liftIO $ runExceptT $ makeDatabase testDbNameBR)
+
   keyTests <- testSpec "HSpec" (sequential $ around withDatabaseConnection testKeyQueries)
   bizTests <- testSpec "HSpec" (sequential $ around withDatabaseConnection testBizQueries)
   clientTests <- clientSpec

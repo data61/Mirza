@@ -4,6 +4,7 @@
 {-# LANGUAGE StandaloneDeriving         #-}
 {-# LANGUAGE TemplateHaskell            #-}
 {-# LANGUAGE UndecidableInstances       #-}
+{-# LANGUAGE TypeApplications       #-}
 
 module Mirza.BusinessRegistry.Types (
     module Mirza.BusinessRegistry.Types
@@ -28,12 +29,14 @@ import           Database.PostgreSQL.Simple.ToField   (ToField, toField)
 import qualified Database.Beam.Migrate      as BMigrate
 import qualified Database.Beam.Postgres     as BPostgres
 
+import           Crypto.JOSE                            (JWK)
 import           Crypto.Scrypt                          (ScryptParams)
 
 import           Katip                                  as K
 
 import           Control.Lens.TH
 import           Data.Aeson
+import           Data.Aeson.Types
 import           Data.Aeson.TH
 
 import           Data.Swagger
@@ -42,9 +45,6 @@ import           Data.Time                              (LocalTime)
 
 import           GHC.Generics                           (Generic)
 import           GHC.Stack                              (CallStack)
-
-import           Servant                                (FromHttpApiData (..))
-
 
 -- *****************************************************************************
 -- Context Types
@@ -192,12 +192,12 @@ longitudeType = BMigrate.DataType doubleType
 
 
 data LocationResponse = LocationResponse
-  { locationId    :: PrimaryKeyType
-  , locationGLN   :: EPC.LocationEPC
-  , locationBiz   :: GS1CompanyPrefix
-  , geoLocId      :: PrimaryKeyType
-  , geoLocCoord   :: Maybe (Latitude, Longitude)
-  , geoLocAddress :: Maybe Text
+  { locationId         :: PrimaryKeyType
+  , locationGLN        :: EPC.LocationEPC
+  , locationBiz        :: GS1CompanyPrefix
+  , geoLocId           :: PrimaryKeyType
+  , geoLocCoord        :: Maybe (Latitude, Longitude)
+  , geoLocAddress      :: Maybe Text
   } deriving (Show, Generic)
 
 
@@ -215,17 +215,26 @@ instance ToSchema KeyState
 instance ToParamSchema KeyState
 
 
+-- Health Types:
+successHealthResponseText :: Text
+successHealthResponseText = "Status OK"
+
+data HealthResponse = HealthResponse
+  deriving (Show, Eq, Read, Generic)
+instance ToSchema HealthResponse
+instance ToJSON HealthResponse where
+  toJSON _ = toJSON successHealthResponseText
+instance FromJSON HealthResponse where
+  parseJSON (String value)
+    | value == successHealthResponseText = pure HealthResponse
+    | otherwise                          = fail "Invalid health response string."
+  parseJSON value                        = typeMismatch "HealthResponse" value
+
+
 
 -- *****************************************************************************
 -- Signing and Hashing Types
 -- *****************************************************************************
-
-newtype PEM_RSAPubKey = PEM_RSAPubKey Text
-  deriving (Eq, Show, Generic, ToJSON, FromJSON)
-instance ToSchema PEM_RSAPubKey
-instance ToParamSchema PEM_RSAPubKey
-instance FromHttpApiData PEM_RSAPubKey where
-  parseUrlPiece t = fmap PEM_RSAPubKey (parseUrlPiece t)
 
 
 data KeyInfoResponse = KeyInfoResponse
@@ -235,7 +244,7 @@ data KeyInfoResponse = KeyInfoResponse
   , keyInfoCreationTime   :: CreationTime
   , keyInfoRevocation     :: Maybe (RevocationTime, UserId)
   , keyInfoExpirationTime :: Maybe ExpirationTime
-  , keyInfoPEMString      :: PEM_RSAPubKey
+  , keyInfoJWK            :: JWK
   }
   deriving (Generic, Show, Eq)
 $(deriveJSON defaultOptions ''KeyInfoResponse)
@@ -266,8 +275,9 @@ data BRError
   deriving (Show, Generic)
 
 data BRKeyError
-  = InvalidRSAKeyBRKE PEM_RSAPubKey
+  = InvalidRSAKeyBRKE JWK
   | InvalidRSAKeySizeBRKE Expected Received
+  | KeyIsPrivateKeyBRKE
   | PublicKeyInsertionErrorBRKE [CT.BRKeyId]
   | KeyNotFoundBRKE CT.BRKeyId
   | UnauthorisedKeyAccessBRKE

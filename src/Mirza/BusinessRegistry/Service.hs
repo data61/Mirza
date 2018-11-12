@@ -10,6 +10,7 @@
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
 {-# OPTIONS_GHC -fno-warn-orphans  #-}
+{-# LANGUAGE UndecidableInstances  #-}
 
 -- | Endpoint definitions go here. Most of the endpoint definitions are
 -- light wrappers around functions in BeamQueries
@@ -26,7 +27,7 @@ module Mirza.BusinessRegistry.Service
 import           Mirza.BusinessRegistry.API
 
 import           Mirza.BusinessRegistry.Handlers.Business as Handlers
-import           Mirza.BusinessRegistry.Handlers.Common   as Handlers
+import           Mirza.BusinessRegistry.Handlers.Health   as Handlers
 import           Mirza.BusinessRegistry.Handlers.Keys     as Handlers
 import           Mirza.BusinessRegistry.Handlers.Location as Handlers
 import           Mirza.BusinessRegistry.Handlers.Users    as Handlers
@@ -50,23 +51,30 @@ import           Text.Printf                              (printf)
 import           Data.Swagger
 
 
--- All possible error types that could be thrown through the handlers.
-type PossibleErrors err = (AsBRKeyError err)
+-- Convenience class for contexts which require all possible error types that
+-- could be thrown through the handlers.
+class (AsBRKeyError err, AsBRError err, AsSqlError err)
+  => APIPossibleErrors err where
+instance (AsBRKeyError err, AsBRError err, AsSqlError err)
+  => APIPossibleErrors err
 
 
-appHandlers :: (BRApp context err, HasScryptParams context, PossibleErrors err)
+appHandlers :: ( Member context '[HasScryptParams, HasDB]
+               , APIPossibleErrors err)
             => ServerT ServerAPI (AppM context err)
 appHandlers = publicServer :<|> privateServer
 
-publicServer :: (BRApp context err, HasScryptParams context, PossibleErrors err)
+publicServer :: ( Member context '[HasScryptParams, HasDB]
+                , APIPossibleErrors err)
              => ServerT PublicAPI (AppM context err)
 publicServer =
-       getPublicKey
+       health
+  :<|> getPublicKey
   :<|> getPublicKeyInfo
   :<|> listBusinesses
 
-
-privateServer :: (BRApp context err, HasScryptParams context,  PossibleErrors err)
+privateServer :: ( Member context '[HasScryptParams, HasDB]
+                 , APIPossibleErrors err)
               => ServerT ProtectedAPI (AppM context err)
 privateServer =
        addUserAuth
@@ -93,7 +101,7 @@ appMToHandler context act = do
   res <- liftIO $ runAppM context act
   case res of
     Left err -> runKatipContextT (context ^. katipLogEnv) () (context ^. katipNamespace) (brErrorToHttpError err)
-    Right a  -> return a
+    Right a  -> pure a
 
 
 -- | Swagger spec for server API.
@@ -173,3 +181,4 @@ brKeyErrorToHttpError keyError =
     (AddedExpiredKeyBRKE)           -> httpError err400 "Can't add a key that has already expired."
     (InvalidRSAKeySizeBRKE (Expected (Bit expSize)) (Received (Bit recSize)))
                                     -> httpError err400 (BSL8.pack $ printf "Invalid RSA Key size. Expected: %d Bits, Received: %d Bits\n" expSize recSize)
+    (KeyIsPrivateKeyBRKE)           -> httpError err400 "WARNING! Submitted Key was a Private Key, you should no longer continue to use it!"

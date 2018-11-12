@@ -30,9 +30,9 @@ import qualified Network.Wai.Handler.Warp                as Warp
 import           Data.ByteString                         (ByteString)
 import           Data.Semigroup                          ((<>))
 import           Data.Text                               (Text, pack)
+import           Data.Text.Encoding                      (encodeUtf8)
 import           Options.Applicative                     hiding (action)
 import           Text.Email.Validate
-import           Data.Text.Encoding                      (encodeUtf8)
 
 import qualified Crypto.Scrypt                           as Scrypt
 
@@ -54,7 +54,7 @@ defaultPortNumber :: Int
 defaultPortNumber = 8200
 
 defaultDatabaseConnectionString :: ByteString
-defaultDatabaseConnectionString = "dbname=devmirzabusinessregistry"
+defaultDatabaseConnectionString = "dbname=devbusinessregistry"
 
 
 --------------------------------------------------------------------------------
@@ -205,7 +205,7 @@ interactivelyGetNewUser = do
   newUserFirstName    <- pack <$> prompt "First Name:"
   newUserLastName     <- pack <$> prompt "Last Name:"
   newUserPhoneNumber  <- pack <$> prompt "Phone Number:"
-  return NewUser{..}
+  pure NewUser{..}
 
 getUserEmailInteractive :: IO EmailAddress
 getUserEmailInteractive = do
@@ -247,7 +247,8 @@ interactivelyGetBusinessT :: IO Business
 interactivelyGetBusinessT = do
   biz_gs1_company_prefix <- GS1CompanyPrefix . pack <$>  prompt "GS1CompanyPrefix"
   biz_name      <- pack <$> prompt "Name"
-  return BusinessT{..}
+  let biz_last_update = Nothing
+  pure BusinessT{..}
 
 prompt :: String -> IO String
 prompt message = putStrLn message *> getLine
@@ -295,7 +296,7 @@ dummyBusiness :: Text -> IO NewBusiness
 dummyBusiness unique = do
   let newBusinessGS1CompanyPrefix = GS1CompanyPrefix ("Business" <> unique <> "Prefix")
   let newBusinessName             = "Business" <> unique <> "Name"
-  return NewBusiness{..}
+  pure NewBusiness{..}
 
 
 dummyUser :: Text -> GS1CompanyPrefix -> IO NewUser
@@ -307,7 +308,7 @@ dummyUser unique business_uid = do
   let newUserFirstName    = "User" <> unique <> "FirstName"
   let newUserLastName     = "User" <> unique <> "LastName"
   let newUserPhoneNumber  = "User" <> unique <> "PhoneNumber"
-  return NewUser{..}
+  pure NewUser{..}
 
 
 printCredentials :: NewUser -> IO ()

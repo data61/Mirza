@@ -12,6 +12,7 @@ module Mirza.SupplyChain.Handlers.Contacts
 
 import           Mirza.SupplyChain.Handlers.Common
 
+import           Data.GS1.EPC                             (GS1CompanyPrefix)
 import qualified Mirza.Common.Utils                       as U
 import           Mirza.SupplyChain.Database.Schema        as Schema
 import           Mirza.SupplyChain.QueryUtils
@@ -19,13 +20,12 @@ import           Mirza.SupplyChain.Types                  hiding (NewUser (..),
                                                            User (userId),
                                                            UserId)
 import qualified Mirza.SupplyChain.Types                  as ST
-import           Data.GS1.EPC                             (GS1CompanyPrefix)
 
-import           Database.Beam                            as B
-import           Database.Beam.Backend.SQL.BeamExtensions
+import           Data.Foldable                            (for_)
 import           Data.Maybe                               (isNothing)
 import           Data.Text                                (Text)
-import           Data.Foldable                            (for_)
+import           Database.Beam                            as B
+import           Database.Beam.Backend.SQL.BeamExtensions
 
 
 
@@ -41,7 +41,7 @@ listContactsQuery  (ST.User (ST.UserId uid) _ _) = do
     guard_ (Schema.contact_user1_id contact ==. val_ (Schema.UserId uid) &&.
             Schema.contact_user2_id contact ==. (Schema.UserId $ Schema.user_id user))
     pure user
-  return $ userTableToModel <$> userList
+  pure $ userTableToModel <$> userList
 
 
 addContact :: SCSApp context err => ST.User -> ST.UserId -> AppM context err Bool
@@ -52,8 +52,8 @@ addContactQuery :: ST.User -> ST.UserId -> DB context err Bool
 addContactQuery (ST.User (ST.UserId uid1) _ _) (ST.UserId uid2) = do
   pKey <- U.newUUID
   r <- pg $ runInsertReturningList (Schema._contacts Schema.supplyChainDb) $
-               insertValues [Schema.Contact pKey (Schema.UserId uid1) (Schema.UserId uid2)]
-  return $ verifyContact r (Schema.UserId uid1) (Schema.UserId uid2)
+               insertValues [Schema.Contact Nothing pKey (Schema.UserId uid1) (Schema.UserId uid2)]
+  pure $ verifyContact r (Schema.UserId uid1) (Schema.UserId uid2)
 
 
 
@@ -75,7 +75,7 @@ removeContactQuery (ST.User firstId@(ST.UserId uid1) _ _) secondId@(ST.UserId ui
                 Schema.contact_user1_id contact ==. val_ (Schema.UserId uid1) &&.
                 Schema.contact_user2_id contact ==. val_ (Schema.UserId uid2))
       not <$> isExistingContact firstId secondId
-  else return False
+  else pure False
 
 
 
@@ -105,7 +105,7 @@ userSearchQuery :: SCSApp context err
                 => Maybe GS1CompanyPrefix
                 -> Maybe Text -- last name
                 -> DB context err [ST.User]
-userSearchQuery mpfx mlname = 
+userSearchQuery mpfx mlname =
   if all isNothing [() <$ mpfx, () <$ mlname] then pure []
   else fmap (map userTableToModel) $ pg $ runSelectReturningList $ select $ do
         user <- all_ (Schema._users Schema.supplyChainDb)
@@ -124,7 +124,7 @@ isExistingContact (ST.UserId uid1) (ST.UserId uid2) = do
         guard_ (Schema.contact_user1_id contact  ==. (val_ . Schema.UserId $ uid1) &&.
                 Schema.contact_user2_id contact  ==. (val_ . Schema.UserId $ uid2))
         pure contact
-  return $ verifyContact r (Schema.UserId uid1) (Schema.UserId uid2)
+  pure $ verifyContact r (Schema.UserId uid1) (Schema.UserId uid2)
 
 
 -- | Simple utility function to check that the users are part of the contact

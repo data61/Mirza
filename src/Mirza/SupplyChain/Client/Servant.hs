@@ -2,13 +2,13 @@
 module Mirza.SupplyChain.Client.Servant
   (
   -- * Public API
-    addUser
+    health
+  , addUser
   -- * Authenticated API
   , contactsInfo
   , addContact
   , removeContact
   , userSearch
-  , addUserToEvent
   , eventSign
   , eventHashed
   , listEvents
@@ -40,6 +40,7 @@ import           Data.UUID.Types
 
 
 -- * Public API
+health       :: ClientM HealthResponse
 addUser      :: NewUser -> ClientM UserId
 
 
@@ -49,7 +50,6 @@ addContact          :: BasicAuthData -> UserId -> ClientM Bool
 removeContact       :: BasicAuthData -> UserId -> ClientM Bool
 userSearch          :: BasicAuthData -> Maybe GS1CompanyPrefix -> Maybe Text -> ClientM [T.User]
 
-addUserToEvent      :: BasicAuthData -> UserId -> EventId -> ClientM ()
 eventSign           :: BasicAuthData -> SignedEvent -> ClientM UUID
 eventHashed         :: BasicAuthData -> EventId -> ClientM HashedEvent
 
@@ -70,7 +70,8 @@ _privAPI :: Client ClientM ProtectedAPI
 _pubAPI  :: Client ClientM PublicAPI
 _api@(
   _pubAPI@(
-    addUser
+         health
+    :<|> addUser
   )
   :<|>
   _privAPI@(
@@ -79,7 +80,6 @@ _api@(
     :<|> removeContact
     :<|> userSearch
 
-    :<|> addUserToEvent
     :<|> eventSign
     :<|> eventHashed
 

@@ -22,6 +22,8 @@ import           Data.GS1.EventId           as EvId
 
 import           Database.PostgreSQL.Simple (Connection, SqlError)
 
+import           Crypto.JOSE                as JOSE hiding (Digest)
+import           Crypto.JOSE.Types          (Base64Octets)
 import           Crypto.Scrypt              (ScryptParams)
 
 import           Servant                    (FromHttpApiData, ToHttpApiData)
@@ -32,6 +34,7 @@ import           Control.Lens
 import           GHC.Generics               (Generic)
 
 import           Data.Aeson
+import           Data.Aeson.Types
 import           Data.Aeson.TH
 import qualified Data.ByteString            as BS
 import           Data.List.NonEmpty         (NonEmpty)
@@ -208,7 +211,7 @@ data TransactionEvent = TransactionEvent {
   transaction_parent_label         :: Maybe ParentLabel,
   transaction_biz_transaction_list :: [BizTransaction],
   transaction_epc_list             :: [LabelEPC],
-  transaction_user_ids             :: [UserId],
+  transaction_other_user_ids       :: NonEmpty UserId,
   transaction_when                 :: DWhen,
   transaction_why                  :: DWhy,
   transaction_where                :: DWhere
@@ -216,17 +219,17 @@ data TransactionEvent = TransactionEvent {
 $(deriveJSON defaultOptions ''TransactionEvent)
 instance ToSchema TransactionEvent
 
-mkTransactEvent :: Ev.Event -> Maybe TransactionEvent
+mkTransactEvent :: Ev.Event -> NonEmpty UserId -> Maybe TransactionEvent
 mkTransactEvent
   (Ev.Event Ev.TransactionEventT
     mEid
     (TransactWhat (TransactionDWhat act mParentLabel bizTransactions epcList))
     dwhen dwhy dwhere
-  ) = Just $
+  ) otherUsers = Just $
       TransactionEvent
-        mEid act mParentLabel bizTransactions epcList []
+        mEid act mParentLabel bizTransactions epcList otherUsers
         dwhen dwhy dwhere
-mkTransactEvent _ = Nothing
+mkTransactEvent _ _  = Nothing
 
 fromTransactEvent :: TransactionEvent ->  Ev.Event
 fromTransactEvent
@@ -251,22 +254,18 @@ instance ToSchema EventHash
 -- A signature is an EventHash that's been
 -- signed by one of the parties involved in the
 -- event.
-newtype Signature = Signature String
-  deriving (Generic, Show, Read, Eq)
-$(deriveJSON defaultOptions ''Signature)
-instance ToSchema Signature
+type Signature' = Signature () JWSHeader
 
-data BlockchainPackage = BlockchainPackage EventHash (NonEmpty (Signature, UserId))
-  deriving (Show, Read, Eq, Generic)
+data BlockchainPackage = BlockchainPackage EventHash (NonEmpty (Signature', UserId))
+  deriving (Show, Eq, Generic)
 $(deriveJSON defaultOptions ''BlockchainPackage)
 instance ToSchema BlockchainPackage
 
 data SignedEvent = SignedEvent {
   signed_eventId   :: EventId,
   signed_keyId     :: BRKeyId,
-  signed_signature :: Signature,
-  signed_digest    :: Digest
-} deriving (Generic, Show, Eq)
+  signed_signature :: CompactJWS JWSHeader
+  } deriving (Generic, Show, Eq)
 $(deriveJSON defaultOptions ''SignedEvent)
 instance ToSchema SignedEvent
 --instance ToParamSchema SignedEvent where
@@ -297,11 +296,31 @@ data EventInfo = EventInfo {
   eventInfoEvent            :: Ev.Event,
   eventInfoUserSigs         :: [(UserId, SignedEvent)],
   eventInfoUnsignedUsers    :: [UserId],
-  eventToSign               :: Text, --this is the json stored in the db atm
+  eventToSign               :: Base64Octets, --this is the json stored in the db atm
   eventInfoBlockChainStatus :: EventBlockchainStatus
 } deriving (Show, Eq, Generic)
 $(deriveJSON defaultOptions ''EventInfo)
 instance ToSchema EventInfo
+
+
+-- *****************************************************************************
+-- Health Types
+-- *****************************************************************************
+
+successHealthResponseText :: Text
+successHealthResponseText = "Status OK"
+
+data HealthResponse = HealthResponse
+  deriving (Show, Eq, Read, Generic)
+instance ToSchema HealthResponse
+instance ToJSON HealthResponse where
+  toJSON _ = toJSON successHealthResponseText
+instance FromJSON HealthResponse where
+  parseJSON (String value)
+    | value == successHealthResponseText = pure HealthResponse
+    | otherwise                          = fail "Invalid health response string."
+  parseJSON value                        = typeMismatch "HealthResponse" value
+
 
 -- *****************************************************************************
 -- Error Types
@@ -326,7 +345,7 @@ data ServiceError
   | InvalidKeyId           BRKeyId
   | InvalidUserId          UserId
   | InvalidRSAKeyInDB      Text -- when the key already existing in the DB is wrong
-  | InvalidDigest          Digest
+  | JOSEError              JOSE.Error
   | InsertionFail          ServerError Text
   | EventPermissionDenied  UserId EvId.EventId
   | EmailExists            EmailAddress
@@ -357,3 +376,6 @@ instance AsServantError ServiceError where
   _ServantError = _ServantErr
 
 instance AsServantError AppError where _ServantError = _ServantErr
+
+instance JOSE.AsError ServiceError where _Error = _JOSEError
+instance JOSE.AsError AppError where _Error = _JOSEError

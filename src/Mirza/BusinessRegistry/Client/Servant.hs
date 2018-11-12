@@ -4,6 +4,7 @@ module Mirza.BusinessRegistry.Client.Servant
     getPublicKey
   , getPublicKeyInfo
   , listBusinesses
+  , health
   , addUser
   , addBusiness
   -- * Authenticated API
@@ -14,25 +15,29 @@ module Mirza.BusinessRegistry.Client.Servant
   ) where
 
 import           Mirza.BusinessRegistry.API
-import           Mirza.BusinessRegistry.Types as BRT
 import           Mirza.BusinessRegistry.Database.Schema (LocationId)
-import           Mirza.Common.Time            (ExpirationTime, RevocationTime)
-import           Mirza.Common.Types           (BRKeyId)
+import           Mirza.BusinessRegistry.Types           as BRT
+import           Mirza.Common.Time                      (ExpirationTime,
+                                                         RevocationTime)
+import           Mirza.Common.Types                     (BRKeyId)
 
-import           Data.GS1.EPC                 as EPC
+import           Data.GS1.EPC                           as EPC
+
+import           Crypto.JOSE.JWK                        (JWK)
 
 import           Servant.API
 import           Servant.Client
 
-import           Data.Proxy                   (Proxy (..))
+import           Data.Proxy                             (Proxy (..))
 
-getPublicKey       :: BRKeyId -> ClientM PEM_RSAPubKey
-getPublicKeyInfo   :: BRKeyId -> ClientM KeyInfoResponse
-listBusinesses :: ClientM [BusinessResponse]
+health         :: ClientM HealthResponse
+getPublicKey     :: BRKeyId -> ClientM JWK
+getPublicKeyInfo :: BRKeyId -> ClientM KeyInfoResponse
+listBusinesses   :: ClientM [BusinessResponse]
 
 addUser          :: BasicAuthData -> NewUser     -> ClientM UserId
 addBusiness      :: BasicAuthData -> NewBusiness -> ClientM GS1CompanyPrefix
-addPublicKey     :: BasicAuthData -> PEM_RSAPubKey -> Maybe ExpirationTime -> ClientM BRKeyId
+addPublicKey     :: BasicAuthData -> JWK -> Maybe ExpirationTime -> ClientM BRKeyId
 revokePublicKey  :: BasicAuthData -> BRKeyId -> ClientM RevocationTime
 addLocation      :: BasicAuthData -> NewLocation -> ClientM LocationId
 getLocationByGLN :: BasicAuthData -> LocationEPC -> ClientM LocationResponse
@@ -43,7 +48,8 @@ _privAPI :: Client ClientM ProtectedAPI
 _pubAPI  :: Client ClientM PublicAPI
 _api@(
   _pubAPI@(
-         getPublicKey
+         health
+    :<|> getPublicKey
     :<|> getPublicKeyInfo
     :<|> listBusinesses
   )

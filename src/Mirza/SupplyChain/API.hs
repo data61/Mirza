@@ -49,8 +49,10 @@ serverAPI = Proxy
 
 
 type PublicAPI =
+  -- Health
+       "health" :> Get '[JSON] HealthResponse
   -- Users
-       "newUser"                            :> ReqBody '[JSON] NewUser                                      :> Post '[JSON] UserId
+  :<|> "newUser"                            :> ReqBody '[JSON] NewUser                                      :> Post '[JSON] UserId
 
 type PrivateAPI =
 -- Contacts
@@ -62,7 +64,6 @@ type PrivateAPI =
                                             :> QueryParam "lastname" Text
                                             :> Post '[JSON] [User]
 -- Signatures
-  :<|> "event"    :> "addUser"              :> Capture "userId" UserId       :> Capture "eventId" EventId     :> Post '[JSON] ()
   :<|> "event"    :> "sign"                 :> ReqBody '[JSON] SignedEvent                                    :> Post '[JSON] PrimaryKeyType
   :<|> "event"    :> "getHash"              :> ReqBody '[JSON] EventId                                        :> Post '[JSON] HashedEvent
 -- Queries

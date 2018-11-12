@@ -27,6 +27,7 @@ import           Mirza.SupplyChain.ErrorUtils                 (appErrToHttpErr)
 
 import           Mirza.SupplyChain.Handlers.Common            as Handlers
 import           Mirza.SupplyChain.Handlers.Contacts          as Handlers
+import           Mirza.SupplyChain.Handlers.Health            as Handlers
 import           Mirza.SupplyChain.Handlers.EventRegistration as Handlers
 import           Mirza.SupplyChain.Handlers.Queries           as Handlers
 import           Mirza.SupplyChain.Handlers.Signatures        as Handlers
@@ -46,18 +47,22 @@ import           Data.Swagger
 
 import           Mirza.Common.GS1BeamOrphans                  ()
 
+import qualified Crypto.JOSE                                  as JOSE
 
-appHandlers :: (HasBRClientEnv context, AsServantError err, SCSApp context err, HasScryptParams context)
+
+appHandlers :: (HasBRClientEnv context, AsServantError err, JOSE.AsError err, SCSApp context err, HasScryptParams context)
             => ServerT ServerAPI (AppM context err)
 appHandlers = publicServer :<|> privateServer
 
 publicServer :: (SCSApp context err, HasScryptParams context)
              => ServerT PublicAPI (AppM context err)
 publicServer =
+  -- Health
+       health
   -- Users
-       addUser
+  :<|> addUser
 
-privateServer :: (AsServantError err, HasBRClientEnv context, SCSApp context err)
+privateServer :: (AsServantError err, JOSE.AsError err, HasBRClientEnv context, SCSApp context err)
               => ServerT ProtectedAPI (AppM context err)
 privateServer =
 -- Contacts
@@ -67,7 +72,6 @@ privateServer =
 --  :<|> contactsSearch
   :<|> userSearch
 -- Signatures
-  :<|> addUserToEvent
   :<|> eventSign
   :<|> eventHashed
 -- Queries
@@ -99,7 +103,7 @@ appMToHandler context act = do
   res <- liftIO $ runAppM context act
   case res of
     Left (AppError e) -> appErrToHttpErr e
-    Right a           -> return a
+    Right a           -> pure a
 
 -- | Swagger spec for server API.
 serveSwaggerAPI :: Swagger

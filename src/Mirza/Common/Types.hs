@@ -5,12 +5,14 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE KindSignatures             #-}
 {-# LANGUAGE MultiParamTypeClasses      #-}
+{-# LANGUAGE OverloadedLists            #-}
 {-# LANGUAGE StandaloneDeriving         #-}
 {-# LANGUAGE TemplateHaskell            #-}
 {-# LANGUAGE TypeApplications           #-}
 {-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE TypeOperators              #-}
 {-# LANGUAGE UndecidableInstances       #-}
+{-# OPTIONS_GHC -Wno-orphans            #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans       #-}
 
@@ -32,6 +34,7 @@ module Mirza.Common.Types
   , HasKatipContext(..)
   , HasKatipLogEnv(..)
   , HasBRClientEnv(..)
+  , HasDB
   , AsServantError (..)
   , DBConstraint
   , ask, asks
@@ -41,7 +44,6 @@ module Mirza.Common.Types
   , PrimaryKeyType
   , brKeyIdType
   , runClientFunc
-  , Digest(..) -- reexporting from Mirza.Common.GS1BeamOrphans
   ) where
 
 import qualified Database.Beam                        as B
@@ -59,8 +61,6 @@ import           Database.PostgreSQL.Simple.ToField   (ToField, toField)
 
 import           Data.Proxy                           (Proxy (..))
 
-import           Mirza.Common.GS1BeamOrphans          (Digest (..))
-
 import qualified Control.Exception                    as Exc
 import qualified Control.Exception                    as E
 import           Control.Monad.Except                 (ExceptT (..), MonadError,
@@ -73,6 +73,9 @@ import           Control.Monad.Trans                  (lift)
 
 import           Data.Pool                            as Pool
 
+import           Crypto.JOSE                          (JWK, JWS, JWSHeader,
+                                                       Signature)
+import           Crypto.JOSE.Types                    (Base64Octets)
 import           Crypto.Scrypt                        (ScryptParams)
 
 import qualified Data.ByteString                      as BS
@@ -295,12 +298,22 @@ class HasBRClientEnv a where
 class AsServantError a where
     _ServantError :: Prism' a ServantError
 
+
+-- Useage of this type is depricated prefer HasDb.
+-- TODO: Remove DBConstraint once SCS is converted to use Member notation.
 type DBConstraint context err =
     ( HasEnvType context
     , HasConnPool context
     , HasKatipContext context
     , HasKatipLogEnv context
     , AsSqlError err)
+
+-- | Convenience class for contexts which require DB.
+class (HasEnvType context, HasConnPool context, HasLogging context)
+  => HasDB context where
+instance (HasEnvType context, HasConnPool context, HasLogging context)
+  => HasDB context
+
 
 -- | Run a DB action within a transaction. See the documentation for
 -- 'withTransaction'. SqlError exceptions will be caught and lifted into the
@@ -310,7 +323,9 @@ type DBConstraint context err =
 -- Exceptions which are thrown which are not SqlErrors will be caught by Servant
 -- and cause 500 errors (these are not exceptions we'll generally know how to
 -- deal with).
-runDb ::  DBConstraint context err => DB context err a -> AppM context err a
+runDb :: (HasDB context
+         , Member err     '[AsSqlError])
+      => DB context err a -> AppM context err a
 runDb (DB act) = katipAddNamespace "runDb" $ do
   env <- ask
   e <- view envType
@@ -358,3 +373,32 @@ runClientFunc :: (AsServantError err, HasBRClientEnv context)
 runClientFunc func = do
   cEnv <- view clientEnv
   either (throwing _ServantError) pure =<< liftIO (runClientM func cEnv)
+
+
+
+
+-- TODO: Orphan for JWK
+
+instance ToSchema JWK where
+  declareNamedSchema _ = do
+    strSchema <- declareSchemaRef (Proxy :: Proxy String)
+    pure $ NamedSchema (Just "JWK") $ mempty
+      & type_ .~ SwaggerObject
+      & properties .~
+          [ ("kty",strSchema)
+          , ("n",strSchema)
+          , ("e",strSchema)
+          ]
+
+instance ToSchema (JWS Identity () JWSHeader) where
+  declareNamedSchema _ =
+    pure $ NamedSchema (Just "JWS") mempty
+
+instance ToSchema (Signature () JWSHeader) where
+  declareNamedSchema _ =
+    pure $ NamedSchema (Just "JWS Signature") mempty
+
+instance ToSchema Base64Octets where
+  declareNamedSchema _ =
+    pure $ NamedSchema (Just "Base64 Encoded Bytes") $ mempty
+      & type_ .~ SwaggerString

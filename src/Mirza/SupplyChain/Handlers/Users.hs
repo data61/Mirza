@@ -50,10 +50,10 @@ addUserQuery (ST.NewUser phone userEmail firstName lastName biz password) = do
   -- TODO: use Database.Beam.Backend.SQL.runReturningOne?
   res <- pg $ runInsertReturningList (Schema._users Schema.supplyChainDb) $
     insertValues
-      [Schema.User userId (Schema.BizId  biz) firstName lastName
+      [Schema.User Nothing userId (Schema.BizId  biz) firstName lastName
                phone (Scrypt.getEncryptedPass encPass) userEmail
       ]
   case res of
-        [r] -> return . ST.UserId . Schema.user_id $ r
+        [r] -> pure . ST.UserId . Schema.user_id $ r
         -- TODO: Have a proper error response
         _   -> throwBackendError res
