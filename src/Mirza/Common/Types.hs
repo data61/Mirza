@@ -136,7 +136,7 @@ emailToText = decodeUtf8 . toByteString
 -- TODO: Handwrite these instances to comply with their defined syntax
 -- For example, emails have their own format, as do LabelEPCUrn
 newtype UserId = UserId {getUserId :: PrimaryKeyType}
-  deriving (Show, Eq, Generic, Read, FromJSON, ToJSON)
+  deriving (Show, Eq, Generic, Read, Ord, FromJSON, ToJSON)
 instance ToSchema UserId
 instance ToParamSchema UserId
 deriving instance FromHttpApiData UserId

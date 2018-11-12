@@ -52,6 +52,10 @@ appErrToHttpErr (InvalidUserId _) =
   throwError $ err400 {
     errBody = "No such user."
   }
+appErrToHttpErr (DuplicateUsers _) =
+  throwError $ err400 {
+    errBody = "Duplicate users entered for transaction event."
+  }
 appErrToHttpErr (JOSEError err) =
   throwError $ err400 {
     errBody = "JOSE Error: " <> LBSC8.pack (show err)

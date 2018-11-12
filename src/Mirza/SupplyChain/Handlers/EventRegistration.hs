@@ -8,27 +8,28 @@ module Mirza.SupplyChain.Handlers.EventRegistration
   , insertTransfEvent
   ) where
 
-import qualified Mirza.Common.GS1BeamOrphans        as MU
-import           Mirza.SupplyChain.Database.Schema  as Schema
+import qualified Mirza.Common.GS1BeamOrphans       as MU
+import           Mirza.SupplyChain.Database.Schema as Schema
 import           Mirza.SupplyChain.Handlers.Common
-import           Mirza.SupplyChain.Types            hiding (User (..))
-import qualified Mirza.SupplyChain.Types            as ST
-
-import           Mirza.SupplyChain.Handlers.Queries
+import           Mirza.SupplyChain.Types           hiding (User (..))
+import qualified Mirza.SupplyChain.Types           as ST
 
 import           Mirza.SupplyChain.EventUtils
 
-import           Data.GS1.DWhat                     (AggregationDWhat (..),
-                                                     DWhat (..), InputEPC (..),
-                                                     LabelEPC (..),
-                                                     ObjectDWhat (..),
-                                                     OutputEPC (..),
-                                                     ParentLabel (..),
-                                                     TransactionDWhat (..),
-                                                     TransformationDWhat (..))
-import           Data.GS1.Event                     as Ev
+import           Data.GS1.DWhat                    (AggregationDWhat (..),
+                                                    DWhat (..), InputEPC (..),
+                                                    LabelEPC (..),
+                                                    ObjectDWhat (..),
+                                                    OutputEPC (..),
+                                                    ParentLabel (..),
+                                                    TransactionDWhat (..),
+                                                    TransformationDWhat (..))
+import           Data.GS1.Event                    as Ev
 
-import           Data.List.NonEmpty                 ((<|))
+import           Data.List.NonEmpty                (toList, (<|))
+import           Data.List.Unique                  (allUnique)
+
+import           Control.Monad.Except              (unless)
 
 insertObjectEvent :: SCSApp context err => ST.User
                   -> ObjectEvent
@@ -126,6 +127,9 @@ insertTransactEventQuery
     otherUsers
     dwhen dwhy dwhere
   ) = do
+
+  unless (allUnique $ toList otherUsers) $ throwing _DuplicateUsers otherUsers
+
   let
       schemaUserId = Schema.UserId tUserId
       dwhat =  TransactWhat $ TransactionDWhat act mParentLabel bizTransactions labelEpcs
@@ -148,6 +152,7 @@ insertTransactEventQuery
   mapM_ (insertLabelEvent eventId) labelIds
 
   pure (evInfo, eventId)
+
 
 insertTransfEvent :: SCSApp context err => ST.User
                   -> TransformationEvent
