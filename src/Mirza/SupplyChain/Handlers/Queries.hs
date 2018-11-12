@@ -36,7 +36,7 @@ import           Data.Bifunctor                        (bimap)
 
 import           Crypto.JOSE.Types                     (Base64Octets (..))
 
-import           Data.List                             (nub, partition)
+import           Data.List                             (partition)
 
 -- This takes an EPC urn,
 -- and looks up all the events related to that item. First we've got
