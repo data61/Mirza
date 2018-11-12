@@ -68,7 +68,7 @@ eventInfoQuery eventId@(EvId.EventId eId) = do
       (signedUserIds, unsignedUserIds) =
           bimap
             (map (ST.userId . fst))
-            (nub . map (ST.userId . fst)) $
+            (map (ST.userId . fst)) $
             partition snd usersWithEvent
   signedEvents <- mapM (`findSignedEventByUser` eventId) signedUserIds
   let usersAndSignedEvents = zip signedUserIds signedEvents
