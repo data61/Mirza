@@ -36,7 +36,7 @@ import           Data.Bifunctor                        (bimap)
 
 import           Crypto.JOSE.Types                     (Base64Octets (..))
 
-import           Data.List                             (nub)
+import           Data.List                             (nub, partition)
 
 -- This takes an EPC urn,
 -- and looks up all the events related to that item. First we've got
@@ -65,8 +65,11 @@ eventInfoQuery eventId@(EvId.EventId eId) = do
   usersWithEvent <- eventUserSignedList eventId
   schemaEvent <- findSchemaEvent (Schema.EventId eId) <!?> (_InvalidEventId # eventId)
   let event = storageToModelEvent schemaEvent
-      unsignedUserIds = nub $ map (ST.userId . fst) $ filter (not . snd) usersWithEvent
-      signedUserIds = (ST.userId . fst) <$> filter snd usersWithEvent
+      (signedUserIds, unsignedUserIds) =
+          bimap
+            (map (ST.userId . fst))
+            (nub . map (ST.userId . fst)) $
+            partition snd usersWithEvent
   signedEvents <- mapM (`findSignedEventByUser` eventId) signedUserIds
   let usersAndSignedEvents = zip signedUserIds signedEvents
   let eventStatus = if null unsignedUserIds then ReadyAndWaiting else NotSent
