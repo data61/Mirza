@@ -272,7 +272,7 @@ clientSpec = do
           let keyIdReceiver = fromRight (BRKeyId nil) keyIdResponseReceiver
 
           step "Inserting the transaction event with the giver user"
-          let myTransactionEvent = dummyTransaction $ userIdGiver :| [userIdReceiver]
+          let myTransactionEvent = dummyTransaction $ userIdReceiver :| []
           transactInsertionResponse <- httpSCS (insertTransactEvent authABC myTransactionEvent)
           transactInsertionResponse `shouldSatisfy` isRight
           let (_transactEvInfo@(EventInfo insertedTransactEvent _ _ (Base64Octets to_sign_transact_event) _), (Schema.EventId transactEvId)) =
