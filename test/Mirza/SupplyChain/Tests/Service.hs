@@ -10,8 +10,8 @@ module Mirza.SupplyChain.Tests.Service
   ) where
 
 import           Mirza.Common.Tests.InitClient                (testDbConnectionStringSCS)
-import           Mirza.Common.Tests.Utils                     (unsafeMkEmailAddress,
-                                                               getDatabaseConnectionString)
+import           Mirza.Common.Tests.Utils                     (getDatabaseConnectionString,
+                                                               unsafeMkEmailAddress)
 import           Mirza.SupplyChain.Tests.Dummies
 
 import           Mirza.SupplyChain.Auth
@@ -172,6 +172,10 @@ testServiceQueries = do
     it "Should not allow duplicate Transaction events" $ \scsContext -> do
       _res <- runAppM @_ @AppError scsContext $ insertTransactEvent dummyUser (dummyTransaction $ ST.UserId dummyId :| [])
       res <- runAppM @_ @AppError scsContext $ insertTransactEvent dummyUser (dummyTransaction $ ST.UserId dummyId :| [])
+      res `shouldSatisfy` isLeft
+
+    it "Should not allow duplicate users" $ \scsContext -> do
+      res <- runAppM @_ @AppError scsContext $ insertTransactEvent dummyUser (dummyTransaction $ ST.UserId dummyId :| [ST.UserId dummyId])
       res `shouldSatisfy` isLeft
 
     it "List event" $ \scsContext -> do
