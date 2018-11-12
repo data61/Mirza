@@ -27,6 +27,7 @@ import           Mirza.SupplyChain.ErrorUtils                 (appErrToHttpErr)
 
 import           Mirza.SupplyChain.Handlers.Common            as Handlers
 import           Mirza.SupplyChain.Handlers.Contacts          as Handlers
+import           Mirza.SupplyChain.Handlers.Health            as Handlers
 import           Mirza.SupplyChain.Handlers.EventRegistration as Handlers
 import           Mirza.SupplyChain.Handlers.Queries           as Handlers
 import           Mirza.SupplyChain.Handlers.Signatures        as Handlers
@@ -56,8 +57,10 @@ appHandlers = publicServer :<|> privateServer
 publicServer :: (SCSApp context err, HasScryptParams context)
              => ServerT PublicAPI (AppM context err)
 publicServer =
+  -- Health
+       health
   -- Users
-       addUser
+  :<|> addUser
 
 privateServer :: (AsServantError err, JOSE.AsError err, HasBRClientEnv context, SCSApp context err)
               => ServerT ProtectedAPI (AppM context err)

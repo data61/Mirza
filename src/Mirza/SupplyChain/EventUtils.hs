@@ -64,35 +64,35 @@ epcToStorageLabel :: Maybe MU.LabelType
                   -> LabelEPC
                   -> Schema.Label
 epcToStorageLabel labelType (Schema.WhatId whatId) (Schema.LabelId pKey) (IL (SGTIN gs1Prefix fv ir sn)) =
-  Schema.Label pKey labelType (Schema.WhatId whatId)
+  Schema.Label Nothing pKey labelType (Schema.WhatId whatId)
            gs1Prefix (Just ir)
            (Just sn) Nothing Nothing
            fv
            Nothing Nothing Nothing
 
 epcToStorageLabel labelType (Schema.WhatId whatId) (Schema.LabelId pKey) (IL (GIAI gs1Prefix sn)) =
-  Schema.Label pKey labelType (Schema.WhatId whatId)
+  Schema.Label Nothing pKey labelType (Schema.WhatId whatId)
            gs1Prefix Nothing (Just sn)
            Nothing Nothing Nothing Nothing Nothing Nothing
 
 epcToStorageLabel labelType (Schema.WhatId whatId) (Schema.LabelId pKey) (IL (SSCC gs1Prefix sn)) =
-  Schema.Label pKey labelType (Schema.WhatId whatId)
+  Schema.Label Nothing pKey labelType (Schema.WhatId whatId)
            gs1Prefix Nothing (Just sn)
            Nothing Nothing Nothing Nothing Nothing Nothing
 
 epcToStorageLabel labelType (Schema.WhatId whatId) (Schema.LabelId pKey) (IL (GRAI gs1Prefix at sn)) =
-  Schema.Label pKey labelType (Schema.WhatId whatId)
+  Schema.Label Nothing pKey labelType (Schema.WhatId whatId)
            gs1Prefix Nothing (Just sn)
            Nothing Nothing Nothing (Just at) Nothing Nothing
 
 epcToStorageLabel labelType (Schema.WhatId whatId) (Schema.LabelId pKey) (CL (LGTIN gs1Prefix ir lot) mQ) =
-  Schema.Label pKey labelType (Schema.WhatId whatId)
+  Schema.Label Nothing pKey labelType (Schema.WhatId whatId)
            gs1Prefix (Just ir) Nothing
            Nothing (Just lot) Nothing Nothing
            (getQuantityAmount mQ) (getQuantityUom mQ)
 
 epcToStorageLabel labelType (Schema.WhatId whatId) (Schema.LabelId pKey) (CL (CSGTIN gs1Prefix fv ir) mQ) =
-  Schema.Label pKey labelType (Schema.WhatId whatId)
+  Schema.Label Nothing pKey labelType (Schema.WhatId whatId)
            gs1Prefix (Just ir) Nothing
            Nothing Nothing fv Nothing
            (getQuantityAmount mQ) (getQuantityUom mQ)
@@ -117,7 +117,7 @@ toStorageDWhat :: PrimaryKeyType
                -> DWhat
                -> Schema.What
 toStorageDWhat pKey mParentId mBizTranId eventId dwhat
-   = Schema.What pKey
+   = Schema.What Nothing pKey
         (Just . Ev.getEventType $ dwhat)
         (getAction dwhat)
         (Schema.LabelId mParentId)
@@ -212,14 +212,15 @@ toStorageDWhen :: Schema.WhenId
                -> Schema.EventId
                -> Schema.When
 toStorageDWhen (Schema.WhenId pKey) (DWhen eventTime mRecordTime tZone) =
-  Schema.When pKey
+  Schema.When Nothing pKey
     (toDbTimestamp eventTime)
     (toDbTimestamp <$> mRecordTime)
     (T.pack . timeZoneOffsetString $ tZone)
 
+
 toStorageDWhy :: Schema.WhyId -> DWhy -> Schema.EventId -> Schema.Why
 toStorageDWhy (Schema.WhyId pKey) (DWhy mBiz mDisp)
-  = Schema.Why pKey (renderURL <$> mBiz) (renderURL <$> mDisp)
+  = Schema.Why Nothing pKey (renderURL <$> mBiz) (renderURL <$> mDisp)
 
 toStorageEvent :: Schema.EventId
                -> Maybe EvId.EventId
@@ -228,7 +229,7 @@ toStorageEvent :: Schema.EventId
                -> ByteString
                -> Schema.Event
 toStorageEvent (Schema.EventId pKey) mEventId =
-  Schema.Event pKey (EvId.unEventId <$> mEventId)
+  Schema.Event Nothing pKey (EvId.unEventId <$> mEventId)
 
 insertDWhat :: Maybe PrimaryKeyType
             -> DWhat
@@ -258,7 +259,7 @@ insertSrcDestType :: MU.LocationField
 insertSrcDestType locField eventId
   (SrcDestLocation (sdType, SGLN pfix locationRef ext)) =
   QU.withPKey $ \pKey -> do
-    let stWhere = Schema.Where pKey pfix (Just sdType) locationRef locField ext eventId
+    let stWhere = Schema.Where Nothing pKey pfix (Just sdType) locationRef locField ext eventId
     pg $ B.runInsert $ B.insert (Schema._wheres Schema.supplyChainDb)
              $ insertValues [stWhere]
 
@@ -268,7 +269,7 @@ insertLocationEPC :: MU.LocationField
                   -> DB context err PrimaryKeyType
 insertLocationEPC locField eventId (SGLN pfix locationRef ext) =
   QU.withPKey $ \pKey -> do
-    let stWhere = Schema.Where pKey pfix Nothing locationRef locField ext eventId
+    let stWhere = Schema.Where Nothing pKey pfix Nothing locationRef locField ext eventId
     pg $ B.runInsert $ B.insert (Schema._wheres Schema.supplyChainDb)
                 $ insertValues [stWhere]
 
@@ -354,7 +355,7 @@ insertUserEvent eventId (EventOwner addedByUserId) signed signedHash (SigningUse
     void $ QU.withPKey $ \pKey ->
       pg $ B.runInsert $ B.insert (Schema._user_events Schema.supplyChainDb)
           $ insertValues
-            [ Schema.UserEvent pKey eventId signingId signed ownerId signedHash
+            [ Schema.UserEvent Nothing  pKey eventId signingId signed ownerId signedHash
             ]
 
 insertWhatLabel :: Schema.WhatId
@@ -364,9 +365,10 @@ insertWhatLabel (Schema.WhatId whatId) (Schema.LabelId labelId) = QU.withPKey $ 
   pg $ B.runInsert $ B.insert (Schema._what_labels Schema.supplyChainDb)
         $ insertValues
         [
-          Schema.WhatLabel pKey
+          Schema.WhatLabel Nothing pKey
           (Schema.WhatId whatId)
           (Schema.LabelId labelId)
+
         ]
 
 -- | Given the necessary information,
@@ -387,7 +389,8 @@ insertLabelEvent :: Schema.EventId
 insertLabelEvent (Schema.EventId eventId) (Schema.LabelId labelId) = QU.withPKey $ \pKey ->
   pg $ B.runInsert $ B.insert (Schema._label_events Schema.supplyChainDb)
         $ insertValues
-          [ Schema.LabelEvent pKey (Schema.LabelId labelId) (Schema.EventId eventId)
+          [ Schema.LabelEvent Nothing pKey (Schema.LabelId labelId)
+              (Schema.EventId eventId)
         ]
 
 getUserById :: ST.UserId -> DB context err (Maybe Schema.User)
