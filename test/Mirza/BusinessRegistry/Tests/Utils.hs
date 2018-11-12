@@ -1,29 +1,19 @@
 module Mirza.BusinessRegistry.Tests.Utils where
 
-import qualified Data.Text.IO                 as TIO
+import           Crypto.JOSE (JWK)
+import           Data.Aeson  (decodeFileStrict)
 
-import           Mirza.BusinessRegistry.Types
-
-import           OpenSSL.EVP.PKey             (SomeKeyPair)
-import           OpenSSL.PEM
-
--- Read an PEM RSA key from file.
-readRsaPublicKey :: FilePath -> IO PEM_RSAPubKey
-readRsaPublicKey filename = PEM_RSAPubKey <$> TIO.readFile filename
-
--- Gets a PEM RSA key from file to use from test cases.
-readRsaPrivateKey :: FilePath -> IO SomeKeyPair
-readRsaPrivateKey fileName = do
-  privKeyStr <- readFile fileName
-  readPrivateKey privKeyStr PwNone
+-- Read a JWK key from file (either prubli or private).
+readJWK :: FilePath -> IO (Maybe JWK)
+readJWK = decodeFileStrict
 
 -- Gets a good PEM RSA key from file to use from test cases.
-goodRsaPublicKey :: IO PEM_RSAPubKey
-goodRsaPublicKey = readRsaPublicKey "./test/Mirza/Common/TestData/testKeys/goodKeys/4096bit_rsa_key.pub"
+goodRsaPublicKey :: IO (Maybe JWK)
+goodRsaPublicKey = readJWK "./test/Mirza/Common/TestData/testKeys/goodJWKs/4096bit_rsa_pub.json"
 
 -- Gets a good PEM RSA private key from file to use from test cases.
-goodRsaPrivateKey :: IO SomeKeyPair
-goodRsaPrivateKey = readRsaPrivateKey "./test/Mirza/Common/TestData/testKeys/goodKeys/4096bit_rsa_key.key"
+goodRsaPrivateKey :: IO (Maybe JWK)
+goodRsaPrivateKey = readJWK "./test/Mirza/Common/TestData/testKeys/goodJWKs/4096bit_rsa.json"
 
 -- | Converts from number of seconds to the number of microseconds.
 secondsToMicroseconds :: (Num a) => a -> a
