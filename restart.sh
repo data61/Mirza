@@ -26,6 +26,7 @@ stack exec supplyChainServer -- --init-db --brhost localhost --brport 8200
 stack exec businessRegistry -- initdb
 
 # eventuially, we will get an updated list from ASIC and populate the db
+# TODO: Update or delete this section. This is out of date.
 echo "Now inserting some dummy companies"
 echo
 psql \
