@@ -2,7 +2,7 @@
 
 -- | Utility functions to generate test data using
 -- each service's client
-module Mirza.Common.Tests.Generate where
+module Mirza.SupplyChain.Tests.Generate where
 
 -- import           Mirza.BusinessRegistry.Types      as BT
 
@@ -104,6 +104,3 @@ genMultipleUsersSCS n testName (f:fx) (p:px) =
       , ST.newUserLastName = T.append "Last: " numT
       , ST.newUserCompany = p
       , ST.newUserPassword = "re4lly$ecret14!"}
-
-
--- insertMultipleUsersBR ::
