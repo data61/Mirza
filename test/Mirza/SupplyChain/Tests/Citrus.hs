@@ -22,19 +22,13 @@ eventList ← listEvents <labelEPC>
 subEvents eventList = [e | e ← eventList, if
 (eventType e == aggregationEvent || eventType e == transformationEvent)
 then (map subEvents $ map listEvents (getSubEPCs e)]
-Keys
-add, get, getInfo public key
-revoke public key
-..these will be moved into the registery soon.
-Contacts
-Add, remove and search for contacts.
 
 
 -}
 
 citrusSpec :: IO TestTree
 citrusSpec = do
-  let citrusSupplyChainTests = testCaseSteps "Adding all the users" $ \step ->
+  let citrusSupplyChainTests = testCaseSteps "Creating food provenance trail" $ \step ->
     bracket runApps endApps $ \testData -> do
 
       let scsUrl = scsBaseUrl testData
@@ -49,6 +43,11 @@ citrusSpec = do
       step "insert the users into BR"
       userIdsBR <- brUsers
 
+      step "insert citrus events into SCS, sign & counter sign them"
+
+      step "check eventInfo for each event"
+
+      step "get all events related to boxLabel"
 
 
 
@@ -87,8 +86,8 @@ truck2Label = SSCC truckDriver2GS1CompanyPrefix (SerialNumber "1")
 
 
 
--- Need to first create the users for these events (see citrusEntities
--- below), and instantitate them with appropriate labelEPCs.
+-- Create a list of events starting at "startTime" in a particular
+-- timezone.
 citrusEvents :: EPCISTime -> Timezone -> [Event]
 citrusEvents startTime tz readPoints bizs =
   [pestControl landLabel startTime tz farmLocation regulator1Biz,
