@@ -181,7 +181,6 @@ test-suite businessRegistry-test
                     , Mirza.BusinessRegistry.Tests.Generate
                     , Mirza.BusinessRegistry.Tests.Client
                     , Mirza.Common.Tests.Utils
-                    , Mirza.Common.Tests.Generate
                     , Mirza.BusinessRegistry.Tests.Utils
   default-extensions:  OverloadedStrings
   build-depends:       base
