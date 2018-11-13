@@ -6,24 +6,23 @@ module Mirza.Common.Tests.Generate where
 
 -- import           Mirza.BusinessRegistry.Types      as BT
 
-import           Mirza.SupplyChain.Types           as ST
+import           Mirza.SupplyChain.Types          as ST
 
-import           Mirza.Common.Tests.Utils          (unsafeMkEmailAddress)
+import           Data.GS1.EPC                     (GS1CompanyPrefix (..))
 
-import           Data.GS1.EPC                      (GS1CompanyPrefix (..))
+import qualified Data.Text                        as T
+import           Data.Text.Encoding               (encodeUtf8)
 
-import qualified Data.Text                         as T
-import           Data.Text.Encoding                (encodeUtf8)
+import qualified Data.ByteString.Char8            as BS
 
-import qualified Data.ByteString.Char8             as BS
+import           Mirza.SupplyChain.Client.Servant as SCSClient
 
-import           Mirza.SupplyChain.Handlers.Users  as SCS
+import           Servant.API.BasicAuth            (BasicAuthData (..))
 
-import           Mirza.SupplyChain.Handlers.Common
+import           Mirza.Common.Tests.Utils         (unsafeMkEmailAddress)
+import           Text.Email.Validate              (toByteString)
 
-import           Servant.API.BasicAuth             (BasicAuthData (..))
-
-import           Text.Email.Validate               (toByteString)
+import           Servant.Client                   (ClientM)
 
 type TestName = String
 
@@ -66,26 +65,24 @@ mkNewUserByNumber testName n =
   , ST.newUserPassword = "re4lly$ecret14!"}
 
 
-insertNUsersSCS :: (SCSApp context err, HasScryptParams context)
-                => TestName
+insertNUsersSCS :: TestName
                 -> Int
-                -> [AppM context err UserId]
+                -> [ClientM UserId]
 insertNUsersSCS testName n =
   let users = genNUsersSCS testName n
   in
-    SCS.addUser <$> users
+    SCSClient.addUser <$> users
 
 type Firstname = T.Text
 
 -- Insert multiple users into the SCS DB given a
 -- list of first names and company prefixes.
-insertMultipleUsersSCS  :: (SCSApp context err, HasScryptParams context)
-                        => TestName
+insertMultipleUsersSCS  :: TestName
                         -> [Firstname]
                         -> [GS1CompanyPrefix]
-                        -> [AppM context err UserId]
+                        -> [ClientM UserId]
 insertMultipleUsersSCS name fn pfx =
-  SCS.addUser <$> genMultipleUsersSCS n name fn pfx
+  SCSClient.addUser <$> genMultipleUsersSCS n name fn pfx
   where
     n = min (length fn) (length pfx)
 
