@@ -4,8 +4,6 @@
 -- each service's client
 module Mirza.SupplyChain.Tests.Generate where
 
--- import           Mirza.BusinessRegistry.Types      as BT
-
 import           Mirza.SupplyChain.Types          as ST
 
 import           Data.GS1.EPC                     (GS1CompanyPrefix (..))
@@ -25,12 +23,6 @@ import           Text.Email.Validate              (toByteString)
 import           Servant.Client                   (ClientM)
 
 type TestName = String
-
---TODO: All the functions in this file should be
---converted to functions that can run from the client.
---for example, insertNUsersSCS should create a http client
---and insert the users over the network, just like the client
---tests do.
 
 firstUser :: NewUser
 firstUser = NewUser  { newUserPhoneNumber = "0400 111 222"
