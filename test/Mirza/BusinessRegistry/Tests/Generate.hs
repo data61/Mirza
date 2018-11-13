@@ -2,7 +2,7 @@
 
 -- | Utility functions to generate test data using
 -- each service's client
-module Mirza.Common.Tests.Generate where
+module Mirza.BusinessRegistry.Tests.Generate where
 
 -- import           Mirza.BusinessRegistry.Types      as BT
 
