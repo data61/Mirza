@@ -26,7 +26,10 @@ import           Data.GS1.DWhat                    (AggregationDWhat (..),
                                                     TransformationDWhat (..))
 import           Data.GS1.Event                    as Ev
 
-import           Data.List.NonEmpty                ((<|))
+import           Data.List.NonEmpty                (toList, (<|))
+import           Data.List.Unique                  (allUnique)
+
+import           Control.Monad.Except              (unless)
 
 insertObjectEvent :: SCSApp context err => ST.User
                   -> ObjectEvent
@@ -124,6 +127,9 @@ insertTransactEventQuery
     otherUsers
     dwhen dwhy dwhere
   ) = do
+
+  unless (allUnique $ toList otherUsers) $ throwing _DuplicateUsers otherUsers
+
   let
       schemaUserId = Schema.UserId tUserId
       dwhat =  TransactWhat $ TransactionDWhat act mParentLabel bizTransactions labelEpcs
@@ -146,6 +152,7 @@ insertTransactEventQuery
   mapM_ (insertLabelEvent eventId) labelIds
 
   pure (evInfo, eventId)
+
 
 insertTransfEvent :: SCSApp context err => ST.User
                   -> TransformationEvent
@@ -185,3 +192,10 @@ insertTransfEventQuery
   mapM_ (insertLabelEvent eventId) labelIds
 
   pure (evInfo, eventId)
+
+-- sendToBlockchain :: EventId -> AppM context0 err (EventBlockchainStatus, Maybe BlockchainId)
+-- sendToBlockchain eventId = do -- if it fails, raise SE_SEND_TO_BLOCKCHAIN_FAILED error.
+--   eInfo <- eventInfo eventId
+--   pure ()
+
+
