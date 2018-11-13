@@ -209,7 +209,7 @@ sendToBlockchain user eventId = do
   let eventStatus = eventInfoBlockChainStatus evInfo
   return $ case eventStatus of
     ReadyAndWaiting -> do
-      (flip $ maybe (error "it should happen"))
+      (flip $ maybe (error "it should not happen"))
         (nonEmpty . eventInfoUserSigs $ evInfo) $ \userSigs -> do
             let evToSign = eventToSign evInfo
             let bcPackage = BlockchainPackage evToSign userSigs
