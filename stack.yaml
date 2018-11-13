@@ -10,8 +10,9 @@ packages:
     - beam-migrate
     - beam-postgres
 extra-deps:
-- git: git@github.csiro.au:Blockchain/GS1Combinators.git
+- git: https://github.csiro.au/Blockchain/GS1Combinators.git
   commit: a96c9fc1c14ddf7ef69756d7504feca9ff667c65
+- Unique-0.4.7.5@sha256:580b578ddde452111cc20aa84bdccd7e723d19eb4f8d167d2358d08a4637eed3
 - servant-flatten-0.2
 - hspec-2.5.0
 - hspec-core-2.5.0

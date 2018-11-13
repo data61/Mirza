@@ -37,24 +37,22 @@ After that, to create the database, run:
 `createdb 'devsupplychainserver'`
 
 To initalise the database run:
-`stack exec supplyChainServer -- -init-db -c "dbname=devsupplychainserver"`
+`stack exec supplyChainServer -- --brhost localhost --brport 8200 --init-db -c "dbname=<database name>"`
 
-The -c option takes a database connection string in libpq format. See: https://www.postgresql.org/docs/9.5/static/libpq-connect.html#LIBPQ-CONNSTRING
+The -c option takes a database connection string in [libpq format](https://www.postgresql.org/docs/9.5/static/libpq-connect.html#LIBPQ-CONNSTRING).
 
 Some examples are:
 
 - "dbname=devsupplychainserver"`
 - "postgresql://localhost/devsupplychainserver"
 
-Note that you can change `devsupplychainserver` for any database name you like.
-Not giving it the `-c` flag will result in a database named `devsupplychainserver`.
-
+The default connection string is `dbname=devsupplychainserver`.
 
 ## Running the server
 
 Finally, to run the server, do:
 
-`stack exec supplyChainServer -c "dbname=devsupplychainserver"`
+`stack exec supplyChainServer -- --brhost localhost --brport 8200`
 
 Then you can check out the API at:
 
@@ -73,7 +71,7 @@ To do a clean build instead, do `./restart.sh --clean`.
 
 ## Running the tests
 
-the `runTests.sh` script will run the tests (and makes sure they run single
+The `run_tests.sh` script will run the tests (and makes sure they run single
 threaded because the tests depend on previous tests), it should usually be run
 as:
 
@@ -86,6 +84,14 @@ as:
 # If you want to launch the report in the browser
 ./coverage.sh --launch
 ```
+
+## To initialise the BR test DB, run the following:
+
+```shell
+stack build --fast && dropdb testbusinessregistry && createdb testbusinessregistry && stack exec businessRegistry -- -c 'dbname=testbusinessregistry' --env Dev --log-level DebugS initdb
+```
+
+You'll need to run the above each time the BR db schema changes.
 
 ## Acronyms
 

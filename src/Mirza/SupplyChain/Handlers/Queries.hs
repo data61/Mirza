@@ -36,6 +36,7 @@ import           Data.Bifunctor                        (bimap)
 
 import           Crypto.JOSE.Types                     (Base64Octets (..))
 
+import           Data.List                             (partition)
 
 -- This takes an EPC urn,
 -- and looks up all the events related to that item. First we've got
@@ -55,22 +56,25 @@ eventInfo :: (SCSApp context err, AsServantError err)
           => ST.User
           -> EvId.EventId
           -> AppM context err EventInfo
-eventInfo user eventId = runDb $ eventInfoQuery user eventId
+eventInfo _user eventId = runDb $ eventInfoQuery eventId
 
 eventInfoQuery :: AsServiceError err
-               => ST.User
-               -> EvId.EventId
+               => EvId.EventId
                -> DB context err EventInfo
-eventInfoQuery _user eventId@(EvId.EventId eId) = do
+eventInfoQuery eventId@(EvId.EventId eId) = do
   usersWithEvent <- eventUserSignedList eventId
   schemaEvent <- findSchemaEvent (Schema.EventId eId) <!?> (_InvalidEventId # eventId)
   let event = storageToModelEvent schemaEvent
-      unsignedUserIds = map (ST.userId . fst) $ filter (not . snd) usersWithEvent
-      signedUserIds = (ST.userId . fst) <$> filter snd usersWithEvent
-  signedEvents <- mapM (flip findSignedEventByUser eventId) signedUserIds
+      (signedUserIds, unsignedUserIds) =
+          bimap
+            (map (ST.userId . fst))
+            (map (ST.userId . fst)) $
+            partition snd usersWithEvent
+  signedEvents <- mapM (`findSignedEventByUser` eventId) signedUserIds
   let usersAndSignedEvents = zip signedUserIds signedEvents
+  let eventStatus = if null unsignedUserIds then ReadyAndWaiting else NeedMoreSignatures
   pure $ EventInfo event usersAndSignedEvents unsignedUserIds
-                  (Base64Octets $ event_to_sign schemaEvent) NeedMoreSignatures
+                  (Base64Octets $ event_to_sign schemaEvent) eventStatus
 
 
 -- |List events that a particular user was/is involved with

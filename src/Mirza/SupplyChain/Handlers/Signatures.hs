@@ -60,7 +60,6 @@ eventSign user (SignedEvent eventId keyId sig) = do
       then insertSignature (ST.userId user) eventId keyId sig
       else throwing _SigVerificationFailure (show sig) -- TODO: This should be more than show
 
--- TODO: Should this return Text or a JSON value?
 getEventBS :: AsServiceError err => EvId.EventId -> DB context err ByteString
 getEventBS eventId = do
   r <- pg $ runSelectReturningList $ select $ do

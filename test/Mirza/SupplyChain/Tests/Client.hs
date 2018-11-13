@@ -237,18 +237,6 @@ clientSpec = do
           keyIdResponseGiver `shouldSatisfy` isRight
           let keyIdGiver = fromRight (BRKeyId nil) keyIdResponseGiver
 
-          step "Inserting the object event with the giver user"
-          objInsertionResponse <- httpSCS (insertObjectEvent authABC dummyObject)
-          objInsertionResponse `shouldSatisfy` isRight
-          let (EventInfo _ _ _ (Base64Octets to_sign_event) _, (Schema.EventId objEvId)) = fromRight (error "Should be right") objInsertionResponse
-              objEventId = EvId.EventId objEvId
-
-          step "Signing the object event with the giver"
-          Right mySig <- runExceptT @JOSE.Error $
-                    signJWS to_sign_event (Identity (newJWSHeader ((), RS256),goodPrivKeyGiver))
-          let mySignedEvent = SignedEvent objEventId keyIdGiver mySig
-          httpSCS (eventSign authABC mySignedEvent) `shouldSatisfyIO` isRight
-
           -- ===============================================
           -- Receiving user
           -- ===============================================
@@ -287,8 +275,8 @@ clientSpec = do
           let myTransactionEvent = dummyTransaction $ userIdReceiver :| []
           transactInsertionResponse <- httpSCS (insertTransactEvent authABC myTransactionEvent)
           transactInsertionResponse `shouldSatisfy` isRight
-          let (_transactEvInfo@(EventInfo insertedTransactEvent _ _ (Base64Octets to_sign_event2) _), (Schema.EventId transactEvId)) = fromRight (error "Should be right") transactInsertionResponse
-              transactionEventId = EvId.EventId transactEvId
+          let (_transactEvInfo@(EventInfo insertedTransactEvent _ _ (Base64Octets to_sign_transact_event) _), (Schema.EventId transactEvId)) =
+                  fromRight (error "Should be right") transactInsertionResponse
               transactEventId = EvId.EventId transactEvId
 
           step "Retrieving the event info"
@@ -296,7 +284,6 @@ clientSpec = do
           eventInfoResult <- httpSCS (eventInfo authABC transactEventId)
           eventInfoResult `shouldSatisfy` isRight
           let (Right eInfo) = eventInfoResult
-          -- eInfo `shouldBe` transactEvInfo
 
           step "Checking that we got the correct event back"
           let retrievedTransactEvent = (eventInfoEvent eInfo)
@@ -310,20 +297,27 @@ clientSpec = do
           let unsignedUsers = (eventInfoUnsignedUsers eInfo)
           unsignedUsers `shouldBe` [userIdGiver, userIdReceiver]
 
+          step "Signing the transaction event with Giver"
+          Right giverSigTransact <- runExceptT @JOSE.Error $
+                    signJWS to_sign_transact_event (Identity (newJWSHeader ((), RS256), goodPrivKeyGiver))
+          let myTransactSignedEvent = SignedEvent transactEventId keyIdGiver giverSigTransact
+          httpSCS (eventSign authABC myTransactSignedEvent) `shouldSatisfyIO` isRight
+
           step "Signing the transaction event with the receiver user"
-          Right myTransSig <- runExceptT @JOSE.Error $
-                    signJWS to_sign_event2 (Identity (newJWSHeader ((), RS256),goodPrivKeyReceiver))
-          let receiverSignedEvent = SignedEvent transactionEventId keyIdReceiver myTransSig
+          Right receiverSig <- runExceptT @JOSE.Error $
+                    signJWS to_sign_transact_event (Identity (newJWSHeader ((), RS256),goodPrivKeyReceiver))
+          let receiverSignedEvent = SignedEvent transactEventId keyIdReceiver receiverSig
 
           httpSCS (eventSign authDEF receiverSignedEvent) `shouldSatisfyIO` isRight
 
-          -- step "Retrieving the event info again"
-          -- eventInfoResult2 <- httpSCS (eventInfo authABC eventId)
-          -- eventInfoResult2 `shouldSatisfy` isRight
-          -- let (Right eInfo2) = eventInfoResult2
+          step "Retrieving the event info again"
+          eventInfoResult2 <- httpSCS (eventInfo authABC transactEventId)
+          eventInfoResult2 `shouldSatisfy` isRight
 
-          -- TODO: Sign the event with the second user
-          -- TODO: Check that eventInfo says that the eventState is `Signed`
+          step "Checking that the status of the event has changed to Ready"
+          let (Right eInfo2) = eventInfoResult2
+          let eventStatus2 = (eventInfoBlockChainStatus eInfo2)
+          eventStatus2 `shouldBe` ReadyAndWaiting
 
 
   let healthTests = testCaseSteps "Provides health status" $ \step ->
