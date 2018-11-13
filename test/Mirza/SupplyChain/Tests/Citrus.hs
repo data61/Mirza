@@ -32,42 +32,28 @@ Add, remove and search for contacts.
 
 -}
 
--- Need to first create the users for these events (see citrusEntities
--- below), and instantitate them with appropriate labelEPCs.
-citrusEvents :: [Event]
-citrusEvents =
-  [pestControl,
-   maxResidue,
-   labelBinsHarvest,
-   farmerToTruckDriver1,
-   truckDriver1ToPackingHouse,
-   applyFungicide,
-   sortingBoxing,
-   palletisation,
-   packingHouseToTruckDriver2,
-   truckDriver2ToPortsOperator1,
-   quarantineAus,
-   shippingToChina,
-   quarantineChina
-  ]
+citrusSpec :: IO TestTree
+citrusSpec = do
+  let citrusSupplyChainTests = testCaseSteps "Adding all the users" $ \step ->
+    bracket runApps endApps $ \testData -> do
+
+      let scsUrl = scsBaseUrl testData
+          brUrl = brBaseUrl testData
+          httpSCS = runClient scsUrl
+          httpBR = runClient brUrl
+          brAuthUser = brAuthData testData
+
+      step "insert the users into SCS"
+      userIdsSCS <- scsUsers
+
+      step "insert the users into BR"
+      userIdsBR <- brUsers
 
 
--- Create users in the SCS db. Need to also create them in
--- the BR. This should be re-implemented as a client fucntion, so
--- you can do it the same way in both SCS and BR.
-scsUsers :: [AppM context err UserId]
-scsUsers = do
-  let userNames = ["regulator1", "regulator2", "farmer", "truckDriver1",
-  "packingHouseOperator", "truckDriver2", "portsOperator1",
-  "shippingCompany", "regulator3"]
-  let nUsers = length userNames
-  let initPrefix = 11111111
-  let gs1companyPrefixes = map show [initPrefix.. initPrefix+nUsers]
-  pure $ insertMultipleUsersSCS
-    "citrusSupplyChain" userNames gs1companyPrefixes
 
 
-{- This is not a real list (obviously) but
+
+      {- This is not a real list (obviously) but
     I wrote it up to help implement the other functions.
 
 citrusEntities :: []
@@ -86,6 +72,66 @@ citrusEntities =
    regulator3
   ]
 -}
+
+
+-- All the labels that feed into citrusEvents
+landLabel = GRAI farmerGS1CompanyPrefix "blockLabel" (SerialNumber "88")
+binLabel = GIAI farmerGS1CompanyPrefix "binLabel" (SerialNumber "1")
+truckLabel = SSCC truckDriver1GS1CompanyPrefix (SerialNumber "1")
+binLabels = [binLabel, (GIAI farmerGS1CompanyPrefix "binLabel" (SerialNumber "2")]
+boxLabel = GIAI farmerGS1CompanyPrefix "boxLabel" (SerialNumber "1")
+palletLabel = GRAI packingHouseGS1CompanyPrefix "palletLabel" (SerialNumber "1")
+boxLabels = [boxLabel, (GIAI farmerGS1CompanyPrefix "boxLabel" (SerialNumber "2")]
+palletLabels = [palletLabel, (GRAI packingHouseGS1CompanyPrefix "palletLabel" (SerialNumber "2")]
+truck2Label = SSCC truckDriver2GS1CompanyPrefix (SerialNumber "1")
+
+
+
+-- Need to first create the users for these events (see citrusEntities
+-- below), and instantitate them with appropriate labelEPCs.
+citrusEvents :: EPCISTime -> Timezone -> [Event]
+citrusEvents startTime tz readPoints bizs =
+  [pestControl landLabel startTime tz farmLocation regulator1Biz,
+   maxResidue landLabel startTime+1 tz farmLocation regulator2Biz,
+   labelBinsHarvest binLabel startTime+2 tz farmLocation farmerBiz,
+   farmerToTruckDriver1 truckLabel binLabels startTime+3 tz
+      farmLocation farmerBiz ,
+   truckDriver1ToPackingHouse truckLabel binLabels startTime+4
+            tz packingHouseLocation packingHouseBiz,
+   applyFungicide binLabels startTime+5 tz
+            packingHouseLocation packingHouseBiz ,
+   sortingBoxing boxLabel binLabels startTime+6 tz
+     packingHouseLocation packingHouseBiz,
+   palletisation palletLabel boxLabels startTime+7 tz
+      packingHouseLocation packingHouseBiz,
+   packingHouseToTruckDriver2 truck2Label palletLabels startTime+8 tz
+      packingHouseLocation packingHouseBiz,
+   truckDriver2ToPortsOperator1 truck2Label palletLabels startTime+9 tz
+      auPortLocation truck2biz,
+   quarantineAus palletLabels startTime+10 tz
+     auPortLocation regulator3biz,
+   shippingToChina shipLabel palletLabels startTime+11 tz
+     cnPortLocation cnPortBiz,
+   quarantineChina palletLabels startTime+12 tz
+      cnPortLocation regulator4biz
+  ]
+
+
+-- Create users in the SCS db. Need to also create them in
+-- the BR. This should be re-implemented as a client fucntion, so
+-- you can do it the same way in both SCS and BR.
+scsUsers :: [ClientM UserId]
+scsUsers = do
+  let userNames = ["regulator1", "regulator2", "farmer", "truckDriver1",
+  "packingHouseOperator", "truckDriver2", "portsOperator1",
+  "shippingCompany", "regulator3", "regulator4"]
+  let nUsers = length userNames
+  let initPrefix = 11111111
+  let gs1companyPrefixes = map show [initPrefix.. initPrefix+nUsers]
+  pure $ insertMultipleUsersSCS
+    "citrusSupplyChain" userNames gs1companyPrefixes
+
+
 
 
 -- A series of events in a citrus supply chain.
@@ -165,7 +211,7 @@ applyFungicide binIds t tz location bizLocation =
 --sorting and boxing
 sortingBoxing :: LabelEPC -> [LabelEPC] -> EPCISTime -> Timezone
   ReadPointLocation -> BizLocation -> Event
-sortingBoxing contents t tz location bizLocation =
+sortingBoxing boxId contents t tz location bizLocation =
   Event AggregationEventT
   (AggregationDWhat Add boxID contents)
   (DWhen t Nothing tz)
