@@ -6,6 +6,7 @@ module Mirza.SupplyChain.Handlers.EventRegistration
   , insertObjectEvent
   , insertTransactEvent
   , insertTransfEvent
+  , sendToBlockchain
   ) where
 
 import qualified Mirza.Common.GS1BeamOrphans        as MU
@@ -29,9 +30,12 @@ import           Data.GS1.DWhat                     (AggregationDWhat (..),
 import           Data.GS1.Event                     as Ev
 import           Data.GS1.EventId                   as EvId
 
-import           Data.List.NonEmpty                 (nonEmpty, (<|))
+import           Data.List.NonEmpty                 (nonEmpty, toList, (<|))
+import           Data.List.Unique                   (allUnique)
 
 import           Data.Maybe                         (maybe)
+
+import           Control.Monad.Except               (unless)
 
 insertObjectEvent :: SCSApp context err => ST.User
                   -> ObjectEvent
@@ -129,6 +133,9 @@ insertTransactEventQuery
     otherUsers
     dwhen dwhy dwhere
   ) = do
+
+  unless (allUnique $ toList otherUsers) $ throwing _DuplicateUsers otherUsers
+
   let
       schemaUserId = Schema.UserId tUserId
       dwhat =  TransactWhat $ TransactionDWhat act mParentLabel bizTransactions labelEpcs
@@ -151,6 +158,7 @@ insertTransactEventQuery
   mapM_ (insertLabelEvent eventId) labelIds
 
   pure (evInfo, eventId)
+
 
 insertTransfEvent :: SCSApp context err => ST.User
                   -> TransformationEvent

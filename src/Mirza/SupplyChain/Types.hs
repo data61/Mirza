@@ -34,8 +34,8 @@ import           Control.Lens
 import           GHC.Generics               (Generic)
 
 import           Data.Aeson
-import           Data.Aeson.Types
 import           Data.Aeson.TH
+import           Data.Aeson.Types
 import qualified Data.ByteString            as BS
 import           Data.List.NonEmpty         (NonEmpty)
 import           Data.Pool                  as Pool
@@ -343,6 +343,7 @@ data ServiceError
   | SigVerificationFailure String
   | BlockchainSendFailed   ServerError
   | InvalidEventId         EventId
+  | DuplicateUsers         (NonEmpty UserId)
   | InvalidKeyId           BRKeyId
   | InvalidUserId          UserId
   | InvalidRSAKeyInDB      Text -- when the key already existing in the DB is wrong
