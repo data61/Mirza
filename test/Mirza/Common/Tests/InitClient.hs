@@ -41,11 +41,11 @@ import           Mirza.BusinessRegistry.Main              (RunServerOptions (..)
 import qualified Mirza.BusinessRegistry.Main              as BRMain
 import           Mirza.BusinessRegistry.Types             as BT
 
-import           Mirza.Common.Tests.Utils                 (unsafeMkEmailAddress,
+import           Mirza.Common.Tests.Utils                 (DatabaseConnectionString (..),
                                                            DatabaseName (..),
-                                                           DatabaseConnectionString (..),
+                                                           databaseNameToConnectionString,
                                                            getDatabaseConnectionString,
-                                                           databaseNameToConnectionString)
+                                                           unsafeMkEmailAddress)
 import           Text.Email.Validate                      (toByteString)
 
 -- *****************************************************************************
