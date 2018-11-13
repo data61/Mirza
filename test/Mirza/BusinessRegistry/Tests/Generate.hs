@@ -24,12 +24,6 @@ import           Servant.Client                        (ClientM)
 
 type TestName = String
 
---TODO: All the functions in this file should be
---converted to functions that can run from the client.
---for example, insertNUsersSCS should create a http client
---and insert the users over the network, just like the client
---tests do.
-
 firstUser :: NewUser
 firstUser = NewUser  { newUserPhoneNumber = "0400 111 222"
   , newUserEmailAddress = unsafeMkEmailAddress "first_honcho@example.com"
@@ -44,9 +38,9 @@ authFirstUser = BasicAuthData
   (encodeUtf8   . newUserPassword     $ firstUser)
 
 
-genNUsersSCS :: TestName -> Int -> [NewUser]
-genNUsersSCS _ 0        = []
-genNUsersSCS testName n = mkNewUserByNumber testName n : genNUsersSCS testName (n - 1)
+genNUsersBR :: TestName -> Int -> [NewUser]
+genNUsersBR _ 0        = []
+genNUsersBR testName n = mkNewUserByNumber testName n : genNUsersBR testName (n - 1)
 
 mkNewUserByNumber :: String -> Int -> NewUser
 mkNewUserByNumber testName n =
@@ -67,7 +61,7 @@ insertNUsersSCS :: TestName
                 -> Int
                 -> [ClientM UserId]
 insertNUsersSCS testName n =
-  let users = genNUsersSCS testName n
+  let users = genNUsersBR testName n
   in
     BRClient.addUser <$> users
 
