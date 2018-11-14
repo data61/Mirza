@@ -68,7 +68,7 @@ citrusSpec = do
               brAuthUser = brAuthData testData
 
           step "insert prelim data into SCS and BR"
-          userIdsSCS <- scsUsers
+          userIdsSCS <- httpSCS scsUsers
           gs1prefixes <- insertBusinesses
           locationIds <- insertLocations
 
