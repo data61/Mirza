@@ -3,23 +3,46 @@
 
 module Mirza.SupplyChain.Tests.Citrus where
 
+import           Control.Exception                (bracket)
+
+import           Mirza.Common.Tests.InitClient
+import           Mirza.Common.Tests.ServantUtils  (runClient)
+import           Mirza.SupplyChain.Tests.Generate
+
+import           Servant.Client                   (ClientM)
+
+import           Test.Hspec.Expectations
+import           Test.Tasty
+import           Test.Tasty.HUnit
+
+import           Mirza.SupplyChain.Types          as ST
+
+import           Data.GS1.DWhat
+import           Data.GS1.DWhere
+import           Data.GS1.EPC
+import           Data.GS1.Event
+
+import           Data.Time                        (TimeZone)
+
+import           Mirza.Common.Utils               (toText)
+
 {-
 
 Tests that should be implemented here
 
 Check Provenance of a labelEPC
 where I've used head, you need to use map to actually do it for all elements in the list. I've just done one element for illustrative purposes.
-eventList ← listEvents <labelEPC>
+eventList <- listEvents <labelEPC>
 let event = head eventList
-eventInfo ← eventInfo(eventID)
+eventInfo <- eventInfo(eventID)
 (sig, uid) = head (signatures eventInfo)
-publicKey ← getPublicKey uid
+publicKey <- getPublicKey uid
 assert $ decrypt(sig, publicKey) == (joseText eventInfo)
 
 
 Get all events that relate to a labelEPC
-eventList ← listEvents <labelEPC>
-subEvents eventList = [e | e ← eventList, if
+eventList <- listEvents <labelEPC>
+subEvents eventList = [e | e <- eventList, if
 (eventType e == aggregationEvent || eventType e == transformationEvent)
 then (map subEvents $ map listEvents (getSubEPCs e)]
 
@@ -29,31 +52,34 @@ then (map subEvents $ map listEvents (getSubEPCs e)]
 citrusSpec :: IO TestTree
 citrusSpec = do
   let citrusSupplyChainTests = testCaseSteps "Creating food provenance trail" $ \step ->
-    bracket runApps endApps $ \testData -> do
+        bracket runApps endApps $ \testData -> do
 
-      let scsUrl = scsBaseUrl testData
-          brUrl = brBaseUrl testData
-          httpSCS = runClient scsUrl
-          httpBR = runClient brUrl
-          brAuthUser = brAuthData testData
+          let scsUrl = scsBaseUrl testData
+              brUrl = brBaseUrl testData
+              httpSCS = runClient scsUrl
+              httpBR = runClient brUrl
+              brAuthUser = brAuthData testData
 
-      step "insert the users into SCS"
-      userIdsSCS <- scsUsers
+          step "insert the users into SCS"
+          userIdsSCS <- httpSCS scsUsers
 
-      step "insert the users into BR"
-      userIdsBR <- brUsers
+          -- step "insert the users into BR"
+          -- userIdsBR <- httpBR brUsers
 
-      step "insert citrus events into SCS, sign & counter sign them"
+          step "insert citrus events into SCS, sign & counter sign them"
 
-      step "check eventInfo for each event"
+          step "check eventInfo for each event"
 
-      step "get all events related to boxLabel"
+          step "get all events related to boxLabel"
+          error "not implemented yet"
+
+  pure $ testGroup "Citrus Client tests"
+        [ citrusSupplyChainTests
+        ]
 
 
-
-
-      {- This is not a real list (obviously) but
-    I wrote it up to help implement the other functions.
+{- This is not a real list (obviously) but
+I wrote it up to help implement the other functions.
 
 citrusEntities :: []
 citrusEntities =
@@ -77,18 +103,30 @@ citrusEntities =
 landLabel = GRAI farmerGS1CompanyPrefix "blockLabel" (SerialNumber "88")
 binLabel = GIAI farmerGS1CompanyPrefix "binLabel" (SerialNumber "1")
 truckLabel = SSCC truckDriver1GS1CompanyPrefix (SerialNumber "1")
-binLabels = [binLabel, (GIAI farmerGS1CompanyPrefix "binLabel" (SerialNumber "2")]
+binLabels = [binLabel, GIAI farmerGS1CompanyPrefix "binLabel" (SerialNumber "2")]
 boxLabel = GIAI farmerGS1CompanyPrefix "boxLabel" (SerialNumber "1")
 palletLabel = GRAI packingHouseGS1CompanyPrefix "palletLabel" (SerialNumber "1")
-boxLabels = [boxLabel, (GIAI farmerGS1CompanyPrefix "boxLabel" (SerialNumber "2")]
-palletLabels = [palletLabel, (GRAI packingHouseGS1CompanyPrefix "palletLabel" (SerialNumber "2")]
+boxLabels = [boxLabel, GIAI farmerGS1CompanyPrefix "boxLabel" (SerialNumber "2")]
+palletLabels = [palletLabel, GRAI packingHouseGS1CompanyPrefix "palletLabel" (SerialNumber "2")]
 truck2Label = SSCC truckDriver2GS1CompanyPrefix (SerialNumber "1")
 
 
+-- Create users in the SCS db. Need to also create them in
+-- the BR. This should be re-implemented as a client fucntion, so
+-- you can do it the same way in both SCS and BR.
+scsUsers :: ClientM [UserId]
+scsUsers =
+  let userNames = ["regulator1", "regulator2", "farmer", "truckDriver1", "packingHouseOperator", "truckDriver2", "portsOperator1", "shippingCompany", "regulator3", "regulator4"]
+      nUsers = length userNames
+      initPrefix = 11111111
+      gs1companyPrefixes = map (GS1CompanyPrefix . toText) [initPrefix.. initPrefix+nUsers]
+  in
+  insertMultipleUsersSCS
+    "citrusSupplyChain" userNames gs1companyPrefixes
 
 -- Create a list of events starting at "startTime" in a particular
 -- timezone.
-citrusEvents :: EPCISTime -> Timezone -> [Event]
+citrusEvents :: EPCISTime -> TimeZone -> [Event]
 citrusEvents startTime tz readPoints bizs =
   [pestControl landLabel startTime tz farmLocation regulator1Biz,
    maxResidue landLabel startTime+1 tz farmLocation regulator2Biz,
@@ -116,28 +154,16 @@ citrusEvents startTime tz readPoints bizs =
   ]
 
 
--- Create users in the SCS db. Need to also create them in
--- the BR. This should be re-implemented as a client fucntion, so
--- you can do it the same way in both SCS and BR.
-scsUsers :: [ClientM UserId]
-scsUsers = do
-  let userNames = ["regulator1", "regulator2", "farmer", "truckDriver1",
-  "packingHouseOperator", "truckDriver2", "portsOperator1",
-  "shippingCompany", "regulator3", "regulator4"]
-  let nUsers = length userNames
-  let initPrefix = 11111111
-  let gs1companyPrefixes = map show [initPrefix.. initPrefix+nUsers]
-  pure $ insertMultipleUsersSCS
-    "citrusSupplyChain" userNames gs1companyPrefixes
-
-
-
 
 -- A series of events in a citrus supply chain.
 
 --pest control
-pestControl :: LabelEPC -> EPCISTime -> Timezone ->
-  ReadPointLocation -> BizLocation ->  Event
+pestControl :: LabelEPC
+            -> EPCISTime
+            -> TimeZone
+            -> ReadPointLocation
+            -> BizLocation
+            -> Event
 pestControl blockId t tz location bizLocation =
   Event ObjectEventT Nothing
           (ObjectDWhat Observe blockId)
@@ -146,8 +172,12 @@ pestControl blockId t tz location bizLocation =
           (DWhere [location] [bizLocation] [] [])
 
 --check maximum residue of pesticides/fungicides
-maxResidue :: LabelEPC -> EPCISTime -> Timezone ->
-  ReadPointLocation -> BizLocation ->  Event
+maxResidue :: LabelEPC
+           -> EPCISTime
+           -> TimeZone
+           -> ReadPointLocation
+           -> BizLocation
+           -> Event
 maxResidue blockId t tz location bizLocation =
   Event ObjectEventT Nothing
       (ObjectDWhat Observe blockId)
@@ -156,8 +186,12 @@ maxResidue blockId t tz location bizLocation =
       (DWhere [location] [bizLocation] [] [])
 
 --label bins/harvest
-labelBinsHarvest :: LabelEPC -> EPCISTime -> Timezone ->
-  ReadPointLocation -> BizLocation ->  Event
+labelBinsHarvest :: LabelEPC
+                 -> EPCISTime
+                 -> TimeZone
+                 -> ReadPointLocation
+                 -> BizLocation
+                 -> Event
 labelBinsHarvest binID t tz location bizLocation =
   Event ObjectEventT Nothing
       (ObjectDWhat Add binId) -- is Add the right action here?
@@ -167,7 +201,7 @@ labelBinsHarvest binID t tz location bizLocation =
 
 {- is this needed, or do we just make a transaction event with the parent
     being the truckID?
-loadingTruckToPackingHouse :: [LabelEPC] -> LabelEPC -> EPCISTime -> Timezone ->
+loadingTruckToPackingHouse :: [LabelEPC] -> LabelEPC -> EPCISTime -> TimeZone ->
   ReadPointLocation -> BizLocation -> Event
 loadingTruckToPackingHouse binIds truckId t tz location bizLocation =
   Event AggregationEventT
@@ -178,8 +212,13 @@ loadingTruckToPackingHouse binIds truckId t tz location bizLocation =
   -}
 
 --Transport
-farmerToTruckDriver1 :: LabelEPC -> [LabelEPC] -> EPCISTime -> Timezone
-  ReadPointLocation -> BizLocation -> Event
+farmerToTruckDriver1 :: LabelEPC
+                     -> [LabelEPC]
+                     -> EPCISTime
+                     -> TimeZone
+                     -> ReadPointLocation
+                     -> BizLocation
+                     -> Event
 farmerToTruckDriver1 truckId binIds t tz location bizLocation =
   Event TransactionEventT
   (TransactionDWhat Add truckId [] binIds)
@@ -188,8 +227,13 @@ farmerToTruckDriver1 truckId binIds t tz location bizLocation =
   (DWhere [location] [bizLocation] [] [])
 
 --Scan bins at packing house
-truckDriver1ToPackingHouse :: LabelEPC -> [LabelEPC] -> EPCISTime -> Timezone
-  ReadPointLocation -> BizLocation -> Event
+truckDriver1ToPackingHouse :: LabelEPC
+                           -> [LabelEPC]
+                           -> EPCISTime
+                           -> TimeZone
+                           -> ReadPointLocation
+                           -> BizLocation
+                           -> Event
 truckDriver1ToPackingHouse truckId binIds t tz location bizLocation =
   Event TransactionEventT
   (TransactionDWhat Delete truckId [] binIds)
@@ -198,8 +242,12 @@ truckDriver1ToPackingHouse truckId binIds t tz location bizLocation =
   (DWhere [location] [bizLocation] [] [])
 
 --apply fungicide within 36 hours
-applyFungicide ::  [LabelEPC] -> EPCISTime -> Timezone
-  ReadPointLocation -> BizLocation -> Event
+applyFungicide :: [LabelEPC]
+               -> EPCISTime
+               -> TimeZone
+               -> ReadPointLocation
+               -> BizLocation
+               -> Event
 applyFungicide binIds t tz location bizLocation =
   Event TransformationT
   (TransformationDWhat Nothing binIds binIds)
@@ -208,8 +256,13 @@ applyFungicide binIds t tz location bizLocation =
   (DWhere [location] [bizLocation] [] [])
 
 --sorting and boxing
-sortingBoxing :: LabelEPC -> [LabelEPC] -> EPCISTime -> Timezone
-  ReadPointLocation -> BizLocation -> Event
+sortingBoxing :: LabelEPC
+              -> [LabelEPC]
+              -> EPCISTime
+              -> TimeZone
+              -> ReadPointLocation
+              -> BizLocation
+              -> Event
 sortingBoxing boxId contents t tz location bizLocation =
   Event AggregationEventT
   (AggregationDWhat Add boxID contents)
@@ -218,8 +271,13 @@ sortingBoxing boxId contents t tz location bizLocation =
   (DWhere [location] [bizLocation] [] [])
 
 -- palletisation
-palletisation :: LabelEPC -> [LabelEPC] -> EPCISTime -> Timezone
-  ReadPointLocation -> BizLocation -> Event
+palletisation :: LabelEPC
+              -> [LabelEPC]
+              -> EPCISTime
+              -> TimeZone
+              -> ReadPointLocation
+              -> BizLocation
+              -> Event
 palletisation palletId boxes t tz location bizLocation =
   Event AggregationEventT
   (AggregationDWhat Add palletId boxes)
@@ -228,10 +286,14 @@ palletisation palletId boxes t tz location bizLocation =
   (DWhere [location] [bizLocation] [] [])
 
 
-
 --loading onto truck
-packingHouseToTruckDriver2 :: LabelEPC -> [LabelEPC] -> EPCISTime -> Timezone
-  ReadPointLocation -> BizLocation -> Event
+packingHouseToTruckDriver2 :: LabelEPC
+                           -> [LabelEPC]
+                           -> EPCISTime
+                           -> TimeZone
+                           -> ReadPointLocation
+                           -> BizLocation
+                           -> Event
 packingHouseToTruckDriver2 truckId palletIds t tz location bizLocation =
   Event TransactionEventT
   (TransactionDWhat Add truckId [] palletIds)
@@ -241,8 +303,13 @@ packingHouseToTruckDriver2 truckId palletIds t tz location bizLocation =
 
 -- arrival of goods at the port
 -- take them out of the truck
-truckDriver2ToPortsOperator1 :: LabelEPC -> [LabelEPC] -> EPCISTime -> Timezone
-  ReadPointLocation -> BizLocation -> Event
+truckDriver2ToPortsOperator1 :: LabelEPC
+                             -> [LabelEPC]
+                             -> EPCISTime
+                             -> TimeZone
+                             -> ReadPointLocation
+                             -> BizLocation
+                             -> Event
 truckDriver2ToPortsOperator1 truckId palletIds t tz location bizLocation =
   Event TransactionEventT
   (TransactionDWhat Remove truckId [] palletIds)
@@ -252,8 +319,12 @@ truckDriver2ToPortsOperator1 truckId palletIds t tz location bizLocation =
 
 -- quarantine in australia
 -- transformed state from non-quarantined to quarantined
-quarantineAus ::  [LabelEPC] -> EPCISTime -> Timezone
-  ReadPointLocation -> BizLocation -> Event
+quarantineAus :: [LabelEPC]
+              -> EPCISTime
+              -> TimeZone
+              -> ReadPointLocation
+              -> BizLocation
+              -> Event
 quarantineAus palletIds t tz location bizLocation =
   Event TransformationT
   (TransformationDWhat Nothing palletIds palletIds)
@@ -262,8 +333,13 @@ quarantineAus palletIds t tz location bizLocation =
   (DWhere [location] [bizLocation] [] [])
 
 -- shipping to China
-shippingToChina :: LabelEPC -> [LabelEPC] -> EPCISTime -> Timezone
-  ReadPointLocation -> BizLocation -> Event
+shippingToChina :: LabelEPC
+                -> [LabelEPC]
+                -> EPCISTime
+                -> TimeZone
+                -> ReadPointLocation
+                -> BizLocation
+                -> Event
 shippingToChina shipId palletIds t tz location bizLocation =
   Event TransactionEventT
   (TransactionDWhat Remove shipId [] palletIds)
@@ -273,16 +349,16 @@ shippingToChina shipId palletIds t tz location bizLocation =
 
 -- quarantine in China
 -- transformed state from non-quarantined to quarantined
-quarantineChina ::  [LabelEPC] -> EPCISTime -> Timezone
-  ReadPointLocation -> BizLocation -> Event
+quarantineChina :: [LabelEPC]
+                -> EPCISTime
+                -> TimeZone
+                -> ReadPointLocation
+                -> BizLocation
+                -> Event
 quarantineChina palletIds t tz location bizLocation =
   Event TransformationT
   (TransformationDWhat Nothing palletIds palletIds)
   (DWhen t Nothing tz)
   (DWhy Holding SellableNotAccessible)
   (DWhere [location] [bizLocation] [] [])
-
-
-
-
 

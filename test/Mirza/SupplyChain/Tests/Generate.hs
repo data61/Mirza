@@ -23,6 +23,7 @@ import           Text.Email.Validate              (toByteString)
 import           Servant.Client                   (ClientM)
 
 type TestName = String
+type Firstname = T.Text
 
 firstUser :: NewUser
 firstUser = NewUser  { newUserPhoneNumber = "0400 111 222"
@@ -59,22 +60,21 @@ mkNewUserByNumber testName n =
 
 insertNUsersSCS :: TestName
                 -> Int
-                -> [ClientM UserId]
+                -> ClientM [UserId]
 insertNUsersSCS testName n =
   let users = genNUsersSCS testName n
   in
-    SCSClient.addUser <$> users
+    sequence $ SCSClient.addUser <$> users
 
-type Firstname = T.Text
 
 -- Insert multiple users into the SCS DB given a
 -- list of first names and company prefixes.
 insertMultipleUsersSCS  :: TestName
                         -> [Firstname]
                         -> [GS1CompanyPrefix]
-                        -> [ClientM UserId]
+                        -> ClientM [UserId]
 insertMultipleUsersSCS name fn pfx =
-  SCSClient.addUser <$> genMultipleUsersSCS n name fn pfx
+  sequence $ SCSClient.addUser <$> genMultipleUsersSCS n name fn pfx
   where
     n = min (length fn) (length pfx)
 
