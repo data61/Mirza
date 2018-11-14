@@ -5,6 +5,8 @@ module Mirza.SupplyChain.Tests.Citrus where
 
 import           Control.Exception                      (bracket)
 
+import           Mirza.BusinessRegistry.Client.Servant  as BRClient
+
 import           Mirza.Common.Tests.InitClient
 import           Mirza.Common.Tests.ServantUtils        (runClient)
 import           Mirza.SupplyChain.Tests.Generate
@@ -171,12 +173,23 @@ locationList = [
 
 --TODO: make a list of newBusinesses:
 businessList :: [NewBusiness]
-businessList = error "implement me"
+businessList = [
+    NewBusiness farmerCompanyPrefix "farmer"
+  , NewBusiness truckDriver1CompanyPrefix "truckDriver1"
+  , NewBusiness regulator1CompanyPrefix "regulator1"
+  , NewBusiness regulator2CompanyPrefix "regulator2"
+  , NewBusiness packingHouseCompanyPrefix "packingHouse"
+  , NewBusiness auPortCompanyPrefix "auPort"
+  , NewBusiness cnPortCompanyPrefix "cnPort"
+  , NewBusiness truck2CompanyPrefix "truck2"
+  , NewBusiness regulator3CompanyPrefix "regulator3"
+  , NewBusiness regulator4CompanyPrefix "regulator4"
+  ]
 
 --TODO: Write a function that given a list of GS1CompanyIdentifiers (gathered from
 --the locations above and the labels below) and puts them in the BR via the BRClient
 insertBusinesses :: BasicAuthData -> [NewBusiness] -> ClientM [GS1CompanyPrefix]
-insertBusinesses = error "implement me"
+insertBusinesses brAuthUser bizList = sequence $ BRClient.addBusiness brAuthUser <$> bizList
 
 --TODO: Write a function that given a list of GLNs, inserts them into the BRClient
 insertLocations :: [NewLocation] -> ClientM [LocationId]
