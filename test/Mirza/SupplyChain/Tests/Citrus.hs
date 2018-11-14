@@ -63,14 +63,14 @@ citrusSpec = do
 
           let scsUrl = scsBaseUrl testData
               httpSCS = runClient scsUrl
-              -- brUrl = brBaseUrl testData
-              -- httpBR = runClient brUrl
-              -- brAuthUser = brAuthData testData
+              brUrl = brBaseUrl testData
+              httpBR = runClient brUrl
+              brAuthUser = brAuthData testData
 
           step "insert prelim data into SCS and BR"
           _userIdsSCS <- httpSCS scsUsers
-          -- gs1prefixes <- insertBusinesses
-          -- locationIds <- insertLocations
+          _gs1prefixes <- httpBR $ insertBusinesses brAuthUser businessList
+          _locationIds <- httpBR $ insertLocations locationList
 
           -- step "insert the users into BR"
           -- userIdsBR <- httpBR brUsers
@@ -160,14 +160,13 @@ regulator4Biz = SGLN regulator4CompanyPrefix (LocationReference "1") Nothing
 
 
 --TODO: Create a list of NewLocations for insertion into the BR using
---the above GLNs. The formatting below is illustrative only, I probably
---haven't defined the lat long correctly.
--- locationList :: [NewLocation]
--- locationList = [
---   (NewLocation farmLocation (122.3, 123.9) "17 Cherry Drive, Young"),
---   (NewLocation regulator1Biz (192.3, 1l3.9) "NSW PestControl, Wyong")
---   -- ...
---     ]
+--the above GLNs.
+locationList :: [NewLocation]
+locationList = [
+  (NewLocation farmLocation (Just (Latitude 122.3, Longitude 123.9)) (Just "17 Cherry Drive, Young")),
+  (NewLocation regulator1Biz (Just (Latitude 192.3, Longitude 113.9)) (Just "NSW PestControl, Wyong"))
+  -- ...
+  ]
 
 
 --TODO: make a list of newBusinesses:
