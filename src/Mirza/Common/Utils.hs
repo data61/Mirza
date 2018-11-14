@@ -28,7 +28,7 @@ import           System.Random                     (randomRIO)
 
 import           GHC.Stack                         (HasCallStack)
 
-import           Database.PostgreSQL.Simple        (SqlError (..))
+import           Database.PostgreSQL.Simple        (SqlError (..), execute_)
 import           Database.PostgreSQL.Simple.Errors (ConstraintViolation (UniqueViolation),
                                                     constraintViolation)
 
@@ -50,7 +50,6 @@ import           Data.Proxy                        (Proxy (..))
 import           Data.String                       (fromString)
 import           Data.Text                         (Text, unpack)
 import           Database.Beam.Schema.Tables
-import           Database.PostgreSQL.Simple        (execute_)
 import           Katip
 
 
