@@ -117,8 +117,8 @@ citrusEntities =
 --TODO: Define the gs1CompanyIdentifiers used in the supply chain:
 farmerCompanyPrefix :: GS1CompanyPrefix
 farmerCompanyPrefix = GS1CompanyPrefix "1111"
-truckDriver1GS1CompanyPrefix :: GS1CompanyPrefix
-truckDriver1GS1CompanyPrefix = GS1CompanyPrefix "2222"
+truckDriver1CompanyPrefix :: GS1CompanyPrefix
+truckDriver1CompanyPrefix = GS1CompanyPrefix "2222"
 regulator1CompanyPrefix :: GS1CompanyPrefix
 regulator1CompanyPrefix = GS1CompanyPrefix "3333"
 regulator2CompanyPrefix :: GS1CompanyPrefix
@@ -135,6 +135,19 @@ regulator3CompanyPrefix :: GS1CompanyPrefix
 regulator3CompanyPrefix = GS1CompanyPrefix "4545"
 regulator4CompanyPrefix :: GS1CompanyPrefix
 regulator4CompanyPrefix = GS1CompanyPrefix "8989"
+
+allPrefixes :: [GS1CompanyPrefix]
+allPrefixes = [
+    farmerCompanyPrefix
+  , truckDriver1CompanyPrefix
+  , regulator1CompanyPrefix
+  , regulator2CompanyPrefix
+  , packingHouseCompanyPrefix
+  , auPortCompanyPrefix
+  , cnPortCompanyPrefix
+  , truck2CompanyPrefix
+  , regulator3CompanyPrefix
+  , regulator4CompanyPrefix ]
 
 --TODO: Define the locations ... fill out the rest of these GLNs
 farmLocation :: LocationEPC
@@ -206,21 +219,21 @@ landLabel = GRAI farmerCompanyPrefix (AssetType "blockLabel") (SerialNumber "88"
 binLabel :: InstanceLabelEPC
 binLabel = GIAI farmerCompanyPrefix (SerialNumber "1")
 truckLabel :: InstanceLabelEPC
-truckLabel = SSCC truckDriver1GS1CompanyPrefix (SerialNumber "1")
-binLabels :: [LabelEPC]
-binLabels = [IL binLabel, IL $ GIAI farmerCompanyPrefix (SerialNumber "2")]
+truckLabel = SSCC truckDriver1CompanyPrefix (SerialNumber "1")
 boxLabel :: InstanceLabelEPC
 boxLabel = GIAI farmerCompanyPrefix (SerialNumber "1")
 palletLabel :: InstanceLabelEPC
 palletLabel = GRAI packingHouseCompanyPrefix (AssetType "palletLabel") (SerialNumber "1")
-boxLabels :: [LabelEPC]
-boxLabels = [IL boxLabel, IL $ GIAI farmerCompanyPrefix (SerialNumber "2")]
-palletLabels :: [LabelEPC]
-palletLabels = [IL palletLabel, IL $ GRAI packingHouseCompanyPrefix (AssetType "palletLabel") (SerialNumber "2")]
 truck2Label :: InstanceLabelEPC
 truck2Label = SSCC truck2CompanyPrefix (SerialNumber "1")
 shipLabel :: InstanceLabelEPC
 shipLabel = SSCC cnPortCompanyPrefix (SerialNumber "23")
+binLabels :: [LabelEPC]
+binLabels = [IL binLabel, IL $ GIAI farmerCompanyPrefix (SerialNumber "2")]
+boxLabels :: [LabelEPC]
+boxLabels = [IL boxLabel, IL $ GIAI farmerCompanyPrefix (SerialNumber "2")]
+palletLabels :: [LabelEPC]
+palletLabels = [IL palletLabel, IL $ GRAI packingHouseCompanyPrefix (AssetType "palletLabel") (SerialNumber "2")]
 
 -- Create users in the SCS db. Need to also create them in
 -- the BR. This should be re-implemented as a client fucntion, so
