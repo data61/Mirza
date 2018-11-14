@@ -69,8 +69,8 @@ citrusSpec = do
 
           step "insert prelim data into SCS and BR"
           userIdsSCS <- httpSCS scsUsers
-          gs1prefixes <- insertBusinesses
-          locationIds <- insertLocations
+          -- gs1prefixes <- insertBusinesses
+          -- locationIds <- insertLocations
 
           -- step "insert the users into BR"
           -- userIdsBR <- httpBR brUsers
@@ -274,7 +274,7 @@ loadingTruckToPackingHouse :: [LabelEPC] -> LabelEPC -> EPCISTime -> TimeZone ->
   ReadPointLocation -> BizLocation -> Event
 loadingTruckToPackingHouse binIds truckId t tz location bizLocation =
   Event AggregationEventT Nothing
-  (AggregationDWhat Add truckId binIds)
+  (AggWhat $ AggregationDWhat Add truckId binIds)
   (DWhen t Nothing tz)
   (DWhy (Just Loading) (Just SellableNotAccessible))
   (DWhere [location] [bizLocation] [] [])
@@ -318,14 +318,14 @@ applyFungicide :: [LabelEPC]
                -> BizLocation
                -> Event
 applyFungicide binIds t tz location bizLocation =
-  Event TransformationT Nothing
-  (TransformationDWhat Nothing binIds binIds)
+  Event TransformationEventT Nothing
+  (TransformWhat $ TransformationDWhat Nothing (InputEPC <$> binIds) (OutputEPC <$> binIds))
   (DWhen t Nothing tz)
   (DWhy (Just Inspecting) (Just SellableNotAccessible))
   (DWhere [location] [bizLocation] [] [])
 
 --sorting and boxing
-sortingBoxing :: LabelEPC
+sortingBoxing :: Maybe ParentLabel
               -> [LabelEPC]
               -> EPCISTime
               -> TimeZone
@@ -334,13 +334,13 @@ sortingBoxing :: LabelEPC
               -> Event
 sortingBoxing boxId contents t tz location bizLocation =
   Event AggregationEventT Nothing
-  (AggregationDWhat Add boxID contents)
+  (AggWhat $ AggregationDWhat Add boxId contents)
   (DWhen t Nothing tz)
   (DWhy (Just Commissioning) (Just Active))
   (DWhere [location] [bizLocation] [] [])
 
 -- palletisation
-palletisation :: LabelEPC
+palletisation :: Maybe ParentLabel
               -> [LabelEPC]
               -> EPCISTime
               -> TimeZone
@@ -349,14 +349,14 @@ palletisation :: LabelEPC
               -> Event
 palletisation palletId boxes t tz location bizLocation =
   Event AggregationEventT Nothing
-  (AggregationDWhat Add palletId boxes)
+  (AggWhat $ AggregationDWhat Add palletId boxes)
   (DWhen t Nothing tz)
   (DWhy (Just Commissioning) (Just Active))
   (DWhere [location] [bizLocation] [] [])
 
 
 --loading onto truck
-packingHouseToTruckDriver2 :: LabelEPC
+packingHouseToTruckDriver2 :: Maybe ParentLabel
                            -> [LabelEPC]
                            -> EPCISTime
                            -> TimeZone
@@ -372,7 +372,7 @@ packingHouseToTruckDriver2 truckId palletIds t tz location bizLocation =
 
 -- arrival of goods at the port
 -- take them out of the truck
-truckDriver2ToPortsOperator1 :: LabelEPC
+truckDriver2ToPortsOperator1 :: Maybe ParentLabel
                              -> [LabelEPC]
                              -> EPCISTime
                              -> TimeZone
@@ -381,7 +381,7 @@ truckDriver2ToPortsOperator1 :: LabelEPC
                              -> Event
 truckDriver2ToPortsOperator1 truckId palletIds t tz location bizLocation =
   Event TransactionEventT Nothing
-  (TransactWhat $ TransactionDWhat Remove truckId [] palletIds)
+  (TransactWhat $ TransactionDWhat Delete truckId [] palletIds)
   (DWhen t Nothing tz)
   (DWhy (Just Loading) (Just InTransit))
   (DWhere [location] [bizLocation] [] [])
@@ -395,14 +395,14 @@ quarantineAus :: [LabelEPC]
               -> BizLocation
               -> Event
 quarantineAus palletIds t tz location bizLocation =
-  Event TransformationT Nothing
-  (TransformationDWhat Nothing palletIds palletIds)
+  Event TransformationEventT Nothing
+  (TransformWhat $ TransformationDWhat Nothing (InputEPC <$> palletIds) (OutputEPC <$> palletIds))
   (DWhen t Nothing tz)
   (DWhy (Just Holding) (Just SellableNotAccessible))
   (DWhere [location] [bizLocation] [] [])
 
 -- shipping to China
-shippingToChina :: LabelEPC
+shippingToChina :: Maybe ParentLabel
                 -> [LabelEPC]
                 -> EPCISTime
                 -> TimeZone
@@ -411,7 +411,7 @@ shippingToChina :: LabelEPC
                 -> Event
 shippingToChina shipId palletIds t tz location bizLocation =
   Event TransactionEventT Nothing
-  (TransactWhat $ TransactionDWhat Remove shipId [] palletIds)
+  (TransactWhat $ TransactionDWhat Delete shipId [] palletIds)
   (DWhen t Nothing tz)
   (DWhy (Just Shipping) (Just InTransit))
   (DWhere [location] [bizLocation] [] [])
@@ -425,9 +425,8 @@ quarantineChina :: [LabelEPC]
                 -> BizLocation
                 -> Event
 quarantineChina palletIds t tz location bizLocation =
-  Event TransformationT Nothing
-  (TransformationDWhat Nothing palletIds palletIds)
+  Event TransformationEventT Nothing
+  (TransformWhat $ TransformationDWhat Nothing (InputEPC <$> palletIds) (OutputEPC <$> palletIds))
   (DWhen t Nothing tz)
   (DWhy (Just Holding) (Just SellableNotAccessible))
   (DWhere [location] [bizLocation] [] [])
-
