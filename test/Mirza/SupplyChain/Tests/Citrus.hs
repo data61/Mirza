@@ -76,7 +76,11 @@ citrusSpec = do
           -- userIdsBR <- httpBR brUsers
 
           step "insert citrus events into SCS, sign & counter sign them"
-          -- iterate through the citrusEvents, insert them, and sign and countersign them
+          -- for each event in CitrusEvents,
+          -- insert key(s) into BR
+          -- insert event into SCS
+          -- sign (and countersign) using the keys you inserted, and create
+          -- a SignedEvent. insert into SCS using eventSign.
 
           step "check eventInfo for each event"
 
@@ -158,6 +162,10 @@ insertBusinesses = error "implement me"
 --TODO: Write a function that given a list of GLNs, inserts them into the BRClient
 insertLocations :: [NewLocation] -> ClientM [LocationId]
 insertLocations = error "implement me"
+
+
+--TODO: Create enough key pairs for all the supply chain entities
+--and save them in the TestData/Citrus dir
 
 
 -- All the labels that feed into citrusEvents
