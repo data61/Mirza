@@ -110,28 +110,28 @@ citrusEntities =
 
 
 --TODO: Define the locations ... fill out the rest of these GLNs
-farmLocation = GLN farmerGS1CompanyPrefix (LocationReference "1") "blockID3"
-regulator1Biz = GLN regulator1GS1CompanyPrefix (LocationReference "1") Nothing
-regulator2Biz = GLN regulator2GS1CompanyPrefix (LocationReference "1") Nothing
-farmerBiz = GLN
-packingHouseLocation = GLN
-packingHouseBiz = GLN
-auPortLocation = GLN
-truck2biz = GLN
-regulator3biz = GLN
-cnPortLocation = GLN
-regulator4biz = GLN
+farmLocation = SGLN farmerCompanyPrefix (LocationReference "1") "blockID3"
+regulator1Biz = SGLN regulator1CompanyPrefix (LocationReference "1") Nothing
+regulator2Biz = SGLN regulator2CompanyPrefix (LocationReference "1") Nothing
+packingHouseLocation = SGLN packingHouseCompanyPrefix (LocationReference "1") Nothing
+auPortLocation = SGLN auPortCompanyPrefix (LocationReference "1") Nothing
+cnPortLocation = SGLN cnPortCompanyPrefix (LocationReference "1") Nothing
+farmerBiz = SGLN farmerCompanyPrefix (LocationReference "1") Nothing
+packingHouseBiz = SGLN packingHouseCompanyPrefix (LocationReference "1") Nothing
+truck2Biz = SGLN truck2CompanyPrefix (LocationReference "1") Nothing
+regulator3Biz = SGLN regulator3CompanyPrefix (LocationReference "1") Nothing
+regulator4Biz = SGLN regulator4CompanyPrefix (LocationReference "1") Nothing
 
 
 --TODO: Create a list of NewLocations for insertion into the BR using
 --the above GLNs. The formatting below is illustrative only, I probably
 --haven't defined the lat long correctly.
-locationList :: [NewLocation]
-locationList = [
-  (NewLocation farmLocation (122.3, 123.9) "17 Cherry Drive, Young"),
-  (NewLocation regulator1Biz (192.3, 1l3.9) "NSW PestControl, Wyong"),
-  ...
-    ]
+-- locationList :: [NewLocation]
+-- locationList = [
+--   (NewLocation farmLocation (122.3, 123.9) "17 Cherry Drive, Young"),
+--   (NewLocation regulator1Biz (192.3, 1l3.9) "NSW PestControl, Wyong")
+--   -- ...
+--     ]
 
 --TODO: Define the gs1CompanyIdentifiers used in the supply chain:
 farmerGS1CompanyPrefix = GS1CompanyPrefix "1111"
