@@ -113,28 +113,49 @@ citrusEntities =
 -}
 
 --TODO: Define the gs1CompanyIdentifiers used in the supply chain:
+farmerCompanyPrefix :: GS1CompanyPrefix
 farmerCompanyPrefix = GS1CompanyPrefix "1111"
+truckDriver1GS1CompanyPrefix :: GS1CompanyPrefix
 truckDriver1GS1CompanyPrefix = GS1CompanyPrefix "2222"
+regulator1CompanyPrefix :: GS1CompanyPrefix
 regulator1CompanyPrefix = GS1CompanyPrefix "3333"
+regulator2CompanyPrefix :: GS1CompanyPrefix
 regulator2CompanyPrefix = GS1CompanyPrefix "4444"
+packingHouseCompanyPrefix :: GS1CompanyPrefix
 packingHouseCompanyPrefix = GS1CompanyPrefix "5555"
+auPortCompanyPrefix :: GS1CompanyPrefix
 auPortCompanyPrefix = GS1CompanyPrefix "7777"
+cnPortCompanyPrefix :: GS1CompanyPrefix
 cnPortCompanyPrefix = GS1CompanyPrefix "8888"
+truck2CompanyPrefix :: GS1CompanyPrefix
 truck2CompanyPrefix = GS1CompanyPrefix "1212"
+regulator3CompanyPrefix :: GS1CompanyPrefix
 regulator3CompanyPrefix = GS1CompanyPrefix "4545"
+regulator4CompanyPrefix :: GS1CompanyPrefix
 regulator4CompanyPrefix = GS1CompanyPrefix "8989"
 
 --TODO: Define the locations ... fill out the rest of these GLNs
+farmLocation :: LocationEPC
 farmLocation = SGLN farmerCompanyPrefix (LocationReference "1") Nothing -- "blockID3"
+regulator1Biz :: LocationEPC
 regulator1Biz = SGLN regulator1CompanyPrefix (LocationReference "1") Nothing
+regulator2Biz :: LocationEPC
 regulator2Biz = SGLN regulator2CompanyPrefix (LocationReference "1") Nothing
+packingHouseLocation :: LocationEPC
 packingHouseLocation = SGLN packingHouseCompanyPrefix (LocationReference "1") Nothing
+auPortLocation :: LocationEPC
 auPortLocation = SGLN auPortCompanyPrefix (LocationReference "1") Nothing
+cnPortLocation :: LocationEPC
 cnPortLocation = SGLN cnPortCompanyPrefix (LocationReference "1") Nothing
+farmerBiz :: LocationEPC
 farmerBiz = SGLN farmerCompanyPrefix (LocationReference "1") Nothing
+packingHouseBiz :: LocationEPC
 packingHouseBiz = SGLN packingHouseCompanyPrefix (LocationReference "1") Nothing
+truck2Biz :: LocationEPC
 truck2Biz = SGLN truck2CompanyPrefix (LocationReference "1") Nothing
+regulator3Biz :: LocationEPC
 regulator3Biz = SGLN regulator3CompanyPrefix (LocationReference "1") Nothing
+regulator4Biz :: LocationEPC
 regulator4Biz = SGLN regulator4CompanyPrefix (LocationReference "1") Nothing
 
 
@@ -168,15 +189,25 @@ insertLocations = error "implement me"
 
 
 -- All the labels that feed into citrusEvents
+landLabel :: InstanceLabelEPC
 landLabel = GRAI farmerCompanyPrefix (AssetType "blockLabel") (SerialNumber "88")
+binLabel :: InstanceLabelEPC
 binLabel = GIAI farmerCompanyPrefix (SerialNumber "1")
+truckLabel :: InstanceLabelEPC
 truckLabel = SSCC truckDriver1GS1CompanyPrefix (SerialNumber "1")
+binLabels :: [LabelEPC]
 binLabels = [IL binLabel, IL $ GIAI farmerCompanyPrefix (SerialNumber "2")]
+boxLabel :: InstanceLabelEPC
 boxLabel = GIAI farmerCompanyPrefix (SerialNumber "1")
+palletLabel :: InstanceLabelEPC
 palletLabel = GRAI packingHouseCompanyPrefix (AssetType "palletLabel") (SerialNumber "1")
+boxLabels :: [LabelEPC]
 boxLabels = [IL boxLabel, IL $ GIAI farmerCompanyPrefix (SerialNumber "2")]
+palletLabels :: [LabelEPC]
 palletLabels = [IL palletLabel, IL $ GRAI packingHouseCompanyPrefix (AssetType "palletLabel") (SerialNumber "2")]
+truck2Label :: InstanceLabelEPC
 truck2Label = SSCC truck2CompanyPrefix (SerialNumber "1")
+shipLabel :: InstanceLabelEPC
 shipLabel = SSCC cnPortCompanyPrefix (SerialNumber "23")
 
 -- Create users in the SCS db. Need to also create them in
