@@ -188,8 +188,8 @@ scsUsers =
 -- Create a list of events starting at "startTime" in a particular
 -- timezone.
 citrusEvents :: EPCISTime -> TimeZone -> [Event]
-citrusEvents startTime tz readPoints bizs =
-  [pestControl landLabel startTime tz farmLocation regulator1Biz,
+citrusEvents startTime tz =
+  [pestControl [IL landLabel] startTime tz (ReadPointLocation farmLocation) (BizLocation regulator1Biz),
    maxResidue landLabel startTime+1 tz farmLocation regulator2Biz,
    labelBinsHarvest binLabel startTime+2 tz farmLocation farmerBiz,
    farmerToTruckDriver1 truckLabel binLabels startTime+3 tz
@@ -227,9 +227,9 @@ pestControl :: [LabelEPC]
             -> Event
 pestControl blockId t tz location bizLocation =
   Event ObjectEventT Nothing
-          (ObjectDWhat Observe blockId)
+          (ObjWhat $ ObjectDWhat Observe blockId)
           (DWhen t Nothing tz)
-          (DWhy Inspecting SellableNotAccessible)
+          (DWhy (Just Inspecting) (Just SellableNotAccessible))
           (DWhere [location] [bizLocation] [] [])
 
 --check maximum residue of pesticides/fungicides
@@ -241,9 +241,9 @@ maxResidue :: [LabelEPC]
            -> Event
 maxResidue blockId t tz location bizLocation =
   Event ObjectEventT Nothing
-      (ObjectDWhat Observe blockId)
+      (ObjWhat $ ObjectDWhat Observe blockId)
       (DWhen t Nothing tz)
-      (DWhy Inspecting SellableNotAccessible)
+      (DWhy (Just Inspecting) (Just SellableNotAccessible))
       (DWhere [location] [bizLocation] [] [])
 
 --label bins/harvest
@@ -253,11 +253,11 @@ labelBinsHarvest :: [LabelEPC]
                  -> ReadPointLocation
                  -> BizLocation
                  -> Event
-labelBinsHarvest binID t tz location bizLocation =
+labelBinsHarvest binId t tz location bizLocation =
   Event ObjectEventT Nothing
-      (ObjectDWhat Add binId) -- is Add the right action here?
+      (ObjWhat $ ObjectDWhat Add binId) -- is Add the right action here?
       (DWhen t Nothing tz)
-      (DWhy Commissioning Active)
+      (DWhy (Just Commissioning) (Just Active))
       (DWhere [location] [bizLocation] [] [])
 
 {- is this needed, or do we just make a transaction event with the parent
@@ -265,30 +265,30 @@ labelBinsHarvest binID t tz location bizLocation =
 loadingTruckToPackingHouse :: [LabelEPC] -> LabelEPC -> EPCISTime -> TimeZone ->
   ReadPointLocation -> BizLocation -> Event
 loadingTruckToPackingHouse binIds truckId t tz location bizLocation =
-  Event AggregationEventT
+  Event AggregationEventT Nothing
   (AggregationDWhat Add truckId binIds)
   (DWhen t Nothing tz)
-  (DWhy Loading SellableNotAccessible)
+  (DWhy (Just Loading) (Just SellableNotAccessible))
   (DWhere [location] [bizLocation] [] [])
   -}
 
 --Transport
-farmerToTruckDriver1 :: LabelEPC
+farmerToTruckDriver1 :: Maybe ParentLabel
                      -> [LabelEPC]
                      -> EPCISTime
                      -> TimeZone
                      -> ReadPointLocation
                      -> BizLocation
                      -> Event
-farmerToTruckDriver1 truckId binIds t tz location bizLocation =
-  Event TransactionEventT
-  (TransactionDWhat Add truckId [] binIds)
+farmerToTruckDriver1 mtruckId binIds t tz location bizLocation =
+  Event TransactionEventT Nothing
+  (TransactWhat $ TransactionDWhat Add mtruckId [] binIds)
   (DWhen t Nothing tz)
-  (DWhy Loading InTransit)
+  (DWhy (Just Loading) (Just InTransit))
   (DWhere [location] [bizLocation] [] [])
 
 --Scan bins at packing house
-truckDriver1ToPackingHouse :: LabelEPC
+truckDriver1ToPackingHouse :: Maybe ParentLabel
                            -> [LabelEPC]
                            -> EPCISTime
                            -> TimeZone
@@ -296,10 +296,10 @@ truckDriver1ToPackingHouse :: LabelEPC
                            -> BizLocation
                            -> Event
 truckDriver1ToPackingHouse truckId binIds t tz location bizLocation =
-  Event TransactionEventT
-  (TransactionDWhat Delete truckId [] binIds)
+  Event TransactionEventT Nothing
+  (TransactWhat $ TransactionDWhat Delete truckId [] binIds)
   (DWhen t Nothing tz)
-  (DWhy Accepting InProgress)
+  (DWhy (Just Accepting) (Just InProgress))
   (DWhere [location] [bizLocation] [] [])
 
 --apply fungicide within 36 hours
@@ -310,10 +310,10 @@ applyFungicide :: [LabelEPC]
                -> BizLocation
                -> Event
 applyFungicide binIds t tz location bizLocation =
-  Event TransformationT
+  Event TransformationT Nothing
   (TransformationDWhat Nothing binIds binIds)
   (DWhen t Nothing tz)
-  (DWhy Inspecting SellableNotAccessible)
+  (DWhy (Just Inspecting) (Just SellableNotAccessible))
   (DWhere [location] [bizLocation] [] [])
 
 --sorting and boxing
@@ -325,10 +325,10 @@ sortingBoxing :: LabelEPC
               -> BizLocation
               -> Event
 sortingBoxing boxId contents t tz location bizLocation =
-  Event AggregationEventT
+  Event AggregationEventT Nothing
   (AggregationDWhat Add boxID contents)
   (DWhen t Nothing tz)
-  (DWhy Commissioning Active)
+  (DWhy (Just Commissioning) (Just Active))
   (DWhere [location] [bizLocation] [] [])
 
 -- palletisation
@@ -340,10 +340,10 @@ palletisation :: LabelEPC
               -> BizLocation
               -> Event
 palletisation palletId boxes t tz location bizLocation =
-  Event AggregationEventT
+  Event AggregationEventT Nothing
   (AggregationDWhat Add palletId boxes)
   (DWhen t Nothing tz)
-  (DWhy Commissioning Active)
+  (DWhy (Just Commissioning) (Just Active))
   (DWhere [location] [bizLocation] [] [])
 
 
@@ -356,10 +356,10 @@ packingHouseToTruckDriver2 :: LabelEPC
                            -> BizLocation
                            -> Event
 packingHouseToTruckDriver2 truckId palletIds t tz location bizLocation =
-  Event TransactionEventT
-  (TransactionDWhat Add truckId [] palletIds)
+  Event TransactionEventT Nothing
+  (TransactWhat $ TransactionDWhat Add truckId [] palletIds)
   (DWhen t Nothing tz)
-  (DWhy Loading InTransit)
+  (DWhy (Just Loading) (Just InTransit))
   (DWhere [location] [bizLocation] [] [])
 
 -- arrival of goods at the port
@@ -372,10 +372,10 @@ truckDriver2ToPortsOperator1 :: LabelEPC
                              -> BizLocation
                              -> Event
 truckDriver2ToPortsOperator1 truckId palletIds t tz location bizLocation =
-  Event TransactionEventT
-  (TransactionDWhat Remove truckId [] palletIds)
+  Event TransactionEventT Nothing
+  (TransactWhat $ TransactionDWhat Remove truckId [] palletIds)
   (DWhen t Nothing tz)
-  (DWhy Loading InTransit)
+  (DWhy (Just Loading) (Just InTransit))
   (DWhere [location] [bizLocation] [] [])
 
 -- quarantine in australia
@@ -387,10 +387,10 @@ quarantineAus :: [LabelEPC]
               -> BizLocation
               -> Event
 quarantineAus palletIds t tz location bizLocation =
-  Event TransformationT
+  Event TransformationT Nothing
   (TransformationDWhat Nothing palletIds palletIds)
   (DWhen t Nothing tz)
-  (DWhy Holding SellableNotAccessible)
+  (DWhy (Just Holding) (Just SellableNotAccessible))
   (DWhere [location] [bizLocation] [] [])
 
 -- shipping to China
@@ -402,10 +402,10 @@ shippingToChina :: LabelEPC
                 -> BizLocation
                 -> Event
 shippingToChina shipId palletIds t tz location bizLocation =
-  Event TransactionEventT
-  (TransactionDWhat Remove shipId [] palletIds)
+  Event TransactionEventT Nothing
+  (TransactWhat $ TransactionDWhat Remove shipId [] palletIds)
   (DWhen t Nothing tz)
-  (DWhy Shipping InTransit)
+  (DWhy (Just Shipping) (Just InTransit))
   (DWhere [location] [bizLocation] [] [])
 
 -- quarantine in China
@@ -417,9 +417,9 @@ quarantineChina :: [LabelEPC]
                 -> BizLocation
                 -> Event
 quarantineChina palletIds t tz location bizLocation =
-  Event TransformationT
+  Event TransformationT Nothing
   (TransformationDWhat Nothing palletIds palletIds)
   (DWhen t Nothing tz)
-  (DWhy Holding SellableNotAccessible)
+  (DWhy (Just Holding) (Just SellableNotAccessible))
   (DWhere [location] [bizLocation] [] [])
 
