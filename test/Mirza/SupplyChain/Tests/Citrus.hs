@@ -161,15 +161,15 @@ insertLocations = error "implement me"
 
 
 -- All the labels that feed into citrusEvents
-landLabel = GRAI farmerGS1CompanyPrefix "blockLabel" (SerialNumber "88")
-binLabel = GIAI farmerGS1CompanyPrefix "binLabel" (SerialNumber "1")
+landLabel = GRAI farmerCompanyPrefix (AssetType "blockLabel") (SerialNumber "88")
+binLabel = GIAI farmerCompanyPrefix (SerialNumber "1")
 truckLabel = SSCC truckDriver1GS1CompanyPrefix (SerialNumber "1")
-binLabels = [binLabel, GIAI farmerGS1CompanyPrefix "binLabel" (SerialNumber "2")]
-boxLabel = GIAI farmerGS1CompanyPrefix "boxLabel" (SerialNumber "1")
-palletLabel = GRAI packingHouseGS1CompanyPrefix "palletLabel" (SerialNumber "1")
-boxLabels = [boxLabel, GIAI farmerGS1CompanyPrefix "boxLabel" (SerialNumber "2")]
-palletLabels = [palletLabel, GRAI packingHouseGS1CompanyPrefix "palletLabel" (SerialNumber "2")]
-truck2Label = SSCC truckDriver2GS1CompanyPrefix (SerialNumber "1")
+binLabels = [binLabel, GIAI farmerCompanyPrefix (SerialNumber "2")]
+boxLabel = GIAI farmerCompanyPrefix (SerialNumber "1")
+palletLabel = GRAI packingHouseCompanyPrefix "palletLabel" (SerialNumber "1")
+boxLabels = [boxLabel, GIAI farmerCompanyPrefix (SerialNumber "2")]
+palletLabels = [palletLabel, GRAI packingHouseCompanyPrefix (AssetType "palletLabel") (SerialNumber "2")]
+truck2Label = SSCC truck2CompanyPrefix (SerialNumber "1")
 
 
 -- Create users in the SCS db. Need to also create them in
@@ -219,7 +219,7 @@ citrusEvents startTime tz readPoints bizs =
 -- A series of events in a citrus supply chain.
 
 --pest control
-pestControl :: LabelEPC
+pestControl :: [LabelEPC]
             -> EPCISTime
             -> TimeZone
             -> ReadPointLocation
@@ -233,7 +233,7 @@ pestControl blockId t tz location bizLocation =
           (DWhere [location] [bizLocation] [] [])
 
 --check maximum residue of pesticides/fungicides
-maxResidue :: LabelEPC
+maxResidue :: [LabelEPC]
            -> EPCISTime
            -> TimeZone
            -> ReadPointLocation
@@ -247,7 +247,7 @@ maxResidue blockId t tz location bizLocation =
       (DWhere [location] [bizLocation] [] [])
 
 --label bins/harvest
-labelBinsHarvest :: LabelEPC
+labelBinsHarvest :: [LabelEPC]
                  -> EPCISTime
                  -> TimeZone
                  -> ReadPointLocation
