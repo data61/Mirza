@@ -60,13 +60,16 @@ citrusSpec = do
               httpBR = runClient brUrl
               brAuthUser = brAuthData testData
 
-          step "insert the users into SCS"
-          userIdsSCS <- httpSCS scsUsers
+          step "insert prelim data into SCS and BR"
+          userIdsSCS <- scsUsers
+          gs1prefixes <- insertBusinesses
+          locationIds <- insertLocations
 
           -- step "insert the users into BR"
           -- userIdsBR <- httpBR brUsers
 
           step "insert citrus events into SCS, sign & counter sign them"
+          -- iterate through the citrusEvents, insert them, and sign and countersign them
 
           step "check eventInfo for each event"
 
@@ -97,6 +100,50 @@ citrusEntities =
    regulator3
   ]
 -}
+
+
+--TODO: Define the locations ... fill out the rest of these GLNs
+farmLocation = GLN farmerGS1CompanyPrefix (LocationReference "1") "blockID3"
+regulator1Biz = GLN regulator1GS1CompanyPrefix (LocationReference "1") Nothing
+regulator2Biz = GLN regulator2GS1CompanyPrefix (LocationReference "1") Nothing
+farmerBiz = GLN
+packingHouseLocation = GLN
+packingHouseBiz = GLN
+auPortLocation = GLN
+truck2biz = GLN
+regulator3biz = GLN
+cnPortLocation = GLN
+regulator4biz = GLN
+
+
+--TODO: Create a list of NewLocations for insertion into the BR using
+--the above GLNs. The formatting below is illustrative only, I probably
+--haven't defined the lat long correctly.
+locationList :: [NewLocation]
+locationList = [
+  (NewLocation farmLocation (122.3, 123.9) "17 Cherry Drive, Young"),
+  (NewLocation regulator1Biz (192.3, 1l3.9) "NSW PestControl, Wyong"),
+  ...
+    ]
+
+--TODO: Define the gs1CompanyIdentifiers used in the supply chain:
+farmerGS1CompanyPrefix = GS1CompanyPrefix "1111"
+truckDriver1GS1CompanyPrefix = GS1CompanyPrefix "2222"
+-- continue doing this until you've got all the prefixes defined.
+
+
+--TODO: make a list of newBusinesses:
+businessList :: [NewBusiness]
+businessList = error "implement me"
+
+--TODO: Write a function that given a list of GS1CompanyIdentifiers (gathered from
+--the locations above and the labels below) and puts them in the BR via the BRClient
+insertBusinesses :: BasicAuthData -> [NewBusiness] -> ClientM [GS1CopmanyPrefix]
+insertBusinesses = error "implement me"
+
+--TODO: Write a function that given a list of GLNs, inserts them into the BRClient
+insertLocations :: [NewLocation] -> ClientM [LocationId]
+insertLocations = error "implement me"
 
 
 -- All the labels that feed into citrusEvents
