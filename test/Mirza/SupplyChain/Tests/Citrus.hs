@@ -13,14 +13,14 @@ import           Servant.Client                         (ClientM)
 
 import           Servant.API.BasicAuth                  (BasicAuthData (..))
 
-import           Test.Hspec.Expectations
+-- import           Test.Hspec.Expectations
 import           Test.Tasty
 import           Test.Tasty.HUnit
 
 import           Mirza.BusinessRegistry.Database.Schema (LocationId)
 import           Mirza.BusinessRegistry.Types           as ST
 
-import           Mirza.SupplyChain.Types                as ST
+-- import           Mirza.SupplyChain.Types                as ST
 
 import           Data.GS1.DWhat
 import           Data.GS1.DWhen
@@ -62,13 +62,13 @@ citrusSpec = do
         bracket runApps endApps $ \testData -> do
 
           let scsUrl = scsBaseUrl testData
-              brUrl = brBaseUrl testData
               httpSCS = runClient scsUrl
-              httpBR = runClient brUrl
-              brAuthUser = brAuthData testData
+              -- brUrl = brBaseUrl testData
+              -- httpBR = runClient brUrl
+              -- brAuthUser = brAuthData testData
 
           step "insert prelim data into SCS and BR"
-          userIdsSCS <- httpSCS scsUsers
+          _userIdsSCS <- httpSCS scsUsers
           -- gs1prefixes <- insertBusinesses
           -- locationIds <- insertLocations
 
