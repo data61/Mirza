@@ -29,7 +29,7 @@ import           Data.GS1.DWhy
 import           Data.GS1.EPC
 import           Data.GS1.Event
 
-import           Data.Time                              (TimeZone)
+import           Data.Time                              (TimeZone, addUTCTime)
 
 import           Mirza.Common.Utils                     (toText)
 
@@ -171,13 +171,13 @@ insertLocations = error "implement me"
 landLabel = GRAI farmerCompanyPrefix (AssetType "blockLabel") (SerialNumber "88")
 binLabel = GIAI farmerCompanyPrefix (SerialNumber "1")
 truckLabel = SSCC truckDriver1GS1CompanyPrefix (SerialNumber "1")
-binLabels = [binLabel, GIAI farmerCompanyPrefix (SerialNumber "2")]
+binLabels = [IL binLabel, IL $ GIAI farmerCompanyPrefix (SerialNumber "2")]
 boxLabel = GIAI farmerCompanyPrefix (SerialNumber "1")
-palletLabel = GRAI packingHouseCompanyPrefix "palletLabel" (SerialNumber "1")
-boxLabels = [boxLabel, GIAI farmerCompanyPrefix (SerialNumber "2")]
-palletLabels = [palletLabel, GRAI packingHouseCompanyPrefix (AssetType "palletLabel") (SerialNumber "2")]
+palletLabel = GRAI packingHouseCompanyPrefix (AssetType "palletLabel") (SerialNumber "1")
+boxLabels = [IL boxLabel, IL $ GIAI farmerCompanyPrefix (SerialNumber "2")]
+palletLabels = [IL palletLabel, IL $ GRAI packingHouseCompanyPrefix (AssetType "palletLabel") (SerialNumber "2")]
 truck2Label = SSCC truck2CompanyPrefix (SerialNumber "1")
-
+shipLabel = SSCC cnPortCompanyPrefix (SerialNumber "23")
 
 -- Create users in the SCS db. Need to also create them in
 -- the BR. This should be re-implemented as a client fucntion, so
@@ -196,31 +196,30 @@ scsUsers =
 -- timezone.
 citrusEvents :: EPCISTime -> TimeZone -> [Event]
 citrusEvents startTime tz =
-  [pestControl [IL landLabel] startTime tz (ReadPointLocation farmLocation) (BizLocation regulator1Biz),
-   maxResidue landLabel startTime+1 tz farmLocation regulator2Biz,
-   labelBinsHarvest binLabel startTime+2 tz farmLocation farmerBiz,
-   farmerToTruckDriver1 truckLabel binLabels startTime+3 tz
-      farmLocation farmerBiz ,
-   truckDriver1ToPackingHouse truckLabel binLabels startTime+4
-            tz packingHouseLocation packingHouseBiz,
-   applyFungicide binLabels startTime+5 tz
-            packingHouseLocation packingHouseBiz ,
-   sortingBoxing boxLabel binLabels startTime+6 tz
-     packingHouseLocation packingHouseBiz,
-   palletisation palletLabel boxLabels startTime+7 tz
-      packingHouseLocation packingHouseBiz,
-   packingHouseToTruckDriver2 truck2Label palletLabels startTime+8 tz
-      packingHouseLocation packingHouseBiz,
-   truckDriver2ToPortsOperator1 truck2Label palletLabels startTime+9 tz
-      auPortLocation truck2biz,
-   quarantineAus palletLabels startTime+10 tz
-     auPortLocation regulator3biz,
-   shippingToChina shipLabel palletLabels startTime+11 tz
-     cnPortLocation cnPortBiz,
-   quarantineChina palletLabels startTime+12 tz
-      cnPortLocation regulator4biz
+  [ pestControl [instanceLandLabel] startTime tz rpFarmLocation (BizLocation regulator1Biz),
+    maxResidue [instanceLandLabel] (addEpcisTime startTime 1) tz rpFarmLocation (BizLocation regulator2Biz),
+    labelBinsHarvest [instanceLandLabel] (addEpcisTime startTime 2) tz rpFarmLocation (BizLocation farmerBiz),
+    farmerToTruckDriver1 parentTruckLabel binLabels (addEpcisTime startTime 3) tz rpFarmLocation (BizLocation farmerBiz),
+    truckDriver1ToPackingHouse parentTruckLabel binLabels (addEpcisTime startTime 4) tz rpPackingHouseLocation locationPackingHouse,
+    applyFungicide binLabels (addEpcisTime startTime 5) tz rpPackingHouseLocation locationPackingHouse,
+    sortingBoxing (Just . ParentLabel $ boxLabel) binLabels (addEpcisTime startTime 6) tz rpPackingHouseLocation locationPackingHouse,
+    palletisation (Just . ParentLabel $ palletLabel) boxLabels (addEpcisTime startTime 7) tz rpPackingHouseLocation locationPackingHouse,
+    packingHouseToTruckDriver2 parentTruck2Label palletLabels (addEpcisTime startTime 8) tz rpPackingHouseLocation locationPackingHouse,
+    truckDriver2ToPortsOperator1 parentTruck2Label palletLabels (addEpcisTime startTime 9) tz rpAuPort (BizLocation truck2Biz),
+    quarantineAus palletLabels (addEpcisTime startTime 10) tz rpAuPort (BizLocation regulator3Biz),
+    shippingToChina (Just . ParentLabel $ shipLabel) palletLabels (addEpcisTime startTime 11) tz rpCnPort (BizLocation cnPortLocation),
+    quarantineChina palletLabels (addEpcisTime startTime 12) tz rpCnPort (BizLocation regulator4Biz)
   ]
-
+  where
+    addEpcisTime (EPCISTime currTime) toAdd = EPCISTime $ addUTCTime (toAdd * 60) currTime
+    instanceLandLabel = IL landLabel
+    rpFarmLocation = ReadPointLocation farmLocation
+    rpPackingHouseLocation = ReadPointLocation packingHouseLocation
+    parentTruckLabel = Just . ParentLabel $ truckLabel
+    parentTruck2Label = Just . ParentLabel $ truck2Label
+    locationPackingHouse = BizLocation packingHouseBiz
+    rpAuPort = ReadPointLocation auPortLocation
+    rpCnPort = ReadPointLocation cnPortLocation
 
 
 -- A series of events in a citrus supply chain.
