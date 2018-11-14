@@ -3,28 +3,35 @@
 
 module Mirza.SupplyChain.Tests.Citrus where
 
-import           Control.Exception                (bracket)
+import           Control.Exception                      (bracket)
 
 import           Mirza.Common.Tests.InitClient
-import           Mirza.Common.Tests.ServantUtils  (runClient)
+import           Mirza.Common.Tests.ServantUtils        (runClient)
 import           Mirza.SupplyChain.Tests.Generate
 
-import           Servant.Client                   (ClientM)
+import           Servant.Client                         (ClientM)
+
+import           Servant.API.BasicAuth                  (BasicAuthData (..))
 
 import           Test.Hspec.Expectations
 import           Test.Tasty
 import           Test.Tasty.HUnit
 
-import           Mirza.SupplyChain.Types          as ST
+import           Mirza.BusinessRegistry.Database.Schema (LocationId)
+import           Mirza.BusinessRegistry.Types           as ST
+
+import           Mirza.SupplyChain.Types                as ST
 
 import           Data.GS1.DWhat
+import           Data.GS1.DWhen
 import           Data.GS1.DWhere
+import           Data.GS1.DWhy
 import           Data.GS1.EPC
 import           Data.GS1.Event
 
-import           Data.Time                        (TimeZone)
+import           Data.Time                              (TimeZone)
 
-import           Mirza.Common.Utils               (toText)
+import           Mirza.Common.Utils                     (toText)
 
 {-
 
