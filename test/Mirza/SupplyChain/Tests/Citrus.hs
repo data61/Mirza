@@ -112,9 +112,20 @@ citrusEntities =
   ]
 -}
 
+--TODO: Define the gs1CompanyIdentifiers used in the supply chain:
+farmerCompanyPrefix = GS1CompanyPrefix "1111"
+truckDriver1GS1CompanyPrefix = GS1CompanyPrefix "2222"
+regulator1CompanyPrefix = GS1CompanyPrefix "3333"
+regulator2CompanyPrefix = GS1CompanyPrefix "4444"
+packingHouseCompanyPrefix = GS1CompanyPrefix "5555"
+auPortCompanyPrefix = GS1CompanyPrefix "7777"
+cnPortCompanyPrefix = GS1CompanyPrefix "8888"
+truck2CompanyPrefix = GS1CompanyPrefix "1212"
+regulator3CompanyPrefix = GS1CompanyPrefix "4545"
+regulator4CompanyPrefix = GS1CompanyPrefix "8989"
 
 --TODO: Define the locations ... fill out the rest of these GLNs
-farmLocation = SGLN farmerCompanyPrefix (LocationReference "1") "blockID3"
+farmLocation = SGLN farmerCompanyPrefix (LocationReference "1") Nothing -- "blockID3"
 regulator1Biz = SGLN regulator1CompanyPrefix (LocationReference "1") Nothing
 regulator2Biz = SGLN regulator2CompanyPrefix (LocationReference "1") Nothing
 packingHouseLocation = SGLN packingHouseCompanyPrefix (LocationReference "1") Nothing
@@ -136,18 +147,6 @@ regulator4Biz = SGLN regulator4CompanyPrefix (LocationReference "1") Nothing
 --   (NewLocation regulator1Biz (192.3, 1l3.9) "NSW PestControl, Wyong")
 --   -- ...
 --     ]
-
---TODO: Define the gs1CompanyIdentifiers used in the supply chain:
-farmerCompanyPrefix = GS1CompanyPrefix "1111"
-truckDriver1GS1CompanyPrefix = GS1CompanyPrefix "2222"
-regulator1CompanyPrefix = GS1CompanyPrefix "3333"
-regulator2CompanyPrefix = GS1CompanyPrefix "4444"
-packingHouseCompanyPrefix = GS1CompanyPrefix "5555"
-auPortCompanyPrefix = GS1CompanyPrefix "7777"
-cnPortCompanyPrefix = GS1CompanyPrefix "8888"
-truck2CompanyPrefix = GS1CompanyPrefix "1212"
-regulator3CompanyPrefix = GS1CompanyPrefix "4545"
-regulator4CompanyPrefix = GS1CompanyPrefix "8989"
 
 
 --TODO: make a list of newBusinesses:
