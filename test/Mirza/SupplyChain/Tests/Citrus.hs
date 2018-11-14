@@ -174,13 +174,36 @@ regulator4Biz :: LocationEPC
 regulator4Biz = SGLN regulator4CompanyPrefix (LocationReference "1") Nothing
 
 
+allLocationEPC :: [LocationEPC]
+allLocationEPC = [
+    farmLocation
+  , regulator1Biz
+  , regulator2Biz
+  , packingHouseLocation
+  , auPortLocation
+  , cnPortLocation
+  , farmerBiz
+  , packingHouseBiz
+  , truck2Biz
+  , regulator3Biz
+  , regulator4Biz ]
+
+
 --TODO: Create a list of NewLocations for insertion into the BR using
 --the above GLNs.
 locationList :: [NewLocation]
 locationList = [
-  (NewLocation farmLocation (Just (Latitude 122.3, Longitude 123.9)) (Just "17 Cherry Drive, Young")),
-  (NewLocation regulator1Biz (Just (Latitude 192.3, Longitude 113.9)) (Just "NSW PestControl, Wyong"))
-  -- ...
+    NewLocation farmLocation (Just (Latitude 122.3, Longitude 123.9)) (Just "17 Cherry Drive, Young")
+  , NewLocation regulator1Biz (Just (Latitude 192.3, Longitude 113.9)) (Just "NSW PestControl, Wyong")
+  , NewLocation regulator2Biz (Just (Latitude 134.6, Longitude 126.9)) (Just "7 Citrus Street, Gordon")
+  , NewLocation packingHouseLocation (Just (Latitude 102.3, Longitude 110.9)) (Just "14 Plucking Street, WoyWoy")
+  , NewLocation auPortLocation (Just (Latitude 190.3, Longitude 115.8)) (Just "21 Pitkin Avenue, Muswellbrook")
+  , NewLocation cnPortLocation (Just (Latitude 234.3, Longitude 137.8)) (Just "34 Park Boulevard, Merriwa")
+  , NewLocation farmerBiz (Just (Latitude 291.3, Longitude 173.2)) (Just "23 Cleveland Street, Surry Hills")
+  , NewLocation packingHouseBiz (Just (Latitude 182.5, Longitude 120.1)) (Just "141 Homer Street, Ashfield")
+  , NewLocation truck2Biz (Just (Latitude 222.2, Longitude 112.1)) (Just "90 Crescent Road, Moss Vale")
+  , NewLocation regulator3Biz (Just (Latitude 165.1, Longitude 114.6)) (Just "37 York Street")
+  , NewLocation regulator4Biz (Just (Latitude 154.3, Longitude 119.9)) (Just "63 Chopin Street, Woolloomolloo")
   ]
 
 
