@@ -152,7 +152,7 @@ businessList = error "implement me"
 
 --TODO: Write a function that given a list of GS1CompanyIdentifiers (gathered from
 --the locations above and the labels below) and puts them in the BR via the BRClient
-insertBusinesses :: BasicAuthData -> [NewBusiness] -> ClientM [GS1CopmanyPrefix]
+insertBusinesses :: BasicAuthData -> [NewBusiness] -> ClientM [GS1CompanyPrefix]
 insertBusinesses = error "implement me"
 
 --TODO: Write a function that given a list of GLNs, inserts them into the BRClient
