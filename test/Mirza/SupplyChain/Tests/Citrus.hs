@@ -72,7 +72,7 @@ citrusSpec = do
           step "insert prelim data into SCS and BR"
           _userIdsSCS <- httpSCS scsUsers
           _gs1prefixes <- httpBR $ insertBusinesses brAuthUser businessList
-          _locationIds <- httpBR $ insertLocations locationList
+          _locationIds <- httpBR $ insertLocations brAuthUser locationList
 
           -- step "insert the users into BR"
           -- userIdsBR <- httpBR brUsers
@@ -205,8 +205,8 @@ insertBusinesses :: BasicAuthData -> [NewBusiness] -> ClientM [GS1CompanyPrefix]
 insertBusinesses brAuthUser bizList = sequence $ BRClient.addBusiness brAuthUser <$> bizList
 
 --TODO: Write a function that given a list of GLNs, inserts them into the BRClient
-insertLocations :: [NewLocation] -> ClientM [LocationId]
-insertLocations = error "implement me"
+insertLocations :: BasicAuthData -> [NewLocation] -> ClientM [LocationId]
+insertLocations brAuthUser locs = sequence $ BRClient.addLocation brAuthUser <$> locs
 
 
 --TODO: Create enough key pairs for all the supply chain entities
