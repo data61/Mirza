@@ -134,9 +134,16 @@ regulator4Biz = SGLN regulator4CompanyPrefix (LocationReference "1") Nothing
 --     ]
 
 --TODO: Define the gs1CompanyIdentifiers used in the supply chain:
-farmerGS1CompanyPrefix = GS1CompanyPrefix "1111"
+farmerCompanyPrefix = GS1CompanyPrefix "1111"
 truckDriver1GS1CompanyPrefix = GS1CompanyPrefix "2222"
--- continue doing this until you've got all the prefixes defined.
+regulator1CompanyPrefix = GS1CompanyPrefix "3333"
+regulator2CompanyPrefix = GS1CompanyPrefix "4444"
+packingHouseCompanyPrefix = GS1CompanyPrefix "5555"
+auPortCompanyPrefix = GS1CompanyPrefix "7777"
+cnPortCompanyPrefix = GS1CompanyPrefix "8888"
+truck2CompanyPrefix = GS1CompanyPrefix "1212"
+regulator3CompanyPrefix = GS1CompanyPrefix "4545"
+regulator4CompanyPrefix = GS1CompanyPrefix "8989"
 
 
 --TODO: make a list of newBusinesses:
