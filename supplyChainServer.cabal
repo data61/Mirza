@@ -129,8 +129,9 @@ test-suite supplyChainServer-test
                     , Mirza.SupplyChain.Tests.Client
                     , Mirza.SupplyChain.Tests.Generate
                     , Mirza.Common.Tests.Utils
-                    , Mirza.BusinessRegistry.Tests.Utils
                     , Mirza.SupplyChain.Tests.Citrus
+                    , Mirza.BusinessRegistry.Tests.Utils
+                    , Mirza.BusinessRegistry.Tests.Generate
   default-extensions:  OverloadedStrings
   build-depends:       base
                      , base64-bytestring
@@ -183,6 +184,7 @@ test-suite businessRegistry-test
                     , Mirza.BusinessRegistry.Tests.Client
                     , Mirza.Common.Tests.Utils
                     , Mirza.BusinessRegistry.Tests.Utils
+                    , Mirza.BusinessRegistry.Tests.Generate
   default-extensions:  OverloadedStrings
   build-depends:       base
                      , base64-bytestring

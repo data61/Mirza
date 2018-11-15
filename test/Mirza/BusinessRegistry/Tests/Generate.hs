@@ -66,12 +66,12 @@ mkNewUserByNumber testName n =
 insertNUsersBR :: TestName
                -> Int
                -> BasicAuthData
-               -> [ClientM UserId]
+               -> ClientM [UserId]
 insertNUsersBR testName n brAuthData =
 
   let users = genNUsersBR testName n
   in
-    BRClient.addUser brAuthData <$> users
+    sequence $ BRClient.addUser brAuthData <$> users
 
 type Firstname = T.Text
 
@@ -81,9 +81,9 @@ insertMultipleUsersBR :: TestName
                       -> BasicAuthData
                       -> [Firstname]
                       -> [GS1CompanyPrefix]
-                      -> [ClientM UserId]
+                      -> ClientM  [UserId]
 insertMultipleUsersBR testName brAuthData fn pfx =
-  BRClient.addUser brAuthData <$> genMultipleUsersBR n testName fn pfx
+  sequence $ BRClient.addUser brAuthData <$> genMultipleUsersBR n testName fn pfx
   where
     n = min (length fn) (length pfx)
 
