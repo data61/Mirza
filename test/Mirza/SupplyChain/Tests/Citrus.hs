@@ -5,11 +5,15 @@ module Mirza.SupplyChain.Tests.Citrus where
 
 import           Control.Exception                      (bracket)
 
+import qualified Data.Text                              as T
+
 import           Mirza.BusinessRegistry.Client.Servant  as BRClient
+
+import           Mirza.BusinessRegistry.Tests.Generate
+import           Mirza.SupplyChain.Tests.Generate
 
 import           Mirza.Common.Tests.InitClient
 import           Mirza.Common.Tests.ServantUtils        (runClient)
-import           Mirza.SupplyChain.Tests.Generate
 
 import           Servant.Client                         (ClientM)
 
@@ -22,7 +26,7 @@ import           Test.Tasty.HUnit
 import           Mirza.BusinessRegistry.Database.Schema (LocationId)
 import           Mirza.BusinessRegistry.Types           as BT
 
--- import           Mirza.SupplyChain.Types                as ST
+import           Mirza.SupplyChain.Types                as ST
 
 import           Data.GS1.DWhat
 import           Data.GS1.DWhen
@@ -74,8 +78,8 @@ citrusSpec = do
           _gs1prefixes <- httpBR $ insertBusinesses brAuthUser businessList
           _locationIds <- httpBR $ insertLocations brAuthUser locationList
 
-          -- step "insert the users into BR"
-          -- userIdsBR <- httpBR brUsers
+          step "insert the users into BR"
+          _userIdsBR <- httpBR $ brUsers brAuthUser
 
           step "insert citrus events into SCS, sign & counter sign them"
           -- for each event in CitrusEvents,
@@ -114,6 +118,8 @@ citrusEntities =
   ]
 -}
 
+
+
 --TODO: Define the gs1CompanyIdentifiers used in the supply chain:
 farmerCompanyPrefix :: GS1CompanyPrefix
 farmerCompanyPrefix = GS1CompanyPrefix "1111"
@@ -135,6 +141,10 @@ regulator3CompanyPrefix :: GS1CompanyPrefix
 regulator3CompanyPrefix = GS1CompanyPrefix "4545"
 regulator4CompanyPrefix :: GS1CompanyPrefix
 regulator4CompanyPrefix = GS1CompanyPrefix "8989"
+
+type EntityName = T.Text
+
+data Entity = Entity EntityName GS1CompanyPrefix
 
 allPrefixes :: [GS1CompanyPrefix]
 allPrefixes = [
@@ -258,7 +268,7 @@ palletLabels = [IL palletLabel, IL $ GRAI packingHouseCompanyPrefix (AssetType "
 -- Create users in the SCS db. Need to also create them in
 -- the BR. This should be re-implemented as a client fucntion, so
 -- you can do it the same way in both SCS and BR.
-scsUsers :: ClientM [UserId]
+scsUsers :: ClientM [ST.UserId]
 scsUsers =
   let userNames = [
         "regulator1", "regulator2", "farmer", "truckDriver1",
@@ -270,6 +280,20 @@ scsUsers =
   in
   insertMultipleUsersSCS
     "citrusSupplyChain" userNames gs1companyPrefixes
+
+
+brUsers :: BasicAuthData -> ClientM [BT.UserId]
+brUsers brAuthUser =
+  let userNames = [
+        "regulator1", "regulator2", "farmer", "truckDriver1",
+        "packingHouseOperator", "truckDriver2", "portsOperator1",
+        "shippingCompany", "regulator3", "regulator4"]
+      nUsers = length userNames
+      initPrefix = 11111111
+      gs1companyPrefixes = map (GS1CompanyPrefix . toText) [initPrefix.. initPrefix+nUsers]
+  in
+  insertMultipleUsersBR "citrusSupplyChain" brAuthUser userNames gs1companyPrefixes
+
 
 -- Create a list of events starting at "startTime" in a particular
 -- timezone.
