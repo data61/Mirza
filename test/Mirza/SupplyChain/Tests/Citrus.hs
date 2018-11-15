@@ -222,12 +222,9 @@ businessList = [
   , NewBusiness regulator4CompanyPrefix "regulator4"
   ]
 
---TODO: Write a function that given a list of GS1CompanyIdentifiers (gathered from
---the locations above and the labels below) and puts them in the BR via the BRClient
 insertBusinesses :: BasicAuthData -> [NewBusiness] -> ClientM [GS1CompanyPrefix]
 insertBusinesses brAuthUser bizList = sequence $ BRClient.addBusiness brAuthUser <$> bizList
 
---TODO: Write a function that given a list of GLNs, inserts them into the BRClient
 insertLocations :: BasicAuthData -> [NewLocation] -> ClientM [LocationId]
 insertLocations brAuthUser locs = sequence $ BRClient.addLocation brAuthUser <$> locs
 
@@ -263,7 +260,10 @@ palletLabels = [IL palletLabel, IL $ GRAI packingHouseCompanyPrefix (AssetType "
 -- you can do it the same way in both SCS and BR.
 scsUsers :: ClientM [UserId]
 scsUsers =
-  let userNames = ["regulator1", "regulator2", "farmer", "truckDriver1", "packingHouseOperator", "truckDriver2", "portsOperator1", "shippingCompany", "regulator3", "regulator4"]
+  let userNames = [
+        "regulator1", "regulator2", "farmer", "truckDriver1",
+        "packingHouseOperator", "truckDriver2", "portsOperator1",
+        "shippingCompany", "regulator3", "regulator4"]
       nUsers = length userNames
       initPrefix = 11111111
       gs1companyPrefixes = map (GS1CompanyPrefix . toText) [initPrefix.. initPrefix+nUsers]
