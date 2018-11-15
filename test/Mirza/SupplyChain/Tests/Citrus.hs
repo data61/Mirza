@@ -20,7 +20,7 @@ import           Test.Tasty
 import           Test.Tasty.HUnit
 
 import           Mirza.BusinessRegistry.Database.Schema (LocationId)
-import           Mirza.BusinessRegistry.Types           as ST
+import           Mirza.BusinessRegistry.Types           as BT
 
 -- import           Mirza.SupplyChain.Types                as ST
 
