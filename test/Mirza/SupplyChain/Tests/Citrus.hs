@@ -110,7 +110,7 @@ type AuthHash = HashTable Entity (UserId, BasicAuthData, KeyId)
 
 
 
-insertAndAuth :: Entity -> AuthHash -> ClientM AuthHash
+insertAndAuth :: [Entity] -> AuthHash -> ClientM AuthHash
 insertAndAuth
   (Entity name gs1companyPrefix bizName locations (KeyPair privateKey publicKey)):entities
   ht = do
