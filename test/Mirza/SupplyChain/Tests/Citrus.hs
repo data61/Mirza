@@ -1,13 +1,20 @@
+{-# LANGUAGE DeriveGeneric    #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TypeApplications #-}
 
 module Mirza.SupplyChain.Tests.Citrus where
 
+import           GHC.Generics                           (Generic)
+
 import           Control.Exception                      (bracket)
+import           Control.Monad.Except
+import           Control.Monad.Identity
 
 import qualified Data.Text                              as T
+import           Data.Text.Encoding                     (encodeUtf8)
 
 import           Mirza.BusinessRegistry.Client.Servant  as BRClient
+import           Mirza.SupplyChain.Client.Servant       as SCSClient
 
 import           Mirza.BusinessRegistry.Tests.Generate
 import           Mirza.SupplyChain.Tests.Generate
@@ -35,12 +42,25 @@ import           Data.GS1.DWhy
 import           Data.GS1.EPC
 import           Data.GS1.Event
 
-import           Data.Time                              (TimeZone, addUTCTime)
+import           Data.Time                              (TimeZone, addUTCTime,
+                                                         getCurrentTime)
+import           Data.Time.LocalTime                    (utc)
 
-import           Crypto.JOSE.JWK                        (JWK)
 import           Mirza.BusinessRegistry.Tests.Utils     (readJWK)
 
 import           Data.Maybe                             (fromJust)
+
+import           Data.Hashable                          (Hashable (..))
+import           Data.HashMap.Strict                    as H
+
+import           Crypto.JOSE                            (Alg (RS256),
+                                                         newJWSHeader, signJWS)
+import qualified Crypto.JOSE                            as JOSE
+import           Crypto.JOSE.Types                      (Base64Octets (..))
+
+import           Text.Email.Validate                    (toByteString)
+
+import           Data.List.NonEmpty                     (NonEmpty (..))
 
 {-
 
@@ -75,11 +95,13 @@ citrusSpec = do
               brUrl = brBaseUrl testData
               httpBR = runClient brUrl
               brAuthUser = brAuthData testData
-        ht <- H.new
-        ht <- insertAndAuth ht allEntities
-        fmap (insertEachEvent ht) citrusEvents
+          let initHt = H.empty
+          Right ht <- httpSCS $ insertAndAuth brAuthUser initHt allEntities
+          currTime <- getCurrentTime
+          let cEvents = citrusEvents (EPCISTime currTime) utc
+          _r <- sequence $ (httpSCS . (insertEachEvent ht)) <$> cEvents
 
-        {-
+
           step "Sanity check: That all the fake lists are in order"
           length allPrefixes `shouldBe` length allLocationEPC
           length allPrefixes `shouldBe` length locationList
@@ -94,79 +116,102 @@ citrusSpec = do
           step "insert the users into BR"
           _userIdsBR <- httpBR $ brUsers brAuthUser
 
-          step "insert citrus events into SCS, sign & counter sign them"
+          -- step "insert citrus events into SCS, sign & counter sign them"
           -- for each event in CitrusEvents,
           -- insert key(s) into BR
           -- insert event into SCS
           -- sign (and countersign) using the keys you inserted, and create
           -- a SignedEvent. insert into SCS using eventSign.
 
-          step "check eventInfo for each event"
+          -- step "check eventInfo for each event"
 
-          step "get all events related to boxLabel"
+          -- step "get all events related to boxLabel"
           error "not implemented yet"
-          -}
+
 
   pure $ testGroup "Citrus Client tests"
         [ citrusSupplyChainTests
         ]
 
-type AuthHash = HashTable Entity (UserId, BasicAuthData, KeyId)
+type AuthHash = H.HashMap Entity (UserId, BasicAuthData, BRKeyId)
 
 
+-- TODO: Insert locations
+insertAndAuth :: BasicAuthData -> AuthHash -> [Entity] -> ClientM AuthHash
+insertAndAuth _          ht [] = pure ht
+insertAndAuth auth ht (entity:entities) = do
+  let (Entity name companyPrefix bizName _locations (KeyPairPaths _ pubKeyPath)) = entity
+      [newUserSCS] = genMultipleUsersSCS "citrusTest" 1 [name] [companyPrefix]
+      [newUserBR] = genMultipleUsersBR "citrusTest" 1 [name] [companyPrefix]
+      newBiz = NewBusiness companyPrefix bizName
+  Just pubKey <- liftIO $ readJWK pubKeyPath
+  insertedUserIdSCS <- SCSClient.addUser newUserSCS
+  _insertedUserIdBR <- BRClient.addUser auth newUserBR
+  _insertedPrefix <- BRClient.addBusiness auth newBiz
+  brKeyId <- BRClient.addPublicKey auth pubKey Nothing
+  let basicAuthDataSCS =
+        BasicAuthData
+          (toByteString . ST.newUserEmailAddress $ newUserSCS)
+          (encodeUtf8   . ST.newUserPassword     $ newUserSCS)
 
-insertAndAuth :: [Entity] -> AuthHash -> ClientM AuthHash
-insertAndAuth
-  (Entity name gs1companyPrefix bizName locations (KeyPair privateKey publicKey)):entities
-  ht = do
-  --make NewUser
-  --userId <- insert NewUser into SCS
   --basicAuthData <- login
-  --add Business to BR (using gs1companyPrefix and bizName)
-  --make BR New User
-  --brUserId <- insert New User into BR
   --basicAuthDataBr <- login userId br
   -- XXX only need to do addLocation here if the location is tied to the user in the BR,
   -- otherwise it's probably easier to just add all the locations separately.
   --addLocation basicAuthDataBr newLocation
-  --keyId <- addPublicKey basicAuthDataBr publicKey
-  --H.insert ht (userId, basicAuthData, keyId)
+  let updatedHt = H.insert entity (insertedUserIdSCS, basicAuthDataSCS, brKeyId) ht
+  insertAndAuth auth updatedHt entities
+
+-- TODO: This is not a truly recursive function. The function body
+-- only applies to the first entity
+insertEachEvent :: AuthHash -> EachEvent ->  ClientM ()
+insertEachEvent _ (EachEvent [] _) = pure ()
+insertEachEvent ht (EachEvent (initialEntity: entities) ev) = do
+  let Just (entityUserId, auth, _) = H.lookup initialEntity ht
+  (insertedEventInfo, _eventId) <- case _etype ev of
+          AggregationEventT -> SCSClient.insertAggEvent auth (fromJust $ mkAggEvent ev)
+          ObjectEventT -> SCSClient.insertObjectEvent auth (fromJust $ mkObjectEvent ev)
+          TransactionEventT -> SCSClient.insertTransactEvent auth (fromJust $ mkTransactEvent ev (entityUserId :| []))
+          TransformationEventT -> SCSClient.insertTransfEvent auth (fromJust $ mkTransfEvent ev)
+
+  sequence_ $ clientSignEvent ht insertedEventInfo <$> entities
 
 
-insertEachEvent :: EachEvent -> AuthHash ->  ClientM ()
-insertEachEvent ht (EachEvent [] ev) = pure ()
-insertEachEvent ht (EachEvent initialEntity: entities ev) = do
-  let (userId, auth) = lookup ht initialEntity
-  -- first insert it
-  (eventInfo, eventId) = case (EventType ev) of
-                           -- I know using fromJust is bad here, but will fix later.
-                           AggregationEventT -> httpSCS insertAggEvent (fromJust $ mkAggEvent ev)
-                           ObjectEventT -> httpSCS insertObjectEvent (fromJust $ mkObjectEvent ev)
-                           TransactionEventT -> httpSCS insertTransactEvent (fromJust $ mkTransactEvent ev)
-                           TransformationEventT -> httpSCS insertTransfEvent (fromJust $ mkTransfEvent ev)
+clientSignEvent :: AuthHash -> EventInfo -> Entity -> ClientM PrimaryKeyType
+clientSignEvent ht evInfo entity = do
+  let Just (_, auth, _) = H.lookup entity ht
+      -- brKeyId = BRKeyId keyId
+      (EventInfo event _ _ (Base64Octets toSign) _) = evInfo
+      eventId = fromJust $ _eid event
+      (Entity _ _ _ _ (KeyPairPaths privKeyPath pubKeyPath)) = entity
+  Just privKey <- liftIO $ readJWK privKeyPath
+  Just pubKey <- liftIO $ readJWK pubKeyPath
+  keyId <- BRClient.addPublicKey auth pubKey Nothing
 
-  fmap clientSignEvent entities
-
-
-
-
-clientSignEvent :: Entity -> HashTable Entity (UserId, BasicAuthData) -> EventInfo -> IO ()
-clientSignEvent entity ht eventInfo = do
-  let (userId, auth) = lookup ht initialEntity
-  let (Entity name gs1companyPrefix bizName locations (KeyPair privateKey publicKey)) = initialEntity
-  --then sign it
-  let signedEvent = SignedEvent .... (eventToSign eventInfo) --TODO: sign this with the private key
-  _ <- httpSCS eventSign auth signedEvent
+  Right mySig <- liftIO $ runExceptT @JOSE.Error (
+          signJWS toSign (Identity (newJWSHeader ((), RS256), privKey))
+          )
+      --then sign it
+  let signedEvent = SignedEvent eventId keyId mySig --TODO: sign this with the private key
+  eventSign auth signedEvent
 
 
 data EachEvent = EachEvent [Entity] Event
+  deriving (Eq, Show, Generic)
 
-data Entity = Entity EntityName GS1CompanyPrefix BusinessName [LocationEPC] KeyPair
+data Entity = Entity {
+    entitiName          :: EntityName
+  , entityCompanyPrefix :: GS1CompanyPrefix
+  , entityBizName       :: BusinessName
+  , entityLocList       :: [LocationEPC]
+  , entityKeyPairPaths  :: KeyPairPaths
+  }
+  deriving (Eq, Show, Generic)
+instance Hashable Entity where
+  hashWithSalt salt entity = hashWithSalt salt (unGS1CompanyPrefix $ entityCompanyPrefix entity)
 
 type EntityName = T.Text
 type BusinessName = T.Text
-
-type HashTable k v = H.BasicHashTable k v
 
 -- | A series of events in a citrus supply chain.
 citrusEvents :: EPCISTime -> TimeZone -> [EachEvent]
@@ -253,36 +298,41 @@ citrusEvents startTime tz =
 
 
 -- Entities
-farmerE = Entity "farmer" farmerCompanyPrefix "Citrus Sensation Farm"
-  [farmLocation, farmerBiz] farmerKP
+farmerE :: Entity
+farmerE = Entity "farmer" farmerCompanyPrefix "Citrus Sensation Farm" [farmLocation, farmerBiz] farmerKP
+truckDriver1E :: Entity
+truckDriver1E = Entity "truckDriver1" truckDriver1CompanyPrefix "Super Transport Solutions" [truckDriver1Biz] truckDriver1KP
+regulator1E :: Entity
+regulator1E = Entity "regulator1" regulator1CompanyPrefix "Pest Controllers" [regulator1Biz] regulator1KP
+regulator2E :: Entity
+regulator2E = Entity "regulator2" regulator2CompanyPrefix "Residue Checkers" [regulator2Biz] regulator2KP
+packingHouseE :: Entity
+packingHouseE = Entity "packingHouse" packingHouseCompanyPrefix "Packing Citrus R Us" [packingHouseLocation] packingHouseKP
+auPortE :: Entity
+auPortE = Entity "AustralianPort" auPortCompanyPrefix "Port Melbourne" [auPortLocation] auPortKP
+cnPortE :: Entity
+cnPortE = Entity "ChinesePort" cnPortCompanyPrefix "Shanghai Port" [cnPortLocation] cnPortKP
+truckDriver2E :: Entity
+truckDriver2E = Entity "truckDriver2" truck2CompanyPrefix "Duper Transport Solutions" [truck2Biz] truck2KP
+regulator3E :: Entity
+regulator3E = Entity "regulator3" regulator3CompanyPrefix "Quarantine Australia" [regulator3Biz] regulator3KP
+regulator4E :: Entity
+regulator4E = Entity "regulator4" regulator4CompanyPrefix "Quarantine China" [regulator4Biz] regulator4KP
 
-truckDriver1E = Entity "truckDriver1" truckDriver1CompanyPrefix "Super Transport Solutions"
-  [truckDriver1Biz] truckDriver1KP
 
-regulator1E = Entity "regulator1" regulator1CompanyPrefix "Pest Controllers"
-  [regulator1Biz] regulator1KP
-
-regulator2E = Entity "regulator2" regulator2CompanyPrefix "Residue Checkers"
-  [regulator2Biz] regulator2KP
-
-packingHouseE = Entity "packingHouse" packingHouseCompanyPrefix "Packing Citrus R Us"
-  [packingHouseLocation] packingHouseKP
-
-auPortE = Entity "AustralianPort" auPortCompanyPrefix "Port Melbourne"
-  [auPortLocation] auPortKP
-
-cnPortE = Entity "ChinesePort" cnPortCompanyPrefix "Shanghai Port"
-  [cnPortLocation] cnPortKP
-
-truckDriver2E = Entity "truckDriver2" truck2CompanyPrefix "Duper Transport Solutions"
-  [truck2Biz] truck2KP
-
-regulator3E = Entity "regulator3" regulator3CompanyPrefix "Quarantine Australia"
-  [regulator3Biz] regulator3KP
-
-regulator4E = Entity "regulator4" regulator4CompanyPrefix "Quarantine China"
-  [regulator4Biz] regulator4KP
-
+allEntities :: [Entity]
+allEntities = [
+    farmerE
+  , truckDriver1E
+  , regulator1E
+  , regulator2E
+  , packingHouseE
+  , auPortE
+  , cnPortE
+  , truckDriver2E
+  , regulator3E
+  , regulator4E
+  ]
 
 
 --TODO: Define the gs1CompanyIdentifiers used in the supply chain:
@@ -406,11 +456,9 @@ insertLocations :: BasicAuthData -> [NewLocation] -> ClientM [LocationId]
 insertLocations brAuthUser locs = sequence $ BRClient.addLocation brAuthUser <$> locs
 
 
---TODO: Create enough key pairs for all the supply chain entities
---and save them in the TestData/Citrus dir
-type PrivateKey = JWK
-type PublicKey = JWK
-data KeyPair = KeyPair (IO PrivateKey) (IO PublicKey)
+--                              PrivateKey PublicKey
+data KeyPairPaths = KeyPairPaths FilePath FilePath
+  deriving (Eq, Show, Generic)
 
 privateKeyPath :: String -> FilePath
 privateKeyPath entityName = "./test/Mirza/SupplyChain/TestData/testKeys/goodJWKs/" ++ entityName ++ "_rsa.json"
@@ -419,19 +467,26 @@ publicKeyPath :: String -> FilePath
 publicKeyPath entityName = "./test/Mirza/SupplyChain/TestData/testKeys/goodJWKs/" ++ entityName ++ "_rsa_pub.json"
 
 
-farmerKP = KeyPair (fromJust <$> readJWK $ privateKeyPath "farmer") (readJWK $ publicKeyPath "farmer")
-truckDriver1KP = KeyPair (readJWK $ privateKeyPath "truckDriver1") (readJWK $ publicKeyPath "truckDriver1")
-regulator1KP = KeyPair (readJWK $ privateKeyPath "regulator1") (readJWK $ publicKeyPath "regulator1")
-regulator2KP = KeyPair (readJWK $ privateKeyPath "regulator2") (readJWK $ publicKeyPath "regulator2")
-packingHouseKP = KeyPair (readJWK $ privateKeyPath "packingHouse") (readJWK $ publicKeyPath "packingHouse")
-auPortKP = KeyPair (readJWK $ privateKeyPath "auPort") (readJWK $ publicKeyPath "auPort")
-cnPortKP = KeyPair (readJWK $ privateKeyPath "cnPort") (readJWK $ publicKeyPath "cnPort")
-truck2KP = KeyPair (readJWK $ privateKeyPath "truck2") (readJWK $ publicKeyPath "truck2")
-regulator3KP = KeyPair (readJWK $ privateKeyPath "regulator3") (readJWK $ publicKeyPath "regulator3")
-regulator4KP = KeyPair (readJWK $ privateKeyPath "regulator4") (readJWK $ publicKeyPath "regulator4")
--- ...etc.
-
-
+farmerKP :: KeyPairPaths
+farmerKP = KeyPairPaths (privateKeyPath "farmer") (publicKeyPath "farmer")
+truckDriver1KP :: KeyPairPaths
+truckDriver1KP = KeyPairPaths (privateKeyPath "truckDriver1") (publicKeyPath "truckDriver1")
+regulator1KP :: KeyPairPaths
+regulator1KP = KeyPairPaths (privateKeyPath "regulator1") (publicKeyPath "regulator1")
+regulator2KP :: KeyPairPaths
+regulator2KP = KeyPairPaths (privateKeyPath "regulator2") (publicKeyPath "regulator2")
+packingHouseKP :: KeyPairPaths
+packingHouseKP = KeyPairPaths (privateKeyPath "packingHouse") (publicKeyPath "packingHouse")
+auPortKP :: KeyPairPaths
+auPortKP = KeyPairPaths (privateKeyPath "auPort") (publicKeyPath "auPort")
+cnPortKP :: KeyPairPaths
+cnPortKP = KeyPairPaths (privateKeyPath "cnPort") (publicKeyPath "cnPort")
+truck2KP :: KeyPairPaths
+truck2KP = KeyPairPaths (privateKeyPath "truck2") (publicKeyPath "truck2")
+regulator3KP :: KeyPairPaths
+regulator3KP = KeyPairPaths (privateKeyPath "regulator3") (publicKeyPath "regulator3")
+regulator4KP :: KeyPairPaths
+regulator4KP = KeyPairPaths (privateKeyPath "regulator4") (publicKeyPath "regulator4")
 
 
 -- All the labels that feed into citrusEvents
