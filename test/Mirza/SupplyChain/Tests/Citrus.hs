@@ -19,7 +19,7 @@ import           Servant.Client                         (ClientM)
 
 import           Servant.API.BasicAuth                  (BasicAuthData (..))
 
--- import           Test.Hspec.Expectations
+import           Test.Hspec.Expectations
 import           Test.Tasty
 import           Test.Tasty.HUnit
 
@@ -36,8 +36,6 @@ import           Data.GS1.EPC
 import           Data.GS1.Event
 
 import           Data.Time                              (TimeZone, addUTCTime)
-
-import           Mirza.Common.Utils                     (toText)
 
 {-
 
@@ -72,6 +70,11 @@ citrusSpec = do
               brUrl = brBaseUrl testData
               httpBR = runClient brUrl
               brAuthUser = brAuthData testData
+          step "Sanity check: That all the fake lists are in order"
+          length allPrefixes `shouldBe` length allLocationEPC
+          length allPrefixes `shouldBe` length locationList
+          length allPrefixes `shouldBe` length userNames
+          length allPrefixes `shouldBe` length businessList
 
           step "insert prelim data into SCS and BR"
           _userIdsSCS <- httpSCS scsUsers
@@ -162,6 +165,8 @@ allPrefixes = [
 --TODO: Define the locations ... fill out the rest of these GLNs
 farmLocation :: LocationEPC
 farmLocation = SGLN farmerCompanyPrefix (LocationReference "1") Nothing -- "blockID3"
+truckDriver1Biz :: LocationEPC
+truckDriver1Biz = SGLN truckDriver1CompanyPrefix (LocationReference "1") Nothing
 regulator1Biz :: LocationEPC
 regulator1Biz = SGLN regulator1CompanyPrefix (LocationReference "1") Nothing
 regulator2Biz :: LocationEPC
@@ -187,6 +192,7 @@ regulator4Biz = SGLN regulator4CompanyPrefix (LocationReference "1") Nothing
 allLocationEPC :: [LocationEPC]
 allLocationEPC = [
     farmLocation
+  , truckDriver1Biz
   , regulator1Biz
   , regulator2Biz
   , packingHouseLocation
@@ -204,6 +210,7 @@ allLocationEPC = [
 locationList :: [NewLocation]
 locationList = [
     NewLocation farmLocation (Just (Latitude 122.3, Longitude 123.9)) (Just "17 Cherry Drive, Young")
+  , NewLocation truckDriver1Biz (Just (Latitude 130.7, Longitude 213.9)) (Just "50 Bridge Street, Surry Hills")
   , NewLocation regulator1Biz (Just (Latitude 192.3, Longitude 113.9)) (Just "NSW PestControl, Wyong")
   , NewLocation regulator2Biz (Just (Latitude 134.6, Longitude 126.9)) (Just "7 Citrus Street, Gordon")
   , NewLocation packingHouseLocation (Just (Latitude 102.3, Longitude 110.9)) (Just "14 Plucking Street, WoyWoy")
@@ -265,38 +272,34 @@ boxLabels = [IL boxLabel, IL $ GIAI farmerCompanyPrefix (SerialNumber "2")]
 palletLabels :: [LabelEPC]
 palletLabels = [IL palletLabel, IL $ GRAI packingHouseCompanyPrefix (AssetType "palletLabel") (SerialNumber "2")]
 
+userNames :: [T.Text]
+userNames = [
+    "farmer"
+  , "truckDriver1"
+  , "regulator1"
+  , "regulator2"
+  , "packingHouse"
+  , "auPort"
+  , "cnPort"
+  , "truck2"
+  , "regulator3"
+  , "regulator4"
+  ]
+
+
 -- Create users in the SCS db. Need to also create them in
 -- the BR. This should be re-implemented as a client fucntion, so
 -- you can do it the same way in both SCS and BR.
 scsUsers :: ClientM [ST.UserId]
-scsUsers =
-  let userNames = [
-        "regulator1", "regulator2", "farmer", "truckDriver1",
-        "packingHouseOperator", "truckDriver2", "portsOperator1",
-        "shippingCompany", "regulator3", "regulator4"]
-      nUsers = length userNames
-      initPrefix = 11111111
-      gs1companyPrefixes = map (GS1CompanyPrefix . toText) [initPrefix.. initPrefix+nUsers]
-  in
-  insertMultipleUsersSCS
-    "citrusSupplyChain" userNames gs1companyPrefixes
+scsUsers = insertMultipleUsersSCS "citrusSupplyChain" userNames allPrefixes
 
 
 brUsers :: BasicAuthData -> ClientM [BT.UserId]
 brUsers brAuthUser =
-  let userNames = [
-        "regulator1", "regulator2", "farmer", "truckDriver1",
-        "packingHouseOperator", "truckDriver2", "portsOperator1",
-        "shippingCompany", "regulator3", "regulator4"]
-      nUsers = length userNames
-      initPrefix = 11111111
-      gs1companyPrefixes = map (GS1CompanyPrefix . toText) [initPrefix.. initPrefix+nUsers]
-  in
-  insertMultipleUsersBR "citrusSupplyChain" brAuthUser userNames gs1companyPrefixes
+  insertMultipleUsersBR "citrusSupplyChain" brAuthUser userNames allPrefixes
 
 
--- Create a list of events starting at "startTime" in a particular
--- timezone.
+-- | A series of events in a citrus supply chain.
 citrusEvents :: EPCISTime -> TimeZone -> [Event]
 citrusEvents startTime tz =
   [ pestControl [instanceLandLabel] startTime tz rpFarmLocation (BizLocation regulator1Biz),
@@ -324,8 +327,6 @@ citrusEvents startTime tz =
     rpAuPort = ReadPointLocation auPortLocation
     rpCnPort = ReadPointLocation cnPortLocation
 
-
--- A series of events in a citrus supply chain.
 
 --pest control
 pestControl :: [LabelEPC]

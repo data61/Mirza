@@ -23,7 +23,6 @@ import           Text.Email.Validate              (toByteString)
 import           Servant.Client                   (ClientM)
 
 type TestName = String
-type Firstname = T.Text
 
 firstUser :: NewUser
 firstUser = NewUser  { newUserPhoneNumber = "0400 111 222"
@@ -70,22 +69,25 @@ insertNUsersSCS testName n =
 -- Insert multiple users into the SCS DB given a
 -- list of first names and company prefixes.
 insertMultipleUsersSCS  :: TestName
-                        -> [Firstname]
+                        -> [T.Text]
                         -> [GS1CompanyPrefix]
                         -> ClientM [UserId]
-insertMultipleUsersSCS name fn pfx =
-  sequence $ SCSClient.addUser <$> genMultipleUsersSCS n name fn pfx
+insertMultipleUsersSCS testName firstNames pfx =
+  sequence $ SCSClient.addUser <$> genMultipleUsersSCS testName n firstNames pfx
   where
-    n = min (length fn) (length pfx)
+    n = min (length firstNames) (length pfx)
 
 
-genMultipleUsersSCS :: Int ->  TestName -> [Firstname] ->
-    [GS1CompanyPrefix] -> [ST.NewUser]
-genMultipleUsersSCS 0 _ _ _ = []
+genMultipleUsersSCS :: TestName
+                    -> Int
+                    -> [T.Text]
+                    -> [GS1CompanyPrefix]
+                    -> [ST.NewUser]
+genMultipleUsersSCS _ 0 _ _ = []
 genMultipleUsersSCS _ _ [] _ = []
 genMultipleUsersSCS _ _ _ [] = []
-genMultipleUsersSCS n testName (f:fx) (p:px) =
-  newUser : genMultipleUsersSCS (n-1) testName fx px
+genMultipleUsersSCS testName n (f:fx) (p:px) =
+  newUser : genMultipleUsersSCS testName (n-1) fx px
   where
     numT = T.pack $ show n
     newUser = ST.NewUser
