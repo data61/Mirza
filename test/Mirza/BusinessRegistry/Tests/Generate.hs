@@ -73,30 +73,28 @@ insertNUsersBR testName n brAuthData =
   in
     sequence $ BRClient.addUser brAuthData <$> users
 
-type Firstname = T.Text
-
 -- Insert multiple users into the BR DB given a
 -- list of first names and company prefixes.
 insertMultipleUsersBR :: TestName
                       -> BasicAuthData
-                      -> [Firstname]
+                      -> [T.Text]
                       -> [GS1CompanyPrefix]
                       -> ClientM  [UserId]
 insertMultipleUsersBR testName brAuthData fn pfx =
-  sequence $ BRClient.addUser brAuthData <$> genMultipleUsersBR n testName fn pfx
+  sequence $ BRClient.addUser brAuthData <$> genMultipleUsersBR testName n fn pfx
   where
     n = min (length fn) (length pfx)
 
-genMultipleUsersBR :: Int
-                   -> TestName
-                   -> [Firstname]
+genMultipleUsersBR :: TestName
+                   -> Int
+                   -> [T.Text]
                    -> [GS1CompanyPrefix]
                    -> [NewUser]
-genMultipleUsersBR 0 _ _ _ = []
+genMultipleUsersBR _ 0 _  _ = []
 genMultipleUsersBR _ _ [] _ = []
 genMultipleUsersBR _ _ _ [] = []
-genMultipleUsersBR n testName (f:fx) (p:px) =
-  newUser : genMultipleUsersBR (n-1) testName fx px
+genMultipleUsersBR testName n (f:fx) (p:px) =
+  newUser : genMultipleUsersBR testName (n-1) fx px
   where
     numT = T.pack $ show n
     newUser = NewUser
