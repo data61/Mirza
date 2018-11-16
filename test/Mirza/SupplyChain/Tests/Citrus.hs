@@ -70,6 +70,11 @@ citrusSpec = do
               brUrl = brBaseUrl testData
               httpBR = runClient brUrl
               brAuthUser = brAuthData testData
+        ht <- H.new
+        ht <- insertAndAuth ht allEntities
+        fmap (insertEachEvent ht) citrusEvents
+
+        {-
           step "Sanity check: That all the fake lists are in order"
           length allPrefixes `shouldBe` length allLocationEPC
           length allPrefixes `shouldBe` length locationList
@@ -95,11 +100,59 @@ citrusSpec = do
 
           step "get all events related to boxLabel"
           error "not implemented yet"
+          -}
 
   pure $ testGroup "Citrus Client tests"
         [ citrusSupplyChainTests
         ]
 
+type AuthHash = HashTable Entity (UserId, BasicAuthData, KeyId)
+
+
+
+insertAndAuth :: Entity -> AuthHash -> ClientM AuthHash
+insertAndAuth
+  (Entity name gs1companyPrefix bizName locations (KeyPair privateKey publicKey)):entities
+  ht = do
+  --make NewUser
+  --userId <- insert NewUser into SCS
+  --basicAuthData <- login
+  --add Business to BR (using gs1companyPrefix and bizName)
+  --make BR New User
+  --brUserId <- insert New User into BR
+  --basicAuthDataBr <- login userId br
+  -- XXX only need to do addLocation here if the location is tied to the user in the BR,
+  -- otherwise it's probably easier to just add all the locations separately.
+  --addLocation basicAuthDataBr newLocation
+  --keyId <- addPublicKey basicAuthDataBr publicKey
+  --H.insert ht (userId, basicAuthData, keyId)
+
+
+insertEachEvent :: EachEvent -> AuthHash ->  ClientM ()
+insertEachEvent ht (EachEvent [] ev) = error "must supply at least 1 entity"
+insertEachEvent ht (EachEvent entities ev) = do
+  let initialEntity = entities[0]
+  let (userId, auth) = lookup ht initialEntity
+  -- first insert it
+  (eventInfo, eventId) = case (EventType ev) of
+                           -- I know using fromJust is bad here, but will fix later.
+                           AggregationEventT -> httpSCS insertAggEvent (fromJust $ mkAggEvent ev)
+                           ObjectEventT -> httpSCS insertObjectEvent (fromJust $ mkObjectEvent ev)
+                           TransactionEventT -> httpSCS insertTransactEvent (fromJust $ mkTransactEvent ev)
+                           TransformationEventT -> httpSCS insertTransfEvent (fromJust $ mkTransfEvent ev)
+
+  fmap clientSignEvent entities
+
+
+
+
+clientSignEvent :: Entity -> HashTable Entity (UserId, BasicAuthData) -> EventInfo -> IO ()
+clientSignEvent entity ht eventInfo = do
+  let (userId, auth) = lookup ht initialEntity
+  let (Entity name gs1companyPrefix bizName locations (KeyPair privateKey publicKey)) = initialEntity
+  --then sign it
+  let signedEvent = SignedEvent .... (eventToSign eventInfo) --TODO: sign this with the private key
+  _ <- httpSCS eventSign auth signedEvent
 
 
 data EachEvent = EachEvent [Entity] Event
@@ -108,6 +161,8 @@ data Entity = Entity EntityName GS1CompanyPrefix BusinessName [LocationEPC] KeyP
 
 type EntityName = T.Text
 type BusinessName = T.Text
+
+type HashTable k v = H.BasicHashTable k v
 
 -- | A series of events in a citrus supply chain.
 citrusEvents :: EPCISTime -> TimeZone -> [EachEvent]
