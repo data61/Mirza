@@ -37,6 +37,11 @@ import           Data.GS1.Event
 
 import           Data.Time                              (TimeZone, addUTCTime)
 
+import           Crypto.JOSE.JWK                        (JWK)
+import           Mirza.BusinessRegistry.Tests.Utils     (readJWK)
+
+import           Data.Maybe                             (fromJust)
+
 {-
 
 Tests that should be implemented here
@@ -193,7 +198,7 @@ citrusEvents startTime tz =
     EachEvent [truckDriver1E, packingHouseE]
     (truckDriver1ToPackingHouse parentTruckLabel binLabels
     (addEpcisTime startTime 4) tz
-    rpPackingHouseLocation locationPackingHouse)),
+    rpPackingHouseLocation locationPackingHouse),
 
     EachEvent [packingHouseE]
     (applyFungicide binLabels
@@ -406,11 +411,26 @@ insertLocations brAuthUser locs = sequence $ BRClient.addLocation brAuthUser <$>
 --and save them in the TestData/Citrus dir
 type PrivateKey = JWK
 type PublicKey = JWK
-data KeyPair = KeyPair PrivateKey PublicKey
+data KeyPair = KeyPair (IO PrivateKey) (IO PublicKey)
 
-farmerKP = KeyPair (readJWK privateKeyPath) (readJWK publicKeyPath)
-truckDriver1KP = KeyPair (readJWK privateKeyPath) (readJWK publicKeyPath)
-...etc.
+privateKeyPath :: String -> FilePath
+privateKeyPath entityName = "./test/Mirza/SupplyChain/TestData/testKeys/goodJWKs/" ++ entityName ++ "_rsa.json"
+
+publicKeyPath :: String -> FilePath
+publicKeyPath entityName = "./test/Mirza/SupplyChain/TestData/testKeys/goodJWKs/" ++ entityName ++ "_rsa_pub.json"
+
+
+farmerKP = KeyPair (fromJust <$> readJWK $ privateKeyPath "farmer") (readJWK $ publicKeyPath "farmer")
+truckDriver1KP = KeyPair (readJWK $ privateKeyPath "truckDriver1") (readJWK $ publicKeyPath "truckDriver1")
+regulator1KP = KeyPair (readJWK $ privateKeyPath "regulator1") (readJWK $ publicKeyPath "regulator1")
+regulator2KP = KeyPair (readJWK $ privateKeyPath "regulator2") (readJWK $ publicKeyPath "regulator2")
+packingHouseKP = KeyPair (readJWK $ privateKeyPath "packingHouse") (readJWK $ publicKeyPath "packingHouse")
+auPortKP = KeyPair (readJWK $ privateKeyPath "auPort") (readJWK $ publicKeyPath "auPort")
+cnPortKP = KeyPair (readJWK $ privateKeyPath "cnPort") (readJWK $ publicKeyPath "cnPort")
+truck2KP = KeyPair (readJWK $ privateKeyPath "truck2") (readJWK $ publicKeyPath "truck2")
+regulator3KP = KeyPair (readJWK $ privateKeyPath "regulator3") (readJWK $ publicKeyPath "regulator3")
+regulator4KP = KeyPair (readJWK $ privateKeyPath "regulator4") (readJWK $ publicKeyPath "regulator4")
+-- ...etc.
 
 
 
