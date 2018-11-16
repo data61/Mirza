@@ -101,30 +101,10 @@ citrusSpec = do
         ]
 
 
-{- This is not a real list (obviously) but
-I wrote it up to help implement the other functions.
-
-citrusEntities :: []
-citrusEntities =
-  [regulator1,
-   regulator2,
-   farmer,
-   (farmer, truckDriver1),
-   (truckDriver1, packingHouseOperator),
-   packingHouseOperator,
-   packingHouseOperator,
-   (packingHouseOperator, truckDriver2),
-   (truckDriver2, portsOperator1),
-   portsOperator1,
-   (portsOperator1, shippingCompany),
-   regulator3
-  ]
--}
-
 
 data EachEvent = EachEvent [Entity] Event
 
-data Entity = Entity EntityName GS1CompanyPrefix BusinessName [LocationEPC]
+data Entity = Entity EntityName GS1CompanyPrefix BusinessName [LocationEPC] KeyPair
 
 type EntityName = T.Text
 type BusinessName = T.Text
@@ -214,16 +194,35 @@ citrusEvents startTime tz =
 
 
 -- Entities
-farmerE = Entity "farmer" farmerCompanyPrefix "Citrus Sensation Farm" [farmLocation, farmerBiz]
-truckDriver1E = Entity "truckDriver1" truckDriver1CompanyPrefix "Super Transport Solutions" [truckDriver1Biz]
-regulator1E = Entity "regulator1" regulator1CompanyPrefix "Pest Controllers" [regulator1Biz]
-regulator2E = Entity "regulator2" regulator2CompanyPrefix "Residue Checkers" [regulator2Biz]
-packingHouseE = Entity "packingHouse" packingHouseCompanyPrefix "Packing Citrus R Us" [packingHouseLocation]
-auPortE = Entity "AustralianPort" auPortCompanyPrefix "Port Melbourne" [auPortLocation]
-cnPortE = Entity "ChinesePort" cnPortCompanyPrefix "Shanghai Port" [cnPortLocation]
-truckDriver2E = Entity "truckDriver2" truck2CompanyPrefix "Duper Transport Solutions" [truck2Biz]
-regulator3E = Entity "regulator3" regulator3CompanyPrefix "Quarantine Australia" [regulator3Biz]
-regulator4E = Entity "regulator4" regulator4CompanyPrefix "Quarantine China" [regulator4Biz]
+farmerE = Entity "farmer" farmerCompanyPrefix "Citrus Sensation Farm"
+  [farmLocation, farmerBiz] farmerKP
+
+truckDriver1E = Entity "truckDriver1" truckDriver1CompanyPrefix "Super Transport Solutions"
+  [truckDriver1Biz] truckDriver1KP
+
+regulator1E = Entity "regulator1" regulator1CompanyPrefix "Pest Controllers"
+  [regulator1Biz] regulator1KP
+
+regulator2E = Entity "regulator2" regulator2CompanyPrefix "Residue Checkers"
+  [regulator2Biz] regulator2KP
+
+packingHouseE = Entity "packingHouse" packingHouseCompanyPrefix "Packing Citrus R Us"
+  [packingHouseLocation] packingHouseKP
+
+auPortE = Entity "AustralianPort" auPortCompanyPrefix "Port Melbourne"
+  [auPortLocation] auPortKP
+
+cnPortE = Entity "ChinesePort" cnPortCompanyPrefix "Shanghai Port"
+  [cnPortLocation] cnPortKP
+
+truckDriver2E = Entity "truckDriver2" truck2CompanyPrefix "Duper Transport Solutions"
+  [truck2Biz] truck2KP
+
+regulator3E = Entity "regulator3" regulator3CompanyPrefix "Quarantine Australia"
+  [regulator3Biz] regulator3KP
+
+regulator4E = Entity "regulator4" regulator4CompanyPrefix "Quarantine China"
+  [regulator4Biz] regulator4KP
 
 
 
@@ -350,6 +349,15 @@ insertLocations brAuthUser locs = sequence $ BRClient.addLocation brAuthUser <$>
 
 --TODO: Create enough key pairs for all the supply chain entities
 --and save them in the TestData/Citrus dir
+type PrivateKey = JWK
+type PublicKey = JWK
+data KeyPair = KeyPair PrivateKey PublicKey
+
+farmerKP = KeyPair (readJWK privateKeyPath) (readJWK publicKeyPath)
+truckDriver1KP = KeyPair (readJWK privateKeyPath) (readJWK publicKeyPath)
+...etc.
+
+
 
 
 -- All the labels that feed into citrusEvents
