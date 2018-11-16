@@ -134,7 +134,7 @@ insertAndAuth
 
 
 insertEachEvent :: EachEvent -> AuthHash ->  ClientM ()
-insertEachEvent ht (EachEvent [] ev) = error "must supply at least 1 entity"
+insertEachEvent ht (EachEvent [] ev) = pure ()
 insertEachEvent ht (EachEvent entities ev) = do
   let initialEntity = entities[0]
   let (userId, auth) = lookup ht initialEntity
