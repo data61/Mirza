@@ -122,6 +122,110 @@ citrusEntities =
 -}
 
 
+data EachEvent = EachEvent [Entity] Event
+
+data Entity = Entity EntityName GS1CompanyPrefix BusinessName [LocationEPC]
+
+type EntityName = T.Text
+type BusinessName = T.Text
+
+-- | A series of events in a citrus supply chain.
+citrusEvents :: EPCISTime -> TimeZone -> [EachEvent]
+citrusEvents startTime tz =
+  [
+    EachEvent [regulator1E]
+    (pestControl [instanceLandLabel]
+    startTime tz
+    rpFarmLocation (BizLocation regulator1Biz)),
+
+
+    EachEvent [regulator2E]
+    (maxResidue [instanceLandLabel]
+    (addEpcisTime startTime 1) tz
+    rpFarmLocation (BizLocation regulator2Biz)),
+
+    EachEvent [farmerE]
+    (labelBinsHarvest [instanceLandLabel]
+    (addEpcisTime startTime 2) tz
+    rpFarmLocation (BizLocation farmerBiz)),
+
+    EachEvent [farmerE, truckDriver1E]
+    (farmerToTruckDriver1
+    parentTruckLabel binLabels
+    (addEpcisTime startTime 3) tz
+    rpFarmLocation (BizLocation farmerBiz)),
+
+    EachEvent [truckDriver1E, packingHouseE]
+    (truckDriver1ToPackingHouse parentTruckLabel binLabels
+    (addEpcisTime startTime 4) tz
+    rpPackingHouseLocation locationPackingHouse)),
+
+    EachEvent [packingHouseE]
+    (applyFungicide binLabels
+    (addEpcisTime startTime 5) tz
+    rpPackingHouseLocation locationPackingHouse),
+
+    EachEvent [packingHouseE]
+    (sortingBoxing (Just . ParentLabel $ boxLabel) binLabels
+    (addEpcisTime startTime 6) tz
+    rpPackingHouseLocation locationPackingHouse),
+
+    EachEvent [packingHouseE]
+    (palletisation (Just . ParentLabel $ palletLabel)  boxLabels
+    (addEpcisTime startTime 7) tz
+    rpPackingHouseLocation locationPackingHouse),
+
+    EachEvent [packingHouseE, truckDriver2E]
+    (packingHouseToTruckDriver2 parentTruck2Label palletLabels
+    (addEpcisTime startTime 8) tz
+    rpPackingHouseLocation locationPackingHouse),
+
+    EachEvent [truckDriver2E, auPortE]
+    (truckDriver2ToPortsOperator1 parentTruck2Label palletLabels
+    (addEpcisTime startTime 9) tz
+    rpAuPort (BizLocation truck2Biz)),
+
+    EachEvent [regulator3E]
+    (quarantineAus palletLabels
+    (addEpcisTime startTime 10) tz
+    rpAuPort (BizLocation regulator3Biz)),
+
+    EachEvent [auPortE, cnPortE]
+    (shippingToChina (Just . ParentLabel $ shipLabel) palletLabels
+    (addEpcisTime startTime 11) tz
+    rpCnPort (BizLocation cnPortLocation)),
+
+    EachEvent [regulator4E]
+    (quarantineChina palletLabels
+    (addEpcisTime startTime 12) tz
+    rpCnPort (BizLocation regulator4Biz))
+
+  ]
+  where
+    addEpcisTime (EPCISTime currTime) toAdd = EPCISTime $ addUTCTime (toAdd * 60) currTime
+    instanceLandLabel = IL landLabel
+    rpFarmLocation = ReadPointLocation farmLocation
+    rpPackingHouseLocation = ReadPointLocation packingHouseLocation
+    parentTruckLabel = Just . ParentLabel $ truckLabel
+    parentTruck2Label = Just . ParentLabel $ truck2Label
+    locationPackingHouse = BizLocation packingHouseBiz
+    rpAuPort = ReadPointLocation auPortLocation
+    rpCnPort = ReadPointLocation cnPortLocation
+
+
+-- Entities
+farmerE = Entity "farmer" farmerCompanyPrefix "Citrus Sensation Farm" [farmLocation, farmerBiz]
+truckDriver1E = Entity "truckDriver1" truckDriver1CompanyPrefix "Super Transport Solutions" [truckDriver1Biz]
+regulator1E = Entity "regulator1" regulator1CompanyPrefix "Pest Controllers" [regulator1Biz]
+regulator2E = Entity "regulator2" regulator2CompanyPrefix "Residue Checkers" [regulator2Biz]
+packingHouseE = Entity "packingHouse" packingHouseCompanyPrefix "Packing Citrus R Us" [packingHouseLocation]
+auPortE = Entity "AustralianPort" auPortCompanyPrefix "Port Melbourne" [auPortLocation]
+cnPortE = Entity "ChinesePort" cnPortCompanyPrefix "Shanghai Port" [cnPortLocation]
+truckDriver2E = Entity "truckDriver2" truck2CompanyPrefix "Duper Transport Solutions" [truck2Biz]
+regulator3E = Entity "regulator3" regulator3CompanyPrefix "Quarantine Australia" [regulator3Biz]
+regulator4E = Entity "regulator4" regulator4CompanyPrefix "Quarantine China" [regulator4Biz]
+
+
 
 --TODO: Define the gs1CompanyIdentifiers used in the supply chain:
 farmerCompanyPrefix :: GS1CompanyPrefix
@@ -145,9 +249,7 @@ regulator3CompanyPrefix = GS1CompanyPrefix "4545"
 regulator4CompanyPrefix :: GS1CompanyPrefix
 regulator4CompanyPrefix = GS1CompanyPrefix "8989"
 
-type EntityName = T.Text
 
-data Entity = Entity EntityName GS1CompanyPrefix
 
 allPrefixes :: [GS1CompanyPrefix]
 allPrefixes = [
@@ -298,34 +400,6 @@ brUsers :: BasicAuthData -> ClientM [BT.UserId]
 brUsers brAuthUser =
   insertMultipleUsersBR "citrusSupplyChain" brAuthUser userNames allPrefixes
 
-
--- | A series of events in a citrus supply chain.
-citrusEvents :: EPCISTime -> TimeZone -> [Event]
-citrusEvents startTime tz =
-  [ pestControl [instanceLandLabel] startTime tz rpFarmLocation (BizLocation regulator1Biz),
-    maxResidue [instanceLandLabel] (addEpcisTime startTime 1) tz rpFarmLocation (BizLocation regulator2Biz),
-    labelBinsHarvest [instanceLandLabel] (addEpcisTime startTime 2) tz rpFarmLocation (BizLocation farmerBiz),
-    farmerToTruckDriver1 parentTruckLabel binLabels (addEpcisTime startTime 3) tz rpFarmLocation (BizLocation farmerBiz),
-    truckDriver1ToPackingHouse parentTruckLabel binLabels (addEpcisTime startTime 4) tz rpPackingHouseLocation locationPackingHouse,
-    applyFungicide binLabels (addEpcisTime startTime 5) tz rpPackingHouseLocation locationPackingHouse,
-    sortingBoxing (Just . ParentLabel $ boxLabel) binLabels (addEpcisTime startTime 6) tz rpPackingHouseLocation locationPackingHouse,
-    palletisation (Just . ParentLabel $ palletLabel) boxLabels (addEpcisTime startTime 7) tz rpPackingHouseLocation locationPackingHouse,
-    packingHouseToTruckDriver2 parentTruck2Label palletLabels (addEpcisTime startTime 8) tz rpPackingHouseLocation locationPackingHouse,
-    truckDriver2ToPortsOperator1 parentTruck2Label palletLabels (addEpcisTime startTime 9) tz rpAuPort (BizLocation truck2Biz),
-    quarantineAus palletLabels (addEpcisTime startTime 10) tz rpAuPort (BizLocation regulator3Biz),
-    shippingToChina (Just . ParentLabel $ shipLabel) palletLabels (addEpcisTime startTime 11) tz rpCnPort (BizLocation cnPortLocation),
-    quarantineChina palletLabels (addEpcisTime startTime 12) tz rpCnPort (BizLocation regulator4Biz)
-  ]
-  where
-    addEpcisTime (EPCISTime currTime) toAdd = EPCISTime $ addUTCTime (toAdd * 60) currTime
-    instanceLandLabel = IL landLabel
-    rpFarmLocation = ReadPointLocation farmLocation
-    rpPackingHouseLocation = ReadPointLocation packingHouseLocation
-    parentTruckLabel = Just . ParentLabel $ truckLabel
-    parentTruck2Label = Just . ParentLabel $ truck2Label
-    locationPackingHouse = BizLocation packingHouseBiz
-    rpAuPort = ReadPointLocation auPortLocation
-    rpCnPort = ReadPointLocation cnPortLocation
 
 
 --pest control
