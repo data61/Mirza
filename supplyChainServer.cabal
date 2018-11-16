@@ -155,6 +155,8 @@ test-suite supplyChainServer-test
                      , text
                      , time
                      , uuid
+                     , unordered-containers
+                     , hashable
                      , tasty
                      , tasty-hspec
                      , tasty-hunit
