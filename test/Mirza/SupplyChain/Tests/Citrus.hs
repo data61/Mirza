@@ -135,8 +135,7 @@ insertAndAuth
 
 insertEachEvent :: EachEvent -> AuthHash ->  ClientM ()
 insertEachEvent ht (EachEvent [] ev) = pure ()
-insertEachEvent ht (EachEvent entities ev) = do
-  let initialEntity = entities[0]
+insertEachEvent ht (EachEvent initialEntity: entities ev) = do
   let (userId, auth) = lookup ht initialEntity
   -- first insert it
   (eventInfo, eventId) = case (EventType ev) of
