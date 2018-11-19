@@ -432,6 +432,12 @@ locationList = [
   , NewLocation regulator4Biz (Just (Latitude 154.3, Longitude 119.9)) (Just "63 Chopin Street, Woolloomolloo")
   ]
 
+_locationEPCToNewLocationMap :: H.HashMap LocationEPC NewLocation
+_locationEPCToNewLocationMap = mapLocations zippedLocations
+  where
+    zippedLocations = zip allLocationEPC locationList
+    mapLocations [] = H.empty
+    mapLocations (l:ls) = let (lEpc, newLoc) = l in H.insert lEpc newLoc $ mapLocations ls
 
 --TODO: make a list of newBusinesses:
 businessList :: [NewBusiness]
