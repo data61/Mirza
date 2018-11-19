@@ -60,7 +60,6 @@ import           Text.Email.Validate                  (EmailAddress,
                                                        toByteString, validate)
 
 
-instance ToParamSchema EPC.GS1CompanyPrefix
 instance FromHttpApiData EPC.GS1CompanyPrefix where
   -- TODO: Add proper parsing for EPC.GS1CompanyPrefix
   parseUrlPiece = Right . EPC.GS1CompanyPrefix

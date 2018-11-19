@@ -20,7 +20,7 @@ import           Control.Monad.Except                (MonadError (..),
 import           Data.ByteString                     (ByteString)
 import qualified Data.ByteString.Lazy.Char8          as LBSC8
 
-import           Data.GS1.EPC
+import           Data.GS1.EPC                        as EPC
 import           Database.PostgreSQL.Simple.Internal (SqlError (..))
 import           Servant.Server
 
@@ -44,7 +44,7 @@ appErrToHttpErr (Base64DecodeFailure _) =
   throwError $ err400 {
     errBody = "Could not decode Base64 signature."
   }
-appErrToHttpErr (InvalidEventId _) =
+appErrToHttpErr (ST.InvalidEventId _) =
   throwError $ err400 {
     errBody = "No such event."
   }
@@ -120,15 +120,16 @@ throwParseError = throwing _ParseError
 parseFailureToErrorMsg :: ParseFailure -> LBSC8.ByteString
 -- TODO: Include XML Snippet in the error
 parseFailureToErrorMsg e = case e of
-  InvalidLength -> "The length of one of your URNs is not correct"
-  InvalidFormat -> "Incorrectly formatted XML. Possible Causes: Some components \
+  MultipleTags _ -> "More than the specified number of tags are present"
+  InvalidLength _ -> "The length of one of your URNs is not correct"
+  InvalidFormat _ -> "Incorrectly formatted XML. Possible Causes: Some components \
                    \of the URN missing,Incorrectly structured, Wrong payload"
-  InvalidAction -> "Could not parse the Action provided"
-  InvalidBizTransaction -> "Could not parse business transaction"
-  InvalidEvent -> "Could not parse the event supplied"
-  TimeZoneError -> "There was an error in parsing the timezone"
-  TagNotFound -> "One or more required tags missing"
-  InvalidDispBizCombination -> "The combination of Disposition\
+  InvalidAction _ -> "Could not parse the Action provided"
+  InvalidBizTransaction _ -> "Could not parse business transaction"
+  EPC.InvalidEventId _ -> "Could not parse the event supplied"
+  TimeZoneError _ -> "There was an error in parsing the timezone"
+  TagNotFound _ -> "One or more required tags missing"
+  InvalidDispBizCombination _ -> "The combination of Disposition\
                                \ and Business Transaction is incorrect"
 -- TODO: map parseFailureToErrorMsg <all_failures> joined by "\n"
   ChildFailure _ -> "Encountered several errors while parsing the data provided."
