@@ -180,7 +180,6 @@ insertEachEvent ht (EachEvent (initialEntity: entities) ev) = do
 clientSignEvent :: AuthHash -> EventInfo -> Entity -> ClientM PrimaryKeyType
 clientSignEvent ht evInfo entity = do
   let Just (_, auth, _) = H.lookup entity ht
-      -- brKeyId = BRKeyId keyId
       (EventInfo event _ _ (Base64Octets toSign) _) = evInfo
       eventId = fromJust $ _eid event
       (Entity _ _ _ _ (KeyPairPaths privKeyPath pubKeyPath)) = entity
@@ -191,8 +190,7 @@ clientSignEvent ht evInfo entity = do
   Right mySig <- liftIO $ runExceptT @JOSE.Error (
           signJWS toSign (Identity (newJWSHeader ((), RS256), privKey))
           )
-      --then sign it
-  let signedEvent = SignedEvent eventId keyId mySig --TODO: sign this with the private key
+  let signedEvent = SignedEvent eventId keyId mySig
   eventSign auth signedEvent
 
 
