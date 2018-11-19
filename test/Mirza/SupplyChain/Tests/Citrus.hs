@@ -98,7 +98,8 @@ citrusSpec = do
               httpBR = runClient brUrl
               brAuthUser = brAuthData testData
           let initHt = H.empty
-          Right ht <- httpSCS $ insertAndAuth brAuthUser initHt allEntities
+              locMap = locationEPCToNewLocationMap
+          Right ht <- httpSCS $ insertAndAuth brAuthUser locMap initHt allEntities
           currTime <- getCurrentTime
           let cEvents = citrusEvents (EPCISTime currTime) utc
           _r <- sequence $ (httpSCS . (insertEachEvent ht)) <$> cEvents
@@ -135,13 +136,12 @@ citrusSpec = do
         ]
 
 type AuthHash = H.HashMap Entity (UserId, BasicAuthData, BRKeyId)
+type LocationMap = H.HashMap LocationEPC NewLocation
 
-
--- TODO: Insert locations
-insertAndAuth :: BasicAuthData -> AuthHash -> [Entity] -> ClientM AuthHash
-insertAndAuth _          ht [] = pure ht
-insertAndAuth auth ht (entity:entities) = do
-  let (Entity name companyPrefix bizName _locations (KeyPairPaths _ pubKeyPath)) = entity
+insertAndAuth :: BasicAuthData -> LocationMap -> AuthHash -> [Entity] -> ClientM AuthHash
+insertAndAuth _     _     ht [] = pure ht
+insertAndAuth auth locMap ht (entity:entities) = do
+  let (Entity name companyPrefix bizName locations (KeyPairPaths _ pubKeyPath)) = entity
       [newUserSCS] = genMultipleUsersSCS "citrusTest" 1 [name] [companyPrefix]
       [newUserBR] = genMultipleUsersBR "citrusTest" 1 [name] [companyPrefix]
       newBiz = NewBusiness companyPrefix bizName
@@ -155,13 +155,16 @@ insertAndAuth auth ht (entity:entities) = do
           (toByteString . ST.newUserEmailAddress $ newUserSCS)
           (encodeUtf8   . ST.newUserPassword     $ newUserSCS)
 
-  --basicAuthData <- login
-  --basicAuthDataBr <- login userId br
   -- XXX only need to do addLocation here if the location is tied to the user in the BR,
   -- otherwise it's probably easier to just add all the locations separately.
-  --addLocation basicAuthDataBr newLocation
+
+  let newLocs = flip H.lookup locMap <$> locations
+  sequence_ $ maybeInsertLocation <$> newLocs
   let updatedHt = H.insert entity (insertedUserIdSCS, basicAuthDataSCS, brKeyId) ht
-  insertAndAuth auth updatedHt entities
+  insertAndAuth auth locMap updatedHt entities
+  where
+    maybeInsertLocation Nothing    = pure ()
+    maybeInsertLocation (Just loc) = void $ BRClient.addLocation auth loc
 
 -- TODO: This is not a truly recursive function. The function body
 -- only applies to the first entity
@@ -432,10 +435,11 @@ locationList = [
   , NewLocation regulator4Biz (Just (Latitude 154.3, Longitude 119.9)) (Just "63 Chopin Street, Woolloomolloo")
   ]
 
-_locationEPCToNewLocationMap :: H.HashMap LocationEPC NewLocation
-_locationEPCToNewLocationMap = mapLocations zippedLocations
+locationEPCToNewLocationMap :: LocationMap
+locationEPCToNewLocationMap = mapLocations zippedLocations
   where
     zippedLocations = zip allLocationEPC locationList
+    -- mapLocations :: [a] -> LocationMap
     mapLocations [] = H.empty
     mapLocations (l:ls) = let (lEpc, newLoc) = l in H.insert lEpc newLoc $ mapLocations ls
 
