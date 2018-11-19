@@ -2,7 +2,9 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TypeApplications #-}
 
-module Mirza.SupplyChain.Tests.Citrus where
+module Mirza.SupplyChain.Tests.Citrus (
+    citrusSpec
+  ) where
 
 import           GHC.Generics                           (Generic)
 
@@ -127,7 +129,6 @@ citrusSpec = do
 
           -- step "get all events related to boxLabel"
           error "not implemented yet"
-
 
   pure $ testGroup "Citrus Client tests"
         [ citrusSupplyChainTests
