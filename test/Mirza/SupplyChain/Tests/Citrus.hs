@@ -64,6 +64,43 @@ import           Text.Email.Validate                   (toByteString)
 
 import           Data.List.NonEmpty                    (NonEmpty (..))
 
+-- =============================================================================
+-- Utility Data structures/Type aliases
+-- =============================================================================
+
+type AuthHash = H.HashMap Entity (UserId, BasicAuthData, BRKeyId)
+type LocationMap = H.HashMap LocationEPC NewLocation
+type EntityName = T.Text
+type BusinessName = T.Text
+
+data EachEvent = EachEvent [Entity] Event
+  deriving (Eq, Show, Generic)
+
+data Entity = Entity {
+    entitiName          :: EntityName
+  , entityCompanyPrefix :: GS1CompanyPrefix
+  , entityBizName       :: BusinessName
+  , entityLocList       :: [LocationEPC]
+  , entityKeyPairPaths  :: KeyPairPaths
+  }
+  deriving (Eq, Show, Generic)
+instance Hashable Entity where
+  hashWithSalt salt entity = hashWithSalt salt (unGS1CompanyPrefix $ entityCompanyPrefix entity)
+
+--                              PrivateKey PublicKey
+data KeyPairPaths = KeyPairPaths FilePath FilePath
+  deriving (Eq, Show, Generic)
+
+privateKeyPath :: String -> FilePath
+privateKeyPath entityName = "./test/Mirza/SupplyChain/TestData/testKeys/goodJWKs/" <> entityName <> "_rsa.json"
+
+publicKeyPath :: String -> FilePath
+publicKeyPath entityName = "./test/Mirza/SupplyChain/TestData/testKeys/goodJWKs/" <> entityName <> "_rsa_pub.json"
+
+
+-- =============================================================================
+-- Citrus Provenance test
+-- =============================================================================
 
 citrusSpec :: IO TestTree
 citrusSpec = do
@@ -75,14 +112,14 @@ citrusSpec = do
               brUrl = brBaseUrl testData
               httpBR = runClient brUrl
               brAuthUser = brAuthData testData
-          let initHt = H.empty
+              initAuthHt = H.empty
               locMap = locationEPCToNewLocationMap
 
           step "Initialising the data"
-          ht <- insertAndAuth scsUrl brUrl brAuthUser locMap initHt allEntities
+          authHt <- insertAndAuth scsUrl brUrl brAuthUser locMap initAuthHt allEntities
           currTime <- getCurrentTime
           let cEvents = citrusEvents (EPCISTime currTime) utc
-          insertEachEventResult <- sequence $ (httpSCS . (insertEachEvent ht)) <$> cEvents
+          insertEachEventResult <- sequence $ (httpSCS . (insertEachEvent authHt)) <$> cEvents
           _ <- pure $ (flip shouldSatisfy) isRight <$> insertEachEventResult
 
           step "insert the users into BR"
@@ -96,8 +133,9 @@ citrusSpec = do
         [ citrusSupplyChainTests
         ]
 
-type AuthHash = H.HashMap Entity (UserId, BasicAuthData, BRKeyId)
-type LocationMap = H.HashMap LocationEPC NewLocation
+-- =============================================================================
+-- Insertion and Signature utils
+-- =============================================================================
 
 insertAndAuth :: BaseUrl -> BaseUrl -> BasicAuthData -> LocationMap -> AuthHash -> [Entity] -> IO AuthHash
 insertAndAuth _ _ _ _          ht [] = pure ht
@@ -160,23 +198,9 @@ clientSignEvent ht evInfo entity = do
   let signedEvent = SignedEvent eventId keyId mySig
   eventSign auth signedEvent
 
-
-data EachEvent = EachEvent [Entity] Event
-  deriving (Eq, Show, Generic)
-
-data Entity = Entity {
-    entitiName          :: EntityName
-  , entityCompanyPrefix :: GS1CompanyPrefix
-  , entityBizName       :: BusinessName
-  , entityLocList       :: [LocationEPC]
-  , entityKeyPairPaths  :: KeyPairPaths
-  }
-  deriving (Eq, Show, Generic)
-instance Hashable Entity where
-  hashWithSalt salt entity = hashWithSalt salt (unGS1CompanyPrefix $ entityCompanyPrefix entity)
-
-type EntityName = T.Text
-type BusinessName = T.Text
+-- =============================================================================
+-- Event list/data
+-- =============================================================================
 
 -- | A series of events in a citrus supply chain.
 citrusEvents :: EPCISTime -> TimeZone -> [EachEvent]
@@ -380,8 +404,6 @@ allLocationEPC = [
   , regulator4Biz ]
 
 
---TODO: Create a list of NewLocations for insertion into the BR using
---the above GLNs.
 locationList :: [NewLocation]
 locationList = [
     NewLocation farmLocation (Just (Latitude 122.3, Longitude 123.9)) (Just "17 Cherry Drive, Young")
@@ -404,17 +426,6 @@ locationEPCToNewLocationMap = mapLocations zippedLocations
     zippedLocations = zip allLocationEPC locationList
     mapLocations [] = H.empty
     mapLocations (l:ls) = let (lEpc, newLoc) = l in H.insert lEpc newLoc $ mapLocations ls
-
---                              PrivateKey PublicKey
-data KeyPairPaths = KeyPairPaths FilePath FilePath
-  deriving (Eq, Show, Generic)
-
-privateKeyPath :: String -> FilePath
-privateKeyPath entityName = "./test/Mirza/SupplyChain/TestData/testKeys/goodJWKs/" ++ entityName ++ "_rsa.json"
-
-publicKeyPath :: String -> FilePath
-publicKeyPath entityName = "./test/Mirza/SupplyChain/TestData/testKeys/goodJWKs/" ++ entityName ++ "_rsa_pub.json"
-
 
 farmerKP :: KeyPairPaths
 farmerKP = KeyPairPaths (privateKeyPath "farmer") (publicKeyPath "farmer")
