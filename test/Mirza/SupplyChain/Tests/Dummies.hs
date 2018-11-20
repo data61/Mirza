@@ -192,16 +192,3 @@ dummyDWhere =
 
 dummyDWhy :: DWhy
 dummyDWhy = DWhy (Just Receiving) (Just InProgress)
-
-
--- | @INCOMPLETE@ Utility function to read an XML and write that to database
--- runEventCreateObject :: FilePath -> AppM ()
--- runEventCreateObject xmlFile = do
---   doc <- liftIO $ Text.XML.readFile def xmlFile
---   let mainCursor = fromDocument doc
---       allParsedEvents =
---         filter (not . null) $ concat $
---         parseEventByType mainCursor <$> Ev.allEventTypes
---       (Right objEvent) = head allParsedEvents
---   eventId <- BQ.insertObjectEvent dummyUser dummyObject
---   liftIO $ print eventId
