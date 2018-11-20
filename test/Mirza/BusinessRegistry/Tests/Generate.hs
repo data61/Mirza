@@ -55,12 +55,12 @@ mkNewUserByNumber testName n =
       numBS = BS.pack numStr
   in
   NewUser
-  { newUserPhoneNumber = T.append "0400 111 22" numT
-  , newUserEmailAddress = unsafeMkEmailAddress $ BS.concat ["abc", numBS, "@example.com"]
-  , newUserFirstName = T.append "First: " numT
-  , newUserLastName = T.append "Last: " numT
+  { newUserPhoneNumber = "0400 111 22" <> numT
+  , newUserEmailAddress = unsafeMkEmailAddress $ "abc" <> "@example.com"
+  , newUserFirstName = "First: " <> numT
+  , newUserLastName = "Last: " <> numT
   , newUserCompany = globalCompanyPrefix -- Company prefix is constant
-  , newUserPassword = "re4lly$ecret14!"}
+  , newUserPassword = "re4lly$ecret14!" }
 
 
 insertNUsersBR :: TestName
@@ -104,4 +104,4 @@ genMultipleUsersBR testName n (f:fx) (p:px) =
       , newUserFirstName = f
       , newUserLastName = "Last: " <> numT
       , newUserCompany = p
-      , newUserPassword = "re4lly$ecret14!"}
+      , newUserPassword = "re4lly$ecret14!" }

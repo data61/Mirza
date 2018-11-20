@@ -44,17 +44,17 @@ genNUsersSCS testName n = mkNewUserByNumber testName n : genNUsersSCS testName (
 
 mkNewUserByNumber :: String -> Int -> ST.NewUser
 mkNewUserByNumber testName n =
-  let numStr = testName ++ "_" ++ show n
+  let numStr = testName <> "_" <> show n
       numT = T.pack numStr
       numBS = BS.pack numStr
   in
   ST.NewUser
-  { ST.newUserPhoneNumber = T.append "0400 111 22" numT
-  , ST.newUserEmailAddress = unsafeMkEmailAddress $ BS.concat ["abc", numBS, "@example.com"]
-  , ST.newUserFirstName = T.append "First: " numT
-  , ST.newUserLastName = T.append "Last: " numT
-  , ST.newUserCompany = GS1CompanyPrefix $ T.append "671456___" numT
-  , ST.newUserPassword = "re4lly$ecret14!"}
+  { ST.newUserPhoneNumber ="0400 111 22" <> numT
+  , ST.newUserEmailAddress = unsafeMkEmailAddress $ "abc" <> numBS <> "@example.com"
+  , ST.newUserFirstName = "First: " <> numT
+  , ST.newUserLastName = "Last: "<>  numT
+  , ST.newUserCompany = GS1CompanyPrefix $ "671456___" <> numT
+  , ST.newUserPassword = "re4lly$ecret14!" }
 
 
 insertNUsersSCS :: TestName
@@ -91,10 +91,10 @@ genMultipleUsersSCS testName n (f:fx) (p:px) =
   where
     numT = T.pack $ show n
     newUser = ST.NewUser
-      { ST.newUserPhoneNumber = T.append "0400 111 22" numT
+      { ST.newUserPhoneNumber = "0400 111 22" <> numT
       , ST.newUserEmailAddress =
-          unsafeMkEmailAddress $ BS.concat [encodeUtf8 f, "@example.com"]
+          unsafeMkEmailAddress $ encodeUtf8 f <> "@example.com"
       , ST.newUserFirstName = f
-      , ST.newUserLastName = T.append "Last: " numT
+      , ST.newUserLastName = "Last: " <> numT
       , ST.newUserCompany = p
-      , ST.newUserPassword = "re4lly$ecret14!"}
+      , ST.newUserPassword = "re4lly$ecret14!" }
