@@ -100,7 +100,7 @@ genMultipleUsersBR testName n (f:fx) (p:px) =
     newUser = NewUser
       { newUserPhoneNumber = "0400 111 22" <> numT
       , newUserEmailAddress =
-          unsafeMkEmailAddress $ encodeUtf8 f <> "BR" <> "@example.com"
+          unsafeMkEmailAddress $ encodeUtf8 f <> "@example.com"
       , newUserFirstName = f
       , newUserLastName = "Last: " <> numT
       , newUserCompany = p
