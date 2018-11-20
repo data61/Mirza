@@ -1,6 +1,8 @@
-{-# LANGUAGE DeriveGeneric    #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE DeriveGeneric      #-}
+{-# LANGUAGE FlexibleContexts   #-}
+{-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE TypeApplications   #-}
+{-# OPTIONS_GHC -fno-warn-orphans  #-}
 
 module Mirza.SupplyChain.Tests.Citrus (
     citrusSpec
@@ -50,6 +52,7 @@ import           Data.Time.LocalTime                    (utc)
 
 import           Mirza.BusinessRegistry.Tests.Utils     (readJWK)
 
+import           Data.Either                            (isRight)
 import           Data.Maybe                             (fromJust)
 
 import           Data.Hashable                          (Hashable (..))
@@ -92,6 +95,11 @@ citrusSpec = do
   let citrusSupplyChainTests = testCaseSteps "Creating food provenance trail" $ \step ->
         bracket runApps endApps $ \testData -> do
 
+          step "Sanity check: That all the fake lists are in order"
+          length locationList `shouldBe` length allLocationEPC
+          length allPrefixes `shouldBe` length userNames
+          length allPrefixes `shouldBe` length businessList
+
           let scsUrl = scsBaseUrl testData
               httpSCS = runClient scsUrl
               brUrl = brBaseUrl testData
@@ -102,23 +110,21 @@ citrusSpec = do
           Right ht <- httpSCS $ insertAndAuth brAuthUser locMap initHt allEntities
           currTime <- getCurrentTime
           let cEvents = citrusEvents (EPCISTime currTime) utc
-          _r <- sequence $ (httpSCS . (insertEachEvent ht)) <$> cEvents
+          insertEachEventResult <- sequence $ (httpSCS . (insertEachEvent ht)) <$> cEvents
+          _ <- pure $ (flip shouldSatisfy) isRight <$> insertEachEventResult
 
-
-          step "Sanity check: That all the fake lists are in order"
-          length allPrefixes `shouldBe` length allLocationEPC
-          length allPrefixes `shouldBe` length locationList
-          length allPrefixes `shouldBe` length userNames
-          length allPrefixes `shouldBe` length businessList
 
           step "insert prelim data into SCS and BR"
-          _userIdsSCS <- httpSCS scsUsers
-          _gs1prefixes <- httpBR $ insertBusinesses brAuthUser businessList
-          _locationIds <- httpBR $ insertLocations brAuthUser locationList
+          userIdsSCS <- httpSCS scsUsers
+          userIdsSCS `shouldSatisfy` isRight
+          gs1prefixes <- httpBR $ insertBusinesses brAuthUser businessList
+          gs1prefixes `shouldSatisfy` isRight
+          locationIds <- httpBR $ insertLocations brAuthUser locationList
+          locationIds `shouldSatisfy` isRight
 
           step "insert the users into BR"
-          _userIdsBR <- httpBR $ brUsers brAuthUser
-
+          userIdsBR <- httpBR $ brUsers brAuthUser
+          userIdsBR `shouldSatisfy` isRight
           -- step "insert citrus events into SCS, sign & counter sign them"
           -- for each event in CitrusEvents,
           -- insert key(s) into BR
@@ -129,7 +135,6 @@ citrusSpec = do
           -- step "check eventInfo for each event"
 
           -- step "get all events related to boxLabel"
-          error "not implemented yet"
 
   pure $ testGroup "Citrus Client tests"
         [ citrusSupplyChainTests
