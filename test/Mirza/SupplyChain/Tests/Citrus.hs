@@ -347,25 +347,25 @@ allEntities = [
 
 --TODO: Define the gs1CompanyIdentifiers used in the supply chain:
 farmerCompanyPrefix :: GS1CompanyPrefix
-farmerCompanyPrefix = GS1CompanyPrefix "1111"
+farmerCompanyPrefix = GS1CompanyPrefix "1111111"
 truckDriver1CompanyPrefix :: GS1CompanyPrefix
-truckDriver1CompanyPrefix = GS1CompanyPrefix "2222"
+truckDriver1CompanyPrefix = GS1CompanyPrefix "2222111"
 regulator1CompanyPrefix :: GS1CompanyPrefix
-regulator1CompanyPrefix = GS1CompanyPrefix "3333"
+regulator1CompanyPrefix = GS1CompanyPrefix "3333111"
 regulator2CompanyPrefix :: GS1CompanyPrefix
-regulator2CompanyPrefix = GS1CompanyPrefix "4444"
+regulator2CompanyPrefix = GS1CompanyPrefix "4444111"
 packingHouseCompanyPrefix :: GS1CompanyPrefix
-packingHouseCompanyPrefix = GS1CompanyPrefix "5555"
+packingHouseCompanyPrefix = GS1CompanyPrefix "5555111"
 auPortCompanyPrefix :: GS1CompanyPrefix
-auPortCompanyPrefix = GS1CompanyPrefix "7777"
+auPortCompanyPrefix = GS1CompanyPrefix "7777111"
 cnPortCompanyPrefix :: GS1CompanyPrefix
-cnPortCompanyPrefix = GS1CompanyPrefix "8888"
+cnPortCompanyPrefix = GS1CompanyPrefix "8888111"
 truck2CompanyPrefix :: GS1CompanyPrefix
-truck2CompanyPrefix = GS1CompanyPrefix "1212"
+truck2CompanyPrefix = GS1CompanyPrefix "1212111"
 regulator3CompanyPrefix :: GS1CompanyPrefix
-regulator3CompanyPrefix = GS1CompanyPrefix "4545"
+regulator3CompanyPrefix = GS1CompanyPrefix "4545111"
 regulator4CompanyPrefix :: GS1CompanyPrefix
-regulator4CompanyPrefix = GS1CompanyPrefix "8989"
+regulator4CompanyPrefix = GS1CompanyPrefix "8989111"
 
 
 
