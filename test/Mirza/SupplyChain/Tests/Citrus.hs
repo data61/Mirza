@@ -120,11 +120,7 @@ citrusSpec = do
           currTime <- getCurrentTime
           let cEvents = citrusEvents (EPCISTime currTime) utc
           insertEachEventResult <- sequence $ (httpSCS . (insertEachEvent authHt)) <$> cEvents
-          _ <- pure $ (flip shouldSatisfy) isRight <$> insertEachEventResult
-
-          step "insert the users into BR"
-          userIdsBR <- httpBR $ brUsers brAuthUser
-          userIdsBR `shouldSatisfy` isRight
+          pure $ (flip shouldSatisfy) isRight <$> insertEachEventResult
 
           -- step "check eventInfo for each event"
           -- step "get all events related to boxLabel"
@@ -484,11 +480,6 @@ userNames = [
   , "regulator3"
   , "regulator4"
   ]
-
-
-brUsers :: BasicAuthData -> ClientM [BT.UserId]
-brUsers brAuthUser =
-  insertMultipleUsersBR "citrusSupplyChain" brAuthUser userNames allPrefixes
 
 
 --pest control
