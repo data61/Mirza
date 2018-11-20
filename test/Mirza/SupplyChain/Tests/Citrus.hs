@@ -64,28 +64,6 @@ import           Text.Email.Validate                   (toByteString)
 
 import           Data.List.NonEmpty                    (NonEmpty (..))
 
-{-
-
-Tests that should be implemented here
-
-Check Provenance of a labelEPC
-where I've used head, you need to use map to actually do it for all elements in the list. I've just done one element for illustrative purposes.
-eventList <- listEvents <labelEPC>
-let event = head eventList
-eventInfo <- eventInfo(eventID)
-(sig, uid) = head (signatures eventInfo)
-publicKey <- getPublicKey uid
-assert $ decrypt(sig, publicKey) == (joseText eventInfo)
-
-
-Get all events that relate to a labelEPC
-eventList <- listEvents <labelEPC>
-subEvents eventList = [e | e <- eventList, if
-(eventType e == aggregationEvent || eventType e == transformationEvent)
-then (map subEvents $ map listEvents (getSubEPCs e)]
-
-
--}
 
 citrusSpec :: IO TestTree
 citrusSpec = do
@@ -706,3 +684,21 @@ quarantineChina palletIds t tz location bizLocation =
   (DWhen t Nothing tz)
   (DWhy (Just Holding) (Just SellableNotAccessible))
   (DWhere [location] [bizLocation] [] [])
+
+-- Tests that should be implemented in this module:
+
+-- Check Provenance of a labelEPC
+-- where I've used head, you need to use map to actually do it for all elements in the list. I've just done one element for illustrative purposes.
+-- eventList <- listEvents <labelEPC>
+-- let event = head eventList
+-- eventInfo <- eventInfo(eventID)
+-- (sig, uid) = head (signatures eventInfo)
+-- publicKey <- getPublicKey uid
+-- assert $ decrypt(sig, publicKey) == (joseText eventInfo)
+
+
+-- Get all events that relate to a labelEPC
+-- eventList <- listEvents <labelEPC>
+-- subEvents eventList = [e | e <- eventList, if
+-- (eventType e == aggregationEvent || eventType e == transformationEvent)
+-- then (map subEvents $ map listEvents (getSubEPCs e)]
