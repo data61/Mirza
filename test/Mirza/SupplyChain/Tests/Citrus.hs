@@ -110,7 +110,6 @@ citrusSpec = do
           let scsUrl = scsBaseUrl testData
               httpSCS = runClient scsUrl
               brUrl = brBaseUrl testData
-              httpBR = runClient brUrl
               brAuthUser = brAuthData testData
               initAuthHt = H.empty
               locMap = locationEPCToNewLocationMap
@@ -120,7 +119,7 @@ citrusSpec = do
           currTime <- getCurrentTime
           let cEvents = citrusEvents (EPCISTime currTime) utc
           insertEachEventResult <- sequence $ (httpSCS . (insertEachEvent authHt)) <$> cEvents
-          pure $ (flip shouldSatisfy) isRight <$> insertEachEventResult
+          void $ pure $ (flip shouldSatisfy) isRight <$> insertEachEventResult
 
           -- step "check eventInfo for each event"
           -- step "get all events related to boxLabel"
@@ -151,9 +150,6 @@ insertAndAuth scsUrl brUrl auth locMap ht (entity:entities) = do
         BasicAuthData
           (toByteString . ST.newUserEmailAddress $ newUserSCS)
           (encodeUtf8   . ST.newUserPassword     $ newUserSCS)
-
-  -- XXX only need to do addLocation here if the location is tied to the user in the BR,
-  -- otherwise it's probably easier to just add all the locations separately.
 
   let newLocs = flip H.lookup locMap <$> locations
   sequence_ $ maybeInsertLocation <$> newLocs
@@ -320,7 +316,6 @@ allEntities = [
   ]
 
 
---TODO: Define the gs1CompanyIdentifiers used in the supply chain:
 farmerCompanyPrefix :: GS1CompanyPrefix
 farmerCompanyPrefix = GS1CompanyPrefix "1111111"
 truckDriver1CompanyPrefix :: GS1CompanyPrefix
@@ -343,21 +338,6 @@ regulator4CompanyPrefix :: GS1CompanyPrefix
 regulator4CompanyPrefix = GS1CompanyPrefix "8989111"
 
 
-
-allPrefixes :: [GS1CompanyPrefix]
-allPrefixes = [
-    farmerCompanyPrefix
-  , truckDriver1CompanyPrefix
-  , regulator1CompanyPrefix
-  , regulator2CompanyPrefix
-  , packingHouseCompanyPrefix
-  , auPortCompanyPrefix
-  , cnPortCompanyPrefix
-  , truck2CompanyPrefix
-  , regulator3CompanyPrefix
-  , regulator4CompanyPrefix ]
-
---TODO: Define the locations ... fill out the rest of these GLNs
 farmLocation :: LocationEPC
 farmLocation = SGLN farmerCompanyPrefix (LocationReference "1") Nothing -- "blockID3"
 truckDriver1Biz :: LocationEPC
@@ -466,21 +446,6 @@ boxLabels :: [LabelEPC]
 boxLabels = [IL boxLabel, IL $ GIAI farmerCompanyPrefix (SerialNumber "2")]
 palletLabels :: [LabelEPC]
 palletLabels = [IL palletLabel, IL $ GRAI packingHouseCompanyPrefix (AssetType "palletLabel") (SerialNumber "2")]
-
-userNames :: [T.Text]
-userNames = [
-    "farmer"
-  , "truckDriver1"
-  , "regulator1"
-  , "regulator2"
-  , "packingHouse"
-  , "auPort"
-  , "cnPort"
-  , "truck2"
-  , "regulator3"
-  , "regulator4"
-  ]
-
 
 --pest control
 pestControl :: [LabelEPC]
