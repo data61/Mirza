@@ -159,8 +159,6 @@ insertAndAuth scsUrl brUrl auth locMap ht (entity:entities) = do
     maybeInsertLocation Nothing    = pure ()
     maybeInsertLocation (Just loc) = void $ runClient brUrl $ BRClient.addLocation auth loc
 
--- TODO: This is not a truly recursive function. The function body
--- only applies to the first entity
 insertEachEvent :: AuthHash -> EachEvent ->  ClientM ()
 insertEachEvent _ (EachEvent [] _) = pure ()
 insertEachEvent ht (EachEvent (initialEntity: entities) ev) = do
