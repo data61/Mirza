@@ -56,7 +56,7 @@ mkNewUserByNumber testName n =
   in
   NewUser
   { newUserPhoneNumber = "0400 111 22" <> numT
-  , newUserEmailAddress = unsafeMkEmailAddress $ "abc" <> "@example.com"
+  , newUserEmailAddress = unsafeMkEmailAddress $ "abc" <> numBS <> "@example.com"
   , newUserFirstName = "First: " <> numT
   , newUserLastName = "Last: " <> numT
   , newUserCompany = globalCompanyPrefix -- Company prefix is constant
