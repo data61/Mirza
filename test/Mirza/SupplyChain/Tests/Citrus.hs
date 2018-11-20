@@ -2,7 +2,6 @@
 {-# LANGUAGE FlexibleContexts   #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeApplications   #-}
-{-# OPTIONS_GHC -fno-warn-orphans  #-}
 
 module Mirza.SupplyChain.Tests.Citrus (
     citrusSpec
@@ -26,7 +25,7 @@ import           Mirza.SupplyChain.Tests.Generate
 import           Mirza.Common.Tests.InitClient
 import           Mirza.Common.Tests.ServantUtils        (runClient)
 
-import           Servant.Client                         (ClientM)
+import           Servant.Client                         (BaseUrl, ClientM)
 
 import           Servant.API.BasicAuth                  (BasicAuthData (..))
 
@@ -107,7 +106,9 @@ citrusSpec = do
               brAuthUser = brAuthData testData
           let initHt = H.empty
               locMap = locationEPCToNewLocationMap
-          Right ht <- httpSCS $ insertAndAuth brAuthUser locMap initHt allEntities
+
+          step "Initialising the data"
+          ht <- insertAndAuth scsUrl brUrl brAuthUser locMap initHt allEntities
           currTime <- getCurrentTime
           let cEvents = citrusEvents (EPCISTime currTime) utc
           insertEachEventResult <- sequence $ (httpSCS . (insertEachEvent ht)) <$> cEvents
@@ -143,18 +144,20 @@ citrusSpec = do
 type AuthHash = H.HashMap Entity (UserId, BasicAuthData, BRKeyId)
 type LocationMap = H.HashMap LocationEPC NewLocation
 
-insertAndAuth :: BasicAuthData -> LocationMap -> AuthHash -> [Entity] -> ClientM AuthHash
-insertAndAuth _     _     ht [] = pure ht
-insertAndAuth auth locMap ht (entity:entities) = do
-  let (Entity name companyPrefix bizName locations (KeyPairPaths _ pubKeyPath)) = entity
+insertAndAuth :: BaseUrl -> BaseUrl -> BasicAuthData -> LocationMap -> AuthHash -> [Entity] -> IO AuthHash
+insertAndAuth _ _ _ _          ht [] = pure ht
+insertAndAuth scsUrl brUrl auth locMap ht (entity:entities) = do
+  let httpSCS = runClient scsUrl
+      httpBR = runClient brUrl
+      (Entity name companyPrefix bizName locations (KeyPairPaths _ pubKeyPath)) = entity
       [newUserSCS] = genMultipleUsersSCS "citrusTest" 1 [name] [companyPrefix]
       [newUserBR] = genMultipleUsersBR "citrusTest" 1 [name] [companyPrefix]
       newBiz = NewBusiness companyPrefix bizName
   Just pubKey <- liftIO $ readJWK pubKeyPath
-  insertedUserIdSCS <- SCSClient.addUser newUserSCS
-  _insertedUserIdBR <- BRClient.addUser auth newUserBR
-  _insertedPrefix <- BRClient.addBusiness auth newBiz
-  brKeyId <- BRClient.addPublicKey auth pubKey Nothing
+  Right insertedUserIdSCS <- httpSCS $ SCSClient.addUser newUserSCS
+  _insertedUserIdBR <- httpBR $ BRClient.addUser auth newUserBR
+  _insertedPrefix <- httpBR $ BRClient.addBusiness auth newBiz
+  Right brKeyId <- httpBR $ BRClient.addPublicKey auth pubKey Nothing
   let basicAuthDataSCS =
         BasicAuthData
           (toByteString . ST.newUserEmailAddress $ newUserSCS)
@@ -166,10 +169,10 @@ insertAndAuth auth locMap ht (entity:entities) = do
   let newLocs = flip H.lookup locMap <$> locations
   sequence_ $ maybeInsertLocation <$> newLocs
   let updatedHt = H.insert entity (insertedUserIdSCS, basicAuthDataSCS, brKeyId) ht
-  insertAndAuth auth locMap updatedHt entities
+  insertAndAuth scsUrl brUrl auth locMap updatedHt entities
   where
     maybeInsertLocation Nothing    = pure ()
-    maybeInsertLocation (Just loc) = void $ BRClient.addLocation auth loc
+    maybeInsertLocation (Just loc) = void $ runClient brUrl $ BRClient.addLocation auth loc
 
 -- TODO: This is not a truly recursive function. The function body
 -- only applies to the first entity
