@@ -4,41 +4,22 @@
 -- each service's client
 module Mirza.SupplyChain.Tests.Generate where
 
-import           Mirza.SupplyChain.Types          as ST
+import           Data.GS1.EPC
 
-import           Data.GS1.EPC                     (GS1CompanyPrefix (..))
+import           Mirza.SupplyChain.Types          as ST
 
 import qualified Data.Text                        as T
 import           Data.Text.Encoding               (encodeUtf8)
 
 import qualified Data.ByteString.Char8            as BS
 
-import           Mirza.SupplyChain.Client.Servant as SCSClient
-
-import           Servant.API.BasicAuth            (BasicAuthData (..))
-
 import           Mirza.Common.Tests.Utils         (unsafeMkEmailAddress)
-import           Text.Email.Validate              (toByteString)
 
 import           Servant.Client                   (ClientM)
 
-type TestName = String
+import           Mirza.SupplyChain.Client.Servant as SCSClient
 
-firstUser :: NewUser
-firstUser = NewUser  { newUserPhoneNumber = "0400 111 222"
-  , newUserEmailAddress = unsafeMkEmailAddress "first_honcho@example.com"
-  , newUserFirstName = "First"
-  , newUserLastName = "User"
-  , newUserCompany = GS1CompanyPrefix "100000000"
-  , newUserPassword = "re4lly$ecret14!"}
-
-authFirstUser :: BasicAuthData
-authFirstUser = BasicAuthData
-  (toByteString . newUserEmailAddress $ firstUser)
-  (encodeUtf8   . newUserPassword     $ firstUser)
-
-
-genNUsersSCS :: TestName -> Int -> [ST.NewUser]
+genNUsersSCS :: String -> Int -> [ST.NewUser]
 genNUsersSCS _ 0        = []
 genNUsersSCS testName n = mkNewUserByNumber testName n : genNUsersSCS testName (n - 1)
 
@@ -57,7 +38,7 @@ mkNewUserByNumber testName n =
   , ST.newUserPassword = "re4lly$ecret14!" }
 
 
-insertNUsersSCS :: TestName
+insertNUsersSCS :: String
                 -> Int
                 -> ClientM [UserId]
 insertNUsersSCS testName n =
@@ -68,7 +49,7 @@ insertNUsersSCS testName n =
 
 -- Insert multiple users into the SCS DB given a
 -- list of first names and company prefixes.
-insertMultipleUsersSCS  :: TestName
+insertMultipleUsersSCS  :: String
                         -> [T.Text]
                         -> [GS1CompanyPrefix]
                         -> ClientM [UserId]
@@ -78,7 +59,7 @@ insertMultipleUsersSCS testName firstNames pfx =
     n = min (length firstNames) (length pfx)
 
 
-genMultipleUsersSCS :: TestName
+genMultipleUsersSCS :: String
                     -> Int
                     -> [T.Text]
                     -> [GS1CompanyPrefix]
