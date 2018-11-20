@@ -98,10 +98,10 @@ genMultipleUsersBR testName n (f:fx) (p:px) =
   where
     numT = T.pack $ show n
     newUser = NewUser
-      { newUserPhoneNumber = T.append "0400 111 22" numT
+      { newUserPhoneNumber = "0400 111 22" <> numT
       , newUserEmailAddress =
-          unsafeMkEmailAddress $ BS.concat [encodeUtf8 f, "@example.com"]
+          unsafeMkEmailAddress $ encodeUtf8 f <> "BR" <> "@example.com"
       , newUserFirstName = f
-      , newUserLastName = T.append "Last: " numT
+      , newUserLastName = "Last: " <> numT
       , newUserCompany = p
       , newUserPassword = "re4lly$ecret14!"}
