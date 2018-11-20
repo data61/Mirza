@@ -6,7 +6,7 @@ module Mirza.BusinessRegistry.Tests.Generate where
 
 import           Mirza.BusinessRegistry.Types          as BT
 
-import           Data.GS1.EPC                          (GS1CompanyPrefix (..))
+import           Data.GS1.EPC
 
 import qualified Data.Text                             as T
 import           Data.Text.Encoding                    (encodeUtf8)
@@ -18,27 +18,10 @@ import           Mirza.BusinessRegistry.Client.Servant as BRClient
 import           Servant.API.BasicAuth                 (BasicAuthData (..))
 
 import           Mirza.Common.Tests.Utils              (unsafeMkEmailAddress)
-import           Text.Email.Validate                   (toByteString)
 
 import           Servant.Client                        (ClientM)
 
-type TestName = String
-
-firstUser :: NewUser
-firstUser = NewUser  { newUserPhoneNumber = "0400 111 222"
-  , newUserEmailAddress = unsafeMkEmailAddress "first_honcho@example.com"
-  , newUserFirstName = "First"
-  , newUserLastName = "User"
-  , newUserCompany = GS1CompanyPrefix "100000000"
-  , newUserPassword = "re4lly$ecret14!"}
-
-authFirstUser :: BasicAuthData
-authFirstUser = BasicAuthData
-  (toByteString . newUserEmailAddress $ firstUser)
-  (encodeUtf8   . newUserPassword     $ firstUser)
-
-
-genNUsersBR :: TestName -> Int -> [NewUser]
+genNUsersBR :: String -> Int -> [NewUser]
 genNUsersBR _ 0        = []
 genNUsersBR testName n = mkNewUserByNumber testName n : genNUsersBR testName (n - 1)
 
@@ -63,7 +46,7 @@ mkNewUserByNumber testName n =
   , newUserPassword = "re4lly$ecret14!" }
 
 
-insertNUsersBR :: TestName
+insertNUsersBR :: String
                -> Int
                -> BasicAuthData
                -> ClientM [UserId]
@@ -75,7 +58,7 @@ insertNUsersBR testName n brAuthData =
 
 -- Insert multiple users into the BR DB given a
 -- list of first names and company prefixes.
-insertMultipleUsersBR :: TestName
+insertMultipleUsersBR :: String
                       -> BasicAuthData
                       -> [T.Text]
                       -> [GS1CompanyPrefix]
@@ -85,7 +68,7 @@ insertMultipleUsersBR testName brAuthData fn pfx =
   where
     n = min (length fn) (length pfx)
 
-genMultipleUsersBR :: TestName
+genMultipleUsersBR :: String
                    -> Int
                    -> [T.Text]
                    -> [GS1CompanyPrefix]
