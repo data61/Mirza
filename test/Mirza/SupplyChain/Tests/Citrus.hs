@@ -115,26 +115,19 @@ citrusSpec = do
           _ <- pure $ (flip shouldSatisfy) isRight <$> insertEachEventResult
 
 
-          step "insert prelim data into SCS and BR"
-          userIdsSCS <- httpSCS scsUsers
-          userIdsSCS `shouldSatisfy` isRight
-          gs1prefixes <- httpBR $ insertBusinesses brAuthUser businessList
-          gs1prefixes `shouldSatisfy` isRight
-          locationIds <- httpBR $ insertLocations brAuthUser locationList
-          locationIds `shouldSatisfy` isRight
+          -- step "insert prelim data into SCS and BR"
+          -- userIdsSCS <- httpSCS scsUsers
+          -- userIdsSCS `shouldSatisfy` isRight
+          -- gs1prefixes <- httpBR $ insertBusinesses brAuthUser businessList
+          -- gs1prefixes `shouldSatisfy` isRight
+          -- locationIds <- httpBR $ insertLocations brAuthUser locationList
+          -- locationIds `shouldSatisfy` isRight
 
           step "insert the users into BR"
           userIdsBR <- httpBR $ brUsers brAuthUser
           userIdsBR `shouldSatisfy` isRight
-          -- step "insert citrus events into SCS, sign & counter sign them"
-          -- for each event in CitrusEvents,
-          -- insert key(s) into BR
-          -- insert event into SCS
-          -- sign (and countersign) using the keys you inserted, and create
-          -- a SignedEvent. insert into SCS using eventSign.
 
           -- step "check eventInfo for each event"
-
           -- step "get all events related to boxLabel"
 
   pure $ testGroup "Citrus Client tests"
@@ -466,11 +459,11 @@ businessList = [
   , NewBusiness regulator4CompanyPrefix "regulator4"
   ]
 
-insertBusinesses :: BasicAuthData -> [NewBusiness] -> ClientM [GS1CompanyPrefix]
-insertBusinesses brAuthUser bizList = sequence $ BRClient.addBusiness brAuthUser <$> bizList
+_insertBusinesses :: BasicAuthData -> [NewBusiness] -> ClientM [GS1CompanyPrefix]
+_insertBusinesses brAuthUser bizList = sequence $ BRClient.addBusiness brAuthUser <$> bizList
 
-insertLocations :: BasicAuthData -> [NewLocation] -> ClientM [LocationId]
-insertLocations brAuthUser locs = sequence $ BRClient.addLocation brAuthUser <$> locs
+_insertLocations :: BasicAuthData -> [NewLocation] -> ClientM [LocationId]
+_insertLocations brAuthUser locs = sequence $ BRClient.addLocation brAuthUser <$> locs
 
 
 --                              PrivateKey PublicKey
@@ -546,8 +539,8 @@ userNames = [
 -- Create users in the SCS db. Need to also create them in
 -- the BR. This should be re-implemented as a client fucntion, so
 -- you can do it the same way in both SCS and BR.
-scsUsers :: ClientM [ST.UserId]
-scsUsers = insertMultipleUsersSCS "citrusSupplyChain" userNames allPrefixes
+_scsUsers :: ClientM [ST.UserId]
+_scsUsers = insertMultipleUsersSCS "citrusSupplyChain" userNames allPrefixes
 
 
 brUsers :: BasicAuthData -> ClientM [BT.UserId]
