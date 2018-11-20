@@ -7,36 +7,34 @@ module Mirza.SupplyChain.Tests.Citrus (
     citrusSpec
   ) where
 
-import           GHC.Generics                           (Generic)
+import           GHC.Generics                          (Generic)
 
-import           Control.Exception                      (bracket)
+import           Control.Exception                     (bracket)
 import           Control.Monad.Except
 import           Control.Monad.Identity
 
-import qualified Data.Text                              as T
-import           Data.Text.Encoding                     (encodeUtf8)
+import qualified Data.Text                             as T
+import           Data.Text.Encoding                    (encodeUtf8)
 
-import           Mirza.BusinessRegistry.Client.Servant  as BRClient
-import           Mirza.SupplyChain.Client.Servant       as SCSClient
+import           Mirza.BusinessRegistry.Client.Servant as BRClient
+import           Mirza.SupplyChain.Client.Servant      as SCSClient
 
 import           Mirza.BusinessRegistry.Tests.Generate
 import           Mirza.SupplyChain.Tests.Generate
 
 import           Mirza.Common.Tests.InitClient
-import           Mirza.Common.Tests.ServantUtils        (runClient)
+import           Mirza.Common.Tests.ServantUtils       (runClient)
 
-import           Servant.Client                         (BaseUrl, ClientM)
+import           Servant.Client                        (BaseUrl, ClientM)
 
-import           Servant.API.BasicAuth                  (BasicAuthData (..))
+import           Servant.API.BasicAuth                 (BasicAuthData (..))
 
 import           Test.Hspec.Expectations
 import           Test.Tasty
 import           Test.Tasty.HUnit
 
-import           Mirza.BusinessRegistry.Database.Schema (LocationId)
-import           Mirza.BusinessRegistry.Types           as BT
-
-import           Mirza.SupplyChain.Types                as ST
+import           Mirza.BusinessRegistry.Types          as BT
+import           Mirza.SupplyChain.Types               as ST
 
 import           Data.GS1.DWhat
 import           Data.GS1.DWhen
@@ -45,26 +43,26 @@ import           Data.GS1.DWhy
 import           Data.GS1.EPC
 import           Data.GS1.Event
 
-import           Data.Time                              (TimeZone, addUTCTime,
-                                                         getCurrentTime)
-import           Data.Time.LocalTime                    (utc)
+import           Data.Time                             (TimeZone, addUTCTime,
+                                                        getCurrentTime)
+import           Data.Time.LocalTime                   (utc)
 
-import           Mirza.BusinessRegistry.Tests.Utils     (readJWK)
+import           Mirza.BusinessRegistry.Tests.Utils    (readJWK)
 
-import           Data.Either                            (isRight)
-import           Data.Maybe                             (fromJust)
+import           Data.Either                           (isRight)
+import           Data.Maybe                            (fromJust)
 
-import           Data.Hashable                          (Hashable (..))
-import           Data.HashMap.Strict                    as H
+import           Data.Hashable                         (Hashable (..))
+import           Data.HashMap.Lazy                     as H
 
-import           Crypto.JOSE                            (Alg (RS256),
-                                                         newJWSHeader, signJWS)
-import qualified Crypto.JOSE                            as JOSE
-import           Crypto.JOSE.Types                      (Base64Octets (..))
+import           Crypto.JOSE                           (Alg (RS256),
+                                                        newJWSHeader, signJWS)
+import qualified Crypto.JOSE                           as JOSE
+import           Crypto.JOSE.Types                     (Base64Octets (..))
 
-import           Text.Email.Validate                    (toByteString)
+import           Text.Email.Validate                   (toByteString)
 
-import           Data.List.NonEmpty                     (NonEmpty (..))
+import           Data.List.NonEmpty                    (NonEmpty (..))
 
 {-
 
@@ -94,11 +92,6 @@ citrusSpec = do
   let citrusSupplyChainTests = testCaseSteps "Creating food provenance trail" $ \step ->
         bracket runApps endApps $ \testData -> do
 
-          step "Sanity check: That all the fake lists are in order"
-          length locationList `shouldBe` length allLocationEPC
-          length allPrefixes `shouldBe` length userNames
-          length allPrefixes `shouldBe` length businessList
-
           let scsUrl = scsBaseUrl testData
               httpSCS = runClient scsUrl
               brUrl = brBaseUrl testData
@@ -113,15 +106,6 @@ citrusSpec = do
           let cEvents = citrusEvents (EPCISTime currTime) utc
           insertEachEventResult <- sequence $ (httpSCS . (insertEachEvent ht)) <$> cEvents
           _ <- pure $ (flip shouldSatisfy) isRight <$> insertEachEventResult
-
-
-          -- step "insert prelim data into SCS and BR"
-          -- userIdsSCS <- httpSCS scsUsers
-          -- userIdsSCS `shouldSatisfy` isRight
-          -- gs1prefixes <- httpBR $ insertBusinesses brAuthUser businessList
-          -- gs1prefixes `shouldSatisfy` isRight
-          -- locationIds <- httpBR $ insertLocations brAuthUser locationList
-          -- locationIds `shouldSatisfy` isRight
 
           step "insert the users into BR"
           userIdsBR <- httpBR $ brUsers brAuthUser
@@ -440,31 +424,8 @@ locationEPCToNewLocationMap :: LocationMap
 locationEPCToNewLocationMap = mapLocations zippedLocations
   where
     zippedLocations = zip allLocationEPC locationList
-    -- mapLocations :: [a] -> LocationMap
     mapLocations [] = H.empty
     mapLocations (l:ls) = let (lEpc, newLoc) = l in H.insert lEpc newLoc $ mapLocations ls
-
---TODO: make a list of newBusinesses:
-businessList :: [NewBusiness]
-businessList = [
-    NewBusiness farmerCompanyPrefix "farmer"
-  , NewBusiness truckDriver1CompanyPrefix "truckDriver1"
-  , NewBusiness regulator1CompanyPrefix "regulator1"
-  , NewBusiness regulator2CompanyPrefix "regulator2"
-  , NewBusiness packingHouseCompanyPrefix "packingHouse"
-  , NewBusiness auPortCompanyPrefix "auPort"
-  , NewBusiness cnPortCompanyPrefix "cnPort"
-  , NewBusiness truck2CompanyPrefix "truck2"
-  , NewBusiness regulator3CompanyPrefix "regulator3"
-  , NewBusiness regulator4CompanyPrefix "regulator4"
-  ]
-
-_insertBusinesses :: BasicAuthData -> [NewBusiness] -> ClientM [GS1CompanyPrefix]
-_insertBusinesses brAuthUser bizList = sequence $ BRClient.addBusiness brAuthUser <$> bizList
-
-_insertLocations :: BasicAuthData -> [NewLocation] -> ClientM [LocationId]
-_insertLocations brAuthUser locs = sequence $ BRClient.addLocation brAuthUser <$> locs
-
 
 --                              PrivateKey PublicKey
 data KeyPairPaths = KeyPairPaths FilePath FilePath
@@ -536,17 +497,9 @@ userNames = [
   ]
 
 
--- Create users in the SCS db. Need to also create them in
--- the BR. This should be re-implemented as a client fucntion, so
--- you can do it the same way in both SCS and BR.
-_scsUsers :: ClientM [ST.UserId]
-_scsUsers = insertMultipleUsersSCS "citrusSupplyChain" userNames allPrefixes
-
-
 brUsers :: BasicAuthData -> ClientM [BT.UserId]
 brUsers brAuthUser =
   insertMultipleUsersBR "citrusSupplyChain" brAuthUser userNames allPrefixes
-
 
 
 --pest control
