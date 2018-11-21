@@ -128,8 +128,10 @@ test-suite supplyChainServer-test
                     , Mirza.SupplyChain.Tests.Dummies
                     , Mirza.SupplyChain.Tests.Client
                     , Mirza.SupplyChain.Tests.Generate
-                    , Mirza.Common.Tests.Utils
+                    , Mirza.SupplyChain.Tests.Citrus
+                    , Mirza.SupplyChain.Tests.Utils
                     , Mirza.BusinessRegistry.Tests.Utils
+                    , Mirza.BusinessRegistry.Tests.Generate
   default-extensions:  OverloadedStrings
   build-depends:       base
                      , base64-bytestring
@@ -153,6 +155,8 @@ test-suite supplyChainServer-test
                      , text
                      , time
                      , uuid
+                     , unordered-containers
+                     , hashable
                      , tasty
                      , tasty-hspec
                      , tasty-hunit
@@ -182,6 +186,7 @@ test-suite businessRegistry-test
                     , Mirza.BusinessRegistry.Tests.Client
                     , Mirza.Common.Tests.Utils
                     , Mirza.BusinessRegistry.Tests.Utils
+                    , Mirza.BusinessRegistry.Tests.Generate
   default-extensions:  OverloadedStrings
   build-depends:       base
                      , base64-bytestring
