@@ -42,7 +42,7 @@ import           Data.GS1.DWhere                   (BizLocation (..),
                                                     SrcDestLocation (..))
 import           Data.GS1.DWhy                     (DWhy (..))
 
-import           Data.Maybe                        (catMaybes, listToMaybe)
+import           Data.Maybe                        (catMaybes)
 
 import           Data.ByteString                   (ByteString)
 import qualified Data.Text                         as T
