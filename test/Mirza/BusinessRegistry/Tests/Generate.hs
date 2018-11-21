@@ -6,7 +6,7 @@ module Mirza.BusinessRegistry.Tests.Generate where
 
 import           Mirza.BusinessRegistry.Types          as BT
 
-import           Data.GS1.EPC                          (GS1CompanyPrefix (..))
+import           Data.GS1.EPC
 
 import qualified Data.Text                             as T
 import           Data.Text.Encoding                    (encodeUtf8)
@@ -18,27 +18,10 @@ import           Mirza.BusinessRegistry.Client.Servant as BRClient
 import           Servant.API.BasicAuth                 (BasicAuthData (..))
 
 import           Mirza.Common.Tests.Utils              (unsafeMkEmailAddress)
-import           Text.Email.Validate                   (toByteString)
 
 import           Servant.Client                        (ClientM)
 
-type TestName = String
-
-firstUser :: NewUser
-firstUser = NewUser  { newUserPhoneNumber = "0400 111 222"
-  , newUserEmailAddress = unsafeMkEmailAddress "first_honcho@example.com"
-  , newUserFirstName = "First"
-  , newUserLastName = "User"
-  , newUserCompany = GS1CompanyPrefix "100000000"
-  , newUserPassword = "re4lly$ecret14!"}
-
-authFirstUser :: BasicAuthData
-authFirstUser = BasicAuthData
-  (toByteString . newUserEmailAddress $ firstUser)
-  (encodeUtf8   . newUserPassword     $ firstUser)
-
-
-genNUsersBR :: TestName -> Int -> [NewUser]
+genNUsersBR :: String -> Int -> [NewUser]
 genNUsersBR _ 0        = []
 genNUsersBR testName n = mkNewUserByNumber testName n : genNUsersBR testName (n - 1)
 
@@ -55,55 +38,49 @@ mkNewUserByNumber testName n =
       numBS = BS.pack numStr
   in
   NewUser
-  { newUserPhoneNumber = T.append "0400 111 22" numT
-  , newUserEmailAddress = unsafeMkEmailAddress $ BS.concat ["abc", numBS, "@example.com"]
-  , newUserFirstName = T.append "First: " numT
-  , newUserLastName = T.append "Last: " numT
+  { newUserPhoneNumber = "0400 111 22" <> numT
+  , newUserEmailAddress = unsafeMkEmailAddress $ "abc" <> numBS <> "@example.com"
+  , newUserFirstName = "First: " <> numT
+  , newUserLastName = "Last: " <> numT
   , newUserCompany = globalCompanyPrefix -- Company prefix is constant
-  , newUserPassword = "re4lly$ecret14!"}
+  , newUserPassword = "re4lly$ecret14!" }
 
 
-insertNUsersBR :: TestName
+insertNUsersBR :: String
                -> Int
                -> BasicAuthData
-               -> [ClientM UserId]
-insertNUsersBR testName n brAuthData =
-
-  let users = genNUsersBR testName n
-  in
-    BRClient.addUser brAuthData <$> users
-
-type Firstname = T.Text
+               -> ClientM [UserId]
+insertNUsersBR testName n brAuthData = traverse (BRClient.addUser brAuthData) $ genNUsersBR testName n
 
 -- Insert multiple users into the BR DB given a
 -- list of first names and company prefixes.
-insertMultipleUsersBR :: TestName
+insertMultipleUsersBR :: String
                       -> BasicAuthData
-                      -> [Firstname]
+                      -> [T.Text]
                       -> [GS1CompanyPrefix]
-                      -> [ClientM UserId]
+                      -> ClientM  [UserId]
 insertMultipleUsersBR testName brAuthData fn pfx =
-  BRClient.addUser brAuthData <$> genMultipleUsersBR n testName fn pfx
+  traverse (BRClient.addUser brAuthData) (genMultipleUsersBR testName n fn pfx)
   where
     n = min (length fn) (length pfx)
 
-genMultipleUsersBR :: Int
-                   -> TestName
-                   -> [Firstname]
+genMultipleUsersBR :: String
+                   -> Int
+                   -> [T.Text]
                    -> [GS1CompanyPrefix]
                    -> [NewUser]
-genMultipleUsersBR 0 _ _ _ = []
+genMultipleUsersBR _ 0 _  _ = []
 genMultipleUsersBR _ _ [] _ = []
 genMultipleUsersBR _ _ _ [] = []
-genMultipleUsersBR n testName (f:fx) (p:px) =
-  newUser : genMultipleUsersBR (n-1) testName fx px
+genMultipleUsersBR testName n (f:fx) (p:px) =
+  newUser : genMultipleUsersBR testName (n-1) fx px
   where
     numT = T.pack $ show n
     newUser = NewUser
-      { newUserPhoneNumber = T.append "0400 111 22" numT
+      { newUserPhoneNumber = "0400 111 22" <> numT
       , newUserEmailAddress =
-          unsafeMkEmailAddress $ BS.concat [encodeUtf8 f, "@example.com"]
+          unsafeMkEmailAddress $ encodeUtf8 f <> "@example.com"
       , newUserFirstName = f
-      , newUserLastName = T.append "Last: " numT
+      , newUserLastName = "Last: " <> numT
       , newUserCompany = p
-      , newUserPassword = "re4lly$ecret14!"}
+      , newUserPassword = "re4lly$ecret14!" }

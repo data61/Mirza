@@ -702,7 +702,7 @@ type UserEvent = UserEventT Identity
 type UserEventId = PrimaryKey UserEventT Identity
 
 data UserEventT f = UserEvent
-  { user_event_last_update  :: C f (Maybe LocalTime)
+  { user_events_last_update :: C f (Maybe LocalTime)
   , user_events_id          :: C f PrimaryKeyType
   , user_events_event_id    :: PrimaryKey EventT f
   , user_events_user_id     :: PrimaryKey UserT f
