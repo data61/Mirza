@@ -41,10 +41,7 @@ mkNewUserByNumber testName n =
 insertNUsersSCS :: String
                 -> Int
                 -> ClientM [UserId]
-insertNUsersSCS testName n =
-  let users = genNUsersSCS testName n
-  in
-    sequence $ SCSClient.addUser <$> users
+insertNUsersSCS testName n = traverse (SCSClient.addUser) $ genNUsersSCS testName n
 
 
 -- Insert multiple users into the SCS DB given a
@@ -54,7 +51,7 @@ insertMultipleUsersSCS  :: String
                         -> [GS1CompanyPrefix]
                         -> ClientM [UserId]
 insertMultipleUsersSCS testName firstNames pfx =
-  sequence $ SCSClient.addUser <$> genMultipleUsersSCS testName n firstNames pfx
+  traverse SCSClient.addUser $ genMultipleUsersSCS testName n firstNames pfx
   where
     n = min (length firstNames) (length pfx)
 

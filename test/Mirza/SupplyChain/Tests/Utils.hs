@@ -85,7 +85,13 @@ type LocationMap = H.HashMap LocationEPC BT.NewLocation
 -- Insertion and Signature utils
 -- =============================================================================
 
-insertAndAuth :: BaseUrl -> BaseUrl -> BasicAuthData -> LocationMap -> AuthHash -> [Entity] -> IO AuthHash
+insertAndAuth :: BaseUrl
+              -> BaseUrl
+              -> BasicAuthData
+              -> LocationMap
+              -> AuthHash
+              -> [Entity]
+              -> IO AuthHash
 insertAndAuth _ _ _ _          ht [] = pure ht
 insertAndAuth scsUrl brUrl auth locMap ht (entity:entities) = do
   let httpSCS = runClient scsUrl
