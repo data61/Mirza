@@ -2,9 +2,9 @@
 module Main where
 
 import           Mirza.SupplyChain.Database.Migrate
+import           Mirza.SupplyChain.Database.Schema
 import           Mirza.SupplyChain.Main             hiding (main)
 import           Mirza.SupplyChain.Types            as ST
-import           Mirza.SupplyChain.Database.Schema
 
 import           Test.Hspec.Core.Spec               (sequential)
 import           Test.Tasty                         hiding (withResource)
@@ -15,6 +15,7 @@ import           Mirza.Common.Tests.InitClient      (testDbConnectionStringSCS,
                                                      testDbNameSCS)
 import           Mirza.Common.Tests.Utils
 
+import           Mirza.SupplyChain.Tests.Citrus     (citrusSpec)
 import           Mirza.SupplyChain.Tests.Client
 import           Mirza.SupplyChain.Tests.Service    (testServiceQueries)
 
@@ -57,12 +58,13 @@ withDatabaseConnection = bracket openConnection closeConnection
 
 main :: IO ()
 main = do
-  either (error . show) pure =<< (liftIO $ runExceptT $ makeDatabase testDbNameSCS)
+  either (error . show) pure =<< liftIO (runExceptT $ makeDatabase testDbNameSCS)
 
   serviceTests <- testSpec "HSpec" (sequential $ around withDatabaseConnection testServiceQueries)
   clientTests <- clientSpec
-
+  citrusTests <- citrusSpec
   defaultMain $ localOption (NumThreads 1) $ testGroup "SCS tests"
     [ serviceTests
     , clientTests
+    , citrusTests
     ]
