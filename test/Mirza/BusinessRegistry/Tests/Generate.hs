@@ -50,11 +50,7 @@ insertNUsersBR :: String
                -> Int
                -> BasicAuthData
                -> ClientM [UserId]
-insertNUsersBR testName n brAuthData =
-
-  let users = genNUsersBR testName n
-  in
-    sequence $ BRClient.addUser brAuthData <$> users
+insertNUsersBR testName n brAuthData = traverse (BRClient.addUser brAuthData) $ genNUsersBR testName n
 
 -- Insert multiple users into the BR DB given a
 -- list of first names and company prefixes.
@@ -64,7 +60,7 @@ insertMultipleUsersBR :: String
                       -> [GS1CompanyPrefix]
                       -> ClientM  [UserId]
 insertMultipleUsersBR testName brAuthData fn pfx =
-  sequence $ BRClient.addUser brAuthData <$> genMultipleUsersBR testName n fn pfx
+  traverse (BRClient.addUser brAuthData) (genMultipleUsersBR testName n fn pfx)
   where
     n = min (length fn) (length pfx)
 
