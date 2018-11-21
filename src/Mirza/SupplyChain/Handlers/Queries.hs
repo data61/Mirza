@@ -49,10 +49,9 @@ listEvents _user = either throwParseError (runDb . listEventsQuery) . urn2LabelE
 
 listEventsQuery :: AsServiceError err => LabelEPC -> DB context err [Ev.Event]
 listEventsQuery labelEpc = do
-  liftIO $ print $ "***********************Listing events for " <> show labelEpc
-  liftIO $ print "***************************************************"
-  maybe (pure []) (getEventList . Schema.LabelId) =<< findLabelId labelEpc
-
+  labelIds <- findLabelId labelEpc
+  allEvents <- sequence $ (getEventList . Schema.LabelId) <$> labelIds
+  pure $ concat allEvents
 
 eventInfo :: (SCSApp context err, AsServantError err)
           => ST.User
