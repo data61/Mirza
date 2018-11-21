@@ -39,8 +39,7 @@ import           Crypto.JOSE.Types                     (Base64Octets (..))
 import           Data.List                             (partition)
 
 -- This takes an EPC urn,
--- and looks up all the events related to that item. First we've got
--- to find all the related "Whats"
+-- and looks up all the events related to that item.
 listEvents :: SCSApp context err
            => ST.User
            -> LabelEPCUrn
