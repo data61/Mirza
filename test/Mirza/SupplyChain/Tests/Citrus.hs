@@ -49,10 +49,9 @@ citrusSpec = do
               brUrl = brBaseUrl testData
               brAuthUser = brAuthData testData
               initAuthHt = H.empty
-              locMap = locationEPCToNewLocationMap
 
           step "Initialising the data"
-          authHt <- insertAndAuth scsUrl brUrl brAuthUser locMap initAuthHt allEntities
+          authHt <- insertAndAuth scsUrl brUrl brAuthUser locationMap initAuthHt allEntities
           currTime <- getCurrentTime
           let cEvents = citrusEvents (EPCISTime currTime) utc
           insertEachEventResult <- sequence $ (httpSCS . (insertEachEvent authHt)) <$> cEvents
@@ -240,44 +239,23 @@ regulator4Biz :: LocationEPC
 regulator4Biz = SGLN regulator4CompanyPrefix (LocationReference "1") Nothing
 
 
-allLocationEPC :: [LocationEPC]
-allLocationEPC = [
-    farmLocation
-  , truckDriver1Biz
-  , regulator1Biz
-  , regulator2Biz
-  , packingHouseLocation
-  , auPortLocation
-  , cnPortLocation
-  , farmerBiz
-  , packingHouseBiz
-  , truck2Biz
-  , regulator3Biz
-  , regulator4Biz ]
+locationMap :: LocationMap
+locationMap =
+  let newHt = H.empty
+      updatedHt = H.insert farmLocation (NewLocation farmLocation (Just (Latitude 122.3, Longitude 123.9)) (Just "17 Cherry Drive, Young")) newHt
+      updatedHt1 = H.insert truckDriver1Biz (NewLocation truckDriver1Biz (Just (Latitude 130.7, Longitude 213.9)) (Just "50 Bridge Street, Surry Hills")) updatedHt
+      updatedHt2 = H.insert regulator1Biz (NewLocation regulator1Biz (Just (Latitude 192.3, Longitude 113.9)) (Just "NSW PestControl, Wyong")) updatedHt1
+      updatedHt3 = H.insert regulator2Biz (NewLocation regulator2Biz (Just (Latitude 134.6, Longitude 126.9)) (Just "7 Citrus Street, Gordon")) updatedHt2
+      updatedHt4 = H.insert packingHouseLocation (NewLocation packingHouseLocation (Just (Latitude 102.3, Longitude 110.9)) (Just "14 Plucking Street, WoyWoy")) updatedHt3
+      updatedHt5 = H.insert auPortLocation (NewLocation auPortLocation (Just (Latitude 190.3, Longitude 115.8)) (Just "21 Pitkin Avenue, Muswellbrook")) updatedHt4
+      updatedHt6 = H.insert cnPortLocation (NewLocation cnPortLocation (Just (Latitude 234.3, Longitude 137.8)) (Just "34 Park Boulevard, Merriwa")) updatedHt5
+      updatedHt7 = H.insert farmerBiz (NewLocation farmerBiz (Just (Latitude 291.3, Longitude 173.2)) (Just "23 Cleveland Street, Surry Hills")) updatedHt6
+      updatedHt8 = H.insert packingHouseBiz (NewLocation packingHouseBiz (Just (Latitude 182.5, Longitude 120.1)) (Just "141 Homer Street, Ashfield")) updatedHt7
+      updatedHt9 = H.insert truck2Biz (NewLocation truck2Biz (Just (Latitude 222.2, Longitude 112.1)) (Just "90 Crescent Road, Moss Vale")) updatedHt8
+      updatedHt10 = H.insert regulator3Biz (NewLocation regulator3Biz (Just (Latitude 165.1, Longitude 114.6)) (Just "37 York Street")) updatedHt9
+      in
+      H.insert regulator4Biz (NewLocation regulator4Biz (Just (Latitude 154.3, Longitude 119.9)) (Just "63 Chopin Street, Woolloomolloo")) updatedHt10
 
-
-locationMap :: LocationMap -> LocationMap
-locationMap ht = newHT
-  let newHT =
-    H.insert ht farmLocation $ NewLocation farmLocation (Just (Latitude 122.3, Longitude 123.9)) (Just "17 Cherry Drive, Young")
-    H.insert ht $ NewLocation truckDriver1Biz (Just (Latitude 130.7, Longitude 213.9)) (Just "50 Bridge Street, Surry Hills")
-    H.insert ht $ NewLocation regulator1Biz (Just (Latitude 192.3, Longitude 113.9)) (Just "NSW PestControl, Wyong")
-    H.insert ht $ NewLocation regulator2Biz (Just (Latitude 134.6, Longitude 126.9)) (Just "7 Citrus Street, Gordon")
-    H.insert ht $ NewLocation packingHouseLocation (Just (Latitude 102.3, Longitude 110.9)) (Just "14 Plucking Street, WoyWoy")
-    H.insert ht $ NewLocation auPortLocation (Just (Latitude 190.3, Longitude 115.8)) (Just "21 Pitkin Avenue, Muswellbrook")
-    H.insert ht $ NewLocation cnPortLocation (Just (Latitude 234.3, Longitude 137.8)) (Just "34 Park Boulevard, Merriwa")
-    H.insert ht $ NewLocation farmerBiz (Just (Latitude 291.3, Longitude 173.2)) (Just "23 Cleveland Street, Surry Hills")
-    H.insert ht $ NewLocation packingHouseBiz (Just (Latitude 182.5, Longitude 120.1)) (Just "141 Homer Street, Ashfield")
-    H.insert ht $ NewLocation truck2Biz (Just (Latitude 222.2, Longitude 112.1)) (Just "90 Crescent Road, Moss Vale")
-    H.insert ht $ NewLocation regulator3Biz (Just (Latitude 165.1, Longitude 114.6)) (Just "37 York Street")
-    H.insert ht $ NewLocation regulator4Biz (Just (Latitude 154.3, Longitude 119.9)) (Just "63 Chopin Street, Woolloomolloo")
-
-locationEPCToNewLocationMap :: LocationMap
-locationEPCToNewLocationMap = mapLocations zippedLocations
-  where
-    zippedLocations = zip allLocationEPC locationList
-    mapLocations [] = H.empty
-    mapLocations (l:ls) = let (lEpc, newLoc) = l in H.insert lEpc newLoc $ mapLocations ls
 
 farmerKP :: KeyPairPaths
 farmerKP = KeyPairPaths (privateKeyPath "farmer") (publicKeyPath "farmer")
