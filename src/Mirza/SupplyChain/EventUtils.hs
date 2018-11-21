@@ -42,7 +42,7 @@ import           Data.GS1.DWhere                   (BizLocation (..),
                                                     SrcDestLocation (..))
 import           Data.GS1.DWhy                     (DWhy (..))
 
-import           Data.Maybe                        (catMaybes)
+import           Data.Maybe                        (catMaybes, listToMaybe)
 
 import           Data.ByteString                   (ByteString)
 import qualified Data.Text                         as T
@@ -137,7 +137,7 @@ getAction (TransactWhat (TransactionDWhat act _ _ _)) = Just act
 getAction (AggWhat (AggregationDWhat act _ _))        = Just act
 
 
-findInstLabelId :: InstanceLabelEPC -> DB context err (Maybe PrimaryKeyType)
+findInstLabelId :: InstanceLabelEPC -> DB context err [PrimaryKeyType]
 findInstLabelId (GIAI cp sn) = findInstLabelId' cp sn Nothing Nothing Nothing
 findInstLabelId (SSCC cp sn) = findInstLabelId' cp sn Nothing Nothing Nothing
 findInstLabelId (SGTIN cp msfv ir sn) = findInstLabelId' cp sn msfv (Just ir) Nothing
@@ -149,9 +149,9 @@ findInstLabelId' :: GS1CompanyPrefix
                  -> Maybe SGTINFilterValue
                  -> Maybe ItemReference
                  -> Maybe AssetType
-                 -> DB context err (Maybe PrimaryKeyType)
+                 -> DB context err [PrimaryKeyType]
 findInstLabelId' cp sn msfv mir mat = do
-  r <- pg $ runSelectReturningList $ select $ do
+  l <- pg $ runSelectReturningList $ select $ do
     labels <- all_ (Schema._labels Schema.supplyChainDb)
     guard_ (Schema.label_gs1_company_prefix labels ==. val_ cp &&.
             Schema.label_serial_number labels ==. val_ (Just sn) &&.
@@ -159,9 +159,10 @@ findInstLabelId' cp sn msfv mir mat = do
             Schema.label_asset_type labels ==. val_ mat &&.
             Schema.label_item_reference labels ==. val_ mir)
     pure labels
-  pure $ case r of
-    [l] -> Just (Schema.label_id l)
-    _   -> Nothing
+  liftIO $ print $ "========Here are the labels i got for SN: " <> show sn <> "=============================="
+  liftIO $ print l
+  liftIO $ print $ "========End of labels for SN: " <> show sn <> "=============================="
+  pure $ Schema.label_id <$> l
 
 
 getUser :: EmailAddress -> DB context err (Maybe ST.User)
@@ -174,7 +175,7 @@ getUser userEmail = do
     [u] -> Just . QU.userTableToModel $ u
     _   -> Nothing
 
-findClassLabelId :: ClassLabelEPC -> DB context err (Maybe PrimaryKeyType)
+findClassLabelId :: ClassLabelEPC -> DB context err [PrimaryKeyType]
 findClassLabelId (LGTIN cp ir lot)  = findClassLabelId' cp Nothing ir (Just lot)
 findClassLabelId (CSGTIN cp msfv ir) = findClassLabelId' cp msfv ir Nothing
 
@@ -182,9 +183,9 @@ findClassLabelId' :: GS1CompanyPrefix
                   -> Maybe SGTINFilterValue
                   -> ItemReference
                   -> Maybe Lot
-                  -> DB context err (Maybe PrimaryKeyType)
+                  -> DB context err [PrimaryKeyType]
 findClassLabelId' cp msfv ir lot = do
-  r <- pg $ runSelectReturningList $ select $ do
+  l <- pg $ runSelectReturningList $ select $ do
     labels <- all_ (Schema._labels Schema.supplyChainDb)
     guard_ (
              Schema.label_gs1_company_prefix labels ==. val_ cp &&.
@@ -193,18 +194,24 @@ findClassLabelId' cp msfv ir lot = do
              Schema.label_item_reference labels ==. (val_ . Just $ ir)
            )
     pure labels
-  case r of
-    [l] -> pure $ Just (Schema.label_id l)
-    _   -> pure Nothing
+  pure $ Schema.label_id <$> l
 
 
-findLabelId :: LabelEPC -> DB context err (Maybe PrimaryKeyType)
+findLabelId :: LabelEPC -> DB context err [PrimaryKeyType]
 findLabelId (IL l)   = findInstLabelId l
 findLabelId (CL c _) = findClassLabelId c
 
 getParentId :: DWhat -> DB context err (Maybe PrimaryKeyType)
-getParentId (TransactWhat (TransactionDWhat _ (Just p) _ _)) = findInstLabelId . unParentLabel $ p
-getParentId (AggWhat (AggregationDWhat _ (Just p) _) )  = findInstLabelId . unParentLabel $ p
+getParentId (TransactWhat (TransactionDWhat _ (Just p) _ _)) = do
+  res <- findInstLabelId . unParentLabel $ p
+  pure $ case res of
+    [l] -> Just l
+    _   -> Nothing
+getParentId (AggWhat (AggregationDWhat _ (Just p) _) ) = do
+  res <- findInstLabelId . unParentLabel $ p
+  pure $ case res of
+    [l] -> Just l
+    _   -> Nothing
 getParentId _                                 = pure Nothing
 
 toStorageDWhen :: Schema.WhenId
