@@ -159,9 +159,6 @@ findInstLabelId' cp sn msfv mir mat = do
             Schema.label_asset_type labels ==. val_ mat &&.
             Schema.label_item_reference labels ==. val_ mir)
     pure labels
-  liftIO $ print $ "========Here are the labels i got for SN: " <> show sn <> "=============================="
-  liftIO $ print l
-  liftIO $ print $ "========End of labels for SN: " <> show sn <> "=============================="
   pure $ Schema.label_id <$> l
 
 
@@ -212,7 +209,7 @@ getParentId (AggWhat (AggregationDWhat _ (Just p) _) ) = do
   pure $ case res of
     [l] -> Just l
     _   -> Nothing
-getParentId _                                 = pure Nothing
+getParentId _  = pure Nothing
 
 toStorageDWhen :: Schema.WhenId
                -> DWhen
