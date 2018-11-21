@@ -66,7 +66,7 @@ citrusSpec = do
               renderedLandLabel = renderURL landLabel
           liftIO $ print renderedLandLabel
           Right res <- httpSCS $ SCSClient.listEvents farmerAuth (ST.LabelEPCUrn . renderURL $ landLabel)
-          liftIO $ print $ show res
+          length res `shouldBe` 3
           -- step "check eventInfo for each event"
 
           -- step "get all events related to boxLabel"
