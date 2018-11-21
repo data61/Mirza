@@ -48,7 +48,9 @@ listEvents :: SCSApp context err
 listEvents _user = either throwParseError (runDb . listEventsQuery) . urn2LabelEPC . getLabelEPCUrn
 
 listEventsQuery :: AsServiceError err => LabelEPC -> DB context err [Ev.Event]
-listEventsQuery labelEpc =
+listEventsQuery labelEpc = do
+  liftIO $ print $ "***********************Listing events for " <> show labelEpc
+  liftIO $ print "***************************************************"
   maybe (pure []) (getEventList . Schema.LabelId) =<< findLabelId labelEpc
 
 
