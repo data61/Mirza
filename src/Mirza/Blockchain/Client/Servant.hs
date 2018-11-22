@@ -32,5 +32,4 @@ _api@(
     :<|> checkEvent
     :<|> getRegisteredEventHash
     :<|> health
-  )
- ) = client (Proxy :: Proxy ServerAPI)
+  )) = client (Proxy :: Proxy ServerAPI)

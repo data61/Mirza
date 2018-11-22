@@ -1,4 +1,5 @@
 {-# LANGUAGE CPP                   #-}
+{-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
@@ -7,7 +8,6 @@
 {-# LANGUAGE TypeOperators         #-}
 {-# LANGUAGE UndecidableInstances  #-}
 {-# OPTIONS_GHC -fno-warn-orphans  #-}
-{-# LANGUAGE DataKinds             #-}
 
 module Mirza.Blockchain.API
   (
@@ -17,7 +17,6 @@ module Mirza.Blockchain.API
   , API, api
   ) where
 
--- import qualified Mirza.SupplyChain.Database.Schema as Schema
 import           Mirza.Blockchain.Types as BcT
 
 import           Servant
@@ -39,7 +38,7 @@ serverAPI = Proxy
 
 
 type PublicAPI =
--- Event Registration
+-- Events
        "events"                :> ReqBody '[JSON] EventHash :> ReqBody '[JSON] IdentifierHash   :> Post '[JSON] EventInsertionResponse
   :<|> "events"                :> ReqBody '[JSON] IdentifierHash                                :> Get '[JSON] [EventInsertionResponse]
   :<|> "events" :> "eventhash" :> Capture "eventHash" EventHash                                 :> Get '[JSON] EventInsertionResponse
