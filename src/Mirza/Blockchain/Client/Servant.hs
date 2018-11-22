@@ -6,7 +6,7 @@ module Mirza.Blockchain.Client.Servant
   , addEvent
   , getEvents
   , checkEvent
-  , getEventHash
+  , getRegisteredEventHash
   ) where
 
 import           Mirza.Blockchain.API
@@ -17,13 +17,11 @@ import           Servant.Client
 
 import           Data.Proxy             (Proxy (..))
 
--- * Public API
-health :: ClientM HealthResponse
-
-addEvent :: EventHash -> IdentifierHash -> ClientM EventInsertionResponse
-getEvents :: IdentifierHash -> ClientM [EventInsertionResponse]
-checkEvent :: EventHash -> ClientM EventInsertionResponse
-getEventHash :: BlockchainTransactionHash -> ClientM EventInsertionResponse
+health                 :: ClientM HealthResponse
+addEvent               :: EventHash -> IdentifierHash -> ClientM EventInsertionResponse
+getEvents              :: IdentifierHash -> ClientM [EventInsertionResponse]
+checkEvent             :: EventHash -> ClientM EventInsertionResponse
+getRegisteredEventHash :: BlockchainTransactionHash -> ClientM EventInsertionResponse
 
 _api     :: Client ClientM ServerAPI
 _pubAPI  :: Client ClientM PublicAPI
@@ -32,7 +30,7 @@ _api@(
          addEvent
     :<|> getEvents
     :<|> checkEvent
-    :<|> getEventHash
+    :<|> getRegisteredEventHash
     :<|> health
   )
  ) = client (Proxy :: Proxy ServerAPI)
