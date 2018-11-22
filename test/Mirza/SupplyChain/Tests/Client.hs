@@ -291,7 +291,7 @@ clientSpec = do
 
           step "Checking event blockchain status"
           let eventStatus = (eventInfoBlockChainStatus eInfo)
-          eventStatus `shouldBe` NotSent
+          eventStatus `shouldBe` NeedMoreSignatures
 
           step "Checking that receiving user is among the unsigned users"
           let unsignedUsers = (eventInfoUnsignedUsers eInfo)

@@ -71,7 +71,7 @@ eventInfoQuery eventId@(EvId.EventId eId) = do
             partition snd usersWithEvent
   signedEvents <- mapM (`findSignedEventByUser` eventId) signedUserIds
   let usersAndSignedEvents = zip signedUserIds signedEvents
-  let eventStatus = if null unsignedUserIds then ReadyAndWaiting else NotSent
+  let eventStatus = if null unsignedUserIds then ReadyAndWaiting else NeedMoreSignatures
   pure $ EventInfo event usersAndSignedEvents unsignedUserIds
                   (Base64Octets $ event_to_sign schemaEvent) eventStatus
 
