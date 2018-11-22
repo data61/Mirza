@@ -44,4 +44,4 @@ type PublicAPI =
   :<|> "events" :> "eventhash" :> Capture "eventHash" EventHash                                 :> Get '[JSON] EventInsertionResponse
   :<|> "events" :> "txhash"    :> Capture "blockchainTransactionHash" BlockchainTransactionHash :> Get '[JSON] EventInsertionResponse
   -- Health
-  :<|> "health" :> Get '[JSON] HealthResponse
+  :<|> "healthz" :> Get '[JSON] HealthResponse
