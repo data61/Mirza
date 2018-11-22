@@ -44,6 +44,7 @@ module Mirza.Common.Types
   , PrimaryKeyType
   , brKeyIdType
   , runClientFunc
+  , HealthResponse (..) , successHealthResponseText
   ) where
 
 import qualified Database.Beam                        as B
@@ -85,6 +86,7 @@ import           Text.Email.Validate                  (EmailAddress,
                                                        toByteString, validate)
 
 import           Data.Aeson
+import           Data.Aeson.Types                     (typeMismatch)
 
 import           Control.Lens
 import           Control.Monad.Error.Lens
@@ -402,3 +404,22 @@ instance ToSchema Base64Octets where
   declareNamedSchema _ =
     pure $ NamedSchema (Just "Base64 Encoded Bytes") $ mempty
       & type_ .~ SwaggerString
+
+-- *****************************************************************************
+-- Health Types
+-- *****************************************************************************
+
+successHealthResponseText :: Text
+successHealthResponseText = "Status OK"
+
+data HealthResponse = HealthResponse
+  deriving (Show, Eq, Read, Generic)
+instance ToSchema HealthResponse
+instance ToJSON HealthResponse where
+  toJSON _ = toJSON successHealthResponseText
+instance FromJSON HealthResponse where
+  parseJSON (String value)
+    | value == successHealthResponseText = pure HealthResponse
+    | otherwise                          = fail "Invalid health response string."
+  parseJSON value                        = typeMismatch "HealthResponse" value
+

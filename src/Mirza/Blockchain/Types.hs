@@ -47,43 +47,10 @@ import           Katip                      as K
 import           Data.Time                  (UTCTime)
 
 
--- *****************************************************************************
--- Context Types
--- *****************************************************************************
 
-data BCContext = BCContext
-  { _bcEnvType          :: EnvType
-  , _bcDbConnPool       :: Pool Connection
-  , _bcScryptPs         :: ScryptParams
-  , _bcKatipLogEnv      :: K.LogEnv
-  , _bcKatipLogContexts :: K.LogContexts
-  , _bcKatipNamespace   :: K.Namespace
-  , _bcBRClientEnv      :: ClientEnv
-  }
-$(makeLenses ''BCContext)
+import           Data.Text          (Text)
 
-instance HasEnvType BCContext where envType = bcEnvType
-instance HasConnPool BCContext where connPool = bcDbConnPool
-instance HasScryptParams BCContext where scryptParams = bcScryptPs
-instance HasBRClientEnv BCContext where clientEnv = bcBRClientEnv
-instance HasKatipLogEnv BCContext where katipLogEnv = bcKatipLogEnv
-instance HasKatipContext BCContext where
-  katipContexts = bcKatipLogContexts
-  katipNamespace = bcKatipNamespace
-
-successHealthResponseText :: Text
-successHealthResponseText = "Status OK"
-
-data HealthResponse = HealthResponse
-  deriving (Show, Eq, Read, Generic)
-instance ToSchema HealthResponse
-instance ToJSON HealthResponse where
-  toJSON _ = toJSON successHealthResponseText
-instance FromJSON HealthResponse where
-  parseJSON (String value)
-    | value == successHealthResponseText = pure HealthResponse
-    | otherwise                          = fail "Invalid health response string."
-  parseJSON value                        = typeMismatch "HealthResponse" value
+import           Data.Time          (UTCTime)
 
 newtype BlockchainTransactionHash = BlockchainTransactionHash Text
   deriving (Eq, Show, Generic)
