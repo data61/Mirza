@@ -58,7 +58,9 @@ library
                     , Mirza.SupplyChain.Service
                     , Mirza.SupplyChain.Types
                     , Mirza.SupplyChain.SqlUtils
-
+                    , Mirza.Blockchain.Types
+                    , Mirza.Blockchain.API
+                    , Mirza.Blockchain.Client.Servant
 
   other-modules:      Mirza.SupplyChain.ErrorUtils
   build-depends:      base >= 4.7 && < 5

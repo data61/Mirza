@@ -18,20 +18,10 @@ module Mirza.Blockchain.API
   ) where
 
 -- import qualified Mirza.SupplyChain.Database.Schema as Schema
-import           Mirza.Blockchain.Types  as BcT
-import qualified Mirza.SupplyChain.Types as ST
-
-import           Data.GS1.EPC            (GS1CompanyPrefix)
-import qualified Data.GS1.Event          as Ev
-import           Data.GS1.EventId        as EvId
+import           Mirza.Blockchain.Types as BcT
 
 import           Servant
-import           Servant.API.Flatten
 import           Servant.Swagger.UI
-
-import           Data.Time               (UTCTime)
-
-import           Data.Text               (Text)
 
 type API
     -- this serves both: swagger.json and swagger-ui
