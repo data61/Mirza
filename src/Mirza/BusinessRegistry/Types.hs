@@ -36,7 +36,6 @@ import           Katip                                  as K
 
 import           Control.Lens.TH
 import           Data.Aeson
-import           Data.Aeson.Types
 import           Data.Aeson.TH
 
 import           Data.Swagger
@@ -213,23 +212,6 @@ data KeyState
 $(deriveJSON defaultOptions ''KeyState)
 instance ToSchema KeyState
 instance ToParamSchema KeyState
-
-
--- Health Types:
-successHealthResponseText :: Text
-successHealthResponseText = "Status OK"
-
-data HealthResponse = HealthResponse
-  deriving (Show, Eq, Read, Generic)
-instance ToSchema HealthResponse
-instance ToJSON HealthResponse where
-  toJSON _ = toJSON successHealthResponseText
-instance FromJSON HealthResponse where
-  parseJSON (String value)
-    | value == successHealthResponseText = pure HealthResponse
-    | otherwise                          = fail "Invalid health response string."
-  parseJSON value                        = typeMismatch "HealthResponse" value
-
 
 
 -- *****************************************************************************
