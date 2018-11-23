@@ -11,7 +11,6 @@ module Mirza.SupplyChain.Handlers.EventRegistration
 
 import qualified Mirza.Common.GS1BeamOrphans        as MU
 import           Mirza.SupplyChain.Database.Schema  as Schema
-import           Mirza.SupplyChain.Handlers.Common
 import           Mirza.SupplyChain.Types            hiding (User (..))
 import qualified Mirza.SupplyChain.Types            as ST
 

@@ -9,7 +9,6 @@ module Mirza.SupplyChain.Handlers.Users
 import           Mirza.Common.Utils
 import           Mirza.SupplyChain.Database.Schema        as Schema
 import           Mirza.SupplyChain.ErrorUtils             (throwBackendError)
-import           Mirza.SupplyChain.Handlers.Common
 import           Mirza.SupplyChain.QueryUtils
 import           Mirza.SupplyChain.SqlUtils
 import           Mirza.SupplyChain.Types                  hiding (NewUser (..),

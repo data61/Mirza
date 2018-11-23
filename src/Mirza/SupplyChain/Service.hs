@@ -25,10 +25,9 @@ module Mirza.SupplyChain.Service
 import           Mirza.SupplyChain.API
 import           Mirza.SupplyChain.ErrorUtils                 (appErrToHttpErr)
 
-import           Mirza.SupplyChain.Handlers.Common            as Handlers
 import           Mirza.SupplyChain.Handlers.Contacts          as Handlers
-import           Mirza.SupplyChain.Handlers.Health            as Handlers
 import           Mirza.SupplyChain.Handlers.EventRegistration as Handlers
+import           Mirza.SupplyChain.Handlers.Health            as Handlers
 import           Mirza.SupplyChain.Handlers.Queries           as Handlers
 import           Mirza.SupplyChain.Handlers.Signatures        as Handlers
 import           Mirza.SupplyChain.Handlers.Users             as Handlers
