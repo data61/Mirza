@@ -131,7 +131,7 @@ insertEachEvent ht (EachEvent (initialEntity: entities) ev) = do
   sequence_ $ clientSignEvent ht insertedEventInfo <$> entities
 
 
-clientSignEvent :: AuthHash -> EventInfo -> Entity -> ClientM PrimaryKeyType
+clientSignEvent :: AuthHash -> EventInfo -> Entity -> ClientM EventInfo
 clientSignEvent ht evInfo entity = do
   let Just (_, auth, _) = H.lookup entity ht
       (EventInfo event _ _ (Base64Octets toSign) _) = evInfo
