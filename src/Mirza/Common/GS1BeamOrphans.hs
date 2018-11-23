@@ -96,9 +96,9 @@ eventType :: BMigrate.DataType PgDataTypeSyntax Ev.EventType
 eventType = textType
 
 -- ======= EPC.LocationReference =======
-instance BSQL.HasSqlValueSyntax be String =>
+instance BSQL.HasSqlValueSyntax be Text =>
   BSQL.HasSqlValueSyntax be EPC.LocationReference where
-    sqlValueSyntax = BSQL.sqlValueSyntax . show
+    sqlValueSyntax (EPC.LocationReference ref) = BSQL.sqlValueSyntax ref
 instance (BMigrate.IsSql92ColumnSchemaSyntax be) =>
   BMigrate.HasDefaultSqlDataTypeConstraints be EPC.LocationReference
 
@@ -110,13 +110,13 @@ instance (BSQL.HasSqlValueSyntax (BSQL.Sql92ExpressionValueSyntax be) Bool,
           B.HasSqlQuantifiedEqualityCheck be EPC.LocationReference
 
 instance BSQL.FromBackendRow BPostgres.Postgres EPC.LocationReference where
-  fromBackendRow = defaultFromBackendRow "EPC.LocationReference"
+  fromBackendRow = EPC.LocationReference <$> BSQL.fromBackendRow
 
 instance FromField EPC.LocationReference where
-  fromField = defaultFromField "EPC.LocationReference"
+  fromField fld mbs = EPC.LocationReference <$> fromField fld mbs
 
 instance ToField EPC.LocationReference where
-  toField = toField . show
+  toField (EPC.LocationReference ref) = toField ref
 
 locationRefType :: BMigrate.DataType PgDataTypeSyntax EPC.LocationReference
 locationRefType = textType
@@ -264,9 +264,9 @@ gs1CompanyPrefixType = textType
 
 -- ======= EPC.SGLNExtension =======
 
-instance BSQL.HasSqlValueSyntax be String =>
+instance BSQL.HasSqlValueSyntax be Text =>
   BSQL.HasSqlValueSyntax be EPC.SGLNExtension where
-    sqlValueSyntax = BSQL.sqlValueSyntax . show
+    sqlValueSyntax (EPC.SGLNExtension ext) = BSQL.sqlValueSyntax ext
 instance (BMigrate.IsSql92ColumnSchemaSyntax be) =>
   BMigrate.HasDefaultSqlDataTypeConstraints be EPC.SGLNExtension
 
@@ -278,13 +278,13 @@ instance (BSQL.HasSqlValueSyntax (BSQL.Sql92ExpressionValueSyntax be) Bool,
           B.HasSqlQuantifiedEqualityCheck be EPC.SGLNExtension
 
 instance BSQL.FromBackendRow BPostgres.Postgres EPC.SGLNExtension where
-  fromBackendRow = defaultFromBackendRow "EPC.SGLNExtension"
+  fromBackendRow = EPC.SGLNExtension <$> BSQL.fromBackendRow
 
 instance FromField EPC.SGLNExtension where
-  fromField = defaultFromField "EPC.SGLNExtension"
+  fromField fld mbs = EPC.SGLNExtension <$> fromField fld mbs
 
 instance ToField EPC.SGLNExtension where
-  toField = toField . show
+  toField (EPC.SGLNExtension ext)= toField ext
 
 sglnExtType :: BMigrate.DataType PgDataTypeSyntax EPC.SGLNExtension
 sglnExtType = textType
@@ -292,9 +292,9 @@ sglnExtType = textType
 
 -- ======= EPC.Uom =======
 
-instance BSQL.HasSqlValueSyntax be String =>
+instance BSQL.HasSqlValueSyntax be Text =>
   BSQL.HasSqlValueSyntax be EPC.Uom where
-    sqlValueSyntax = BSQL.sqlValueSyntax . show
+    sqlValueSyntax (EPC.Uom m) = BSQL.sqlValueSyntax m
 instance (BMigrate.IsSql92ColumnSchemaSyntax be) =>
   BMigrate.HasDefaultSqlDataTypeConstraints be EPC.Uom
 
@@ -306,13 +306,13 @@ instance (BSQL.HasSqlValueSyntax (BSQL.Sql92ExpressionValueSyntax be) Bool,
           B.HasSqlQuantifiedEqualityCheck be EPC.Uom
 
 instance BSQL.FromBackendRow BPostgres.Postgres EPC.Uom where
-  fromBackendRow = defaultFromBackendRow "EPC.Uom"
+  fromBackendRow = EPC.Uom <$> BSQL.fromBackendRow
 
 instance FromField EPC.Uom where
-  fromField = defaultFromField "EPC.Uom"
+  fromField fld mbs = EPC.Uom <$> fromField fld mbs
 
 instance ToField EPC.Uom where
-  toField = toField . show
+  toField (EPC.Uom m) = toField m
 
 uomType :: BMigrate.DataType PgDataTypeSyntax EPC.Uom
 uomType = textType
@@ -321,9 +321,9 @@ uomType = textType
 
 -- ======= EPC.Amount =======
 
-instance BSQL.HasSqlValueSyntax be String =>
+instance BSQL.HasSqlValueSyntax be Double =>
   BSQL.HasSqlValueSyntax be EPC.Amount where
-    sqlValueSyntax = BSQL.sqlValueSyntax . show
+    sqlValueSyntax (EPC.Amount amnt) = BSQL.sqlValueSyntax amnt
 instance (BMigrate.IsSql92ColumnSchemaSyntax be) =>
   BMigrate.HasDefaultSqlDataTypeConstraints be EPC.Amount
 
@@ -335,13 +335,13 @@ instance (BSQL.HasSqlValueSyntax (BSQL.Sql92ExpressionValueSyntax be) Bool,
           B.HasSqlQuantifiedEqualityCheck be EPC.Amount
 
 instance BSQL.FromBackendRow BPostgres.Postgres EPC.Amount where
-  fromBackendRow = defaultFromBackendRow "EPC.Amount"
+  fromBackendRow = EPC.Amount <$> BSQL.fromBackendRow
 
 instance FromField EPC.Amount where
-  fromField = defaultFromField "EPC.Amount"
+  fromField fld mbs = EPC.Amount <$> fromField fld mbs
 
 instance ToField EPC.Amount where
-  toField = toField . show
+  toField (EPC.Amount amnt) = toField amnt
 
 amountType :: BMigrate.DataType PgDataTypeSyntax EPC.Amount
 amountType = BMigrate.DataType BSQL.doubleType
@@ -349,9 +349,9 @@ amountType = BMigrate.DataType BSQL.doubleType
 
 -- ======= EPC.AssetType =======
 
-instance BSQL.HasSqlValueSyntax be String =>
+instance BSQL.HasSqlValueSyntax be Text =>
   BSQL.HasSqlValueSyntax be EPC.AssetType where
-    sqlValueSyntax = BSQL.sqlValueSyntax . show
+    sqlValueSyntax (EPC.AssetType ast)= BSQL.sqlValueSyntax ast
 instance (BMigrate.IsSql92ColumnSchemaSyntax be) =>
   BMigrate.HasDefaultSqlDataTypeConstraints be EPC.AssetType
 
@@ -363,13 +363,13 @@ instance (BSQL.HasSqlValueSyntax (BSQL.Sql92ExpressionValueSyntax be) Bool,
           B.HasSqlQuantifiedEqualityCheck be EPC.AssetType
 
 instance BSQL.FromBackendRow BPostgres.Postgres EPC.AssetType where
-  fromBackendRow = defaultFromBackendRow "EPC.AssetType"
+  fromBackendRow = EPC.AssetType <$> BSQL.fromBackendRow
 
 instance FromField EPC.AssetType where
-  fromField = defaultFromField "EPC.AssetType"
+  fromField fld mbs = EPC.AssetType <$> fromField fld mbs
 
 instance ToField EPC.AssetType where
-  toField = toField . show
+  toField (EPC.AssetType ast)= toField ast
 
 assetType :: BMigrate.DataType PgDataTypeSyntax EPC.AssetType
 assetType = textType
@@ -378,9 +378,9 @@ assetType = textType
 
 -- ======= EPC.Lot =======
 
-instance BSQL.HasSqlValueSyntax be String =>
+instance BSQL.HasSqlValueSyntax be Text =>
   BSQL.HasSqlValueSyntax be EPC.Lot where
-    sqlValueSyntax = BSQL.sqlValueSyntax . show
+    sqlValueSyntax (EPC.Lot l) = BSQL.sqlValueSyntax l
 instance (BMigrate.IsSql92ColumnSchemaSyntax be) =>
   BMigrate.HasDefaultSqlDataTypeConstraints be EPC.Lot
 
@@ -392,13 +392,13 @@ instance (BSQL.HasSqlValueSyntax (BSQL.Sql92ExpressionValueSyntax be) Bool,
           B.HasSqlQuantifiedEqualityCheck be EPC.Lot
 
 instance BSQL.FromBackendRow BPostgres.Postgres EPC.Lot where
-  fromBackendRow = defaultFromBackendRow "EPC.Lot"
+  fromBackendRow = EPC.Lot <$> BSQL.fromBackendRow
 
 instance FromField EPC.Lot where
-  fromField = defaultFromField "EPC.Lot"
+  fromField fld mbs = EPC.Lot <$> fromField fld mbs
 
 instance ToField EPC.Lot where
-  toField = toField . show
+  toField (EPC.Lot l) = toField l
 
 lotType :: BMigrate.DataType PgDataTypeSyntax EPC.Lot
 lotType = textType
@@ -406,9 +406,9 @@ lotType = textType
 
 -- ======= EPC.SerialNumber =======
 
-instance BSQL.HasSqlValueSyntax be String =>
+instance BSQL.HasSqlValueSyntax be Text =>
   BSQL.HasSqlValueSyntax be EPC.SerialNumber where
-    sqlValueSyntax = BSQL.sqlValueSyntax . show
+    sqlValueSyntax (EPC.SerialNumber sn) = BSQL.sqlValueSyntax sn
 instance (BMigrate.IsSql92ColumnSchemaSyntax be) =>
   BMigrate.HasDefaultSqlDataTypeConstraints be EPC.SerialNumber
 
@@ -420,22 +420,22 @@ instance (BSQL.HasSqlValueSyntax (BSQL.Sql92ExpressionValueSyntax be) Bool,
           B.HasSqlQuantifiedEqualityCheck be EPC.SerialNumber
 
 instance BSQL.FromBackendRow BPostgres.Postgres EPC.SerialNumber where
-  fromBackendRow = defaultFromBackendRow "EPC.SerialNumber"
+  fromBackendRow = EPC.SerialNumber <$> BSQL.fromBackendRow
 
 instance FromField EPC.SerialNumber where
-  fromField = defaultFromField "EPC.SerialNumber"
+  fromField fld mbs = EPC.SerialNumber <$> fromField fld mbs
 
 instance ToField EPC.SerialNumber where
-  toField = toField . show
+  toField (EPC.SerialNumber sn) = toField sn
 
 serialNumType :: BMigrate.DataType PgDataTypeSyntax EPC.SerialNumber
 serialNumType = textType
 
 -- ======= EPC.ItemReference =======
 
-instance BSQL.HasSqlValueSyntax be String =>
+instance BSQL.HasSqlValueSyntax be Text =>
   BSQL.HasSqlValueSyntax be EPC.ItemReference where
-    sqlValueSyntax = BSQL.sqlValueSyntax . show
+    sqlValueSyntax (EPC.ItemReference ir) = BSQL.sqlValueSyntax ir
 instance (BMigrate.IsSql92ColumnSchemaSyntax be) =>
   BMigrate.HasDefaultSqlDataTypeConstraints be EPC.ItemReference
 
@@ -447,13 +447,13 @@ instance (BSQL.HasSqlValueSyntax (BSQL.Sql92ExpressionValueSyntax be) Bool,
           B.HasSqlQuantifiedEqualityCheck be EPC.ItemReference
 
 instance BSQL.FromBackendRow BPostgres.Postgres EPC.ItemReference where
-  fromBackendRow = defaultFromBackendRow "EPC.ItemReference"
+  fromBackendRow = EPC.ItemReference <$> BSQL.fromBackendRow
 
 instance FromField EPC.ItemReference where
-  fromField = defaultFromField "EPC.ItemReference"
+  fromField fld mbs = EPC.ItemReference <$> fromField fld mbs
 
 instance ToField EPC.ItemReference where
-  toField = toField . show
+  toField (EPC.ItemReference ir) = toField ir
 
 itemRefType :: BMigrate.DataType PgDataTypeSyntax EPC.ItemReference
 itemRefType = textType
