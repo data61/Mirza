@@ -10,8 +10,6 @@ module Mirza.SupplyChain.Handlers.Contacts
   , userSearch
   ) where
 
-import           Mirza.SupplyChain.Handlers.Common
-
 import           Data.GS1.EPC                             (GS1CompanyPrefix)
 import qualified Mirza.Common.Utils                       as U
 import           Mirza.SupplyChain.Database.Schema        as Schema

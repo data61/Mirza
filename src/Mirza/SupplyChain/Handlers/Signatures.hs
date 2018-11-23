@@ -12,7 +12,6 @@ import           Mirza.Common.Types                       (BRKeyId)
 import           Mirza.Common.Utils
 
 import           Mirza.SupplyChain.Database.Schema        as Schema
-import           Mirza.SupplyChain.Handlers.Common
 import           Mirza.SupplyChain.Handlers.Queries       (eventInfoQuery)
 import           Mirza.SupplyChain.Types                  hiding (NewUser (..),
                                                            User (userId),

@@ -12,7 +12,6 @@ import           Mirza.Common.Utils                (fromPgJSON)
 import           Mirza.SupplyChain.EventUtils      (findLabelId,
                                                     findSchemaEvent,
                                                     getEventList)
-import           Mirza.SupplyChain.Handlers.Common
 import           Mirza.SupplyChain.Handlers.Users  (userTableToModel)
 
 import           Mirza.SupplyChain.Database.Schema as Schema
