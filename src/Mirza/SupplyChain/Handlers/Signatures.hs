@@ -5,9 +5,6 @@
 module Mirza.SupplyChain.Handlers.Signatures
   (
     eventSign, getEventBS, insertSignature, eventHashed
-  , findSignedEventByEvent, findSignatureByEvent
-  , findSignedEventByUser, findSignatureByUser
-  , signatureToSignedEvent
   ) where
 
 import           Mirza.Common.Time
@@ -15,8 +12,8 @@ import           Mirza.Common.Types                       (BRKeyId)
 import           Mirza.Common.Utils
 
 import           Mirza.SupplyChain.Database.Schema        as Schema
-import           Mirza.SupplyChain.ErrorUtils             (throwBackendError)
 import           Mirza.SupplyChain.Handlers.Common
+import           Mirza.SupplyChain.Handlers.Queries       (eventInfoQuery)
 import           Mirza.SupplyChain.Types                  hiding (NewUser (..),
                                                            User (userId),
                                                            UserId)
@@ -50,14 +47,16 @@ scsJWSValidationSettings = defaultValidationSettings
 eventSign :: (HasBRClientEnv context, AsServantError err, AsError err, SCSApp context err)
           => ST.User
           -> SignedEvent
-          -> AppM context err PrimaryKeyType
+          -> AppM context err EventInfo
 eventSign user (SignedEvent eventId keyId sig) = do
   jwk <- runClientFunc $ getPublicKey keyId
   runDb $ do
     eventBS <- getEventBS eventId
     event' <- verifyJWS scsJWSValidationSettings jwk sig
     if eventBS == event'
-      then insertSignature (ST.userId user) eventId keyId sig
+      then do
+        _ <- insertSignature (ST.userId user) eventId keyId sig
+        eventInfoQuery eventId
       else throwing _SigVerificationFailure (show sig) -- TODO: This should be more than show
 
 getEventBS :: AsServiceError err => EvId.EventId -> DB context err ByteString
@@ -102,44 +101,6 @@ updateUserEventSignature (ST.UserId userId) (EvId.EventId eventId) hasSignedNew 
               (\userEvent -> (user_events_event_id userEvent ==. val_ (Schema.EventId eventId) &&.
                               (user_events_user_id userEvent ==. val_ (Schema.UserId userId))))
   pure ()
-
-findSignatureByEvent :: (AsServiceError err)
-                     => EvId.EventId
-                     -> DB context err [Schema.Signature]
-findSignatureByEvent (EvId.EventId eId) =
-  pg $ runSelectReturningList $ select $ do
-    sig <- all_ (Schema._signatures Schema.supplyChainDb)
-    guard_ ((Schema.signature_event_id sig) ==. (val_ (Schema.EventId eId)))
-    pure sig
-
-findSignedEventByEvent :: (AsServiceError err)
-                       => EvId.EventId
-                       -> DB context err [ST.SignedEvent]
-findSignedEventByEvent eventId = fmap signatureToSignedEvent <$> findSignatureByEvent eventId
-
-findSignatureByUser :: AsServiceError err
-                    => ST.UserId
-                    -> EvId.EventId
-                    -> DB context err Schema.Signature
-findSignatureByUser (ST.UserId uId) (EvId.EventId eId) = do
-  r <- pg $ runSelectReturningList $ select $ do
-    sig <- all_ (Schema._signatures Schema.supplyChainDb)
-    guard_ ((Schema.signature_event_id sig) ==. (val_ (Schema.EventId eId)) &&.
-            (Schema.signature_user_id sig) ==. (val_ (Schema.UserId uId)))
-    pure sig
-  case r of
-    [sig] -> pure sig
-    _     -> throwBackendError ("Invalid User - Event pair" :: String) -- TODO: wrong error to throw here
-
-findSignedEventByUser :: AsServiceError err
-                      => ST.UserId
-                      -> EvId.EventId
-                      -> DB context err ST.SignedEvent
-findSignedEventByUser uId eventId = signatureToSignedEvent <$> (findSignatureByUser uId eventId)
-
-signatureToSignedEvent :: Schema.Signature -> ST.SignedEvent
-signatureToSignedEvent (Schema.Signature _ _userId _sigId (Schema.EventId eId) brKeyId (PgJSON sig) _)
-  = ST.SignedEvent (EvId.EventId eId) brKeyId sig
 
 -- do we need this?
 eventHashed :: ST.User -> EvId.EventId -> AppM context err HashedEvent

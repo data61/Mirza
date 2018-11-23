@@ -36,8 +36,6 @@ import qualified Data.GS1.Event                    as Ev
 import           Data.GS1.EventId
 
 import           Data.Text                         (Text)
-import           Data.UUID.Types
-
 
 -- * Public API
 health       :: ClientM HealthResponse
@@ -50,7 +48,7 @@ addContact          :: BasicAuthData -> UserId -> ClientM Bool
 removeContact       :: BasicAuthData -> UserId -> ClientM Bool
 userSearch          :: BasicAuthData -> Maybe GS1CompanyPrefix -> Maybe Text -> ClientM [T.User]
 
-eventSign           :: BasicAuthData -> SignedEvent -> ClientM UUID
+eventSign           :: BasicAuthData -> SignedEvent -> ClientM EventInfo
 eventHashed         :: BasicAuthData -> EventId -> ClientM HashedEvent
 
 listEvents          :: BasicAuthData -> LabelEPCUrn -> ClientM [Ev.Event]

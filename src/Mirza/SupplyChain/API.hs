@@ -64,7 +64,7 @@ type PrivateAPI =
                                             :> QueryParam "lastname" Text
                                             :> Post '[JSON] [User]
 -- Signatures
-  :<|> "event"    :> "sign"                 :> ReqBody '[JSON] SignedEvent                                    :> Post '[JSON] PrimaryKeyType
+  :<|> "event"    :> "sign"                 :> ReqBody '[JSON] SignedEvent                                    :> Post '[JSON] EventInfo
   :<|> "event"    :> "getHash"              :> ReqBody '[JSON] EventId                                        :> Post '[JSON] HashedEvent
 -- Queries
   :<|> "epc"      :> "events"               :> Capture "urn" ST.LabelEPCUrn                                   :> Get '[JSON] [Ev.Event]
