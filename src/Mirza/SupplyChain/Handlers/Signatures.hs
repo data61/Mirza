@@ -50,14 +50,16 @@ scsJWSValidationSettings = defaultValidationSettings
 eventSign :: (HasBRClientEnv context, AsServantError err, AsError err, SCSApp context err)
           => ST.User
           -> SignedEvent
-          -> AppM context err PrimaryKeyType
+          -> AppM context err EventInfo
 eventSign user (SignedEvent eventId keyId sig) = do
   jwk <- runClientFunc $ getPublicKey keyId
   runDb $ do
     eventBS <- getEventBS eventId
     event' <- verifyJWS scsJWSValidationSettings jwk sig
     if eventBS == event'
-      then insertSignature (ST.userId user) eventId keyId sig
+      then do
+        _ <- insertSignature (ST.userId user) eventId keyId sig
+        eventInfoQuery eventId
       else throwing _SigVerificationFailure (show sig) -- TODO: This should be more than show
 
 getEventBS :: AsServiceError err => EvId.EventId -> DB context err ByteString
