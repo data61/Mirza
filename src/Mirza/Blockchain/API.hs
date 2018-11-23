@@ -39,8 +39,8 @@ serverAPI = Proxy
 
 type PublicAPI =
 -- Events
-       "events"                :> ReqBody '[JSON] EventHash :> ReqBody '[JSON] IdentifierHash   :> Post '[JSON] EventInsertionResponse
-  :<|> "events"                :> ReqBody '[JSON] IdentifierHash                                :> Get '[JSON] [EventInsertionResponse]
+       "events"                :> ReqBody '[JSON] RegisterEvent                                 :> Post '[JSON] EventInsertionResponse
+  :<|> "events"                :> QueryParam "identifierHash" IdentifierHash                    :> Get '[JSON] [EventInsertionResponse]
   :<|> "events" :> "eventhash" :> Capture "eventHash" EventHash                                 :> Get '[JSON] EventInsertionResponse
   :<|> "events" :> "txhash"    :> Capture "blockchainTransactionHash" BlockchainTransactionHash :> Get '[JSON] EventInsertionResponse
   -- Health

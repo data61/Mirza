@@ -87,3 +87,10 @@ data EventInsertionResponse = EventInsertionResponse
   } deriving (Eq, Show, Generic)
 instance ToSchema EventInsertionResponse
 $(deriveJSON defaultOptions ''EventInsertionResponse)
+
+data RegisterEvent = RegisterEvent {
+    eventHash      :: EventHash
+  , identifierHash :: Maybe IdentifierHash
+  } deriving (Eq, Show, Generic)
+instance ToSchema RegisterEvent
+$(deriveJSON defaultOptions ''RegisterEvent)
