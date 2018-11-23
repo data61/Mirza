@@ -203,12 +203,18 @@ getParentId (TransactWhat (TransactionDWhat _ (Just p) _ _)) = do
   res <- findInstLabelId . unParentLabel $ p
   pure $ case res of
     [l] -> Just l
-    _   -> Nothing
+    []  -> Nothing
+    -- this should never happen.
+    -- A call to error is here until a new error type is made
+    _   -> error "There only should be 0/1 parent labels"
 getParentId (AggWhat (AggregationDWhat _ (Just p) _) ) = do
   res <- findInstLabelId . unParentLabel $ p
   pure $ case res of
     [l] -> Just l
-    _   -> Nothing
+    []  -> Nothing
+    -- this should never happen.
+    -- A call to error is here until a new error type is made
+    _   -> error "There only should be 0/1 parent labels"
 getParentId _  = pure Nothing
 
 toStorageDWhen :: Schema.WhenId
