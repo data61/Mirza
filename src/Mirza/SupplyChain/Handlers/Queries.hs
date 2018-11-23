@@ -4,39 +4,41 @@ module Mirza.SupplyChain.Handlers.Queries
   ( listEvents, eventInfo, eventInfoQuery, eventList, eventUserList, eventsByUser
   , eventUserSignedList
   , queryUserId
+  , findSignatureByEvent, findSignedEventByEvent
   ) where
 
 
-import           Mirza.Common.Utils                    (fromPgJSON)
-import           Mirza.SupplyChain.EventUtils          (findLabelId,
-                                                        findSchemaEvent,
-                                                        getEventList)
+import           Mirza.Common.Utils                (fromPgJSON)
+import           Mirza.SupplyChain.EventUtils      (findLabelId,
+                                                    findSchemaEvent,
+                                                    getEventList)
 import           Mirza.SupplyChain.Handlers.Common
-import           Mirza.SupplyChain.Handlers.Signatures
-import           Mirza.SupplyChain.Handlers.Users      (userTableToModel)
+import           Mirza.SupplyChain.Handlers.Users  (userTableToModel)
 
-import           Mirza.SupplyChain.Database.Schema     as Schema
-import           Mirza.SupplyChain.ErrorUtils          (throwParseError)
+import           Mirza.SupplyChain.Database.Schema as Schema
+import           Mirza.SupplyChain.ErrorUtils      (throwBackendError,
+                                                    throwParseError)
 import           Mirza.SupplyChain.QueryUtils
-import           Mirza.SupplyChain.Types               hiding (NewUser (..),
-                                                        User (..))
-import qualified Mirza.SupplyChain.Types               as ST
+import           Mirza.SupplyChain.Types           hiding (NewUser (..),
+                                                    User (..))
+import qualified Mirza.SupplyChain.Types           as ST
 
-import           Data.GS1.DWhat                        (LabelEPC (..),
-                                                        urn2LabelEPC)
-import qualified Data.GS1.Event                        as Ev
-import           Data.GS1.EventId                      as EvId
+import           Data.GS1.DWhat                    (LabelEPC (..), urn2LabelEPC)
+import qualified Data.GS1.Event                    as Ev
+import           Data.GS1.EventId                  as EvId
 
-import           Database.Beam                         as B
+import           Database.Beam                     as B
 
-import           Control.Lens                          (( # ))
+import           Control.Lens                      (( # ))
 import           Control.Monad.Error.Hoist
 
-import           Data.Bifunctor                        (bimap)
+import           Data.Bifunctor                    (bimap)
 
-import           Crypto.JOSE.Types                     (Base64Octets (..))
+import           Crypto.JOSE.Types                 (Base64Octets (..))
 
-import           Data.List                             (partition)
+import           Data.List                         (partition)
+
+import           Database.Beam.Postgres            (PgJSON (..))
 
 -- This takes an EPC urn,
 -- and looks up all the events related to that item.
@@ -116,3 +118,42 @@ eventUserSignedList (EvId.EventId eventId) = do
 
 queryUserId :: SCSApp context err => ST.User -> AppM context err ST.UserId
 queryUserId = pure . ST.userId
+
+findSignatureByEvent :: (AsServiceError err)
+                     => EvId.EventId
+                     -> DB context err [Schema.Signature]
+findSignatureByEvent (EvId.EventId eId) =
+  pg $ runSelectReturningList $ select $ do
+    sig <- all_ (Schema._signatures Schema.supplyChainDb)
+    guard_ ((Schema.signature_event_id sig) ==. (val_ (Schema.EventId eId)))
+    pure sig
+
+findSignedEventByEvent :: (AsServiceError err)
+                       => EvId.EventId
+                       -> DB context err [ST.SignedEvent]
+findSignedEventByEvent eventId = fmap signatureToSignedEvent <$> findSignatureByEvent eventId
+
+findSignatureByUser :: AsServiceError err
+                    => ST.UserId
+                    -> EvId.EventId
+                    -> DB context err Schema.Signature
+findSignatureByUser (ST.UserId uId) (EvId.EventId eId) = do
+  r <- pg $ runSelectReturningList $ select $ do
+    sig <- all_ (Schema._signatures Schema.supplyChainDb)
+    guard_ ((Schema.signature_event_id sig) ==. (val_ (Schema.EventId eId)) &&.
+            (Schema.signature_user_id sig) ==. (val_ (Schema.UserId uId)))
+    pure sig
+  case r of
+    [sig] -> pure sig
+    _     -> throwBackendError ("Invalid User - Event pair" :: String) -- TODO: wrong error to throw here
+
+findSignedEventByUser :: AsServiceError err
+                      => ST.UserId
+                      -> EvId.EventId
+                      -> DB context err ST.SignedEvent
+findSignedEventByUser uId eventId = signatureToSignedEvent <$> (findSignatureByUser uId eventId)
+
+signatureToSignedEvent :: Schema.Signature -> ST.SignedEvent
+signatureToSignedEvent (Schema.Signature _ _userId _sigId (Schema.EventId eId) brKeyId (PgJSON sig) _)
+  = ST.SignedEvent (EvId.EventId eId) brKeyId sig
+
