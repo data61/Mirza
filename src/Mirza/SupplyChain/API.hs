@@ -50,7 +50,7 @@ serverAPI = Proxy
 
 type PublicAPI =
   -- Health
-       "health" :> Get '[JSON] HealthResponse
+       "healthz" :> Get '[JSON] HealthResponse
   -- Users
   :<|> "newUser"                            :> ReqBody '[JSON] NewUser                                      :> Post '[JSON] UserId
 
