@@ -5,19 +5,20 @@ module Mirza.SupplyChain.Tests.Citrus (
     citrusSpec
   ) where
 
-import           Control.Exception               (bracket)
+import           Control.Exception                (bracket)
 import           Control.Monad.Except
 
 import           Mirza.SupplyChain.Tests.Utils
 
 import           Mirza.Common.Tests.InitClient
-import           Mirza.Common.Tests.ServantUtils (runClient)
+import           Mirza.Common.Tests.ServantUtils  (runClient)
 
 import           Test.Hspec.Expectations
 import           Test.Tasty
 import           Test.Tasty.HUnit
 
-import           Mirza.BusinessRegistry.Types    as BT
+import           Mirza.BusinessRegistry.Types     as BT
+import           Mirza.SupplyChain.Types          as ST
 
 import           Data.GS1.DWhat
 import           Data.GS1.DWhen
@@ -26,13 +27,15 @@ import           Data.GS1.DWhy
 import           Data.GS1.EPC
 import           Data.GS1.Event
 
-import           Data.Time                       (TimeZone, addUTCTime,
-                                                  getCurrentTime)
-import           Data.Time.LocalTime             (utc)
+import           Mirza.SupplyChain.Client.Servant as SCSClient
 
-import           Data.Either                     (isRight)
+import           Data.Time                        (TimeZone, addUTCTime,
+                                                   getCurrentTime)
+import           Data.Time.LocalTime              (utc)
 
-import           Data.HashMap.Lazy               as H
+import           Data.Either                      (isRight)
+
+import           Data.HashMap.Lazy                as H
 
 
 -- =============================================================================
@@ -57,7 +60,14 @@ citrusSpec = do
           insertEachEventResult <- sequence $ (httpSCS . (insertEachEvent authHt)) <$> cEvents
           void $ pure $ (flip shouldSatisfy) isRight <$> insertEachEventResult
 
+          step "Listing events with each label"
+          let (Just (_, farmerAuth, _)) = H.lookup farmerE authHt
+              renderedLandLabel = renderURL landLabel
+          liftIO $ print renderedLandLabel
+          Right res <- httpSCS $ SCSClient.listEvents farmerAuth (ST.LabelEPCUrn . renderURL $ landLabel)
+          length res `shouldBe` 3
           -- step "check eventInfo for each event"
+
           -- step "get all events related to boxLabel"
 
   pure $ testGroup "Citrus Client tests"
