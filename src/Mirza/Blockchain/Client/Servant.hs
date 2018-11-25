@@ -18,8 +18,8 @@ import           Servant.Client
 import           Data.Proxy             (Proxy (..))
 
 health                 :: ClientM HealthResponse
-addEvent               :: EventHash -> Maybe IdentifierHash -> ClientM EventInsertionResponse
-getEvents              :: IdentifierHash -> ClientM [EventInsertionResponse]
+addEvent               :: RegisterEvent -> ClientM EventInsertionResponse
+getEvents              :: Maybe IdentifierHash -> ClientM [EventInsertionResponse]
 checkEvent             :: EventHash -> ClientM EventInsertionResponse
 getRegisteredEventHash :: BlockchainTransactionHash -> ClientM EventInsertionResponse
 
