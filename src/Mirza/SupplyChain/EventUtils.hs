@@ -59,40 +59,39 @@ import           Crypto.JOSE.Types                 (Base64Octets (..))
 -- Helper functions
 
 epcToStorageLabel :: Maybe MU.LabelType
-                  -> Schema.WhatId
                   -> Schema.LabelId
                   -> LabelEPC
                   -> Schema.Label
-epcToStorageLabel labelType (Schema.WhatId whatId) (Schema.LabelId pKey) (IL (SGTIN gs1Prefix fv ir sn)) =
-  Schema.Label Nothing pKey labelType (Schema.WhatId whatId)
+epcToStorageLabel labelType (Schema.LabelId pKey) (IL (SGTIN gs1Prefix fv ir sn)) =
+  Schema.Label Nothing pKey labelType
            gs1Prefix (Just ir)
            (Just sn) Nothing Nothing
            fv
            Nothing Nothing Nothing
 
-epcToStorageLabel labelType (Schema.WhatId whatId) (Schema.LabelId pKey) (IL (GIAI gs1Prefix sn)) =
-  Schema.Label Nothing pKey labelType (Schema.WhatId whatId)
+epcToStorageLabel labelType (Schema.LabelId pKey) (IL (GIAI gs1Prefix sn)) =
+  Schema.Label Nothing pKey labelType
            gs1Prefix Nothing (Just sn)
            Nothing Nothing Nothing Nothing Nothing Nothing
 
-epcToStorageLabel labelType (Schema.WhatId whatId) (Schema.LabelId pKey) (IL (SSCC gs1Prefix sn)) =
-  Schema.Label Nothing pKey labelType (Schema.WhatId whatId)
+epcToStorageLabel labelType (Schema.LabelId pKey) (IL (SSCC gs1Prefix sn)) =
+  Schema.Label Nothing pKey labelType
            gs1Prefix Nothing (Just sn)
            Nothing Nothing Nothing Nothing Nothing Nothing
 
-epcToStorageLabel labelType (Schema.WhatId whatId) (Schema.LabelId pKey) (IL (GRAI gs1Prefix at sn)) =
-  Schema.Label Nothing pKey labelType (Schema.WhatId whatId)
+epcToStorageLabel labelType (Schema.LabelId pKey) (IL (GRAI gs1Prefix at sn)) =
+  Schema.Label Nothing pKey labelType
            gs1Prefix Nothing (Just sn)
            Nothing Nothing Nothing (Just at) Nothing Nothing
 
-epcToStorageLabel labelType (Schema.WhatId whatId) (Schema.LabelId pKey) (CL (LGTIN gs1Prefix ir lot) mQ) =
-  Schema.Label Nothing pKey labelType (Schema.WhatId whatId)
+epcToStorageLabel labelType (Schema.LabelId pKey) (CL (LGTIN gs1Prefix ir lot) mQ) =
+  Schema.Label Nothing pKey labelType
            gs1Prefix (Just ir) Nothing
            Nothing (Just lot) Nothing Nothing
            (getQuantityAmount mQ) (getQuantityUom mQ)
 
-epcToStorageLabel labelType (Schema.WhatId whatId) (Schema.LabelId pKey) (CL (CSGTIN gs1Prefix fv ir) mQ) =
-  Schema.Label Nothing pKey labelType (Schema.WhatId whatId)
+epcToStorageLabel labelType (Schema.LabelId pKey) (CL (CSGTIN gs1Prefix fv ir) mQ) =
+  Schema.Label Nothing pKey labelType
            gs1Prefix (Just ir) Nothing
            Nothing Nothing fv Nothing
            (getQuantityAmount mQ) (getQuantityUom mQ)
@@ -384,13 +383,12 @@ insertWhatLabel (Schema.WhatId whatId) (Schema.LabelId labelId) = QU.withPKey $ 
 -- | Given the necessary information,
 -- converts a ``LabelEPC`` to Schema.Label and writes it to the database
 insertLabel :: Maybe MU.LabelType
-            -> Schema.WhatId
             -> LabelEPC
             -> DB context err PrimaryKeyType
-insertLabel labelType whatId labelEpc = QU.withPKey $ \pKey ->
+insertLabel labelType labelEpc = QU.withPKey $ \pKey ->
   pg $ B.runInsert $ B.insert (Schema._labels Schema.supplyChainDb)
         $ insertValues
-        [ epcToStorageLabel labelType whatId (Schema.LabelId pKey) labelEpc]
+        [ epcToStorageLabel labelType (Schema.LabelId pKey) labelEpc]
 
 -- | Ties up a label and an event entry in the database
 insertLabelEvent :: Schema.EventId
