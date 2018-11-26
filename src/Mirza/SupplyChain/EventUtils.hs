@@ -396,9 +396,7 @@ insertLabelEvent :: Schema.EventId
 insertLabelEvent (Schema.EventId eventId) (Schema.LabelId labelId) = QU.withPKey $ \pKey ->
   pg $ B.runInsert $ B.insert (Schema._label_events Schema.supplyChainDb)
         $ insertValues
-          [ Schema.LabelEvent Nothing pKey (Schema.LabelId labelId)
-              (Schema.EventId eventId)
-        ]
+          [ Schema.LabelEvent Nothing pKey (Schema.LabelId labelId) (Schema.EventId eventId) ]
 
 getUserById :: ST.UserId -> DB context err (Maybe Schema.User)
 getUserById (ST.UserId uid) = do
