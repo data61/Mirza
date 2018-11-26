@@ -291,25 +291,25 @@ regulator4KP = KeyPairPaths (privateKeyPath "regulator4") (publicKeyPath "regula
 
 -- All the labels that feed into citrusEvents
 landLabel :: InstanceLabelEPC
-landLabel = GRAI farmerCompanyPrefix (AssetType "blockLabel") (SerialNumber "88")
+landLabel = GRAI farmerCompanyPrefix (AssetType "blockLabel") (SerialNumber "1")
 binLabel :: InstanceLabelEPC
-binLabel = GIAI farmerCompanyPrefix (SerialNumber "1")
+binLabel = GIAI farmerCompanyPrefix (SerialNumber "3")
 truckLabel :: InstanceLabelEPC
-truckLabel = SSCC truckDriver1CompanyPrefix (SerialNumber "1")
+truckLabel = SSCC truckDriver1CompanyPrefix (SerialNumber "4")
 boxLabel :: InstanceLabelEPC
-boxLabel = GIAI farmerCompanyPrefix (SerialNumber "1")
+boxLabel = GIAI farmerCompanyPrefix (SerialNumber "5")
 palletLabel :: InstanceLabelEPC
-palletLabel = GRAI packingHouseCompanyPrefix (AssetType "palletLabel") (SerialNumber "1")
+palletLabel = GRAI packingHouseCompanyPrefix (AssetType "palletLabel") (SerialNumber "6")
 truck2Label :: InstanceLabelEPC
-truck2Label = SSCC truck2CompanyPrefix (SerialNumber "1")
+truck2Label = SSCC truck2CompanyPrefix (SerialNumber "7")
 shipLabel :: InstanceLabelEPC
-shipLabel = SSCC cnPortCompanyPrefix (SerialNumber "23")
+shipLabel = SSCC cnPortCompanyPrefix (SerialNumber "8")
 binLabels :: [LabelEPC]
-binLabels = [IL binLabel, IL $ GIAI farmerCompanyPrefix (SerialNumber "2")]
+binLabels = [IL binLabel, IL $ GIAI farmerCompanyPrefix (SerialNumber "9")]
 boxLabels :: [LabelEPC]
-boxLabels = [IL boxLabel, IL $ GIAI farmerCompanyPrefix (SerialNumber "2")]
+boxLabels = [IL boxLabel, IL $ GIAI farmerCompanyPrefix (SerialNumber "10")]
 palletLabels :: [LabelEPC]
-palletLabels = [IL palletLabel, IL $ GRAI packingHouseCompanyPrefix (AssetType "palletLabel") (SerialNumber "2")]
+palletLabels = [IL palletLabel, IL $ GRAI packingHouseCompanyPrefix (AssetType "palletLabel") (SerialNumber "11")]
 
 --pest control
 pestControl :: [LabelEPC]

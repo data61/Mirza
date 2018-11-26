@@ -32,9 +32,9 @@ import           Data.GS1.EventId                   as EvId
 import           Data.List.NonEmpty                 (nonEmpty, toList, (<|))
 import           Data.List.Unique                   (allUnique)
 
-import           Data.Maybe                         (maybe)
+import           Data.Maybe                         (fromJust, isJust, maybe)
 
-import           Control.Monad.Except               (unless)
+import           Control.Monad.Except               (unless, when)
 
 insertObjectEvent :: SCSApp context err => ST.User
                   -> ObjectEvent
@@ -62,13 +62,13 @@ insertObjectEventQuery
   -- uniqueness of the JSON event is enforced
   (evInfo, eventId) <- insertEvent schemaUserId event
   whatId <- insertDWhat Nothing dwhat eventId
-  labelIds' <- mapM (insertLabel Nothing (Schema.WhatId whatId)) labelEpcs
+  labelIds' <- mapM insertLabel labelEpcs
   let labelIds = Schema.LabelId <$> labelIds'
   _whenId <- insertDWhen dwhen eventId
   _whyId <- insertDWhy dwhy eventId
   insertDWhere dwhere eventId
   insertUserEvent eventId (EventOwner ownerUserId) False Nothing (SigningUser ownerUserId)
-  mapM_ (insertWhatLabel (Schema.WhatId whatId)) labelIds
+  mapM_ (insertWhatLabel Nothing (Schema.WhatId whatId)) labelIds
   mapM_ (insertLabelEvent eventId) labelIds
   pure (evInfo, eventId)
 
@@ -100,14 +100,16 @@ insertAggEventQuery
   -- uniqueness of the JSON event is enforced
   (evInfo, eventId) <- insertEvent schemaUserId event
   whatId <- insertDWhat Nothing dwhat eventId
-  labelIds' <- mapM (insertLabel Nothing (Schema.WhatId whatId)) labelEpcs
+  labelIds' <- mapM insertLabel labelEpcs
   let labelIds = Schema.LabelId <$> labelIds'
-  mapM_ (insertLabel (Just MU.Parent) (Schema.WhatId whatId)) (IL . unParentLabel <$> mParentLabel)
+  mParentLabelId <- mapM insertLabel (IL . unParentLabel <$> mParentLabel)
   _whenId <- insertDWhen dwhen eventId
   _whyId <- insertDWhy dwhy eventId
   insertDWhere dwhere eventId
   insertUserEvent eventId (EventOwner ownerUserId) False Nothing (SigningUser ownerUserId)
-  mapM_ (insertWhatLabel (Schema.WhatId whatId)) labelIds
+  mapM_ (insertWhatLabel Nothing (Schema.WhatId whatId)) labelIds
+  when (isJust mParentLabelId) $
+    insertWhatLabel (Just MU.Parent) (Schema.WhatId whatId) (Schema.LabelId . fromJust $ mParentLabelId) >>= (\_ -> pure ())
   mapM_ (insertLabelEvent eventId) labelIds
   pure (evInfo, eventId)
 
@@ -146,14 +148,16 @@ insertTransactEventQuery
   let ownerId = EventOwner userId
 
   whatId <- insertDWhat Nothing dwhat eventId
-  labelIds' <- mapM (insertLabel Nothing (Schema.WhatId whatId)) labelEpcs
+  labelIds' <- mapM insertLabel labelEpcs
   let labelIds = Schema.LabelId <$> labelIds'
-  mapM_ (insertLabel (Just MU.Parent) (Schema.WhatId whatId)) (IL . unParentLabel <$> mParentLabel)
+  mParentLabelId <- mapM insertLabel (IL . unParentLabel <$> mParentLabel)
   _whenId <- insertDWhen dwhen eventId
   _whyId <- insertDWhy dwhy eventId
   insertDWhere dwhere eventId
   _r <- sequence $ insertUserEvent eventId ownerId False Nothing <$> SigningUser <$> userId <| otherUsers
-  mapM_ (insertWhatLabel (Schema.WhatId whatId)) labelIds
+  mapM_ (insertWhatLabel Nothing (Schema.WhatId whatId)) labelIds
+  when (isJust mParentLabelId) $
+      insertWhatLabel (Just MU.Parent) (Schema.WhatId whatId) (Schema.LabelId . fromJust $ mParentLabelId) >>= (\_ -> pure ())
   mapM_ (insertLabelEvent eventId) labelIds
 
   pure (evInfo, eventId)
@@ -186,14 +190,15 @@ insertTransfEventQuery
   -- uniqueness of the JSON event is enforced
   (evInfo, eventId) <- insertEvent schemaUserId event
   whatId <- insertDWhat Nothing dwhat eventId
-  inputLabelIds <- mapM (\(InputEPC i) -> insertLabel (Just MU.Input) (Schema.WhatId whatId) i) inputs
-  outputLabelIds <- mapM (\(OutputEPC o) -> insertLabel (Just MU.Output) (Schema.WhatId whatId) o) outputs
+  inputLabelIds <- mapM (\(InputEPC i) -> insertLabel i) inputs
+  outputLabelIds <- mapM (\(OutputEPC o) -> insertLabel o) outputs
   let labelIds = Schema.LabelId <$> (inputLabelIds ++ outputLabelIds)
   _whenId <- insertDWhen dwhen eventId
   _whyId <- insertDWhy dwhy eventId
   insertDWhere dwhere eventId
   insertUserEvent eventId (EventOwner ownerUserId) False Nothing (SigningUser ownerUserId)
-  mapM_ (insertWhatLabel (Schema.WhatId whatId)) labelIds
+  mapM_ (insertWhatLabel (Just MU.Input)  (Schema.WhatId whatId) . Schema.LabelId) inputLabelIds
+  mapM_ (insertWhatLabel (Just MU.Output) (Schema.WhatId whatId) . Schema.LabelId) outputLabelIds
   mapM_ (insertLabelEvent eventId) labelIds
 
   pure (evInfo, eventId)
