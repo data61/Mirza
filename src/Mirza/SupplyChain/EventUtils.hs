@@ -58,41 +58,39 @@ import           Crypto.JOSE.Types                 (Base64Octets (..))
 
 -- Helper functions
 
-epcToStorageLabel :: Maybe MU.LabelType
-                  -> Schema.WhatId
-                  -> Schema.LabelId
+epcToStorageLabel :: Schema.LabelId
                   -> LabelEPC
                   -> Schema.Label
-epcToStorageLabel labelType (Schema.WhatId whatId) (Schema.LabelId pKey) (IL (SGTIN gs1Prefix fv ir sn)) =
-  Schema.Label Nothing pKey labelType (Schema.WhatId whatId)
+epcToStorageLabel (Schema.LabelId pKey) (IL (SGTIN gs1Prefix fv ir sn)) =
+  Schema.Label Nothing pKey
            gs1Prefix (Just ir)
            (Just sn) Nothing Nothing
            fv
            Nothing Nothing Nothing
 
-epcToStorageLabel labelType (Schema.WhatId whatId) (Schema.LabelId pKey) (IL (GIAI gs1Prefix sn)) =
-  Schema.Label Nothing pKey labelType (Schema.WhatId whatId)
+epcToStorageLabel (Schema.LabelId pKey) (IL (GIAI gs1Prefix sn)) =
+  Schema.Label Nothing pKey
            gs1Prefix Nothing (Just sn)
            Nothing Nothing Nothing Nothing Nothing Nothing
 
-epcToStorageLabel labelType (Schema.WhatId whatId) (Schema.LabelId pKey) (IL (SSCC gs1Prefix sn)) =
-  Schema.Label Nothing pKey labelType (Schema.WhatId whatId)
+epcToStorageLabel (Schema.LabelId pKey) (IL (SSCC gs1Prefix sn)) =
+  Schema.Label Nothing pKey
            gs1Prefix Nothing (Just sn)
            Nothing Nothing Nothing Nothing Nothing Nothing
 
-epcToStorageLabel labelType (Schema.WhatId whatId) (Schema.LabelId pKey) (IL (GRAI gs1Prefix at sn)) =
-  Schema.Label Nothing pKey labelType (Schema.WhatId whatId)
+epcToStorageLabel (Schema.LabelId pKey) (IL (GRAI gs1Prefix at sn)) =
+  Schema.Label Nothing pKey
            gs1Prefix Nothing (Just sn)
            Nothing Nothing Nothing (Just at) Nothing Nothing
 
-epcToStorageLabel labelType (Schema.WhatId whatId) (Schema.LabelId pKey) (CL (LGTIN gs1Prefix ir lot) mQ) =
-  Schema.Label Nothing pKey labelType (Schema.WhatId whatId)
+epcToStorageLabel (Schema.LabelId pKey) (CL (LGTIN gs1Prefix ir lot) mQ) =
+  Schema.Label Nothing pKey
            gs1Prefix (Just ir) Nothing
            Nothing (Just lot) Nothing Nothing
            (getQuantityAmount mQ) (getQuantityUom mQ)
 
-epcToStorageLabel labelType (Schema.WhatId whatId) (Schema.LabelId pKey) (CL (CSGTIN gs1Prefix fv ir) mQ) =
-  Schema.Label Nothing pKey labelType (Schema.WhatId whatId)
+epcToStorageLabel (Schema.LabelId pKey) (CL (CSGTIN gs1Prefix fv ir) mQ) =
+  Schema.Label Nothing pKey
            gs1Prefix (Just ir) Nothing
            Nothing Nothing fv Nothing
            (getQuantityAmount mQ) (getQuantityUom mQ)
@@ -368,29 +366,28 @@ insertUserEvent eventId (EventOwner addedByUserId) signed signedHash (SigningUse
             [ Schema.UserEvent Nothing  pKey eventId signingId signed ownerId signedHash
             ]
 
-insertWhatLabel :: Schema.WhatId
+insertWhatLabel :: Maybe MU.LabelType
+                -> Schema.WhatId
                 -> Schema.LabelId
                 -> DB context err PrimaryKeyType
-insertWhatLabel (Schema.WhatId whatId) (Schema.LabelId labelId) = QU.withPKey $ \pKey ->
+insertWhatLabel labelType (Schema.WhatId whatId) (Schema.LabelId labelId) = QU.withPKey $ \pKey ->
   pg $ B.runInsert $ B.insert (Schema._what_labels Schema.supplyChainDb)
         $ insertValues
         [
           Schema.WhatLabel Nothing pKey
           (Schema.WhatId whatId)
           (Schema.LabelId labelId)
-
+          labelType
         ]
 
 -- | Given the necessary information,
 -- converts a ``LabelEPC`` to Schema.Label and writes it to the database
-insertLabel :: Maybe MU.LabelType
-            -> Schema.WhatId
-            -> LabelEPC
+insertLabel :: LabelEPC
             -> DB context err PrimaryKeyType
-insertLabel labelType whatId labelEpc = QU.withPKey $ \pKey ->
+insertLabel labelEpc = QU.withPKey $ \pKey ->
   pg $ B.runInsert $ B.insert (Schema._labels Schema.supplyChainDb)
         $ insertValues
-        [ epcToStorageLabel labelType whatId (Schema.LabelId pKey) labelEpc]
+        [ epcToStorageLabel (Schema.LabelId pKey) labelEpc]
 
 -- | Ties up a label and an event entry in the database
 insertLabelEvent :: Schema.EventId
