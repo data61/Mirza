@@ -67,7 +67,6 @@ data SupplyChainDb f = SupplyChainDb
   , _contacts         :: f (TableEntity ContactT)
   , _labels           :: f (TableEntity LabelT)
   , _what_labels      :: f (TableEntity WhatLabelT)
-  , _items            :: f (TableEntity ItemT)
   , _transformations  :: f (TableEntity TransformationT)
   , _locations        :: f (TableEntity LocationT)
   , _events           :: f (TableEntity EventT)
@@ -114,8 +113,6 @@ migration () =
     <*> createTable "labels" ( Label
           lastUpdateField
           (field "label_id" pkSerialType)
-          (field "label_type" (maybeType labelType))
-          (WhatId (field "label_what_id" pkSerialType))
           (field "label_gs1_company_prefix" gs1CompanyPrefixType notNull)
           (field "label_item_reference" (maybeType itemRefType))
           (field "label_serial_number" (maybeType serialNumType))
@@ -131,12 +128,7 @@ migration () =
           (field "what_label_id" pkSerialType)
           (WhatId (field "what_label_what_id" pkSerialType))
           (LabelId (field "what_label_label_id" pkSerialType))
-    )
-    <*> createTable "items" ( Item
-          lastUpdateField
-          (field "item_id" pkSerialType)
-          (LabelId (field "item_label_id" pkSerialType))
-          (field "item_description" (varchar (Just defaultFieldMaxLength)) notNull)
+          (field "what_label_label_type" (maybeType labelType))
     )
     <*> createTable "transformations" ( Transformation
           lastUpdateField
@@ -343,8 +335,6 @@ type LabelId = PrimaryKey LabelT Identity
 data LabelT f = Label
   { label_last_update        :: C f (Maybe LocalTime)
   , label_id                 :: C f PrimaryKeyType
-  , label_type               :: C f (Maybe MU.LabelType)
-  , label_what_id            :: PrimaryKey WhatT f
   , label_gs1_company_prefix :: C f EPC.GS1CompanyPrefix --should this be bizId instead?
   , label_item_reference     :: C f (Maybe EPC.ItemReference)
   , label_serial_number      :: C f (Maybe EPC.SerialNumber)
@@ -382,7 +372,9 @@ data WhatLabelT f = WhatLabel
   { what_label_last_update :: C f (Maybe LocalTime)
   , what_label_id          :: C f PrimaryKeyType
   , what_label_what_id     :: PrimaryKey WhatT f
-  , what_label_label_id    :: PrimaryKey LabelT f }
+  , what_label_label_id    :: PrimaryKey LabelT f
+  , what_label_label_type  :: C f (Maybe MU.LabelType)
+  }
   deriving Generic
 
 deriving instance Show WhatLabel
@@ -395,32 +387,6 @@ instance Table WhatLabelT where
   data PrimaryKey WhatLabelT f = WhatLabelId (C f PrimaryKeyType)
     deriving Generic
   primaryKey = WhatLabelId . what_label_id
-
-
---------------------------------------------------------------------------------
--- Item Table
---------------------------------------------------------------------------------
-
-type Item = ItemT Identity
-type ItemId = PrimaryKey ItemT Identity
-
-data ItemT f = Item
-  { item_last_update :: C f (Maybe LocalTime)
-  , item_id          :: C f PrimaryKeyType
-  , item_label_id    :: PrimaryKey LabelT f
-  , item_description :: C f Text }
-  deriving Generic
-
-deriving instance Show Item
-deriving instance Show (PrimaryKey ItemT Identity)
-
-instance Beamable ItemT
-instance Beamable (PrimaryKey ItemT)
-
-instance Table ItemT where
-  data PrimaryKey ItemT f = ItemId (C f PrimaryKeyType)
-    deriving Generic
-  primaryKey = ItemId . item_id
 
 
 --------------------------------------------------------------------------------
