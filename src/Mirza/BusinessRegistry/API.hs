@@ -30,6 +30,7 @@ import           Servant.API.Flatten
 import           Servant.Swagger.UI
 
 import           Crypto.JOSE.JWK
+import           Data.Text                              (Text)
 
 
 type API
@@ -52,8 +53,10 @@ type PublicAPI =
        "healthz"                                          :> Get '[JSON] HealthResponse
   :<|> "key"      :> "get"     :> Capture "keyId" BRKeyId :> Get '[JSON] JWK
   :<|> "key"      :> "getInfo" :> Capture "keyId" BRKeyId :> Get '[JSON] KeyInfoResponse
-  :<|> "business" :> "list"                               :> Get '[JSON] [BusinessResponse]
-
+  :<|> "business" :> "search"
+      :> QueryParam "gs1id" GS1CompanyPrefix
+      :> QueryParam "name" Text
+      :> Get '[JSON] [BusinessResponse]
 
 type PrivateAPI =
        "user"     :> "add"     :> ReqBody '[JSON] NewUser     :> Post '[JSON] UserId

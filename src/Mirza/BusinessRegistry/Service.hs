@@ -71,7 +71,7 @@ publicServer =
        health
   :<|> getPublicKey
   :<|> getPublicKeyInfo
-  :<|> listBusinesses
+  :<|> searchBusinesses
 
 privateServer :: ( Member context '[HasScryptParams, HasDB]
                  , APIPossibleErrors err)
