@@ -113,7 +113,6 @@ migration () =
     <*> createTable "labels" ( Label
           lastUpdateField
           (field "label_id" pkSerialType)
-          (field "label_type" (maybeType labelType))
           (field "label_gs1_company_prefix" gs1CompanyPrefixType notNull)
           (field "label_item_reference" (maybeType itemRefType))
           (field "label_serial_number" (maybeType serialNumType))
@@ -129,6 +128,7 @@ migration () =
           (field "what_label_id" pkSerialType)
           (WhatId (field "what_label_what_id" pkSerialType))
           (LabelId (field "what_label_label_id" pkSerialType))
+          (field "what_label_label_type" (maybeType labelType))
     )
     <*> createTable "transformations" ( Transformation
           lastUpdateField
@@ -335,7 +335,6 @@ type LabelId = PrimaryKey LabelT Identity
 data LabelT f = Label
   { label_last_update        :: C f (Maybe LocalTime)
   , label_id                 :: C f PrimaryKeyType
-  , label_type               :: C f (Maybe MU.LabelType)
   , label_gs1_company_prefix :: C f EPC.GS1CompanyPrefix --should this be bizId instead?
   , label_item_reference     :: C f (Maybe EPC.ItemReference)
   , label_serial_number      :: C f (Maybe EPC.SerialNumber)
@@ -373,7 +372,9 @@ data WhatLabelT f = WhatLabel
   { what_label_last_update :: C f (Maybe LocalTime)
   , what_label_id          :: C f PrimaryKeyType
   , what_label_what_id     :: PrimaryKey WhatT f
-  , what_label_label_id    :: PrimaryKey LabelT f }
+  , what_label_label_id    :: PrimaryKey LabelT f
+  , what_label_label_type  :: C f (Maybe MU.LabelType)
+  }
   deriving Generic
 
 deriving instance Show WhatLabel
