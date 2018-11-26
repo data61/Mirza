@@ -4,11 +4,11 @@
 {-# LANGUAGE RecordWildCards       #-}
 
 module Mirza.BusinessRegistry.Handlers.Business
-  ( listBusinesses
-  , listBusinessesQuery
-  , addBusiness
+  ( addBusiness
   , addBusinessAuth
   , addBusinessQuery
+  , searchBusinesses
+  , searchBusinessesQuery
   ) where
 
 
@@ -23,14 +23,10 @@ import           Database.Beam.Backend.SQL.BeamExtensions
 
 import           Control.Lens                             (( # ))
 
+import           Data.Foldable                            (for_)
+import           Data.Text                                (Text)
 import           GHC.Stack                                (HasCallStack,
                                                            callStack)
-
-
-listBusinesses :: ( Member context '[HasDB]
-                  , Member err     '[AsBRError, AsSqlError])
-               => AppM context err [BusinessResponse]
-listBusinesses = fmap businessToBusinessResponse <$> runDb listBusinessesQuery
 
 
 businessToBusinessResponse :: Business -> BusinessResponse
@@ -39,10 +35,6 @@ businessToBusinessResponse BusinessT{..} = BusinessResponse
   , businessName             = biz_name
   }
 
-
-listBusinessesQuery :: DB context err [Business]
-listBusinessesQuery = pg $ runSelectReturningList $ select $
-  all_ (_businesses businessRegistryDB)
 
 -- This function is an interface adapter and adds the BT.AuthUser argument to
 -- addBusiness so that we can use it from behind the private API. This argument
@@ -80,3 +72,16 @@ addBusinessQuery biz@BusinessT{..} = do
   case res of
         [r] -> pure r
         _   -> throwing _UnexpectedErrorBRE callStack
+
+
+searchBusinesses :: ( Member context '[HasDB]
+                  , Member err     '[AsSqlError])
+               => Maybe GS1CompanyPrefix -> Maybe Text -> AppM context err [BusinessResponse]
+searchBusinesses mpfx mname = fmap businessToBusinessResponse <$> runDb (searchBusinessesQuery mpfx mname)
+
+searchBusinessesQuery :: Maybe GS1CompanyPrefix -> Maybe Text -> DB context err [Business]
+searchBusinessesQuery mpfx mname = pg $ runSelectReturningList $ select $ do
+  biz <- all_ (_businesses businessRegistryDB)
+  for_ mpfx $ \pfx -> guard_ (biz_gs1_company_prefix biz ==. val_ pfx)
+  for_ mname $ \name -> guard_ (biz_name biz `like_` val_ ("%"<>name<>"%"))
+  pure biz
