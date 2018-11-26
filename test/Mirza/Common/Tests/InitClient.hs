@@ -81,7 +81,6 @@ runSCSApp brUrl = do
         contactsTable
         labelsTable
         whatLabelsTable
-        itemsTable
         transformationsTable
         locationsTable
         eventsTable
@@ -103,7 +102,6 @@ runSCSApp brUrl = do
       deleteTable $ contactsTable
       deleteTable $ labelsTable
       deleteTable $ whatLabelsTable
-      deleteTable $ itemsTable
       deleteTable $ transformationsTable
       deleteTable $ locationsTable
       deleteTable $ eventsTable
