@@ -52,8 +52,8 @@ data ServerOptionsSCS = ServerOptionsSCS
   , sScryptP      :: Integer
   , sScryptR      :: Integer
   , loggingLevel  :: K.Severity
-  , brHostName    :: String
-  , brPort        :: Int
+  , brHostName    :: Maybe String
+  , brPort        :: Maybe Int
   , loggingPath   :: Maybe FilePath
   }
 
@@ -96,12 +96,12 @@ serverOptions = ServerOptionsSCS
       <*> option auto
           (long "log-level" <> value InfoS <> showDefault
           <> help ("Logging level: " ++ show [minBound .. maxBound :: Severity]))
-      <*> strOption
+      <*> optional (strOption
           ( long "brhost"
-          <> help "The host to run the business registry on" )
-      <*> option auto
+          <> help "The host to run the business registry on"))
+      <*> optional (option auto
           ( long "brport"
-          <> help "Port to run business registry on" )
+          <> help "Port to run business registry on" ))
       <*> optional (strOption
           (  long "log-path"
           <> short 'l'
