@@ -128,7 +128,7 @@ citrusEvents startTime tz =
     rpPackingHouseLocation locationPackingHouse),
 
     EachEvent [packingHouseE]
-    (palletisation (Just . ParentLabel $ palletLabel)  boxLabels
+    (palletisation (Just . ParentLabel $ palletLabel) boxLabels
     (addEpcisTime startTime 7) tz
     rpPackingHouseLocation locationPackingHouse),
 
@@ -233,27 +233,27 @@ regulator4CompanyPrefix = GS1CompanyPrefix "8989111"
 farmLocation :: LocationEPC
 farmLocation = SGLN farmerCompanyPrefix (LocationReference "1") Nothing -- "blockID3"
 truckDriver1Biz :: LocationEPC
-truckDriver1Biz = SGLN truckDriver1CompanyPrefix (LocationReference "1") Nothing
+truckDriver1Biz = SGLN truckDriver1CompanyPrefix (LocationReference "2") Nothing
 regulator1Biz :: LocationEPC
-regulator1Biz = SGLN regulator1CompanyPrefix (LocationReference "1") Nothing
+regulator1Biz = SGLN regulator1CompanyPrefix (LocationReference "3") Nothing
 regulator2Biz :: LocationEPC
-regulator2Biz = SGLN regulator2CompanyPrefix (LocationReference "1") Nothing
+regulator2Biz = SGLN regulator2CompanyPrefix (LocationReference "4") Nothing
 packingHouseLocation :: LocationEPC
-packingHouseLocation = SGLN packingHouseCompanyPrefix (LocationReference "1") Nothing
+packingHouseLocation = SGLN packingHouseCompanyPrefix (LocationReference "5") Nothing
 auPortLocation :: LocationEPC
-auPortLocation = SGLN auPortCompanyPrefix (LocationReference "1") Nothing
+auPortLocation = SGLN auPortCompanyPrefix (LocationReference "6") Nothing
 cnPortLocation :: LocationEPC
-cnPortLocation = SGLN cnPortCompanyPrefix (LocationReference "1") Nothing
+cnPortLocation = SGLN cnPortCompanyPrefix (LocationReference "7") Nothing
 farmerBiz :: LocationEPC
-farmerBiz = SGLN farmerCompanyPrefix (LocationReference "1") Nothing
+farmerBiz = SGLN farmerCompanyPrefix (LocationReference "8") Nothing
 packingHouseBiz :: LocationEPC
-packingHouseBiz = SGLN packingHouseCompanyPrefix (LocationReference "1") Nothing
+packingHouseBiz = SGLN packingHouseCompanyPrefix (LocationReference "9") Nothing
 truck2Biz :: LocationEPC
-truck2Biz = SGLN truck2CompanyPrefix (LocationReference "1") Nothing
+truck2Biz = SGLN truck2CompanyPrefix (LocationReference "10") Nothing
 regulator3Biz :: LocationEPC
-regulator3Biz = SGLN regulator3CompanyPrefix (LocationReference "1") Nothing
+regulator3Biz = SGLN regulator3CompanyPrefix (LocationReference "11") Nothing
 regulator4Biz :: LocationEPC
-regulator4Biz = SGLN regulator4CompanyPrefix (LocationReference "1") Nothing
+regulator4Biz = SGLN regulator4CompanyPrefix (LocationReference "12") Nothing
 
 
 locationMap :: LocationMap
