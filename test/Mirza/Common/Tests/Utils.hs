@@ -62,8 +62,8 @@ betweenInclusive :: Ord a
                  -> a     -- ^ The other bound to check.
                  -> a     -- ^ The value to check if it exists between the two bounds.
                  -> Bool  -- ^ Whether the value is between the two bounds inclusive of the bounds.
-betweenInclusive bound1 bound2 x = (bound1 `comparitor` x) && (x `comparitor` bound2) where
-  comparitor | bound1 <= bound2  = (<=)
+betweenInclusive bound1 bound2 x = (bound1 `comparator` x) && (x `comparator` bound2) where
+  comparator | bound1 <= bound2  = (<=)
              | otherwise         = (>=)
 
 
