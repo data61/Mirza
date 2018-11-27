@@ -56,16 +56,23 @@ citrusSpec = do
           step "Initialising the data"
           authHt <- insertAndAuth scsUrl brUrl brAuthUser locationMap initAuthHt allEntities
           currTime <- getCurrentTime
-          let cEvents = citrusEvents (EPCISTime currTime) utc
-          insertEachEventResult <- sequence $ (httpSCS . (insertEachEvent authHt)) <$> cEvents
+          let citrusEachEvents = citrusEvents (EPCISTime currTime) utc
+          insertEachEventResult <- sequence $ (httpSCS . (insertEachEvent authHt)) <$> citrusEachEvents
           void $ pure $ (flip shouldSatisfy) isRight <$> insertEachEventResult
 
           step "Listing events with each label"
           let (Just (_, farmerAuth, _)) = H.lookup farmerE authHt
               renderedLandLabel = renderURL landLabel
           liftIO $ print renderedLandLabel
-          Right res <- httpSCS $ SCSClient.listEvents farmerAuth (ST.LabelEPCUrn . renderURL $ landLabel)
-          length res `shouldBe` 3
+          Right resBox <- httpSCS $ SCSClient.listEvents farmerAuth (ST.LabelEPCUrn . renderURL $ boxLabel)
+          -- Right resLand <- httpSCS $ SCSClient.listEvents farmerAuth (ST.LabelEPCUrn . renderURL $ landLabel)
+
+          -- Right res <- httpSCS $ SCSClient.listEvents farmerAuth (ST.LabelEPCUrn . renderURL $ landLabel)
+          let [evBox] = resBox
+              (EachEvent _ pEvent) = citrusEachEvents !! 7
+          -- length resBox `shouldBe` 1
+          evBox `shouldBe` pEvent
+
           -- step "check eventInfo for each event"
 
           -- step "get all events related to boxLabel"
