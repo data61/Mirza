@@ -53,7 +53,10 @@ import           Data.List.NonEmpty                    (NonEmpty (..))
 type EntityName = T.Text
 type BusinessName = T.Text
 
-data EachEvent = EachEvent [Entity] Event
+data EachEvent = EachEvent {
+    eachEventEntities :: [Entity]
+  , eachEventEvent    :: Event
+  }
   deriving (Eq, Show, Generic)
 
 data Entity = Entity {

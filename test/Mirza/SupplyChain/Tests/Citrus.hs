@@ -69,7 +69,7 @@ citrusSpec = do
 
           -- Right res <- httpSCS $ SCSClient.listEvents farmerAuth (ST.LabelEPCUrn . renderURL $ landLabel)
           let [evBox] = resBox
-              (EachEvent _ pEvent) = citrusEachEvents !! 7
+              pEvent = eachEventEvent $ citrusEachEvents !! 7
           -- length resBox `shouldBe` 1
           evBox `shouldBe` pEvent
 
@@ -94,7 +94,6 @@ citrusEvents startTime tz =
     (pestControl [instanceLandLabel]
     startTime tz
     rpFarmLocation (BizLocation regulator1Biz)),
-
 
     EachEvent [regulator2E]
     (maxResidue [instanceLandLabel]
