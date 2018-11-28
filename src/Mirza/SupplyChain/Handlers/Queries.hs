@@ -8,6 +8,7 @@ module Mirza.SupplyChain.Handlers.Queries
   ) where
 
 
+import           Mirza.Common.GS1BeamOrphans       (LabelEPCUrn (..))
 import           Mirza.Common.Utils                (fromPgJSON)
 import           Mirza.SupplyChain.EventUtils      (findLabelId,
                                                     findSchemaEvent,

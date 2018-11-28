@@ -5,6 +5,8 @@ module Mirza.SupplyChain.Tests.Citrus (
     citrusSpec
   ) where
 
+import           Mirza.Common.GS1BeamOrphans      (LabelEPCUrn (..))
+
 import           Control.Exception                (bracket)
 import           Control.Monad.Except
 
@@ -18,7 +20,6 @@ import           Test.Tasty
 import           Test.Tasty.HUnit
 
 import           Mirza.BusinessRegistry.Types     as BT
-import           Mirza.SupplyChain.Types          as ST
 
 import           Data.GS1.DWhat
 import           Data.GS1.DWhen

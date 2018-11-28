@@ -61,39 +61,45 @@ import           Crypto.JOSE.Types                 (Base64Octets (..))
 epcToStorageLabel :: Schema.LabelId
                   -> LabelEPC
                   -> Schema.Label
-epcToStorageLabel (Schema.LabelId pKey) (IL (SGTIN gs1Prefix fv ir sn)) =
+epcToStorageLabel (Schema.LabelId pKey) (IL labelEpc@(SGTIN gs1Prefix fv ir sn)) =
   Schema.Label Nothing pKey
            gs1Prefix (Just ir)
            (Just sn) Nothing Nothing
            fv
            Nothing Nothing Nothing
+           (MU.LabelEPCUrn $ renderURL labelEpc)
 
-epcToStorageLabel (Schema.LabelId pKey) (IL (GIAI gs1Prefix sn)) =
+epcToStorageLabel (Schema.LabelId pKey) (IL labelEpc@(GIAI gs1Prefix sn)) =
   Schema.Label Nothing pKey
            gs1Prefix Nothing (Just sn)
            Nothing Nothing Nothing Nothing Nothing Nothing
+           (MU.LabelEPCUrn $ renderURL labelEpc)
 
-epcToStorageLabel (Schema.LabelId pKey) (IL (SSCC gs1Prefix sn)) =
+epcToStorageLabel (Schema.LabelId pKey) (IL labelEpc@(SSCC gs1Prefix sn)) =
   Schema.Label Nothing pKey
            gs1Prefix Nothing (Just sn)
            Nothing Nothing Nothing Nothing Nothing Nothing
+           (MU.LabelEPCUrn $ renderURL labelEpc)
 
-epcToStorageLabel (Schema.LabelId pKey) (IL (GRAI gs1Prefix at sn)) =
+epcToStorageLabel (Schema.LabelId pKey) (IL labelEpc@(GRAI gs1Prefix at sn)) =
   Schema.Label Nothing pKey
            gs1Prefix Nothing (Just sn)
            Nothing Nothing Nothing (Just at) Nothing Nothing
+           (MU.LabelEPCUrn $ renderURL labelEpc)
 
-epcToStorageLabel (Schema.LabelId pKey) (CL (LGTIN gs1Prefix ir lot) mQ) =
+epcToStorageLabel (Schema.LabelId pKey) (CL labelEpc@(LGTIN gs1Prefix ir lot) mQ) =
   Schema.Label Nothing pKey
            gs1Prefix (Just ir) Nothing
            Nothing (Just lot) Nothing Nothing
            (getQuantityAmount mQ) (getQuantityUom mQ)
+           (MU.LabelEPCUrn $ renderURL labelEpc)
 
-epcToStorageLabel (Schema.LabelId pKey) (CL (CSGTIN gs1Prefix fv ir) mQ) =
+epcToStorageLabel (Schema.LabelId pKey) (CL labelEpc@(CSGTIN gs1Prefix fv ir) mQ) =
   Schema.Label Nothing pKey
            gs1Prefix (Just ir) Nothing
            Nothing Nothing fv Nothing
            (getQuantityAmount mQ) (getQuantityUom mQ)
+           (MU.LabelEPCUrn $ renderURL labelEpc)
 
 getQuantityAmount :: Maybe Quantity -> Maybe Amount
 getQuantityAmount Nothing                       = Nothing
