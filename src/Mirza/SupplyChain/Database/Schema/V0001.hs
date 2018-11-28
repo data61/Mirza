@@ -345,6 +345,7 @@ data LabelT f = Label
   , label_asset_type         :: C f (Maybe EPC.AssetType)
   , label_quantity_amount    :: C f (Maybe EPC.Amount)
   , label_quantity_uom       :: C f (Maybe EPC.Uom)
+  , label_urn                :: C f LabelEPCUrn
   }
   deriving Generic
 
