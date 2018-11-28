@@ -51,6 +51,7 @@ import           Data.Time.LocalTime               (timeZoneOffsetString)
 
 import           Database.Beam                     as B
 import           Database.Beam.Postgres            (PgJSON (..))
+import qualified Database.Beam.Postgres.Full       as Pg
 
 import           Control.Monad                     (void)
 
@@ -390,9 +391,11 @@ insertWhatLabel labelType (Schema.WhatId whatId) (Schema.LabelId labelId) = QU.w
 insertLabel :: LabelEPC
             -> DB context err PrimaryKeyType
 insertLabel labelEpc = QU.withPKey $ \pKey ->
-  pg $ B.runInsert $ B.insert (Schema._labels Schema.supplyChainDb)
-        $ insertValues
-        [ epcToStorageLabel (Schema.LabelId pKey) labelEpc]
+  pg $ B.runInsert $ Pg.insert (Schema._labels Schema.supplyChainDb)
+        (insertValues [ epcToStorageLabel (Schema.LabelId pKey) labelEpc])
+        $ Pg.onConflict
+          (Pg.conflictingFields label_urn)
+          Pg.onConflictDoNothing
 
 -- | Ties up a label and an event entry in the database
 insertLabelEvent :: Schema.EventId

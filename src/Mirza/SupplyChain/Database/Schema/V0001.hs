@@ -122,7 +122,7 @@ migration () =
           (field "label_asset_type" (maybeType assetType))
           (field "label_quantity_amount" (maybeType amountType))
           (field "label_quantity_uom" (maybeType uomType))
-          (field "label_urn" labelEpcUrnType notNull)
+          (field "label_urn" labelEpcUrnType notNull unique)
     )
     <*> createTable "what_labels" ( WhatLabel
           lastUpdateField
