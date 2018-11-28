@@ -8,7 +8,7 @@ module Mirza.SupplyChain.EventUtils
   , hasUserCreatedEvent
   , insertUserEvent
   , findEvent, findSchemaEvent
-  , findLabelId
+  , findLabelId, getParent
   , getEventList
   , getUser, getUserById
   , findDWhere
@@ -202,24 +202,23 @@ findLabelId :: LabelEPC -> DB context err [PrimaryKeyType]
 findLabelId (IL l)   = findInstLabelId l
 findLabelId (CL c _) = findClassLabelId c
 
+getParent :: DWhat -> Maybe ParentLabel
+getParent (TransactWhat (TransactionDWhat _ p _ _)) = p
+getParent (AggWhat (AggregationDWhat _ p _) )       = p
+getParent _                                         = Nothing
+
 getParentId :: DWhat -> DB context err (Maybe PrimaryKeyType)
-getParentId (TransactWhat (TransactionDWhat _ (Just p) _ _)) = do
-  res <- findInstLabelId . unParentLabel $ p
-  pure $ case res of
-    [l] -> Just l
-    []  -> Nothing
-    -- this should never happen.
-    -- A call to error is here until a new error type is made
-    _   -> error "There only should be 0/1 parent labels"
-getParentId (AggWhat (AggregationDWhat _ (Just p) _) ) = do
-  res <- findInstLabelId . unParentLabel $ p
-  pure $ case res of
-    [l] -> Just l
-    []  -> Nothing
-    -- this should never happen.
-    -- A call to error is here until a new error type is made
-    _   -> error "There only should be 0/1 parent labels"
-getParentId _  = pure Nothing
+getParentId dwhat = do
+  let mParentLabel = getParent dwhat
+  case mParentLabel of
+    Nothing -> pure Nothing
+    Just p -> do
+      res <- findInstLabelId . unParentLabel $ p
+      pure $ case res of
+        [l] -> Just l
+        []  -> Nothing
+        _   -> error "There only should be 0/1 parent labels" -- ^ this should never happen.
+        -- A call to error is here until a new error type is made
 
 toStorageDWhen :: Schema.WhenId
                -> DWhen

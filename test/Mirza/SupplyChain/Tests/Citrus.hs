@@ -10,6 +10,7 @@ import           Mirza.Common.GS1BeamOrphans      (LabelEPCUrn (..))
 import           Control.Exception                (bracket)
 import           Control.Monad.Except
 
+import           Mirza.SupplyChain.EventUtils     (getParent)
 import           Mirza.SupplyChain.Tests.Utils
 
 import           Mirza.Common.Tests.InitClient
