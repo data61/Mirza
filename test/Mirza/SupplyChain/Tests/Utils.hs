@@ -8,6 +8,8 @@ import           GHC.Generics                          (Generic)
 import           Control.Monad.Except
 import           Control.Monad.Identity
 
+import           Data.Foldable                         (traverse_)
+
 import           Data.GS1.EPC
 import           Data.GS1.Event
 
@@ -114,7 +116,7 @@ insertAndAuth scsUrl brUrl auth locMap ht (entity:entities) = do
           (encodeUtf8   . ST.newUserPassword     $ newUserSCS)
 
   let newLocs = flip H.lookup locMap <$> locations
-  sequence_ $ maybeInsertLocation <$> newLocs
+  traverse_  maybeInsertLocation newLocs
   let updatedHt = H.insert entity (insertedUserIdSCS, basicAuthDataSCS, brKeyId) ht
   insertAndAuth scsUrl brUrl auth locMap updatedHt entities
   where
@@ -131,7 +133,7 @@ insertEachEvent ht (EachEvent (initialEntity: entities) ev) = do
           TransactionEventT -> SCSClient.insertTransactEvent auth (fromJust $ mkTransactEvent ev (entityUserId :| []))
           TransformationEventT -> SCSClient.insertTransfEvent auth (fromJust $ mkTransfEvent ev)
 
-  sequence_ $ clientSignEvent ht insertedEventInfo <$> entities
+  traverse_ (clientSignEvent ht insertedEventInfo) entities
 
 
 clientSignEvent :: AuthHash -> EventInfo -> Entity -> ClientM EventInfo
