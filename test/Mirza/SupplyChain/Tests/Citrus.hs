@@ -39,6 +39,8 @@ import           Data.Either                      (isRight)
 
 import           Data.HashMap.Lazy                as H
 
+import           Data.Foldable                    (for_)
+import           Data.List                        (nub)
 
 -- =============================================================================
 -- Citrus Provenance test
@@ -58,26 +60,30 @@ citrusSpec = do
           step "Initialising the data"
           authHt <- insertAndAuth scsUrl brUrl brAuthUser locationMap initAuthHt allEntities
           currTime <- getCurrentTime
-          let citrusEachEvents = citrusEvents (EPCISTime currTime) utc
-          insertEachEventResult <- sequence $ (httpSCS . (insertEachEvent authHt)) <$> citrusEachEvents
+          let citrusEachEvents = makeCitrusEvents (EPCISTime currTime) utc
+              citrusEvents = eachEventEvent <$> citrusEachEvents
+          insertEachEventResult <- traverse  (httpSCS . (insertEachEvent authHt)) citrusEachEvents
           void $ pure $ (flip shouldSatisfy) isRight <$> insertEachEventResult
 
           step "Listing events with each label"
           let (Just (_, farmerAuth, _)) = H.lookup farmerE authHt
-              renderedLandLabel = renderURL landLabel
-          liftIO $ print renderedLandLabel
-          Right resBox <- httpSCS $ SCSClient.listEvents farmerAuth (ST.LabelEPCUrn . renderURL $ boxLabel)
-          -- Right resLand <- httpSCS $ SCSClient.listEvents farmerAuth (ST.LabelEPCUrn . renderURL $ landLabel)
 
-          -- Right res <- httpSCS $ SCSClient.listEvents farmerAuth (ST.LabelEPCUrn . renderURL $ landLabel)
+          Right resBox <- httpSCS $ SCSClient.listEvents farmerAuth (LabelEPCUrn . renderURL $ boxLabel)
           let [evBox] = resBox
-              pEvent = eachEventEvent $ citrusEachEvents !! 7
+          evBox `shouldBe` citrusEvents !! 7
+
+          let Just boxParent = getParent . _what $ evBox
+          boxParent `shouldBe` ParentLabel palletLabel
+          Right resPallet <- httpSCS $ SCSClient.listEvents farmerAuth (LabelEPCUrn . renderURL $ boxParent)
+          -- let [pallet1, pallet2, pallet3] = resPallet
+          for_ resPallet (\i -> putStrLn $ "\n========\n" <> show i <> "\n========\n")
+          length (nub resPallet) `shouldBe` 5
+          -- evBox `shouldBe` citrusEvents !! 7
+
+          -- Right resLand <- httpSCS $ SCSClient.listEvents farmerAuth (ST.LabelEPCUrn . renderURL $ landLabel)
           -- length resBox `shouldBe` 1
-          evBox `shouldBe` pEvent
 
           -- step "check eventInfo for each event"
-
-          -- step "get all events related to boxLabel"
 
   pure $ testGroup "Citrus Client tests"
         [ citrusSupplyChainTests
@@ -89,8 +95,8 @@ citrusSpec = do
 -- =============================================================================
 
 -- | A series of events in a citrus supply chain.
-citrusEvents :: EPCISTime -> TimeZone -> [EachEvent]
-citrusEvents startTime tz =
+makeCitrusEvents :: EPCISTime -> TimeZone -> [EachEvent]
+makeCitrusEvents startTime tz =
   [
     EachEvent [regulator1E]
     (pestControl [instanceLandLabel]
@@ -297,7 +303,7 @@ regulator4KP :: KeyPairPaths
 regulator4KP = KeyPairPaths (privateKeyPath "regulator4") (publicKeyPath "regulator4")
 
 
--- All the labels that feed into citrusEvents
+-- All the labels that feed into Citrus Events
 landLabel :: InstanceLabelEPC
 landLabel = GRAI farmerCompanyPrefix (AssetType "blockLabel") (SerialNumber "1")
 binLabel :: InstanceLabelEPC
