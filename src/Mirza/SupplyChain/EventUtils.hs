@@ -411,12 +411,9 @@ insertLabel labelEpc = QU.withPKey $ \pKey ->
 insertLabelEvent :: Schema.EventId
                  -> Schema.LabelId
                  -> DB context err PrimaryKeyType
-insertLabelEvent (Schema.EventId eventId) (Schema.LabelId labelId) = QU.withPKey $ \pKey ->
+insertLabelEvent eventId labelId = QU.withPKey $ \pKey ->
   pg $ B.runInsert $ B.insert (Schema._label_events Schema.supplyChainDb)
-        $ insertValues
-          [ Schema.LabelEvent Nothing pKey (Schema.LabelId labelId)
-              (Schema.EventId eventId)
-        ]
+        $ insertValues [ Schema.LabelEvent Nothing pKey labelId eventId ]
 
 getUserById :: ST.UserId -> DB context err (Maybe Schema.User)
 getUserById (ST.UserId uid) = do
@@ -431,10 +428,10 @@ getUserById (ST.UserId uid) = do
 getEventList :: AsServiceError err
              => Schema.LabelId
              -> DB context err [Ev.Event]
-getEventList (Schema.LabelId labelId) = do
+getEventList labelId = do
   labelEvents <- pg $ runSelectReturningList $ select $ do
         labelEvent <- all_ (Schema._label_events Schema.supplyChainDb)
-        guard_ (Schema.label_event_label_id labelEvent ==. val_ (Schema.LabelId labelId))
+        guard_ (Schema.label_event_label_id labelEvent ==. val_ labelId)
         pure labelEvent
   let eventIds = Schema.label_event_event_id <$> labelEvents
       allEvents = findEvent <$> eventIds
