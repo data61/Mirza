@@ -33,7 +33,7 @@ import           Data.GS1.EventId                   as EvId
 import           Data.List.NonEmpty                 (nonEmpty, toList, (<|))
 import           Data.List.Unique                   (allUnique)
 
-import           Data.Maybe                         (fromJust, isJust, maybe)
+import           Data.Maybe                         (isJust, maybe)
 
 import           Control.Monad.Except               (unless, when)
 
@@ -109,9 +109,12 @@ insertAggEventQuery
   insertDWhere dwhere eventId
   insertUserEvent eventId (EventOwner ownerUserId) False Nothing (SigningUser ownerUserId)
   mapM_ (insertWhatLabel Nothing (Schema.WhatId whatId)) labelIds
-  when (isJust mParentLabelId) $
-    insertWhatLabel (Just MU.Parent) (Schema.WhatId whatId) (Schema.LabelId . fromJust $ mParentLabelId) >>= (\_ -> pure ())
   mapM_ (insertLabelEvent eventId) labelIds
+  when (isJust mParentLabelId) $ do
+    let Just parentLabelId' = mParentLabelId
+        parentLabelId = Schema.LabelId parentLabelId'
+    _ <- insertWhatLabel (Just MU.Parent) (Schema.WhatId whatId) parentLabelId
+    insertLabelEvent eventId parentLabelId >>= (\_ -> pure ())
   pure (evInfo, eventId)
 
 
@@ -157,10 +160,12 @@ insertTransactEventQuery
   insertDWhere dwhere eventId
   _r <- sequence $ insertUserEvent eventId ownerId False Nothing <$> SigningUser <$> userId <| otherUsers
   mapM_ (insertWhatLabel Nothing (Schema.WhatId whatId)) labelIds
-  when (isJust mParentLabelId) $
-      insertWhatLabel (Just MU.Parent) (Schema.WhatId whatId) (Schema.LabelId . fromJust $ mParentLabelId) >>= (\_ -> pure ())
   mapM_ (insertLabelEvent eventId) labelIds
-
+  when (isJust mParentLabelId) $ do
+    let Just parentLabelId' = mParentLabelId
+        parentLabelId = Schema.LabelId parentLabelId'
+    _ <- insertWhatLabel (Just MU.Parent) (Schema.WhatId whatId) parentLabelId
+    insertLabelEvent eventId parentLabelId >>= (\_ -> pure ())
   pure (evInfo, eventId)
 
 
