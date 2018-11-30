@@ -149,6 +149,16 @@ findInstLabelId (SGTIN cp msfv ir sn) = findInstLabelId' cp sn msfv (Just ir) No
 findInstLabelId (GRAI cp at sn) = findInstLabelId' cp sn Nothing Nothing (Just at)
 
 
+findInstLabelIdByUrn :: InstanceLabelEPC -> DB context err [PrimaryKeyType]
+findInstLabelIdByUrn labelEpc = do
+  let labelUrn = MU.LabelEPCUrn . renderURL $ labelEpc
+  l <- pg $ runSelectReturningList $ select $ do
+    labels <- all_ (Schema._labels Schema.supplyChainDb)
+    guard_ (Schema.label_urn labels ==. val_ labelUrn)
+    pure labels
+  pure $ Schema.label_id <$> l
+
+
 findInstLabelId' :: GS1CompanyPrefix
                  -> SerialNumber
                  -> Maybe SGTINFilterValue
