@@ -15,6 +15,7 @@ module Mirza.BusinessRegistry.Handlers.Business
 import           Mirza.BusinessRegistry.Database.Schema
 import           Mirza.BusinessRegistry.SqlUtils
 import           Mirza.BusinessRegistry.Types             as BT
+import           Mirza.Common.Time                        (toDbTimestamp)
 
 import           Data.GS1.EPC                             as EPC
 
@@ -25,6 +26,7 @@ import           Control.Lens                             (( # ))
 
 import           Data.Foldable                            (for_)
 import           Data.Text                                (Text)
+import           Data.Time                                (UTCTime)
 import           GHC.Stack                                (HasCallStack,
                                                            callStack)
 
@@ -76,12 +78,13 @@ addBusinessQuery biz@BusinessT{..} = do
 
 searchBusinesses :: ( Member context '[HasDB]
                   , Member err     '[AsSqlError])
-               => Maybe GS1CompanyPrefix -> Maybe Text -> AppM context err [BusinessResponse]
-searchBusinesses mpfx mname = fmap businessToBusinessResponse <$> runDb (searchBusinessesQuery mpfx mname)
+               => Maybe GS1CompanyPrefix -> Maybe Text -> Maybe UTCTime -> AppM context err [BusinessResponse]
+searchBusinesses mpfx mname mafter = fmap businessToBusinessResponse <$> runDb (searchBusinessesQuery mpfx mname mafter)
 
-searchBusinessesQuery :: Maybe GS1CompanyPrefix -> Maybe Text -> DB context err [Business]
-searchBusinessesQuery mpfx mname = pg $ runSelectReturningList $ select $ do
+searchBusinessesQuery :: Maybe GS1CompanyPrefix -> Maybe Text -> Maybe UTCTime -> DB context err [Business]
+searchBusinessesQuery mpfx mname mafter = pg $ runSelectReturningList $ select $ do
   biz <- all_ (_businesses businessRegistryDB)
   for_ mpfx $ \pfx -> guard_ (biz_gs1_company_prefix biz ==. val_ pfx)
   for_ mname $ \name -> guard_ (biz_name biz `like_` val_ ("%"<>name<>"%"))
+  for_ mafter $ \after -> guard_ (biz_last_update biz >=. just_ (val_ (toDbTimestamp after)))
   pure biz

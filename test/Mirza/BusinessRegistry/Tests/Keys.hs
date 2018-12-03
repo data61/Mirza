@@ -154,7 +154,7 @@ testKeyQueries = do
 
   describe "Business" $ do
     it "List Business empty" $ \brContext -> do
-      bizList <- testAppM brContext (searchBusinesses Nothing Nothing)
+      bizList <- testAppM brContext (searchBusinesses Nothing Nothing Nothing)
         -- myBizList <-
         -- pure listBusinesses
       bizList `shouldBe` []

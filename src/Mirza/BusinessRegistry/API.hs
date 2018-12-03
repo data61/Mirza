@@ -31,6 +31,7 @@ import           Servant.Swagger.UI
 
 import           Crypto.JOSE.JWK
 import           Data.Text                              (Text)
+import           Data.Time                              (UTCTime) 
 
 
 type API
@@ -56,7 +57,9 @@ type PublicAPI =
   :<|> "business" :> "search"
       :> QueryParam "gs1id" GS1CompanyPrefix
       :> QueryParam "name" Text
+      :> QueryParam "modifiedsince" UTCTime
       :> Get '[JSON] [BusinessResponse]
+
 
 type PrivateAPI =
        "user"     :> "add"     :> ReqBody '[JSON] NewUser     :> Post '[JSON] UserId
@@ -65,3 +68,7 @@ type PrivateAPI =
   :<|> "key"      :> "revoke"  :> Capture "keyId" BRKeyId     :> Post '[JSON] RevocationTime
   :<|> "location" :> "add"     :> ReqBody '[JSON] NewLocation   :> Post '[JSON] LocationId
   :<|> "location" :> "get"     :> Capture "GLN" EPC.LocationEPC :> Get  '[JSON] LocationResponse
+  :<|> "location" :> "search"
+      :> QueryParam "gs1id" GS1CompanyPrefix
+      :> QueryParam "modifiedsince" UTCTime
+      :> Get '[JSON] [LocationResponse]
