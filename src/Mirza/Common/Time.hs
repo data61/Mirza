@@ -13,7 +13,7 @@
 module Mirza.Common.Time
   ( CreationTime(..), RevocationTime(..), ExpirationTime(..)
   , DBTimestamp, ModelTimestamp, fromDbTimestamp, toDbTimestamp
-  , generateTimestamp, onLocalTime
+  , generateTimestamp, onLocalTime, roundDownTime
   ) where
 
 import           GHC.Generics           (Generic)
@@ -27,9 +27,12 @@ import           Data.GS1.EPC           as EPC
 
 import           Data.Time              (LocalTime, UTCTime)
 import           Data.Time.Clock        (getCurrentTime)
+import           Data.Time.ISO8601
 import           Data.Time.LocalTime    (localTimeToUTC, utc, utcToLocalTime)
 
 import           Control.Monad.IO.Class (MonadIO, liftIO)
+
+import           Data.Maybe             (fromMaybe)
 
 class DBTimestamp t where
   toDbTimestamp :: t -> LocalTime
@@ -46,10 +49,19 @@ onLocalTime c t = c (localTimeToUTC utc t)
 toLocalTime :: UTCTime -> LocalTime
 toLocalTime = utcToLocalTime utc
 
--- | Shortcut to generate timestamp in AppM
+-- | Rounds down precision of time from pico second to nano second
+roundDownTime :: UTCTime -> UTCTime
+roundDownTime tNano =
+  let tMicroStr = formatISO8601Micros tNano
+  in fromMaybe (error "Error in parsing time!") (parseISO8601 tMicroStr)
+  -- should the ``fromMaybe`` return the original time in nanoseconds?
+
+-- | Shorthand to generate timestamp in AppM
 generateTimestamp :: MonadIO m => m UTCTime
 generateTimestamp = liftIO getCurrentTime
 
+eqRounded :: UTCTime -> UTCTime -> Bool
+eqRounded t1 t2 = roundDownTime t1 == roundDownTime t2
 
 instance DBTimestamp UTCTime where
   toDbTimestamp = toLocalTime
@@ -64,7 +76,9 @@ instance ModelTimestamp EPCISTime where
 
 
 newtype CreationTime = CreationTime {getCreationTime :: UTCTime}
-  deriving (Show, Eq, Generic, Read, FromJSON, ToJSON, Ord)
+  deriving (Show, Generic, Read, FromJSON, ToJSON, Ord)
+instance Eq CreationTime where
+  (CreationTime t1) == (CreationTime t2) = eqRounded t1 t2
 instance ToSchema CreationTime
 instance ToParamSchema CreationTime
 deriving instance FromHttpApiData CreationTime
@@ -76,7 +90,9 @@ instance ModelTimestamp CreationTime where
 
 
 newtype RevocationTime = RevocationTime {getRevocationTime :: UTCTime}
-  deriving (Show, Eq, Generic, Read, FromJSON, ToJSON, Ord)
+  deriving (Show, Generic, Read, FromJSON, ToJSON, Ord)
+instance Eq RevocationTime where
+  (RevocationTime t1) == (RevocationTime t2) = eqRounded t1 t2
 instance ToSchema RevocationTime
 instance ToParamSchema RevocationTime
 deriving instance FromHttpApiData RevocationTime
@@ -88,7 +104,9 @@ instance ModelTimestamp RevocationTime where
 
 
 newtype ExpirationTime = ExpirationTime {getExpirationTime :: UTCTime}
-  deriving (Show, Eq, Read, Generic, FromJSON, ToJSON, Ord)
+  deriving (Show, Read, Generic, FromJSON, ToJSON, Ord)
+instance Eq ExpirationTime where
+  (ExpirationTime t1) == (ExpirationTime t2) = eqRounded t1 t2
 instance ToSchema ExpirationTime
 instance ToParamSchema ExpirationTime
 deriving instance FromHttpApiData ExpirationTime
