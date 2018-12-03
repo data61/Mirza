@@ -171,4 +171,4 @@ searchLocationQuery mpfx mafter = pg $ runSelectReturningList $ select $ do
     guard_ (location_last_update loc       >=. just_ (val_ (toDbTimestamp after))
         ||. geoLocation_last_update geoloc >=. just_ (val_ (toDbTimestamp after)))
 
-  pure (loc, geoloc) 
+  pure (loc, geoloc)
