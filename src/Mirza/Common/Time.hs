@@ -25,14 +25,11 @@ import           Data.Swagger
 
 import           Data.GS1.EPC           as EPC
 
-import           Data.Time              (LocalTime, UTCTime)
+import           Data.Time              (LocalTime, UTCTime (..))
 import           Data.Time.Clock        (getCurrentTime)
-import           Data.Time.ISO8601
 import           Data.Time.LocalTime    (localTimeToUTC, utc, utcToLocalTime)
 
 import           Control.Monad.IO.Class (MonadIO, liftIO)
-
-import           Data.Maybe             (fromMaybe)
 
 class DBTimestamp t where
   toDbTimestamp :: t -> LocalTime
@@ -49,12 +46,9 @@ onLocalTime c t = c (localTimeToUTC utc t)
 toLocalTime :: UTCTime -> LocalTime
 toLocalTime = utcToLocalTime utc
 
--- | Rounds down precision of time from pico second to nano second
+-- | Rounds down precision of time from nano second to micro second
 roundDownTime :: UTCTime -> UTCTime
-roundDownTime tNano =
-  let tMicroStr = formatISO8601Micros tNano
-  in fromMaybe (error "Error in parsing time!") (parseISO8601 tMicroStr)
-  -- should the ``fromMaybe`` return the original time in nanoseconds?
+roundDownTime (UTCTime dy dff) = UTCTime dy ((dff / 1000000) * 1000000)
 
 -- | Shorthand to generate timestamp in AppM
 generateTimestamp :: MonadIO m => m UTCTime
