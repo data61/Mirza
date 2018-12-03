@@ -1,6 +1,5 @@
 {-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TypeApplications  #-}
 
 module Mirza.BusinessRegistry.Tests.Client where
 
@@ -87,7 +86,7 @@ clientSpec = do
           addBiz1Result `shouldBe` (Right biz1Prefix)
 
           step "That the added business was added and can be listed."
-          http (searchBusinesses Nothing Nothing) >>=
+          http (searchBusinesses Nothing Nothing Nothing) >>=
             either (const $ expectationFailure "Error listing businesses")
                    (`shouldContain` [biz1Response])
 
@@ -103,7 +102,7 @@ clientSpec = do
           addBiz2Result `shouldBe` (Right biz2Prefix)
 
           step "List businesses returns all of the businesses"
-          http (searchBusinesses Nothing Nothing) >>=
+          http (searchBusinesses Nothing Nothing Nothing) >>=
               either (const $ expectationFailure "Error listing businesses")
                     (`shouldContain` [ biz1Response
                                         , biz2Response])
@@ -114,16 +113,16 @@ clientSpec = do
           addBiz3Result `shouldBe` (Right biz3Prefix)
 
           step "Searching by GS1 ID works"
-          searchBiz3Result <- http (searchBusinesses (Just biz3Prefix) Nothing)
+          searchBiz3Result <- http (searchBusinesses (Just biz3Prefix) Nothing Nothing)
           searchBiz3Result `shouldSatisfy` isRight
           searchBiz3Result `shouldBe` (Right [biz3Response])
 
           step "Searching by business name works"
-          searchBiz3NameResult <- http (searchBusinesses Nothing (Just "strange"))
+          searchBiz3NameResult <- http (searchBusinesses Nothing (Just "strange") Nothing)
           searchBiz3NameResult `shouldSatisfy` isRight
           searchBiz3NameResult `shouldBe` (Right [biz3Response])
 
-          searchBiz12NameResult <- http (searchBusinesses Nothing (Just "Tests_"))
+          searchBiz12NameResult <- http (searchBusinesses Nothing (Just "Tests_") Nothing)
           searchBiz12NameResult `shouldSatisfy` isRight
           searchBiz12NameResult & either (error "You said this was Right!")
                                          (`shouldContain` [ biz1Response
@@ -552,7 +551,7 @@ clientSpec = do
           let http = runClient baseurl
 
           step "Status results in 200"
-          healthResult <- http (health)
+          healthResult <- http health
           healthResult `shouldSatisfy` isRight
           healthResult `shouldBe` (Right HealthResponse)
 
