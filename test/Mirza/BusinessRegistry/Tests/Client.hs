@@ -358,7 +358,7 @@ clientSpec = do
           ky2InfoState          `shouldSatisfy` (== InEffect)
           ky2InfoRevocationTime `shouldSatisfy` isNothing
           ky2InfoPEMString      `shouldSatisfy` (== goodKey)
-          fromJust ky2InfoExpirationTime `shouldBe` fromJust b1K2Expiry
+          fromJust ky2InfoExpirationTime `shouldSatisfy` (== fromJust b1K2Expiry)
 
           step "That the key info status updates after the expiry time has been reached"
           threadDelay $ fromIntegral $ secondsToMicroseconds expiryDelay
