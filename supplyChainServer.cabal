@@ -73,7 +73,6 @@ library
                     , hoist-error >= 0.2
                     , http-client
                     , insert-ordered-containers
-                    , iso8601-time >= 0.1.5
                     , katip >= 0.5.4
                     , lens
                     , mtl
