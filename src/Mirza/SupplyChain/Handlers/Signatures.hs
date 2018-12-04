@@ -1,6 +1,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedLists       #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE DataKinds             #-}
 
 module Mirza.SupplyChain.Handlers.Signatures
   (
@@ -12,7 +13,6 @@ import           Mirza.Common.Types                       (BRKeyId)
 import           Mirza.Common.Utils
 
 import           Mirza.SupplyChain.Database.Schema        as Schema
-import           Mirza.SupplyChain.Handlers.Common
 import           Mirza.SupplyChain.Handlers.Queries       (eventInfoQuery)
 import           Mirza.SupplyChain.Types                  hiding (NewUser (..),
                                                            User (userId),
@@ -44,7 +44,8 @@ scsJWSValidationSettings :: ValidationSettings
 scsJWSValidationSettings = defaultValidationSettings
     & validationSettingsAlgorithms .~ [RS256,RS384,RS512,PS256,PS384,PS512]
 
-eventSign :: (HasBRClientEnv context, AsServantError err, AsError err, SCSApp context err)
+eventSign :: (Member context '[HasDB, HasBRClientEnv],
+              Member err     '[AsError, AsServantError, AsSqlError, AsServiceError])
           => ST.User
           -> SignedEvent
           -> AppM context err EventInfo
@@ -59,7 +60,9 @@ eventSign user (SignedEvent eventId keyId sig) = do
         eventInfoQuery eventId
       else throwing _SigVerificationFailure (show sig) -- TODO: This should be more than show
 
-getEventBS :: AsServiceError err => EvId.EventId -> DB context err ByteString
+getEventBS  :: Member err '[AsServiceError]
+            => EvId.EventId
+            -> DB context err ByteString
 getEventBS eventId = do
   r <- pg $ runSelectReturningList $ select $ do
     allEvents <- all_ (Schema._events Schema.supplyChainDb)
@@ -70,12 +73,12 @@ getEventBS eventId = do
     _         -> throwing _InvalidEventId eventId
 
 
-insertSignature :: (AsServiceError err) => ST.UserId
+insertSignature :: Member err '[AsServiceError]
+                => ST.UserId
                 -> EvId.EventId
                 -> BRKeyId
                 -> CompactJWS JWSHeader
                 -> DB environmentUnused err PrimaryKeyType
-
 insertSignature userId@(ST.UserId uId) eId kId sig = do
   sigId <- newUUID
   timestamp <- generateTimestamp
@@ -89,8 +92,7 @@ insertSignature userId@(ST.UserId uId) eId kId sig = do
       pure ( Schema.signature_id rowId)
     _       -> throwing _BackendErr "Failed to add signature"
 
-updateUserEventSignature :: AsServiceError err
-                         => ST.UserId
+updateUserEventSignature :: ST.UserId
                          -> EvId.EventId
                          -> Bool
                          -> DB environmentUnused err ()

@@ -45,7 +45,6 @@ library
                     , Mirza.SupplyChain.Database.Migrate
                     , Mirza.SupplyChain.Database.Schema
                     , Mirza.SupplyChain.Database.Schema.V0001
-                    , Mirza.SupplyChain.Handlers.Common
                     , Mirza.SupplyChain.Handlers.Contacts
                     , Mirza.SupplyChain.Handlers.Health
                     , Mirza.SupplyChain.EventUtils
