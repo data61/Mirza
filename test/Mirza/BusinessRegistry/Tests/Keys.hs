@@ -38,15 +38,13 @@ import           Control.Concurrent                       (threadDelay)
 timeStampIO :: MonadIO m => m LocalTime
 timeStampIO = liftIO $ (utcToLocalTime utc) <$> getCurrentTime
 
-testAppM :: context
-         -> AppM context BRError a
-         -> IO a
+testAppM :: context -> AppM context BRError a -> IO a
 testAppM brContext act = runAppM brContext act >>= \case
     Left err -> fail (show err)
     Right a -> pure a
 
 
-testKeyQueries :: (HasCallStack) => SpecWith BT.BRContext
+testKeyQueries :: HasCallStack => SpecWith BT.BRContext
 testKeyQueries = do
 
   describe "addPublicKey tests" $
