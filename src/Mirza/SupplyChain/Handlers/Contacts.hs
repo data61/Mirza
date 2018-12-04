@@ -29,7 +29,7 @@ import           Database.Beam.Backend.SQL.BeamExtensions
 
 
 
-listContacts  :: (HasDB context, Member err '[AsSqlError])
+listContacts  :: (Member context '[HasDB], Member err '[AsSqlError])
               => ST.User -> AppM context err [ST.User]
 listContacts = runDb . listContactsQuery
 
@@ -45,7 +45,7 @@ listContactsQuery  (ST.User (ST.UserId uid) _ _) = do
   pure $ userTableToModel <$> userList
 
 
-addContact :: (HasDB context, Member err '[AsSqlError])
+addContact :: (Member context '[HasDB], Member err '[AsSqlError])
            => ST.User
            -> ST.UserId
            -> AppM context err Bool
@@ -61,7 +61,7 @@ addContactQuery (ST.User (ST.UserId uid1) _ _) (ST.UserId uid2) = do
 
 
 
-removeContact :: (HasDB context, Member err '[AsSqlError])
+removeContact :: (Member context '[HasDB], Member err '[AsSqlError])
               => ST.User
               -> ST.UserId
               -> AppM context err Bool
@@ -93,7 +93,7 @@ removeContactQuery (ST.User firstId@(ST.UserId uid1) _ _) secondId@(ST.UserId ui
 -- SELECT user2, firstName, lastName FROM Contacts, Users WHERE user1 LIKE *term* AND user2=Users.id UNION SELECT user1, firstName, lastName FROM Contacts, Users WHERE user2 = ? AND user1=Users.id;" (uid, uid)
 --
 
-userSearch :: (HasDB context, Member err '[AsSqlError])
+userSearch :: (Member context '[HasDB], Member err '[AsSqlError])
            => ST.User
            -> Maybe GS1CompanyPrefix
            -> Maybe Text -- last name
