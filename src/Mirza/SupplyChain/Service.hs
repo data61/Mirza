@@ -25,10 +25,9 @@ module Mirza.SupplyChain.Service
 import           Mirza.SupplyChain.API
 import           Mirza.SupplyChain.ErrorUtils                 (appErrToHttpErr)
 
-import           Mirza.SupplyChain.Handlers.Common            as Handlers
 import           Mirza.SupplyChain.Handlers.Contacts          as Handlers
-import           Mirza.SupplyChain.Handlers.Health            as Handlers
 import           Mirza.SupplyChain.Handlers.EventRegistration as Handlers
+import           Mirza.SupplyChain.Handlers.Health            as Handlers
 import           Mirza.SupplyChain.Handlers.Queries           as Handlers
 import           Mirza.SupplyChain.Handlers.Signatures        as Handlers
 import           Mirza.SupplyChain.Handlers.Users             as Handlers
@@ -50,11 +49,13 @@ import           Mirza.Common.GS1BeamOrphans                  ()
 import qualified Crypto.JOSE                                  as JOSE
 
 
-appHandlers :: (HasBRClientEnv context, AsServantError err, JOSE.AsError err, SCSApp context err, HasScryptParams context)
+appHandlers :: (Member context '[HasDB, HasScryptParams, HasBRClientEnv],
+                Member err     '[JOSE.AsError, AsServiceError, AsServantError, AsSqlError])
             => ServerT ServerAPI (AppM context err)
 appHandlers = publicServer :<|> privateServer
 
-publicServer :: (SCSApp context err, HasScryptParams context)
+publicServer :: (Member context '[HasDB, HasScryptParams],
+                 Member err     '[AsServiceError, AsSqlError])
              => ServerT PublicAPI (AppM context err)
 publicServer =
   -- Health
@@ -62,7 +63,8 @@ publicServer =
   -- Users
   :<|> addUser
 
-privateServer :: (AsServantError err, JOSE.AsError err, HasBRClientEnv context, SCSApp context err)
+privateServer :: (Member context '[HasDB, HasScryptParams, HasBRClientEnv],
+                  Member err     '[JOSE.AsError, AsServiceError, AsServantError, AsSqlError])
               => ServerT ProtectedAPI (AppM context err)
 privateServer =
 -- Contacts
