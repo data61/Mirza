@@ -1,4 +1,6 @@
+{-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE MonoLocalBinds        #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 
 module Mirza.SupplyChain.Handlers.Contacts
@@ -9,8 +11,6 @@ module Mirza.SupplyChain.Handlers.Contacts
   , isExistingContact
   , userSearch
   ) where
-
-import           Mirza.SupplyChain.Handlers.Common
 
 import           Data.GS1.EPC                             (GS1CompanyPrefix)
 import qualified Mirza.Common.Utils                       as U
@@ -29,7 +29,9 @@ import           Database.Beam.Backend.SQL.BeamExtensions
 
 
 
-listContacts :: SCSApp context err => ST.User -> AppM context err [ST.User]
+listContacts  :: (Member context '[HasDB],
+                  Member err     '[AsSqlError])
+              => ST.User -> AppM context err [ST.User]
 listContacts = runDb . listContactsQuery
 
 -- | Lists all the contacts associated with the given user
@@ -44,7 +46,11 @@ listContactsQuery  (ST.User (ST.UserId uid) _ _) = do
   pure $ userTableToModel <$> userList
 
 
-addContact :: SCSApp context err => ST.User -> ST.UserId -> AppM context err Bool
+addContact :: (Member context '[HasDB],
+               Member err     '[AsSqlError])
+           => ST.User
+           -> ST.UserId
+           -> AppM context err Bool
 addContact user userId = runDb $ addContactQuery user userId
 
 
@@ -57,7 +63,11 @@ addContactQuery (ST.User (ST.UserId uid1) _ _) (ST.UserId uid2) = do
 
 
 
-removeContact :: SCSApp context err => ST.User -> ST.UserId -> AppM context err Bool
+removeContact :: (Member context '[HasDB],
+                  Member err     '[AsSqlError])
+              => ST.User
+              -> ST.UserId
+              -> AppM context err Bool
 removeContact user userId = runDb $ removeContactQuery user userId
 
 -- | The current behaviour is, if the users were not contacts in the first
@@ -86,7 +96,8 @@ removeContactQuery (ST.User firstId@(ST.UserId uid1) _ _) secondId@(ST.UserId ui
 -- SELECT user2, firstName, lastName FROM Contacts, Users WHERE user1 LIKE *term* AND user2=Users.id UNION SELECT user1, firstName, lastName FROM Contacts, Users WHERE user2 = ? AND user1=Users.id;" (uid, uid)
 --
 
-userSearch :: SCSApp context err
+userSearch :: (Member context '[HasDB],
+               Member err     '[AsSqlError])
            => ST.User
            -> Maybe GS1CompanyPrefix
            -> Maybe Text -- last name
@@ -101,8 +112,7 @@ userSearch _ mgs1pfx mlastname = runDb $ userSearchQuery mgs1pfx mlastname
 -- an ordering/weighting function written in Haskell to the sum of the results.
 -- I've left it in to illustrate
 -- the idea behind the API, but we should definitely revisit it.
-userSearchQuery :: SCSApp context err
-                => Maybe GS1CompanyPrefix
+userSearchQuery :: Maybe GS1CompanyPrefix
                 -> Maybe Text -- last name
                 -> DB context err [ST.User]
 userSearchQuery mpfx mlname =
