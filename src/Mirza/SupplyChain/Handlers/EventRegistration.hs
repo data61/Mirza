@@ -1,4 +1,5 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE DataKinds             #-}
 
 module Mirza.SupplyChain.Handlers.EventRegistration
   (
@@ -36,13 +37,13 @@ import           Data.Maybe                         (fromJust, isJust, maybe)
 
 import           Control.Monad.Except               (unless, when)
 
-insertObjectEvent :: SCSApp context err => ST.User
+insertObjectEvent :: (Member context '[HasDB], Member err '[AsSqlError])
+                  => ST.User
                   -> ObjectEvent
                   -> AppM context err (EventInfo, Schema.EventId)
 insertObjectEvent user ob = runDb $ insertObjectEventQuery user ob
 
-insertObjectEventQuery :: AsServiceError err
-                       => ST.User
+insertObjectEventQuery :: ST.User
                        -> ObjectEvent
                        -> DB context err (EventInfo, Schema.EventId)
 insertObjectEventQuery
@@ -73,13 +74,13 @@ insertObjectEventQuery
   pure (evInfo, eventId)
 
 
-insertAggEvent :: SCSApp context err => ST.User
-               -> AggregationEvent
-               -> AppM context err (EventInfo, Schema.EventId)
+insertAggEvent  :: (Member context '[HasDB], Member err '[AsSqlError])
+                => ST.User
+                -> AggregationEvent
+                -> AppM context err (EventInfo, Schema.EventId)
 insertAggEvent user ev = runDb $ insertAggEventQuery user ev
 
-insertAggEventQuery :: AsServiceError err
-                    => ST.User
+insertAggEventQuery :: ST.User
                     -> AggregationEvent
                     -> DB context err (EventInfo, Schema.EventId)
 insertAggEventQuery
@@ -114,12 +115,13 @@ insertAggEventQuery
   pure (evInfo, eventId)
 
 
-insertTransactEvent :: SCSApp context err => ST.User
+insertTransactEvent :: (Member context '[HasDB], Member err '[AsSqlError, AsServiceError])
+                    =>  ST.User
                     -> TransactionEvent
                     -> AppM context err (EventInfo, Schema.EventId)
 insertTransactEvent user ev = runDb $ insertTransactEventQuery user ev
 
-insertTransactEventQuery :: AsServiceError err
+insertTransactEventQuery :: Member err '[AsServiceError]
                          => ST.User
                          -> TransactionEvent
                          -> DB context err (EventInfo, Schema.EventId)
@@ -163,13 +165,13 @@ insertTransactEventQuery
   pure (evInfo, eventId)
 
 
-insertTransfEvent :: SCSApp context err => ST.User
+insertTransfEvent :: (Member context '[HasDB], Member err '[AsSqlError])
+                  => ST.User
                   -> TransformationEvent
                   -> AppM context err (EventInfo, Schema.EventId)
 insertTransfEvent user ev = runDb $ insertTransfEventQuery user ev
 
-insertTransfEventQuery :: AsServiceError err
-                       => ST.User
+insertTransfEventQuery :: ST.User
                        -> TransformationEvent
                        -> DB context err (EventInfo, Schema.EventId)
 insertTransfEventQuery
@@ -204,10 +206,10 @@ insertTransfEventQuery
   pure (evInfo, eventId)
 
 
-sendToBlockchain :: (SCSApp context err, AsServantError err)
-                 => ST.User
-                 -> EvId.EventId
-                 -> AppM context err (EventBlockchainStatus, Maybe BlockchainId)
+sendToBlockchain  :: (Member context '[HasDB], Member err '[AsSqlError, AsServiceError])
+                  => ST.User
+                  -> EvId.EventId
+                  -> AppM context err (EventBlockchainStatus, Maybe BlockchainId)
 sendToBlockchain user eventId = do
   evInfo <- eventInfo user eventId
   let eventStatus = eventInfoBlockChainStatus evInfo
@@ -216,6 +218,6 @@ sendToBlockchain user eventId = do
       (flip $ maybe (error "it should not happen"))
         (nonEmpty . eventInfoUserSigs $ evInfo) $ \userSigs -> do
             let evToSign = eventToSign evInfo
-            let bcPackage = BlockchainPackage evToSign userSigs
+            let _bcPackage = BlockchainPackage evToSign userSigs
             error "not implemented yet"
     _               -> (NeedMoreSignatures, Nothing)

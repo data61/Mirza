@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE MonoLocalBinds        #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 
 module Mirza.SupplyChain.Handlers.Contacts
@@ -28,7 +29,7 @@ import           Database.Beam.Backend.SQL.BeamExtensions
 
 
 
-listContacts  :: (Member context '[HasEnvType, HasConnPool, HasKatipContext, HasKatipLogEnv])
+listContacts  :: (HasDB context, Member err '[AsSqlError])
               => ST.User -> AppM context err [ST.User]
 listContacts = runDb . listContactsQuery
 
@@ -44,7 +45,10 @@ listContactsQuery  (ST.User (ST.UserId uid) _ _) = do
   pure $ userTableToModel <$> userList
 
 
-addContact :: ST.User -> ST.UserId -> AppM context err Bool
+addContact :: (HasDB context, Member err '[AsSqlError])
+           => ST.User
+           -> ST.UserId
+           -> AppM context err Bool
 addContact user userId = runDb $ addContactQuery user userId
 
 
@@ -57,7 +61,10 @@ addContactQuery (ST.User (ST.UserId uid1) _ _) (ST.UserId uid2) = do
 
 
 
-removeContact :: ST.User -> ST.UserId -> AppM context err Bool
+removeContact :: (HasDB context, Member err '[AsSqlError])
+              => ST.User
+              -> ST.UserId
+              -> AppM context err Bool
 removeContact user userId = runDb $ removeContactQuery user userId
 
 -- | The current behaviour is, if the users were not contacts in the first
@@ -86,7 +93,8 @@ removeContactQuery (ST.User firstId@(ST.UserId uid1) _ _) secondId@(ST.UserId ui
 -- SELECT user2, firstName, lastName FROM Contacts, Users WHERE user1 LIKE *term* AND user2=Users.id UNION SELECT user1, firstName, lastName FROM Contacts, Users WHERE user2 = ? AND user1=Users.id;" (uid, uid)
 --
 
-userSearch :: ST.User
+userSearch :: (HasDB context, Member err '[AsSqlError])
+           => ST.User
            -> Maybe GS1CompanyPrefix
            -> Maybe Text -- last name
            -> AppM context err [ST.User]

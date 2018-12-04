@@ -1,4 +1,5 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE DataKinds             #-}
 
 module Mirza.SupplyChain.Handlers.Users
   (
@@ -24,7 +25,7 @@ import           Control.Lens                             (view, ( # ), _2)
 import           Control.Monad.IO.Class                   (liftIO)
 import           Data.Text.Encoding                       (encodeUtf8)
 
-addUser :: (SCSApp context err, HasScryptParams context)
+addUser :: (Member context '[HasDB, HasScryptParams], Member err '[AsServiceError, AsSqlError])
         => ST.NewUser
         -> AppM context err ST.UserId
 addUser user =
@@ -39,7 +40,7 @@ addUser user =
 
 
 -- | Hashes the password of the ST.NewUser and inserts the user into the database
-addUserQuery :: (AsServiceError err, AsSqlError err, HasScryptParams context)
+addUserQuery :: (Member context '[HasDB, HasScryptParams], Member err '[AsServiceError])
              => ST.NewUser
              -> DB context err ST.UserId
 addUserQuery (ST.NewUser phone userEmail firstName lastName biz password) = do
