@@ -42,19 +42,23 @@ import           Database.Beam.Postgres            (PgJSON (..))
 
 -- This takes an EPC urn,
 -- and looks up all the events related to that item.
-listEvents  :: (Member context '[HasDB], Member err '[AsServiceError, AsSqlError])
+listEvents  :: (Member context '[HasDB],
+                Member err     '[AsServiceError, AsSqlError])
             => ST.User
             -> LabelEPCUrn
             -> AppM context err [Ev.Event]
 listEvents _user = either throwParseError (runDb . listEventsQuery) . urn2LabelEPC . getLabelEPCUrn
 
-listEventsQuery :: Member err '[AsServiceError] => LabelEPC -> DB context err [Ev.Event]
+listEventsQuery :: Member err '[AsServiceError]
+                => LabelEPC
+                -> DB context err [Ev.Event]
 listEventsQuery labelEpc = do
   labelIds <- findLabelId labelEpc
   allEvents <- traverse (getEventList . Schema.LabelId) labelIds
   pure $ concat allEvents
 
-eventInfo :: (Member context '[HasDB], Member err ' [AsSqlError, AsServiceError])
+eventInfo :: (Member context '[HasDB],
+              Member err     '[AsSqlError, AsServiceError])
           => ST.User
           -> EvId.EventId
           -> AppM context err EventInfo
@@ -81,7 +85,8 @@ eventInfoQuery eventId@(EvId.EventId eId) = do
 
 -- | List events that a particular user was/is involved with
 -- use BizTransactions and events (createdby) tables
-eventList :: (Member context '[HasDB], Member err ' [AsSqlError])
+eventList :: (Member context '[HasDB],
+              Member err     '[AsSqlError])
           => ST.User
           -> ST.UserId
           -> AppM context err [Ev.Event]
@@ -99,7 +104,8 @@ eventsByUser (ST.UserId userId) = do
 
 -- | Given an eventId, list all the users associated with that event
 -- This can be used to make sure everything is signed
-eventUserList :: (Member context '[HasDB], Member err ' [AsSqlError])
+eventUserList :: (Member context '[HasDB],
+                  Member err     '[AsSqlError])
               => ST.User
               -> EvId.EventId
               -> AppM context err [(ST.User, Bool)]
@@ -132,7 +138,7 @@ findSignedEventByEvent :: EvId.EventId
                        -> DB context err [ST.SignedEvent]
 findSignedEventByEvent eventId = fmap signatureToSignedEvent <$> findSignatureByEvent eventId
 
-findSignatureByUser :: (Member err ' [AsSqlError, AsServiceError])
+findSignatureByUser :: Member err '[AsSqlError, AsServiceError]
                     => ST.UserId
                     -> EvId.EventId
                     -> DB context err Schema.Signature
@@ -146,7 +152,7 @@ findSignatureByUser (ST.UserId uId) (EvId.EventId eId) = do
     [sig] -> pure sig
     _     -> throwBackendError ("Invalid User - Event pair" :: String) -- TODO: wrong error to throw here
 
-findSignedEventByUser :: (Member err ' [AsSqlError, AsServiceError])
+findSignedEventByUser :: Member err '[AsSqlError, AsServiceError]
                       => ST.UserId
                       -> EvId.EventId
                       -> DB context err ST.SignedEvent
