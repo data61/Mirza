@@ -37,7 +37,8 @@ import           Data.Maybe                         (fromJust, isJust, maybe)
 
 import           Control.Monad.Except               (unless, when)
 
-insertObjectEvent :: (Member context '[HasDB], Member err '[AsSqlError])
+insertObjectEvent :: (Member context '[HasDB],
+                      Member err     '[AsSqlError])
                   => ST.User
                   -> ObjectEvent
                   -> AppM context err (EventInfo, Schema.EventId)
@@ -74,7 +75,8 @@ insertObjectEventQuery
   pure (evInfo, eventId)
 
 
-insertAggEvent  :: (Member context '[HasDB], Member err '[AsSqlError])
+insertAggEvent  :: (Member context '[HasDB],
+                    Member err     '[AsSqlError])
                 => ST.User
                 -> AggregationEvent
                 -> AppM context err (EventInfo, Schema.EventId)
@@ -115,7 +117,8 @@ insertAggEventQuery
   pure (evInfo, eventId)
 
 
-insertTransactEvent :: (Member context '[HasDB], Member err '[AsSqlError, AsServiceError])
+insertTransactEvent :: (Member context '[HasDB],
+                        Member err     '[AsSqlError, AsServiceError])
                     =>  ST.User
                     -> TransactionEvent
                     -> AppM context err (EventInfo, Schema.EventId)
@@ -165,7 +168,8 @@ insertTransactEventQuery
   pure (evInfo, eventId)
 
 
-insertTransfEvent :: (Member context '[HasDB], Member err '[AsSqlError])
+insertTransfEvent :: (Member context '[HasDB],
+                      Member err     '[AsSqlError])
                   => ST.User
                   -> TransformationEvent
                   -> AppM context err (EventInfo, Schema.EventId)
@@ -206,7 +210,8 @@ insertTransfEventQuery
   pure (evInfo, eventId)
 
 
-sendToBlockchain  :: (Member context '[HasDB], Member err '[AsSqlError, AsServiceError])
+sendToBlockchain  :: (Member context '[HasDB],
+                      Member err     '[AsSqlError, AsServiceError])
                   => ST.User
                   -> EvId.EventId
                   -> AppM context err (EventBlockchainStatus, Maybe BlockchainId)

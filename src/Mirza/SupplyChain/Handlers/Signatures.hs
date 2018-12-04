@@ -45,7 +45,7 @@ scsJWSValidationSettings = defaultValidationSettings
     & validationSettingsAlgorithms .~ [RS256,RS384,RS512,PS256,PS384,PS512]
 
 eventSign :: (Member context '[HasDB, HasBRClientEnv],
-              Member err '[AsError, AsServantError, AsSqlError, AsServiceError])
+              Member err     '[AsError, AsServantError, AsSqlError, AsServiceError])
           => ST.User
           -> SignedEvent
           -> AppM context err EventInfo
@@ -60,7 +60,9 @@ eventSign user (SignedEvent eventId keyId sig) = do
         eventInfoQuery eventId
       else throwing _SigVerificationFailure (show sig) -- TODO: This should be more than show
 
-getEventBS :: Member err '[AsServiceError] => EvId.EventId -> DB context err ByteString
+getEventBS  :: Member err '[AsServiceError]
+            => EvId.EventId
+            -> DB context err ByteString
 getEventBS eventId = do
   r <- pg $ runSelectReturningList $ select $ do
     allEvents <- all_ (Schema._events Schema.supplyChainDb)
@@ -77,7 +79,6 @@ insertSignature :: Member err '[AsServiceError]
                 -> BRKeyId
                 -> CompactJWS JWSHeader
                 -> DB environmentUnused err PrimaryKeyType
-
 insertSignature userId@(ST.UserId uId) eId kId sig = do
   sigId <- newUUID
   timestamp <- generateTimestamp

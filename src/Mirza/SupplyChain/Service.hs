@@ -50,7 +50,7 @@ import qualified Crypto.JOSE                                  as JOSE
 
 
 appHandlers :: (Member context '[HasDB, HasScryptParams, HasBRClientEnv],
-                Member err '[JOSE.AsError, AsServiceError, AsServantError, AsSqlError])
+                Member err     '[JOSE.AsError, AsServiceError, AsServantError, AsSqlError])
             => ServerT ServerAPI (AppM context err)
 appHandlers = publicServer :<|> privateServer
 
@@ -63,7 +63,7 @@ publicServer =
   :<|> addUser
 
 privateServer :: (Member context '[HasDB, HasScryptParams, HasBRClientEnv],
-                  Member err '[JOSE.AsError, AsServiceError, AsServantError, AsSqlError])
+                  Member err     '[JOSE.AsError, AsServiceError, AsServantError, AsSqlError])
               => ServerT ProtectedAPI (AppM context err)
 privateServer =
 -- Contacts
