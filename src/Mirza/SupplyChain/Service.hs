@@ -54,7 +54,8 @@ appHandlers :: (Member context '[HasDB, HasScryptParams, HasBRClientEnv],
             => ServerT ServerAPI (AppM context err)
 appHandlers = publicServer :<|> privateServer
 
-publicServer :: (Member context '[HasDB, HasScryptParams], Member err '[AsServiceError, AsSqlError])
+publicServer :: (Member context '[HasDB, HasScryptParams],
+                 Member err     '[AsServiceError, AsSqlError])
              => ServerT PublicAPI (AppM context err)
 publicServer =
   -- Health
