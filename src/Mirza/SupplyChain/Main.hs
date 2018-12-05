@@ -38,6 +38,8 @@ import qualified Crypto.Scrypt                      as Scrypt
 import           Control.Exception                  (finally)
 import           Data.Maybe                         (fromMaybe)
 import           Katip                              as K
+
+import           System.Exit                        (exitFailure)
 import           System.IO                          (IOMode (AppendMode),
                                                      hPutStrLn, openFile,
                                                      stderr, stdout)
@@ -52,8 +54,7 @@ data ServerOptionsSCS = ServerOptionsSCS
   , sScryptP      :: Integer
   , sScryptR      :: Integer
   , loggingLevel  :: K.Severity
-  , brHostName    :: String
-  , brPort        :: Int
+  , brServiceInfo :: Maybe (String, Int) -- Maybe (brhost, brport)
   , loggingPath   :: Maybe FilePath
   }
 
@@ -96,12 +97,12 @@ serverOptions = ServerOptionsSCS
       <*> option auto
           (long "log-level" <> value InfoS <> showDefault
           <> help ("Logging level: " ++ show [minBound .. maxBound :: Severity]))
-      <*> strOption
-          ( long "brhost"
-          <> help "The host to run the business registry on" )
-      <*> option auto
-          ( long "brport"
-          <> help "Port to run business registry on" )
+      <*> optional ((,) <$>
+            strOption (
+            (long "brhost" <> help "The host to run the business registry on"))
+            <*>
+            option auto (long "brport" <> help "Port to run business registry on")
+          )
       <*> optional (strOption
           (  long "log-path"
           <> short 'l'
@@ -119,21 +120,24 @@ main = runProgram =<< execParser opts
       <> header "SupplyChainServer - A server for capturing GS1 events and recording them on a blockchain")
 
 runProgram :: ServerOptionsSCS -> IO ()
-runProgram so@ServerOptionsSCS{initDB = False, scsPort} = do
+runProgram so@ServerOptionsSCS{initDB = False, scsPort, brServiceInfo =Just __} = do
   ctx <- initSCSContext so
   app <- initApplication so ctx
   mids <- initMiddleware so
-  putStrLn $ "http://localhost:" ++ show scsPort ++ "/swagger-ui/"
+  putStrLn $ "http://localhost:" <> show scsPort <> "/swagger-ui/"
   Warp.run (fromIntegral scsPort) (mids app) `finally` closeScribes (ctx ^. ST.scsKatipLogEnv)
+runProgram ServerOptionsSCS{initDB = False, brServiceInfo = Nothing} = do
+  hPutStrLn stderr $ "Required unless initialising the database: --brhost ARG --brport ARG"
+  exitFailure
 runProgram so = migrate $ connectionStr so
 
 initMiddleware :: ServerOptionsSCS -> IO Middleware
 initMiddleware _ = pure id
 
 initSCSContext :: ServerOptionsSCS -> IO ST.SCSContext
-initSCSContext (ServerOptionsSCS envT _ dbConnStr _host _prt n p r lev brHost brPort mlogPath) = do
+initSCSContext (ServerOptionsSCS envT _ dbConnStr _host _prt n p r lev (Just (brHost, bizRegPort)) mlogPath) = do
   logHandle <- maybe (pure stdout) (flip openFile AppendMode) mlogPath
-  hPutStrLn stderr $ "Logging will be to: " ++ fromMaybe "stdout" mlogPath
+  hPutStrLn stderr $ "Logging will be to: " <> fromMaybe "stdout" mlogPath
   handleScribe <- mkHandleScribe ColorIfTerminal logHandle lev V3
   logEnv <- initLogEnv "supplyChainServer" (Environment . pack . show $ envT)
             >>= registerScribe "stdout" handleScribe defaultScribeSettings
@@ -149,7 +153,7 @@ initSCSContext (ServerOptionsSCS envT _ dbConnStr _host _prt n p r lev brHost br
                       -- TODO: Make this a config parameter
   manager <- newManager defaultManagerSettings
   let scheme = if envT == Prod then Https else Http
-      baseUrl = BaseUrl scheme brHost brPort ""
+      baseUrl = BaseUrl scheme brHost bizRegPort ""
   pure $ SCSContext
           envT
           connpool
@@ -158,6 +162,9 @@ initSCSContext (ServerOptionsSCS envT _ dbConnStr _host _prt n p r lev brHost br
           mempty
           mempty
           (mkClientEnv manager baseUrl)
+initSCSContext _ = do -- this should never happen
+  hPutStrLn stderr $ "Required unless initialising the database: --brhost ARG --brport ARG"
+  exitFailure
 
 initApplication :: ServerOptionsSCS -> ST.SCSContext -> IO Application
 initApplication _so ev =
