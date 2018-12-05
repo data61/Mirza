@@ -104,7 +104,7 @@ keyToKeyInfo currTime (Schema.KeyT keyId (Schema.UserId keyUserId) (PgJSON jwk)
                       -> m (Maybe (a, CT.UserId))
     composeRevocation time@Nothing  (Schema.UserId (Just user)) = throwing _InvalidRevocationBRKE (time, Just user, callStack)
     composeRevocation time@(Just _) (Schema.UserId Nothing)     = throwing _InvalidRevocationBRKE (time, Nothing, callStack)
-    composeRevocation time          (Schema.UserId user)        = pure $ ((,) <$> (fromDbTimestamp <$> time) <*> (CT.UserId  <$> user))
+    composeRevocation time          (Schema.UserId user)        = pure ((,) <$> (fromDbTimestamp <$> time) <*> (CT.UserId  <$> user))
 
 
 -- TODO: After migrating entirely to X509, there should always be an expiration
@@ -115,14 +115,14 @@ getKeyState :: UTCTime
             -> KeyState
 -- order of precedence - Revoked > Expired
 getKeyState currTime (Just (RevocationTime rTime)) (Just (ExpirationTime eTime))
-  | currTime >= rTime = Revoked
-  | currTime >= eTime = Expired
+  | mkUtcMicros currTime >= rTime = Revoked
+  | mkUtcMicros currTime >= eTime = Expired
   | otherwise        = InEffect
 getKeyState currTime Nothing (Just (ExpirationTime eTime))
-  | currTime >= eTime = Expired
+  | mkUtcMicros currTime >= eTime = Expired
   | otherwise        = InEffect
 getKeyState currTime (Just (RevocationTime rTime)) Nothing
-  | currTime >= rTime = Revoked
+  | mkUtcMicros currTime >= rTime = Revoked
   | otherwise        = InEffect
 getKeyState _ Nothing Nothing = InEffect
 
@@ -170,7 +170,7 @@ addPublicKeyQuery :: ( Member err     '[AsBRKeyError])
                   -> DB context err CT.BRKeyId
 addPublicKeyQuery (AuthUser (CT.UserId uid)) expTime jwk = do
   now <- liftIO getCurrentTime
-  for_ expTime $ \time -> when ((getExpirationTime time) <= now) (throwing_ _AddedExpiredKeyBRKE)
+  for_ expTime $ \time -> when ((getExpirationTime time) <= mkUtcMicros now) (throwing_ _AddedExpiredKeyBRKE)
   keyId <- newUUID
   timestamp <- generateTimestamp
   ks <- pg $ runInsertReturningList (_keys businessRegistryDB) $
@@ -238,7 +238,7 @@ revokePublicKeyQuery userId k@(CT.BRKeyId keyId) = do
                 (\key -> [ revocation_time key  <-. val_ (Just $ toDbTimestamp timestamp)
                          , revoking_user_id key <-. val_ (Schema.UserId $ Just $ getUserId userId)])
                 (\key -> key_id key ==. (val_ keyId))
-  pure $ RevocationTime timestamp
+  pure $ RevocationTime $ mkUtcMicros timestamp
 
 
 doesUserOwnKeyQuery :: CT.UserId
