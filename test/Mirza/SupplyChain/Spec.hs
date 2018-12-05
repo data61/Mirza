@@ -48,7 +48,7 @@ openConnection = do
   withResource connpool (tryCreateSchema True)
   let connectionString = getDatabaseConnectionString testDbConnectionStringSCS
   initSCSContext (ServerOptionsSCS Dev False connectionString "127.0.0.1" 8000 14 8 1 DebugS
-                                "127.0.0.1" (error "Port should not be used") (Just tempFile))
+                                (Just ("127.0.0.1", 8200)) (Just tempFile))
 
 closeConnection :: SCSContext -> IO ()
 closeConnection = destroyAllResources . ST._scsDbConnPool
