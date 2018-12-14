@@ -47,7 +47,7 @@ openConnection = do
   _ <- withResource connpool $ dropTables supplyChainDb -- drop tables before so if already exist no problems... means tables get overwritten though
   withResource connpool (tryCreateSchema True)
   let connectionString = getDatabaseConnectionString testDbConnectionStringSCS
-  initSCSContext (ServerOptionsSCS Dev False connectionString "127.0.0.1" 8000 14 8 1 DebugS
+  initSCSContext (ServerOptionsSCS Dev False connectionString 8000 14 8 1 DebugS
                                 (Just ("127.0.0.1", 8200)) (Just tempFile))
 
 closeConnection :: SCSContext -> IO ()
