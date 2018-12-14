@@ -48,7 +48,6 @@ data ServerOptionsSCS = ServerOptionsSCS
   { env           :: EnvType
   , initDB        :: Bool
   , connectionStr :: ByteString
-  , scsHostName   :: String
   , scsPort       :: Int
   , sScryptN      :: Integer
   , sScryptP      :: Integer
@@ -57,9 +56,6 @@ data ServerOptionsSCS = ServerOptionsSCS
   , brServiceInfo :: Maybe (String, Int) -- Maybe (brhost, brport)
   , loggingPath   :: Maybe FilePath
   }
-
-localhost :: String
-localhost = "127.0.0.1"
 
 defaultDbConnectionStr :: ByteString
 defaultDbConnectionStr = "dbname=devsupplychainserver"
@@ -78,10 +74,6 @@ serverOptions = ServerOptionsSCS
           ( long "conn" <> short 'c' <> showDefault
           <> help "Database connection string in libpq format. See: https://www.postgresql.org/docs/9.5/static/libpq-connect.html#LIBPQ-CONNSTRING"
           <> value defaultDbConnectionStr)
-      <*> strOption
-          ( long "scshost" <> showDefault
-          <> help "The host to run the server on"
-          <> value localhost)
       <*> option auto
           ( long "scsport" <> short 'p' <> showDefault <> value 8000
           <> help "Port to run database on" )
@@ -135,7 +127,7 @@ initMiddleware :: ServerOptionsSCS -> IO Middleware
 initMiddleware _ = pure id
 
 initSCSContext :: ServerOptionsSCS -> IO ST.SCSContext
-initSCSContext (ServerOptionsSCS envT _ dbConnStr _host _prt n p r lev (Just (brHost, bizRegPort)) mlogPath) = do
+initSCSContext (ServerOptionsSCS envT _ dbConnStr _prt n p r lev (Just (brHost, bizRegPort)) mlogPath) = do
   logHandle <- maybe (pure stdout) (flip openFile AppendMode) mlogPath
   hPutStrLn stderr $ "Logging will be to: " <> fromMaybe "stdout" mlogPath
   handleScribe <- mkHandleScribe ColorIfTerminal logHandle lev V3
