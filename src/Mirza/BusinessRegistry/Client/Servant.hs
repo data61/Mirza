@@ -3,7 +3,7 @@ module Mirza.BusinessRegistry.Client.Servant
   -- * Public API
     getPublicKey
   , getPublicKeyInfo
-  , listBusinesses
+  , searchBusinesses
   , health
   , addUser
   , addBusiness
@@ -12,6 +12,7 @@ module Mirza.BusinessRegistry.Client.Servant
   , revokePublicKey
   , addLocation
   , getLocationByGLN
+  , searchLocation
   ) where
 
 import           Mirza.BusinessRegistry.API
@@ -29,11 +30,13 @@ import           Servant.API
 import           Servant.Client
 
 import           Data.Proxy                             (Proxy (..))
+import           Data.Text                              (Text)
+import           Data.Time                              (UTCTime)
 
 health         :: ClientM HealthResponse
 getPublicKey     :: BRKeyId -> ClientM JWK
 getPublicKeyInfo :: BRKeyId -> ClientM KeyInfoResponse
-listBusinesses   :: ClientM [BusinessResponse]
+searchBusinesses   :: Maybe GS1CompanyPrefix -> Maybe Text -> Maybe UTCTime -> ClientM [BusinessResponse]
 
 addUser          :: BasicAuthData -> NewUser     -> ClientM UserId
 addBusiness      :: BasicAuthData -> NewBusiness -> ClientM GS1CompanyPrefix
@@ -41,6 +44,7 @@ addPublicKey     :: BasicAuthData -> JWK -> Maybe ExpirationTime -> ClientM BRKe
 revokePublicKey  :: BasicAuthData -> BRKeyId -> ClientM RevocationTime
 addLocation      :: BasicAuthData -> NewLocation -> ClientM LocationId
 getLocationByGLN :: BasicAuthData -> LocationEPC -> ClientM LocationResponse
+searchLocation   :: BasicAuthData -> Maybe GS1CompanyPrefix -> Maybe UTCTime -> ClientM [LocationResponse] 
 
 
 _api     :: Client ClientM ServerAPI
@@ -51,7 +55,7 @@ _api@(
          health
     :<|> getPublicKey
     :<|> getPublicKeyInfo
-    :<|> listBusinesses
+    :<|> searchBusinesses
   )
   :<|>
   _privAPI@(
@@ -61,5 +65,6 @@ _api@(
     :<|> revokePublicKey
     :<|> addLocation
     :<|> getLocationByGLN
+    :<|> searchLocation
   )
  ) = client (Proxy :: Proxy ServerAPI)
