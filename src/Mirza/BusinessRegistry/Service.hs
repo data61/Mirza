@@ -71,7 +71,7 @@ publicServer =
        health
   :<|> getPublicKey
   :<|> getPublicKeyInfo
-  :<|> listBusinesses
+  :<|> searchBusinesses
 
 privateServer :: ( Member context '[HasScryptParams, HasDB]
                  , APIPossibleErrors err)
@@ -83,6 +83,7 @@ privateServer =
   :<|> revokePublicKey
   :<|> addLocation
   :<|> getLocationByGLN
+  :<|> searchLocation
 
 
 instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub) where

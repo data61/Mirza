@@ -30,5 +30,5 @@ testBizQueries = do
 
   describe "Business" $ do
     it "List Business empty" $ \brContext -> do
-      bizList <- testAppM brContext listBusinesses
+      bizList <- testAppM brContext (searchBusinesses Nothing Nothing Nothing)
       bizList `shouldBe` []

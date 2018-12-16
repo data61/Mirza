@@ -1,6 +1,5 @@
 {-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TypeApplications  #-}
 
 module Mirza.BusinessRegistry.Tests.Client where
 
@@ -21,6 +20,7 @@ import           System.FilePath                       ((</>))
 import           Control.Monad                         (forM_)
 import           Data.Either                           (isLeft, isRight)
 import           Data.Either.Utils                     (fromRight)
+import           Data.Function                         ((&))
 import           Data.List                             (isSuffixOf)
 import           Data.Maybe                            (fromJust, isJust,
                                                         isNothing)
@@ -68,12 +68,15 @@ clientSpec = do
   let businessTests = testCaseSteps "Can create businesses" $ \step ->
         bracket runBRApp (\(a,b,_) -> endWaiApp (a,b)) $ \(_tid,baseurl,brAuthUser) -> do
           let http = runClient baseurl
-              biz1Prefix = (GS1CompanyPrefix "2000001")
-              biz1 = NewBusiness biz1Prefix "businessTests_biz1Name"
+              biz1Prefix   = GS1CompanyPrefix "2000001"
+              biz1         = NewBusiness biz1Prefix "businessTests_biz1Name"
               biz1Response = newBusinessToBusinessResponse biz1
-              biz2Prefix = (GS1CompanyPrefix "2000002")
-              biz2 =  NewBusiness biz2Prefix "businessTests_biz2Name"
+              biz2Prefix   = GS1CompanyPrefix "2000002"
+              biz2         =  NewBusiness biz2Prefix "businessTests_biz2Name"
               biz2Response = newBusinessToBusinessResponse biz2
+              biz3Prefix   = GS1CompanyPrefix "3000003"
+              biz3         =  NewBusiness biz3Prefix "A strange name"
+              biz3Response = newBusinessToBusinessResponse biz3
               -- emptyPrefixBiz = NewBusiness (GS1CompanyPrefix "") "EmptyBusiness"
               -- stringPrefix1Biz = NewBusiness (GS1CompanyPrefix "string") "EmptyBusiness"
 
@@ -83,7 +86,7 @@ clientSpec = do
           addBiz1Result `shouldBe` (Right biz1Prefix)
 
           step "That the added business was added and can be listed."
-          http listBusinesses >>=
+          http (searchBusinesses Nothing Nothing Nothing) >>=
             either (const $ expectationFailure "Error listing businesses")
                    (`shouldContain` [biz1Response])
 
@@ -99,10 +102,31 @@ clientSpec = do
           addBiz2Result `shouldBe` (Right biz2Prefix)
 
           step "List businesses returns all of the businesses"
-          http listBusinesses >>=
+          http (searchBusinesses Nothing Nothing Nothing) >>=
               either (const $ expectationFailure "Error listing businesses")
                     (`shouldContain` [ biz1Response
                                         , biz2Response])
+
+          step "Can add a third business"
+          addBiz3Result <- http (addBusiness brAuthUser biz3)
+          addBiz3Result `shouldSatisfy` isRight
+          addBiz3Result `shouldBe` (Right biz3Prefix)
+
+          step "Searching by GS1 ID works"
+          searchBiz3Result <- http (searchBusinesses (Just biz3Prefix) Nothing Nothing)
+          searchBiz3Result `shouldSatisfy` isRight
+          searchBiz3Result `shouldBe` (Right [biz3Response])
+
+          step "Searching by business name works"
+          searchBiz3NameResult <- http (searchBusinesses Nothing (Just "strange") Nothing)
+          searchBiz3NameResult `shouldSatisfy` isRight
+          searchBiz3NameResult `shouldBe` (Right [biz3Response])
+
+          searchBiz12NameResult <- http (searchBusinesses Nothing (Just "Tests_") Nothing)
+          searchBiz12NameResult `shouldSatisfy` isRight
+          searchBiz12NameResult & either (error "You said this was Right!")
+                                         (`shouldContain` [ biz1Response
+                                                          , biz2Response])
 
           -- TODO: Include me (github #205):
           -- step "That the GS1CompanyPrefix can't be empty (\"\")."
@@ -527,7 +551,7 @@ clientSpec = do
           let http = runClient baseurl
 
           step "Status results in 200"
-          healthResult <- http (health)
+          healthResult <- http health
           healthResult `shouldSatisfy` isRight
           healthResult `shouldBe` (Right HealthResponse)
 

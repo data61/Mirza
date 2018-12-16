@@ -233,7 +233,7 @@ createScryptParams ServerOptionsBR{sobScryptN,sobScryptP,sobScryptR} =
 runBusinessCommand :: ServerOptionsBR -> BusinessCommand -> IO ()
 runBusinessCommand opts BusinessList = do
   ctx <- initBRContext opts
-  ebizs <- runAppM ctx $ runDb listBusinessesQuery
+  ebizs <- runAppM ctx $ runDb (searchBusinessesQuery Nothing Nothing Nothing)
   either (print @BRError) (mapM_ print) ebizs
 
 runBusinessCommand opts BusinessAdd = do
