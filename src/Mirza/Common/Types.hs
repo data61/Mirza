@@ -301,7 +301,7 @@ class AsServantError a where
     _ServantError :: Prism' a ServantError
 
 
--- Useage of this type is depricated prefer HasDb.
+-- Useage of this type is deprecated prefer HasDb.
 -- TODO: Remove DBConstraint once SCS is converted to use Member notation.
 type DBConstraint context err =
     ( HasEnvType context
