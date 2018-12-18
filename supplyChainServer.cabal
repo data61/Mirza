@@ -1,8 +1,8 @@
-name:                supplyChainServer
+name:                Mirza
 version:             0.1.0.0
 -- synopsis:
 -- description:
-homepage:            https://github.csiro.au/Blockchain/supplyChainServer
+homepage:            https://github.com/NICTA/Mirza
 license:             BSD3
 license-file:        LICENSE
 author:              Sara Falamaki
@@ -230,4 +230,4 @@ test-suite businessRegistry-test
 
 source-repository head
   type:     git
-  location: https://github.csiro.au/Blockchain/supplyChainServer
+  location: https://github.com/NICTA/Mirza
