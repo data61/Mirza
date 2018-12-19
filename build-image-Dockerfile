@@ -1,26 +1,21 @@
 FROM haskell
 
-ADD ./GS1_DEPLOY_KEY /app/GS1_DEPLOY_KEY
 
-WORKDIR /app
+RUN apt-get update && apt-get install -y openssh-client
+RUN ssh-add -l
 
-RUN apt update
-RUN apt install -y postgresql-server-dev-all xz-utils make ssh
 
-RUN stack upgrade --local-bin-path=/usr/local/bin
 
-RUN mkdir ~/.ssh && \
- mv /app/GS1_DEPLOY_KEY ~/.ssh/GS1_DEPLOY_KEY && \
- chmod 600 ~/.ssh/GS1_DEPLOY_KEY
+# WORKDIR /app
 
-RUN echo "Host * \n    StrictHostKeyChecking no" > /etc/ssh/ssh_config
+# RUN apt update
+# RUN apt install -y postgresql-server-dev-all xz-utils make ssh
+# RUN stack upgrade --local-bin-path=/usr/local/bin
 
-ADD . /app/supplyChainServer
+# RUN echo "Host * \n    StrictHostKeyChecking no" > /etc/ssh/ssh_config
 
-RUN eval $(ssh-agent) && \
-    ssh-add ~/.ssh/GS1_DEPLOY_KEY && \
-    cd /app/supplyChainServer && \
-    stack setup && \
-    stack build --test --ghc-options=-O2 --no-run-tests --only-dependencies
+# ADD . /app/supplyChainServer
 
-RUN rm -rf /app/Beam && rm -rf /app/GS1Combinators && rm -rf /app/supplyChainServer
+# RUN cd /app/supplyChainServer && \
+#     stack setup && \
+#     stack build --test --ghc-options=-O2 --no-run-tests --only-dependencies

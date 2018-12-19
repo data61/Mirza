@@ -36,12 +36,12 @@ RUN /usr/local/bin/stack --system-ghc install --split-objs --ghc-options='-fPIC'
 # RUN rm -rf ./*
 # ADD . /usr/src
 RUN /usr/local/bin/stack --system-ghc install --split-objs --ghc-options='-fPIC' 2>&1
-RUN ls -lah /usr/src/dist/businessRegistry && upx /usr/src/dist/businessRegistry && ls -lah /usr/src/dist/businessRegistry
+RUN ls -lah /usr/src/dist/supplyChainServer && upx /usr/src/dist/supplyChainServer && ls -lah /usr/src/dist/supplyChainServer
 # RUN ls -lah /usr/src/dist/supplyChainServer && upx /usr/src/dist/supplyChainServer && ls -lah /usr/src/dist/supplyChainServer
 
 FROM alpine:3.8
-COPY --from=0 /usr/src/dist/businessRegistry /usr/bin/businessRegistry
+COPY --from=0 /usr/src/dist/supplyChainServer /usr/bin/supplyChainServer
 RUN apk --no-cache add libpq gmp libffi libstdc++ xz-dev
-RUN ls -lh /usr/bin/businessRegistry && /usr/bin/businessRegistry --help
-# RUN ldd /usr/bin/businessRegistry
-# CMD ["sh","-c","/usr/bin/businessRegistry --http-port $HTTP_PORT --db-connections $DB_CONNECTIONS --db-conn-string $DB_CONN_STRING +RTS -N"]
+RUN ls -lh /usr/bin/supplyChainServer && /usr/bin/supplyChainServer --help
+# RUN ldd /usr/bin/supplyChainServer
+# CMD ["sh","-c","/usr/bin/supplyChainServer --http-port $HTTP_PORT --db-connections $DB_CONNECTIONS --db-conn-string $DB_CONN_STRING +RTS -N"]
