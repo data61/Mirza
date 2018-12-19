@@ -1,4 +1,4 @@
-# GS1Combinators
+# Mirza
 
 ## Setting up
 
