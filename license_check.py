@@ -21,10 +21,15 @@ accepted_licenses = [
     'BSD2',
     'BSD3',
     'ISC',
-    'LGPL', # binary copy of the server cannot be distributed
     'MIT',
     'OtherLicense',
     'PublicDomain',
+]
+
+# Which packages with what licenses are permitted
+package_exceptions = [
+    ('cpphs', 'LGPL'),
+    ('polyparse', 'LGPL'),
 ]
 
 # Handles special cases, like BSD-3 and BSD3
@@ -40,7 +45,7 @@ def main():
     for line in sys.stdin:
         (dep, lcns) = line.split()
         (dep, lcns) = normalise(dep, lcns)
-        if lcns not in accepted_licenses:
+        if lcns not in accepted_licenses and (dep, lcns) not in package_exceptions:
             print('WARNING: License %s of dependency %s may not be permissive of our uses' % (lcns, dep))
             exit_status = 1
 
