@@ -1,13 +1,13 @@
-name:                supplyChainServer
+name:                Mirza
 version:             0.1.0.0
 -- synopsis:
 -- description:
-homepage:            https://github.csiro.au/Blockchain/supplyChainServer
+homepage:            https://github.com/data61/Mirza
 license:             BSD3
 license-file:        LICENSE
 author:              Sara Falamaki
 maintainer:          Sara.Falamaki@csiro.au
-copyright:           2017 CSIRO
+copyright:           2017, 2018, 2019 CSIRO
 category:            Web
 build-type:          Simple
 extra-source-files:  README.md
@@ -106,7 +106,7 @@ executable supplyChainServer
   ghc-options:          -threaded -Wall -Werror -rtsopts -with-rtsopts=-N
   default-language:     Haskell2010
   build-depends:        base >= 4.7 && < 5
-                      , supplyChainServer
+                      , Mirza
 
 executable businessRegistry
   default-language:     Haskell2010
@@ -114,7 +114,7 @@ executable businessRegistry
   main-is:              BusinessRegistry.hs
   ghc-options:          -threaded -Wall -Werror -rtsopts -with-rtsopts=-N
   build-depends:        base >= 4.7 && < 5
-                      , supplyChainServer
+                      , Mirza
 
 test-suite supplyChainServer-test
   type:               exitcode-stdio-1.0
@@ -135,7 +135,7 @@ test-suite supplyChainServer-test
   build-depends:       base
                      , base64-bytestring
                      , GS1Combinators
-                     , supplyChainServer
+                     , Mirza
                      , resource-pool >= 0.2.3
                      , beam-core
                      , beam-postgres
@@ -190,7 +190,7 @@ test-suite businessRegistry-test
   build-depends:       base
                      , base64-bytestring
                      , GS1Combinators
-                     , supplyChainServer
+                     , Mirza
                      , resource-pool >= 0.2.3
                      , beam-postgres
                      , beam-core
@@ -230,4 +230,4 @@ test-suite businessRegistry-test
 
 source-repository head
   type:     git
-  location: https://github.csiro.au/Blockchain/supplyChainServer
+  location: https://github.com/data61/Mirza
