@@ -1,0 +1,63 @@
+version: '3'
+
+networks:
+  frontend:
+  backend:
+
+services:
+
+  supplyChainServer:
+    image: 235945186688.dkr.ecr.ap-southeast-2.amazonaws.com/supplychainserver:latest
+    ports:
+      - "8000:8000"
+    links:
+      - "db:db"
+      - "businessRegistry:br"
+    depends_on:
+      - db
+    networks:
+      - frontend
+      - backend
+    command: "/usr/bin/supplyChainServer --brhost br --brport 8200 -c 'dbname=devsupplychainserver'"
+    logging:
+      driver: "awslogs"
+      options:
+        awslogs-group: "development-supplychainserver"
+        awslogs-stream: "development"
+        awslogs-create-group: "true"
+
+  businessRegistry:
+    image: 235945186688.dkr.ecr.ap-southeast-2.amazonaws.com/businessregistry:latest
+    ports:
+      - "8200:8200"
+    links:
+      - "db:db"
+    depends_on:
+      - db
+    networks:
+      - frontend
+      - backend
+    command: "/usr/bin/businessRegistry -c 'dbname=devbusinessregistry' server"
+    logging:
+      driver: "awslogs"
+      options:
+        awslogs-group: "development-businessregistry"
+        awslogs-stream: "development"
+        awslogs-create-group: "true"
+
+  db:
+    image: postgres:10.5
+    networks:
+      - backend
+    # healthcheck:
+    #    test: ["CMD-SHELL", "pg_isready -U postgres"]
+    #    interval: 30s
+    #    timeout: 10s
+    #    retries: 5
+    restart: always
+    logging:
+      driver: "awslogs"
+      options:
+        awslogs-group: "development-db"
+        awslogs-stream: "development"
+        awslogs-create-group: "true"
