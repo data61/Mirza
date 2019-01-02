@@ -18,7 +18,7 @@ RUN curl -sSL https://get.haskellstack.org/ | sh && chmod 755 /usr/local/bin/sta
 RUN /usr/local/bin/stack --version
 RUN /usr/local/bin/stack --system-ghc update 2>&1
 
-ADD stack.yaml supplyChainServer.cabal run_tests.sh LICENSE README.md /usr/src/
+ADD stack.yaml Mirza.cabal run_tests.sh LICENSE README.md /usr/src/
 ADD src/ /usr/src/src/
 ADD test/ /usr/src/test/
 ADD app/ /usr/src/app/
