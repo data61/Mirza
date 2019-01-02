@@ -10,7 +10,7 @@ packages:
     - beam-migrate
     - beam-postgres
 extra-deps:
-- git: https://github.com/NICTA/GS1Combinators.git
+- git: https://github.com/data61/GS1Combinators.git
   commit: 8f8db19236dc745426c4f36a2169eba250c4355f
 - Unique-0.4.7.5@sha256:580b578ddde452111cc20aa84bdccd7e723d19eb4f8d167d2358d08a4637eed3
 - servant-flatten-0.2
