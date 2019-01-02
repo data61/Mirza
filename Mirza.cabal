@@ -2,12 +2,12 @@ name:                Mirza
 version:             0.1.0.0
 -- synopsis:
 -- description:
-homepage:            https://github.com/NICTA/Mirza
+homepage:            https://github.com/data61/Mirza
 license:             BSD3
 license-file:        LICENSE
 author:              Sara Falamaki
 maintainer:          Sara.Falamaki@csiro.au
-copyright:           2017 CSIRO
+copyright:           2017, 2018, 2019 CSIRO
 category:            Web
 build-type:          Simple
 extra-source-files:  README.md
@@ -230,4 +230,4 @@ test-suite businessRegistry-test
 
 source-repository head
   type:     git
-  location: https://github.com/NICTA/Mirza
+  location: https://github.com/data61/Mirza
