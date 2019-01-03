@@ -1,0 +1,21 @@
+#cloud-config
+
+repo_update: true
+repo_upgrade: all
+package_upgrade: true
+
+packages:
+  - wget
+  - unzip
+  - docker
+
+runcmd:
+  - yum update
+  - usermod -a -G docker ec2-user
+  - sudo curl -L "https://github.com/docker/compose/releases/download/1.22.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/bin/docker-compose
+  - chmod +x /usr/bin/docker-compose
+  - service docker start
+  - chkconfig docker on
+  - curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+  - python get-pip.py
+  - pip install awscli --upgrade

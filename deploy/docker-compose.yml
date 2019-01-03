@@ -1,0 +1,102 @@
+version: "3"
+
+networks:
+  frontend:
+  backend:
+
+services:
+
+  supplyChainServer:
+    image: 235945186688.dkr.ecr.ap-southeast-2.amazonaws.com/supplychainserver:latest
+    ports:
+      - 8000:8000
+    links:
+      - db:db
+      - businessRegistry:br
+    depends_on:
+      - db
+    networks:
+      - frontend
+      - backend
+    env_file:
+      - .env
+    command: /usr/bin/supplyChainServer --brhost br --brport 8200 -c "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db/devsupplychainserver"
+    logging:
+      driver: json-file
+      options:
+        max-size: "200k"
+        max-file: "10"
+
+  businessRegistry:
+    image: 235945186688.dkr.ecr.ap-southeast-2.amazonaws.com/businessregistry:latest
+    ports:
+      - 8200:8200
+    links:
+      - db:db
+    depends_on:
+      - db
+    networks:
+      - frontend
+      - backend
+    env_file:
+      - .env
+    command: /usr/bin/businessRegistry -c 'postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db/devbusinessregistry' server
+    logging:
+      driver: json-file
+      options:
+        max-size: "200k"
+        max-file: "10"
+
+  db:
+    image: postgres:10.5
+    networks:
+      - backend
+    env_file:
+      - .env
+    healthcheck:
+       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+       interval: 30s
+       timeout: 10s
+       retries: 5
+    restart: always
+    volumes:
+      - ./create_databases.sh:/docker-entrypoint-initdb.d/create_databases.sh
+    logging:
+      driver: json-file
+      options:
+        max-size: "200k"
+        max-file: "10"
+
+  dbpopulate-scs:
+    image: 235945186688.dkr.ecr.ap-southeast-2.amazonaws.com/supplychainserver:latest
+    networks:
+      - backend
+    links:
+      - "db:db"
+    env_file:
+      - .env
+    command: /usr/bin/supplyChainServer --init-db -c "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/devsupplychainserver" && exit 0
+    depends_on:
+      - db
+    logging:
+      driver: json-file
+      options:
+        max-size: "200k"
+        max-file: "10"
+
+  dbpopulate-br:
+    image: 235945186688.dkr.ecr.ap-southeast-2.amazonaws.com/businessregistry:latest
+    networks:
+      - backend
+    links:
+      - "db:db"
+    env_file:
+      - .env
+    command: /usr/bin/businessRegistry --init-db -c "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db/devbusinessregistry" && exit 0
+    depends_on:
+      - db
+    logging:
+      driver: json-file
+      options:
+        max-size: "200k"
+        max-file: "10"
