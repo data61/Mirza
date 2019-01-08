@@ -101,6 +101,10 @@ Some common acronyms used in the project.
 
 **BR**:  Business Registry
 
+## Known Issues/Notes
+
+- The time precision stored in the database is in microseconds, and Haskell timestamps are precise up to a nanosecond. When submitting a JWK, the time fields in the key (expiry time, revocation time) is accepted if it's within 1 second of the current time.
+
 ### Useful Tools
 
 - [GS1 Company Database](https://www.gs1us.org/tools/gs1-company-database-gepir) - You can search for GLN (Global Location Number) of GS1 Companies here

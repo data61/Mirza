@@ -313,9 +313,9 @@ clientSpec = do
           Just goodKey <- goodRsaPublicKey
 
           step "Can add a good key (no exipry time)"
-          b1K1PreInsertionTime <- generateTimestampMicros
+          b1K1PreInsertionTime <- getCurrentTime
           b1K1StoredKeyIdResult <- http (addPublicKey (newUserToBasicAuthData userB1U1) goodKey Nothing)
-          b1K1PostInsertionTime <- generateTimestampMicros
+          b1K1PostInsertionTime <- getCurrentTime
           b1K1StoredKeyIdResult `shouldSatisfy` isRight
 
           let Right b1K1StoredKeyId = b1K1StoredKeyIdResult
@@ -359,7 +359,7 @@ clientSpec = do
 
           let expiryDelay = 3
           step $ "Can add a good key with exipry time (" ++ (show expiryDelay) ++ " seconds from now)"
-          b1K2Expiry <- (Just . ExpirationTime . mkUtcMicros) <$> ((addUTCTime (fromInteger expiryDelay)) <$> getCurrentTime)
+          b1K2Expiry <- (Just . ExpirationTime) <$> ((addUTCTime (fromInteger expiryDelay)) <$> getCurrentTime)
           b1K2StoredKeyIdResult <- http (addPublicKey (newUserToBasicAuthData userB1U1) goodKey b1K2Expiry)
           b1K2StoredKeyIdResult `shouldSatisfy` isRight
 
@@ -382,7 +382,8 @@ clientSpec = do
           ky2InfoState          `shouldSatisfy` (== InEffect)
           ky2InfoRevocationTime `shouldSatisfy` isNothing
           ky2InfoPEMString      `shouldSatisfy` (== goodKey)
-          fromJust ky2InfoExpirationTime `shouldSatisfy` (== fromJust b1K2Expiry)
+          getExpirationTime (fromJust ky2InfoExpirationTime)
+            `shouldSatisfy` within1Second ((getExpirationTime . fromJust) b1K2Expiry)
 
           step "That the key info status updates after the expiry time has been reached"
           threadDelay $ fromIntegral $ secondsToMicroseconds expiryDelay
@@ -397,7 +398,7 @@ clientSpec = do
           b1K2RevokedResponse `shouldSatisfy` (checkFailureMessage "Public key already expired.")
 
           step "That it is not possible to add a key that is already expired"
-          b1ExpiredKeyExpiry <- (Just . ExpirationTime . mkUtcMicros) <$> ((addUTCTime (fromInteger (-1))) <$> getCurrentTime)
+          b1ExpiredKeyExpiry <- (Just . ExpirationTime) <$> ((addUTCTime (fromInteger (-1))) <$> getCurrentTime)
           b1ExpiredKeyExpiryResult <- http (addPublicKey (newUserToBasicAuthData userB1U1) goodKey b1ExpiredKeyExpiry)
           b1ExpiredKeyExpiryResult `shouldSatisfy` isLeft
           b1ExpiredKeyExpiryResult `shouldSatisfy` (checkFailureStatus NS.badRequest400)
@@ -407,9 +408,9 @@ clientSpec = do
           b1K3StoredKeyIdResult <- http (addPublicKey (newUserToBasicAuthData userB1U1) goodKey Nothing)
           b1K3StoredKeyIdResult `shouldSatisfy` isRight
           let b1K3StoredKeyId = fromRight b1K3StoredKeyIdResult
-          b1K3PreRevoke <- generateTimestampMicros
+          b1K3PreRevoke <- getCurrentTime
           b1K3RevokedResponse <- http (revokePublicKey (newUserToBasicAuthData userB1U1) b1K3StoredKeyId)
-          b1K3PostRevoke <- generateTimestampMicros
+          b1K3PostRevoke <- getCurrentTime
           b1K3RevokedResponse `shouldSatisfy` isRight
           b1K3RevokedResponse `shouldSatisfy` checkField getRevocationTime (betweenInclusive b1K3PreRevoke b1K3PostRevoke)
 
@@ -422,8 +423,7 @@ clientSpec = do
           b1K3InfoResponse `shouldSatisfy` checkField keyInfoRevocation ((== fromRight userB1U1Response) . snd . fromJust)
           -- We check that the time through this responce ~matches the time that was given when we revoked the key.
           let b1K3RevokedResponseTime = (getRevocationTime . fromRight) b1K3RevokedResponse
-          -- liftIO $ print $ keyInfoRevocation (fromRight b1K3InfoResponse)
-          b1K3InfoResponse `shouldSatisfy` checkField keyInfoRevocation ((== b1K3RevokedResponseTime) . extractRevocationTime)
+          b1K3InfoResponse `shouldSatisfy` checkField keyInfoRevocation ((within1Second b1K3RevokedResponseTime) . extractRevocationTime)
 
           step "That the key status updates after the key is revoked"
           b1K3RevokedInfoResponse <- http (getPublicKeyInfo b1K3StoredKeyId)
@@ -468,7 +468,7 @@ clientSpec = do
 
           step "Test where the key has an expiry time (which hasn't expired) and is revoked reports the correct status."
           b1K6ExpiryUTC <- (addUTCTime (fromInteger expiryDelay)) <$> getCurrentTime
-          let b1K6Expiry = Just . ExpirationTime . mkUtcMicros $ b1K6ExpiryUTC
+          let b1K6Expiry = Just . ExpirationTime $ b1K6ExpiryUTC
           b1K6StoreKeyIdResult <- http (addPublicKey (newUserToBasicAuthData userB1U1) goodKey b1K6Expiry)
           b1K6StoreKeyIdResult `shouldSatisfy` isRight
           let Right b1K6KeyId = b1K6StoreKeyIdResult
