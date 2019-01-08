@@ -142,7 +142,7 @@ getAction (TransactWhat (TransactionDWhat act _ _ _)) = Just act
 getAction (AggWhat (AggregationDWhat act _ _))        = Just act
 
 
-findInstLabelId :: InstanceLabelEPC -> DB context err [PrimaryKeyType]
+findInstLabelId :: InstanceLabelEPC -> DB context err (Maybe PrimaryKeyType)
 findInstLabelId (GIAI cp sn) = findInstLabelId' cp sn Nothing Nothing Nothing
 findInstLabelId (SSCC cp sn) = findInstLabelId' cp sn Nothing Nothing Nothing
 findInstLabelId (SGTIN cp msfv ir sn) = findInstLabelId' cp sn msfv (Just ir) Nothing
@@ -164,7 +164,7 @@ findInstLabelId' :: GS1CompanyPrefix
                  -> Maybe SGTINFilterValue
                  -> Maybe ItemReference
                  -> Maybe AssetType
-                 -> DB context err [PrimaryKeyType]
+                 -> DB context err (Maybe PrimaryKeyType)
 findInstLabelId' cp sn msfv mir mat = do
   l <- pg $ runSelectReturningList $ select $ do
     labels <- all_ (Schema._labels Schema.supplyChainDb)
@@ -174,7 +174,9 @@ findInstLabelId' cp sn msfv mir mat = do
             Schema.label_asset_type labels ==. val_ mat &&.
             Schema.label_item_reference labels ==. val_ mir)
     pure labels
-  pure $ Schema.label_id <$> l
+  pure $ case l of
+    [lbl] -> Just $ Schema.label_id lbl
+    _     -> Nothing
 
 
 getUser :: EmailAddress -> DB context err (Maybe ST.User)
@@ -187,7 +189,7 @@ getUser userEmail = do
     [u] -> Just . QU.userTableToModel $ u
     _   -> Nothing
 
-findClassLabelId :: ClassLabelEPC -> DB context err [PrimaryKeyType]
+findClassLabelId :: ClassLabelEPC -> DB context err (Maybe PrimaryKeyType)
 findClassLabelId (LGTIN cp ir lot)  = findClassLabelId' cp Nothing ir (Just lot)
 findClassLabelId (CSGTIN cp msfv ir) = findClassLabelId' cp msfv ir Nothing
 
@@ -195,7 +197,7 @@ findClassLabelId' :: GS1CompanyPrefix
                   -> Maybe SGTINFilterValue
                   -> ItemReference
                   -> Maybe Lot
-                  -> DB context err [PrimaryKeyType]
+                  -> DB context err (Maybe PrimaryKeyType)
 findClassLabelId' cp msfv ir lot = do
   l <- pg $ runSelectReturningList $ select $ do
     labels <- all_ (Schema._labels Schema.supplyChainDb)
@@ -206,10 +208,12 @@ findClassLabelId' cp msfv ir lot = do
              Schema.label_item_reference labels ==. (val_ . Just $ ir)
            )
     pure labels
-  pure $ Schema.label_id <$> l
+  pure $ case l of
+    [lbl] -> Just $ Schema.label_id lbl
+    _     -> Nothing
 
 
-findLabelId :: LabelEPC -> DB context err [PrimaryKeyType]
+findLabelId :: LabelEPC -> DB context err (Maybe PrimaryKeyType)
 findLabelId (IL l)   = findInstLabelId l
 findLabelId (CL c _) = findClassLabelId c
 
@@ -223,13 +227,7 @@ getParentId dwhat = do
   let mParentLabel = getParent dwhat
   case mParentLabel of
     Nothing -> pure Nothing
-    Just p -> do
-      res <- findInstLabelId . unParentLabel $ p
-      pure $ case res of
-        [l] -> Just l
-        []  -> Nothing
-        _   -> error "There only should be 0/1 parent labels" -- ^ this should never happen.
-        -- A call to error is here until a new error type is made
+    Just p -> findInstLabelId . unParentLabel $ p
 
 toStorageDWhen :: Schema.WhenId
                -> DWhen
@@ -400,12 +398,13 @@ insertWhatLabel labelType (Schema.WhatId whatId) (Schema.LabelId labelId) = QU.w
 -- converts a ``LabelEPC`` to Schema.Label and writes it to the database
 insertLabel :: LabelEPC
             -> DB context err PrimaryKeyType
-insertLabel labelEpc = QU.withPKey $ \pKey ->
-  pg $ B.runInsert $ Pg.insert (Schema._labels Schema.supplyChainDb)
-        (insertValues [ epcToStorageLabel (Schema.LabelId pKey) labelEpc])
-        $ Pg.onConflict
-          (Pg.conflictingFields label_urn)
-          Pg.onConflictDoNothing
+insertLabel labelEpc = do
+  mLabelId <- findLabelId labelEpc
+  case mLabelId of
+    Just lblId -> pure lblId
+    Nothing -> QU.withPKey $ \pKey ->
+            pg $ B.runInsert $ B.insert (Schema._labels Schema.supplyChainDb)
+            (insertValues [ epcToStorageLabel (Schema.LabelId pKey) labelEpc])
 
 -- | Ties up a label and an event entry in the database
 insertLabelEvent :: Schema.EventId
