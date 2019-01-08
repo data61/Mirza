@@ -40,7 +40,7 @@ import           Data.Either                      (isRight)
 import           Data.HashMap.Lazy                as H
 
 import           Data.Foldable                    (for_)
-import           Data.List                        (nub)
+import           Data.List                        (elemIndex, nub)
 
 -- =============================================================================
 -- Citrus Provenance test
@@ -71,10 +71,13 @@ citrusSpec = do
           resBox <- httpSCS $ SCSClient.listEvents farmerAuth (LabelEPCUrn . renderURL $ boxLabel)
           resBox `shouldSatisfy` isRight
           let Right boxEvents = resBox
+          print $ length boxEvents
           let [evBox] = boxEvents
           print evBox
-          putStrLn ("========================================\n\n\n" :: String)
-          print $ citrusEvents !! 7
+          putStrLn ("=================== Printing out citrus events =====================\n\n" :: String)
+          print $ evBox `elemIndex` citrusEvents
+          for_ citrusEvents (\e -> putStrLn $ "\n========\n" <> show e <> "\n========\n")
+          -- print $ citrusEvents !! 7
           evBox `shouldBe` citrusEvents !! 7
 
           let Just boxParent = getParent . _what $ evBox
