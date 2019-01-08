@@ -227,7 +227,7 @@ getParentId dwhat = do
   let mParentLabel = getParent dwhat
   case mParentLabel of
     Nothing -> pure Nothing
-    Just p -> findInstLabelId . unParentLabel $ p
+    Just (ParentLabel p) -> findInstLabelId p
 
 toStorageDWhen :: Schema.WhenId
                -> DWhen
@@ -428,6 +428,11 @@ getEventList :: AsServiceError err
              => Schema.LabelId
              -> DB context err [Ev.Event]
 getEventList labelId = do
+  -- whatLabels <- pg $ runSelectReturningList $ select $ do
+  --       whatLabel <- all_ (Schema._what_labels Schema.supplyChainDb)
+  --       guard_ (Schema.what_label_label_id whatLabel ==. val_ labelId)
+  --       guard_ (Schema.what_label_label_type whatLabel /=. val_ (Just MU.Parent))
+  --       pure whatLabel
   labelEvents <- pg $ runSelectReturningList $ select $ do
         labelEvent <- all_ (Schema._label_events Schema.supplyChainDb)
         guard_ (Schema.label_event_label_id labelEvent ==. val_ labelId)

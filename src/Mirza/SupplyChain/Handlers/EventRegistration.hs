@@ -116,7 +116,8 @@ insertAggEventQuery
     let Just parentLabelId' = mParentLabelId
         parentLabelId = Schema.LabelId parentLabelId'
     _ <- insertWhatLabel (Just MU.Parent) (Schema.WhatId whatId) parentLabelId
-    insertLabelEvent eventId parentLabelId >>= (\_ -> pure ())
+    pure ()
+    -- insertLabelEvent eventId parentLabelId >>= (\_ -> pure ())
   pure (evInfo, eventId)
 
 
@@ -169,7 +170,8 @@ insertTransactEventQuery
     let Just parentLabelId' = mParentLabelId
         parentLabelId = Schema.LabelId parentLabelId'
     _ <- insertWhatLabel (Just MU.Parent) (Schema.WhatId whatId) parentLabelId
-    insertLabelEvent eventId parentLabelId >>= (\_ -> pure ())
+    pure ()
+    -- insertLabelEvent eventId parentLabelId >>= (\_ -> pure ())
   pure (evInfo, eventId)
 
 
