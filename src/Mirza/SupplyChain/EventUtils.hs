@@ -51,7 +51,6 @@ import           Data.Time.LocalTime               (timeZoneOffsetString)
 
 import           Database.Beam                     as B
 import           Database.Beam.Postgres            (PgJSON (..))
-import qualified Database.Beam.Postgres.Full       as Pg
 
 import           Control.Monad                     (void)
 
