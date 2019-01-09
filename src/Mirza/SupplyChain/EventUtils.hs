@@ -407,12 +407,13 @@ insertLabel labelEpc = do
             (insertValues [ epcToStorageLabel (Schema.LabelId pKey) labelEpc])
 
 -- | Ties up a label and an event entry in the database
-insertLabelEvent :: Schema.EventId
+insertLabelEvent :: Maybe MU.LabelType
+                 -> Schema.EventId
                  -> Schema.LabelId
                  -> DB context err PrimaryKeyType
-insertLabelEvent eventId labelId = QU.withPKey $ \pKey ->
+insertLabelEvent labelType eventId labelId = QU.withPKey $ \pKey ->
   pg $ B.runInsert $ B.insert (Schema._label_events Schema.supplyChainDb)
-        $ insertValues [ Schema.LabelEvent Nothing pKey labelId eventId ]
+        $ insertValues [ Schema.LabelEvent Nothing pKey labelId eventId labelType ]
 
 getUserById :: ST.UserId -> DB context err (Maybe Schema.User)
 getUserById (ST.UserId uid) = do
@@ -428,14 +429,10 @@ getEventList :: AsServiceError err
              => Schema.LabelId
              -> DB context err [Ev.Event]
 getEventList labelId = do
-  -- whatLabels <- pg $ runSelectReturningList $ select $ do
-  --       whatLabel <- all_ (Schema._what_labels Schema.supplyChainDb)
-  --       guard_ (Schema.what_label_label_id whatLabel ==. val_ labelId)
-  --       guard_ (Schema.what_label_label_type whatLabel /=. val_ (Just MU.Parent))
-  --       pure whatLabel
   labelEvents <- pg $ runSelectReturningList $ select $ do
         labelEvent <- all_ (Schema._label_events Schema.supplyChainDb)
         guard_ (Schema.label_event_label_id labelEvent ==. val_ labelId)
+        guard_ (Schema.label_event_label_type labelEvent ==. val_ Nothing)
         pure labelEvent
   let eventIds = Schema.label_event_event_id <$> labelEvents
       allEvents = findEvent <$> eventIds
