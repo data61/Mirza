@@ -15,35 +15,34 @@ module Mirza.Common.Tests.Utils
   )
   where
 
-import           Data.Maybe                  (fromJust)
+import           Data.Maybe              (fromJust)
 
-import           Data.ByteString             as BS hiding (putStrLn, unpack)
-import qualified Data.ByteString.Char8       as C8 (unpack)
+import           Data.ByteString         as BS hiding (unpack, putStrLn)
+import qualified Data.ByteString.Char8   as C8 (unpack)
 
-import           Text.Email.Validate         (EmailAddress, emailAddress)
+import           Text.Email.Validate     (EmailAddress, emailAddress)
 
-import           Test.Hspec.Expectations     (Expectation, shouldSatisfy)
+import           Test.Hspec.Expectations (Expectation, shouldSatisfy)
 
-import           Data.Foldable               (forM_)
-import           Data.String                 (fromString)
-import qualified Data.Text                   as T (unpack)
-import           Data.Time.Clock             (UTCTime, diffUTCTime)
+import           Data.Foldable           (forM_)
+import           Data.String             (fromString)
+import qualified Data.Text               as T (unpack)
+import           Data.Time.Clock         (UTCTime, diffUTCTime)
 
-import           GHC.Stack                   (HasCallStack)
+import           GHC.Stack               (HasCallStack)
 
 import           Control.Exception
-import           Control.Monad.Except        (ExceptT (..), throwError, unless,
-                                              void)
 import           Control.Monad.IO.Class
+import           Control.Monad.Except    (ExceptT (..), throwError, unless, void)
 
-import           Database.Beam.Postgres      (Postgres)
-import           Database.Beam.Schema.Tables (Database, DatabaseSettings)
 import           Database.PostgreSQL.Simple
+import           Database.Beam.Schema.Tables (Database, DatabaseSettings)
+import           Database.Beam.Postgres      (Postgres)
 
 import           Mirza.Common.Utils
 
-import           System.Exit
 import           System.Process
+import           System.Exit
 
 
 --------------------------------------------------------------------------------

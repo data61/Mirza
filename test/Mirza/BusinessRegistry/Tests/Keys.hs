@@ -16,7 +16,9 @@ import           Mirza.BusinessRegistry.Handlers.Keys     as BKey
 import           Mirza.BusinessRegistry.Handlers.Users
 import           Mirza.BusinessRegistry.Tests.Dummies
 import           Mirza.BusinessRegistry.Types             as BT
-import           Mirza.Common.Time
+import           Mirza.Common.Time                        (CreationTime (..),
+                                                           ExpirationTime (..),
+                                                           RevocationTime (..))
 import           Mirza.Common.Utils                       (fromPgJSON)
 
 import           Mirza.BusinessRegistry.Tests.Utils
@@ -62,7 +64,7 @@ testKeyQueries = do
         (Just key, (BRKeyId keyId), (BT.UserId uid), tEnd, insertedKey) -> do
           key `shouldSatisfy`
             (\k ->
-              fromPgJSON (BSchema.key_jwk k) == pubKey &&
+              (fromPgJSON $ BSchema.key_jwk k) == pubKey &&
               (BSchema.key_id k) == keyId &&
               (BSchema.key_user_id k) == (BSchema.UserId uid) &&
               (BSchema.creation_time k) > tStart &&
@@ -84,8 +86,8 @@ testKeyQueries = do
       keyInfo `shouldSatisfy`
         (\ki ->
           (keyInfoUserId ki == uid) &&
-          ((keyInfoCreationTime ki) > (CreationTime $ mkUtcMicros tStart) &&
-           (keyInfoCreationTime ki) < (CreationTime $ mkUtcMicros tEnd)) &&
+          ((keyInfoCreationTime ki) > (CreationTime tStart) &&
+           (keyInfoCreationTime ki) < (CreationTime tEnd)) &&
           isNothing (keyInfoRevocation ki)
         )
 
@@ -128,7 +130,7 @@ testKeyQueries = do
           nearExpiry = addUTCTime (fromInteger smallDelayInSeconds) nowish
       keyId <- testAppM brContext $ do
         user <- insertDummies
-        keyId <- addPublicKey user pubKey (Just . ExpirationTime . mkUtcMicros $ nearExpiry)
+        keyId <- addPublicKey user pubKey (Just . ExpirationTime $ nearExpiry)
         pure keyId
       threadDelay $ fromIntegral $ secondsToMicroseconds smallDelayInSeconds
       myKeyState <- testAppM brContext $ do
@@ -143,7 +145,7 @@ testKeyQueries = do
       Just pubKey <- goodRsaPublicKey
       myKeyState <- testAppM brContext $ do
         user <- insertDummies
-        keyId <- addPublicKey user pubKey (Just . ExpirationTime . mkUtcMicros $ someTimeLater)
+        keyId <- addPublicKey user pubKey (Just . ExpirationTime $ someTimeLater)
         keyInfo <- getPublicKeyInfo keyId
         pure (keyInfoState keyInfo)
       myKeyState `shouldBe` InEffect
@@ -163,32 +165,32 @@ testKeyQueries = do
 
     it "results in Revoked when RevocationTime is the same as the comparison time (and there is no ExpirationTime)" $ \_-> do
       now <- getCurrentTime
-      getKeyState now (Just . RevocationTime . mkUtcMicros $ now)  Nothing `shouldBe` Revoked
+      getKeyState now (Just $ RevocationTime now)  Nothing `shouldBe` Revoked
 
     it "results in Revoked when RevocationTime is the before as the comparison time (and there is no ExpirationTime)" $ \_-> do
       now <- getCurrentTime
       let next = nextUTCTime now
-      getKeyState next (Just . RevocationTime . mkUtcMicros $ now)  Nothing `shouldBe` Revoked
+      getKeyState next (Just $ RevocationTime now)  Nothing `shouldBe` Revoked
 
     it "results in InEffect when RevocationTime is the after as the comparison time (and there is no ExpirationTime)" $ \_-> do
       now <- getCurrentTime
       let next = nextUTCTime now
-      getKeyState now (Just . RevocationTime . mkUtcMicros $ next)  Nothing `shouldBe` InEffect
+      getKeyState now (Just $ RevocationTime next)  Nothing `shouldBe` InEffect
 
 
     it "results in Expired when ExpirationTime is the same as the comparison time (and there is no RevokedTime)" $ \_-> do
       now <- getCurrentTime
-      getKeyState now Nothing (Just . ExpirationTime . mkUtcMicros $ now) `shouldBe` Expired
+      getKeyState now Nothing (Just $ ExpirationTime now) `shouldBe` Expired
 
     it "results in Expired when ExpirationTime is the before as the comparison time (and there is no RevokedTime)" $ \_-> do
       now <- getCurrentTime
       let next = nextUTCTime now
-      getKeyState next Nothing (Just . ExpirationTime . mkUtcMicros $ now) `shouldBe` Expired
+      getKeyState next Nothing (Just $ ExpirationTime now) `shouldBe` Expired
 
     it "results in InEffect when ExpirationTime is the after as the comparison time (and there is no RevokedTime)" $ \_-> do
       now <- getCurrentTime
       let next = nextUTCTime now
-      getKeyState now Nothing (Just . ExpirationTime. mkUtcMicros $ next) `shouldBe` InEffect
+      getKeyState now Nothing (Just $ ExpirationTime next) `shouldBe` InEffect
 
 
     -- For the following tests we enumerate all possibilites and document
@@ -201,43 +203,35 @@ testKeyQueries = do
     -- identical realative to each other).
 
     it "results in Revoked when RevocationTime and ExpirationTime is the same as the comparison time" $ \_-> do
-      now <- generateTimestampMicros
-      getKeyState (fromUtcMicros now) (Just $ RevocationTime now) (Just $ ExpirationTime now) `shouldBe` Revoked -- 111, 222, 333
+      now <- getCurrentTime
+      getKeyState now (Just $ RevocationTime now) (Just $ ExpirationTime now) `shouldBe` Revoked -- 111, 222, 333
 
     it "results in Revoked when comparison time is equal to or after the RevocationTime irrespective of what ExpirationTime is" $ \_-> do
       now <- getCurrentTime
       let next = nextUTCTime now
           beyond = nextUTCTime next
-          nowMicro = mkUtcMicros now
-          nextMicro = mkUtcMicros next
-          beyondMicro = mkUtcMicros beyond
-      getKeyState now    (Just . RevocationTime $ nowMicro)  (Just . ExpirationTime $ nextMicro)   `shouldBe` Revoked -- 112, 113, 223
-      getKeyState next   (Just . RevocationTime $ nowMicro)  (Just . ExpirationTime $ nowMicro)    `shouldBe` Revoked -- 211, 311, 322
-      getKeyState next   (Just . RevocationTime $ nowMicro)  (Just . ExpirationTime $ nextMicro)   `shouldBe` Revoked -- 212, 313, 323
-      getKeyState next   (Just . RevocationTime $ nowMicro)  (Just . ExpirationTime $ beyondMicro) `shouldBe` Revoked -- 213
-      getKeyState next   (Just . RevocationTime $ nextMicro) (Just . ExpirationTime $ nowMicro)    `shouldBe` Revoked -- 221, 331, 332
-      getKeyState beyond (Just . RevocationTime $ nowMicro)  (Just . ExpirationTime $ nextMicro)   `shouldBe` Revoked -- 312
-      getKeyState beyond (Just . RevocationTime $ nextMicro) (Just . ExpirationTime $ nowMicro)    `shouldBe` Revoked -- 321
+      getKeyState now    (Just $ RevocationTime now)  (Just $ ExpirationTime next)   `shouldBe` Revoked -- 112, 113, 223
+      getKeyState next   (Just $ RevocationTime now)  (Just $ ExpirationTime now)    `shouldBe` Revoked -- 211, 311, 322
+      getKeyState next   (Just $ RevocationTime now)  (Just $ ExpirationTime next)   `shouldBe` Revoked -- 212, 313, 323
+      getKeyState next   (Just $ RevocationTime now)  (Just $ ExpirationTime beyond) `shouldBe` Revoked -- 213
+      getKeyState next   (Just $ RevocationTime next) (Just $ ExpirationTime now)    `shouldBe` Revoked -- 221, 331, 332
+      getKeyState beyond (Just $ RevocationTime now)  (Just $ ExpirationTime next)   `shouldBe` Revoked -- 312
+      getKeyState beyond (Just $ RevocationTime next) (Just $ ExpirationTime now)    `shouldBe` Revoked -- 321
 
     it "results in Expired when the comparison time is equal to or after the ExpirationTime and comparison time is before the RevocationTime" $ \_-> do
       now <- getCurrentTime
       let next = nextUTCTime now
           beyond = nextUTCTime next
-          nowMicro = mkUtcMicros now
-          nextMicro = mkUtcMicros next
-          beyondMicro = mkUtcMicros beyond
-      getKeyState now  (Just . RevocationTime $ nextMicro)   (Just . ExpirationTime $ nowMicro) `shouldBe` Expired -- 121, 131, 232
-      getKeyState next (Just . RevocationTime $ beyondMicro) (Just . ExpirationTime $ nowMicro) `shouldBe` Expired -- 231
+      getKeyState now  (Just $ RevocationTime next)   (Just $ ExpirationTime now) `shouldBe` Expired -- 121, 131, 232
+      getKeyState next (Just $ RevocationTime beyond) (Just $ ExpirationTime now) `shouldBe` Expired -- 231
 
     it "results in InEffect when the comparison time is before both RevocationTime and ExpirationTime" $ \_-> do
       now <- getCurrentTime
       let next = nextUTCTime now
           beyond = nextUTCTime next
-          nextMicro = mkUtcMicros next
-          beyondMicro = mkUtcMicros beyond
-      getKeyState now (Just . RevocationTime $ nextMicro)   (Just . ExpirationTime $ nextMicro)   `shouldBe` InEffect -- 122, 133, 233
-      getKeyState now (Just . RevocationTime $ nextMicro)   (Just . ExpirationTime $ beyondMicro) `shouldBe` InEffect -- 123
-      getKeyState now (Just . RevocationTime $ beyondMicro) (Just . ExpirationTime $ nextMicro)   `shouldBe` InEffect -- 132
+      getKeyState now (Just $ RevocationTime next)   (Just $ ExpirationTime next)   `shouldBe` InEffect -- 122, 133, 233
+      getKeyState now (Just $ RevocationTime next)   (Just $ ExpirationTime beyond) `shouldBe` InEffect -- 123
+      getKeyState now (Just $ RevocationTime beyond) (Just $ ExpirationTime next)   `shouldBe` InEffect -- 132
 
 
 
