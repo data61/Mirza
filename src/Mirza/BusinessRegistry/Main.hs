@@ -18,7 +18,6 @@ import           Mirza.Common.Utils                      (randomText)
 
 import           Data.GS1.EPC                            (GS1CompanyPrefix (..))
 
-import           Servant                                 hiding (header)
 import           Servant.Swagger.UI
 
 import qualified Data.Pool                               as Pool

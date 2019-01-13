@@ -13,7 +13,6 @@ import           Mirza.SupplyChain.Types            (AppError, EnvType (..),
 
 import qualified Mirza.SupplyChain.Types            as ST
 
-import           Servant                            hiding (header)
 import           Servant.Client
 import           Servant.Swagger.UI
 
