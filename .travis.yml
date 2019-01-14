@@ -20,7 +20,7 @@ services:
 # Caching so the next build will be fast too.
 cache:
   directories:
-  - $HOME/.stack
+  - .stack
   - .stack-work
 
 # Ensure necessary system libraries are present
