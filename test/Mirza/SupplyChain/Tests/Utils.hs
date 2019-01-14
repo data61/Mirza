@@ -41,6 +41,7 @@ import           Crypto.JOSE.Types                     (Base64Octets (..))
 import           Mirza.BusinessRegistry.Tests.Generate (genMultipleUsersBR)
 import           Mirza.SupplyChain.Tests.Generate
 
+import            Mirza.Common.Tests.Utils             (expectJust, expectRight)
 import           Mirza.BusinessRegistry.Tests.Utils    (readJWK)
 
 import           Data.Maybe                            (fromJust)
@@ -105,11 +106,11 @@ insertAndAuth scsUrl brUrl auth locMap ht (entity:entities) = do
       [newUserSCS] = genMultipleUsersSCS "citrusTest" 1 [name] [companyPrefix]
       [newUserBR] = genMultipleUsersBR "citrusTest" 1 [name] [companyPrefix]
       newBiz = BT.NewBusiness companyPrefix bizName
-  Just pubKey <- liftIO $ readJWK pubKeyPath
-  Right insertedUserIdSCS <- httpSCS $ SCSClient.addUser newUserSCS
+  pubKey <- fmap expectJust $ liftIO $ readJWK pubKeyPath
+  insertedUserIdSCS <- fmap expectRight $ httpSCS $ SCSClient.addUser newUserSCS
   _insertedUserIdBR <- httpBR $ BRClient.addUser auth newUserBR
   _insertedPrefix <- httpBR $ BRClient.addBusiness auth newBiz
-  Right brKeyId <- httpBR $ BRClient.addPublicKey auth pubKey Nothing
+  brKeyId <- fmap expectRight $ httpBR $ BRClient.addPublicKey auth pubKey Nothing
   let basicAuthDataSCS =
         BasicAuthData
           (toByteString . ST.newUserEmailAddress $ newUserSCS)
@@ -126,7 +127,7 @@ insertAndAuth scsUrl brUrl auth locMap ht (entity:entities) = do
 insertEachEvent :: AuthHash -> EachEvent ->  ClientM ()
 insertEachEvent _ (EachEvent [] _) = pure ()
 insertEachEvent ht (EachEvent (initialEntity: entities) ev) = do
-  let Just (entityUserId, auth, _) = H.lookup initialEntity ht
+  let (entityUserId, auth, _) = expectJust $ H.lookup initialEntity ht
   (insertedEventInfo, _eventId) <- case _etype ev of
           AggregationEventT -> SCSClient.insertAggEvent auth (fromJust $ mkAggEvent ev)
           ObjectEventT -> SCSClient.insertObjectEvent auth (fromJust $ mkObjectEvent ev)
@@ -138,17 +139,16 @@ insertEachEvent ht (EachEvent (initialEntity: entities) ev) = do
 
 clientSignEvent :: AuthHash -> EventInfo -> Entity -> ClientM EventInfo
 clientSignEvent ht evInfo entity = do
-  let Just (_, auth, _) = H.lookup entity ht
+  let (_, auth, _) = expectJust $ H.lookup entity ht
       (EventInfo event _ _ (Base64Octets toSign) _) = evInfo
       eventId = fromJust $ _eid event
       (Entity _ _ _ _ (KeyPairPaths privKeyPath pubKeyPath)) = entity
-  Just privKey <- liftIO $ readJWK privKeyPath
-  Just pubKey <- liftIO $ readJWK pubKeyPath
+  privKey <- fmap expectJust $ liftIO $ readJWK privKeyPath
+  pubKey <- fmap expectJust $ liftIO $ readJWK pubKeyPath
   keyId <- BRClient.addPublicKey auth pubKey Nothing
 
-  Right mySig <- liftIO $ runExceptT @JOSE.Error (
+  s <- liftIO $ runExceptT @JOSE.Error (
           signJWS toSign (Identity (newJWSHeader ((), RS256), privKey))
           )
-  let signedEvent = SignedEvent eventId keyId mySig
-  eventSign auth signedEvent
+  eventSign auth . SignedEvent eventId keyId . expectRight $ s
 
