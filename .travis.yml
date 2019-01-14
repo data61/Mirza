@@ -37,7 +37,7 @@ before_install:
 
 install:
 # Build dependencies
-- stack --no-terminal --install-ghc buid --only-dependencies
+- stack --no-terminal --install-ghc test --only-dependencies
 
 script:
 - stack --no-terminal build --fast
