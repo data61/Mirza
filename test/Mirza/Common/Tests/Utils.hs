@@ -12,6 +12,9 @@ module Mirza.Common.Tests.Utils
   , databaseNameToConnectionString
   , makeDatabase
   , dropTables
+
+  , expectJust
+  , expectRight
   )
   where
 
@@ -24,6 +27,7 @@ import           Text.Email.Validate     (EmailAddress, emailAddress)
 
 import           Test.Hspec.Expectations (Expectation, shouldSatisfy)
 
+import           Data.Either             (fromRight)
 import           Data.Foldable           (forM_)
 import           Data.String             (fromString)
 import qualified Data.Text               as T (unpack)
@@ -159,3 +163,16 @@ dropTables db conn = do
   --       investigating.
   void $ forM_ tables $ \tableName -> do
     execute_ conn $ fromString $ T.unpack $ "DROP TABLE IF EXISTS " <> tableName <> ";"
+
+-- GHC 8.6.x enabled MonadFailDesugaring by default, which means that if we're being lazy and
+-- using incomplete pattern matches in a Monad which does have an instance for MonadFail
+-- the code will will fail to compile. An example monad is the servant ClientM, therefore
+-- expectJust/expectRight should be used when writing test code that expects either a Just/Right.
+
+-- | Like fromJust from Data.Maybe except an error is thrown WITH a stacktrace
+expectJust :: Maybe a -> a
+expectJust = maybe (error "Expected: Just a") id
+
+-- | Returns b if Right, otherwise calls error
+expectRight :: Either a b -> b
+expectRight = fromRight (error "Expected: Right b")
