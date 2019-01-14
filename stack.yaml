@@ -3,7 +3,7 @@ packages:
 - '.'
 - location:
     git: https://github.com/tathougies/beam.git
-    commit: 01bbb89c03b93daa2500877a511159df9d91002a # Head on 2018-07-02
+    commit: 2489a213cdee6341de46a3aa015c35067f4d6076 # Head on 2019-01-10
   extra-dep: true
   subdirs:
     - beam-core
@@ -11,16 +11,13 @@ packages:
     - beam-postgres
 extra-deps:
 - git: https://github.com/data61/GS1Combinators.git
-  commit: 8f8db19236dc745426c4f36a2169eba250c4355f
-- Unique-0.4.7.5@sha256:580b578ddde452111cc20aa84bdccd7e723d19eb4f8d167d2358d08a4637eed3
+  commit: 713c869c36ef3df5dbd75003aa452dec583443b3
+- git: https://github.com/kapralVV/Unique.git
+  commit: 8b543fd9c9f9e3909875942098a47df19a68c9da  # Head on 2019-01-10
 - servant-flatten-0.2
-- hspec-2.5.0
-- hspec-core-2.5.0
-- hspec-discover-2.5.0
-- katip-0.5.5.0
 - hoist-error-0.2.1.0
 
-resolver: lts-12.0
+resolver: lts-13.2
 # allow-newer: true
 ghc-options:
   $locals: -Wall
