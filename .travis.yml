@@ -24,7 +24,6 @@ services:
 cache:
   directories:
   - $HOME/.stack
-  - .stack
   - .stack-work
 
 # Ensure necessary system libraries are present
