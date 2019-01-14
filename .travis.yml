@@ -37,11 +37,13 @@ before_install:
 
 install:
 # Build dependencies
-- stack --no-terminal --install-ghc test --only-dependencies
+- stack --no-terminal --install-ghc buid --only-dependencies
 
 script:
+- stack --no-terminal build --fast
 # Build the package, its tests, and its docs and run the tests
-- psql -c 'CREATE DATABASE testsupplychainserver; CREATE DATABASE testbusinessregistry;' -U postgres
+- psql -c 'CREATE DATABASE testsupplychainserver;' -U postgres
+- psql -c 'CREATE DATABASE testbusinessregistry;' -U postgres
 - stack exec supplyChainServer -- -h
 - stack exec businessRegistry -- -h
 # - ./run_tests.sh --no-terminal
