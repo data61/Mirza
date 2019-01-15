@@ -468,11 +468,10 @@ parsedServerOptions = ServerOptionsBR
 initDb :: Parser ExecMode
 initDb = pure InitDb
 
-populateDb :: Parser ExecMode
-populateDb = pure PopulateDatabase
 
 userCommand :: Parser ExecMode
 userCommand = UserAction <$> userCommands
+
 
 userCommands :: Parser UserCommand
 userCommands = subparser
@@ -518,6 +517,10 @@ businessList = pure BusinessList
 
 bootstrap :: Parser ExecMode
 bootstrap = Bootstrap <$> emailParser <*> passwordParser <*> companyPrefixParser
+
+
+populateDb :: Parser ExecMode
+populateDb = pure PopulateDatabase
 
 
 emailParser :: Parser EmailAddress
