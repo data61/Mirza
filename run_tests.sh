@@ -9,6 +9,7 @@
 # becomes
 #   stack test --fast --coverage --ta "-j1 -p \"addPublicKey test 1\""
 
+stack build --fast
 
 psql -c 'DROP DATABASE testsupplychainserver;' && \
 psql -c 'DROP DATABASE testbusinessregistry;' && \
