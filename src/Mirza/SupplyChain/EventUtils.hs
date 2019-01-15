@@ -8,7 +8,7 @@ module Mirza.SupplyChain.EventUtils
   , hasUserCreatedEvent
   , insertUserEvent
   , findEvent, findSchemaEvent
-  , findLabelId
+  , findLabelId, getParent
   , getEventList
   , getUser, getUserById
   , findDWhere
@@ -61,39 +61,45 @@ import           Crypto.JOSE.Types                 (Base64Octets (..))
 epcToStorageLabel :: Schema.LabelId
                   -> LabelEPC
                   -> Schema.Label
-epcToStorageLabel (Schema.LabelId pKey) (IL (SGTIN gs1Prefix fv ir sn)) =
+epcToStorageLabel (Schema.LabelId pKey) (IL labelEpc@(SGTIN gs1Prefix fv ir sn)) =
   Schema.Label Nothing pKey
            gs1Prefix (Just ir)
            (Just sn) Nothing Nothing
            fv
            Nothing Nothing Nothing
+           (MU.LabelEPCUrn $ renderURL labelEpc)
 
-epcToStorageLabel (Schema.LabelId pKey) (IL (GIAI gs1Prefix sn)) =
+epcToStorageLabel (Schema.LabelId pKey) (IL labelEpc@(GIAI gs1Prefix sn)) =
   Schema.Label Nothing pKey
            gs1Prefix Nothing (Just sn)
            Nothing Nothing Nothing Nothing Nothing Nothing
+           (MU.LabelEPCUrn $ renderURL labelEpc)
 
-epcToStorageLabel (Schema.LabelId pKey) (IL (SSCC gs1Prefix sn)) =
+epcToStorageLabel (Schema.LabelId pKey) (IL labelEpc@(SSCC gs1Prefix sn)) =
   Schema.Label Nothing pKey
            gs1Prefix Nothing (Just sn)
            Nothing Nothing Nothing Nothing Nothing Nothing
+           (MU.LabelEPCUrn $ renderURL labelEpc)
 
-epcToStorageLabel (Schema.LabelId pKey) (IL (GRAI gs1Prefix at sn)) =
+epcToStorageLabel (Schema.LabelId pKey) (IL labelEpc@(GRAI gs1Prefix at sn)) =
   Schema.Label Nothing pKey
            gs1Prefix Nothing (Just sn)
            Nothing Nothing Nothing (Just at) Nothing Nothing
+           (MU.LabelEPCUrn $ renderURL labelEpc)
 
-epcToStorageLabel (Schema.LabelId pKey) (CL (LGTIN gs1Prefix ir lot) mQ) =
+epcToStorageLabel (Schema.LabelId pKey) (CL labelEpc@(LGTIN gs1Prefix ir lot) mQ) =
   Schema.Label Nothing pKey
            gs1Prefix (Just ir) Nothing
            Nothing (Just lot) Nothing Nothing
            (getQuantityAmount mQ) (getQuantityUom mQ)
+           (MU.LabelEPCUrn $ renderURL labelEpc)
 
-epcToStorageLabel (Schema.LabelId pKey) (CL (CSGTIN gs1Prefix fv ir) mQ) =
+epcToStorageLabel (Schema.LabelId pKey) (CL labelEpc@(CSGTIN gs1Prefix fv ir) mQ) =
   Schema.Label Nothing pKey
            gs1Prefix (Just ir) Nothing
            Nothing Nothing fv Nothing
            (getQuantityAmount mQ) (getQuantityUom mQ)
+           (MU.LabelEPCUrn $ renderURL labelEpc)
 
 getQuantityAmount :: Maybe Quantity -> Maybe Amount
 getQuantityAmount Nothing                       = Nothing
@@ -135,11 +141,21 @@ getAction (TransactWhat (TransactionDWhat act _ _ _)) = Just act
 getAction (AggWhat (AggregationDWhat act _ _))        = Just act
 
 
-findInstLabelId :: InstanceLabelEPC -> DB context err [PrimaryKeyType]
+findInstLabelId :: InstanceLabelEPC -> DB context err (Maybe PrimaryKeyType)
 findInstLabelId (GIAI cp sn) = findInstLabelId' cp sn Nothing Nothing Nothing
 findInstLabelId (SSCC cp sn) = findInstLabelId' cp sn Nothing Nothing Nothing
 findInstLabelId (SGTIN cp msfv ir sn) = findInstLabelId' cp sn msfv (Just ir) Nothing
 findInstLabelId (GRAI cp at sn) = findInstLabelId' cp sn Nothing Nothing (Just at)
+
+
+findInstLabelIdByUrn :: InstanceLabelEPC -> DB context err [PrimaryKeyType]
+findInstLabelIdByUrn labelEpc = do
+  let labelUrn = MU.LabelEPCUrn . renderURL $ labelEpc
+  l <- pg $ runSelectReturningList $ select $ do
+    labels <- all_ (Schema._labels Schema.supplyChainDb)
+    guard_ (Schema.label_urn labels ==. val_ labelUrn)
+    pure labels
+  pure $ Schema.label_id <$> l
 
 
 findInstLabelId' :: GS1CompanyPrefix
@@ -147,7 +163,7 @@ findInstLabelId' :: GS1CompanyPrefix
                  -> Maybe SGTINFilterValue
                  -> Maybe ItemReference
                  -> Maybe AssetType
-                 -> DB context err [PrimaryKeyType]
+                 -> DB context err (Maybe PrimaryKeyType)
 findInstLabelId' cp sn msfv mir mat = do
   l <- pg $ runSelectReturningList $ select $ do
     labels <- all_ (Schema._labels Schema.supplyChainDb)
@@ -157,7 +173,9 @@ findInstLabelId' cp sn msfv mir mat = do
             Schema.label_asset_type labels ==. val_ mat &&.
             Schema.label_item_reference labels ==. val_ mir)
     pure labels
-  pure $ Schema.label_id <$> l
+  pure $ case l of
+    [lbl] -> Just $ Schema.label_id lbl
+    _     -> Nothing
 
 
 getUser :: EmailAddress -> DB context err (Maybe ST.User)
@@ -170,7 +188,7 @@ getUser userEmail = do
     [u] -> Just . QU.userTableToModel $ u
     _   -> Nothing
 
-findClassLabelId :: ClassLabelEPC -> DB context err [PrimaryKeyType]
+findClassLabelId :: ClassLabelEPC -> DB context err (Maybe PrimaryKeyType)
 findClassLabelId (LGTIN cp ir lot)  = findClassLabelId' cp Nothing ir (Just lot)
 findClassLabelId (CSGTIN cp msfv ir) = findClassLabelId' cp msfv ir Nothing
 
@@ -178,7 +196,7 @@ findClassLabelId' :: GS1CompanyPrefix
                   -> Maybe SGTINFilterValue
                   -> ItemReference
                   -> Maybe Lot
-                  -> DB context err [PrimaryKeyType]
+                  -> DB context err (Maybe PrimaryKeyType)
 findClassLabelId' cp msfv ir lot = do
   l <- pg $ runSelectReturningList $ select $ do
     labels <- all_ (Schema._labels Schema.supplyChainDb)
@@ -189,31 +207,26 @@ findClassLabelId' cp msfv ir lot = do
              Schema.label_item_reference labels ==. (val_ . Just $ ir)
            )
     pure labels
-  pure $ Schema.label_id <$> l
+  pure $ case l of
+    [lbl] -> Just $ Schema.label_id lbl
+    _     -> Nothing
 
 
-findLabelId :: LabelEPC -> DB context err [PrimaryKeyType]
+findLabelId :: LabelEPC -> DB context err (Maybe PrimaryKeyType)
 findLabelId (IL l)   = findInstLabelId l
 findLabelId (CL c _) = findClassLabelId c
 
+getParent :: DWhat -> Maybe ParentLabel
+getParent (TransactWhat (TransactionDWhat _ p _ _)) = p
+getParent (AggWhat (AggregationDWhat _ p _) )       = p
+getParent _                                         = Nothing
+
 getParentId :: DWhat -> DB context err (Maybe PrimaryKeyType)
-getParentId (TransactWhat (TransactionDWhat _ (Just p) _ _)) = do
-  res <- findInstLabelId . unParentLabel $ p
-  pure $ case res of
-    [l] -> Just l
-    []  -> Nothing
-    -- this should never happen.
-    -- A call to error is here until a new error type is made
-    _   -> error "There only should be 0/1 parent labels"
-getParentId (AggWhat (AggregationDWhat _ (Just p) _) ) = do
-  res <- findInstLabelId . unParentLabel $ p
-  pure $ case res of
-    [l] -> Just l
-    []  -> Nothing
-    -- this should never happen.
-    -- A call to error is here until a new error type is made
-    _   -> error "There only should be 0/1 parent labels"
-getParentId _  = pure Nothing
+getParentId dwhat = do
+  let mParentLabel = getParent dwhat
+  case mParentLabel of
+    Nothing -> pure Nothing
+    Just (ParentLabel p) -> findInstLabelId p
 
 toStorageDWhen :: Schema.WhenId
                -> DWhen
@@ -384,21 +397,22 @@ insertWhatLabel labelType (Schema.WhatId whatId) (Schema.LabelId labelId) = QU.w
 -- converts a ``LabelEPC`` to Schema.Label and writes it to the database
 insertLabel :: LabelEPC
             -> DB context err PrimaryKeyType
-insertLabel labelEpc = QU.withPKey $ \pKey ->
-  pg $ B.runInsert $ B.insert (Schema._labels Schema.supplyChainDb)
-        $ insertValues
-        [ epcToStorageLabel (Schema.LabelId pKey) labelEpc]
+insertLabel labelEpc = do
+  mLabelId <- findLabelId labelEpc
+  case mLabelId of
+    Just lblId -> pure lblId
+    Nothing -> QU.withPKey $ \pKey ->
+            pg $ B.runInsert $ B.insert (Schema._labels Schema.supplyChainDb)
+            (insertValues [ epcToStorageLabel (Schema.LabelId pKey) labelEpc])
 
 -- | Ties up a label and an event entry in the database
-insertLabelEvent :: Schema.EventId
+insertLabelEvent :: Maybe MU.LabelType
+                 -> Schema.EventId
                  -> Schema.LabelId
                  -> DB context err PrimaryKeyType
-insertLabelEvent (Schema.EventId eventId) (Schema.LabelId labelId) = QU.withPKey $ \pKey ->
+insertLabelEvent labelType eventId labelId = QU.withPKey $ \pKey ->
   pg $ B.runInsert $ B.insert (Schema._label_events Schema.supplyChainDb)
-        $ insertValues
-          [ Schema.LabelEvent Nothing pKey (Schema.LabelId labelId)
-              (Schema.EventId eventId)
-        ]
+        $ insertValues [ Schema.LabelEvent Nothing pKey labelId eventId labelType ]
 
 getUserById :: ST.UserId -> DB context err (Maybe Schema.User)
 getUserById (ST.UserId uid) = do
@@ -413,10 +427,11 @@ getUserById (ST.UserId uid) = do
 getEventList :: AsServiceError err
              => Schema.LabelId
              -> DB context err [Ev.Event]
-getEventList (Schema.LabelId labelId) = do
+getEventList labelId = do
   labelEvents <- pg $ runSelectReturningList $ select $ do
         labelEvent <- all_ (Schema._label_events Schema.supplyChainDb)
-        guard_ (Schema.label_event_label_id labelEvent ==. val_ (Schema.LabelId labelId))
+        guard_ (Schema.label_event_label_id labelEvent ==. val_ labelId)
+        guard_ (Schema.label_event_label_type labelEvent /=. val_ (Just MU.Parent))
         pure labelEvent
   let eventIds = Schema.label_event_event_id <$> labelEvents
       allEvents = findEvent <$> eventIds

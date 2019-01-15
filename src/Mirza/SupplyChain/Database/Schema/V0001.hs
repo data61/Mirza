@@ -122,6 +122,7 @@ migration () =
           (field "label_asset_type" (maybeType assetType))
           (field "label_quantity_amount" (maybeType amountType))
           (field "label_quantity_uom" (maybeType uomType))
+          (field "label_urn" labelEpcUrnType notNull unique)
     )
     <*> createTable "what_labels" ( WhatLabel
           lastUpdateField
@@ -202,6 +203,7 @@ migration () =
           (field "label_event_id" pkSerialType)
           (LabelId (field "label_event_label_id" pkSerialType))
           (EventId (field "label_event_event_id" pkSerialType))
+          (field "label_event_label_type" (maybeType labelType))
     )
     <*> createTable "user_event" ( UserEvent
           lastUpdateField
@@ -344,6 +346,7 @@ data LabelT f = Label
   , label_asset_type         :: C f (Maybe EPC.AssetType)
   , label_quantity_amount    :: C f (Maybe EPC.Amount)
   , label_quantity_uom       :: C f (Maybe EPC.Uom)
+  , label_urn                :: C f LabelEPCUrn
   }
   deriving Generic
 
@@ -645,7 +648,9 @@ data LabelEventT f = LabelEvent
   { label_event_last_update :: C f (Maybe LocalTime)
   , label_event_id          :: C f PrimaryKeyType
   , label_event_label_id    :: PrimaryKey LabelT f
-  , label_event_event_id    :: PrimaryKey EventT f }
+  , label_event_event_id    :: PrimaryKey EventT f
+  , label_event_label_type  :: C f (Maybe MU.LabelType)
+  }
   deriving Generic
 
 deriving instance Show LabelEvent
