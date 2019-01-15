@@ -19,6 +19,7 @@ module Mirza.SupplyChain.API
   , API, api
   ) where
 
+import           Mirza.Common.GS1BeamOrphans       (LabelEPCUrn (..))
 import qualified Mirza.SupplyChain.Database.Schema as Schema
 import           Mirza.SupplyChain.Types           as ST
 
@@ -67,7 +68,7 @@ type PrivateAPI =
   :<|> "event"    :> "sign"                 :> ReqBody '[JSON] SignedEvent                                    :> Post '[JSON] EventInfo
   :<|> "event"    :> "getHash"              :> ReqBody '[JSON] EventId                                        :> Post '[JSON] HashedEvent
 -- Queries
-  :<|> "epc"      :> "events"               :> Capture "urn" ST.LabelEPCUrn                                   :> Get '[JSON] [Ev.Event]
+  :<|> "epc"      :> "events"               :> Capture "urn" LabelEPCUrn                                   :> Get '[JSON] [Ev.Event]
   :<|> "event"    :> "info"                 :> Capture "eventId" EventId                                      :> Get '[JSON] EventInfo
   :<|> "event"    :> "list"                 :> Capture "userId" UserId                                        :> Get '[JSON] [Ev.Event]
   :<|> "event"    :> "listUsers"            :> Capture "eventId" EventId                                      :> Get '[JSON] [(User, Bool)]

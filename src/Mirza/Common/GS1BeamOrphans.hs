@@ -1,17 +1,17 @@
-{-# LANGUAGE DeriveGeneric         #-}
-{-# LANGUAGE FlexibleContexts      #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE OverloadedStrings     #-}
-{-# LANGUAGE PartialTypeSignatures #-}
-{-# LANGUAGE TemplateHaskell       #-}
-{-# LANGUAGE UndecidableInstances  #-}
-{-# OPTIONS_GHC -fno-warn-orphans  #-}
+{-# LANGUAGE DeriveGeneric              #-}
+{-# LANGUAGE FlexibleContexts           #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE MultiParamTypeClasses      #-}
+{-# LANGUAGE OverloadedStrings          #-}
+{-# LANGUAGE PartialTypeSignatures      #-}
+{-# LANGUAGE StandaloneDeriving         #-}
+{-# LANGUAGE TemplateHaskell            #-}
+{-# LANGUAGE UndecidableInstances       #-}
+{-# OPTIONS_GHC -fno-warn-orphans       #-}
 
 -- | This module includes all of the orphaned instances for GS1 types for use with Beam.
 -- | This module contains the
 -- Database.Beam.BPostgres.Postgres.Syntax.BMigrate.DataType definitions
--- At the moment, if Database.Beam.BPostgres.Postgres.Syntax is a hidden module
--- So it is not possible to implement the types yet
 module Mirza.Common.GS1BeamOrphans
   ( LabelType(..), labelType
   , LocationField(..), locationRefType, locationType
@@ -29,6 +29,7 @@ module Mirza.Common.GS1BeamOrphans
   , itemRefType
   , emailAddressType
   , locationEPCType
+  , LabelEPCUrn (..), labelEpcUrnType
   ) where
 
 import           Mirza.Common.Beam
@@ -50,9 +51,12 @@ import           Data.Text.Encoding                   (decodeUtf8, encodeUtf8)
 
 import           GHC.Generics                         (Generic)
 
+import           Data.Aeson                           (FromJSON, ToJSON)
+
 import           Control.Lens.Operators               ((&), (.~), (?~))
 import           Data.Swagger                         (SwaggerType (SwaggerString),
-                                                       ToParamSchema (..))
+                                                       ToParamSchema (..),
+                                                       ToSchema)
 import           Data.Swagger.Lens                    (pattern, type_)
 import           Servant                              (FromHttpApiData (..),
                                                        ToHttpApiData (..))
@@ -566,3 +570,38 @@ instance ToParamSchema EPC.LocationEPC where
   toParamSchema _ = mempty
     & type_ .~ SwaggerString
     & pattern ?~ "urn:epc:id:sgln:\\d+\\.\\d+(\\.\\d+)?"
+
+
+
+-- Should this be in GS1Combinators?
+newtype LabelEPCUrn = LabelEPCUrn {getLabelEPCUrn :: Text}
+  deriving (Show, Eq, Generic, Read, FromJSON, ToJSON)
+instance ToSchema LabelEPCUrn
+instance ToParamSchema LabelEPCUrn
+deriving instance FromHttpApiData LabelEPCUrn
+deriving instance ToHttpApiData LabelEPCUrn
+
+instance BSQL.HasSqlValueSyntax be Text
+      => BSQL.HasSqlValueSyntax be LabelEPCUrn where
+  sqlValueSyntax (LabelEPCUrn urn) = BSQL.sqlValueSyntax urn
+instance BMigrate.IsSql92ColumnSchemaSyntax be
+      => BMigrate.HasDefaultSqlDataTypeConstraints be LabelEPCUrn
+
+instance ( BSQL.HasSqlValueSyntax (BSQL.Sql92ExpressionValueSyntax be) Bool
+         , BSQL.IsSql92ExpressionSyntax be)
+      => B.HasSqlEqualityCheck be LabelEPCUrn
+instance ( BSQL.HasSqlValueSyntax (BSQL.Sql92ExpressionValueSyntax be) Bool
+         , BSQL.IsSql92ExpressionSyntax be)
+      => B.HasSqlQuantifiedEqualityCheck be LabelEPCUrn
+
+instance BSQL.FromBackendRow BPostgres.Postgres LabelEPCUrn where
+  fromBackendRow = LabelEPCUrn <$> BSQL.fromBackendRow
+
+instance FromField LabelEPCUrn where
+  fromField fld mbs = LabelEPCUrn <$> fromField fld mbs
+
+instance ToField LabelEPCUrn where
+  toField (LabelEPCUrn urn) = toField urn
+
+labelEpcUrnType :: BMigrate.DataType PgDataTypeSyntax LabelEPCUrn
+labelEpcUrnType = textType
