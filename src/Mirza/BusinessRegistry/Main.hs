@@ -354,10 +354,10 @@ runBootstrap opts email password companyPrefix = do
       NewBusiness{..}
 
     bootstrapUser :: EmailAddress -> Text -> GS1CompanyPrefix -> NewUser
-    bootstrapUser userEmail userPassword companyPrefix = do
+    bootstrapUser userEmail userPassword company = do
       let newUserEmailAddress = userEmail
       let newUserPassword     = userPassword
-      let newUserCompany      = companyPrefix
+      let newUserCompany      = company
       let newUserFirstName    = "Bootstrapped User"
       let newUserLastName     = "Bootstrapped User"
       let newUserPhoneNumber  = ""
