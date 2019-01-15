@@ -31,12 +31,19 @@ endWaiApp (thread, _) = killThread thread
 
 openTestSocket :: IO (Port, Socket)
 openTestSocket = do
-  s <- socket AF_INET Stream defaultProtocol
-  localhost <- inet_addr "127.0.0.1"
-  bind s (SockAddrInet aNY_PORT localhost)
+  addr:_ <- getAddrInfo
+              (Just $ defaultHints { addrFamily = AF_INET
+                                   , addrSocketType = Stream
+                                   })
+              (Just "127.0.0.1")
+              Nothing
+  
+  s <- socket (addrFamily addr) (addrSocketType addr) (addrProtocol addr)
+  bind s (addrAddress addr)
   listen s 1
   prt <- socketPort s
   pure (fromIntegral prt, s)
+
 
 {-# NOINLINE manager' #-}
 manager' :: C.Manager

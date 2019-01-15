@@ -22,6 +22,7 @@ module Mirza.SupplyChain.Client.Servant
   , insertTransfEvent
   ) where
 
+import           Mirza.Common.GS1BeamOrphans       (LabelEPCUrn (..))
 import           Mirza.SupplyChain.API
 import qualified Mirza.SupplyChain.Database.Schema as Schema
 import           Mirza.SupplyChain.Types           as T
