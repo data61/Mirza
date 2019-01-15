@@ -105,7 +105,7 @@ migration () =
     <*> createTable "users" ( User
           lastUpdateField
           (field "user_id" pkSerialType)
-          (BizId $ field "user_biz_id" gs1CompanyPrefixType (defaultFkConstraint "businesses" ["biz_gs1_company_prefix"]))
+          (BizId $ field "user_biz_id" gs1CompanyPrefixType)
           (field "user_first_name" (varchar (Just defaultFieldMaxLength)) notNull)
           (field "user_last_name" (varchar (Just defaultFieldMaxLength)) notNull)
           (field "user_phone_number" (varchar (Just defaultFieldMaxLength)) notNull)
