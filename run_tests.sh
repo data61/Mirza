@@ -8,6 +8,16 @@
 #   ./run_tests.sh --coverage --ta "-p \"addPublicKey test 1\""
 # becomes
 #   stack test --fast --coverage --ta "-j1 -p \"addPublicKey test 1\""
+
+
+psql -c 'DROP DATABASE testsupplychainserver;' && \
+psql -c 'DROP DATABASE testbusinessregistry;' && \
+psql -c 'CREATE DATABASE testsupplychainserver;' && \
+psql -c 'CREATE DATABASE testbusinessregistry;' && \
+stack exec supplyChainServer -- --init-db -c 'dbname=testsupplychainserver' && \
+echo 'YES' | stack exec businessRegistry -- initdb -c 'dbname=testbusinessregistry' && \
+echo "Databases successfully recreated."
+
 n=0
 unset args  # Force args to be an empty array (it could be an env var on entry)
 for i in "$@"

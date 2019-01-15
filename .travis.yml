@@ -45,8 +45,8 @@ install:
 script:
 # Build the package, its tests, and its docs and run the tests
 - stack --no-terminal build --fast
-- psql -c 'CREATE DATABASE testsupplychainserver;' -U postgres
-- psql -c 'CREATE DATABASE testbusinessregistry;' -U postgres
-- stack exec supplyChainServer -- --init-db -c 'dbname=testsupplychainserver'
-- echo 'YES' | stack exec businessRegistry -- initdb -c 'dbname=testbusinessregistry'
+# - psql -c 'CREATE DATABASE testsupplychainserver;' -U postgres
+# - psql -c 'CREATE DATABASE testbusinessregistry;' -U postgres
+# - stack exec supplyChainServer -- --init-db -c 'dbname=testsupplychainserver'
+# - echo 'YES' | stack exec businessRegistry -- initdb -c 'dbname=testbusinessregistry'
 - ./run_tests.sh --no-terminal
