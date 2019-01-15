@@ -27,12 +27,15 @@ import           Database.PostgreSQL.Simple
 import           Network.Wai                             (Middleware)
 import qualified Network.Wai.Handler.Warp                as Warp
 
+import qualified Data.Attoparsec.ByteString              as A
 import           Data.ByteString                         (ByteString)
+import qualified Data.ByteString.Char8                   as BS
 import           Data.Semigroup                          ((<>))
 import           Data.Text                               (Text, pack)
 import           Data.Text.Encoding                      (encodeUtf8)
 import           Options.Applicative                     hiding (action)
 import           Text.Email.Validate
+import           Text.Email.Parser                       (addrSpec)
 
 import qualified Crypto.Scrypt                           as Scrypt
 
@@ -71,6 +74,7 @@ data ExecMode
   | UserAction UserCommand
   | BusinessAction BusinessCommand
   | PopulateDatabase  -- TODO: This option should be removed....this is for testing and debugging only.
+  | Bootstrap EmailAddress Text GS1CompanyPrefix
 
 data ServerOptionsBR = ServerOptionsBR
   { sobDbConnStr    :: ByteString
@@ -111,11 +115,12 @@ main = multiplexInitOptions =<< execParser opts where
 -- where the single binary could be split into multiple binaries.
 multiplexInitOptions :: InitOptionsBR -> IO ()
 multiplexInitOptions (InitOptionsBR opts mode) = case mode of
-  RunServer rsOpts  -> launchServer opts rsOpts
-  InitDb            -> runMigration opts
-  UserAction uc     -> runUserCommand opts uc
-  BusinessAction bc -> runBusinessCommand opts bc
-  PopulateDatabase  -> runPopulateDatabase opts
+  RunServer rsOpts                       -> launchServer opts rsOpts
+  InitDb                                 -> runMigration opts
+  UserAction uc                          -> runUserCommand opts uc
+  BusinessAction bc                      -> runBusinessCommand opts bc
+  PopulateDatabase                       -> runPopulateDatabase opts
+  Bootstrap email password companyPrefix -> runBootstrap opts email password companyPrefix
 
 
 --------------------------------------------------------------------------------
@@ -318,6 +323,48 @@ printCredentials user = do
 
 
 --------------------------------------------------------------------------------
+-- Bootstrap Command
+--------------------------------------------------------------------------------
+
+-- This command is a bit of a hack. We need it so that we can noninteractively
+-- add a user to the database so that this user can authenticate over the API
+-- and add other users and businesses into the database. The fact that this user
+-- doesn't take proper credentials suggests that our user model is wrong
+-- (incomplete)... i.e. we need users that aren't associated with businesses,
+-- but we need to do much more work here when we deal with permssions in general.
+runBootstrap :: ServerOptionsBR -> EmailAddress -> Text -> GS1CompanyPrefix -> IO ()
+runBootstrap opts email password companyPrefix = do
+  let newBusiness = bootstrapBusiness companyPrefix
+  let newUser = bootstrapUser email password companyPrefix
+
+  ctx        <- initBRContext opts
+  -- We ignore the business insert result, because the business may already
+  -- exist and so for now we just try best effort on the user because thats what
+  -- we care about. Can always improve the check and error handling here later
+  -- if we need to improve the reliability or error reporting.
+  _result    <- runAppM @_ @BRError ctx $ addBusiness newBusiness
+  userResult <- runAppM @_ @BRError ctx $ addUser newUser
+  either (print @BRError) print userResult
+
+  where
+    bootstrapBusiness :: GS1CompanyPrefix -> NewBusiness
+    bootstrapBusiness prefix = do
+      let newBusinessGS1CompanyPrefix = prefix
+      let newBusinessName             = "Bootstrapped Business"
+      NewBusiness{..}
+
+    bootstrapUser :: EmailAddress -> Text -> GS1CompanyPrefix -> NewUser
+    bootstrapUser userEmail userPassword companyPrefix = do
+      let newUserEmailAddress = userEmail
+      let newUserPassword     = userPassword
+      let newUserCompany      = companyPrefix
+      let newUserFirstName    = "Bootstrapped User"
+      let newUserLastName     = "Bootstrapped User"
+      let newUserPhoneNumber  = ""
+      NewUser{..}
+
+
+--------------------------------------------------------------------------------
 -- Debug Command
 --------------------------------------------------------------------------------
 
@@ -344,13 +391,14 @@ serverOptions = InitOptionsBR
   <$> parsedServerOptions
   <*> subparser
         ( mconcat
-          [ standardCommand "server"   runServer "Run HTTP server"
-          , standardCommand "initdb"   initDb "Initialise the Database (Note: This command only works if the database \
-                                              \is empty and can't be used for migrations or if the database already \
-                                              \contains the schema."
-          , standardCommand "user"     userCommand "Interactively add new users"
-          , standardCommand "business" businessCommand "Operations on businesses"
-          , standardCommand "populate" populateDb "Populate the database with dummy test data"
+          [ standardCommand "server"    runServer "Run HTTP server"
+          , standardCommand "initdb"    initDb "Initialise the Database (Note: This command only works if the database \
+                                               \is empty and can't be used for migrations or if the database already \
+                                               \contains the schema."
+          , standardCommand "user"      userCommand "Interactively add new users"
+          , standardCommand "business"  businessCommand "Operations on businesses"
+          , standardCommand "populate"  populateDb "Populate the database with dummy test data"
+          , standardCommand "bootstrap" bootstrap "Bootstrap a user into the database."
           ]
         )
 
@@ -466,3 +514,23 @@ businessAdd = pure BusinessAdd
 -- userList to perserve the command action format in fucntion names) .
 businessList :: Parser BusinessCommand
 businessList = pure BusinessList
+
+
+bootstrap :: Parser ExecMode
+bootstrap = Bootstrap <$> emailParser <*> passwordParser <*> companyPrefixParser
+
+
+emailParser :: Parser EmailAddress
+emailParser = argument emailReader (metavar "EmailAddress")
+
+
+emailReader :: ReadM EmailAddress
+emailReader = eitherReader (A.parseOnly addrSpec . BS.pack)
+
+
+passwordParser :: Parser Text
+passwordParser = argument str (metavar "Password")
+
+
+companyPrefixParser :: Parser GS1CompanyPrefix
+companyPrefixParser = GS1CompanyPrefix <$> (argument str (metavar "GS1CompanyPrefix"))
