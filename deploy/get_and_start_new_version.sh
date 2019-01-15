@@ -3,9 +3,22 @@
 # This script is sent to the aws server, and executed with every deployment.
 # This script also assumes the existence of a .env file alongside the docker-compose.yml file.
 
-docker-compose down
+# Stop and remove the currently running version of code
+docker-compose stop supplyChainServer businessRegistry private-ethereum-blockchain blockchain-api-server || echo "no old containers running"
+docker-compose rm -f supplyChainServer businessRegistry private-ethereum-blockchain blockchain-api-server || echo "no containers to remove"
+
+# Get the new images (defined in the docker-compose.yml) 
 docker-compose pull
+
+# Start the database (either an empty postgres container, or an existing database)
 docker-compose up -d db
+
+# Run the initdb scripts for scs and br.
 docker-compose up -d dbpopulate-scs
 docker-compose up -d dbpopulate-br
-docker-compose up -d supplyChainServer businessRegistry
+
+# Start the services
+docker-compose up -d supplyChainServer businessRegistry private-ethereum-blockchain blockchain-api-server
+
+# remove all unused docker images and exited containers
+docker system prune -a --force

@@ -4,6 +4,9 @@ networks:
   frontend:
   backend:
 
+volumes:
+  private-ethereum-blockchain:
+
 services:
 
   supplyChainServer:
@@ -11,7 +14,6 @@ services:
     ports:
       - 8000:8000
     links:
-      - db:db
       - businessRegistry:br
     depends_on:
       - db
@@ -31,8 +33,6 @@ services:
     image: 235945186688.dkr.ecr.ap-southeast-2.amazonaws.com/businessregistry:latest
     ports:
       - 8200:8200
-    links:
-      - db:db
     depends_on:
       - db
     networks:
@@ -61,6 +61,7 @@ services:
     restart: always
     volumes:
       - ./create_databases.sh:/docker-entrypoint-initdb.d/create_databases.sh
+      - /opt/Mirza/postgresql/data:/var/lib/postgresql/data
     logging:
       driver: json-file
       options:
@@ -71,11 +72,9 @@ services:
     image: 235945186688.dkr.ecr.ap-southeast-2.amazonaws.com/supplychainserver:latest
     networks:
       - backend
-    links:
-      - "db:db"
     env_file:
       - .env
-    command: /usr/bin/supplyChainServer --init-db -c "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/devsupplychainserver" && exit 0
+    command: /usr/bin/supplyChainServer --init-db -c "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/devsupplychainserver"
     depends_on:
       - db
     logging:
@@ -88,11 +87,9 @@ services:
     image: 235945186688.dkr.ecr.ap-southeast-2.amazonaws.com/businessregistry:latest
     networks:
       - backend
-    links:
-      - "db:db"
     env_file:
       - .env
-    command: /usr/bin/businessRegistry --init-db -c "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db/devbusinessregistry" && exit 0
+    command: echo "YES" | /usr/bin/businessRegistry -c "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db/devbusinessregistry" init-db
     depends_on:
       - db
     logging:
@@ -100,3 +97,24 @@ services:
       options:
         max-size: "200k"
         max-file: "10"
+  
+  private-ethereum-blockchain:
+    image: 235945186688.dkr.ecr.ap-southeast-2.amazonaws.com/privateethereumblockchain:latest
+    ports:
+      - '8545:8545'
+      - '8546:8546'
+    volumes:
+      - private-ethereum-blockchain:/root/.local/share/io.parity.ethereum
+    networks:
+      - backend
+  
+  blockchain-api-server:
+    image: 235945186688.dkr.ecr.ap-southeast-2.amazonaws.com/blockchainapiserver:latest
+    ports:
+      - '5000:5000'
+    env_file:
+      - .env
+    networks:
+      - backend
+    depends_on:
+      - private-ethereum-blockchain
