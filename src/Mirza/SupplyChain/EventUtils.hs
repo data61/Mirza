@@ -431,7 +431,7 @@ getEventList labelId = do
   labelEvents <- pg $ runSelectReturningList $ select $ do
         labelEvent <- all_ (Schema._label_events Schema.supplyChainDb)
         guard_ (Schema.label_event_label_id labelEvent ==. val_ labelId)
-        guard_ (Schema.label_event_label_type labelEvent ==. val_ Nothing)
+        guard_ (Schema.label_event_label_type labelEvent /=. val_ (Just MU.Parent))
         pure labelEvent
   let eventIds = Schema.label_event_event_id <$> labelEvents
       allEvents = findEvent <$> eventIds
