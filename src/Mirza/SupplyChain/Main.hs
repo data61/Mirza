@@ -47,6 +47,7 @@ import           System.IO                          (IOMode (AppendMode),
 data ServerOptionsSCS = ServerOptionsSCS
   { env           :: EnvType
   , initDB        :: Bool
+  , dbPopulate    :: Bool
   , connectionStr :: ByteString
   , scsPort       :: Int
   , sScryptN      :: Integer
@@ -70,6 +71,9 @@ serverOptions = ServerOptionsSCS
       <*> switch
           ( long "init-db"
          <> help "Put empty tables into a fresh database" )
+      <*> switch
+          ( long "populate"
+         <> help "Put dummy data into the database" )
       <*> strOption
           ( long "conn" <> short 'c' <> showDefault
           <> help "Database connection string in libpq format. See: https://www.postgresql.org/docs/9.5/static/libpq-connect.html#LIBPQ-CONNSTRING"
@@ -121,13 +125,19 @@ runProgram so@ServerOptionsSCS{initDB = False, scsPort, brServiceInfo =Just __} 
 runProgram ServerOptionsSCS{initDB = False, brServiceInfo = Nothing} = do
   hPutStrLn stderr $ "Required unless initialising the database: --brhost ARG --brport ARG"
   exitFailure
-runProgram so = migrate $ connectionStr so
+runProgram so@ServerOptionsSCS{initDB = True, dbPopulate = False} = migrate $ connectionStr so
+runProgram so@ServerOptionsSCS{initDB = True, dbPopulate = True} = do
+  migrate $ connectionStr so
+  runDbPopulate so
+
+runDbPopulate :: ServerOptionsSCS -> IO ()
+runDbPopulate = error "not implemented yet"
 
 initMiddleware :: ServerOptionsSCS -> IO Middleware
 initMiddleware _ = pure id
 
 initSCSContext :: ServerOptionsSCS -> IO ST.SCSContext
-initSCSContext (ServerOptionsSCS envT _ dbConnStr _prt n p r lev (Just (brHost, bizRegPort)) mlogPath) = do
+initSCSContext (ServerOptionsSCS envT _ _ dbConnStr _prt n p r lev (Just (brHost, bizRegPort)) mlogPath) = do
   logHandle <- maybe (pure stdout) (flip openFile AppendMode) mlogPath
   hPutStrLn stderr $ "Logging will be to: " <> fromMaybe "stdout" mlogPath
   handleScribe <- mkHandleScribe ColorIfTerminal logHandle lev V3
@@ -154,7 +164,7 @@ initSCSContext (ServerOptionsSCS envT _ dbConnStr _prt n p r lev (Just (brHost, 
           mempty
           mempty
           (mkClientEnv manager baseUrl)
-initSCSContext _ = do -- this should never happen
+initSCSContext _ = do
   hPutStrLn stderr $ "Required unless initialising the database: --brhost ARG --brport ARG"
   exitFailure
 
