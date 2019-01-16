@@ -183,7 +183,7 @@ testServiceQueries = do
     it "Insert Transaction Event" $ \scsContext -> do
       (evInfo, _) <- testAppM scsContext $ do
         uid <- addUser dummyNewUser
-        insertTransactEvent dummyUser{userId = uid} (dummyTransaction $ ST.UserId dummyId :| [])
+        insertTransactEvent dummyUser{userId = uid} (dummyTransaction $ uid :| [])
       (eventInfoEvent evInfo) `shouldBe` dummyTransactEvent
 
     it "Should not allow duplicate Transaction events" $ \scsContext -> do
@@ -200,7 +200,7 @@ testServiceQueries = do
     it "List event" $ \scsContext -> do
       res <- testAppM scsContext $ do
         uid <- addUser dummyNewUser
-        (evInfo, _) <- insertTransactEvent dummyUser{userId = uid} (dummyTransaction $ ST.UserId dummyId :| [])
+        (evInfo, _) <- insertTransactEvent dummyUser{userId = uid} (dummyTransaction $ uid :| [])
         evtList <- listEvents dummyUser{userId = uid} (LabelEPCUrn dummyLabelEpcUrn)
         pure (eventInfoEvent evInfo, evtList)
       case res of
@@ -251,8 +251,7 @@ testServiceQueries = do
         uidSmith <- addUser dummyNewUser
         _uid_2 <- addUser $ ST.NewUser "000" (unsafeMkEmailAddress "jordan@gmail.com") "Bob" "Jordan" (GS1CompanyPrefix "fake_1 Ltd") "password"
         _uid_3 <- addUser $ ST.NewUser "000" (unsafeMkEmailAddress "james@gmail.com") "Bob" "James" (GS1CompanyPrefix "fake_2 Ltd") "password"
-        uid <- addUser dummyNewUser
-        userSmith <- userSearch dummyUser{userId = uid} Nothing (Just "Smith")
+        userSmith <- userSearch dummyUser{userId = uidSmith} Nothing (Just "Smith")
         -- ^ The argument dummyUser{userId = uid} is ignored
         pure (uidSmith, userSmith)
       case res of
@@ -270,9 +269,8 @@ testServiceQueries = do
       res <- testAppM scsContext $ do
         _uid_1 <- addUser dummyNewUser
         uidRealSmith <- addUser $ ST.NewUser "000" (unsafeMkEmailAddress "jordan@gmail.com") "Bob" "Smith" (GS1CompanyPrefix "Real Smith Ltd") "password"
-        _uid_3 <- addUser $ ST.NewUser "000" (unsafeMkEmailAddress "james@gmail.com") "Bob" "James" (GS1CompanyPrefix "Fake Jordan Ltd") "password"
-        uid <- addUser dummyNewUser
-        userSmith <- userSearch dummyUser{userId = uid} (Just $ GS1CompanyPrefix "Real Smith Ltd") (Just "Smith")
+        _uid_2 <- addUser $ ST.NewUser "000" (unsafeMkEmailAddress "james@gmail.com") "Bob" "James" (GS1CompanyPrefix "Fake Jordan Ltd") "password"
+        userSmith <- userSearch dummyUser{userId = uidRealSmith} (Just $ GS1CompanyPrefix "Real Smith Ltd") (Just "Smith")
         -- ^ The argument dummyUser{userId = uid} is ignored
         pure (uidRealSmith, userSmith)
       case res of
@@ -402,8 +400,9 @@ testServiceQueries = do
 
   describe "DWhere" $
     it "Insert and find DWhere" $ \scsContext -> do
-      let eventId = Schema.EventId dummyId
       insertedDWhere <- testAppM scsContext $ do
+        uid <- addUser dummyNewUser
+        (_, eventId) <- insertObjectEvent dummyUser{userId = uid} dummyObject
         void $ runDb $ insertDWhere dummyDWhere eventId
         runDb $ findDWhere eventId
       insertedDWhere `shouldBe` Just dummyDWhere
