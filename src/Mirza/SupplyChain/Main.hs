@@ -131,7 +131,7 @@ runProgram so@ServerOptionsSCS{initDB = True, dbPopulate = True} = do
   runDbPopulate so
 
 runDbPopulate :: ServerOptionsSCS -> IO ()
-runDbPopulate = error "not implemented yet"
+runDbPopulate = error "runDbPopulate: not implemented yet"
 
 initMiddleware :: ServerOptionsSCS -> IO Middleware
 initMiddleware _ = pure id
