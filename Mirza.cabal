@@ -70,6 +70,7 @@ library
                     , beam-migrate
                     , beam-postgres
                     , bytestring
+                    , canonical-json
                     , email-validate
                     , hoist-error >= 0.2
                     , http-client
@@ -81,6 +82,7 @@ library
                     , postgresql-simple
                     , random
                     , resource-pool >= 0.2.3
+                    , scientific
                     , scrypt
                     , servant
                     , servant-client >= 0.13
@@ -93,6 +95,7 @@ library
                     , time
                     , transformers >= 0.4
                     , Unique
+                    , unordered-containers
                     , uuid
                     , uuid-types
                     , wai

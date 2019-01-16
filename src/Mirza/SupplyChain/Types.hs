@@ -31,18 +31,26 @@ import           Crypto.Scrypt              (ScryptParams)
 import           Servant                    (ToHttpApiData)
 import           Servant.Client             (ClientEnv (..), ServantError (..))
 
-import           Control.Lens
+import           Control.Lens               hiding ( (.=) )
 
 import           GHC.Generics               (Generic)
 
 import           Data.Aeson
 import           Data.Aeson.TH
 
+import           Data.Bifunctor             ( bimap )
 import qualified Data.ByteString            as BS
-import           Data.List.NonEmpty         (NonEmpty)
+import qualified Data.ByteString.Lazy       as BSL
+import           Data.Foldable              ( toList )
+import           Data.Function              ( on )
+import qualified Data.HashMap.Strict        as HashMap
+import           Data.List.NonEmpty         ( NonEmpty, sortBy )
 import           Data.Pool                  as Pool
+import           Data.Scientific            ( FPFormat(..), formatScientific )
 import           Data.Swagger
-import           Data.Text                  (Text)
+import           Data.Text                  (Text, unpack)
+
+import qualified Text.JSON.Canonical        as CJSON
 
 import           Katip                      as K
 
@@ -248,8 +256,37 @@ type Signature' = Signature () JWSHeader
 newtype EventToSign = EventToSign BS.ByteString
   deriving (Show, Eq, Generic)
 
-data BlockchainPackage = BlockchainPackage Base64Octets (NonEmpty (UserId, SignedEvent))
+data BlockchainPackage = BlockchainPackage Ev.Event (NonEmpty (UserId, SignedEvent))
   deriving (Show, Eq, Generic)
+
+mkBlockchainPackage :: Ev.Event -> NonEmpty (UserId, SignedEvent) -> BlockchainPackage
+mkBlockchainPackage e = BlockchainPackage e . sortBy (compare `on` fst)
+
+instance ToJSON BlockchainPackage where
+  toJSON (BlockchainPackage e xs) = object [ "event" .= e, "signatures" .= xs ]
+
+newtype Canonical a = Canonical a
+  deriving (Show, Eq)
+
+toCanonicalJSON :: ToJSON a => a -> BS.ByteString
+toCanonicalJSON = BSL.toStrict
+                  . CJSON.renderCanonicalJSON
+                  . runIdentity
+                  . CJSON.toJSON
+                  . Canonical
+                  . toJSON
+
+instance (Monad m, ToJSON a) => CJSON.ToJSON m (Canonical a) where
+  toJSON (Canonical a) = pure $ toCJSON $ toJSON a
+    where
+      toCJSON :: Value -> CJSON.JSValue
+      toCJSON (Object x) = CJSON.JSObject $ fmap (bimap unpack toCJSON) $ HashMap.toList x
+      toCJSON (Array x) = CJSON.JSArray $ fmap toCJSON $ toList x
+      toCJSON (String x) = CJSON.JSString $ unpack x
+      toCJSON (Number x) = CJSON.JSString $ formatScientific Fixed Nothing x
+      toCJSON (Bool x) = CJSON.JSBool x
+      toCJSON Null = CJSON.JSNull
+
 
 data SignedEvent = SignedEvent {
   signed_eventId   :: EventId,

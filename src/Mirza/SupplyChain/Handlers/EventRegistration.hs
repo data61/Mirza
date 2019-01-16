@@ -229,7 +229,6 @@ sendToBlockchain user eventId = do
     ReadyAndWaiting -> do
       (flip $ maybe (error "it should not happen"))
         (nonEmpty . eventInfoUserSigs $ evInfo) $ \userSigs -> do
-            let evToSign = eventToSign evInfo
-            let _bcPackage = BlockchainPackage evToSign userSigs
+            let _bcPackage = BlockchainPackage (eventInfoEvent evInfo) userSigs
             error "not implemented yet"
     _               -> (NeedMoreSignatures, Nothing)
