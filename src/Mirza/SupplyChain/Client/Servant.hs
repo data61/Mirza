@@ -20,6 +20,7 @@ module Mirza.SupplyChain.Client.Servant
   , insertAggEvent
   , insertTransactEvent
   , insertTransfEvent
+  , listEventsPretty
   ) where
 
 import           Mirza.Common.GS1BeamOrphans       (LabelEPCUrn (..))
@@ -63,10 +64,12 @@ insertAggEvent      :: BasicAuthData -> AggregationEvent -> ClientM (EventInfo, 
 insertTransactEvent :: BasicAuthData -> TransactionEvent -> ClientM (EventInfo, Schema.EventId)
 insertTransfEvent   :: BasicAuthData -> TransformationEvent -> ClientM (EventInfo, Schema.EventId)
 
+listEventsPretty    :: BasicAuthData -> LabelEPCUrn -> ClientM [Ev.Event]
 
 _api     :: Client ClientM ServerAPI
 _privAPI :: Client ClientM ProtectedAPI
 _pubAPI  :: Client ClientM PublicAPI
+_frontEndAPI :: Client ClientM UIAPI
 _api@(
   _pubAPI@(
          health
@@ -92,5 +95,9 @@ _api@(
     :<|> insertAggEvent
     :<|> insertTransactEvent
     :<|> insertTransfEvent
+  )
+  :<|>
+  _frontEndAPI@(
+    listEventsPretty
   )
  ) = client (Proxy :: Proxy ServerAPI)

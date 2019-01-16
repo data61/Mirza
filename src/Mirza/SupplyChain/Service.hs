@@ -31,6 +31,7 @@ import           Mirza.SupplyChain.Handlers.Health            as Handlers
 import           Mirza.SupplyChain.Handlers.Queries           as Handlers
 import           Mirza.SupplyChain.Handlers.Signatures        as Handlers
 import           Mirza.SupplyChain.Handlers.Users             as Handlers
+import           Mirza.SupplyChain.Handlers.UXUtils           as Handlers
 
 import           Mirza.SupplyChain.Types
 
@@ -52,7 +53,7 @@ import qualified Crypto.JOSE                                  as JOSE
 appHandlers :: (Member context '[HasDB, HasScryptParams, HasBRClientEnv],
                 Member err     '[JOSE.AsError, AsServiceError, AsServantError, AsSqlError])
             => ServerT ServerAPI (AppM context err)
-appHandlers = publicServer :<|> privateServer
+appHandlers = publicServer :<|> privateServer :<|> frontEndApi
 
 publicServer :: (Member context '[HasDB, HasScryptParams],
                  Member err     '[AsServiceError, AsSqlError])
@@ -87,6 +88,11 @@ privateServer =
   :<|> insertAggEvent
   :<|> insertTransactEvent
   :<|> insertTransfEvent
+
+frontEndApi :: (Member context '[HasDB, HasScryptParams, HasBRClientEnv],
+                Member err     '[JOSE.AsError, AsServiceError, AsServantError, AsSqlError])
+              => ServerT UIAPI (AppM context err)
+frontEndApi = listEventsPretty
 
 instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub) where
   toSwagger _ =

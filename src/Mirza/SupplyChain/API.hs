@@ -16,6 +16,7 @@ module Mirza.SupplyChain.API
   , PublicAPI
   , PrivateAPI
   , ProtectedAPI
+  , UIAPI, FrontEndAPI
   , API, api
   ) where
 
@@ -42,8 +43,9 @@ api :: Proxy API
 api = Proxy
 
 
-type ServerAPI = PublicAPI :<|> ProtectedAPI
+type ServerAPI = PublicAPI :<|> ProtectedAPI :<|> UIAPI
 type ProtectedAPI = Flat (BasicAuth "foo-realm" User :> PrivateAPI)
+type UIAPI = Flat (BasicAuth "foo-realm" User :> FrontEndAPI)
 
 serverAPI :: Proxy ServerAPI
 serverAPI = Proxy
@@ -53,28 +55,60 @@ type PublicAPI =
   -- Health
        "healthz" :> Get '[JSON] HealthResponse
   -- Users
-  :<|> "newUser"                            :> ReqBody '[JSON] NewUser                                      :> Post '[JSON] UserId
+  :<|> "newUser" :> ReqBody '[JSON] NewUser :> Post '[JSON] UserId
 
 type PrivateAPI =
 -- Contacts
-       "contacts"                                                                                             :> Get '[JSON] [User]
-  :<|> "contacts" :> "add"                  :> Capture "userId" ST.UserId                                     :> Get '[JSON] Bool
-  :<|> "contacts" :> "remove"               :> Capture "userId" ST.UserId                                     :> Get '[JSON] Bool
+       "contacts" :> Get '[JSON] [User]
+  :<|> "contacts" :> "add"
+                  :> Capture "userId" ST.UserId
+                  :> Get '[JSON] Bool
+  :<|> "contacts" :> "remove"
+                  :> Capture "userId" ST.UserId
+                  :> Get '[JSON] Bool
 -- Users
-  :<|> "user"     :> "search"               :> QueryParam "GS1CompanyPrefix" GS1CompanyPrefix
-                                            :> QueryParam "lastname" Text
-                                            :> Post '[JSON] [User]
+  :<|> "user"     :> "search"
+                  :> QueryParam "GS1CompanyPrefix" GS1CompanyPrefix
+                  :> QueryParam "lastname" Text
+                  :> Post '[JSON] [User]
 -- Signatures
-  :<|> "event"    :> "sign"                 :> ReqBody '[JSON] SignedEvent                                    :> Post '[JSON] EventInfo
-  :<|> "event"    :> "getHash"              :> ReqBody '[JSON] EventId                                        :> Post '[JSON] HashedEvent
+  :<|> "event"    :> "sign"
+                  :> ReqBody '[JSON] SignedEvent
+                  :> Post '[JSON] EventInfo
+  :<|> "event"    :> "getHash"
+                  :> ReqBody '[JSON] EventId
+                  :> Post '[JSON] HashedEvent
 -- Queries
-  :<|> "epc"      :> "events"               :> Capture "urn" LabelEPCUrn                                   :> Get '[JSON] [Ev.Event]
-  :<|> "event"    :> "info"                 :> Capture "eventId" EventId                                      :> Get '[JSON] EventInfo
-  :<|> "event"    :> "list"                 :> Capture "userId" UserId                                        :> Get '[JSON] [Ev.Event]
-  :<|> "event"    :> "listUsers"            :> Capture "eventId" EventId                                      :> Get '[JSON] [(User, Bool)]
-  :<|> "user"     :> "getId"                                                                                  :> Get '[JSON] UserId
+  :<|> "epc"      :> "events"
+                  :> Capture "urn" LabelEPCUrn
+                  :> Get '[JSON] [Ev.Event]
+  :<|> "event"    :> "info"
+                  :> Capture "eventId" EventId
+                  :> Get '[JSON] EventInfo
+  :<|> "event"    :> "list"
+                  :> Capture "userId" UserId
+                  :> Get '[JSON] [Ev.Event]
+  :<|> "event"    :> "listUsers"
+                  :> Capture "eventId" EventId
+                  :> Get '[JSON] [(User, Bool)]
+  :<|> "user"     :> "getId"
+                  :> Get '[JSON] UserId
 -- Event Registration
-  :<|> "event"    :> "objectEvent"          :> ReqBody '[JSON] ObjectEvent                                    :> Post '[JSON] (EventInfo, Schema.EventId)
-  :<|> "event"    :> "aggregateEvent"       :> ReqBody '[JSON] AggregationEvent                               :> Post '[JSON] (EventInfo, Schema.EventId)
-  :<|> "event"    :> "transactionEvent"     :> ReqBody '[JSON] TransactionEvent                               :> Post '[JSON] (EventInfo, Schema.EventId)
-  :<|> "event"    :> "transformationEvent"  :> ReqBody '[JSON] TransformationEvent                            :> Post '[JSON] (EventInfo, Schema.EventId)
+  :<|> "event"    :> "objectEvent"
+                  :> ReqBody '[JSON] ObjectEvent
+                  :> Post '[JSON] (EventInfo, Schema.EventId)
+  :<|> "event"    :> "aggregateEvent"
+                  :> ReqBody '[JSON] AggregationEvent
+                  :> Post '[JSON] (EventInfo, Schema.EventId)
+  :<|> "event"    :> "transactionEvent"
+                  :> ReqBody '[JSON] TransactionEvent
+                  :> Post '[JSON] (EventInfo, Schema.EventId)
+  :<|> "event"    :> "transformationEvent"
+                  :> ReqBody '[JSON] TransformationEvent
+                  :> Post '[JSON] (EventInfo, Schema.EventId)
+
+type FrontEndAPI =
+  "ux"  :> "list" :> "events"
+        :> Capture "urn" LabelEPCUrn
+        :> Get '[JSON] [Ev.Event]
+
