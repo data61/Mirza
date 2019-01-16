@@ -60,13 +60,14 @@ import           Katip                      as K
 -- *****************************************************************************
 
 data SCSContext = SCSContext
-  { _scsEnvType          :: EnvType
-  , _scsDbConnPool       :: Pool Connection
-  , _scsScryptPs         :: ScryptParams
-  , _scsKatipLogEnv      :: K.LogEnv
-  , _scsKatipLogContexts :: K.LogContexts
-  , _scsKatipNamespace   :: K.Namespace
-  , _scsBRClientEnv      :: ClientEnv
+  { _scsEnvType             :: EnvType
+  , _scsDbConnPool          :: Pool Connection
+  , _scsScryptPs            :: ScryptParams
+  , _scsKatipLogEnv         :: K.LogEnv
+  , _scsKatipLogContexts    :: K.LogContexts
+  , _scsKatipNamespace      :: K.Namespace
+  , _scsBRClientEnv         :: ClientEnv
+  , _scsBlockchainClientEnv :: Maybe ClientEnv
   }
 $(makeLenses ''SCSContext)
 
@@ -74,7 +75,10 @@ instance HasEnvType SCSContext where envType = scsEnvType
 instance HasConnPool SCSContext where connPool = scsDbConnPool
 instance HasScryptParams SCSContext where scryptParams = scsScryptPs
 instance HasBRClientEnv SCSContext where clientEnv = scsBRClientEnv
+instance HasBlockchainClientEnv SCSContext where
+  blockchainClientEnv = scsBlockchainClientEnv
 instance HasKatipLogEnv SCSContext where katipLogEnv = scsKatipLogEnv
+
 instance HasKatipContext SCSContext where
   katipContexts = scsKatipLogContexts
   katipNamespace = scsKatipNamespace

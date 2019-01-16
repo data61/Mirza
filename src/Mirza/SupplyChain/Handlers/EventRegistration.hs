@@ -10,6 +10,9 @@ module Mirza.SupplyChain.Handlers.EventRegistration
   , sendToBlockchain
   ) where
 
+import           Mirza.Blockchain.Client.Servant    (addEvent)
+import           Mirza.Blockchain.Types             (RegisterEvent(..))
+
 import qualified Mirza.Common.GS1BeamOrphans        as MU
 import           Mirza.SupplyChain.Database.Schema  as Schema
 import           Mirza.SupplyChain.Types            hiding (User (..))
@@ -33,9 +36,11 @@ import           Data.GS1.EventId                   as EvId
 import           Data.List.NonEmpty                 (nonEmpty, toList, (<|))
 import           Data.List.Unique                   (allUnique)
 
+import           Crypto.Hash                        (SHA256(..), hashWith)
 import           Data.Maybe                         (isJust, maybe)
-
+import           Control.Lens                       (view)
 import           Control.Monad.Except               (unless, when)
+import           Servant.Client                     (runClientM)
 
 insertObjectEvent :: (Member context '[HasDB],
                       Member err     '[AsSqlError])
@@ -217,18 +222,31 @@ insertTransfEventQuery
   pure (evInfo, eventId)
 
 
-sendToBlockchain  :: (Member context '[HasDB],
-                      Member err     '[AsSqlError, AsServiceError])
+sendToBlockchain  :: (Member context '[HasDB, HasBlockchainClientEnv],
+                      Member err     '[AsSqlError, AsServiceError, AsServantError])
                   => ST.User
                   -> EvId.EventId
-                  -> AppM context err (EventBlockchainStatus, Maybe BlockchainId)
+                  -> AppM context err EventBlockchainStatus
 sendToBlockchain user eventId = do
-  evInfo <- eventInfo user eventId
-  let eventStatus = eventInfoBlockChainStatus evInfo
-  return $ case eventStatus of
-    ReadyAndWaiting -> do
-      (flip $ maybe (error "it should not happen"))
-        (nonEmpty . eventInfoUserSigs $ evInfo) $ \userSigs -> do
-            let _bcPackage = BlockchainPackage (eventInfoEvent evInfo) userSigs
-            error "not implemented yet"
-    _               -> (NeedMoreSignatures, Nothing)
+  bcEnv <- view blockchainClientEnv
+  case bcEnv of
+    Nothing -> pure ReadyAndWaiting
+    Just env -> do
+      evInfo <- eventInfo user eventId
+  
+      case eventInfoBlockChainStatus evInfo of
+        ReadyAndWaiting -> do
+          bcPkg <- maybe
+            (error "No sigs")
+            (pure . BlockchainPackage (eventInfoEvent evInfo))
+            (nonEmpty $ eventInfoUserSigs evInfo)
+          result <- liftIO $ do
+            let reqB = RegisterEvent <$> hashWith SHA256 (toCanonicalJSON bcPkg)
+                                     <*> fmap Just (hashWith SHA256 _)
+            either (throwing _ServantError) pure =<< runClientM (addEvent reqB) env
+          undefined result
+          
+        
+        x -> pure x
+    
+    

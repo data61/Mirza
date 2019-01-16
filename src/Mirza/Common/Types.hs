@@ -33,6 +33,7 @@ module Mirza.Common.Types
   , HasScryptParams(..)
   , HasKatipContext(..)
   , HasKatipLogEnv(..)
+  , HasBlockchainClientEnv(..)
   , HasBRClientEnv(..)
   , HasDB
   , AsServantError (..)
@@ -293,6 +294,8 @@ instance (HasKatipContext context, HasKatipLogEnv context)
   localKatipNamespace f = local (over (_2 . katipNamespace) f)
 
 
+class HasBlockchainClientEnv a where
+  blockchainClientEnv :: Lens' a (Maybe ClientEnv)
 
 class HasBRClientEnv a where
   clientEnv :: Lens' a ClientEnv
@@ -375,9 +378,6 @@ runClientFunc :: (AsServantError err, HasBRClientEnv context)
 runClientFunc func = do
   cEnv <- view clientEnv
   either (throwing _ServantError) pure =<< liftIO (runClientM func cEnv)
-
-
-
 
 -- TODO: Orphan for JWK
 

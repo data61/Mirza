@@ -45,16 +45,17 @@ import           System.IO                          (IOMode (AppendMode),
                                                      stderr, stdout)
 
 data ServerOptionsSCS = ServerOptionsSCS
-  { env           :: EnvType
-  , initDB        :: Bool
-  , connectionStr :: ByteString
-  , scsPort       :: Int
-  , sScryptN      :: Integer
-  , sScryptP      :: Integer
-  , sScryptR      :: Integer
-  , loggingLevel  :: K.Severity
-  , brServiceInfo :: Maybe (String, Int) -- Maybe (brhost, brport)
-  , loggingPath   :: Maybe FilePath
+  { env                   :: EnvType
+  , initDB                :: Bool
+  , connectionStr         :: ByteString
+  , scsPort               :: Int
+  , sScryptN              :: Integer
+  , sScryptP              :: Integer
+  , sScryptR              :: Integer
+  , loggingLevel          :: K.Severity
+  , brServiceInfo         :: Maybe (String, Int) -- Maybe (brhost, brport)
+  , blockchainServiceInfo :: Maybe (String, Int)
+  , loggingPath           :: Maybe FilePath
   }
 
 defaultDbConnectionStr :: ByteString
@@ -89,12 +90,12 @@ serverOptions = ServerOptionsSCS
       <*> option auto
           (long "log-level" <> value InfoS <> showDefault
           <> help ("Logging level: " ++ show [minBound .. maxBound :: Severity]))
-      <*> optional ((,) <$>
-            strOption (
-            (long "brhost" <> help "The host to run the business registry on"))
-            <*>
-            option auto (long "brport" <> help "Port to run business registry on")
-          )
+      <*> optional ( (,) <$> strOption (long "brhost" <> help "The host which is running the business registry service")
+                         <*> option auto (long "brport" <> help "The port on the business registry host which the service is bound")
+                   )
+      <*> optional ( (,) <$> strOption (long "bchost" <> help "The host which is running the blockchain service")
+                         <*> option auto (long "bcport" <> help "The port on the blockchain host which the service is bound")
+                   )
       <*> optional (strOption
           (  long "log-path"
           <> short 'l'
@@ -127,7 +128,7 @@ initMiddleware :: ServerOptionsSCS -> IO Middleware
 initMiddleware _ = pure id
 
 initSCSContext :: ServerOptionsSCS -> IO ST.SCSContext
-initSCSContext (ServerOptionsSCS envT _ dbConnStr _prt n p r lev (Just (brHost, bizRegPort)) mlogPath) = do
+initSCSContext (ServerOptionsSCS envT _ dbConnStr _prt n p r lev (Just (brHost, bizRegPort)) bcOpts mlogPath) = do
   logHandle <- maybe (pure stdout) (flip openFile AppendMode) mlogPath
   hPutStrLn stderr $ "Logging will be to: " <> fromMaybe "stdout" mlogPath
   handleScribe <- mkHandleScribe ColorIfTerminal logHandle lev V3
@@ -154,6 +155,7 @@ initSCSContext (ServerOptionsSCS envT _ dbConnStr _prt n p r lev (Just (brHost, 
           mempty
           mempty
           (mkClientEnv manager baseUrl)
+          (fmap (\(bcHost,bcPort) -> mkClientEnv manager $ BaseUrl scheme bcHost bcPort "") bcOpts)
 initSCSContext _ = do -- this should never happen
   hPutStrLn stderr $ "Required unless initialising the database: --brhost ARG --brport ARG"
   exitFailure
