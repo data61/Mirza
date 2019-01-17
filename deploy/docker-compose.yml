@@ -89,7 +89,7 @@ services:
       - backend
     env_file:
       - .env
-    command: echo "YES" | /usr/bin/businessRegistry -c "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db/devbusinessregistry" init-db
+    command: /bin/sh -c "echo 'YES' | /usr/bin/businessRegistry initdb -c 'postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db/devbusinessregistry'"
     depends_on:
       - db
     logging:
