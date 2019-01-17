@@ -1,7 +1,9 @@
 {-# LANGUAGE DeriveGeneric              #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE StandaloneDeriving         #-}
 {-# LANGUAGE TemplateHaskell            #-}
+{-# LANGUAGE UndecidableInstances       #-}
 {-# OPTIONS_GHC -Wno-orphans            #-}
 
 module Mirza.SupplyChain.Types
@@ -26,7 +28,7 @@ import           Crypto.JOSE                as JOSE hiding (Digest)
 import           Crypto.JOSE.Types          (Base64Octets)
 import           Crypto.Scrypt              (ScryptParams)
 
-import           Servant                    (FromHttpApiData, ToHttpApiData)
+import           Servant                    (ToHttpApiData)
 import           Servant.Client             (ClientEnv (..), ServantError (..))
 
 import           Control.Lens
@@ -94,21 +96,8 @@ $(deriveJSON defaultOptions ''NewUser)
 instance ToSchema NewUser
 
 
-
--- *****************************************************************************
--- GS1 Types
--- *****************************************************************************
-
 -- TODO: This should really be in GS1Combinators
 deriving instance ToHttpApiData EventId
-
--- Should this be in GS1Combinators?
-newtype LabelEPCUrn = LabelEPCUrn {getLabelEPCUrn :: Text}
-  deriving (Show, Eq, Generic, Read, FromJSON, ToJSON)
-instance ToSchema LabelEPCUrn
-instance ToParamSchema LabelEPCUrn
-deriving instance FromHttpApiData LabelEPCUrn
-deriving instance ToHttpApiData LabelEPCUrn
 
 
 -- *****************************************************************************

@@ -9,6 +9,8 @@ module Mirza.SupplyChain.Tests.Service
   ( testServiceQueries
   ) where
 
+import           Mirza.Common.GS1BeamOrphans                  (LabelEPCUrn (..))
+
 import           Mirza.Common.Tests.InitClient                (testDbConnectionStringSCS)
 import           Mirza.Common.Tests.Utils                     (getDatabaseConnectionString,
                                                                unsafeMkEmailAddress)
