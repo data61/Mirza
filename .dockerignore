@@ -4,4 +4,3 @@ businessRegistry.Dockerfile
 supplyChainServer.Dockerfile
 Jenkinsfile
 .stack-work
-deploy/.env
