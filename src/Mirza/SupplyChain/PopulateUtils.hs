@@ -1,7 +1,7 @@
 {-# LANGUAGE DeriveGeneric    #-}
 {-# LANGUAGE TypeApplications #-}
 
-module Mirza.SupplyChain.Tests.Utils where
+module Mirza.SupplyChain.PopulateUtils where
 
 import           GHC.Generics                          (Generic)
 
