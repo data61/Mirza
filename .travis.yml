@@ -18,8 +18,12 @@ before_install:
   - sudo mv docker-compose /usr/local/bin
 
 script:
-  - docker build -f Mirza.Dockerfile --target BUILD .
+  - $(aws ecr get-login --no-include-email --region ap-southeast-2)
+  - docker pull 235945186688.dkr.ecr.ap-southeast-2.amazonaws.com/mirzabuild
+  - docker build -f Mirza.Dockerfile --tag --target BUILD -t 235945186688.dkr.ecr.ap-southeast-2.amazonaws.com/mirzabuild --cache-from 235945186688.dkr.ecr.ap-southeast-2.amazonaws.com/mirzabuild:latest .
+  - $(aws ecr get-login --no-include-email --region ap-southeast-2)
+  - docker push 235945186688.dkr.ecr.ap-southeast-2.amazonaws.com/mirzabuild:latest
   - docker build -f Mirza.Dockerfile --target PKG-SCS -t 235945186688.dkr.ecr.ap-southeast-2.amazonaws.com/supplychainserver:$TRAVIS_COMMIT .
   - docker build -f Mirza.Dockerfile --target PKG-BR -t 235945186688.dkr.ecr.ap-southeast-2.amazonaws.com/businessregistry:$TRAVIS_COMMIT .
-  - docker-compose up -d db
-  - docker-compose up dbpopulate-scs dbpopulate-br
+  - docker push 235945186688.dkr.ecr.ap-southeast-2.amazonaws.com/supplychainserver:$TRAVIS_COMMIT
+  - docker push 235945186688.dkr.ecr.ap-southeast-2.amazonaws.com/businessregistry:$TRAVIS_COMMIT
