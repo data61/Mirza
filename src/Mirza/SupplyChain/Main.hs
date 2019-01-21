@@ -121,6 +121,11 @@ main = runProgram =<< execParser opts
       <> header "SupplyChainServer - A server for capturing GS1 events and recording them on a blockchain")
 
 runProgram :: ServerOptionsSCS -> IO ()
+runProgram so@ServerOptionsSCS{initDB = True, dbPopulateInfo =Just _, brServiceInfo =Just __} = do
+  migrate $ connectionStr so
+  runDbPopulate so
+runProgram so@ServerOptionsSCS{initDB =False, dbPopulateInfo =Just _, brServiceInfo =Just __} = do
+  runDbPopulate so
 runProgram so@ServerOptionsSCS{initDB = False, scsPort, brServiceInfo =Just __} = do
   ctx <- initSCSContext so
   app <- initApplication so ctx
@@ -130,9 +135,6 @@ runProgram so@ServerOptionsSCS{initDB = False, scsPort, brServiceInfo =Just __} 
 runProgram ServerOptionsSCS{initDB = False, brServiceInfo = Nothing} = do
   hPutStrLn stderr $ "Required unless initialising the database: --brhost ARG --brport ARG"
   exitFailure
-runProgram so@ServerOptionsSCS{initDB = True, dbPopulateInfo =Just _, brServiceInfo =Just __} = do
-  migrate $ connectionStr so
-  runDbPopulate so
 runProgram ServerOptionsSCS{initDB = True, dbPopulateInfo = Just _, brServiceInfo =Nothing} = do
   hPutStrLn stderr $ "Required for populating the database: --brhost ARG --brport ARG"
   exitFailure
