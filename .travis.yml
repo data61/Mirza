@@ -63,3 +63,10 @@ script:
 - docker build -f Mirza.Dockerfile --target PKG-BR -t ${DOCKER_REPO}/businessregistry:$TRAVIS_COMMIT .
 - docker push ${DOCKER_REPO}/supplychainserver:$TRAVIS_COMMIT
 - docker push ${DOCKER_REPO}/businessregistry:$TRAVIS_COMMIT
+- sed -i "s#latest#$TRAVIS_COMMIT#g" deploy/docker-compose.yml
+- scp -i $DEPLOYMENT_SSH_KEY deploy/docker-compose.yml ec2-user@$SERVER_IP:/home/ec2-user/
+- scp -i $DEPLOYMENT_SSH_KEY deploy/create_databases.sh ec2-user@$SERVER_IP:/home/ec2-user/
+- scp -i $DEPLOYMENT_SSH_KEY deploy/get_and_start_new_version.sh ec2-user@$SERVER_IP:/home/ec2-user/
+- ssh -i $DEPLOYMENT_SSH_KEY -o StrictHostKeyChecking=no ec2-user@$SERVER_IP $(~/bin/aws ecr get-login --no-include-email --region ap-southeast-2)
+- ssh -i $DEPLOYMENT_SSH_KEY -o StrictHostKeyChecking=no ec2-user@$SERVER_IP chmod +x ./get_and_start_new_version.sh
+- ssh -i $DEPLOYMENT_SSH_KEY -o StrictHostKeyChecking=no ec2-user@$SERVER_IP ./get_and_start_new_version.sh

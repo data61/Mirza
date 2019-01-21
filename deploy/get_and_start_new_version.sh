@@ -13,9 +13,9 @@ docker-compose pull
 # Start the database (either an empty postgres container, or an existing database)
 docker-compose up -d db
 
-# Run the initdb scripts for scs and br.
-docker-compose up -d dbpopulate-scs
-docker-compose up -d dbpopulate-br
+# Run the initdb scripts for scs and br. (UNCOMMENT WHEN NEEDED FOR DEPLOYMENT)
+# docker-compose up -d dbpopulate-scs
+# docker-compose up -d dbpopulate-br
 
 # Start the services
 docker-compose up -d supplyChainServer businessRegistry private-ethereum-blockchain blockchain-api-server
