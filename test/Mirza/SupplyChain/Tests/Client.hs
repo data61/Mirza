@@ -61,7 +61,7 @@ userABC = NewUser
   , newUserFirstName = "User ABC"
   , newUserLastName = "Giver"
   , newUserCompany = GS1CompanyPrefix "something"
-  , newUserPassword = "re4lly$ecret14!"}
+  , newUserPassword = "re4lly$ecret14!" }
 
 authABC :: BasicAuthData
 authABC = BasicAuthData
