@@ -159,8 +159,11 @@ searchLocationQuery mpfx mafter = pg $ runSelectReturningList $ select $ do
   loc    <- all_ (_locations businessRegistryDB)
   geoloc <- all_ (_geoLocations businessRegistryDB)
               & orderBy_ (desc_ . geoLocation_last_update)
-              & limit_ 1
-  
+              -- Temporarily remove the following constraint which restricts the search to the last entry added.
+              -- This was causing a bug which effected the implementation of https://github.com/data61/Mirza/issues/340.
+              -- This issue is being tracked with issue: https://github.com/data61/Mirza/issues/364
+              -- & limit_ 1
+
   guard_ (geoLocation_gln geoloc `references_` loc)
   
   for_ mpfx $ \pfx -> do 
