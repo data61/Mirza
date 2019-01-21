@@ -199,11 +199,18 @@ data LocationResponse = LocationResponse
   , geoLocCoord        :: Maybe (Latitude, Longitude)
   , geoLocAddress      :: Maybe Text
   } deriving (Show, Generic)
-
-
 instance ToSchema LocationResponse
 instance ToJSON LocationResponse
 instance FromJSON LocationResponse
+
+data BusinessAndLocationResponse = BusinessAndLocationResponse
+  { businessResponse :: BusinessResponse
+  , locationResponse :: LocationResponse
+  } deriving (Show, Generic)
+instance ToSchema BusinessAndLocationResponse
+instance ToJSON BusinessAndLocationResponse
+instance FromJSON BusinessAndLocationResponse
+
 
 data KeyState
   = InEffect -- Can be used

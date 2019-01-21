@@ -9,6 +9,7 @@ module Mirza.BusinessRegistry.Handlers.Location
   ( addLocation
   , getLocationByGLN
   , searchLocation
+  , uxLocation
   ) where
 
 
@@ -172,3 +173,20 @@ searchLocationQuery mpfx mafter = pg $ runSelectReturningList $ select $ do
         ||. geoLocation_last_update geoloc >=. just_ (val_ (toDbTimestamp after)))
 
   pure (loc, geoloc)
+
+
+
+uxLocation :: (Member context '[HasDB]
+              , Member err    '[AsSqlError])
+              => AuthUser -> [GS1CompanyPrefix] -> AppM context err [BusinessAndLocationResponse]
+uxLocation user prefixes = do
+  let locations = traverse getLocations prefixes
+  --let businesses = traverse getBusinesses prefixes
+  (fmap locationResponseToBusinessAndLocationResponse) <$> (concat <$> locations)
+
+  where
+    getLocations prefix = searchLocation user (Just prefix) Nothing
+    --getBusinesses prefix  = BRHB.searchBusinesses (Just prefix) Nothing Nothing
+
+    locationResponseToBusinessAndLocationResponse :: LocationResponse -> BusinessAndLocationResponse
+    locationResponseToBusinessAndLocationResponse l = BusinessAndLocationResponse (BusinessResponse (locationBiz l) "") l
