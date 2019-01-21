@@ -14,6 +14,12 @@ module Mirza.Common.Utils
   , fromPgJSON
   , addLastUpdateTriggers
   , getTableNames
+  , runClient
+  , manager'
+  , readJWK
+  , expectRight
+  , expectJust
+  , unsafeMkEmailAddress
   ) where
 
 
@@ -42,15 +48,27 @@ import           Control.Monad.Except              (MonadError, catchError,
 import           Data.ByteString                   (ByteString)
 
 import           Database.Beam.Postgres            (PgJSON (..), Postgres)
+import           Database.Beam.Schema.Tables
 
+import           Data.Either                       (fromRight)
+import           Data.Maybe                        (fromJust, fromMaybe)
 
 import           Control.Monad.Writer
 import           Data.Functor                      ((<$))
 import           Data.Proxy                        (Proxy (..))
 import           Data.String                       (fromString)
 import           Data.Text                         (Text, unpack)
-import           Database.Beam.Schema.Tables
 import           Katip
+
+import           System.IO.Unsafe                  (unsafePerformIO)
+
+import qualified Network.HTTP.Client               as C
+import           Servant.Client
+
+import           Crypto.JOSE                       (JWK)
+import           Data.Aeson                        (decodeFileStrict)
+
+import           Text.Email.Validate               (EmailAddress, emailAddress)
 
 
 -- | Converts anything to a ``Text``
@@ -132,3 +150,36 @@ addLastUpdateTriggers db = forM_ (getTableNames db) $ \tName -> do
       "CREATE TRIGGER sync_lastmod \
       \BEFORE UPDATE OR INSERT ON \"" <> tName <>
         "\" FOR EACH ROW EXECUTE PROCEDURE sync_lastmod();"
+
+{-# NOINLINE manager' #-}
+manager' :: C.Manager
+manager' = unsafePerformIO $ C.newManager C.defaultManagerSettings
+
+runClient :: BaseUrl -> ClientM a -> IO (Either ServantError a)
+runClient baseUrl' x = runClientM x (mkClientEnv manager' baseUrl')
+
+-- Read a JWK key from file (either prubli or private).
+readJWK :: FilePath -> IO (Maybe JWK)
+readJWK = decodeFileStrict
+
+-- GHC 8.6.x enabled MonadFailDesugaring by default, which means that if we're being lazy and
+-- using incomplete pattern matches in a Monad which does have an instance for MonadFail
+-- the code will will fail to compile. An example monad is the servant ClientM, therefore
+-- expectJust/expectRight should be used when writing test code that expects either a Just/Right.
+
+-- | Like fromJust from Data.Maybe except an error is thrown WITH a stacktrace
+expectJust :: HasCallStack => Maybe a -> a
+expectJust = fromMaybe (error "Expected: Just a")
+
+-- | Returns b if Right, otherwise calls error
+expectRight :: Either a b -> b
+expectRight = fromRight (error "Expected: Right b")
+
+--------------------------------------------------------------------------------
+-- Email Utils
+--------------------------------------------------------------------------------
+
+-- | Only use this with hardcoded email addresses that are guaranteed to return
+-- a ``Just``
+unsafeMkEmailAddress :: ByteString -> EmailAddress
+unsafeMkEmailAddress = fromJust . emailAddress

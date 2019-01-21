@@ -25,14 +25,15 @@ import           Mirza.SupplyChain.Types               as ST
 import qualified Mirza.BusinessRegistry.Client.Servant as BRClient
 import           Mirza.SupplyChain.Client.Servant
 
+import           Mirza.Common.Utils                    (readJWK)
+
 import           Mirza.Common.Tests.InitClient         (TestData (..), endApps,
                                                         runApps)
 import           Mirza.SupplyChain.Database.Schema     as Schema
 
 import           Mirza.BusinessRegistry.Client.Servant (addPublicKey)
 import           Mirza.BusinessRegistry.Tests.Utils    (goodRsaPrivateKey,
-                                                        goodRsaPublicKey,
-                                                        readJWK)
+                                                        goodRsaPublicKey)
 
 import           Mirza.Common.Tests.ServantUtils
 import           Mirza.Common.Tests.Utils

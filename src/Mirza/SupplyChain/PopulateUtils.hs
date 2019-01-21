@@ -5,6 +5,8 @@ module Mirza.SupplyChain.PopulateUtils where
 
 import           GHC.Generics                          (Generic)
 
+import           Mirza.Common.Utils
+
 import           Control.Monad.Except
 import           Control.Monad.Identity
 
@@ -21,8 +23,6 @@ import           Data.Text.Encoding                    (encodeUtf8)
 
 import           Servant.API.BasicAuth                 (BasicAuthData (..))
 
-import           Mirza.Common.Tests.ServantUtils       (runClient)
-
 import           Text.Email.Validate                   (toByteString)
 
 import           Data.Hashable                         (Hashable (..))
@@ -38,11 +38,8 @@ import           Crypto.JOSE                           (Alg (RS256),
 import qualified Crypto.JOSE                           as JOSE
 import           Crypto.JOSE.Types                     (Base64Octets (..))
 
-import           Mirza.BusinessRegistry.Tests.Generate (genMultipleUsersBR)
-import           Mirza.SupplyChain.Tests.Generate
-
-import            Mirza.Common.Tests.Utils             (expectJust, expectRight)
-import           Mirza.BusinessRegistry.Tests.Utils    (readJWK)
+import           Mirza.BusinessRegistry.GenerateUtils (genMultipleUsersBR)
+import           Mirza.SupplyChain.GenerateUtils
 
 import           Data.Maybe                            (fromJust)
 

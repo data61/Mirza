@@ -2,7 +2,7 @@
 
 -- | Utility functions to generate test data using
 -- each service's client
-module Mirza.BusinessRegistry.Tests.Generate where
+module Mirza.BusinessRegistry.GenerateUtils where
 
 import           Mirza.BusinessRegistry.Types          as BT
 
@@ -17,7 +17,7 @@ import           Mirza.BusinessRegistry.Client.Servant as BRClient
 
 import           Servant.API.BasicAuth                 (BasicAuthData (..))
 
-import           Mirza.Common.Tests.Utils              (unsafeMkEmailAddress)
+import           Mirza.Common.Utils                    (unsafeMkEmailAddress)
 
 import           Servant.Client                        (ClientM)
 
