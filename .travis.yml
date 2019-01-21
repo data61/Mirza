@@ -1,9 +1,8 @@
 dist: xenial
-
 env:
   global:
-  - secure: smfuEjTcuFOVlI3WtWbM8E7Fy+iW/BREHeYfQY1fkcm7FNx1prpJKshPnLxxM/UA3/G+qyxFgBiS0mJkJCpyjloK+MaijUkOxr6qPY0MS2aEY4Ziku1IlBE2VuW7Sf2qbZAlJ6Rpa6flYILtcirVw/HmYfPMp7AgTrUrYwo+KRU3hJa93c0sj0H/f+norqreoAEOiwm9wui3eSJ/DTdW5BAyUwYX10bwl6JLVqDwuG2R+K/Oxpm6VI5h/sfC1GWa6Fi30yghgr0lzG4xt/iuMVTrFGWjRATzrZ48BXOHkRUjJrduJkGVCmmfsBmW/NiOhSUqntqp3Gtckjn4niNGyLU+cqCYf7G9SCAFVxXXTeciqIqIYUjZMpi5AZ1id8lHI0jbNHtAwR+36s+NEyl/6Om7y7OY/Sg53SJ1OE06dbSMajFIDjlX/ExYF+AUT/3CO3i6Bi9oF8txPNJbdx7l5VYmQYEP3jEThq3e84YiofdPrNMCpNrzopSx3a+z/jkouBNaPFk6bkvFXdqJ1498/fB6J4cWLbvKDAy6xxt9ahywsBVbgpwBwyr/X8Xblgr74sLCIk/1gNHDyUWKyhXJ0VvIkS/1sx2Z1XWvIqqc+7RCHAIvH2hoDEXBlbde7Qeivs7fdZScxi0qMvodbDEF45A//kzumPJK/UVuOdyg/go=
-  - secure: Pe2Jv4okjiovne3DrAV4FZfiZmX+XDY0UrkRYYQsz65KriXzll8AyIRs7ZYTyqbGrCH5dc7WJQEKHdRQ4jUtC/5cyngaiga4Et++wGwp04AkAX1AykbKyDHzBGsfW4oKOA7kfsFYG6mk30murVEi7wDo1B4vb6HbW6hwOHhsK0/i9y69q++ITSatnsJV1v3WJZWMJ+i/ExMwamybGXnSHfZQBl7DL+3CNdbOlebrDGxVHblD4qz8uWcbMNftgCCCjb2Skt3xXA6RROY5UXn4QMDZjvLBHI2tnyZqg95aBjzq9Rjfa6havCwkWsKmKrnRNGBfWGjEQh4p1MkgTzPah1G5NUOx7iK/AlpRqwteoaCjUVkEH1dK4vNuYXpPacred6rIQHM+KbL28s5fJWgltgKK5hnAPlJzTW7VhnN2yUuUZiG2gsm3J0+kmIcpSc8EIb6/F9PtMIZzjoBb/1BcrnzFT1RfMaY+om+EB75zqlujIbD+aKvHOq7Li9INrm5YDhkPjxddwsgOOJrdTYbEtLjud2sh2oHAR6mldKStbemrW99spw4c7lAM96zFuQ+bkEfB4Bk0NkYjFadLFUr8KuGpFTsnEQeFNX62fPV3K/2Vdx7y8gGNsM3v48A0FKIn+WLlxWAAGwgmjwE4n9nnvACtj7i1nuMVD8X239rpPwI=
+  - secure: mx34e7ZMoGhJlobOvY8mUMIISC3dDUBDSYcb9s6BFKD5gDC1qT2nz0whmWcCQh5XlAzVcLHcEmzAWhpDoBLecRPzq+pHTJg8WwmZEpQt8NLJMvvtQwcYLls8lm3samfQUjsqY4MB4qzb2YedY7052AI7VseKxpwop2GnqM3x1FcCmYQ2DKLNiomUH2F+GpZz30VGhJKwu7RblZAES8aIr00jQ4KcuhhsWnGLf7s5B2oDa3S56HhyPvEUIeS75APu4XYxSVLhF6aNm6qgQjudAXbjAzV6YRNOAFVf/7IL6dsPVwwnPF4Nrxio76eLXE0u7ey4PK+akacxTUYAY9HP0M9TAmH+Cq3pSnDAwqZFBBXQfCZz2jC8IS9UBTIUYQU2Uo9H2hVD0zYI5OCTnsiuH1xsj1arZwSs3USanyzm6InrDUdQGx17iiwz9t3dnbEJk/aM1trCHKOEAta9Il4so3KaVtK/0GPVIC1JATYkNkgiqj1UK1lFqolGhLr/vP+jgMF9HmlzT1RGuEPPni3Upk3QMQZBIoC3r+kxAnlGJ54wgUCYjeNMoTsLK9Cf9vaZhhpDPjuOhiFlGKEVdw2vVjQ4ZDyk0RSK0uBrOY6R3RnrO+AOmAhYO7fWGvjRR5yNIR9UFJbg3mIZ3T3jauMjuPPplfbqGzS13gFkzbxMcbk=
+  - secure: k9mPDnNDPA2LKE+u+Z8hDNAdRxD0WiOqbxHRKArX7TuQZRUhznvtMcMYtSv5aF2iL8c8M9814Et2mXoJOage/Wcup8WVZeA403cS7qogt3/gJLZ8Tz1ZkOyt8d7fs6xAYIowqM0qzoqRJ8V9TcjFVmJ3p3hZjzbl/meHF4hsnHYYP2XLzAKyBqepTjCIriD/zOk+P4uF1U7XwCVwfqNdsRjw8VmI/uEZyYX1ekscxf4AJM67kDmYeojcPf/R8h6ufEcTExL7tweQZ6ypXQVjCGJIalb1NsPhfRFJ9f/8Ti4r3Gsq/2KO4JKKW8pu5sf1rx3QZD5jxK57BDXd/cqV94ejU4mBo9cYHxQZ73A2aqMa0PkXBuAF24DpFoRkvamb9aDk30qOxrTmMSZ8Oee1KUlYhtsOtt3Qhm7qjvS6PUoTYJJqKXLK0VsjCyynt20RUH+6p94uNEgrETxDCIVYzS4Eethx1N6GqxKKs1V8cKopwC3C+kJLsYCtVBR/sDxS1IcbnJ7nojNDFr6O6ize5vH7arUiuBmD23ojPIXqL/VFew4RFlD9FsObrVQOqXRneIDOCxNuLBr5+Vsg3/UkMQqZVvUtENszvpPAr5mac92vLLCcwZZoUai7Zj17XZtDi83wyJoHgQboBJbDAv69TQZFZXTNKUhSHiua1ZsYcNo=
   - DOCKER_COMPOSE_VERSION=1.23.2
 
 language: generic
@@ -13,19 +12,16 @@ services:
 
 before_install:
 - sudo rm /usr/local/bin/docker-compose
-- curl -L https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-`uname
-  -s`-`uname -m` > docker-compose
+- curl -L https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-`uname -s`-`uname -m` > docker-compose
 - chmod +x docker-compose
 - sudo mv docker-compose /usr/local/bin
 
 script:
 - pip install --user awscli
 - export PATH=$PATH:$HOME/.local/bin
-- export ${AWS_ACCESS_KEY_ID}
-- export ${AWS_SECRET_ACCESS_KEY}
 - eval $(aws ecr get-login --no-include-email --region ap-southeast-2)
 - docker pull 235945186688.dkr.ecr.ap-southeast-2.amazonaws.com/mirzabuild
-- docker build -f Mirza.Dockerfile --tag --target BUILD -t 235945186688.dkr.ecr.ap-southeast-2.amazonaws.com/mirzabuild --cache-from 235945186688.dkr.ecr.ap-southeast-2.amazonaws.com/mirzabuild:latest .
+- docker build -f Mirza.Dockerfile --target BUILD -t 235945186688.dkr.ecr.ap-southeast-2.amazonaws.com/mirzabuild --cache-from 235945186688.dkr.ecr.ap-southeast-2.amazonaws.com/mirzabuild:latest  .
 - eval $(aws ecr get-login --no-include-email --region ap-southeast-2)
 - docker push 235945186688.dkr.ecr.ap-southeast-2.amazonaws.com/mirzabuild:latest
 - docker build -f Mirza.Dockerfile --target PKG-SCS -t 235945186688.dkr.ecr.ap-southeast-2.amazonaws.com/supplychainserver:$TRAVIS_COMMIT .
