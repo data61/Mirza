@@ -108,7 +108,6 @@ type PrivateAPI =
                   :> Post '[JSON] (EventInfo, Schema.EventId)
 
 type FrontEndAPI =
-  "ux"  :> "list" :> "events"
-        :> Capture "urn" LabelEPCUrn
-        :> Get '[JSON] [Ev.Event]
-
+  "prototype" :> "list" :> "events"
+              :> Capture "urn" LabelEPCUrn
+              :> Get '[JSON] [Ev.Event]
