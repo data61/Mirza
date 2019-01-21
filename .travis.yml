@@ -22,7 +22,6 @@ language: generic
 
 services:
   - postgresql
-  - docker
 
 # Caching so the next build will be fast too.
 cache:
@@ -42,6 +41,7 @@ before_install:
 - mkdir -p ~/.local/bin
 - export PATH=$HOME/.local/bin:$PATH
 - wget -qO- https://get.haskellstack.org/ | sh
+- curl -fsSL https://get.docker.com -o get-docker.sh | sh
 
 install:
 # Build dependencies
