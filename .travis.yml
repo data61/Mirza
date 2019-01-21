@@ -55,8 +55,6 @@ script:
 - stack exec supplyChainServer -- --init-db -c 'dbname=testsupplychainserver'
 - echo 'YES' | stack exec businessRegistry -- initdb -c 'dbname=testbusinessregistry'
 - ./run_tests.sh --no-terminal
-
-after_script:
 # Package and Deploy the docker images
 - pip install --user awscli
 - export PATH=$PATH:$HOME/.local/bin
