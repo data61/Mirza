@@ -61,8 +61,6 @@ after_script:
 - pip install --user awscli
 - export PATH=$PATH:$HOME/.local/bin
 - eval $(aws ecr get-login --no-include-email --region ap-southeast-2)
-- cp $(stack exec -- which suppyChainServer) .
-- cp $(stack exec -- which businessRegistry) .
 - docker build -f Mirza.Dockerfile --target PKG-SCS -t ${DOCKER_REPO}/supplychainserver:$TRAVIS_COMMIT .
 - docker build -f Mirza.Dockerfile --target PKG-BR -t ${DOCKER_REPO}/businessregistry:$TRAVIS_COMMIT .
 - docker push ${DOCKER_REPO}/supplychainserver:$TRAVIS_COMMIT

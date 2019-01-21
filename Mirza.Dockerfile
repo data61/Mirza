@@ -1,6 +1,6 @@
 FROM ubuntu:16.04 as PKG-SCS
 
-COPY suppyChainServer /usr/bin/supplyChainServer
+COPY dist/suppyChainServer /usr/bin/supplyChainServer
 
 RUN apt update && \
 	apt install -y libpq-dev libffi-dev ca-certificates && \
@@ -8,7 +8,7 @@ RUN apt update && \
 
 FROM ubuntu:16.04 as PKG-BR
 
-COPY businessRegistry /usr/bin/businessRegistry
+COPY dist/businessRegistry /usr/bin/businessRegistry
 
 RUN apt update && \
 	apt install -y libpq-dev libffi-dev ca-certificates && \
