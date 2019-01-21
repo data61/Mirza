@@ -21,6 +21,8 @@ before_install:
 script:
 - pip install --user awscli
 - export PATH=$PATH:$HOME/.local/bin
+- export ${AWS_ACCESS_KEY_ID}
+- export ${AWS_SECRET_ACCESS_KEY}
 - eval $(aws ecr get-login --no-include-email --region ap-southeast-2)
 - docker pull 235945186688.dkr.ecr.ap-southeast-2.amazonaws.com/mirzabuild
 - docker build -f Mirza.Dockerfile --tag --target BUILD -t 235945186688.dkr.ecr.ap-southeast-2.amazonaws.com/mirzabuild --cache-from 235945186688.dkr.ecr.ap-southeast-2.amazonaws.com/mirzabuild:latest .
