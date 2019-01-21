@@ -12,6 +12,7 @@ import           Mirza.SupplyChain.Types            (AppError, EnvType (..),
                                                      SCSContext (..), User)
 
 import qualified Mirza.SupplyChain.Types            as ST
+import           Mirza.SupplyChain.PopulateUtils    (insertCitrusData)
 
 import           Servant
 import           Servant.Client
@@ -45,17 +46,17 @@ import           System.IO                          (IOMode (AppendMode),
                                                      stderr, stdout)
 
 data ServerOptionsSCS = ServerOptionsSCS
-  { env           :: EnvType
-  , initDB        :: Bool
-  , dbPopulate    :: Bool
-  , connectionStr :: ByteString
-  , scsPort       :: Int
-  , sScryptN      :: Integer
-  , sScryptP      :: Integer
-  , sScryptR      :: Integer
-  , loggingLevel  :: K.Severity
-  , brServiceInfo :: Maybe (String, Int) -- Maybe (brhost, brport)
-  , loggingPath   :: Maybe FilePath
+  { env            :: EnvType
+  , initDB         :: Bool
+  , dbPopulateInfo :: Maybe (ByteString, ByteString)
+  , connectionStr  :: ByteString
+  , scsPort        :: Int
+  , sScryptN       :: Integer
+  , sScryptP       :: Integer
+  , sScryptR       :: Integer
+  , loggingLevel   :: K.Severity
+  , brServiceInfo  :: Maybe (String, Int) -- Maybe (brhost, brport)
+  , loggingPath    :: Maybe FilePath
   }
 
 defaultDbConnectionStr :: ByteString
@@ -71,9 +72,13 @@ serverOptions = ServerOptionsSCS
       <*> switch
           ( long "init-db"
          <> help "Put empty tables into a fresh database" )
-      <*> switch
-          ( long "populate"
-         <> help "Put dummy data into the database" )
+      <*> optional ((,) <$>
+            strOption (
+            (long "username" <> help "User already inserted"))
+            <*>
+            strOption (
+            (long "password" <> help "Password of the already inserted user"))
+          )
       <*> strOption
           ( long "conn" <> short 'c' <> showDefault
           <> help "Database connection string in libpq format. See: https://www.postgresql.org/docs/9.5/static/libpq-connect.html#LIBPQ-CONNSTRING"
@@ -125,13 +130,22 @@ runProgram so@ServerOptionsSCS{initDB = False, scsPort, brServiceInfo =Just __} 
 runProgram ServerOptionsSCS{initDB = False, brServiceInfo = Nothing} = do
   hPutStrLn stderr $ "Required unless initialising the database: --brhost ARG --brport ARG"
   exitFailure
-runProgram so@ServerOptionsSCS{initDB = True, dbPopulate = False} = migrate $ connectionStr so
-runProgram so@ServerOptionsSCS{initDB = True, dbPopulate = True} = do
+runProgram so@ServerOptionsSCS{initDB = True, dbPopulateInfo =Just _, brServiceInfo =Just __} = do
   migrate $ connectionStr so
   runDbPopulate so
+runProgram ServerOptionsSCS{initDB = True, dbPopulateInfo = Just _, brServiceInfo =Nothing} = do
+  hPutStrLn stderr $ "Required for populating the database: --brhost ARG --brport ARG"
+  exitFailure
+runProgram so@ServerOptionsSCS{initDB = True, dbPopulateInfo = Nothing} = migrate $ connectionStr so
 
 runDbPopulate :: ServerOptionsSCS -> IO ()
-runDbPopulate = error "runDbPopulate: not implemented yet"
+runDbPopulate so = do
+  let prt = scsPort so
+      Just (brHst, brPrt) = brServiceInfo so
+      brUrl = BaseUrl Http brHst brPrt ""
+      Just (username, pswd) = dbPopulateInfo so
+  _ <- insertCitrusData prt brUrl (BasicAuthData username pswd)
+  pure ()
 
 initMiddleware :: ServerOptionsSCS -> IO Middleware
 initMiddleware _ = pure id
