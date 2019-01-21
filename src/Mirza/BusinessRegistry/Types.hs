@@ -203,6 +203,7 @@ instance ToSchema LocationResponse
 instance ToJSON LocationResponse
 instance FromJSON LocationResponse
 
+
 data BusinessAndLocationResponse = BusinessAndLocationResponse
   { businessResponse :: BusinessResponse
   , locationResponse :: LocationResponse
