@@ -87,6 +87,7 @@ privateServer =
   :<|> addLocation
   :<|> getLocationByGLN
   :<|> searchLocation
+  :<|> uxLocation
 
 
 instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub) where
