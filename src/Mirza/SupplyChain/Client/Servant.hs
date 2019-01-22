@@ -4,6 +4,7 @@ module Mirza.SupplyChain.Client.Servant
   -- * Public API
     health
   , addUser
+  , versionInfo
   -- * Authenticated API
   , contactsInfo
   , addContact
@@ -42,7 +43,7 @@ import           Data.Text                         (Text)
 -- * Public API
 health       :: ClientM HealthResponse
 addUser      :: NewUser -> ClientM UserId
-
+versionInfo  :: ClientM String
 
 -- * Authenticated API
 contactsInfo        :: BasicAuthData -> ClientM [T.User]
@@ -74,6 +75,7 @@ _api@(
   _pubAPI@(
          health
     :<|> addUser
+    :<|> versionInfo
   )
   :<|>
   _privAPI@(

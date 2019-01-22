@@ -59,6 +59,7 @@ type PublicAPI =
       :> QueryParam "name" Text
       :> QueryParam "modifiedsince" UTCTime
       :> Get '[JSON] [BusinessResponse]
+  :<|> "version" :> Get '[JSON] String
 
 
 type PrivateAPI =
