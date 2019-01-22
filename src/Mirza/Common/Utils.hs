@@ -20,6 +20,7 @@ module Mirza.Common.Utils
   , expectRight
   , expectJust
   , unsafeMkEmailAddress
+  , versionInfo
   ) where
 
 
@@ -70,6 +71,10 @@ import           Data.Aeson                        (decodeFileStrict)
 
 import           Text.Email.Validate               (EmailAddress, emailAddress)
 
+import           Development.GitRev
+
+versionInfo :: AppM context err String
+versionInfo = pure $(gitHash)
 
 -- | Converts anything to a ``Text``
 toText :: Show a => a -> T.Text

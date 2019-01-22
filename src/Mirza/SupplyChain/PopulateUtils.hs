@@ -35,7 +35,7 @@ import           Text.Email.Validate                   (toByteString)
 import           Data.Hashable                         (Hashable (..))
 import           Data.HashMap.Lazy                     as H
 
-import           Servant.Client                        (BaseUrl (..), ClientM, Scheme (..))
+import           Servant.Client                        (BaseUrl (..), ClientM)
 
 import           Mirza.BusinessRegistry.Client.Servant as BRClient
 import           Mirza.SupplyChain.Client.Servant      as SCSClient
