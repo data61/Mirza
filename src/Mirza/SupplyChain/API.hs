@@ -54,6 +54,7 @@ type PublicAPI =
        "healthz" :> Get '[JSON] HealthResponse
   -- Users
   :<|> "newUser"                            :> ReqBody '[JSON] NewUser                                      :> Post '[JSON] UserId
+  :<|> "version" :> Get '[JSON] String
 
 type PrivateAPI =
 -- Contacts

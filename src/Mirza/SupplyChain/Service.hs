@@ -9,7 +9,8 @@
 {-# LANGUAGE TypeApplications      #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
-{-# OPTIONS_GHC -fno-warn-orphans       #-}
+{-# LANGUAGE TemplateHaskell       #-}
+{-# OPTIONS_GHC -fno-warn-orphans  #-}
 
 -- | Endpoint definitions go here. Most of the endpoint definitions are
 -- light wrappers around functions in BeamQueries
@@ -48,6 +49,10 @@ import           Mirza.Common.GS1BeamOrphans                  ()
 
 import qualified Crypto.JOSE                                  as JOSE
 
+import           Development.GitRev
+
+versionInfo :: AppM context err String
+versionInfo = pure $(gitHash)
 
 appHandlers :: (Member context '[HasDB, HasScryptParams, HasBRClientEnv],
                 Member err     '[JOSE.AsError, AsServiceError, AsServantError, AsSqlError])
@@ -62,6 +67,7 @@ publicServer =
        health
   -- Users
   :<|> addUser
+  :<|> versionInfo
 
 privateServer :: (Member context '[HasDB, HasScryptParams, HasBRClientEnv],
                   Member err     '[JOSE.AsError, AsServiceError, AsServantError, AsSqlError])
