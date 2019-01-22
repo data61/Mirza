@@ -8,6 +8,7 @@ packages:
   - wget
   - unzip
   - docker
+  - jq
 
 runcmd:
   - yum update
