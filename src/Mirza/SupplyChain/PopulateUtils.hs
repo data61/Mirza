@@ -95,10 +95,9 @@ type LocationMap = H.HashMap LocationEPC BT.NewLocation
 -- Insertion and Signature utils
 -- =============================================================================
 
-insertCitrusData :: Int -> BaseUrl -> BasicAuthData -> IO [Event]
-insertCitrusData scsPort brUrl brAuthUser = do
-  let scsUrl = BaseUrl Http "localhost" scsPort ""
-      httpSCS = runClient scsUrl
+insertCitrusData :: BaseUrl -> BaseUrl -> BasicAuthData -> IO [Event]
+insertCitrusData scsUrl brUrl brAuthUser = do
+  let httpSCS = runClient scsUrl
       initAuthHt = H.empty
   authHt <- insertAndAuth scsUrl brUrl brAuthUser locationMap initAuthHt allEntities
   currTime <- getCurrentTime

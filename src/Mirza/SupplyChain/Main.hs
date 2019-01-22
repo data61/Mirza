@@ -50,7 +50,7 @@ data ServerOptionsSCS = ServerOptionsSCS
   , initDB         :: Bool
   , dbPopulateInfo :: Maybe (ByteString, ByteString)
   , connectionStr  :: ByteString
-  , scsPort        :: Int
+  , scsServiceInfo :: (String, Int) -- Maybe (scsHost, scsPort)
   , sScryptN       :: Integer
   , sScryptP       :: Integer
   , sScryptR       :: Integer
@@ -83,9 +83,12 @@ serverOptions = ServerOptionsSCS
           ( long "conn" <> short 'c' <> showDefault
           <> help "Database connection string in libpq format. See: https://www.postgresql.org/docs/9.5/static/libpq-connect.html#LIBPQ-CONNSTRING"
           <> value defaultDbConnectionStr)
-      <*> option auto
-          ( long "scsport" <> short 'p' <> showDefault <> value 8000
-          <> help "Port to run database on" )
+      <*> ((,) <$>
+            strOption (
+            (long "scshost" <> value "localhost" <> help "The host to run the supply chain server on"))
+            <*>
+            option auto (long "scsport" <> value 8000 <> help "Port to run the supply chain server on")
+          )
       <*> option auto
           (long "scryptN" <> value 14 <> showDefault
           <> help "Scrypt N parameter (>= 14)")
@@ -126,11 +129,11 @@ runProgram so@ServerOptionsSCS{initDB = True, dbPopulateInfo =Just _, brServiceI
   runDbPopulate so
 runProgram so@ServerOptionsSCS{initDB =False, dbPopulateInfo =Just _, brServiceInfo =Just __} = do
   runDbPopulate so
-runProgram so@ServerOptionsSCS{initDB = False, scsPort, brServiceInfo =Just __} = do
+runProgram so@ServerOptionsSCS{initDB = False, scsServiceInfo=(scsHst, scsPort), brServiceInfo =Just __} = do
   ctx <- initSCSContext so
   app <- initApplication so ctx
   mids <- initMiddleware so
-  putStrLn $ "http://localhost:" <> show scsPort <> "/swagger-ui/"
+  putStrLn $ "http://" <> scsHst <> ":" <> show scsPort <> "/swagger-ui/"
   Warp.run (fromIntegral scsPort) (mids app) `finally` closeScribes (ctx ^. ST.scsKatipLogEnv)
 runProgram ServerOptionsSCS{initDB = False, brServiceInfo = Nothing} = do
   hPutStrLn stderr $ "Required unless initialising the database: --brhost ARG --brport ARG"
@@ -142,18 +145,19 @@ runProgram so@ServerOptionsSCS{initDB = True, dbPopulateInfo = Nothing} = migrat
 
 runDbPopulate :: ServerOptionsSCS -> IO ()
 runDbPopulate so = do
-  let prt = scsPort so
+  let (scsHst, scsPrt) = scsServiceInfo so
+      scsUrl = BaseUrl Http scsHst scsPrt ""
       Just (brHst, brPrt) = brServiceInfo so
       brUrl = BaseUrl Http brHst brPrt ""
       Just (username, pswd) = dbPopulateInfo so
-  _ <- insertCitrusData prt brUrl (BasicAuthData username pswd)
+  _ <- insertCitrusData scsUrl brUrl (BasicAuthData username pswd)
   pure ()
 
 initMiddleware :: ServerOptionsSCS -> IO Middleware
 initMiddleware _ = pure id
 
 initSCSContext :: ServerOptionsSCS -> IO ST.SCSContext
-initSCSContext (ServerOptionsSCS envT _ _ dbConnStr _prt n p r lev (Just (brHost, bizRegPort)) mlogPath) = do
+initSCSContext (ServerOptionsSCS envT _ _ dbConnStr _ n p r lev (Just (brHost, bizRegPort)) mlogPath) = do
   logHandle <- maybe (pure stdout) (flip openFile AppendMode) mlogPath
   hPutStrLn stderr $ "Logging will be to: " <> fromMaybe "stdout" mlogPath
   handleScribe <- mkHandleScribe ColorIfTerminal logHandle lev V3
