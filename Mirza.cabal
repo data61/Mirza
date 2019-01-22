@@ -63,6 +63,7 @@ library
   build-depends:      base >= 4.7 && < 5
                     , GS1Combinators
                     , aeson
+                    , attoparsec
                     , base64-bytestring
                     , beam-core
                     , beam-migrate

@@ -62,13 +62,14 @@ type PublicAPI =
 
 
 type PrivateAPI =
-       "user"     :> "add"     :> ReqBody '[JSON] NewUser     :> Post '[JSON] UserId
-  :<|> "business" :> "add"     :> ReqBody '[JSON] NewBusiness :> Post '[JSON] GS1CompanyPrefix
-  :<|> "key"      :> "add"     :> ReqBody '[JSON] JWK         :> QueryParam "expirationTime" ExpirationTime :> Post '[JSON] BRKeyId
-  :<|> "key"      :> "revoke"  :> Capture "keyId" BRKeyId     :> Post '[JSON] RevocationTime
-  :<|> "location" :> "add"     :> ReqBody '[JSON] NewLocation   :> Post '[JSON] LocationId
-  :<|> "location" :> "get"     :> Capture "GLN" EPC.LocationEPC :> Get  '[JSON] LocationResponse
-  :<|> "location" :> "search"
+       "user"      :> "add"      :> ReqBody '[JSON] NewUser     :> Post '[JSON] UserId
+  :<|> "business"  :> "add"      :> ReqBody '[JSON] NewBusiness :> Post '[JSON] GS1CompanyPrefix
+  :<|> "key"       :> "add"      :> ReqBody '[JSON] JWK         :> QueryParam "expirationTime" ExpirationTime :> Post '[JSON] BRKeyId
+  :<|> "key"       :> "revoke"   :> Capture "keyId" BRKeyId     :> Post '[JSON] RevocationTime
+  :<|> "location"  :> "add"      :> ReqBody '[JSON] NewLocation   :> Post '[JSON] LocationId
+  :<|> "location"  :> "get"      :> Capture "GLN" EPC.LocationEPC :> Get  '[JSON] LocationResponse
+  :<|> "location"  :> "search"
       :> QueryParam "gs1id" GS1CompanyPrefix
       :> QueryParam "modifiedsince" UTCTime
       :> Get '[JSON] [LocationResponse]
+  :<|> "prototype" :> "location" :> "ux" :> QueryParams "gs1companyprefix" GS1CompanyPrefix :> Get '[JSON] [BusinessAndLocationResponse]
