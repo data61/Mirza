@@ -14,6 +14,7 @@ module Mirza.Common.Utils
   , fromPgJSON
   , addLastUpdateTriggers
   , getTableNames
+  , versionInfo
   ) where
 
 
@@ -52,6 +53,10 @@ import           Data.Text                         (Text, unpack)
 import           Database.Beam.Schema.Tables
 import           Katip
 
+import           Development.GitRev
+
+versionInfo :: AppM context err String
+versionInfo = pure $(gitHash)
 
 -- | Converts anything to a ``Text``
 toText :: Show a => a -> T.Text

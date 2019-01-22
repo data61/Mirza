@@ -23,6 +23,8 @@ module Mirza.SupplyChain.Service
   , serveSwaggerAPI
  ) where
 
+import           Mirza.Common.Utils
+
 import           Mirza.SupplyChain.API
 import           Mirza.SupplyChain.ErrorUtils                 (appErrToHttpErr)
 
@@ -49,10 +51,6 @@ import           Mirza.Common.GS1BeamOrphans                  ()
 
 import qualified Crypto.JOSE                                  as JOSE
 
-import           Development.GitRev
-
-versionInfo :: AppM context err String
-versionInfo = pure $(gitHash)
 
 appHandlers :: (Member context '[HasDB, HasScryptParams, HasBRClientEnv],
                 Member err     '[JOSE.AsError, AsServiceError, AsServantError, AsSqlError])
