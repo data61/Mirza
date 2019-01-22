@@ -44,7 +44,7 @@ addPublicKey     :: BasicAuthData -> JWK -> Maybe ExpirationTime -> ClientM BRKe
 revokePublicKey  :: BasicAuthData -> BRKeyId -> ClientM RevocationTime
 addLocation      :: BasicAuthData -> NewLocation -> ClientM LocationId
 getLocationByGLN :: BasicAuthData -> LocationEPC -> ClientM LocationResponse
-searchLocation   :: BasicAuthData -> Maybe GS1CompanyPrefix -> Maybe UTCTime -> ClientM [LocationResponse] 
+searchLocation   :: BasicAuthData -> Maybe GS1CompanyPrefix -> Maybe UTCTime -> ClientM [LocationResponse]
 uxLocation       :: BasicAuthData -> [GS1CompanyPrefix] -> ClientM [BusinessAndLocationResponse]
 
 
