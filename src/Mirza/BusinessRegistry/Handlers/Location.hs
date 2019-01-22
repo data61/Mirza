@@ -9,6 +9,7 @@ module Mirza.BusinessRegistry.Handlers.Location
   ( addLocation
   , getLocationByGLN
   , searchLocation
+  , uxLocation
   ) where
 
 
@@ -158,8 +159,11 @@ searchLocationQuery mpfx mafter = pg $ runSelectReturningList $ select $ do
   loc    <- all_ (_locations businessRegistryDB)
   geoloc <- all_ (_geoLocations businessRegistryDB)
               & orderBy_ (desc_ . geoLocation_last_update)
-              & limit_ 1
-  
+              -- Temporarily remove the following constraint which restricts the search to the last entry added.
+              -- This was causing a bug which effected the implementation of https://github.com/data61/Mirza/issues/340.
+              -- This issue is being tracked with issue: https://github.com/data61/Mirza/issues/364
+              -- & limit_ 1
+
   guard_ (geoLocation_gln geoloc `references_` loc)
   
   for_ mpfx $ \pfx -> do 
@@ -172,3 +176,20 @@ searchLocationQuery mpfx mafter = pg $ runSelectReturningList $ select $ do
         ||. geoLocation_last_update geoloc >=. just_ (val_ (toDbTimestamp after)))
 
   pure (loc, geoloc)
+
+
+
+uxLocation :: (Member context '[HasDB]
+              , Member err    '[AsSqlError])
+              => AuthUser -> [GS1CompanyPrefix] -> AppM context err [BusinessAndLocationResponse]
+uxLocation user prefixes = do
+  let locations = traverse getLocations prefixes
+  --let businesses = traverse getBusinesses prefixes
+  (fmap locationResponseToBusinessAndLocationResponse) <$> (concat <$> locations)
+
+  where
+    getLocations prefix = searchLocation user (Just prefix) Nothing
+    --getBusinesses prefix  = BRHB.searchBusinesses (Just prefix) Nothing Nothing
+
+    locationResponseToBusinessAndLocationResponse :: LocationResponse -> BusinessAndLocationResponse
+    locationResponseToBusinessAndLocationResponse l = BusinessAndLocationResponse (BusinessResponse (locationBiz l) "") l

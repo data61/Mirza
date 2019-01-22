@@ -45,6 +45,7 @@ revokePublicKey  :: BasicAuthData -> BRKeyId -> ClientM RevocationTime
 addLocation      :: BasicAuthData -> NewLocation -> ClientM LocationId
 getLocationByGLN :: BasicAuthData -> LocationEPC -> ClientM LocationResponse
 searchLocation   :: BasicAuthData -> Maybe GS1CompanyPrefix -> Maybe UTCTime -> ClientM [LocationResponse] 
+uxLocation       :: BasicAuthData -> [GS1CompanyPrefix] -> ClientM [BusinessAndLocationResponse]
 
 
 _api     :: Client ClientM ServerAPI
@@ -66,5 +67,6 @@ _api@(
     :<|> addLocation
     :<|> getLocationByGLN
     :<|> searchLocation
+    :<|> uxLocation
   )
  ) = client (Proxy :: Proxy ServerAPI)
