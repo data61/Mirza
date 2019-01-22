@@ -104,7 +104,7 @@ insertCitrusData scsPort brUrl brAuthUser = do
   currTime <- getCurrentTime
   let citrusEachEvents = makeCitrusEvents (EPCISTime currTime) utc
       citrusEvents = eachEventEvent <$> citrusEachEvents
-  traverse_  (httpSCS . (insertEachEvent authHt)) citrusEachEvents
+  _insertionRes <- traverse (httpSCS . (insertEachEvent authHt)) citrusEachEvents
   pure citrusEvents
 
 insertAndAuth :: BaseUrl
