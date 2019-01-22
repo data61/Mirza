@@ -119,7 +119,7 @@ getLocationByGLN :: ( Member context '[HasLogging, HasConnPool, HasEnvType]
                     => AuthUser
                     -> LocationEPC
                     -> AppM context err LocationResponse
-getLocationByGLN _user gln = locationToLocationResponse 
+getLocationByGLN _user gln = locationToLocationResponse
   <$> (runDb (getLocationByGLNQuery gln) <!?>  (_LocationNotKnownBRE # ()))
 
 
@@ -150,12 +150,12 @@ getLocationByGLNQuery gln = pg $ runSelectReturningOne $ select $ do
 searchLocation :: (Member context '[HasDB]
                   , Member err    '[AsSqlError])
                => AuthUser -> Maybe GS1CompanyPrefix -> Maybe UTCTime -> AppM context err [LocationResponse]
-searchLocation _user mpfx mafter = fmap locationToLocationResponse 
+searchLocation _user mpfx mafter = fmap locationToLocationResponse
   <$> runDb (searchLocationQuery mpfx mafter)
 
 searchLocationQuery :: Maybe GS1CompanyPrefix -> Maybe UTCTime -> DB context err [(Location,GeoLocation)]
 searchLocationQuery mpfx mafter = pg $ runSelectReturningList $ select $ do
-  
+
   loc    <- all_ (_locations businessRegistryDB)
   geoloc <- all_ (_geoLocations businessRegistryDB)
               & orderBy_ (desc_ . geoLocation_last_update)
@@ -165,12 +165,12 @@ searchLocationQuery mpfx mafter = pg $ runSelectReturningList $ select $ do
               -- & limit_ 1
 
   guard_ (geoLocation_gln geoloc `references_` loc)
-  
-  for_ mpfx $ \pfx -> do 
+
+  for_ mpfx $ \pfx -> do
     biz    <- all_ (_businesses businessRegistryDB)
     guard_ (location_biz_id loc `references_` biz)
     guard_ (val_ (BizId pfx) `references_` biz)
-  
+
   for_ mafter $ \after ->
     guard_ (location_last_update loc       >=. just_ (val_ (toDbTimestamp after))
         ||. geoLocation_last_update geoloc >=. just_ (val_ (toDbTimestamp after)))
