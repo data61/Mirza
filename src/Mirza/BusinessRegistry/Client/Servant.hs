@@ -13,6 +13,7 @@ module Mirza.BusinessRegistry.Client.Servant
   , addLocation
   , getLocationByGLN
   , searchLocation
+  , uxLocation
   ) where
 
 import           Mirza.BusinessRegistry.API
