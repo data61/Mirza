@@ -9,7 +9,8 @@
 {-# LANGUAGE TypeApplications      #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
-{-# OPTIONS_GHC -fno-warn-orphans       #-}
+{-# LANGUAGE TemplateHaskell       #-}
+{-# OPTIONS_GHC -fno-warn-orphans  #-}
 
 -- | Endpoint definitions go here. Most of the endpoint definitions are
 -- light wrappers around functions in BeamQueries
@@ -21,6 +22,8 @@ module Mirza.SupplyChain.Service
   , appMToHandler
   , serveSwaggerAPI
  ) where
+
+import           Mirza.Common.Utils
 
 import           Mirza.SupplyChain.API
 import           Mirza.SupplyChain.ErrorUtils                 (appErrToHttpErr)
@@ -62,6 +65,7 @@ publicServer =
        health
   -- Users
   :<|> addUser
+  :<|> versionInfo
 
 privateServer :: (Member context '[HasDB, HasScryptParams, HasBRClientEnv],
                   Member err     '[JOSE.AsError, AsServiceError, AsServantError, AsSqlError])

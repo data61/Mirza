@@ -24,6 +24,8 @@ module Mirza.BusinessRegistry.Service
   , module Handlers
  ) where
 
+import           Mirza.Common.Utils
+
 import           Mirza.BusinessRegistry.API
 
 import           Mirza.BusinessRegistry.Handlers.Business as Handlers
@@ -72,6 +74,7 @@ publicServer =
   :<|> getPublicKey
   :<|> getPublicKeyInfo
   :<|> searchBusinesses
+  :<|> versionInfo
 
 privateServer :: ( Member context '[HasScryptParams, HasDB]
                  , APIPossibleErrors err)

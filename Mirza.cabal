@@ -98,6 +98,7 @@ library
                     , warp
                     , jose
                     , cryptonite
+                    , gitrev
   default-language:   Haskell2010
 
 
