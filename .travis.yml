@@ -65,6 +65,7 @@ script:
 - docker push ${DOCKER_REPO}/supplychainserver:$TRAVIS_COMMIT
 - docker push ${DOCKER_REPO}/businessregistry:$TRAVIS_COMMIT
 - sed -i "s#latest#$TRAVIS_COMMIT#g" deploy/docker-compose.yml
+- chmod 0600 ~/.ssh/deployment.pem
 - scp -i ~/.ssh/deployment.pem -o StrictHostKeyChecking=no deploy/docker-compose.yml ec2-user@$SERVER_IP:/home/ec2-user/
 - scp -i ~/.ssh/deployment.pem -o StrictHostKeyChecking=no deploy/create_databases.sh ec2-user@$SERVER_IP:/home/ec2-user/
 - scp -i ~/.ssh/deployment.pem -o StrictHostKeyChecking=no deploy/get_and_start_new_version.sh ec2-user@$SERVER_IP:/home/ec2-user/
