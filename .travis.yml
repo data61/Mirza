@@ -39,7 +39,7 @@ addons:
 
 before_install:
 - openssl aes-256-cbc -K $encrypted_8fe1f88deb69_key -iv $encrypted_8fe1f88deb69_iv
-  -in deployment.pem.enc -out ~\/.ssh/deployment.pem -d
+  -in deploy/deployment.pem.enc -out ~/.ssh/deployment.pem -d
 - mkdir -p ~/.local/bin
 - export PATH=$HOME/.local/bin:$PATH
 - wget -qO- https://get.haskellstack.org/ | sh
