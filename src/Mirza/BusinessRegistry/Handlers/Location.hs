@@ -3,6 +3,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE NamedFieldPuns        #-}
 {-# LANGUAGE RecordWildCards       #-}
+{-# LANGUAGE TemplateHaskell       #-}
 
 
 module Mirza.BusinessRegistry.Handlers.Location
@@ -29,6 +30,8 @@ import           Database.Beam.Backend.SQL.BeamExtensions
 
 import           GHC.Stack                                (HasCallStack,
                                                            callStack)
+
+import           Katip
 
 import           Control.Lens                             (( # ))
 import           Control.Lens.Operators                   ((&))
@@ -184,15 +187,15 @@ maxPrefixesForUxLocations :: Int
 maxPrefixesForUxLocations = 25
 
 
-uxLocation :: ( Member context '[HasDB]
+uxLocation :: ( Member context '[HasDB, HasLogging]
               , Member err     '[AsSqlError])
            => AuthUser -> [GS1CompanyPrefix] -> AppM context err [BusinessAndLocationResponse]
 uxLocation user userPrefixes = do
   -- We constrain the maximum number of company prefixes that can be quired in a single invocation to prevent abuse.
   let prefixes = take maxPrefixesForUxLocations userPrefixes
-  let locations = traverse getLocations prefixes
-  let businesses = traverse getBusinesses prefixes
-  buildBusinessAndLocationResponses <$> (concat <$> businesses) <*> (concat <$> locations)
+  locations <- traverse getLocations prefixes
+  businesses <- traverse getBusinesses prefixes
+  buildBusinessAndLocationResponses (concat businesses) (concat locations)
 
   where
     getLocations :: (Member context '[HasDB], Member err '[AsSqlError])
@@ -206,12 +209,19 @@ uxLocation user userPrefixes = do
     matchId :: LocationResponse -> BusinessResponse -> Bool
     matchId location business = (locationBiz location) == (businessGS1CompanyPrefix business)
 
-    buildBusinessAndLocationResponse :: [BusinessResponse] -> LocationResponse -> BusinessAndLocationResponse
-    buildBusinessAndLocationResponse businesses location = BusinessAndLocationResponse business location
+    buildBusinessAndLocationResponse :: Member context '[HasLogging]
+                                     => [BusinessResponse] -> LocationResponse -> AppM context err BusinessAndLocationResponse
+    buildBusinessAndLocationResponse businesses location = (\business -> BusinessAndLocationResponse business location) <$> matchedBusiness
                                                            where
-                                                             -- todo should probably also log here to indicate that something went wrong.
-                                                             unfoundBusiness = (BusinessResponse (locationBiz location) "[Unknown]")
-                                                             business = maybe unfoundBusiness id $ find (matchId location) businesses
+                                                             -- It shouldn't be possible to get here, and indicates a logic error in our code
+                                                             -- or database. We don't want to break and error if we do since this is a pretty UX
+                                                             -- endpoint. Returning the mostly complete info and loggging the error so we can fix
+                                                             -- seems the most reasonable compromise.
+                                                             unfoundBusiness = do
+                                                               $(logTM) WarningS "Could not find a business that corresponds with this business location."
+                                                               pure (BusinessResponse (locationBiz location) "[Unknown]")
+                                                             matchedBusiness = maybe unfoundBusiness pure $ find (matchId location) businesses
 
-    buildBusinessAndLocationResponses :: [BusinessResponse] -> [LocationResponse] -> [BusinessAndLocationResponse]
-    buildBusinessAndLocationResponses businesses locations = (buildBusinessAndLocationResponse businesses) <$> locations
+    buildBusinessAndLocationResponses :: Member context '[HasLogging]
+                                      => [BusinessResponse] -> [LocationResponse] -> AppM context err [BusinessAndLocationResponse]
+    buildBusinessAndLocationResponses businesses locations = sequence $ (buildBusinessAndLocationResponse businesses) <$> locations
