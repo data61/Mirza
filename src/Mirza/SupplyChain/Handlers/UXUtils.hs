@@ -8,36 +8,26 @@ module Mirza.SupplyChain.Handlers.UXUtils
 
 
 import           Mirza.Common.GS1BeamOrphans       (LabelEPCUrn (..))
-import           Mirza.Common.Utils                (fromPgJSON)
 import           Mirza.SupplyChain.EventUtils      (findLabelId,
-                                                    findSchemaEvent,
                                                     getEventList)
-import           Mirza.SupplyChain.Handlers.Users  (userTableToModel)
 
 import           Mirza.SupplyChain.Database.Schema as Schema
-import           Mirza.SupplyChain.ErrorUtils      (throwBackendError,
-                                                    throwParseError)
+import           Mirza.SupplyChain.ErrorUtils      (throwParseError)
 import           Mirza.SupplyChain.QueryUtils
 import           Mirza.SupplyChain.Types           hiding (NewUser (..),
                                                     User (..))
 import qualified Mirza.SupplyChain.Types           as ST
 
+import qualified Mirza.BusinessRegistry.Types      as BT
+
 import           Data.GS1.DWhat                    (LabelEPC (..), urn2LabelEPC)
 import qualified Data.GS1.Event                    as Ev
-import           Data.GS1.EventId                  as EvId
 
-import           Database.Beam                     as B
-
-import           Control.Lens                      (( # ))
-import           Control.Monad.Error.Hoist
-
-import           Data.Bifunctor                    (bimap)
-
-import           Crypto.JOSE.Types                 (Base64Octets (..))
-
-import           Data.List                         (partition)
-
-import           Database.Beam.Postgres            (PgJSON (..))
+data PrettyEventResponse =
+  PrettyEvent
+  { prettyEvent    :: Event
+  , prettyLocation :: BT.BusinessAndLocationResponse
+  }
 
 -- This takes an EPC urn,
 -- and looks up all the events related to that item.
