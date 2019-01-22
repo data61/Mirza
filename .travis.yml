@@ -28,8 +28,8 @@ services:
 cache:
   timeout: 4000
   directories:
-  - $HOME/.stack
-  - .stack-work
+  - "$HOME/.stack"
+  - ".stack-work"
 
 # Ensure necessary system libraries are present
 addons:
@@ -38,7 +38,8 @@ addons:
       - libgmp-dev
 
 before_install:
-# Download and unpack the stack executable
+- openssl aes-256-cbc -K $encrypted_8fe1f88deb69_key -iv $encrypted_8fe1f88deb69_iv
+  -in deploy/deployment.pem.enc -out ~\/.ssh/deployment.pem -d
 - mkdir -p ~/.local/bin
 - export PATH=$HOME/.local/bin:$PATH
 - wget -qO- https://get.haskellstack.org/ | sh
@@ -64,9 +65,9 @@ script:
 - docker push ${DOCKER_REPO}/supplychainserver:$TRAVIS_COMMIT
 - docker push ${DOCKER_REPO}/businessregistry:$TRAVIS_COMMIT
 - sed -i "s#latest#$TRAVIS_COMMIT#g" deploy/docker-compose.yml
-- scp -o StrictHostKeyChecking=no deploy/docker-compose.yml ec2-user@$SERVER_IP:/home/ec2-user/
-- scp -o StrictHostKeyChecking=no deploy/create_databases.sh ec2-user@$SERVER_IP:/home/ec2-user/
-- scp -o StrictHostKeyChecking=no deploy/get_and_start_new_version.sh ec2-user@$SERVER_IP:/home/ec2-user/
-- ssh -o StrictHostKeyChecking=no ec2-user@$SERVER_IP $(~/bin/aws ecr get-login --no-include-email --region ap-southeast-2)
-- ssh -o StrictHostKeyChecking=no ec2-user@$SERVER_IP chmod +x ./get_and_start_new_version.sh
-- ssh -o StrictHostKeyChecking=no ec2-user@$SERVER_IP ./get_and_start_new_version.sh
+- scp -i ~./ssh/deployment.pem -o StrictHostKeyChecking=no deploy/docker-compose.yml ec2-user@$SERVER_IP:/home/ec2-user/
+- scp -i ~./ssh/deployment.pem -o StrictHostKeyChecking=no deploy/create_databases.sh ec2-user@$SERVER_IP:/home/ec2-user/
+- scp -i ~./ssh/deployment.pem -o StrictHostKeyChecking=no deploy/get_and_start_new_version.sh ec2-user@$SERVER_IP:/home/ec2-user/
+- ssh -i ~./ssh/deployment.pem -o StrictHostKeyChecking=no ec2-user@$SERVER_IP $(~/bin/aws ecr get-login --no-include-email --region ap-southeast-2)
+- ssh -i ~./ssh/deployment.pem -o StrictHostKeyChecking=no ec2-user@$SERVER_IP chmod +x ./get_and_start_new_version.sh
+- ssh -i ~./ssh/deployment.pem -o StrictHostKeyChecking=no ec2-user@$SERVER_IP ./get_and_start_new_version.sh
