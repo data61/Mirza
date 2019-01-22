@@ -19,6 +19,7 @@ import           Mirza.BusinessRegistry.Types             as BT
 import           Mirza.Common.Types                       (Member)
 import           Mirza.Common.Utils
 import           Mirza.Common.Time                        (toDbTimestamp)
+import qualified Mirza.BusinessRegistry.Handlers.Business as BRHB (searchBusinesses)
 
 
 import           Data.GS1.EPC                             (LocationEPC, GS1CompanyPrefix)
@@ -33,7 +34,7 @@ import           Control.Lens                             (( # ))
 import           Control.Lens.Operators                   ((&))
 import           Control.Monad.Error.Hoist                ((<!?>))
 import           Data.Time                                (UTCTime)
-import           Data.Foldable                            (for_)
+import           Data.Foldable                            (for_, find)
 
 addLocation :: ( Member context '[HasEnvType, HasConnPool, HasLogging]
                , Member err     '[AsSqlError, AsBRError])
@@ -178,18 +179,39 @@ searchLocationQuery mpfx mafter = pg $ runSelectReturningList $ select $ do
   pure (loc, geoloc)
 
 
+-- The maximum number of companies that can be searched for in a single uxLocation query.
+maxPrefixesForUxLocations :: Int
+maxPrefixesForUxLocations = 25
 
-uxLocation :: (Member context '[HasDB]
-              , Member err    '[AsSqlError])
-              => AuthUser -> [GS1CompanyPrefix] -> AppM context err [BusinessAndLocationResponse]
-uxLocation user prefixes = do
+
+uxLocation :: ( Member context '[HasDB]
+              , Member err     '[AsSqlError])
+           => AuthUser -> [GS1CompanyPrefix] -> AppM context err [BusinessAndLocationResponse]
+uxLocation user userPrefixes = do
+  -- We constrain the maximum number of company prefixes that can be quired in a single invocation to prevent abuse.
+  let prefixes = take maxPrefixesForUxLocations userPrefixes
   let locations = traverse getLocations prefixes
-  --let businesses = traverse getBusinesses prefixes
-  (fmap locationResponseToBusinessAndLocationResponse) <$> (concat <$> locations)
+  let businesses = traverse getBusinesses prefixes
+  buildBusinessAndLocationResponses <$> (concat <$> businesses) <*> (concat <$> locations)
 
   where
+    getLocations :: (Member context '[HasDB], Member err '[AsSqlError])
+                 => GS1CompanyPrefix -> AppM context err [LocationResponse]
     getLocations prefix = searchLocation user (Just prefix) Nothing
-    --getBusinesses prefix  = BRHB.searchBusinesses (Just prefix) Nothing Nothing
 
-    locationResponseToBusinessAndLocationResponse :: LocationResponse -> BusinessAndLocationResponse
-    locationResponseToBusinessAndLocationResponse l = BusinessAndLocationResponse (BusinessResponse (locationBiz l) "") l
+    getBusinesses :: (Member context '[HasDB], Member err '[AsSqlError])
+                  => GS1CompanyPrefix -> AppM context err [BusinessResponse]
+    getBusinesses prefix  = BRHB.searchBusinesses (Just prefix) Nothing Nothing
+
+    matchId :: LocationResponse -> BusinessResponse -> Bool
+    matchId location business = (locationBiz location) == (businessGS1CompanyPrefix business)
+
+    buildBusinessAndLocationResponse :: [BusinessResponse] -> LocationResponse -> BusinessAndLocationResponse
+    buildBusinessAndLocationResponse businesses location = BusinessAndLocationResponse business location
+                                                           where
+                                                             -- todo should probably also log here to indicate that something went wrong.
+                                                             unfoundBusiness = (BusinessResponse (locationBiz location) "[Unknown]")
+                                                             business = maybe unfoundBusiness id $ find (matchId location) businesses
+
+    buildBusinessAndLocationResponses :: [BusinessResponse] -> [LocationResponse] -> [BusinessAndLocationResponse]
+    buildBusinessAndLocationResponses businesses locations = (buildBusinessAndLocationResponse businesses) <$> locations
