@@ -3,6 +3,9 @@
 # This script is sent to the aws server, and executed with every deployment.
 # This script also assumes the existence of a .env file alongside the docker-compose.yml file.
 
+# Authenticate with ECR so that 'docker pull' can be used.
+$(aws ecr get-login --no-include-email --region ap-southeast-2)
+
 # Stop and remove the currently running version of code
 docker-compose stop supplyChainServer businessRegistry private-ethereum-blockchain blockchain-api-server || echo "no old containers running"
 docker-compose rm -f supplyChainServer businessRegistry private-ethereum-blockchain blockchain-api-server || echo "no containers to remove"
