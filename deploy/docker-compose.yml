@@ -72,9 +72,12 @@ services:
     image: 235945186688.dkr.ecr.ap-southeast-2.amazonaws.com/supplychainserver:latest
     networks:
       - backend
+    links:
+      - supplyChainServer:scs
+      - businessRegistry:br
     env_file:
       - .env
-    command: /bin/sh -c "/usr/bin/supplyChainServer --init-db -c 'postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/devsupplychainserver' && echo test"
+    command: /bin/sh -c "/usr/bin/supplyChainServer --init-db -c 'postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/devsupplychainserver' && supplyChainServer --username '${BR_USER}' --password '${BR_PASSWORD}' --scshost scs --brhost br --brport 8200"
     depends_on:
       - db
     logging:
