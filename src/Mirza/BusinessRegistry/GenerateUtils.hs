@@ -50,28 +50,6 @@ dummyUser unique business_uid = do
   let newUserPhoneNumber  = "User" <> unique <> "PhoneNumber"
   pure NewUser{..}
 
-
-generateUsers :: String -> Int -> IO [NewUser]
-generateUsers _ 0        = pure []
-generateUsers testName n = do
-  newUser <- makeNewUserByNumber testName n
-  ((:) newUser) <$> generateUsers testName (n - 1)
-
-
-makeNewUserByNumber :: String -> Int -> IO NewUser
-makeNewUserByNumber testName n = do
-  let unique = T.pack $ testName ++ "_" ++ show n
-  dummyUser unique globalCompanyPrefix
-
-
-insertNUsers :: String
-             -> Int
-             -> BasicAuthData
-             -> ClientM [UserId]
-insertNUsers testName n brAuthData = do
-  users <- liftIO $ generateUsers testName n
-  traverse (BRClient.addUser brAuthData) $ users
-
 -- Insert multiple users into the BR DB given a
 -- list of first names and company prefixes.
 insertMultipleUsers :: String
