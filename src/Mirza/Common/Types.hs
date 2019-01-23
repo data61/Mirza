@@ -332,7 +332,7 @@ runDb (DB act) = katipAddNamespace "runDb" $ do
   lggr <- askLoggerIO
   let dbf =  case e of
             Prod -> B.withDatabase
-            _    -> B.withDatabaseDebug (lggr DebugS . logStr)
+            _    -> B.withDatabaseDebug putStrLn
 
   res <- liftIO $ Pool.withResource (env ^. connPool) $ \conn ->
           Exc.try
