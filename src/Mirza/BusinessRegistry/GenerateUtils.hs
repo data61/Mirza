@@ -1,4 +1,5 @@
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE RecordWildCards  #-}
 
 -- | Utility functions to generate test data using
 -- each service's client
@@ -11,69 +12,67 @@ import           Data.GS1.EPC
 import qualified Data.Text                             as T
 import           Data.Text.Encoding                    (encodeUtf8)
 
-import qualified Data.ByteString.Char8                 as BS
-
 import           Mirza.BusinessRegistry.Client.Servant as BRClient
 
 import           Servant.API.BasicAuth                 (BasicAuthData (..))
 
-import           Mirza.Common.Utils                    (unsafeMkEmailAddress)
+import           Mirza.Common.Utils                    (unsafeMkEmailAddress, randomText)
+
+import           Text.Email.Validate                   (unsafeEmailAddress)
 
 import           Servant.Client                        (ClientM)
 
-genNUsersBR :: String -> Int -> [NewUser]
-genNUsersBR _ 0        = []
-genNUsersBR testName n = mkNewUserByNumber testName n : genNUsersBR testName (n - 1)
+
 
 globalCompanyPrefix :: GS1CompanyPrefix
 globalCompanyPrefix = GS1CompanyPrefix "1234567"
 
+
 globalBusiness :: NewBusiness
 globalBusiness = NewBusiness globalCompanyPrefix "Generator Business Ltd."
 
-mkNewUserByNumber :: String -> Int -> NewUser
-mkNewUserByNumber testName n =
-  let numStr = testName ++ "_" ++ show n
-      numT = T.pack numStr
-      numBS = BS.pack numStr
-  in
-  NewUser
-  { newUserPhoneNumber = "0400 111 22" <> numT
-  , newUserEmailAddress = unsafeMkEmailAddress $ "abc" <> numBS <> "@example.com"
-  , newUserFirstName = "First: " <> numT
-  , newUserLastName = "Last: " <> numT
-  , newUserCompany = globalCompanyPrefix -- Company prefix is constant
-  , newUserPassword = "re4lly$ecret14!" }
+
+dummyBusiness :: T.Text -> IO NewBusiness
+dummyBusiness unique = do
+  let newBusinessGS1CompanyPrefix = GS1CompanyPrefix ("Business" <> unique <> "Prefix")
+  let newBusinessName             = "Business" <> unique <> "Name"
+  pure NewBusiness{..}
 
 
-insertNUsersBR :: String
-               -> Int
-               -> BasicAuthData
-               -> ClientM [UserId]
-insertNUsersBR testName n brAuthData = traverse (BRClient.addUser brAuthData) $ genNUsersBR testName n
+dummyUser :: T.Text -> GS1CompanyPrefix -> IO NewUser
+dummyUser unique business_uid = do
+  passwordEntropy <- randomText
+  let newUserEmailAddress = unsafeEmailAddress (encodeUtf8 unique) "example.com"
+  let newUserPassword     = "User" <> unique <> "Password" <> passwordEntropy
+  let newUserCompany      = business_uid
+  let newUserFirstName    = "User" <> unique <> "FirstName"
+  let newUserLastName     = "User" <> unique <> "LastName"
+  let newUserPhoneNumber  = "User" <> unique <> "PhoneNumber"
+  pure NewUser{..}
 
 -- Insert multiple users into the BR DB given a
 -- list of first names and company prefixes.
-insertMultipleUsersBR :: String
-                      -> BasicAuthData
-                      -> [T.Text]
-                      -> [GS1CompanyPrefix]
-                      -> ClientM  [UserId]
-insertMultipleUsersBR testName brAuthData fn pfx =
-  traverse (BRClient.addUser brAuthData) (genMultipleUsersBR testName n fn pfx)
+insertMultipleUsers :: String
+                    -> BasicAuthData
+                    -> [T.Text]
+                    -> [GS1CompanyPrefix]
+                    -> ClientM  [UserId]
+insertMultipleUsers testName brAuthData fn pfx =
+  traverse (BRClient.addUser brAuthData) (genMultipleUsers testName n fn pfx)
   where
     n = min (length fn) (length pfx)
 
-genMultipleUsersBR :: String
-                   -> Int
-                   -> [T.Text]
-                   -> [GS1CompanyPrefix]
-                   -> [NewUser]
-genMultipleUsersBR _ 0 _  _ = []
-genMultipleUsersBR _ _ [] _ = []
-genMultipleUsersBR _ _ _ [] = []
-genMultipleUsersBR testName n (f:fx) (p:px) =
-  newUser : genMultipleUsersBR testName (n-1) fx px
+
+genMultipleUsers :: String
+                 -> Int
+                 -> [T.Text]
+                 -> [GS1CompanyPrefix]
+                 -> [NewUser]
+genMultipleUsers _ 0 _  _ = []
+genMultipleUsers _ _ [] _ = []
+genMultipleUsers _ _ _ [] = []
+genMultipleUsers testName n (f:fx) (p:px) =
+  newUser : genMultipleUsers testName (n-1) fx px
   where
     numT = T.pack $ show n
     newUser = NewUser
