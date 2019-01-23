@@ -34,6 +34,7 @@ library
                     , Mirza.BusinessRegistry.Handlers.Users
                     , Mirza.BusinessRegistry.Types
                     , Mirza.BusinessRegistry.SqlUtils
+                    , Mirza.BusinessRegistry.GenerateUtils
                     , Mirza.Common.Beam
                     , Mirza.Common.GS1BeamOrphans
                     , Mirza.Common.Types
@@ -57,6 +58,8 @@ library
                     , Mirza.SupplyChain.Service
                     , Mirza.SupplyChain.Types
                     , Mirza.SupplyChain.SqlUtils
+                    , Mirza.SupplyChain.GenerateUtils
+                    , Mirza.SupplyChain.PopulateUtils
 
 
   other-modules:      Mirza.SupplyChain.ErrorUtils
@@ -95,6 +98,8 @@ library
                     , uuid
                     , uuid-types
                     , wai
+                    , unordered-containers
+                    , hashable
                     , warp
                     , jose
                     , cryptonite
@@ -128,11 +133,8 @@ test-suite supplyChainServer-test
                     , Mirza.SupplyChain.Tests.Service
                     , Mirza.SupplyChain.Tests.Dummies
                     , Mirza.SupplyChain.Tests.Client
-                    , Mirza.SupplyChain.Tests.Generate
                     , Mirza.SupplyChain.Tests.Citrus
-                    , Mirza.SupplyChain.Tests.Utils
                     , Mirza.BusinessRegistry.Tests.Utils
-                    , Mirza.BusinessRegistry.Tests.Generate
   default-extensions:  OverloadedStrings
   build-depends:       base
                      , base64-bytestring
@@ -156,13 +158,13 @@ test-suite supplyChainServer-test
                      , text
                      , time
                      , uuid
-                     , unordered-containers
-                     , hashable
                      , tasty
                      , tasty-hspec
                      , tasty-hunit
                      , transformers
                      , hspec-expectations
+                     , unordered-containers
+                     , hashable
                      , wai
                      , warp
                      , servant-client
@@ -183,11 +185,9 @@ test-suite businessRegistry-test
                     , Mirza.BusinessRegistry.Tests.Keys
                     , Mirza.BusinessRegistry.Tests.Dummies
                     , Mirza.BusinessRegistry.Tests.Business
-                    , Mirza.BusinessRegistry.Tests.Generate
                     , Mirza.BusinessRegistry.Tests.Client
                     , Mirza.Common.Tests.Utils
                     , Mirza.BusinessRegistry.Tests.Utils
-                    , Mirza.BusinessRegistry.Tests.Generate
   default-extensions:  OverloadedStrings
   build-depends:       base
                      , base64-bytestring

@@ -2,7 +2,7 @@
 
 -- | Utility functions to generate test data using
 -- each service's client
-module Mirza.SupplyChain.Tests.Generate where
+module Mirza.SupplyChain.GenerateUtils where
 
 import           Data.GS1.EPC
 
@@ -13,7 +13,7 @@ import           Data.Text.Encoding               (encodeUtf8)
 
 import qualified Data.ByteString.Char8            as BS
 
-import           Mirza.Common.Tests.Utils         (unsafeMkEmailAddress)
+import           Mirza.Common.Utils               (unsafeMkEmailAddress)
 
 import           Servant.Client                   (ClientM)
 
