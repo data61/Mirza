@@ -42,23 +42,12 @@ dummyUser unique business_uid = do
   pure NewUser{..}
 
 
-genMultipleUsers :: String
-                 -> Int
-                 -> [T.Text]
-                 -> [GS1CompanyPrefix]
-                 -> [NewUser]
-genMultipleUsers _ 0 _  _ = []
-genMultipleUsers _ _ [] _ = []
-genMultipleUsers _ _ _ [] = []
-genMultipleUsers testName n (f:fx) (p:px) =
-  newUser : genMultipleUsers testName (n-1) fx px
-  where
-    numT = T.pack $ show n
-    newUser = NewUser
-      { newUserPhoneNumber = "0400 111 22" <> numT
-      , newUserEmailAddress =
-          unsafeMkEmailAddress $ encodeUtf8 f <> "@example.com"
-      , newUserFirstName = f
-      , newUserLastName = "Last: " <> numT
-      , newUserCompany = p
-      , newUserPassword = "re4lly$ecret14!" }
+generateMultipleUsers :: String
+                      -> Int
+                      -> [GS1CompanyPrefix]
+                      -> IO [NewUser]
+generateMultipleUsers _ 0 _  = pure []
+generateMultipleUsers _ _ [] = pure []
+generateMultipleUsers testName n (p:px) = do
+  newUser <- dummyUser (T.pack (testName <> (show n))) p
+  ((:) newUser) <$> generateMultipleUsers testName (n-1) px
