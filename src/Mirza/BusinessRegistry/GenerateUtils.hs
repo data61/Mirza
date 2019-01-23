@@ -6,7 +6,7 @@
 module Mirza.BusinessRegistry.GenerateUtils where
 
 import           Mirza.BusinessRegistry.Types as BT
-import           Mirza.Common.Utils           (randomText, unsafeMkEmailAddress)
+import           Mirza.Common.Utils           (randomText)
 
 import           Data.GS1.EPC
 
