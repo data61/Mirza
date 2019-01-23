@@ -5,10 +5,10 @@ module Mirza.Common.Tests.ServantUtils
   , manager'
   ) where
 
-import           Control.Concurrent       (ThreadId, forkIO, killThread)
-import           System.IO.Unsafe         (unsafePerformIO)
+import           Mirza.Common.Utils       (runClient, manager')
 
-import qualified Network.HTTP.Client      as C
+import           Control.Concurrent       (ThreadId, forkIO, killThread)
+
 import           Network.Socket
 import qualified Network.Wai              as Wai
 import           Network.Wai.Handler.Warp
@@ -43,11 +43,3 @@ openTestSocket = do
   listen s 1
   prt <- socketPort s
   pure (fromIntegral prt, s)
-
-
-{-# NOINLINE manager' #-}
-manager' :: C.Manager
-manager' = unsafePerformIO $ C.newManager C.defaultManagerSettings
-
-runClient :: BaseUrl -> ClientM a -> IO (Either ServantError a)
-runClient baseUrl' x = runClientM x (mkClientEnv manager' baseUrl')
