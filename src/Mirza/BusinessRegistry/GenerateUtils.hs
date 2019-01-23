@@ -50,18 +50,6 @@ dummyUser unique business_uid = do
   let newUserPhoneNumber  = "User" <> unique <> "PhoneNumber"
   pure NewUser{..}
 
--- Insert multiple users into the BR DB given a
--- list of first names and company prefixes.
-insertMultipleUsers :: String
-                    -> BasicAuthData
-                    -> [T.Text]
-                    -> [GS1CompanyPrefix]
-                    -> ClientM  [UserId]
-insertMultipleUsers testName brAuthData fn pfx =
-  traverse (BRClient.addUser brAuthData) (genMultipleUsers testName n fn pfx)
-  where
-    n = min (length fn) (length pfx)
-
 
 genMultipleUsers :: String
                  -> Int
