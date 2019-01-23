@@ -15,14 +15,6 @@ import           Data.Text.Encoding           (encodeUtf8)
 
 import           Text.Email.Validate          (unsafeEmailAddress)
 
-globalCompanyPrefix :: GS1CompanyPrefix
-globalCompanyPrefix = GS1CompanyPrefix "1234567"
-
-
-globalBusiness :: NewBusiness
-globalBusiness = NewBusiness globalCompanyPrefix "Generator Business Ltd."
-
-
 dummyBusiness :: T.Text -> IO NewBusiness
 dummyBusiness unique = do
   let newBusinessGS1CompanyPrefix = GS1CompanyPrefix ("Business" <> unique <> "Prefix")
