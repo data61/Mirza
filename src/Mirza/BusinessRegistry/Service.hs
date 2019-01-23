@@ -74,6 +74,9 @@ publicServer =
   :<|> getPublicKey
   :<|> getPublicKeyInfo
   :<|> searchBusinesses
+  :<|> getLocationByGLN
+  :<|> searchLocation
+  :<|> uxLocation
   :<|> versionInfo
 
 privateServer :: ( Member context '[HasScryptParams, HasDB]
@@ -85,9 +88,6 @@ privateServer =
   :<|> addPublicKey
   :<|> revokePublicKey
   :<|> addLocation
-  :<|> getLocationByGLN
-  :<|> searchLocation
-  :<|> uxLocation
 
 
 instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub) where

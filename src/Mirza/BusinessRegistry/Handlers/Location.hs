@@ -15,15 +15,16 @@ module Mirza.BusinessRegistry.Handlers.Location
 
 
 import           Mirza.BusinessRegistry.Database.Schema   as DB
+import qualified Mirza.BusinessRegistry.Handlers.Business as BRHB (searchBusinesses)
 import           Mirza.BusinessRegistry.SqlUtils
 import           Mirza.BusinessRegistry.Types             as BT
+import           Mirza.Common.Time                        (toDbTimestamp)
 import           Mirza.Common.Types                       (Member)
 import           Mirza.Common.Utils
-import           Mirza.Common.Time                        (toDbTimestamp)
-import qualified Mirza.BusinessRegistry.Handlers.Business as BRHB (searchBusinesses)
 
 
-import           Data.GS1.EPC                             (LocationEPC, GS1CompanyPrefix)
+import           Data.GS1.EPC                             (GS1CompanyPrefix,
+                                                           LocationEPC)
 
 import           Database.Beam                            as B
 import           Database.Beam.Backend.SQL.BeamExtensions
@@ -36,8 +37,8 @@ import           Katip
 import           Control.Lens                             (( # ))
 import           Control.Lens.Operators                   ((&))
 import           Control.Monad.Error.Hoist                ((<!?>))
+import           Data.Foldable                            (find, for_)
 import           Data.Time                                (UTCTime)
-import           Data.Foldable                            (for_, find)
 
 addLocation :: ( Member context '[HasEnvType, HasConnPool, HasLogging]
                , Member err     '[AsSqlError, AsBRError])
@@ -117,13 +118,11 @@ newLocationToLocation
     )
 
 
-getLocationByGLN :: ( Member context '[HasLogging, HasConnPool, HasEnvType]
-                    , Member err     '[AsBRError, AsSqlError]
-                    , HasCallStack)
-                    => AuthUser
-                    -> LocationEPC
-                    -> AppM context err LocationResponse
-getLocationByGLN _user gln = locationToLocationResponse
+getLocationByGLN  :: ( Member context '[HasLogging, HasConnPool, HasEnvType]
+                    , Member err     '[AsBRError, AsSqlError] , HasCallStack)
+                  => LocationEPC
+                  -> AppM context err LocationResponse
+getLocationByGLN gln = locationToLocationResponse
   <$> (runDb (getLocationByGLNQuery gln) <!?>  (_LocationNotKnownBRE # ()))
 
 
@@ -153,8 +152,10 @@ getLocationByGLNQuery gln = pg $ runSelectReturningOne $ select $ do
 
 searchLocation :: (Member context '[HasDB]
                   , Member err    '[AsSqlError])
-               => AuthUser -> Maybe GS1CompanyPrefix -> Maybe UTCTime -> AppM context err [LocationResponse]
-searchLocation _user mpfx mafter = fmap locationToLocationResponse
+               => Maybe GS1CompanyPrefix
+               -> Maybe UTCTime
+               -> AppM context err [LocationResponse]
+searchLocation mpfx mafter = fmap locationToLocationResponse
   <$> runDb (searchLocationQuery mpfx mafter)
 
 searchLocationQuery :: Maybe GS1CompanyPrefix -> Maybe UTCTime -> DB context err [(Location,GeoLocation)]
@@ -189,8 +190,9 @@ maxPrefixesForUxLocations = 25
 
 uxLocation :: ( Member context '[HasDB, HasLogging]
               , Member err     '[AsSqlError])
-           => AuthUser -> [GS1CompanyPrefix] -> AppM context err [BusinessAndLocationResponse]
-uxLocation user userPrefixes = do
+           => [GS1CompanyPrefix]
+           -> AppM context err [BusinessAndLocationResponse]
+uxLocation userPrefixes = do
   -- We constrain the maximum number of company prefixes that can be quired in a single invocation to prevent abuse.
   let prefixes = take maxPrefixesForUxLocations userPrefixes
   locations <- traverse getLocations prefixes
@@ -200,7 +202,7 @@ uxLocation user userPrefixes = do
   where
     getLocations :: (Member context '[HasDB], Member err '[AsSqlError])
                  => GS1CompanyPrefix -> AppM context err [LocationResponse]
-    getLocations prefix = searchLocation user (Just prefix) Nothing
+    getLocations prefix = searchLocation (Just prefix) Nothing
 
     getBusinesses :: (Member context '[HasDB], Member err '[AsSqlError])
                   => GS1CompanyPrefix -> AppM context err [BusinessResponse]
@@ -211,16 +213,17 @@ uxLocation user userPrefixes = do
 
     buildBusinessAndLocationResponse :: Member context '[HasLogging]
                                      => [BusinessResponse] -> LocationResponse -> AppM context err BusinessAndLocationResponse
-    buildBusinessAndLocationResponse businesses location = (\business -> BusinessAndLocationResponse business location) <$> matchedBusiness
-                                                           where
-                                                             -- It shouldn't be possible to get here, and indicates a logic error in our code
-                                                             -- or database. We don't want to break and error if we do since this is a pretty UX
-                                                             -- endpoint. Returning the mostly complete info and loggging the error so we can fix
-                                                             -- seems the most reasonable compromise.
-                                                             unfoundBusiness = do
-                                                               $(logTM) WarningS "Could not find a business that corresponds with this business location."
-                                                               pure (BusinessResponse (locationBiz location) "[Unknown]")
-                                                             matchedBusiness = maybe unfoundBusiness pure $ find (matchId location) businesses
+    buildBusinessAndLocationResponse businesses location =
+      (\business -> BusinessAndLocationResponse business location) <$> matchedBusiness
+      where
+        -- It shouldn't be possible to get here, and indicates a logic error in our code
+        -- or database. We don't want to break and error if we do since this is a pretty UX
+        -- endpoint. Returning the mostly complete info and loggging the error so we can fix
+        -- seems the most reasonable compromise.
+        unfoundBusiness = do
+          $(logTM) WarningS "Could not find a business that corresponds with this business location."
+          pure (BusinessResponse (locationBiz location) "[Unknown]")
+        matchedBusiness = maybe unfoundBusiness pure $ find (matchId location) businesses
 
     buildBusinessAndLocationResponses :: Member context '[HasLogging]
                                       => [BusinessResponse] -> [LocationResponse] -> AppM context err [BusinessAndLocationResponse]
