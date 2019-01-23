@@ -5,24 +5,15 @@
 -- each service's client
 module Mirza.BusinessRegistry.GenerateUtils where
 
-import           Mirza.BusinessRegistry.Types          as BT
+import           Mirza.BusinessRegistry.Types as BT
+import           Mirza.Common.Utils           (randomText, unsafeMkEmailAddress)
 
 import           Data.GS1.EPC
 
-import qualified Data.Text                             as T
-import           Data.Text.Encoding                    (encodeUtf8)
+import qualified Data.Text                    as T
+import           Data.Text.Encoding           (encodeUtf8)
 
-import           Mirza.BusinessRegistry.Client.Servant as BRClient
-
-import           Servant.API.BasicAuth                 (BasicAuthData (..))
-
-import           Mirza.Common.Utils                    (unsafeMkEmailAddress, randomText)
-
-import           Text.Email.Validate                   (unsafeEmailAddress)
-
-import           Servant.Client                        (ClientM)
-
-
+import           Text.Email.Validate          (unsafeEmailAddress)
 
 globalCompanyPrefix :: GS1CompanyPrefix
 globalCompanyPrefix = GS1CompanyPrefix "1234567"
