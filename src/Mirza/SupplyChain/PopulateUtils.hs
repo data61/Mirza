@@ -12,14 +12,15 @@ import           Control.Monad.Identity
 
 import           Data.Foldable                         (traverse_)
 
-import           Data.GS1.EPC
-import           Data.GS1.Event
 import           Data.GS1.DWhat
 import           Data.GS1.DWhen
 import           Data.GS1.DWhere
 import           Data.GS1.DWhy
+import           Data.GS1.EPC
+import           Data.GS1.Event
 
-import           Data.Time                             (TimeZone, addUTCTime, getCurrentTime)
+import           Data.Time                             (TimeZone, addUTCTime,
+                                                        getCurrentTime)
 import           Data.Time.LocalTime                   (utc)
 
 import qualified Mirza.BusinessRegistry.Types          as BT
@@ -123,8 +124,8 @@ insertAndAuth scsUrl brUrl auth locMap ht (entity:entities) = do
   [newUserBR] <- GenBR.generateMultipleUsers "citrusTest" 1 [companyPrefix]
   pubKey <- fmap expectJust $ liftIO $ readJWK pubKeyPath
   insertedUserIdSCS <- fmap expectRight $ httpSCS $ SCSClient.addUser newUserSCS
-  _insertedUserIdBR <- httpBR $ BRClient.addUser auth newUserBR
   _insertedPrefix <- httpBR $ BRClient.addBusiness auth newBiz
+  _insertedUserIdBR <- httpBR $ BRClient.addUser auth newUserBR
   brKeyId <- fmap expectRight $ httpBR $ BRClient.addPublicKey auth pubKey Nothing
   let basicAuthDataSCS =
         BasicAuthData
@@ -137,7 +138,10 @@ insertAndAuth scsUrl brUrl auth locMap ht (entity:entities) = do
   insertAndAuth scsUrl brUrl auth locMap updatedHt entities
   where
     maybeInsertLocation Nothing    = pure ()
-    maybeInsertLocation (Just loc) = void $ runClient brUrl $ BRClient.addLocation auth loc
+    maybeInsertLocation (Just loc) = do
+      res <- runClient brUrl $ BRClient.addLocation auth loc
+      print res
+
 
 insertEachEvent :: AuthHash -> EachEvent ->  ClientM ()
 insertEachEvent _ (EachEvent [] _) = pure ()
