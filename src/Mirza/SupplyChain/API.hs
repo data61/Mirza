@@ -20,19 +20,21 @@ module Mirza.SupplyChain.API
   , API, api
   ) where
 
-import           Mirza.Common.GS1BeamOrphans       (LabelEPCUrn (..))
-import qualified Mirza.SupplyChain.Database.Schema as Schema
-import           Mirza.SupplyChain.Types           as ST
+import           Mirza.Common.GS1BeamOrphans        (LabelEPCUrn (..))
+import qualified Mirza.SupplyChain.Database.Schema  as Schema
+import           Mirza.SupplyChain.Types            as ST
 
-import           Data.GS1.EPC                      (GS1CompanyPrefix)
-import qualified Data.GS1.Event                    as Ev
-import           Data.GS1.EventId                  as EvId
+import           Mirza.SupplyChain.Handlers.UXUtils (PrettyEventResponse (..))
+
+import           Data.GS1.EPC                       (GS1CompanyPrefix)
+import qualified Data.GS1.Event                     as Ev
+import           Data.GS1.EventId                   as EvId
 
 import           Servant
 import           Servant.API.Flatten
 import           Servant.Swagger.UI
 
-import           Data.Text                         (Text)
+import           Data.Text                          (Text)
 
 type API
     -- this serves both: swagger.json and swagger-ui
@@ -111,4 +113,4 @@ type PrivateAPI =
 type FrontEndAPI =
   "prototype" :> "list" :> "events"
               :> Capture "urn" LabelEPCUrn
-              :> Get '[JSON] [Ev.Event]
+              :> Get '[JSON] PrettyEventResponse

@@ -11,7 +11,7 @@ packages:
     - beam-postgres
 extra-deps:
 - git: https://github.com/data61/GS1Combinators.git
-  commit: 88ed5605ee99b23166c690a1cdad41c665bb9e42
+  commit: 860b8f443ffeb185ba16e52aed5d58bfbf02aebb
 - git: https://github.com/kapralVV/Unique.git
   commit: 8b543fd9c9f9e3909875942098a47df19a68c9da  # Head on 2019-01-10
 - servant-flatten-0.2

@@ -24,21 +24,23 @@ module Mirza.SupplyChain.Client.Servant
   , listEventsPretty
   ) where
 
-import           Mirza.Common.GS1BeamOrphans       (LabelEPCUrn (..))
+import           Mirza.Common.GS1BeamOrphans        (LabelEPCUrn (..))
 import           Mirza.SupplyChain.API
-import qualified Mirza.SupplyChain.Database.Schema as Schema
-import           Mirza.SupplyChain.Types           as T
+import qualified Mirza.SupplyChain.Database.Schema  as Schema
+import           Mirza.SupplyChain.Handlers.UXUtils (PrettyEventResponse (..))
+import           Mirza.SupplyChain.Types            as T
+
 
 import           Servant.API
 import           Servant.Client
 
-import           Data.Proxy                        (Proxy (..))
+import           Data.Proxy                         (Proxy (..))
 
-import           Data.GS1.EPC                      as EPC
-import qualified Data.GS1.Event                    as Ev
+import           Data.GS1.EPC                       as EPC
+import qualified Data.GS1.Event                     as Ev
 import           Data.GS1.EventId
 
-import           Data.Text                         (Text)
+import           Data.Text                          (Text)
 
 -- * Public API
 health       :: ClientM HealthResponse
@@ -65,7 +67,7 @@ insertAggEvent      :: BasicAuthData -> AggregationEvent -> ClientM (EventInfo, 
 insertTransactEvent :: BasicAuthData -> TransactionEvent -> ClientM (EventInfo, Schema.EventId)
 insertTransfEvent   :: BasicAuthData -> TransformationEvent -> ClientM (EventInfo, Schema.EventId)
 
-listEventsPretty    :: BasicAuthData -> LabelEPCUrn -> ClientM [Ev.Event]
+listEventsPretty    :: BasicAuthData -> LabelEPCUrn -> ClientM PrettyEventResponse
 
 _api     :: Client ClientM ServerAPI
 _privAPI :: Client ClientM ProtectedAPI
