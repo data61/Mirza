@@ -1,11 +1,8 @@
 module Mirza.BusinessRegistry.Tests.Utils where
 
-import           Crypto.JOSE (JWK)
-import           Data.Aeson  (decodeFileStrict)
+import           Mirza.Common.Utils (readJWK)
 
--- Read a JWK key from file (either prubli or private).
-readJWK :: FilePath -> IO (Maybe JWK)
-readJWK = decodeFileStrict
+import           Crypto.JOSE (JWK)
 
 -- Gets a good PEM RSA key from file to use from test cases.
 goodRsaPublicKey :: IO (Maybe JWK)

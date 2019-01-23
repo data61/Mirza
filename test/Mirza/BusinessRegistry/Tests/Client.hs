@@ -43,6 +43,7 @@ import           Mirza.BusinessRegistry.Client.Servant
 import           Mirza.BusinessRegistry.Types
 
 import           Mirza.Common.Time
+import           Mirza.Common.Utils                    (readJWK)
 
 import           Mirza.BusinessRegistry.Tests.Utils
 import           Mirza.Common.Tests.InitClient

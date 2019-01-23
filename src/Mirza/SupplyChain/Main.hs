@@ -12,6 +12,7 @@ import           Mirza.SupplyChain.Types            (AppError, EnvType (..),
                                                      SCSContext (..), User)
 
 import qualified Mirza.SupplyChain.Types            as ST
+import           Mirza.SupplyChain.PopulateUtils    (insertCitrusData)
 
 import           Servant
 import           Servant.Client
@@ -45,16 +46,17 @@ import           System.IO                          (IOMode (AppendMode),
                                                      stderr, stdout)
 
 data ServerOptionsSCS = ServerOptionsSCS
-  { env           :: EnvType
-  , initDB        :: Bool
-  , connectionStr :: ByteString
-  , scsPort       :: Int
-  , sScryptN      :: Integer
-  , sScryptP      :: Integer
-  , sScryptR      :: Integer
-  , loggingLevel  :: K.Severity
-  , brServiceInfo :: Maybe (String, Int) -- Maybe (brhost, brport)
-  , loggingPath   :: Maybe FilePath
+  { env            :: EnvType
+  , initDB         :: Bool
+  , dbPopulateInfo :: Maybe (ByteString, ByteString)
+  , connectionStr  :: ByteString
+  , scsServiceInfo :: (String, Int) -- Maybe (scsHost, scsPort)
+  , sScryptN       :: Integer
+  , sScryptP       :: Integer
+  , sScryptR       :: Integer
+  , loggingLevel   :: K.Severity
+  , brServiceInfo  :: Maybe (String, Int) -- Maybe (brhost, brport)
+  , loggingPath    :: Maybe FilePath
   }
 
 defaultDbConnectionStr :: ByteString
@@ -70,13 +72,23 @@ serverOptions = ServerOptionsSCS
       <*> switch
           ( long "init-db"
          <> help "Put empty tables into a fresh database" )
+      <*> optional ((,) <$>
+            strOption (
+            (long "username" <> help "User already inserted"))
+            <*>
+            strOption (
+            (long "password" <> help "Password of the already inserted user"))
+          )
       <*> strOption
           ( long "conn" <> short 'c' <> showDefault
           <> help "Database connection string in libpq format. See: https://www.postgresql.org/docs/9.5/static/libpq-connect.html#LIBPQ-CONNSTRING"
           <> value defaultDbConnectionStr)
-      <*> option auto
-          ( long "scsport" <> short 'p' <> showDefault <> value 8000
-          <> help "Port to run database on" )
+      <*> ((,) <$>
+            strOption (
+            (long "scshost" <> value "localhost" <> help "The host to run the supply chain server on"))
+            <*>
+            option auto (long "scsport" <> value 8000 <> help "Port to run the supply chain server on")
+          )
       <*> option auto
           (long "scryptN" <> value 14 <> showDefault
           <> help "Scrypt N parameter (>= 14)")
@@ -112,22 +124,40 @@ main = runProgram =<< execParser opts
       <> header "SupplyChainServer - A server for capturing GS1 events and recording them on a blockchain")
 
 runProgram :: ServerOptionsSCS -> IO ()
-runProgram so@ServerOptionsSCS{initDB = False, scsPort, brServiceInfo =Just __} = do
+runProgram so@ServerOptionsSCS{initDB = True, dbPopulateInfo =Just _, brServiceInfo =Just __} = do
+  migrate $ connectionStr so
+  runDbPopulate so
+runProgram so@ServerOptionsSCS{initDB =False, dbPopulateInfo =Just _, brServiceInfo =Just __} = do
+  runDbPopulate so
+runProgram so@ServerOptionsSCS{initDB = False, scsServiceInfo=(scsHst, scsPort), brServiceInfo =Just __} = do
   ctx <- initSCSContext so
   app <- initApplication so ctx
   mids <- initMiddleware so
-  putStrLn $ "http://localhost:" <> show scsPort <> "/swagger-ui/"
+  putStrLn $ "http://" <> scsHst <> ":" <> show scsPort <> "/swagger-ui/"
   Warp.run (fromIntegral scsPort) (mids app) `finally` closeScribes (ctx ^. ST.scsKatipLogEnv)
 runProgram ServerOptionsSCS{initDB = False, brServiceInfo = Nothing} = do
   hPutStrLn stderr $ "Required unless initialising the database: --brhost ARG --brport ARG"
   exitFailure
-runProgram so = migrate $ connectionStr so
+runProgram ServerOptionsSCS{initDB = True, dbPopulateInfo = Just _, brServiceInfo =Nothing} = do
+  hPutStrLn stderr $ "Required for populating the database: --brhost ARG --brport ARG"
+  exitFailure
+runProgram so@ServerOptionsSCS{initDB = True, dbPopulateInfo = Nothing} = migrate $ connectionStr so
+
+runDbPopulate :: ServerOptionsSCS -> IO ()
+runDbPopulate so = do
+  let (scsHst, scsPrt) = scsServiceInfo so
+      scsUrl = BaseUrl Http scsHst scsPrt ""
+      Just (brHst, brPrt) = brServiceInfo so
+      brUrl = BaseUrl Http brHst brPrt ""
+      Just (username, pswd) = dbPopulateInfo so
+  _ <- insertCitrusData scsUrl brUrl (BasicAuthData username pswd)
+  pure ()
 
 initMiddleware :: ServerOptionsSCS -> IO Middleware
 initMiddleware _ = pure id
 
 initSCSContext :: ServerOptionsSCS -> IO ST.SCSContext
-initSCSContext (ServerOptionsSCS envT _ dbConnStr _prt n p r lev (Just (brHost, bizRegPort)) mlogPath) = do
+initSCSContext (ServerOptionsSCS envT _ _ dbConnStr _ n p r lev (Just (brHost, bizRegPort)) mlogPath) = do
   logHandle <- maybe (pure stdout) (flip openFile AppendMode) mlogPath
   hPutStrLn stderr $ "Logging will be to: " <> fromMaybe "stdout" mlogPath
   handleScribe <- mkHandleScribe ColorIfTerminal logHandle lev V3
@@ -154,7 +184,7 @@ initSCSContext (ServerOptionsSCS envT _ dbConnStr _prt n p r lev (Just (brHost, 
           mempty
           mempty
           (mkClientEnv manager baseUrl)
-initSCSContext _ = do -- this should never happen
+initSCSContext _ = do
   hPutStrLn stderr $ "Required unless initialising the database: --brhost ARG --brport ARG"
   exitFailure
 
