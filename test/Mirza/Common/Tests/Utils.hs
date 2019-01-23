@@ -12,41 +12,35 @@ module Mirza.Common.Tests.Utils
   , databaseNameToConnectionString
   , makeDatabase
   , dropTables
-
-  , expectJust
-  , expectRight
   )
   where
 
-import           Data.Maybe              (fromJust)
+import           Data.ByteString             as BS hiding (putStrLn, reverse,
+                                                    unpack)
+import qualified Data.ByteString.Char8       as C8 (unpack)
 
-import           Data.ByteString         as BS hiding (unpack, putStrLn, reverse)
-import qualified Data.ByteString.Char8   as C8 (unpack)
+import           Test.Hspec.Expectations     (Expectation, shouldSatisfy)
 
-import           Text.Email.Validate     (EmailAddress, emailAddress)
+import           Data.Foldable               (forM_)
+import           Data.String                 (fromString)
+import qualified Data.Text                   as T (unpack)
+import           Data.Time.Clock             (UTCTime, diffUTCTime)
 
-import           Test.Hspec.Expectations (Expectation, shouldSatisfy)
-
-import           Data.Either             (fromRight)
-import           Data.Foldable           (forM_)
-import           Data.String             (fromString)
-import qualified Data.Text               as T (unpack)
-import           Data.Time.Clock         (UTCTime, diffUTCTime)
-
-import           GHC.Stack               (HasCallStack)
+import           GHC.Stack                   (HasCallStack)
 
 import           Control.Exception
+import           Control.Monad.Except        (ExceptT (..), throwError, unless,
+                                              void)
 import           Control.Monad.IO.Class
-import           Control.Monad.Except    (ExceptT (..), throwError, unless, void)
 
-import           Database.PostgreSQL.Simple
-import           Database.Beam.Schema.Tables (Database, DatabaseSettings)
 import           Database.Beam.Postgres      (Postgres)
+import           Database.Beam.Schema.Tables (Database, DatabaseSettings)
+import           Database.PostgreSQL.Simple
 
 import           Mirza.Common.Utils
 
-import           System.Process
 import           System.Exit
+import           System.Process
 
 
 --------------------------------------------------------------------------------
@@ -72,17 +66,6 @@ betweenInclusive bound1 bound2 x = (bound1 `comparator` x) && (x `comparator` bo
 
 shouldSatisfyIO :: (HasCallStack, Show a, Eq a) => IO a -> (a -> Bool) -> Expectation
 action `shouldSatisfyIO` p = action >>= (`shouldSatisfy` p)
-
---------------------------------------------------------------------------------
--- Email Utils
---------------------------------------------------------------------------------
-
-
--- | Only use this with hardcodes email addresses that are guaranteed to return
--- a ``Just``
-unsafeMkEmailAddress :: BS.ByteString -> EmailAddress
-unsafeMkEmailAddress = fromJust . emailAddress
-
 
 --------------------------------------------------------------------------------
 -- Database Utils
@@ -165,16 +148,3 @@ dropTables db conn = do
   --       investigating.
   void $ forM_ tables $ \tableName -> do
     execute_ conn $ fromString $ T.unpack $ "DROP TABLE IF EXISTS " <> tableName <> ";"
-
--- GHC 8.6.x enabled MonadFailDesugaring by default, which means that if we're being lazy and
--- using incomplete pattern matches in a Monad which does have an instance for MonadFail
--- the code will will fail to compile. An example monad is the servant ClientM, therefore
--- expectJust/expectRight should be used when writing test code that expects either a Just/Right.
-
--- | Like fromJust from Data.Maybe except an error is thrown WITH a stacktrace
-expectJust :: Maybe a -> a
-expectJust = maybe (error "Expected: Just a") id
-
--- | Returns b if Right, otherwise calls error
-expectRight :: Either a b -> b
-expectRight = fromRight (error "Expected: Right b")
