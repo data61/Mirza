@@ -35,7 +35,7 @@ import           Text.Email.Validate                   (toByteString)
 import           Data.Hashable                         (Hashable (..))
 import           Data.HashMap.Lazy                     as H
 
-import           Servant.Client                        (BaseUrl (..), ClientM, Scheme (..))
+import           Servant.Client                        (BaseUrl (..), ClientM)
 
 import           Mirza.BusinessRegistry.Client.Servant as BRClient
 import           Mirza.SupplyChain.Client.Servant      as SCSClient
@@ -45,7 +45,7 @@ import           Crypto.JOSE                           (Alg (RS256),
 import qualified Crypto.JOSE                           as JOSE
 import           Crypto.JOSE.Types                     (Base64Octets (..))
 
-import           Mirza.BusinessRegistry.GenerateUtils  (genMultipleUsersBR)
+import qualified Mirza.BusinessRegistry.GenerateUtils  as GenBR (genMultipleUsers)
 import           Mirza.SupplyChain.GenerateUtils
 
 import           Data.Maybe                            (fromJust)
@@ -119,7 +119,7 @@ insertAndAuth scsUrl brUrl auth locMap ht (entity:entities) = do
       httpBR = runClient brUrl
       (Entity name companyPrefix bizName locations (KeyPairPaths _ pubKeyPath)) = entity
       [newUserSCS] = genMultipleUsersSCS "citrusTest" 1 [name] [companyPrefix]
-      [newUserBR] = genMultipleUsersBR "citrusTest" 1 [name] [companyPrefix]
+      [newUserBR] = GenBR.genMultipleUsers "citrusTest" 1 [name] [companyPrefix]
       newBiz = BT.NewBusiness companyPrefix bizName
   pubKey <- fmap expectJust $ liftIO $ readJWK pubKeyPath
   insertedUserIdSCS <- fmap expectRight $ httpSCS $ SCSClient.addUser newUserSCS

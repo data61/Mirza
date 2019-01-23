@@ -13,8 +13,8 @@ import           Mirza.BusinessRegistry.Database.Migrate
 import           Mirza.BusinessRegistry.Database.Schema  as Schema
 import           Mirza.BusinessRegistry.Service
 import           Mirza.BusinessRegistry.Types            as BT
+import           Mirza.BusinessRegistry.GenerateUtils    (dummyUser, dummyBusiness)
 import           Mirza.Common.Types                      as CT
-import           Mirza.Common.Utils                      (randomText)
 
 import           Data.GS1.EPC                            (GS1CompanyPrefix (..))
 
@@ -34,7 +34,7 @@ import           Data.Semigroup                          ((<>))
 import           Data.Text                               (Text, pack)
 import           Data.Text.Encoding                      (encodeUtf8)
 import           Options.Applicative                     hiding (action)
-import           Text.Email.Validate
+import           Text.Email.Validate                     (validate)
 import           Text.Email.Parser                       (addrSpec)
 
 import qualified Crypto.Scrypt                           as Scrypt
@@ -297,23 +297,6 @@ runPopulateDatabase opts = do
   print u2b2
 
 
-dummyBusiness :: Text -> IO NewBusiness
-dummyBusiness unique = do
-  let newBusinessGS1CompanyPrefix = GS1CompanyPrefix ("Business" <> unique <> "Prefix")
-  let newBusinessName             = "Business" <> unique <> "Name"
-  pure NewBusiness{..}
-
-
-dummyUser :: Text -> GS1CompanyPrefix -> IO NewUser
-dummyUser unique business_uid = do
-  passwordEntropy <- randomText
-  let newUserEmailAddress = unsafeEmailAddress (encodeUtf8 unique) "example.com"
-  let newUserPassword     = "User" <> unique <> "Password" <> passwordEntropy
-  let newUserCompany      = business_uid
-  let newUserFirstName    = "User" <> unique <> "FirstName"
-  let newUserLastName     = "User" <> unique <> "LastName"
-  let newUserPhoneNumber  = "User" <> unique <> "PhoneNumber"
-  pure NewUser{..}
 
 
 printCredentials :: NewUser -> IO ()
