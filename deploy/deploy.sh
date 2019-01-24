@@ -14,6 +14,9 @@ docker build -f Mirza.Dockerfile --target PKG-BR -t ${DOCKER_REPO}/businessregis
 # Update the docker-compose.yml to refer to the images that have been built (rather than latest)
 sed -i "s#latest#$TRAVIS_COMMIT#g" deploy/docker-compose.yml
 
+# Make logs silent again so we don't get spammed by travis-cis inner workings.
+set +x
+
 # Authenticate with AWS and push the docker images so that they can be deployed to the server
 eval $(aws ecr get-login --no-include-email --region ap-southeast-2)
 docker push ${DOCKER_REPO}/supplychainserver:$TRAVIS_COMMIT
