@@ -41,9 +41,9 @@ docker-compose up -d db
 # Start the services
 docker-compose up -d supplyChainServer businessRegistry private-ethereum-blockchain blockchain-api-server
 
-# Run the initdb scripts for scs and br. (UNCOMMENT WHEN NEEDED FOR DEPLOYMENT)
-docker-compose up -d dbpopulate-br
-docker-compose up -d dbpopulate-scs
+# Run the initdb scripts for scs and br. (UNCOMMENT WHEN NEEDED FOR A CLEAN DEPLOYMENT)
+# docker-compose up -d dbpopulate-br
+# docker-compose up -d dbpopulate-scs
 
 # remove all unused docker images and exited containers
 docker system prune -a --force
