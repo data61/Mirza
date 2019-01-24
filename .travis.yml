@@ -58,4 +58,4 @@ script:
 - stack exec supplyChainServer -- --init-db -c 'dbname=testsupplychainserver'
 - echo 'YES' | stack exec businessRegistry -- initdb -c 'dbname=testbusinessregistry'
 - ./run_tests.sh --no-terminal
-- if [ "$TRAVIS_BRANCH" = "create-docke-compose" ]; then source deploy/deploy.sh ; fi
+- if [ "$TRAVIS_BRANCH" = "create-docke-compose" ]; then set -x && source deploy/deploy.sh ; fi
