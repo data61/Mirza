@@ -62,6 +62,6 @@ script:
 deploy:
   # deploy create-docker-compose to the AWS environment
   - provider: script
-    script: bash deploy/deploy.sh staging
+    script: bash deploy/deploy.sh
     on:
       branch: create-docker-compose
