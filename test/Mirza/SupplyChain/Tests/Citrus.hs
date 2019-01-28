@@ -58,7 +58,7 @@ citrusSpec = do
 
           step "Listing events with each label"
           let (Just (_, farmerAuth, _)) = H.lookup farmerE authHt
-
+          print $ renderURL boxLabel
           resBox <- httpSCS $ SCSClient.listEvents farmerAuth (LabelEPCUrn . renderURL $ boxLabel)
           resBox `shouldSatisfy` isRight
           let Right boxEvents = resBox
