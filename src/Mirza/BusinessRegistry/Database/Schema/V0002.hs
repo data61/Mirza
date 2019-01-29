@@ -77,9 +77,9 @@ type Location = LocationT Identity
 deriving instance Show Location
 
 data LocationT f = LocationT
-  { location_id        :: C f PrimaryKeyType
-  , location_gln       :: C f EPC.LocationEPC
-  , location_biz_id    :: PrimaryKey V0001.BusinessT f
+  { location_id          :: C f PrimaryKeyType
+  , location_gln         :: C f EPC.LocationEPC
+  , location_biz_id      :: PrimaryKey V0001.BusinessT f
   , location_last_update :: C f (Maybe LocalTime)
   }
   deriving Generic
