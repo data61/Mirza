@@ -321,29 +321,29 @@ regulator4CompanyPrefix = GS1CompanyPrefix "8989111"
 
 
 farmLocation :: LocationEPC
-farmLocation = SGLN farmerCompanyPrefix (LocationReference "1") Nothing -- "blockID3"
+farmLocation = SGLN farmerCompanyPrefix (LocationReference "11111") Nothing -- "blockID3"
 truckDriver1Biz :: LocationEPC
-truckDriver1Biz = SGLN truckDriver1CompanyPrefix (LocationReference "2") Nothing
+truckDriver1Biz = SGLN truckDriver1CompanyPrefix (LocationReference "22222") Nothing
 regulator1Biz :: LocationEPC
-regulator1Biz = SGLN regulator1CompanyPrefix (LocationReference "3") Nothing
+regulator1Biz = SGLN regulator1CompanyPrefix (LocationReference "33333") Nothing
 regulator2Biz :: LocationEPC
-regulator2Biz = SGLN regulator2CompanyPrefix (LocationReference "4") Nothing
+regulator2Biz = SGLN regulator2CompanyPrefix (LocationReference "44444") Nothing
 packingHouseLocation :: LocationEPC
-packingHouseLocation = SGLN packingHouseCompanyPrefix (LocationReference "5") Nothing
+packingHouseLocation = SGLN packingHouseCompanyPrefix (LocationReference "55555") Nothing
 auPortLocation :: LocationEPC
-auPortLocation = SGLN auPortCompanyPrefix (LocationReference "6") Nothing
+auPortLocation = SGLN auPortCompanyPrefix (LocationReference "66666") Nothing
 cnPortLocation :: LocationEPC
-cnPortLocation = SGLN cnPortCompanyPrefix (LocationReference "7") Nothing
+cnPortLocation = SGLN cnPortCompanyPrefix (LocationReference "77777") Nothing
 farmerBiz :: LocationEPC
-farmerBiz = SGLN farmerCompanyPrefix (LocationReference "8") Nothing
+farmerBiz = SGLN farmerCompanyPrefix (LocationReference "88888") Nothing
 packingHouseBiz :: LocationEPC
-packingHouseBiz = SGLN packingHouseCompanyPrefix (LocationReference "9") Nothing
+packingHouseBiz = SGLN packingHouseCompanyPrefix (LocationReference "99999") Nothing
 truck2Biz :: LocationEPC
-truck2Biz = SGLN truck2CompanyPrefix (LocationReference "10") Nothing
+truck2Biz = SGLN truck2CompanyPrefix (LocationReference "10101") Nothing
 regulator3Biz :: LocationEPC
-regulator3Biz = SGLN regulator3CompanyPrefix (LocationReference "11") Nothing
+regulator3Biz = SGLN regulator3CompanyPrefix (LocationReference "11011") Nothing
 regulator4Biz :: LocationEPC
-regulator4Biz = SGLN regulator4CompanyPrefix (LocationReference "12") Nothing
+regulator4Biz = SGLN regulator4CompanyPrefix (LocationReference "12123") Nothing
 
 
 locationMap :: LocationMap
@@ -388,19 +388,19 @@ regulator4KP = KeyPairPaths (privateKeyPath "regulator4") (publicKeyPath "regula
 
 -- All the labels that feed into Citrus Events
 landLabel :: InstanceLabelEPC
-landLabel = GRAI farmerCompanyPrefix (AssetType "blockLabel") (SerialNumber "1")
+landLabel = GRAI farmerCompanyPrefix (AssetType "blockLabel") (SerialNumber "11111")
 binLabel :: InstanceLabelEPC
 binLabel = GIAI farmerCompanyPrefix (SerialNumber "3")
 truckLabel :: InstanceLabelEPC
-truckLabel = SSCC truckDriver1CompanyPrefix (SerialNumber "4")
+truckLabel = SSCC truckDriver1CompanyPrefix (SerialNumber "44444")
 boxLabel :: InstanceLabelEPC
 boxLabel = GIAI farmerCompanyPrefix (SerialNumber "5")
 palletLabel :: InstanceLabelEPC
 palletLabel = GRAI packingHouseCompanyPrefix (AssetType "palletLabel") (SerialNumber "6")
 truck2Label :: InstanceLabelEPC
-truck2Label = SSCC truck2CompanyPrefix (SerialNumber "7")
+truck2Label = SSCC truck2CompanyPrefix (SerialNumber "77777")
 shipLabel :: InstanceLabelEPC
-shipLabel = SSCC cnPortCompanyPrefix (SerialNumber "8")
+shipLabel = SSCC cnPortCompanyPrefix (SerialNumber "88888")
 binLabels :: [LabelEPC]
 binLabels = [IL binLabel, IL $ GIAI farmerCompanyPrefix (SerialNumber "9")]
 boxLabels :: [LabelEPC]
