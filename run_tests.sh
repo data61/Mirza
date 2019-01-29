@@ -3,12 +3,6 @@
 
 # How to use: ./run_tests.sh --coverage --ta "-p \"addPublicKey test 1\""
 
-
-### This loop splits arguments into those before "--ta" and those after
-#   ./run_tests.sh --coverage --ta "-p \"addPublicKey test 1\""
-# becomes
-#   stack test --fast --coverage --ta "-j1 -p \"addPublicKey test 1\""
-
 stack build --fast
 
 psql -c 'DROP DATABASE testsupplychainserver;' && \
@@ -19,6 +13,10 @@ stack exec supplyChainServer -- --init-db -c 'dbname=testsupplychainserver' && \
 echo 'YES' | stack exec businessRegistry -- initdb -c 'dbname=testbusinessregistry' && \
 echo "Databases successfully recreated."
 
+### This loop splits arguments into those before "--ta" and those after
+#   ./run_tests.sh --coverage --ta "-p \"addPublicKey test 1\""
+# becomes
+#   stack test --fast --coverage --ta "-j1 -p \"addPublicKey test 1\""
 n=0
 unset args  # Force args to be an empty array (it could be an env var on entry)
 for i in "$@"
