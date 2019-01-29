@@ -159,6 +159,7 @@ brErrorToHttpError brError =
     (LocationExistsBRE)             -> httpError err409 "GLN already exists"
     (GS1CompanyPrefixExistsBRE)     -> httpError err400 "GS1 company prefix already exists."
     (BusinessDoesNotExistBRE)       -> httpError err400 "Business does not exist."
+    (OperationNotPermittedBRE _ _)    -> httpError err400 "Operation on this business not permitted"
     (UserCreationErrorBRE _ _)      -> userCreationError brError
     (UserCreationSQLErrorBRE _)     -> userCreationError brError
 

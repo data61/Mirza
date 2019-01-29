@@ -36,6 +36,7 @@ import           Katip
 
 import           Control.Lens                             (( # ))
 import           Control.Lens.Operators                   ((&))
+import           Control.Monad                            (when)
 import           Control.Monad.Error.Hoist                ((<!?>))
 import           Data.Foldable                            (find, for_)
 import           Data.Time                                (UTCTime)
@@ -73,16 +74,27 @@ addLocationQuery  :: ( Member context '[]
                   -> NewLocation
                   -> DB context err Location
 addLocationQuery (AuthUser (BT.UserId uId)) locId geoLocId newLoc = do
-  let bizId = BizId . _sglnCompanyPrefix . newLocGLN $ newLoc
-  let (loc,geoLoc) = newLocationToLocation locId geoLocId bizId newLoc
-  res <- pg $ runInsertReturningList (_locations businessRegistryDB) $
-              insertValues [loc]
-  case res of
-    [r] -> do
-        _ <- pg $ runInsertReturningList (_geoLocations businessRegistryDB) $
-              insertValues [geoLoc]
-        pure r
-    _   -> throwing _UnexpectedErrorBRE callStack
+  mbizId <- pg $ runSelectReturningOne $ select $ do
+    user <- all_ (_users businessRegistryDB)
+    guard_ (user_id user ==. val_ uId)
+    pure $ user_biz_id user
+  case mbizId of
+    -- Since the user has authenticated, this should never happen
+    Nothing -> throwing _UnexpectedErrorBRE callStack
+    Just userBizId -> do
+      let pfx = _sglnCompanyPrefix . newLocGLN $ newLoc
+          bizId = BizId pfx
+      when (userBizId /= bizId) $
+          throwing _OperationNotPermittedBRE (pfx, BT.UserId uId)
+      let (loc,geoLoc) = newLocationToLocation locId geoLocId bizId newLoc
+      res <- pg $ runInsertReturningList (_locations businessRegistryDB) $
+                  insertValues [loc]
+      case res of
+        [r] -> do
+            _ <- pg $ runInsertReturningList (_geoLocations businessRegistryDB) $
+                  insertValues [geoLoc]
+            pure r
+        _   -> throwing _UnexpectedErrorBRE callStack
 
 
 newLocationToLocation :: PrimaryKeyType
