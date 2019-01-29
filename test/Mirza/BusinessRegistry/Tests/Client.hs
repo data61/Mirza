@@ -520,6 +520,7 @@ clientSpec = do
   let locationTests = testCaseSteps "That locations work as expected" $ \step ->
         bracket runBRApp (\(a,b,_) -> endWaiApp (a,b)) $ \(_tid, baseurl, brAuthUser) -> do
           password <- randomPassword
+
           let http = runClient baseurl
               biz1Prefix = (GS1CompanyPrefix "5000001")
               biz1 = NewBusiness biz1Prefix "locationTests_businessName1"
@@ -539,12 +540,32 @@ clientSpec = do
           _userB1U1Response <- http (addUser brAuthUser userB1U1)
 
 
-          step "Can Add a Location"
+          step "Can add a location"
           let newLoc1 = NewLocation (SGLN biz1Prefix (LocationReference "98765") Nothing)
                                     (Just (Latitude 1.0, Longitude 2.0))
                                     (Just "42 Wallby Way, Sydney")
           b1K1StoredKeyIdResult <- http (addLocation brAuthUser newLoc1)
           b1K1StoredKeyIdResult `shouldSatisfy` isRight
+
+          step "Can add a second location with a different company."
+
+          step "Can add a second location with the same company."
+
+          step "Can search for a location based on GLN."
+
+          step "Can serach for a location based on a GS1 company prefix."
+          -- Search for 1 of the locations with the exclusion of the other.
+          -- Serach fot the other location with the exclusion of the first.
+          -- (A serach the returns multiple results (should be part of one of the above 2 queries).
+
+          step "Can serach for a location based on modified since field."
+
+          step "uxLocation: Can query all of the locations associated with a business"
+          step "uxLocation: Can query all of the locations associated with multiple business"
+          step "uxLocation: That quering for a non existant business results in an empty result"
+          step "uxLocation: That quering for a non existant business in addition to multiple businesses just ignores the non existant business"
+          step "uxLocation: That quering for locations from more then 25 businesses ignores the businesses beyond 25 are ignored."
+
 
 
   let healthTests = testCaseSteps "Provides health status" $ \step ->
