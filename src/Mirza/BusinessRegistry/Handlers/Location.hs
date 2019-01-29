@@ -24,7 +24,7 @@ import           Mirza.Common.Utils
 
 
 import           Data.GS1.EPC                             (GS1CompanyPrefix,
-                                                           LocationEPC)
+                                                           LocationEPC (..))
 
 import           Database.Beam                            as B
 import           Database.Beam.Backend.SQL.BeamExtensions
@@ -73,24 +73,16 @@ addLocationQuery  :: ( Member context '[]
                   -> NewLocation
                   -> DB context err Location
 addLocationQuery (AuthUser (BT.UserId uId)) locId geoLocId newLoc = do
-  mbizId <- pg $ runSelectReturningOne $ select $ do
-    user <- all_ (_users businessRegistryDB)
-    guard_ (user_id user ==. val_ uId)
-    pure $ user_biz_id user
-  case mbizId of
-               -- Since the user has authenticated, this should never happen
-    Nothing -> throwing _UnexpectedErrorBRE callStack
-    Just bizId -> do
-      let (loc,geoLoc) = newLocationToLocation locId geoLocId bizId newLoc
-      res <- pg $ runInsertReturningList (_locations businessRegistryDB) $
-                  insertValues [loc]
-      case res of
-        [r] -> do
-
-            _ <- pg $ runInsertReturningList (_geoLocations businessRegistryDB) $
-                 insertValues [geoLoc]
-            pure r
-        _   -> throwing _UnexpectedErrorBRE callStack
+  let bizId = BizId . _sglnCompanyPrefix . newLocGLN $ newLoc
+  let (loc,geoLoc) = newLocationToLocation locId geoLocId bizId newLoc
+  res <- pg $ runInsertReturningList (_locations businessRegistryDB) $
+              insertValues [loc]
+  case res of
+    [r] -> do
+        _ <- pg $ runInsertReturningList (_geoLocations businessRegistryDB) $
+              insertValues [geoLoc]
+        pure r
+    _   -> throwing _UnexpectedErrorBRE callStack
 
 
 newLocationToLocation :: PrimaryKeyType
