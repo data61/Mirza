@@ -122,6 +122,9 @@ insertAndAuth scsUrl brUrl auth locMap ht (entity:entities) = do
       [newUserSCS] = genMultipleUsersSCS "citrusTest" 1 [name] [companyPrefix]
       newBiz = BT.NewBusiness companyPrefix bizName
   [newUserBR] <- GenBR.generateMultipleUsers "citrusTest" 1 [companyPrefix]
+  let userAuth = BasicAuthData
+                  (toByteString . BT.newUserEmailAddress $ newUserBR)
+                  (encodeUtf8 . BT.newUserPassword $ newUserBR)
   pubKey <- fmap expectJust $ liftIO $ readJWK pubKeyPath
   insertedUserIdSCS <- fmap expectRight $ httpSCS $ SCSClient.addUser newUserSCS
   _insertedPrefix <- httpBR $ BRClient.addBusiness auth newBiz
@@ -133,14 +136,14 @@ insertAndAuth scsUrl brUrl auth locMap ht (entity:entities) = do
           (encodeUtf8   . ST.newUserPassword     $ newUserSCS)
 
   let newLocs = flip H.lookup locMap <$> locations
-  traverse_  maybeInsertLocation newLocs
+  traverse_  (maybeInsertLocation userAuth) newLocs
   let updatedHt = H.insert entity (insertedUserIdSCS, basicAuthDataSCS, brKeyId) ht
   insertAndAuth scsUrl brUrl auth locMap updatedHt entities
   where
-    maybeInsertLocation Nothing    = pure ()
-    maybeInsertLocation (Just loc) = do
-      res <- runClient brUrl $ BRClient.addLocation auth loc
-      print res
+    maybeInsertLocation _ Nothing    = pure ()
+    maybeInsertLocation userAuth (Just loc) = do
+      _r <- runClient brUrl $ BRClient.addLocation userAuth loc
+      pure ()
 
 
 insertEachEvent :: AuthHash -> EachEvent ->  ClientM ()

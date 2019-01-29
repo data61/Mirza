@@ -185,7 +185,7 @@ brKeyErrorToHttpError keyError =
     UnauthorisedKeyAccessBRKE       -> httpError err403 "Not authorised to access this key."
     (PublicKeyInsertionErrorBRKE _) -> httpError err500 "Public key could not be inserted."
     (KeyNotFoundBRKE _)             -> httpError err404 "Public key with the given id not found."
-    (InvalidRevocationBRKE _ _ _)   -> httpError err500 "Key has been revoked but in an invalid way."
+    (InvalidRevocationBRKE{})       -> httpError err500 "Key has been revoked but in an invalid way."
     (AddedExpiredKeyBRKE)           -> httpError err400 "Can't add a key that has already expired."
     (InvalidRSAKeySizeBRKE (Expected (Bit expSize)) (Received (Bit recSize)))
                                     -> httpError err400 (BSL8.pack $ printf "Invalid RSA Key size. Expected: %d Bits, Received: %d Bits\n" expSize recSize)
