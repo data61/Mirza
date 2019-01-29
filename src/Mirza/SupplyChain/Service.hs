@@ -6,10 +6,10 @@
 {-# LANGUAGE OverloadedStrings     #-}
 {-# LANGUAGE PolyKinds             #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE TemplateHaskell       #-}
 {-# LANGUAGE TypeApplications      #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
-{-# LANGUAGE TemplateHaskell       #-}
 {-# OPTIONS_GHC -fno-warn-orphans  #-}
 
 -- | Endpoint definitions go here. Most of the endpoint definitions are
@@ -114,7 +114,9 @@ appMToHandler :: forall x context. context -> AppM context AppError x -> Handler
 appMToHandler context act = do
   res <- liftIO $ runAppM context act
   case res of
-    Left (AppError e) -> appErrToHttpErr e
+    Left (AppError e) -> do
+      liftIO $ print e
+      appErrToHttpErr e
     Right a           -> pure a
 
 -- | Swagger spec for server API.

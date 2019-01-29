@@ -105,7 +105,9 @@ appMToHandler :: (HasLogging context) => context -> AppM context BRError x -> Ha
 appMToHandler context act = do
   res <- liftIO $ runAppM context act
   case res of
-    Left err -> runKatipContextT (context ^. katipLogEnv) () (context ^. katipNamespace) (brErrorToHttpError err)
+    Left err -> do
+      liftIO $ print err
+      runKatipContextT (context ^. katipLogEnv) () (context ^. katipNamespace) (brErrorToHttpError err)
     Right a  -> pure a
 
 
