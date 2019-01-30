@@ -304,8 +304,8 @@ clientSpec = do
           _ <- http (addBusiness brAuthUser biz1)
           _ <- http (addBusiness brAuthUser biz2)
 
-          -- Create a business to use from further test cases (this is tested in
-          -- the businesses tests so doesn't need to be explicitly tested here).
+          -- Create a user to use from further test cases (this is tested in
+          -- the users tests so doesn't need to be explicitly tested here).
           userB1U1Response <- http (addUser brAuthUser userB1U1)
           _                <- http (addUser brAuthUser userB1U2)
           _                <- http (addUser brAuthUser userB2U1)
