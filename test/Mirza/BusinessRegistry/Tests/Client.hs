@@ -7,6 +7,7 @@ import           Control.Concurrent                    (threadDelay)
 import           Control.Exception                     (bracket)
 
 import           Mirza.Common.Tests.ServantUtils
+import           Mirza.BusinessRegistry.GenerateUtils (dummyBusiness, dummyUser)
 
 import           Servant.API.BasicAuth
 import           Servant.Client
@@ -519,30 +520,32 @@ clientSpec = do
 
   let locationTests = testCaseSteps "That locations work as expected" $ \step ->
         bracket runBRApp (\(a,b,_) -> endWaiApp (a,b)) $ \(_tid, baseurl, brAuthUser) -> do
-          password <- randomPassword
+          --password <- randomPassword
 
           let http = runClient baseurl
-              biz1Prefix = (GS1CompanyPrefix "5000001")
-              biz1 = NewBusiness biz1Prefix "locationTests_businessName1"
-              biz2Prefix = (GS1CompanyPrefix "5000002")
-              biz2 = NewBusiness biz2Prefix "locationTests_businessName2"
+              business1Gen = dummyBusiness "locationTests_Business1"
+              business1 = business1Gen {newBusinessGS1CompanyPrefix = (GS1CompanyPrefix "5000001")} -- todo fix this properly...
+              business1Prefix = newBusinessGS1CompanyPrefix business1
+              business2Gen = dummyBusiness "locationTests_Business2"
+              business2 = business2Gen {newBusinessGS1CompanyPrefix = (GS1CompanyPrefix "5000002")} -- todo fix this properly...
+              --business2Prefix = newBusinessGS1CompanyPrefix business2
 
           -- Business1User1
-          let userB1U1 = NewUser (unsafeMkEmailAddress "locationTests_email1@example.com")
-                                password
-                                biz1Prefix
-                                "locationTests First Name 1"
-                                "locationTests Last Name 1"
-                                "locationTests Phone Number 1"
-          _ <- http (addBusiness brAuthUser biz1)
-          _ <- http (addBusiness brAuthUser biz2)
+          userB1U1 <- dummyUser "locationTests_Business1User1" business1Prefix
 
+          -- Create a business to use from further test cases (this is tested in
+          --  the businesses tests so doesn't need to be explicitly tested here).
+          _ <- http (addBusiness brAuthUser business1)
+          _ <- http (addBusiness brAuthUser business2)
+
+          -- Create a user to use from further test cases (this is tested in
+          -- the users tests so doesn't need to be explicitly tested here).
           _userB1U1Response <- http (addUser brAuthUser userB1U1)
 
 
           step "Can add a location"
-          let newLoc1 = NewLocation (SGLN biz1Prefix (LocationReference "98765") Nothing)
-                                    (Just (Latitude 1.0, Longitude 2.0))
+          let newLoc1 = NewLocation (SGLN business1Prefix (LocationReference "00011") Nothing)
+                                    (Just (Latitude (-25.344490), Longitude 131.035431))
                                     (Just "42 Wallby Way, Sydney")
           b1K1StoredKeyIdResult <- http (addLocation brAuthUser newLoc1)
           b1K1StoredKeyIdResult `shouldSatisfy` isRight
