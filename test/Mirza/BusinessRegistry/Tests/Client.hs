@@ -547,6 +547,10 @@ clientSpec = do
           b1K1StoredKeyIdResult <- http (addLocation brAuthUser newLoc1)
           b1K1StoredKeyIdResult `shouldSatisfy` isRight
 
+          step "Can't add a location for a company that doesn't exist."
+
+          step "That a user can only insert a location from their busniess."
+
           step "Can add a second location with a different company."
 
           step "Can add a second location with the same company."
