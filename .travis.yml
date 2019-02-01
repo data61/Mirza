@@ -52,6 +52,7 @@ install:
 
 script:
 # Build the package, its tests, and its docs and run the tests
+- stack clean
 - stack --no-terminal build --copy-bins
 - psql -c 'CREATE DATABASE testsupplychainserver;' -U postgres
 - psql -c 'CREATE DATABASE testbusinessregistry;' -U postgres
