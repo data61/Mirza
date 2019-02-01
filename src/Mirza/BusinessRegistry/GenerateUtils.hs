@@ -25,8 +25,7 @@ dummyBusiness unique = do
 dummyUser :: T.Text -> GS1CompanyPrefix -> IO NewUser
 dummyUser unique business_uid = do
   passwordEntropy <- randomText
-  randomEmail <- randomText
-  let newUserEmailAddress = unsafeEmailAddress (encodeUtf8 randomEmail) "example.com"
+  let newUserEmailAddress = unsafeEmailAddress (encodeUtf8 unique) "example.com"
   let newUserPassword     = "User" <> unique <> "Password" <> passwordEntropy
   let newUserCompany      = business_uid
   let newUserFirstName    = "User" <> unique <> "FirstName"
@@ -37,10 +36,12 @@ dummyUser unique business_uid = do
 
 generateMultipleUsers :: String
                       -> Int
+                      -> [T.Text]
                       -> [GS1CompanyPrefix]
                       -> IO [NewUser]
-generateMultipleUsers _ 0 _  = pure []
-generateMultipleUsers _ _ [] = pure []
-generateMultipleUsers testName n (p:px) = do
-  newUser <- dummyUser (T.pack (testName <> (show n))) p
-  ((:) newUser) <$> generateMultipleUsers testName (n-1) px
+generateMultipleUsers _ 0 _ _  = pure []
+generateMultipleUsers _ _ [] _ = pure []
+generateMultipleUsers _ _ _ [] = pure []
+generateMultipleUsers testName n (f:fx) (p:px) = do
+  newUser <- dummyUser f p
+  ((:) newUser) <$> generateMultipleUsers testName (n-1) fx px

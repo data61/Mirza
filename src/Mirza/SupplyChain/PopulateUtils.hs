@@ -121,7 +121,7 @@ insertAndAuth scsUrl brUrl auth locMap ht (entity:entities) = do
       (Entity name companyPrefix bizName locations (KeyPairPaths _ pubKeyPath)) = entity
       [newUserSCS] = genMultipleUsersSCS "citrusTest" 1 [name] [companyPrefix]
       newBiz = BT.NewBusiness companyPrefix bizName
-  [newUserBR] <- GenBR.generateMultipleUsers "citrusTest" 1 [companyPrefix]
+  [newUserBR] <- GenBR.generateMultipleUsers "citrusTest" 1 [name] [companyPrefix]
   let userAuth = BasicAuthData
                   (toByteString . BT.newUserEmailAddress $ newUserBR)
                   (encodeUtf8 . BT.newUserPassword $ newUserBR)
