@@ -403,7 +403,6 @@ testServiceQueries = do
       insertedDWhere <- testAppM scsContext $ do
         uid <- addUser dummyNewUser
         (_, eventId) <- insertObjectEvent dummyUser{userId = uid} dummyObject
-        void $ runDb $ insertDWhere dummyDWhere eventId
         runDb $ findDWhere eventId
       insertedDWhere `shouldBe` Just dummyDWhere
 
