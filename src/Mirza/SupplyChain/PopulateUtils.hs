@@ -47,7 +47,7 @@ import qualified Crypto.JOSE                           as JOSE
 import           Crypto.JOSE.Types                     (Base64Octets (..))
 
 import qualified Mirza.BusinessRegistry.GenerateUtils  as GenBR (generateMultipleUsers)
-import           Mirza.SupplyChain.GenerateUtils
+import           Mirza.SupplyChain.GenerateUtils       as GenSCS
 
 import           Data.Maybe                            (fromJust)
 
@@ -119,9 +119,9 @@ insertAndAuth scsUrl brUrl auth locMap ht (entity:entities) = do
   let httpSCS = runClient scsUrl
       httpBR = runClient brUrl
       (Entity name companyPrefix bizName locations (KeyPairPaths _ pubKeyPath)) = entity
-      [newUserSCS] = genMultipleUsersSCS "citrusTest" 1 [name] [companyPrefix]
+      [newUserSCS] = GenSCS.genMultipleUsers [(name, companyPrefix)]
       newBiz = BT.NewBusiness companyPrefix bizName
-  [newUserBR] <- GenBR.generateMultipleUsers "citrusTest" 1 [name] [companyPrefix]
+  [newUserBR] <- GenBR.generateMultipleUsers [(name, companyPrefix)]
   let userAuth = BasicAuthData
                   (toByteString . BT.newUserEmailAddress $ newUserBR)
                   (encodeUtf8 . BT.newUserPassword $ newUserBR)
