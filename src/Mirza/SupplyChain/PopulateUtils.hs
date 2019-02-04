@@ -141,10 +141,8 @@ insertAndAuth scsUrl brUrl auth locMap ht (entity:entities) = do
   insertAndAuth scsUrl brUrl auth locMap updatedHt entities
   where
     maybeInsertLocation _ Nothing    = pure ()
-    maybeInsertLocation userAuth (Just loc) = do
-      _r <- runClient brUrl $ BRClient.addLocation userAuth loc
-      pure ()
-
+    maybeInsertLocation userAuth (Just loc) =
+        void $ runClient brUrl $ BRClient.addLocation userAuth loc
 
 insertEachEvent :: AuthHash -> EachEvent ->  ClientM ()
 insertEachEvent _ (EachEvent [] _) = pure ()
