@@ -16,7 +16,8 @@ module Mirza.SupplyChain.Database.Schema.V0001 where
 import qualified Data.GS1.EPC                     as EPC
 import qualified Data.GS1.Event                   as Ev
 
-import           Mirza.Common.Beam                (lastUpdateField)
+import           Mirza.Common.Beam                (defaultFkConstraint,
+                                                   lastUpdateField)
 import           Mirza.Common.GS1BeamOrphans
 import qualified Mirza.Common.GS1BeamOrphans      as MU
 import           Mirza.Common.Types               hiding (UserId)
@@ -36,10 +37,7 @@ import           Data.Time                        (LocalTime)
 import           Data.UUID                        (UUID)
 
 import           Database.Beam                    as B
-import           Database.Beam.Migrate.SQL        (DataType,
-                                                   referencesConstraintSyntax,
-                                                   referentialActionCascadeSyntax)
-import           Database.Beam.Migrate.SQL.SQL92
+import           Database.Beam.Migrate.SQL        (DataType)
 import           Database.Beam.Migrate.SQL.Tables
 import           Database.Beam.Migrate.Types
 import           Database.Beam.Postgres
@@ -86,12 +84,6 @@ data SupplyChainDb f = SupplyChainDb
   }
   deriving Generic
 instance Database be SupplyChainDb
-
-defaultFkConstraint :: IsSql92ColumnConstraintSyntax
-                       (Sql92ColumnConstraintDefinitionConstraintSyntax
-                         (Sql92ColumnSchemaColumnConstraintDefinitionSyntax syntax))
-                    => Text -> [Text] -> Constraint syntax
-defaultFkConstraint tblName fields = Constraint $ referencesConstraintSyntax tblName fields Nothing Nothing $ pure referentialActionCascadeSyntax
 
 -- Migration: Intialisation -> V1.
 migration :: () -> Migration PgCommandSyntax (CheckedDatabaseSettings Postgres SupplyChainDb)
