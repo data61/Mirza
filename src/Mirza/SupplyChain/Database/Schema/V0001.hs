@@ -36,10 +36,10 @@ import           Data.Time                        (LocalTime)
 import           Data.UUID                        (UUID)
 
 import           Database.Beam                    as B
-import           Database.Beam.Migrate.SQL.SQL92
 import           Database.Beam.Migrate.SQL        (DataType,
                                                    referencesConstraintSyntax,
                                                    referentialActionCascadeSyntax)
+import           Database.Beam.Migrate.SQL.SQL92
 import           Database.Beam.Migrate.SQL.Tables
 import           Database.Beam.Migrate.Types
 import           Database.Beam.Postgres
@@ -105,7 +105,7 @@ migration () =
     <*> createTable "users" ( User
           lastUpdateField
           (field "user_id" pkSerialType)
-          (BizId $ field "user_biz_id" gs1CompanyPrefixType (defaultFkConstraint "businesses" ["biz_gs1_company_prefix"]))
+          (BizId $ field "user_biz_id" gs1CompanyPrefixType)
           (field "user_first_name" (varchar (Just defaultFieldMaxLength)) notNull)
           (field "user_last_name" (varchar (Just defaultFieldMaxLength)) notNull)
           (field "user_phone_number" (varchar (Just defaultFieldMaxLength)) notNull)
