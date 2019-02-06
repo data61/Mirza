@@ -421,7 +421,7 @@ pestControl blockId t tz location bizLocation =
           (ObjWhat $ ObjectDWhat Observe blockId)
           (DWhen t Nothing tz)
           (DWhy (Just Inspecting) (Just SellableNotAccessible))
-          (DWhere [location] [bizLocation] [] [])
+          (DWhere (Just location) (Just bizLocation) [] [])
 
 --check maximum residue of pesticides/fungicides
 maxResidue :: [LabelEPC]
@@ -435,7 +435,7 @@ maxResidue blockId t tz location bizLocation =
       (ObjWhat $ ObjectDWhat Observe blockId)
       (DWhen t Nothing tz)
       (DWhy (Just Inspecting) (Just SellableNotAccessible))
-      (DWhere [location] [bizLocation] [] [])
+      (DWhere (Just location) (Just bizLocation) [] [])
 
 --label bins/harvest
 labelBinsHarvest :: [LabelEPC]
@@ -449,7 +449,7 @@ labelBinsHarvest binId t tz location bizLocation =
       (ObjWhat $ ObjectDWhat Add binId) -- is Add the right action here?
       (DWhen t Nothing tz)
       (DWhy (Just Commissioning) (Just Active))
-      (DWhere [location] [bizLocation] [] [])
+      (DWhere (Just location) (Just bizLocation) [] [])
 
 {- is this needed, or do we just make a transaction event with the parent
     being the truckID?
@@ -460,7 +460,7 @@ loadingTruckToPackingHouse binIds truckId t tz location bizLocation =
   (AggWhat $ AggregationDWhat Add truckId binIds)
   (DWhen t Nothing tz)
   (DWhy (Just Loading) (Just SellableNotAccessible))
-  (DWhere [location] [bizLocation] [] [])
+  (DWhere (Just location) (Just bizLocation) [] [])
   -}
 
 --Transport
@@ -476,7 +476,7 @@ farmerToTruckDriver1 mtruckId binIds t tz location bizLocation =
   (TransactWhat $ TransactionDWhat Add mtruckId [] binIds)
   (DWhen t Nothing tz)
   (DWhy (Just Loading) (Just InTransit))
-  (DWhere [location] [bizLocation] [] [])
+  (DWhere (Just location) (Just bizLocation) [] [])
 
 --Scan bins at packing house
 truckDriver1ToPackingHouse :: Maybe ParentLabel
@@ -491,7 +491,7 @@ truckDriver1ToPackingHouse truckId binIds t tz location bizLocation =
   (TransactWhat $ TransactionDWhat Delete truckId [] binIds)
   (DWhen t Nothing tz)
   (DWhy (Just Accepting) (Just InProgress))
-  (DWhere [location] [bizLocation] [] [])
+  (DWhere (Just location) (Just bizLocation) [] [])
 
 --apply fungicide within 36 hours
 applyFungicide :: [LabelEPC]
@@ -505,7 +505,7 @@ applyFungicide binIds t tz location bizLocation =
   (TransformWhat $ TransformationDWhat Nothing (InputEPC <$> binIds) (OutputEPC <$> binIds))
   (DWhen t Nothing tz)
   (DWhy (Just Inspecting) (Just SellableNotAccessible))
-  (DWhere [location] [bizLocation] [] [])
+  (DWhere (Just location) (Just bizLocation) [] [])
 
 --sorting and boxing
 sortingBoxing :: Maybe ParentLabel
@@ -520,7 +520,7 @@ sortingBoxing boxId contents t tz location bizLocation =
   (AggWhat $ AggregationDWhat Add boxId contents)
   (DWhen t Nothing tz)
   (DWhy (Just Commissioning) (Just Active))
-  (DWhere [location] [bizLocation] [] [])
+  (DWhere (Just location) (Just bizLocation) [] [])
 
 -- palletisation
 palletisation :: Maybe ParentLabel
@@ -535,7 +535,7 @@ palletisation palletId boxes t tz location bizLocation =
   (AggWhat $ AggregationDWhat Add palletId boxes)
   (DWhen t Nothing tz)
   (DWhy (Just Commissioning) (Just Active))
-  (DWhere [location] [bizLocation] [] [])
+  (DWhere (Just location) (Just bizLocation) [] [])
 
 
 --loading onto truck
@@ -551,7 +551,7 @@ packingHouseToTruckDriver2 truckId palletIds t tz location bizLocation =
   (TransactWhat $ TransactionDWhat Add truckId [] palletIds)
   (DWhen t Nothing tz)
   (DWhy (Just Loading) (Just InTransit))
-  (DWhere [location] [bizLocation] [] [])
+  (DWhere (Just location) (Just bizLocation) [] [])
 
 -- arrival of goods at the port
 -- take them out of the truck
@@ -567,7 +567,7 @@ truckDriver2ToPortsOperator1 truckId palletIds t tz location bizLocation =
   (TransactWhat $ TransactionDWhat Delete truckId [] palletIds)
   (DWhen t Nothing tz)
   (DWhy (Just Loading) (Just InTransit))
-  (DWhere [location] [bizLocation] [] [])
+  (DWhere (Just location) (Just bizLocation) [] [])
 
 -- quarantine in australia
 -- transformed state from non-quarantined to quarantined
@@ -582,7 +582,7 @@ quarantineAus palletIds t tz location bizLocation =
   (TransformWhat $ TransformationDWhat Nothing (InputEPC <$> palletIds) (OutputEPC <$> palletIds))
   (DWhen t Nothing tz)
   (DWhy (Just Holding) (Just SellableNotAccessible))
-  (DWhere [location] [bizLocation] [] [])
+  (DWhere (Just location) (Just bizLocation) [] [])
 
 -- shipping to China
 shippingToChina :: Maybe ParentLabel
@@ -597,7 +597,7 @@ shippingToChina shipId palletIds t tz location bizLocation =
   (TransactWhat $ TransactionDWhat Delete shipId [] palletIds)
   (DWhen t Nothing tz)
   (DWhy (Just Shipping) (Just InTransit))
-  (DWhere [location] [bizLocation] [] [])
+  (DWhere (Just location) (Just bizLocation) [] [])
 
 -- quarantine in China
 -- transformed state from non-quarantined to quarantined
@@ -612,7 +612,7 @@ quarantineChina palletIds t tz location bizLocation =
   (TransformWhat $ TransformationDWhat Nothing (InputEPC <$> palletIds) (OutputEPC <$> palletIds))
   (DWhen t Nothing tz)
   (DWhy (Just Holding) (Just SellableNotAccessible))
-  (DWhere [location] [bizLocation] [] [])
+  (DWhere (Just location) (Just bizLocation) [] [])
 
 -- Tests that should be implemented in this module:
 

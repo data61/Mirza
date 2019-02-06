@@ -42,7 +42,7 @@ import           Data.GS1.DWhere                   (BizLocation (..),
                                                     SrcDestLocation (..))
 import           Data.GS1.DWhy                     (DWhy (..))
 
-import           Data.Maybe                        (catMaybes)
+import           Data.Maybe                        (catMaybes, listToMaybe)
 
 import           Data.ByteString                   (ByteString)
 import qualified Data.Text                         as T
@@ -225,7 +225,7 @@ getParentId :: DWhat -> DB context err (Maybe PrimaryKeyType)
 getParentId dwhat = do
   let mParentLabel = getParent dwhat
   case mParentLabel of
-    Nothing -> pure Nothing
+    Nothing              -> pure Nothing
     Just (ParentLabel p) -> findInstLabelId p
 
 toStorageDWhen :: Schema.WhenId
@@ -297,9 +297,9 @@ insertLocationEPC locField eventId (SGLN pfix locationRef ext) =
 -- | Maps the relevant insert function for all
 -- ReadPoint, BizLocation, Src, Dest
 insertDWhere :: DWhere -> Schema.EventId -> DB context err ()
-insertDWhere (DWhere rPoints bizLocs srcTs destTs) eventId = do
-    sequence_ $ insertLocationEPC MU.ReadPoint eventId . unReadPointLocation <$> rPoints
-    sequence_ $ insertLocationEPC MU.BizLocation eventId . unBizLocation <$> bizLocs
+insertDWhere (DWhere rPoint bizLoc srcTs destTs) eventId = do
+    sequence_ $ insertLocationEPC MU.ReadPoint eventId . unReadPointLocation <$> rPoint
+    sequence_ $ insertLocationEPC MU.BizLocation eventId . unBizLocation <$> bizLoc
     sequence_ $ insertSrcDestType MU.Src eventId <$> srcTs
     sequence_ $ insertSrcDestType MU.Dest eventId <$> destTs
 
@@ -311,7 +311,10 @@ findDWhere eventId = do
   bizLocs <- findDWhereByLocationField MU.BizLocation eventId
   srcTs <- findDWhereByLocationField MU.Src eventId
   destTs <- findDWhereByLocationField MU.Dest eventId
-  pure $ mergeSBWheres [rPoints, bizLocs, srcTs, destTs]
+  pure $ mergeSBWheres
+    (ReadPointLocation . constructLocation <$> listToMaybe rPoints)
+    (BizLocation . constructLocation <$> listToMaybe bizLocs)
+    srcTs destTs
 
 findDWhereByLocationField :: MU.LocationField -> Schema.EventId -> DB context err [Schema.WhereT Identity]
 findDWhereByLocationField locField eventId = pg $ runSelectReturningList $ select $ do
@@ -323,15 +326,16 @@ findDWhereByLocationField locField eventId = pg $ runSelectReturningList $ selec
 
 -- | Merges a list of Schema.Wheres into one Data.GS1.DWhere
 -- mergeSBWheres :: [Schema.WhereT Identity] -> DWhere
-mergeSBWheres :: [[Schema.WhereT Identity]] -> Maybe DWhere
-mergeSBWheres [rPointsW, bizLocsW, srcTsW, destTsW] =
-  let rPoints = ReadPointLocation . constructLocation <$> rPointsW
-      bizLocs = BizLocation . constructLocation <$> bizLocsW
-      srcTs = constructSrcDestLocation <$> srcTsW
+mergeSBWheres :: Maybe ReadPointLocation
+              -> Maybe BizLocation
+              -> [Schema.WhereT Identity]
+              -> [Schema.WhereT Identity]
+              -> Maybe DWhere
+mergeSBWheres rPoints bizLocs srcTsW destTsW =
+  let srcTs = constructSrcDestLocation <$> srcTsW
       destTs = constructSrcDestLocation <$> destTsW
       in
         DWhere rPoints bizLocs <$> sequence srcTs <*> sequence destTs
-mergeSBWheres _                                     = Nothing -- error "Invalid arguments"
 
 -- | This relies on the user calling this function in the appropriate WhereT
 constructSrcDestLocation :: Schema.WhereT Identity -> Maybe SrcDestLocation

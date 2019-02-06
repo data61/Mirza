@@ -180,9 +180,9 @@ dummyDWhen =
 dummyDWhere :: DWhere
 dummyDWhere =
   DWhere
-    [ReadPointLocation $ SGLN (GS1CompanyPrefix "0012345") (LocationReference "11111") (Just $ SGLNExtension "400")]
+    (Just $ ReadPointLocation $ SGLN (GS1CompanyPrefix "0012345") (LocationReference "11111") (Just $ SGLNExtension "400"))
     -- [ReadPointLocation]
-    [BizLocation $ SGLN (GS1CompanyPrefix "0012345") (LocationReference "11111") Nothing]
+    (Just $ BizLocation $ SGLN (GS1CompanyPrefix "0012345") (LocationReference "11111") Nothing)
     -- [BizLocation]
     [
       SrcDestLocation (SDOwningParty,

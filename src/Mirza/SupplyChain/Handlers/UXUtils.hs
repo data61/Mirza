@@ -2,7 +2,6 @@
 {-# LANGUAGE DeriveGeneric         #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE TemplateHaskell       #-}
 
 module Mirza.SupplyChain.Handlers.UXUtils
   (
@@ -31,16 +30,23 @@ import qualified Data.GS1.Event                        as Ev
 import           Mirza.BusinessRegistry.Client.Servant (uxLocation)
 
 import           Data.Aeson
-import           Data.Aeson.TH
 
 import           Data.Swagger                          (ToSchema (..))
 
 data PrettyEventResponse =
-  PrettyEvent
-  { prettyEvent    :: [Ev.Event]
-  , prettyLocation :: [BT.BusinessAndLocationResponse]
+  PrettyEventResponse
+  { prettyEvent    :: Ev.Event
+  , prettyLocation :: BT.BusinessAndLocationResponse
   } deriving (Show, Eq, Generic)
-$(deriveJSON defaultOptions ''PrettyEventResponse)
+
+instance FromJSON PrettyEventResponse where
+  parseJSON = withObject "PrettyEventResponse" $ \v -> PrettyEventResponse
+    <$> v .: "event"
+    <*> v .: "businesslocation"
+
+instance ToJSON PrettyEventResponse where
+  toJSON (PrettyEventResponse ev loc) = error "lol"
+
 instance ToSchema PrettyEventResponse
 
 -- This takes an EPC urn,
@@ -57,4 +63,4 @@ listEventsPretty _user lblUrn = do
       let pfx = getCompanyPrefix lbl
       bizLocResp <- runClientFunc $ uxLocation [pfx]
       evs <- runDb $ listEventsQuery lbl
-      pure $ PrettyEvent evs bizLocResp
+      pure $ PrettyEventResponse (head evs) (head bizLocResp)
