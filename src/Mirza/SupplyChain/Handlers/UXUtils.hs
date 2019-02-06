@@ -25,9 +25,11 @@ import qualified Mirza.BusinessRegistry.Types          as BT
 
 import           Data.GS1.DWhat                        (getCompanyPrefix,
                                                         urn2LabelEPC)
+import           Data.GS1.DWhere
+import           Data.GS1.EPC
 import qualified Data.GS1.Event                        as Ev
 
-import           Mirza.BusinessRegistry.Client.Servant (uxLocation)
+import           Mirza.BusinessRegistry.Client.Servant (uxLocationByGLN)
 
 import           Data.Aeson
 
@@ -36,7 +38,7 @@ import           Data.Swagger                          (ToSchema (..))
 data PrettyEventResponse =
   PrettyEventResponse
   { prettyEvent    :: Ev.Event
-  , prettyLocation :: BT.BusinessAndLocationResponse
+  , prettyLocation :: Maybe BT.BusinessAndLocationResponse
   } deriving (Show, Eq, Generic)
 
 instance FromJSON PrettyEventResponse where
@@ -55,12 +57,24 @@ listEventsPretty  :: (Member context '[HasDB, HasBRClientEnv],
                       Member err     '[AsServiceError, AsServantError, AsSqlError])
                   => ST.User
                   -> LabelEPCUrn
-                  -> AppM context err PrettyEventResponse
+                  -> AppM context err [PrettyEventResponse]
 listEventsPretty _user lblUrn = do
   case urn2LabelEPC . getLabelEPCUrn $ lblUrn of
     Left err -> throwParseError err
     Right lbl -> do
       let pfx = getCompanyPrefix lbl
-      bizLocResp <- runClientFunc $ uxLocation [pfx]
       evs <- runDb $ listEventsQuery lbl
-      pure $ PrettyEventResponse (head evs) (head bizLocResp)
+      traverse func evs
+
+
+func :: (Member context '[HasDB, HasBRClientEnv],
+         Member err     '[AsServiceError, AsServantError, AsSqlError, BT.AsBRError])
+      => Ev.Event -> AppM context err PrettyEventResponse
+func ev = do
+  let mloc = _readPoint . Ev._where $ ev
+  case mloc of
+    Nothing -> throwing BT._LocationNotKnownBRE ()
+    Just (ReadPointLocation loc) -> do
+      let pfx = _sglnCompanyPrefix loc
+      locResp <- runClientFunc $ Just <$> uxLocationByGLN loc pfx
+      pure $ PrettyEventResponse ev locResp
