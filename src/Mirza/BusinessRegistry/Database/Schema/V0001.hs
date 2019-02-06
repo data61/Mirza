@@ -10,7 +10,8 @@
 module Mirza.BusinessRegistry.Database.Schema.V0001 where
 
 import qualified Data.GS1.EPC                  as EPC
-import           Mirza.Common.Beam             (lastUpdateField)
+import           Mirza.Common.Beam             (defaultFkConstraint,
+                                                lastUpdateField)
 import           Mirza.Common.GS1BeamOrphans
 import           Mirza.Common.Types            (PrimaryKeyType)
 
@@ -50,8 +51,8 @@ pkSerialType = uuid
 
 -- Database
 data BusinessRegistryDB f = BusinessRegistryDB
-  { _users      :: f (TableEntity UserT)
-  , _businesses :: f (TableEntity BusinessT)
+  { _businesses :: f (TableEntity BusinessT)
+  , _users      :: f (TableEntity UserT)
   , _keys       :: f (TableEntity KeyT)
   }
   deriving Generic
@@ -61,9 +62,14 @@ instance Database anybackend BusinessRegistryDB
 migration :: () -> Migration PgCommandSyntax (CheckedDatabaseSettings Postgres BusinessRegistryDB)
 migration () =
   BusinessRegistryDB
-    <$> createTable "users" (UserT
+    <$> createTable "businesses" (BusinessT
+          (field "biz_gs1_company_prefix" gs1CompanyPrefixType)
+          (field "biz_name" (varchar (Just defaultFieldMaxLength)) notNull)
+          lastUpdateField
+          )
+    <*> createTable "users" (UserT
           (field "user_id" pkSerialType)
-          (BizId (field "user_biz_id" gs1CompanyPrefixType))
+          (BizId $ field "user_biz_id" gs1CompanyPrefixType)
           (field "first_name" (varchar (Just defaultFieldMaxLength)) notNull)
           (field "last_name" (varchar (Just defaultFieldMaxLength)) notNull)
           (field "phone_number" (varchar (Just defaultFieldMaxLength)) notNull)
@@ -71,18 +77,13 @@ migration () =
           (field "email_address" emailAddressType unique)
           lastUpdateField
           )
-    <*> createTable "businesses" (BusinessT
-          (field "biz_gs1_company_prefix" gs1CompanyPrefixType)
-          (field "biz_name" (varchar (Just defaultFieldMaxLength)) notNull)
-          lastUpdateField
-          )
     <*> createTable "keys" (KeyT
           (field "key_id" pkSerialType)
-          (UserId (field "key_user_id" pkSerialType))
+          (UserId $ field "key_user_id" pkSerialType)
           (field "jwk" json notNull)
           (field "creation_time" timestamptz)
           (field "revocation_time" (maybeType timestamptz))
-          (UserId (field "revoking_user_id" (maybeType pkSerialType)))
+          (UserId $ field "revoking_user_id" (maybeType pkSerialType))
           (field "expiration_time" (maybeType timestamptz))
           lastUpdateField
           )

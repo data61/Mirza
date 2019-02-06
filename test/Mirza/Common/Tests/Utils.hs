@@ -15,7 +15,8 @@ module Mirza.Common.Tests.Utils
   )
   where
 
-import           Data.ByteString             as BS hiding (putStrLn, unpack)
+import           Data.ByteString             as BS hiding (putStrLn, reverse,
+                                                    unpack)
 import qualified Data.ByteString.Char8       as C8 (unpack)
 
 import           Test.Hspec.Expectations     (Expectation, shouldSatisfy)
@@ -137,7 +138,9 @@ createDatabase (DatabaseName databaseName) = do
 --       updated accordingly once we support proper migrations.
 dropTables :: Database Postgres db => DatabaseSettings Postgres db -> Connection -> IO ()
 dropTables db conn = do
-  let tables = getTableNames db
+  -- Reversing the list because tables at the top are dependencies of tables
+  -- at the bottom, and they need to be dropped first
+  let tables = reverse $ getTableNames db
   -- Note: Its not clear why it is seemingly ok to remove tables in apparently
   --       arbitrary order which might contain primary keys that are referenced
   --       as foreign keys from other tables and that postgres doesn't complain
