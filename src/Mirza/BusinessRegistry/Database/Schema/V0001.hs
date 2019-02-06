@@ -69,7 +69,7 @@ migration () =
           )
     <*> createTable "users" (UserT
           (field "user_id" pkSerialType)
-          (BizId $ field "user_biz_id" gs1CompanyPrefixType (defaultFkConstraint "businesses" ["biz_gs1_company_prefix"]))
+          (BizId $ field "user_biz_id" gs1CompanyPrefixType)
           (field "first_name" (varchar (Just defaultFieldMaxLength)) notNull)
           (field "last_name" (varchar (Just defaultFieldMaxLength)) notNull)
           (field "phone_number" (varchar (Just defaultFieldMaxLength)) notNull)
@@ -79,11 +79,11 @@ migration () =
           )
     <*> createTable "keys" (KeyT
           (field "key_id" pkSerialType)
-          (UserId $ field "key_user_id" pkSerialType (defaultFkConstraint "users" ["user_id"]))
+          (UserId $ field "key_user_id" pkSerialType)
           (field "jwk" json notNull)
           (field "creation_time" timestamptz)
           (field "revocation_time" (maybeType timestamptz))
-          (UserId $ field "revoking_user_id" (maybeType pkSerialType) (defaultFkConstraint "users" ["user_id"]))
+          (UserId $ field "revoking_user_id" (maybeType pkSerialType))
           (field "expiration_time" (maybeType timestamptz))
           lastUpdateField
           )

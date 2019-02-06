@@ -62,12 +62,12 @@ migration v0001 = BusinessRegistryDB
   <*> createTable "location" (LocationT
         (field "location_id" V0001.pkSerialType)
         (field "location_gln" locationEPCType)
-        (V0001.BizId $ field "location_biz_id" gs1CompanyPrefixType (defaultFkConstraint "businesses" ["biz_gs1_company_prefix"]))
+        (V0001.BizId $ field "location_biz_id" gs1CompanyPrefixType)
         lastUpdateField
         )
   <*> createTable "geo_location" (GeoLocationT
         (field "geo_location_id"      V0001.pkSerialType)
-        (LocationId $ field "geo_location_gln" locationEPCType ((defaultFkConstraint "location" ["location_gln"])))
+        (LocationId $ field "geo_location_gln" locationEPCType)
         (field "geo_location_lat"     (maybeType latitudeType))
         (field "geo_location_lon"     (maybeType longitudeType))
         (field "geo_location_address" (maybeType $ varchar Nothing))
