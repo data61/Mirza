@@ -77,9 +77,13 @@ addBusinessQuery biz@BusinessT{..} = do
 
 
 searchBusinesses :: ( Member context '[HasDB]
-                  , Member err     '[AsSqlError])
-               => Maybe GS1CompanyPrefix -> Maybe Text -> Maybe UTCTime -> AppM context err [BusinessResponse]
-searchBusinesses mpfx mname mafter = fmap businessToBusinessResponse <$> runDb (searchBusinessesQuery mpfx mname mafter)
+                    , Member err     '[AsSqlError])
+                 => Maybe GS1CompanyPrefix
+                 -> Maybe Text
+                 -> Maybe UTCTime
+                 -> AppM context err [BusinessResponse]
+searchBusinesses mpfx mname mafter =
+    fmap businessToBusinessResponse <$> runDb (searchBusinessesQuery mpfx mname mafter)
 
 searchBusinessesQuery :: Maybe GS1CompanyPrefix -> Maybe Text -> Maybe UTCTime -> DB context err [Business]
 searchBusinessesQuery mpfx mname mafter = pg $ runSelectReturningList $ select $ do

@@ -10,6 +10,7 @@ module Mirza.BusinessRegistry.Handlers.Location
   ( addLocation
   , getLocationByGLN
   , searchLocation
+  , uxLocationByGLN
   , uxLocation
   ) where
 
@@ -185,6 +186,18 @@ searchLocationQuery mpfx mafter = pg $ runSelectReturningList $ select $ do
         ||. geoLocation_last_update geoloc >=. just_ (val_ (toDbTimestamp after)))
 
   pure (loc, geoloc)
+
+uxLocationByGLN :: ( Member context '[HasDB, HasLogging]
+                   , Member err     '[AsBRError, AsSqlError])
+                => LocationEPC
+                -> GS1CompanyPrefix
+                -> AppM context err BusinessAndLocationResponse
+uxLocationByGLN locEpc pfx = do
+  loc <- getLocationByGLN locEpc
+  biz <- BRHB.searchBusinesses (Just pfx) Nothing Nothing
+  case biz of
+    [b] -> pure $ BusinessAndLocationResponse b loc
+    _   -> throwing_ _BusinessDoesNotExistBRE
 
 
 -- The maximum number of companies that can be searched for in a single uxLocation query.

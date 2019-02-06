@@ -77,6 +77,7 @@ publicServer =
   :<|> getLocationByGLN
   :<|> searchLocation
   :<|> uxLocation
+  :<|> uxLocationByGLN
   :<|> versionInfo
 
 privateServer :: ( Member context '[HasScryptParams, HasDB]

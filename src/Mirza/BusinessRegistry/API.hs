@@ -65,6 +65,10 @@ type PublicAPI =
       :> QueryParam "modifiedsince" UTCTime
       :> Get '[JSON] [LocationResponse]
   :<|> "prototype" :> "location" :> "ux" :> QueryParams "gs1companyprefix" GS1CompanyPrefix :> Get '[JSON] [BusinessAndLocationResponse]
+  :<|> "prototype" :> "location" :> "uxgln"
+          :> Capture "GLN" EPC.LocationEPC
+          :> Capture "gs1companyprefix" GS1CompanyPrefix
+          :> Get '[JSON] BusinessAndLocationResponse
   :<|> "version" :> Get '[JSON] String
 
 
