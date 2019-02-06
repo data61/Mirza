@@ -16,7 +16,8 @@ module Mirza.SupplyChain.Database.Schema.V0001 where
 import qualified Data.GS1.EPC                     as EPC
 import qualified Data.GS1.Event                   as Ev
 
-import           Mirza.Common.Beam                (lastUpdateField)
+import           Mirza.Common.Beam                (defaultFkConstraint,
+                                                   lastUpdateField)
 import           Mirza.Common.GS1BeamOrphans
 import qualified Mirza.Common.GS1BeamOrphans      as MU
 import           Mirza.Common.Types               hiding (UserId)
@@ -62,16 +63,16 @@ pkSerialType = uuid
 
 -- Database
 data SupplyChainDb f = SupplyChainDb
-  { _users            :: f (TableEntity UserT)
-  , _businesses       :: f (TableEntity BusinessT)
+  { _businesses       :: f (TableEntity BusinessT)
+  , _users            :: f (TableEntity UserT)
   , _contacts         :: f (TableEntity ContactT)
   , _labels           :: f (TableEntity LabelT)
-  , _what_labels      :: f (TableEntity WhatLabelT)
   , _transformations  :: f (TableEntity TransformationT)
-  , _locations        :: f (TableEntity LocationT)
   , _events           :: f (TableEntity EventT)
-  , _whats            :: f (TableEntity WhatT)
   , _biz_transactions :: f (TableEntity BizTransactionT)
+  , _whats            :: f (TableEntity WhatT)
+  , _what_labels      :: f (TableEntity WhatLabelT)
+  , _locations        :: f (TableEntity LocationT)
   , _whys             :: f (TableEntity WhyT)
   , _wheres           :: f (TableEntity WhereT)
   , _whens            :: f (TableEntity WhenT)
@@ -84,31 +85,30 @@ data SupplyChainDb f = SupplyChainDb
   deriving Generic
 instance Database be SupplyChainDb
 
-
 -- Migration: Intialisation -> V1.
 migration :: () -> Migration PgCommandSyntax (CheckedDatabaseSettings Postgres SupplyChainDb)
 migration () =
   SupplyChainDb
-    <$> createTable "users" ( User
+    <$> createTable "businesses" ( Business
+          lastUpdateField
+          (field "biz_gs1_company_prefix" gs1CompanyPrefixType)
+          (field "biz_name" (varchar (Just defaultFieldMaxLength)) notNull)
+    )
+    <*> createTable "users" ( User
           lastUpdateField
           (field "user_id" pkSerialType)
-          (BizId (field "user_biz_id" gs1CompanyPrefixType))
+          (BizId $ field "user_biz_id" gs1CompanyPrefixType)
           (field "user_first_name" (varchar (Just defaultFieldMaxLength)) notNull)
           (field "user_last_name" (varchar (Just defaultFieldMaxLength)) notNull)
           (field "user_phone_number" (varchar (Just defaultFieldMaxLength)) notNull)
           (field "user_password_hash" binaryLargeObject notNull)
           (field "user_email_address" emailAddressType unique)
     )
-    <*> createTable "businesses" ( Business
-          lastUpdateField
-          (field "biz_gs1_company_prefix" gs1CompanyPrefixType)
-          (field "biz_name" (varchar (Just defaultFieldMaxLength)) notNull)
-    )
     <*> createTable "contacts" ( Contact
           lastUpdateField
           (field "contact_id" pkSerialType)
-          (UserId (field "contact_user1_id" pkSerialType))
-          (UserId (field "contact_user2_id" pkSerialType))
+          (UserId $ field "contact_user1_id" pkSerialType (defaultFkConstraint "users" ["user_id"]))
+          (UserId $ field "contact_user2_id" pkSerialType (defaultFkConstraint "users" ["user_id"]))
     )
     <*> createTable "labels" ( Label
           lastUpdateField
@@ -124,23 +124,48 @@ migration () =
           (field "label_quantity_uom" (maybeType uomType))
           (field "label_urn" labelEpcUrnType notNull unique)
     )
-    <*> createTable "what_labels" ( WhatLabel
-          lastUpdateField
-          (field "what_label_id" pkSerialType)
-          (WhatId (field "what_label_what_id" pkSerialType))
-          (LabelId (field "what_label_label_id" pkSerialType))
-          (field "what_label_label_type" (maybeType labelType))
-    )
     <*> createTable "transformations" ( Transformation
           lastUpdateField
           (field "transformation_id" pkSerialType)
           (field "transformation_description" (varchar (Just defaultFieldMaxLength)) notNull)
-          (BizId (field "transformation_biz_id" gs1CompanyPrefixType))
+          (BizId $ field "transformation_biz_id" gs1CompanyPrefixType (defaultFkConstraint "businesses" ["biz_gs1_company_prefix"]))
+    )
+    <*> createTable "events" ( Event
+          lastUpdateField
+          (field "event_id" pkSerialType)
+          (field "event_foreign_event_id" (maybeType uuid))
+          (UserId $ field "event_created_by" pkSerialType (defaultFkConstraint "users" ["user_id"]))
+          (field "event_json" json notNull)
+          (field "event_to_sign" bytea notNull unique)
+    )
+    <*> createTable "biz_transactions" ( BizTransaction
+          lastUpdateField
+          (field "biz_transaction_id" pkSerialType)
+          (field "biz_transaction_type_id" (varchar (Just defaultFieldMaxLength)))
+          (field "biz_transaction_id_urn" (varchar (Just defaultFieldMaxLength)))
+          (EventId $ field "biz_transaction_event_id" pkSerialType (defaultFkConstraint "events" ["event_id"]))
+    )
+    <*> createTable "whats" ( What
+          lastUpdateField
+          (field "what_id" pkSerialType)
+          (field "what_event_type" (maybeType eventType))
+          (field "what_action" (maybeType actionType))
+          (LabelId $ field "what_parent" (maybeType pkSerialType) (defaultFkConstraint "labels" ["label_id"]))
+          (BizTransactionId $ field "what_biz_transaction_id" (maybeType pkSerialType))
+          (TransformationId $ field "what_transformation_id" (maybeType pkSerialType))
+          (EventId $ field "what_event_id" pkSerialType (defaultFkConstraint "events" ["event_id"]))
+    )
+    <*> createTable "what_labels" ( WhatLabel
+          lastUpdateField
+          (field "what_label_id" pkSerialType)
+          (WhatId $ field "what_label_what_id" pkSerialType (defaultFkConstraint "whats" ["what_id"]))
+          (LabelId $ field "what_label_label_id" pkSerialType (defaultFkConstraint "labels" ["label_id"]))
+          (field "what_label_label_type" (maybeType labelType))
     )
     <*> createTable "locations" ( Location
           lastUpdateField
           (field "location_id" locationRefType)
-          (BizId (field "location_biz_id" gs1CompanyPrefixType))
+          (BizId $ field "location_biz_id" gs1CompanyPrefixType ((defaultFkConstraint "businesses" ["biz_gs1_company_prefix"])))
           (field "location_function" (varchar (Just defaultFieldMaxLength)) notNull)
           (field "location_site_name" (varchar (Just defaultFieldMaxLength)) notNull)
           (field "location_address" (varchar (Just defaultFieldMaxLength)) notNull)
@@ -148,37 +173,12 @@ migration () =
           (field "location_lat" double)
           (field "location_long" double)
     )
-    <*> createTable "events" ( Event
-          lastUpdateField
-          (field "event_id" pkSerialType)
-          (field "event_foreign_event_id" (maybeType uuid))
-          (UserId (field "event_created_by" pkSerialType))
-          (field "event_json" json notNull)
-          (field "event_to_sign" bytea notNull unique)
-    )
-    <*> createTable "whats" ( What
-          lastUpdateField
-          (field "what_id" pkSerialType)
-          (field "what_event_type" (maybeType eventType))
-          (field "what_action" (maybeType actionType))
-          (LabelId (field "what_parent" (maybeType pkSerialType)))
-          (BizTransactionId (field "what_biz_transaction_id" (maybeType pkSerialType)))
-          (TransformationId (field "what_transformation_id" (maybeType pkSerialType)))
-          (EventId (field "what_event_id" pkSerialType))
-    )
-    <*> createTable "biz_transactions" ( BizTransaction
-          lastUpdateField
-          (field "biz_transaction_id" pkSerialType)
-          (field "biz_transaction_type_id" (varchar (Just defaultFieldMaxLength)))
-          (field "biz_transaction_id_urn" (varchar (Just defaultFieldMaxLength)))
-          (EventId (field "biz_transaction_event_id" pkSerialType))
-    )
     <*> createTable "whys" ( Why
           lastUpdateField
           (field "why_id" pkSerialType)
           (field "why_biz_step" (maybeType text))
           (field "why_disposition" (maybeType text))
-          (EventId (field "why_event_id" pkSerialType))
+          (EventId $ field "why_event_id" pkSerialType (defaultFkConstraint "events" ["event_id"]))
     )
     <*> createTable "wheres" ( Where
           lastUpdateField
@@ -188,7 +188,7 @@ migration () =
           (field "where_gs1_location_id" locationRefType notNull)
           (field "where_location_field" locationType notNull)
           (field "where_sgln_ext" (maybeType sglnExtType))
-          (EventId (field "where_event_id" pkSerialType))
+          (EventId $ field "where_event_id" pkSerialType (defaultFkConstraint "events" ["event_id"]))
     )
     <*> createTable "whens" ( When
           lastUpdateField
@@ -196,29 +196,29 @@ migration () =
           (field "when_event_time" timestamptz notNull)
           (field "when_record_time" (maybeType timestamptz))
           (field "when_time_zone" (varchar (Just maxTimeZoneLength)) notNull)
-          (EventId (field "when_event_id" pkSerialType))
+          (EventId $ field "when_event_id" pkSerialType (defaultFkConstraint "events" ["event_id"]))
     )
     <*> createTable "label_events" ( LabelEvent
           lastUpdateField
           (field "label_event_id" pkSerialType)
-          (LabelId (field "label_event_label_id" pkSerialType))
-          (EventId (field "label_event_event_id" pkSerialType))
+          (LabelId $ field "label_event_label_id" pkSerialType (defaultFkConstraint "labels" ["label_id"]))
+          (EventId $ field "label_event_event_id" pkSerialType (defaultFkConstraint "events" ["event_id"]))
           (field "label_event_label_type" (maybeType labelType))
     )
     <*> createTable "user_event" ( UserEvent
           lastUpdateField
           (field "user_events_id" pkSerialType)
-          (EventId (field "user_events_event_id" pkSerialType notNull))
-          (UserId (field "user_events_user_id" pkSerialType notNull))
+          (EventId $ field "user_events_event_id" pkSerialType notNull (defaultFkConstraint "events" ["event_id"]))
+          (UserId $ field "user_events_user_id" pkSerialType notNull (defaultFkConstraint "users" ["user_id"]))
           (field "user_events_has_signed" boolean notNull)
-          (UserId (field "user_events_added_by" pkSerialType notNull))
+          (UserId $ field "user_events_added_by" pkSerialType notNull (defaultFkConstraint "users" ["user_id"]))
           (field "user_events_signed_hash" (maybeType bytea))
     )
     <*> createTable "signatures" ( Signature
           lastUpdateField
           (field "signature_id" pkSerialType)
-          (UserId (field "signature_user_id" pkSerialType notNull))
-          (EventId (field "signature_event_id" pkSerialType notNull))
+          (UserId $ field "signature_user_id" pkSerialType notNull (defaultFkConstraint "users" ["user_id"]))
+          (EventId $ field "signature_event_id" pkSerialType notNull (defaultFkConstraint "events" ["event_id"]))
           (field "signature_key_id" brKeyIdType notNull)
           (field "signature_signature" json notNull)
           (field "signature_timestamp" timestamptz notNull)
@@ -226,16 +226,16 @@ migration () =
     <*> createTable "hashes" ( Hashes
           lastUpdateField
           (field "hashes_id" pkSerialType)
-          (EventId (field "hashes_event_id" pkSerialType notNull))
+          (EventId $ field "hashes_event_id" pkSerialType notNull (defaultFkConstraint "events" ["event_id"]))
           (field "hashes_hash" bytea notNull)
           (field "hashes_is_signed" boolean notNull)
-          (UserId (field "hashes_signed_by_user_id" pkSerialType notNull))
+          (UserId $ field "hashes_signed_by_user_id" pkSerialType notNull (defaultFkConstraint "users" ["user_id"]))
           (field "hashes_key_id" brKeyIdType notNull)
     )
     <*> createTable "blockchain" ( BlockChain
           lastUpdateField
           (field "blockchain_id" pkSerialType)
-          (EventId (field "blockchain_event_id" pkSerialType notNull))
+          (EventId $ field "blockchain_event_id" pkSerialType notNull (defaultFkConstraint "events" ["event_id"]))
           (field "blockchain_hash" bytea notNull)
           (field "blockchain_address" text notNull)
           (field "blockchain_foreign_id" int notNull)

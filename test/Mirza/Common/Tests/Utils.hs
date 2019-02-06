@@ -15,30 +15,32 @@ module Mirza.Common.Tests.Utils
   )
   where
 
-import           Data.ByteString         as BS hiding (unpack, putStrLn)
-import qualified Data.ByteString.Char8   as C8 (unpack)
+import           Data.ByteString             as BS hiding (putStrLn, reverse,
+                                                    unpack)
+import qualified Data.ByteString.Char8       as C8 (unpack)
 
-import           Test.Hspec.Expectations (Expectation, shouldSatisfy)
+import           Test.Hspec.Expectations     (Expectation, shouldSatisfy)
 
-import           Data.Foldable           (forM_)
-import           Data.String             (fromString)
-import qualified Data.Text               as T (unpack)
-import           Data.Time.Clock         (UTCTime, diffUTCTime)
+import           Data.Foldable               (forM_)
+import           Data.String                 (fromString)
+import qualified Data.Text                   as T (unpack)
+import           Data.Time.Clock             (UTCTime, diffUTCTime)
 
-import           GHC.Stack               (HasCallStack)
+import           GHC.Stack                   (HasCallStack)
 
 import           Control.Exception
+import           Control.Monad.Except        (ExceptT (..), throwError, unless,
+                                              void)
 import           Control.Monad.IO.Class
-import           Control.Monad.Except    (ExceptT (..), throwError, unless, void)
 
-import           Database.PostgreSQL.Simple
-import           Database.Beam.Schema.Tables (Database, DatabaseSettings)
 import           Database.Beam.Postgres      (Postgres)
+import           Database.Beam.Schema.Tables (Database, DatabaseSettings)
+import           Database.PostgreSQL.Simple
 
 import           Mirza.Common.Utils
 
-import           System.Process
 import           System.Exit
+import           System.Process
 
 
 --------------------------------------------------------------------------------
@@ -136,7 +138,9 @@ createDatabase (DatabaseName databaseName) = do
 --       updated accordingly once we support proper migrations.
 dropTables :: Database Postgres db => DatabaseSettings Postgres db -> Connection -> IO ()
 dropTables db conn = do
-  let tables = getTableNames db
+  -- Reversing the list because tables at the top are dependencies of tables
+  -- at the bottom, and they need to be dropped first
+  let tables = reverse $ getTableNames db
   -- Note: Its not clear why it is seemingly ok to remove tables in apparently
   --       arbitrary order which might contain primary keys that are referenced
   --       as foreign keys from other tables and that postgres doesn't complain

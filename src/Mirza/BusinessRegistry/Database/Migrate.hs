@@ -57,7 +57,7 @@ runMigrationWithConfirmation context confirmationCheck =
     conn <- view _1
     runTriggers <- liftIO $
       simpleMigration migrationBackend conn checkedBusinessRegistryDB >>= \case
-        Nothing -> fail "lol" -- TODO: Actually implment error handling here.
+        Nothing -> fail "Migration unsuccessful" -- TODO: Actually implment error handling here.
         Just [] -> False <$ putStrLn "Already up to date"
         Just commands -> confirmationCheck commands >>= \case
             Abort -> False <$ putStrLn "Aborting"

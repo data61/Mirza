@@ -20,7 +20,7 @@ import           Database.Beam.Postgres.Syntax        (PgColumnSchemaSyntax,
                                                        PgDataTypeSyntax,
                                                        pgTextType)
 
-
+import           Data.Text                            (Text)
 
 -- | The generic implementation of fromField
 -- If it's a fromField used for ``SomeCustomType``, sample usage would be
@@ -63,3 +63,9 @@ defaultFromBackendRow colName = do
   val <- BSQL.fromBackendRow
   let valStr = T.unpack val
   handleReadColumn (readMaybe valStr) colName valStr
+
+defaultFkConstraint :: IsSql92ColumnConstraintSyntax
+                       (Sql92ColumnConstraintDefinitionConstraintSyntax
+                         (Sql92ColumnSchemaColumnConstraintDefinitionSyntax syntax))
+                    => Text -> [Text] -> Constraint syntax
+defaultFkConstraint tblName fields = Constraint $ referencesConstraintSyntax tblName fields Nothing Nothing $ pure referentialActionCascadeSyntax
