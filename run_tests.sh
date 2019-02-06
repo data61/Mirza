@@ -3,15 +3,6 @@
 
 # How to use: ./run_tests.sh --coverage --ta "-p \"addPublicKey test 1\""
 
-stack build --fast
-
-psql -c 'DROP DATABASE testsupplychainserver;' && \
-psql -c 'DROP DATABASE testbusinessregistry;' && \
-psql -c 'CREATE DATABASE testsupplychainserver;' && \
-psql -c 'CREATE DATABASE testbusinessregistry;' && \
-stack exec supplyChainServer -- --init-db -c 'dbname=testsupplychainserver' && \
-echo 'YES' | stack exec businessRegistry -- initdb -c 'dbname=testbusinessregistry' && \
-echo "Databases successfully recreated."
 
 ### This loop splits arguments into those before "--ta" and those after
 #   ./run_tests.sh --coverage --ta "-p \"addPublicKey test 1\""
