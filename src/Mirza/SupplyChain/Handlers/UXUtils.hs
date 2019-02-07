@@ -39,7 +39,7 @@ import           Data.Swagger                          (ToSchema (..))
 data PrettyEventResponse =
   PrettyEventResponse
   { prettyEvent    :: Ev.Event
-  , prettyLocation :: Maybe BT.BusinessAndLocationResponse
+  , prettyLocation :: Maybe BusinessAndLocationResponse
   } deriving (Show, Eq, Generic)
 
 instance FromJSON PrettyEventResponse where
@@ -48,7 +48,14 @@ instance FromJSON PrettyEventResponse where
     <*> v .: "businesslocation"
 
 instance ToJSON PrettyEventResponse where
-  toJSON (PrettyEventResponse ev loc) = error "lol"
+  toJSON (PrettyEventResponse ev (Just bizLoc)) = object
+    [ "eventType" .= Ev._etype ev
+    , "businessName" .= (businessName . businessResponse) bizLoc
+    , "bizLocation" .= locationResponse bizLoc
+    ]
+  toJSON (PrettyEventResponse ev Nothing) = object
+    [ "eventType" .= Ev._etype ev
+    ]
 
 instance ToSchema PrettyEventResponse
 
