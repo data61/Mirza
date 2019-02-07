@@ -12,14 +12,15 @@ import           Control.Monad.Identity
 
 import           Data.Foldable                         (traverse_)
 
-import           Data.GS1.EPC
-import           Data.GS1.Event
 import           Data.GS1.DWhat
 import           Data.GS1.DWhen
 import           Data.GS1.DWhere
 import           Data.GS1.DWhy
+import           Data.GS1.EPC
+import           Data.GS1.Event
 
-import           Data.Time                             (TimeZone, addUTCTime, getCurrentTime)
+import           Data.Time                             (TimeZone, addUTCTime,
+                                                        getCurrentTime)
 import           Data.Time.LocalTime                   (utc)
 
 import qualified Mirza.BusinessRegistry.Types          as BT
@@ -46,7 +47,7 @@ import qualified Crypto.JOSE                           as JOSE
 import           Crypto.JOSE.Types                     (Base64Octets (..))
 
 import qualified Mirza.BusinessRegistry.GenerateUtils  as GenBR (generateMultipleUsers)
-import           Mirza.SupplyChain.GenerateUtils
+import           Mirza.SupplyChain.GenerateUtils       as GenSCS
 
 import           Data.Maybe                            (fromJust)
 
@@ -118,13 +119,16 @@ insertAndAuth scsUrl brUrl auth locMap ht (entity:entities) = do
   let httpSCS = runClient scsUrl
       httpBR = runClient brUrl
       (Entity name companyPrefix bizName locations (KeyPairPaths _ pubKeyPath)) = entity
-      [newUserSCS] = genMultipleUsersSCS "citrusTest" 1 [name] [companyPrefix]
+      [newUserSCS] = GenSCS.genMultipleUsers [(name, companyPrefix)]
       newBiz = BT.NewBusiness companyPrefix bizName
-  [newUserBR] <- GenBR.generateMultipleUsers "citrusTest" 1 [companyPrefix]
+  [newUserBR] <- GenBR.generateMultipleUsers [(name, companyPrefix)]
+  let userAuth = BasicAuthData
+                  (toByteString . BT.newUserEmailAddress $ newUserBR)
+                  (encodeUtf8 . BT.newUserPassword $ newUserBR)
   pubKey <- fmap expectJust $ liftIO $ readJWK pubKeyPath
   insertedUserIdSCS <- fmap expectRight $ httpSCS $ SCSClient.addUser newUserSCS
-  _insertedUserIdBR <- httpBR $ BRClient.addUser auth newUserBR
   _insertedPrefix <- httpBR $ BRClient.addBusiness auth newBiz
+  _insertedUserIdBR <- httpBR $ BRClient.addUser auth newUserBR
   brKeyId <- fmap expectRight $ httpBR $ BRClient.addPublicKey auth pubKey Nothing
   let basicAuthDataSCS =
         BasicAuthData
@@ -132,12 +136,13 @@ insertAndAuth scsUrl brUrl auth locMap ht (entity:entities) = do
           (encodeUtf8   . ST.newUserPassword     $ newUserSCS)
 
   let newLocs = flip H.lookup locMap <$> locations
-  traverse_  maybeInsertLocation newLocs
+  traverse_  (maybeInsertLocation userAuth) newLocs
   let updatedHt = H.insert entity (insertedUserIdSCS, basicAuthDataSCS, brKeyId) ht
   insertAndAuth scsUrl brUrl auth locMap updatedHt entities
   where
-    maybeInsertLocation Nothing    = pure ()
-    maybeInsertLocation (Just loc) = void $ runClient brUrl $ BRClient.addLocation auth loc
+    maybeInsertLocation _ Nothing    = pure ()
+    maybeInsertLocation userAuth (Just loc) =
+        void $ runClient brUrl $ BRClient.addLocation userAuth loc
 
 insertEachEvent :: AuthHash -> EachEvent ->  ClientM ()
 insertEachEvent _ (EachEvent [] _) = pure ()
@@ -317,29 +322,29 @@ regulator4CompanyPrefix = GS1CompanyPrefix "8989111"
 
 
 farmLocation :: LocationEPC
-farmLocation = SGLN farmerCompanyPrefix (LocationReference "1") Nothing -- "blockID3"
+farmLocation = SGLN farmerCompanyPrefix (LocationReference "11111") Nothing -- "blockID3"
 truckDriver1Biz :: LocationEPC
-truckDriver1Biz = SGLN truckDriver1CompanyPrefix (LocationReference "2") Nothing
+truckDriver1Biz = SGLN truckDriver1CompanyPrefix (LocationReference "22222") Nothing
 regulator1Biz :: LocationEPC
-regulator1Biz = SGLN regulator1CompanyPrefix (LocationReference "3") Nothing
+regulator1Biz = SGLN regulator1CompanyPrefix (LocationReference "33333") Nothing
 regulator2Biz :: LocationEPC
-regulator2Biz = SGLN regulator2CompanyPrefix (LocationReference "4") Nothing
+regulator2Biz = SGLN regulator2CompanyPrefix (LocationReference "44444") Nothing
 packingHouseLocation :: LocationEPC
-packingHouseLocation = SGLN packingHouseCompanyPrefix (LocationReference "5") Nothing
+packingHouseLocation = SGLN packingHouseCompanyPrefix (LocationReference "55555") Nothing
 auPortLocation :: LocationEPC
-auPortLocation = SGLN auPortCompanyPrefix (LocationReference "6") Nothing
+auPortLocation = SGLN auPortCompanyPrefix (LocationReference "66666") Nothing
 cnPortLocation :: LocationEPC
-cnPortLocation = SGLN cnPortCompanyPrefix (LocationReference "7") Nothing
+cnPortLocation = SGLN cnPortCompanyPrefix (LocationReference "77777") Nothing
 farmerBiz :: LocationEPC
-farmerBiz = SGLN farmerCompanyPrefix (LocationReference "8") Nothing
+farmerBiz = SGLN farmerCompanyPrefix (LocationReference "88888") Nothing
 packingHouseBiz :: LocationEPC
-packingHouseBiz = SGLN packingHouseCompanyPrefix (LocationReference "9") Nothing
+packingHouseBiz = SGLN packingHouseCompanyPrefix (LocationReference "99999") Nothing
 truck2Biz :: LocationEPC
-truck2Biz = SGLN truck2CompanyPrefix (LocationReference "10") Nothing
+truck2Biz = SGLN truck2CompanyPrefix (LocationReference "10101") Nothing
 regulator3Biz :: LocationEPC
-regulator3Biz = SGLN regulator3CompanyPrefix (LocationReference "11") Nothing
+regulator3Biz = SGLN regulator3CompanyPrefix (LocationReference "11011") Nothing
 regulator4Biz :: LocationEPC
-regulator4Biz = SGLN regulator4CompanyPrefix (LocationReference "12") Nothing
+regulator4Biz = SGLN regulator4CompanyPrefix (LocationReference "12123") Nothing
 
 
 locationMap :: LocationMap
@@ -384,19 +389,19 @@ regulator4KP = KeyPairPaths (privateKeyPath "regulator4") (publicKeyPath "regula
 
 -- All the labels that feed into Citrus Events
 landLabel :: InstanceLabelEPC
-landLabel = GRAI farmerCompanyPrefix (AssetType "blockLabel") (SerialNumber "1")
+landLabel = GRAI farmerCompanyPrefix (AssetType "blockLabel") (SerialNumber "11111")
 binLabel :: InstanceLabelEPC
 binLabel = GIAI farmerCompanyPrefix (SerialNumber "3")
 truckLabel :: InstanceLabelEPC
-truckLabel = SSCC truckDriver1CompanyPrefix (SerialNumber "4")
+truckLabel = SSCC truckDriver1CompanyPrefix (SerialNumber "44444")
 boxLabel :: InstanceLabelEPC
 boxLabel = GIAI farmerCompanyPrefix (SerialNumber "5")
 palletLabel :: InstanceLabelEPC
 palletLabel = GRAI packingHouseCompanyPrefix (AssetType "palletLabel") (SerialNumber "6")
 truck2Label :: InstanceLabelEPC
-truck2Label = SSCC truck2CompanyPrefix (SerialNumber "7")
+truck2Label = SSCC truck2CompanyPrefix (SerialNumber "77777")
 shipLabel :: InstanceLabelEPC
-shipLabel = SSCC cnPortCompanyPrefix (SerialNumber "8")
+shipLabel = SSCC cnPortCompanyPrefix (SerialNumber "88888")
 binLabels :: [LabelEPC]
 binLabels = [IL binLabel, IL $ GIAI farmerCompanyPrefix (SerialNumber "9")]
 boxLabels :: [LabelEPC]
@@ -416,7 +421,7 @@ pestControl blockId t tz location bizLocation =
           (ObjWhat $ ObjectDWhat Observe blockId)
           (DWhen t Nothing tz)
           (DWhy (Just Inspecting) (Just SellableNotAccessible))
-          (DWhere [location] [bizLocation] [] [])
+          (DWhere (Just location) (Just bizLocation) [] [])
 
 --check maximum residue of pesticides/fungicides
 maxResidue :: [LabelEPC]
@@ -430,7 +435,7 @@ maxResidue blockId t tz location bizLocation =
       (ObjWhat $ ObjectDWhat Observe blockId)
       (DWhen t Nothing tz)
       (DWhy (Just Inspecting) (Just SellableNotAccessible))
-      (DWhere [location] [bizLocation] [] [])
+      (DWhere (Just location) (Just bizLocation) [] [])
 
 --label bins/harvest
 labelBinsHarvest :: [LabelEPC]
@@ -444,7 +449,7 @@ labelBinsHarvest binId t tz location bizLocation =
       (ObjWhat $ ObjectDWhat Add binId) -- is Add the right action here?
       (DWhen t Nothing tz)
       (DWhy (Just Commissioning) (Just Active))
-      (DWhere [location] [bizLocation] [] [])
+      (DWhere (Just location) (Just bizLocation) [] [])
 
 {- is this needed, or do we just make a transaction event with the parent
     being the truckID?
@@ -455,7 +460,7 @@ loadingTruckToPackingHouse binIds truckId t tz location bizLocation =
   (AggWhat $ AggregationDWhat Add truckId binIds)
   (DWhen t Nothing tz)
   (DWhy (Just Loading) (Just SellableNotAccessible))
-  (DWhere [location] [bizLocation] [] [])
+  (DWhere (Just location) (Just bizLocation) [] [])
   -}
 
 --Transport
@@ -471,7 +476,7 @@ farmerToTruckDriver1 mtruckId binIds t tz location bizLocation =
   (TransactWhat $ TransactionDWhat Add mtruckId [] binIds)
   (DWhen t Nothing tz)
   (DWhy (Just Loading) (Just InTransit))
-  (DWhere [location] [bizLocation] [] [])
+  (DWhere (Just location) (Just bizLocation) [] [])
 
 --Scan bins at packing house
 truckDriver1ToPackingHouse :: Maybe ParentLabel
@@ -486,7 +491,7 @@ truckDriver1ToPackingHouse truckId binIds t tz location bizLocation =
   (TransactWhat $ TransactionDWhat Delete truckId [] binIds)
   (DWhen t Nothing tz)
   (DWhy (Just Accepting) (Just InProgress))
-  (DWhere [location] [bizLocation] [] [])
+  (DWhere (Just location) (Just bizLocation) [] [])
 
 --apply fungicide within 36 hours
 applyFungicide :: [LabelEPC]
@@ -500,7 +505,7 @@ applyFungicide binIds t tz location bizLocation =
   (TransformWhat $ TransformationDWhat Nothing (InputEPC <$> binIds) (OutputEPC <$> binIds))
   (DWhen t Nothing tz)
   (DWhy (Just Inspecting) (Just SellableNotAccessible))
-  (DWhere [location] [bizLocation] [] [])
+  (DWhere (Just location) (Just bizLocation) [] [])
 
 --sorting and boxing
 sortingBoxing :: Maybe ParentLabel
@@ -515,7 +520,7 @@ sortingBoxing boxId contents t tz location bizLocation =
   (AggWhat $ AggregationDWhat Add boxId contents)
   (DWhen t Nothing tz)
   (DWhy (Just Commissioning) (Just Active))
-  (DWhere [location] [bizLocation] [] [])
+  (DWhere (Just location) (Just bizLocation) [] [])
 
 -- palletisation
 palletisation :: Maybe ParentLabel
@@ -530,7 +535,7 @@ palletisation palletId boxes t tz location bizLocation =
   (AggWhat $ AggregationDWhat Add palletId boxes)
   (DWhen t Nothing tz)
   (DWhy (Just Commissioning) (Just Active))
-  (DWhere [location] [bizLocation] [] [])
+  (DWhere (Just location) (Just bizLocation) [] [])
 
 
 --loading onto truck
@@ -546,7 +551,7 @@ packingHouseToTruckDriver2 truckId palletIds t tz location bizLocation =
   (TransactWhat $ TransactionDWhat Add truckId [] palletIds)
   (DWhen t Nothing tz)
   (DWhy (Just Loading) (Just InTransit))
-  (DWhere [location] [bizLocation] [] [])
+  (DWhere (Just location) (Just bizLocation) [] [])
 
 -- arrival of goods at the port
 -- take them out of the truck
@@ -562,7 +567,7 @@ truckDriver2ToPortsOperator1 truckId palletIds t tz location bizLocation =
   (TransactWhat $ TransactionDWhat Delete truckId [] palletIds)
   (DWhen t Nothing tz)
   (DWhy (Just Loading) (Just InTransit))
-  (DWhere [location] [bizLocation] [] [])
+  (DWhere (Just location) (Just bizLocation) [] [])
 
 -- quarantine in australia
 -- transformed state from non-quarantined to quarantined
@@ -577,7 +582,7 @@ quarantineAus palletIds t tz location bizLocation =
   (TransformWhat $ TransformationDWhat Nothing (InputEPC <$> palletIds) (OutputEPC <$> palletIds))
   (DWhen t Nothing tz)
   (DWhy (Just Holding) (Just SellableNotAccessible))
-  (DWhere [location] [bizLocation] [] [])
+  (DWhere (Just location) (Just bizLocation) [] [])
 
 -- shipping to China
 shippingToChina :: Maybe ParentLabel
@@ -592,7 +597,7 @@ shippingToChina shipId palletIds t tz location bizLocation =
   (TransactWhat $ TransactionDWhat Delete shipId [] palletIds)
   (DWhen t Nothing tz)
   (DWhy (Just Shipping) (Just InTransit))
-  (DWhere [location] [bizLocation] [] [])
+  (DWhere (Just location) (Just bizLocation) [] [])
 
 -- quarantine in China
 -- transformed state from non-quarantined to quarantined
@@ -607,7 +612,7 @@ quarantineChina palletIds t tz location bizLocation =
   (TransformWhat $ TransformationDWhat Nothing (InputEPC <$> palletIds) (OutputEPC <$> palletIds))
   (DWhen t Nothing tz)
   (DWhy (Just Holding) (Just SellableNotAccessible))
-  (DWhere [location] [bizLocation] [] [])
+  (DWhere (Just location) (Just bizLocation) [] [])
 
 -- Tests that should be implemented in this module:
 

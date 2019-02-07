@@ -53,6 +53,7 @@ library
                     , Mirza.SupplyChain.Handlers.Signatures
                     , Mirza.SupplyChain.Handlers.EventRegistration
                     , Mirza.SupplyChain.Handlers.Users
+                    , Mirza.SupplyChain.Handlers.UXUtils
                     , Mirza.SupplyChain.Main
                     , Mirza.SupplyChain.QueryUtils
                     , Mirza.SupplyChain.Service

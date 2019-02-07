@@ -11,8 +11,8 @@ import           Mirza.SupplyChain.Service
 import           Mirza.SupplyChain.Types            (AppError, EnvType (..),
                                                      SCSContext (..), User)
 
-import qualified Mirza.SupplyChain.Types            as ST
 import           Mirza.SupplyChain.PopulateUtils    (insertCitrusData)
+import qualified Mirza.SupplyChain.Types            as ST
 
 import           Servant
 import           Servant.Client

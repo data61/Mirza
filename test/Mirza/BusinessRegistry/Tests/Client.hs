@@ -536,14 +536,16 @@ clientSpec = do
           _ <- http (addBusiness brAuthUser biz1)
           _ <- http (addBusiness brAuthUser biz2)
 
-          _userB1U1Response <- http (addUser brAuthUser userB1U1)
+          userB1U1Response <- http (addUser brAuthUser userB1U1)
+          userB1U1Response `shouldSatisfy` isRight
 
-
-          step "Can Add a Location"
+          let u1Auth = BasicAuthData "locationTests_email1@example.com" (encodeUtf8 password)
+          step "Can Add a Location with the correct user"
           let newLoc1 = NewLocation (SGLN biz1Prefix (LocationReference "98765") Nothing)
                                     (Just (Latitude 1.0, Longitude 2.0))
                                     (Just "42 Wallby Way, Sydney")
-          b1K1StoredKeyIdResult <- http (addLocation brAuthUser newLoc1)
+
+          b1K1StoredKeyIdResult <- http (addLocation u1Auth newLoc1)
           b1K1StoredKeyIdResult `shouldSatisfy` isRight
 
 

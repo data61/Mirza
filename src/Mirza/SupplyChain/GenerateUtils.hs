@@ -44,35 +44,14 @@ insertNUsersSCS :: String
 insertNUsersSCS testName n = traverse (SCSClient.addUser) $ genNUsersSCS testName n
 
 
--- Insert multiple users into the SCS DB given a
--- list of first names and company prefixes.
-insertMultipleUsersSCS  :: String
-                        -> [T.Text]
-                        -> [GS1CompanyPrefix]
-                        -> ClientM [UserId]
-insertMultipleUsersSCS testName firstNames pfx =
-  traverse SCSClient.addUser $ genMultipleUsersSCS testName n firstNames pfx
+genMultipleUsers:: [(T.Text, GS1CompanyPrefix)] -> [ST.NewUser]
+genMultipleUsers = fmap (uncurry newUser)
   where
-    n = min (length firstNames) (length pfx)
-
-
-genMultipleUsersSCS :: String
-                    -> Int
-                    -> [T.Text]
-                    -> [GS1CompanyPrefix]
-                    -> [ST.NewUser]
-genMultipleUsersSCS _ 0 _ _ = []
-genMultipleUsersSCS _ _ [] _ = []
-genMultipleUsersSCS _ _ _ [] = []
-genMultipleUsersSCS testName n (f:fx) (p:px) =
-  newUser : genMultipleUsersSCS testName (n-1) fx px
-  where
-    numT = T.pack $ show n
-    newUser = ST.NewUser
-      { ST.newUserPhoneNumber = "0400 111 22" <> numT
+    newUser f p = ST.NewUser
+      { ST.newUserPhoneNumber = "0400 111 223"
       , ST.newUserEmailAddress =
           unsafeMkEmailAddress $ encodeUtf8 f <> "@example.com"
       , ST.newUserFirstName = f
-      , ST.newUserLastName = "Last: " <> numT
+      , ST.newUserLastName = "Last: " <> f
       , ST.newUserCompany = p
       , ST.newUserPassword = "re4lly$ecret14!" }

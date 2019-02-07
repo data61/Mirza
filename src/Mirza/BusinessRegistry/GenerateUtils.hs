@@ -34,12 +34,5 @@ dummyUser unique business_uid = do
   pure NewUser{..}
 
 
-generateMultipleUsers :: String
-                      -> Int
-                      -> [GS1CompanyPrefix]
-                      -> IO [NewUser]
-generateMultipleUsers _ 0 _  = pure []
-generateMultipleUsers _ _ [] = pure []
-generateMultipleUsers testName n (p:px) = do
-  newUser <- dummyUser (T.pack (testName <> (show n))) p
-  ((:) newUser) <$> generateMultipleUsers testName (n-1) px
+generateMultipleUsers :: [(T.Text, GS1CompanyPrefix)] -> IO [NewUser]
+generateMultipleUsers = traverse (uncurry dummyUser)

@@ -33,7 +33,9 @@ import           Mirza.SupplyChain.Handlers.Health            as Handlers
 import           Mirza.SupplyChain.Handlers.Queries           as Handlers
 import           Mirza.SupplyChain.Handlers.Signatures        as Handlers
 import           Mirza.SupplyChain.Handlers.Users             as Handlers
+import           Mirza.SupplyChain.Handlers.UXUtils           as Handlers
 
+import           Mirza.BusinessRegistry.Types                 (AsBRError)
 import           Mirza.SupplyChain.Types
 
 import           Servant
@@ -52,9 +54,9 @@ import qualified Crypto.JOSE                                  as JOSE
 
 
 appHandlers :: (Member context '[HasDB, HasScryptParams, HasBRClientEnv],
-                Member err     '[JOSE.AsError, AsServiceError, AsServantError, AsSqlError])
+                Member err     '[JOSE.AsError, AsServiceError, AsServantError, AsBRError, AsSqlError])
             => ServerT ServerAPI (AppM context err)
-appHandlers = publicServer :<|> privateServer
+appHandlers = publicServer :<|> privateServer :<|> frontEndApi
 
 publicServer :: (Member context '[HasDB, HasScryptParams],
                  Member err     '[AsServiceError, AsSqlError])
@@ -67,7 +69,7 @@ publicServer =
   :<|> versionInfo
 
 privateServer :: (Member context '[HasDB, HasScryptParams, HasBRClientEnv],
-                  Member err     '[JOSE.AsError, AsServiceError, AsServantError, AsSqlError])
+                  Member err     '[JOSE.AsError, AsServiceError, AsServantError, AsBRError, AsSqlError])
               => ServerT ProtectedAPI (AppM context err)
 privateServer =
 -- Contacts
@@ -91,6 +93,11 @@ privateServer =
   :<|> insertTransactEvent
   :<|> insertTransfEvent
 
+frontEndApi :: (Member context '[HasDB, HasScryptParams, HasBRClientEnv],
+                Member err     '[JOSE.AsError, AsServiceError, AsServantError, AsBRError, AsSqlError])
+              => ServerT UIAPI (AppM context err)
+frontEndApi = listEventsPretty
+
 instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub) where
   toSwagger _ =
     let
@@ -107,7 +114,9 @@ appMToHandler :: forall x context. context -> AppM context AppError x -> Handler
 appMToHandler context act = do
   res <- liftIO $ runAppM context act
   case res of
-    Left (AppError e) -> appErrToHttpErr e
+    Left (AppError e) -> do
+      liftIO $ print e
+      appErrToHttpErr e
     Right a           -> pure a
 
 -- | Swagger spec for server API.
