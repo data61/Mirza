@@ -12,39 +12,42 @@ module Mirza.SupplyChain.Types
   )
   where
 
-import           Mirza.Common.Types         as Common
+import           Mirza.Common.Types           as Common
 
 import           Data.GS1.DWhat
 import           Data.GS1.DWhen
 import           Data.GS1.DWhere
 import           Data.GS1.DWhy
-import           Data.GS1.EPC               as EPC
-import qualified Data.GS1.Event             as Ev
-import           Data.GS1.EventId           as EvId
+import           Data.GS1.EPC                 as EPC
+import qualified Data.GS1.Event               as Ev
+import           Data.GS1.EventId             as EvId
 
-import           Database.PostgreSQL.Simple (Connection, SqlError)
+import           Database.PostgreSQL.Simple   (Connection, SqlError)
 
-import           Crypto.JOSE                as JOSE hiding (Digest)
-import           Crypto.JOSE.Types          (Base64Octets)
-import           Crypto.Scrypt              (ScryptParams)
+import           Crypto.JOSE                  as JOSE hiding (Digest)
+import           Crypto.JOSE.Types            (Base64Octets)
+import           Crypto.Scrypt                (ScryptParams)
 
-import           Servant                    (ToHttpApiData)
-import           Servant.Client             (ClientEnv (..), ServantError (..))
+import           Servant                      (ToHttpApiData)
+import           Servant.Client               (ClientEnv (..),
+                                               ServantError (..))
 
 import           Control.Lens
 
-import           GHC.Generics               (Generic)
+import           GHC.Generics                 (Generic)
 
 import           Data.Aeson
 import           Data.Aeson.TH
 import           Data.Aeson.Types
-import qualified Data.ByteString            as BS
-import           Data.List.NonEmpty         (NonEmpty)
-import           Data.Pool                  as Pool
+import qualified Data.ByteString              as BS
+import           Data.List.NonEmpty           (NonEmpty)
+import           Data.Pool                    as Pool
 import           Data.Swagger
-import           Data.Text                  (Text)
+import           Data.Text                    (Text)
 
-import           Katip                      as K
+import           Katip                        as K
+
+import           Mirza.BusinessRegistry.Types (AsBRError (..), BRError)
 
 
 -- *****************************************************************************
@@ -322,6 +325,7 @@ instance FromJSON HealthResponse where
 -- constructors will be added.
 newtype AppError = AppError ServiceError deriving (Show)
 
+
 data ServerError = ServerError (Maybe BS.ByteString) Text
                    deriving (Show, Eq, Generic, Read)
 
@@ -348,8 +352,16 @@ data ServiceError
   | DatabaseError          SqlError
   | UnmatchedUniqueViolation SqlError
   | ServantErr             ServantError
-  deriving (Show, Eq, Generic)
+  | BRServerError BRError -- Error occured when a call was made to BR
+  deriving (Show, Generic)
 $(makeClassyPrisms ''ServiceError)
+
+instance AsBRError AppError where
+  _BRError = prism' (AppError . BRServerError)
+              (\err -> case err of
+                (AppError (BRServerError e)) -> Just e
+                _                            -> Nothing
+              )
 
 instance AsServiceError AppError where
   _ServiceError = prism' AppError (\(AppError se) -> Just se)

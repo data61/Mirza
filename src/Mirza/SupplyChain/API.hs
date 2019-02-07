@@ -113,4 +113,4 @@ type PrivateAPI =
 type FrontEndAPI =
   "prototype" :> "list" :> "events"
               :> Capture "urn" LabelEPCUrn
-              :> Get '[JSON] PrettyEventResponse
+              :> Get '[JSON] [PrettyEventResponse]

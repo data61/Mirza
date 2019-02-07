@@ -67,7 +67,7 @@ insertAggEvent      :: BasicAuthData -> AggregationEvent -> ClientM (EventInfo, 
 insertTransactEvent :: BasicAuthData -> TransactionEvent -> ClientM (EventInfo, Schema.EventId)
 insertTransfEvent   :: BasicAuthData -> TransformationEvent -> ClientM (EventInfo, Schema.EventId)
 
-listEventsPretty    :: BasicAuthData -> LabelEPCUrn -> ClientM PrettyEventResponse
+listEventsPretty    :: BasicAuthData -> LabelEPCUrn -> ClientM [PrettyEventResponse]
 
 _api     :: Client ClientM ServerAPI
 _privAPI :: Client ClientM ProtectedAPI

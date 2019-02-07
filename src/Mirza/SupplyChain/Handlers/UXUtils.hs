@@ -54,7 +54,7 @@ instance ToSchema PrettyEventResponse
 -- This takes an EPC urn,
 -- and looks up all the events related to that item.
 listEventsPretty  :: (Member context '[HasDB, HasBRClientEnv],
-                      Member err     '[AsServiceError, AsServantError, AsSqlError])
+                      Member err     '[AsServiceError, AsServantError, AsSqlError, BT.AsBRError])
                   => ST.User
                   -> LabelEPCUrn
                   -> AppM context err [PrettyEventResponse]
