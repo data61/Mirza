@@ -13,8 +13,7 @@ module Mirza.BusinessRegistry.Database.Schema.V0002
 
 import qualified Data.GS1.EPC                                 as EPC
 import           Mirza.BusinessRegistry.Types
-import           Mirza.Common.Beam                            (defaultFkConstraint,
-                                                               lastUpdateField)
+import           Mirza.Common.Beam                            (lastUpdateField)
 import           Mirza.Common.GS1BeamOrphans
 import           Mirza.Common.Types                           (PrimaryKeyType)
 

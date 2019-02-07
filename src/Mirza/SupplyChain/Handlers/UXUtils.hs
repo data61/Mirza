@@ -21,10 +21,11 @@ import           Mirza.SupplyChain.Types               hiding (NewUser (..),
                                                         User (..))
 import qualified Mirza.SupplyChain.Types               as ST
 
+import           Mirza.BusinessRegistry.Types          (BusinessAndLocationResponse (..),
+                                                        BusinessResponse (..))
 import qualified Mirza.BusinessRegistry.Types          as BT
 
-import           Data.GS1.DWhat                        (getCompanyPrefix,
-                                                        urn2LabelEPC)
+import           Data.GS1.DWhat                        (urn2LabelEPC)
 import           Data.GS1.DWhere
 import           Data.GS1.EPC
 import qualified Data.GS1.Event                        as Ev
@@ -62,7 +63,6 @@ listEventsPretty _user lblUrn = do
   case urn2LabelEPC . getLabelEPCUrn $ lblUrn of
     Left err -> throwParseError err
     Right lbl -> do
-      let pfx = getCompanyPrefix lbl
       evs <- runDb $ listEventsQuery lbl
       traverse func evs
 
