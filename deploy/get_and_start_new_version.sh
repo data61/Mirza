@@ -35,13 +35,19 @@ ETH_ADMIN_ACCOUNT_PRIVATE_KEY=$ETH_ADMIN_ACCOUNT_PRIVATE_KEY
 BR_USER=$BR_USER
 BR_PASSWORD=$BR_PASSWORD" > ${filepath}
 
+# Blow away old db files (UNCOMMENT WHEN NEEDED FOR A CLEAN DEPLOYMENT WITH A FRESH DB)
+# rm -rf /opt/Mirza/postgresql/data/
+
 # Start the database (either an empty postgres container, or an existing database)
 docker-compose up -d db
+
+echo Waiting 10 seconds for the db to finish starting...
+sleep 10
 
 # Start the services
 docker-compose up -d supplyChainServer businessRegistry private-ethereum-blockchain blockchain-api-server
 
-# Run the initdb scripts for scs and br. (UNCOMMENT WHEN NEEDED FOR A CLEAN DEPLOYMENT)
+# Run the initdb scripts for scs and br. (UNCOMMENT WHEN NEEDED FOR A CLEAN DEPLOYMENT WITH A FRESH DB)
 # docker-compose up -d dbpopulate-br
 # docker-compose up -d dbpopulate-scs
 
