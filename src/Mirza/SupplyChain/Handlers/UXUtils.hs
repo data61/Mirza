@@ -39,7 +39,7 @@ import           Data.Aeson
 
 import           Data.Swagger                          (ToSchema (..))
 
-import           Data.List                             (sortOn)
+import           Data.List                             (nub, sortOn)
 
 data PrettyEventResponse =
   PrettyEventResponse
@@ -85,7 +85,7 @@ fetchPrettyEvents lbl = do
   currEvs <- traverse eventToPrettyEvent evs
   (pEvs :: [PrettyEventResponse] ) <- concat <$> traverse getParentEvents evs
   let allEvs = currEvs <> pEvs
-  pure $ sortOn ( _eventTime . Ev._when . prettyEvent) allEvs
+  pure $ sortOn ( _eventTime . Ev._when . prettyEvent) $ nub allEvs
 
 
 getParentEvents :: (Member context '[HasDB, HasBRClientEnv],
