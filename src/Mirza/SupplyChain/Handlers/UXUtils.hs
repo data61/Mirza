@@ -39,6 +39,7 @@ import           Data.Aeson
 
 import           Data.Swagger                          (ToSchema (..))
 
+import           Data.Either                           (either)
 import           Data.List                             (nub, sortOn)
 
 data PrettyEventResponse =
@@ -71,10 +72,7 @@ listEventsPretty  :: (Member context '[HasDB, HasBRClientEnv],
                   => ST.User
                   -> LabelEPCUrn
                   -> AppM context err [PrettyEventResponse]
-listEventsPretty _user lblUrn = do
-  case urn2LabelEPC . getLabelEPCUrn $ lblUrn of
-    Left err  -> throwParseError err
-    Right lbl -> fetchPrettyEvents lbl
+listEventsPretty _user = either throwParseError fetchPrettyEvents . urn2LabelEPC . getLabelEPCUrn
 
 fetchPrettyEvents :: (Member context '[HasDB, HasBRClientEnv],
                     Member err     '[AsServiceError, AsServantError, AsSqlError, BT.AsBRError])
