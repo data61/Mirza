@@ -114,9 +114,7 @@ appMToHandler :: forall x context. context -> AppM context AppError x -> Handler
 appMToHandler context act = do
   res <- liftIO $ runAppM context act
   case res of
-    Left (AppError e) -> do
-      liftIO $ print e
-      appErrToHttpErr e
+    Left (AppError e) -> appErrToHttpErr e
     Right a           -> pure a
 
 -- | Swagger spec for server API.
