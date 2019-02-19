@@ -71,6 +71,7 @@ publicServer :: ( Member context '[HasScryptParams, HasDB]
              => ServerT PublicAPI (AppM context err)
 publicServer =
        health
+  :<|> versionInfo
   :<|> getPublicKey
   :<|> getPublicKeyInfo
   :<|> searchBusinesses
@@ -78,7 +79,6 @@ publicServer =
   :<|> searchLocation
   :<|> uxLocation
   :<|> uxLocationByGLN
-  :<|> versionInfo
 
 privateServer :: ( Member context '[HasScryptParams, HasDB]
                  , APIPossibleErrors err)
