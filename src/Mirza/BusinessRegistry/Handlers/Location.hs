@@ -124,7 +124,8 @@ newLocationToLocation
 
 
 getLocationByGLN  :: ( Member context '[HasLogging, HasConnPool, HasEnvType]
-                     , Member err     '[AsBRError, AsSqlError] , HasCallStack)
+                     , Member err     '[AsBRError, AsSqlError]
+                     , HasCallStack)
                   => LocationEPC
                   -> AppM context err LocationResponse
 getLocationByGLN gln = locationToLocationResponse
