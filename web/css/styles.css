@@ -1,0 +1,22 @@
+html, body, main {
+		height: 100vh;
+}
+main {
+		display: flex;
+		flex-direction: column;
+}
+main > header, main > footer {
+		flex-shrink: 0;
+		background-color: #444;
+		color: #fff;
+		padding: 1em 0;
+}
+main> header h2 {
+		margin: 0;
+}
+main > section {
+		flex-grow: 1;
+}
+
+.align-right { text-align: right; }
+.align-center { text-align: center; }
