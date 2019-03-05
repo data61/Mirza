@@ -39,9 +39,22 @@ nav.tabs a.active {
 		margin-left: .5em;
 		width: 20em;
 }
+.panel {
+		border: 1px solid #DDD;
+		margin-bottom: 1em;
+}
+.panel > header {
+		padding: 1em;
+}
+.panel > section {
+		border-top: 1px solid #EEE;
+		padding: 1em;
+}
 
 .align-right { text-align: right; }
 .align-center { text-align: center; }
 .border-bottom { border-bottom: 1px solid #EEE; }
 .border-right { border-right: 1px solid #EEE; }
 .pad-tb { padding-top: 1em; padding-bottom: 1em; }
+.flex-row { display: flex; }
+.flex-grow { flex-grow: 1; }
