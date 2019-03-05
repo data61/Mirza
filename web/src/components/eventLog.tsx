@@ -1,4 +1,5 @@
 import * as React from "react";
+import { Panel } from "./panel"
 
 export function SavedEvents({ className }: { className: string }) {
   return (
@@ -58,7 +59,10 @@ export function Events() {
       <div className="pad-tb">
         <div className="container">
           <h4><i className="fas fa-fw fa-lg fa-list-alt"></i> Events</h4>
-
+          <Panel></Panel>
+          <Panel></Panel>
+          <Panel></Panel>
+          <Panel></Panel>
         </div>
       </div>
     </div >
@@ -83,7 +87,6 @@ export function EventLog() {
         </div>
       </div>
       <Events></Events>
-
     </section>
   )
 }
