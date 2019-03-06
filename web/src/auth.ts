@@ -6,7 +6,7 @@ const webAuthOpts = {
     clientID: 'JvrGZu2gNR84nrEOu1kEC3gxpcJn9wkU',
     responseType: 'token id_token',
     scope: 'openid profile email',
-    redirectUri: window.location.href
+    redirectUri: window.location.origin
 };
 
 const webAuth = new auth0.WebAuth(webAuthOpts);

@@ -1,9 +1,13 @@
 import * as React from "react";
 import * as ReactDOM from "react-dom";
+import { BrowserRouter, Route, Switch } from "react-router-dom"
 
 import { Header } from "./components/header";
 import { Footer } from "./components/footer";
+import { NotFound } from "./components/notFound";
+import { Home } from "./components/home";
 import { EventLog } from "./components/eventLog";
+
 import { authInit, logIn } from "./auth";
 
 authInit().then(authState => {
@@ -16,9 +20,15 @@ authInit().then(authState => {
     auth: authState
   }
 
-  ReactDOM.render(<React.Fragment>
-    <Header auth={appState.auth}></Header>
-    <EventLog></EventLog>
-    <Footer></Footer>
-  </React.Fragment>, document.querySelector("main"));
+  ReactDOM.render(<BrowserRouter>
+    <React.Fragment>
+      <Header auth={appState.auth}></Header>
+      <Switch>
+        <Route path="/" exact component={Home} />
+        <Route path="/events" exact component={EventLog} />
+        <Route component={NotFound} />
+      </Switch>
+      <Footer></Footer>
+    </React.Fragment>
+  </BrowserRouter>, document.querySelector("main"));
 })

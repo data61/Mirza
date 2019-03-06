@@ -15,10 +15,12 @@
     "auth0-js": "^9.10.0",
     "query-string": "^6.3.0",
     "react": "^16.8.3",
-    "react-dom": "^16.8.3"
+    "react-dom": "^16.8.3",
+    "react-router-dom": "^4.3.1"
   },
   "devDependencies": {
     "@types/auth0-js": "^8.11.11",
+    "@types/react-router-dom": "^4.3.1",
     "awesome-typescript-loader": "^5.2.1",
     "source-map-loader": "^0.2.4",
     "typescript": "^3.3.3333",

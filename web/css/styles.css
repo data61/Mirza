@@ -65,7 +65,7 @@ nav.tabs a.active {
 .align-center { text-align: center; }
 .border-bottom { border-bottom: 1px solid #EEE; }
 .border-right { border-right: 1px solid #EEE; }
-.pad-tb { padding-top: 1em; padding-bottom: 1em; }
+.pad-tb { padding-top: 2em; padding-bottom: 2em; }
 .flex-row { display: flex; }
 .flex-grow { flex-grow: 1; }
 img.round { border-radius: 50% }
