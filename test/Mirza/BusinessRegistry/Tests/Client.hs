@@ -573,41 +573,41 @@ clientSpec = do
           -- addLocation2Result2 `shouldSatisfy` isLeft
 
 
-          -- step "That a user can only insert a location from their busniess."
+          step "That a user can only insert a location from their busniess."
           let location3 = NewLocation (SGLN business2Prefix (LocationReference "00017") Nothing)
                                       (Just (Latitude (-25.344490), Longitude 131.035431))
                                       (Just "42 Wallby Way, Sydney")
-          -- addLocation3Result <- http (addLocation (newUserToBasicAuthData userB1U1) location3)
-          -- addLocation3Result `shouldSatisfy` isLeft
+          addLocation3Result <- http (addLocation (newUserToBasicAuthData userB1U1) location3)
+          addLocation3Result `shouldSatisfy` isLeft
 
 
           step "Can add a second location with a different company."
-          addLocation3Result <- http (addLocation (newUserToBasicAuthData userB2U1) location3)
-          addLocation3Result `shouldSatisfy` isRight
-
-
-          step "Can add a second location with the same company."
-          let location4 = NewLocation (SGLN business1Prefix (LocationReference "00019") Nothing)
-                                      (Just (Latitude (-25.344490), Longitude 131.035431))
-                                      (Just "42 Wallby Way, Sydney")
-          addLocation4Result <- http (addLocation (newUserToBasicAuthData userB1U1) location4)
+          addLocation4Result <- http (addLocation (newUserToBasicAuthData userB2U1) location3)
           addLocation4Result `shouldSatisfy` isRight
 
 
-          step "Can't add a location with a duplicate LocationReference for the same business."
+          step "Can add a second location with the same company."
           let location5 = NewLocation (SGLN business1Prefix (LocationReference "00019") Nothing)
                                       (Just (Latitude (-25.344490), Longitude 131.035431))
                                       (Just "42 Wallby Way, Sydney")
           addLocation5Result <- http (addLocation (newUserToBasicAuthData userB1U1) location5)
-          addLocation5Result `shouldSatisfy` isLeft
+          addLocation5Result `shouldSatisfy` isRight
 
 
-          step "Can't add a location with a duplicate LocationReference for different businesses."
-          let location6 = NewLocation (SGLN business3Prefix (LocationReference "00019") Nothing)
+          step "Can't add a location with a duplicate LocationReference for the same business."
+          let location6 = NewLocation (SGLN business1Prefix (LocationReference "00019") Nothing)
                                       (Just (Latitude (-25.344490), Longitude 131.035431))
                                       (Just "42 Wallby Way, Sydney")
-          addLocation6Result <- http (addLocation (newUserToBasicAuthData userB3U1) location6)
-          addLocation6Result `shouldSatisfy` isRight
+          addLocation6Result <- http (addLocation (newUserToBasicAuthData userB1U1) location6)
+          addLocation6Result `shouldSatisfy` isLeft
+
+
+          step "Can add a location with a duplicate LocationReference for different businesses."
+          let location7 = NewLocation (SGLN business3Prefix (LocationReference "00019") Nothing)
+                                      (Just (Latitude (-25.344490), Longitude 131.035431))
+                                      (Just "42 Wallby Way, Sydney")
+          addLocation7Result <- http (addLocation (newUserToBasicAuthData userB3U1) location7)
+          addLocation7Result `shouldSatisfy` isRight
 
 
           step "Can search for a location based on GLN."
