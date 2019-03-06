@@ -52,6 +52,7 @@ serverAPI = Proxy
 
 type PublicAPI =
        "healthz"                                          :> Get '[JSON] HealthResponse
+  :<|> "version"                                          :> Get '[JSON] String
   :<|> "key"      :> "get"     :> Capture "keyId" BRKeyId :> Get '[JSON] JWK
   :<|> "key"      :> "getInfo" :> Capture "keyId" BRKeyId :> Get '[JSON] KeyInfoResponse
   :<|> "business" :> "search"
@@ -69,7 +70,6 @@ type PublicAPI =
           :> Capture "GLN" EPC.LocationEPC
           :> Capture "gs1companyprefix" GS1CompanyPrefix
           :> Get '[JSON] BusinessAndLocationResponse
-  :<|> "version" :> Get '[JSON] String
 
 
 type PrivateAPI =
