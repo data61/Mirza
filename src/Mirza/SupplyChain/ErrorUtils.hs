@@ -85,6 +85,7 @@ appErrToHttpErr (BackendErr _) = generic500err
 appErrToHttpErr (DatabaseError _) = generic500err
 appErrToHttpErr (ST.ServantErr _) = generic500err
 appErrToHttpErr (UnmatchedUniqueViolation _) = generic500err
+appErrToHttpErr (BRServerError _) = generic500err
 
 generic500err :: Handler a
 generic500err = throwError err500 {errBody = "Something went wrong"}

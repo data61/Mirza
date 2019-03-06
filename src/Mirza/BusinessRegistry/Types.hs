@@ -198,7 +198,7 @@ data LocationResponse = LocationResponse
   , geoLocId           :: PrimaryKeyType
   , geoLocCoord        :: Maybe (Latitude, Longitude)
   , geoLocAddress      :: Maybe Text
-  } deriving (Show, Generic)
+  } deriving (Show, Generic, Eq)
 instance ToSchema LocationResponse
 instance ToJSON LocationResponse
 instance FromJSON LocationResponse
@@ -207,7 +207,7 @@ instance FromJSON LocationResponse
 data BusinessAndLocationResponse = BusinessAndLocationResponse
   { businessResponse :: BusinessResponse
   , locationResponse :: LocationResponse
-  } deriving (Show, Generic)
+  } deriving (Show, Generic, Eq)
 instance ToSchema BusinessAndLocationResponse
 instance ToJSON BusinessAndLocationResponse
 instance FromJSON BusinessAndLocationResponse
@@ -276,6 +276,7 @@ data BRError
   | BRKeyErrorBRE BRKeyError
   | LocationNotKnownBRE
   | LocationExistsBRE
+  | OperationNotPermittedBRE GS1CompanyPrefix UserId
   -- | An error that isn't specifically excluded by the types, but that the
   -- developers don't think is possible to hit, or know of a situation which
   -- could cause this case to be excercised.

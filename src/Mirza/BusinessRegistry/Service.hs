@@ -74,6 +74,10 @@ publicServer =
   :<|> getPublicKey
   :<|> getPublicKeyInfo
   :<|> searchBusinesses
+  :<|> getLocationByGLN
+  :<|> searchLocation
+  :<|> uxLocation
+  :<|> uxLocationByGLN
   :<|> versionInfo
 
 privateServer :: ( Member context '[HasScryptParams, HasDB]
@@ -85,9 +89,6 @@ privateServer =
   :<|> addPublicKey
   :<|> revokePublicKey
   :<|> addLocation
-  :<|> getLocationByGLN
-  :<|> searchLocation
-  :<|> uxLocation
 
 
 instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub) where
@@ -105,7 +106,8 @@ appMToHandler :: (HasLogging context) => context -> AppM context BRError x -> Ha
 appMToHandler context act = do
   res <- liftIO $ runAppM context act
   case res of
-    Left err -> runKatipContextT (context ^. katipLogEnv) () (context ^. katipNamespace) (brErrorToHttpError err)
+    Left err ->
+      runKatipContextT (context ^. katipLogEnv) () (context ^. katipNamespace) (brErrorToHttpError err)
     Right a  -> pure a
 
 
@@ -157,6 +159,7 @@ brErrorToHttpError brError =
     (LocationExistsBRE)             -> httpError err409 "GLN already exists"
     (GS1CompanyPrefixExistsBRE)     -> httpError err400 "GS1 company prefix already exists."
     (BusinessDoesNotExistBRE)       -> httpError err400 "Business does not exist."
+    (OperationNotPermittedBRE _ _)  -> httpError err403 "A user can only act on behalf of the business they are associated with."
     (UserCreationErrorBRE _ _)      -> userCreationError brError
     (UserCreationSQLErrorBRE _)     -> userCreationError brError
 
@@ -182,7 +185,7 @@ brKeyErrorToHttpError keyError =
     UnauthorisedKeyAccessBRKE       -> httpError err403 "Not authorised to access this key."
     (PublicKeyInsertionErrorBRKE _) -> httpError err500 "Public key could not be inserted."
     (KeyNotFoundBRKE _)             -> httpError err404 "Public key with the given id not found."
-    (InvalidRevocationBRKE _ _ _)   -> httpError err500 "Key has been revoked but in an invalid way."
+    (InvalidRevocationBRKE{})       -> httpError err500 "Key has been revoked but in an invalid way."
     (AddedExpiredKeyBRKE)           -> httpError err400 "Can't add a key that has already expired."
     (InvalidRSAKeySizeBRKE (Expected (Bit expSize)) (Received (Bit recSize)))
                                     -> httpError err400 (BSL8.pack $ printf "Invalid RSA Key size. Expected: %d Bits, Received: %d Bits\n" expSize recSize)

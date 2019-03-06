@@ -42,8 +42,8 @@ import qualified Mirza.BusinessRegistry.Database.Schema.V0001 as V0001
 
 -- Database
 data BusinessRegistryDB f = BusinessRegistryDB
-  { _users        :: f (TableEntity V0001.UserT)
-  , _businesses   :: f (TableEntity V0001.BusinessT)
+  { _businesses   :: f (TableEntity V0001.BusinessT)
+  , _users        :: f (TableEntity V0001.UserT)
   , _keys         :: f (TableEntity V0001.KeyT)
   , _locations    :: f (TableEntity       LocationT)
   , _geoLocations :: f (TableEntity       GeoLocationT)
@@ -55,18 +55,18 @@ instance Database anybackend BusinessRegistryDB
 migration :: CheckedDatabaseSettings Postgres V0001.BusinessRegistryDB
           -> Migration PgCommandSyntax (CheckedDatabaseSettings Postgres BusinessRegistryDB)
 migration v0001 = BusinessRegistryDB
-  <$> preserve (V0001._users      v0001)
-  <*> preserve (V0001._businesses v0001)
+  <$> preserve (V0001._businesses v0001)
+  <*> preserve (V0001._users      v0001)
   <*> preserve (V0001._keys       v0001)
   <*> createTable "location" (LocationT
         (field "location_id" V0001.pkSerialType)
         (field "location_gln" locationEPCType)
-        (V0001.BizId (field "location_biz_id" gs1CompanyPrefixType))
+        (V0001.BizId $ field "location_biz_id" gs1CompanyPrefixType)
         lastUpdateField
         )
   <*> createTable "geo_location" (GeoLocationT
         (field "geo_location_id"      V0001.pkSerialType)
-        (LocationId (field "geo_location_gln"     locationEPCType))
+        (LocationId $ field "geo_location_gln" locationEPCType)
         (field "geo_location_lat"     (maybeType latitudeType))
         (field "geo_location_lon"     (maybeType longitudeType))
         (field "geo_location_address" (maybeType $ varchar Nothing))
@@ -77,9 +77,9 @@ type Location = LocationT Identity
 deriving instance Show Location
 
 data LocationT f = LocationT
-  { location_id        :: C f PrimaryKeyType
-  , location_gln       :: C f EPC.LocationEPC
-  , location_biz_id    :: PrimaryKey V0001.BusinessT f
+  { location_id          :: C f PrimaryKeyType
+  , location_gln         :: C f EPC.LocationEPC
+  , location_biz_id      :: PrimaryKey V0001.BusinessT f
   , location_last_update :: C f (Maybe LocalTime)
   }
   deriving Generic

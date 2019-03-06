@@ -107,18 +107,23 @@ testServiceQueries = do
 
   describe "Object Event" $ do
     it "Insert Object Event" $ \scsContext -> do
-      (evInfo, _) <- testAppM scsContext $ insertObjectEvent dummyUser dummyObject
+      (evInfo, _) <- testAppM scsContext $ do
+        uid <- addUser dummyNewUser
+        insertObjectEvent dummyUser{userId = uid} dummyObject
       (eventInfoEvent evInfo) `shouldBe` dummyObjEvent
 
     it "Should not allow duplicate Object events" $ \scsContext -> do
-      _res <- runAppM @_ @AppError scsContext $ insertObjectEvent dummyUser dummyObject
-      res <- runAppM @_ @AppError scsContext $ insertObjectEvent dummyUser dummyObject
+      (Right uid) <- runAppM @_ @AppError scsContext $ addUser dummyNewUser
+      -- uid `shouldSatisfy` isRight
+      _res <- runAppM @_ @AppError scsContext $ insertObjectEvent dummyUser{userId = uid} dummyObject
+      res <- runAppM @_ @AppError scsContext $ insertObjectEvent dummyUser{userId = uid} dummyObject
       res `shouldSatisfy` isLeft
 
     it "List event" $ \scsContext -> do
       res <- testAppM scsContext $ do
-        (evInfo, _) <- insertObjectEvent dummyUser dummyObject
-        evtList <- listEvents dummyUser (LabelEPCUrn dummyLabelEpcUrn)
+        uid <- addUser dummyNewUser
+        (evInfo, _) <-  insertObjectEvent dummyUser{userId = uid} dummyObject
+        evtList <- listEvents dummyUser{userId = uid} (LabelEPCUrn dummyLabelEpcUrn)
         pure (eventInfoEvent evInfo, evtList)
       case res of
         (insertedEvent, evtList) -> do
@@ -127,18 +132,22 @@ testServiceQueries = do
 
   describe "Aggregation Event" $ do
     it "Insert Aggregation Event" $ \scsContext -> do
-      (evInfo, _) <- testAppM scsContext $ insertAggEvent dummyUser dummyAggregation
+      (evInfo, _) <- testAppM scsContext $ do
+        uid <- addUser dummyNewUser
+        insertAggEvent dummyUser{userId = uid} dummyAggregation
       (eventInfoEvent evInfo) `shouldBe` dummyAggEvent
 
     it "Should not allow duplicate Aggregation events" $ \scsContext -> do
-      _res <- runAppM @_ @AppError scsContext $ insertAggEvent dummyUser dummyAggregation
-      res <- runAppM @_ @AppError scsContext $ insertAggEvent dummyUser dummyAggregation
+      (Right uid) <- runAppM @_ @AppError scsContext $ addUser dummyNewUser
+      _res <- runAppM @_ @AppError scsContext $ insertAggEvent dummyUser{userId = uid} dummyAggregation
+      res <- runAppM @_ @AppError scsContext $ insertAggEvent dummyUser{userId = uid} dummyAggregation
       res `shouldSatisfy` isLeft
 
     it "List event" $ \scsContext -> do
       res <- testAppM scsContext $ do
-        (evInfo, _) <- insertAggEvent dummyUser dummyAggregation
-        evtList <- listEvents dummyUser (LabelEPCUrn dummyLabelEpcUrn)
+        uid <- addUser dummyNewUser
+        (evInfo, _) <- insertAggEvent dummyUser{userId = uid} dummyAggregation
+        evtList <- listEvents dummyUser{userId = uid} (LabelEPCUrn dummyLabelEpcUrn)
         pure (eventInfoEvent evInfo, evtList)
       case res of
         (insertedEvent, evtList) -> do
@@ -147,18 +156,22 @@ testServiceQueries = do
 
   describe "Transformation Event" $ do
     it "Insert Transformation Event" $ \scsContext -> do
-      (evInfo, _) <- testAppM scsContext $ insertTransfEvent dummyUser dummyTransformation
+      (evInfo, _) <- testAppM scsContext $ do
+        uid <- addUser dummyNewUser
+        insertTransfEvent dummyUser{userId = uid} dummyTransformation
       (eventInfoEvent evInfo) `shouldBe` dummyTransfEvent
 
     it "Should not allow duplicate Transformation events" $ \scsContext -> do
-      _res <- runAppM @_ @AppError scsContext $ insertTransfEvent dummyUser dummyTransformation
-      res <- runAppM @_ @AppError scsContext $ insertTransfEvent dummyUser dummyTransformation
+      (Right uid) <- runAppM @_ @AppError scsContext $ addUser dummyNewUser
+      _res <- runAppM @_ @AppError scsContext $ insertTransfEvent dummyUser{userId = uid} dummyTransformation
+      res <- runAppM @_ @AppError scsContext $ insertTransfEvent dummyUser{userId = uid} dummyTransformation
       res `shouldSatisfy` isLeft
 
     it "List event" $ \scsContext -> do
       res <- testAppM scsContext $ do
-        (evInfo, _) <- insertTransfEvent dummyUser dummyTransformation
-        evtList <- listEvents dummyUser (LabelEPCUrn dummyLabelEpcUrn)
+        uid <- addUser dummyNewUser
+        (evInfo, _) <- insertTransfEvent dummyUser{userId = uid} dummyTransformation
+        evtList <- listEvents dummyUser{userId = uid} (LabelEPCUrn dummyLabelEpcUrn)
         pure (eventInfoEvent evInfo, evtList)
       case res of
         (insertedEvent, evtList) -> do
@@ -168,22 +181,27 @@ testServiceQueries = do
   describe "Transaction Event" $ do
   -- The otherUserIds are being stubbed out here
     it "Insert Transaction Event" $ \scsContext -> do
-      (evInfo, _) <- testAppM scsContext $ insertTransactEvent dummyUser (dummyTransaction $ ST.UserId dummyId :| [])
+      (evInfo, _) <- testAppM scsContext $ do
+        uid <- addUser dummyNewUser
+        insertTransactEvent dummyUser{userId = uid} (dummyTransaction $ uid :| [])
       (eventInfoEvent evInfo) `shouldBe` dummyTransactEvent
 
     it "Should not allow duplicate Transaction events" $ \scsContext -> do
-      _res <- runAppM @_ @AppError scsContext $ insertTransactEvent dummyUser (dummyTransaction $ ST.UserId dummyId :| [])
-      res <- runAppM @_ @AppError scsContext $ insertTransactEvent dummyUser (dummyTransaction $ ST.UserId dummyId :| [])
+      (Right uid) <- runAppM @_ @AppError scsContext $ addUser dummyNewUser
+      _res <- runAppM @_ @AppError scsContext $ insertTransactEvent dummyUser{userId = uid} (dummyTransaction $ ST.UserId dummyId :| [])
+      res <- runAppM @_ @AppError scsContext $ insertTransactEvent dummyUser{userId = uid} (dummyTransaction $ ST.UserId dummyId :| [])
       res `shouldSatisfy` isLeft
 
     it "Should not allow duplicate users" $ \scsContext -> do
-      res <- runAppM @_ @AppError scsContext $ insertTransactEvent dummyUser (dummyTransaction $ ST.UserId dummyId :| [ST.UserId dummyId])
+      (Right uid) <- runAppM @_ @AppError scsContext $ addUser dummyNewUser
+      res <- runAppM @_ @AppError scsContext $ insertTransactEvent dummyUser{userId = uid} (dummyTransaction $ ST.UserId dummyId :| [ST.UserId dummyId])
       res `shouldSatisfy` isLeft
 
     it "List event" $ \scsContext -> do
       res <- testAppM scsContext $ do
-        (evInfo, _) <- insertTransactEvent dummyUser (dummyTransaction $ ST.UserId dummyId :| [])
-        evtList <- listEvents dummyUser (LabelEPCUrn dummyLabelEpcUrn)
+        uid <- addUser dummyNewUser
+        (evInfo, _) <- insertTransactEvent dummyUser{userId = uid} (dummyTransaction $ uid :| [])
+        evtList <- listEvents dummyUser{userId = uid} (LabelEPCUrn dummyLabelEpcUrn)
         pure (eventInfoEvent evInfo, evtList)
       case res of
         (insertedEvent, evtList) -> do
@@ -213,8 +231,8 @@ testServiceQueries = do
     it "getUser test by Company Id" $ \scsContext -> do
       res <- testAppM scsContext $ do
         uid <- addUser dummyNewUser
-        users <- userSearch dummyUser (Just $ newUserCompany dummyNewUser) Nothing
-        -- ^ The argument dummyUser is ignored
+        users <- userSearch dummyUser{userId = uid} (Just $ newUserCompany dummyNewUser) Nothing
+        -- ^ The argument dummyUser{userId = uid} is ignored
         pure (uid, users)
       case res of
         (_, []) -> fail "Received Nothing for user"
@@ -233,9 +251,8 @@ testServiceQueries = do
         uidSmith <- addUser dummyNewUser
         _uid_2 <- addUser $ ST.NewUser "000" (unsafeMkEmailAddress "jordan@gmail.com") "Bob" "Jordan" (GS1CompanyPrefix "fake_1 Ltd") "password"
         _uid_3 <- addUser $ ST.NewUser "000" (unsafeMkEmailAddress "james@gmail.com") "Bob" "James" (GS1CompanyPrefix "fake_2 Ltd") "password"
-
-        userSmith <- userSearch dummyUser Nothing (Just "Smith")
-        -- ^ The argument dummyUser is ignored
+        userSmith <- userSearch dummyUser{userId = uidSmith} Nothing (Just "Smith")
+        -- ^ The argument dummyUser{userId = uid} is ignored
         pure (uidSmith, userSmith)
       case res of
         (_, []) -> fail "Received Nothing for Smith"
@@ -252,10 +269,9 @@ testServiceQueries = do
       res <- testAppM scsContext $ do
         _uid_1 <- addUser dummyNewUser
         uidRealSmith <- addUser $ ST.NewUser "000" (unsafeMkEmailAddress "jordan@gmail.com") "Bob" "Smith" (GS1CompanyPrefix "Real Smith Ltd") "password"
-        _uid_3 <- addUser $ ST.NewUser "000" (unsafeMkEmailAddress "james@gmail.com") "Bob" "James" (GS1CompanyPrefix "Fake Jordan Ltd") "password"
-
-        userSmith <- userSearch dummyUser (Just $ GS1CompanyPrefix "Real Smith Ltd") (Just "Smith")
-        -- ^ The argument dummyUser is ignored
+        _uid_2 <- addUser $ ST.NewUser "000" (unsafeMkEmailAddress "james@gmail.com") "Bob" "James" (GS1CompanyPrefix "Fake Jordan Ltd") "password"
+        userSmith <- userSearch dummyUser{userId = uidRealSmith} (Just $ GS1CompanyPrefix "Real Smith Ltd") (Just "Smith")
+        -- ^ The argument dummyUser{userId = uid} is ignored
         pure (uidRealSmith, userSmith)
       case res of
         (_, []) -> fail "Received Nothing for Smith"
@@ -270,9 +286,9 @@ testServiceQueries = do
 
     it "getUser test with no param" $ \scsContext -> do
       res <- testAppM scsContext $ do
-        _uid <- addUser dummyNewUser
-        users <- userSearch dummyUser Nothing Nothing
-        -- ^ The argument dummyUser is ignored
+        uid <- addUser dummyNewUser
+        users <- userSearch dummyUser{userId = uid} Nothing Nothing
+        -- ^ The argument dummyUser{userId = uid} is ignored
         pure users
       res `shouldBe` []
 
@@ -384,9 +400,9 @@ testServiceQueries = do
 
   describe "DWhere" $
     it "Insert and find DWhere" $ \scsContext -> do
-      let eventId = Schema.EventId dummyId
       insertedDWhere <- testAppM scsContext $ do
-        void $ runDb $ insertDWhere dummyDWhere eventId
+        uid <- addUser dummyNewUser
+        (_, eventId) <- insertObjectEvent dummyUser{userId = uid} dummyObject
         runDb $ findDWhere eventId
       insertedDWhere `shouldBe` Just dummyDWhere
 

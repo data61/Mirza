@@ -31,7 +31,7 @@ import           Servant.Swagger.UI
 
 import           Crypto.JOSE.JWK
 import           Data.Text                              (Text)
-import           Data.Time                              (UTCTime) 
+import           Data.Time                              (UTCTime)
 
 
 type API
@@ -59,6 +59,16 @@ type PublicAPI =
       :> QueryParam "name" Text
       :> QueryParam "modifiedsince" UTCTime
       :> Get '[JSON] [BusinessResponse]
+  :<|> "location"  :> "get"      :> Capture "GLN" EPC.LocationEPC :> Get  '[JSON] LocationResponse
+  :<|> "location"  :> "search"
+      :> QueryParam "gs1id" GS1CompanyPrefix
+      :> QueryParam "modifiedsince" UTCTime
+      :> Get '[JSON] [LocationResponse]
+  :<|> "prototype" :> "location" :> "ux" :> QueryParams "gs1companyprefix" GS1CompanyPrefix :> Get '[JSON] [BusinessAndLocationResponse]
+  :<|> "prototype" :> "location" :> "uxgln"
+          :> Capture "GLN" EPC.LocationEPC
+          :> Capture "gs1companyprefix" GS1CompanyPrefix
+          :> Get '[JSON] BusinessAndLocationResponse
   :<|> "version" :> Get '[JSON] String
 
 
@@ -67,10 +77,4 @@ type PrivateAPI =
   :<|> "business"  :> "add"      :> ReqBody '[JSON] NewBusiness :> Post '[JSON] GS1CompanyPrefix
   :<|> "key"       :> "add"      :> ReqBody '[JSON] JWK         :> QueryParam "expirationTime" ExpirationTime :> Post '[JSON] BRKeyId
   :<|> "key"       :> "revoke"   :> Capture "keyId" BRKeyId     :> Post '[JSON] RevocationTime
-  :<|> "location"  :> "add"      :> ReqBody '[JSON] NewLocation   :> Post '[JSON] LocationId
-  :<|> "location"  :> "get"      :> Capture "GLN" EPC.LocationEPC :> Get  '[JSON] LocationResponse
-  :<|> "location"  :> "search"
-      :> QueryParam "gs1id" GS1CompanyPrefix
-      :> QueryParam "modifiedsince" UTCTime
-      :> Get '[JSON] [LocationResponse]
-  :<|> "prototype" :> "location" :> "ux" :> QueryParams "gs1companyprefix" GS1CompanyPrefix :> Get '[JSON] [BusinessAndLocationResponse]
+  :<|> "location"  :> "add"      :> ReqBody '[JSON] NewLocation :> Post '[JSON] LocationId

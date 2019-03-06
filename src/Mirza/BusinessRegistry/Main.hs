@@ -11,9 +11,10 @@ import           Mirza.BusinessRegistry.API              (API, ServerAPI, api)
 import           Mirza.BusinessRegistry.Auth
 import           Mirza.BusinessRegistry.Database.Migrate
 import           Mirza.BusinessRegistry.Database.Schema  as Schema
+import           Mirza.BusinessRegistry.GenerateUtils    (dummyBusiness,
+                                                          dummyUser)
 import           Mirza.BusinessRegistry.Service
 import           Mirza.BusinessRegistry.Types            as BT
-import           Mirza.BusinessRegistry.GenerateUtils    (dummyUser, dummyBusiness)
 import           Mirza.Common.Types                      as CT
 
 import           Data.GS1.EPC                            (GS1CompanyPrefix (..))
@@ -34,8 +35,8 @@ import           Data.Semigroup                          ((<>))
 import           Data.Text                               (Text, pack)
 import           Data.Text.Encoding                      (encodeUtf8)
 import           Options.Applicative                     hiding (action)
-import           Text.Email.Validate                     (validate)
 import           Text.Email.Parser                       (addrSpec)
+import           Text.Email.Validate                     (validate)
 
 import qualified Crypto.Scrypt                           as Scrypt
 

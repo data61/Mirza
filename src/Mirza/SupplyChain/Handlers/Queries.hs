@@ -2,7 +2,8 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 
 module Mirza.SupplyChain.Handlers.Queries
-  ( listEvents, eventInfo, eventInfoQuery, eventList, eventUserList, eventsByUser
+  ( listEvents, listEventsQuery
+  , eventInfo, eventInfoQuery, eventList, eventUserList, eventsByUser
   , eventUserSignedList
   , queryUserId
   , findSignatureByEvent, findSignedEventByEvent

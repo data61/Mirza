@@ -187,16 +187,16 @@ runBRApp = do
   tempFile <- emptySystemTempFile "businessRegistryTests.log"
   let currentBrOptions = brOptions (Just tempFile)
   ctx <- initBRContext currentBrOptions
-  let BusinessRegistryDB usersTable businessesTable keysTable locationsTable geolocationsTable
+  let BusinessRegistryDB businessesTable usersTable keysTable locationsTable geolocationsTable
         = businessRegistryDB
 
   flushDbResult <- runAppM @_ @BRError ctx $ runDb $ do
       let deleteTable table = pg $ runDelete $ delete table (const (val_ True))
+      deleteTable geolocationsTable
+      deleteTable locationsTable
       deleteTable keysTable
       deleteTable usersTable
       deleteTable businessesTable
-      deleteTable locationsTable
-      deleteTable geolocationsTable
   flushDbResult `shouldSatisfy` isRight
 
   -- This construct somewhat destroys the integrity of these test since it is
