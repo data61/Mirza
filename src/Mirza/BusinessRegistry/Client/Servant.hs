@@ -1,21 +1,21 @@
 module Mirza.BusinessRegistry.Client.Servant
   (
   -- * Public API
-    addPublicKey
-  , revokePublicKey
-  , addLocation
-  , getLocationByGLN
-  , searchLocation
-  , uxLocation
+    health
   , versionInfo
-  , health
-  -- * Authenticated API
   , getPublicKey
   , getPublicKeyInfo
   , searchBusinesses
+  , getLocationByGLN
+  , searchLocation
+  , uxLocation
+  , uxLocationByGLN
+  -- * Authenticated API
   , addUser
   , addBusiness
-  , uxLocationByGLN
+  , addPublicKey
+  , revokePublicKey
+  , addLocation
   ) where
 
 import           Mirza.BusinessRegistry.API
@@ -59,6 +59,7 @@ _pubAPI  :: Client ClientM PublicAPI
 _api@(
   _pubAPI@(
          health
+    :<|> versionInfo
     :<|> getPublicKey
     :<|> getPublicKeyInfo
     :<|> searchBusinesses
@@ -66,7 +67,6 @@ _api@(
     :<|> searchLocation
     :<|> uxLocation
     :<|> uxLocationByGLN
-    :<|> versionInfo
   )
   :<|>
   _privAPI@(
