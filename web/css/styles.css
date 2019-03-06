@@ -31,7 +31,7 @@ nav.tabs a {
 }
 nav.tabs a.active {
 		padding-bottom: 1em;
-		border-bottom: .25em solid #9b4dca;
+		border-bottom: .25em solid #228562;
 }
 
 .button-list .button {
@@ -69,3 +69,18 @@ nav.tabs a.active {
 .flex-row { display: flex; }
 .flex-grow { flex-grow: 1; }
 img.round { border-radius: 50% }
+
+
+/* Milligram overrides  */
+
+.button, button, input[type='button'], input[type='reset'], input[type='submit'] {
+		background-color: #228562;
+		border-color: #228562;
+}
+
+a, .button.button-outline, button.button-outline, input[type='button'].button-outline, input[type='reset'].button-outline, input[type='submit'].button-outline, .button.button-clear, button.button-clear, input[type='button'].button-clear, input[type='reset'].button-clear, input[type='submit'].button-clear {
+		color: #228562;
+}
+a.active {
+		border-color: #228562;
+}
