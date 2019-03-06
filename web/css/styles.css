@@ -51,6 +51,16 @@ nav.tabs a.active {
 		padding: 1em;
 }
 
+.flex-end-middle {
+		display: flex;
+    align-items: center;
+    justify-content: flex-end;
+}
+.button.button-clear.inline {
+		margin: 0;
+		padding: 0 1em;
+}
+
 .align-right { text-align: right; }
 .align-center { text-align: center; }
 .border-bottom { border-bottom: 1px solid #EEE; }
@@ -58,3 +68,4 @@ nav.tabs a.active {
 .pad-tb { padding-top: 1em; padding-bottom: 1em; }
 .flex-row { display: flex; }
 .flex-grow { flex-grow: 1; }
+img.round { border-radius: 50% }
