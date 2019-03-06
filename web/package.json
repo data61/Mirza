@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-		"start:dev": "webpack-dev-server",
+    "start:dev": "webpack-dev-server",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "CSIRO Data61",
@@ -13,7 +13,8 @@
     "@types/react": "^16.8.5",
     "@types/react-dom": "^16.8.2",
     "react": "^16.8.3",
-    "react-dom": "^16.8.3"
+    "react-dom": "^16.8.3",
+    "react-qr-reader": "^2.2.1"
   },
   "devDependencies": {
     "awesome-typescript-loader": "^5.2.1",
