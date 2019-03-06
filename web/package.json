@@ -12,6 +12,8 @@
   "dependencies": {
     "@types/react": "^16.8.5",
     "@types/react-dom": "^16.8.2",
+    "@types/react-qr-reader": "^2.1.2",
+    "jsqr": "^1.2.0",
     "react": "^16.8.3",
     "react-dom": "^16.8.3",
     "react-qr-reader": "^2.2.1"
