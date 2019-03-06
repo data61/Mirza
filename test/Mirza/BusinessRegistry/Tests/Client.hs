@@ -520,8 +520,6 @@ clientSpec = do
 
   let locationTests = testCaseSteps "That locations work as expected" $ \step ->
         bracket runBRApp (\(a,b,_) -> endWaiApp (a,b)) $ \(_tid, baseurl, brAuthUser) -> do
-          --password <- randomPassword
-
           let http = runClient baseurl
               business1Gen = dummyBusiness "locationTests_Business1"
               business1 = business1Gen {newBusinessGS1CompanyPrefix = (GS1CompanyPrefix "5000001")} -- todo fix this properly...
@@ -562,7 +560,7 @@ clientSpec = do
           addLocation1Result `shouldSatisfy` isRight
 
 
-          -- step "Can't add a location for a company that doesn't exist."
+          -- step "TODO: Can't add a location for a company that doesn't exist."
           -- let nonExistantCompanyPrefix = (GS1CompanyPrefix "5999999")
           --     location2 = NewLocation (SGLN nonExistantCompanyPrefix (LocationReference "00013") Nothing)
           --                             (Just (Latitude (-25.344490), Longitude 131.035431))
@@ -610,20 +608,20 @@ clientSpec = do
           addLocation7Result `shouldSatisfy` isRight
 
 
-          step "Can search for a location based on GLN."
+          -- step "TODO: Can search for a location based on GLN."
 
-          step "Can serach for a location based on a GS1 company prefix."
-          -- Search for 1 of the locations with the exclusion of the other.
-          -- Serach fot the other location with the exclusion of the first.
-          -- (A serach the returns multiple results (should be part of one of the above 2 queries).
+          -- step "TODO: Can serach for a location based on a GS1 company prefix."
+          --   Search for 1 of the locations with the exclusion of the other.
+          --   Serach fot the other location with the exclusion of the first.
+          --   (A serach the returns multiple results (should be part of one of the above 2 queries).
 
-          step "Can serach for a location based on modified since field."
+          -- step "TODO: Can serach for a location based on modified since field."
 
-          step "uxLocation: Can query all of the locations associated with a business"
-          step "uxLocation: Can query all of the locations associated with multiple business"
-          step "uxLocation: That quering for a non existant business results in an empty result"
-          step "uxLocation: That quering for a non existant business in addition to multiple businesses just ignores the non existant business"
-          step "uxLocation: That quering for locations from more then 25 businesses ignores the businesses beyond 25 are ignored."
+          -- step "TODO: uxLocation: Can query all of the locations associated with a business"
+          -- step "TODO: uxLocation: Can query all of the locations associated with multiple business"
+          -- step "TODO: uxLocation: That quering for a non existant business results in an empty result"
+          -- step "TODO: uxLocation: That quering for a non existant business in addition to multiple businesses just ignores the non existant business"
+          -- step "TODO: uxLocation: That quering for locations from more then 25 businesses ignores the businesses beyond 25 are ignored."
 
 
 
