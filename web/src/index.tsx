@@ -7,6 +7,7 @@ import { Footer } from "./components/footer";
 import { NotFound } from "./components/notFound";
 import { Home } from "./components/home";
 import { EventLog } from "./components/eventLog";
+import { MyScanner } from "./components/scanner";
 
 import { authInit, logIn } from "./auth";
 
@@ -26,6 +27,7 @@ authInit().then(authState => {
       <Switch>
         <Route path="/" exact component={Home} />
         <Route path="/events" exact component={EventLog} />
+        <Route path="/scan" exact component={MyScanner} />
         <Route component={NotFound} />
       </Switch>
       <Footer></Footer>

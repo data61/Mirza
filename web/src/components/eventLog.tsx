@@ -1,7 +1,7 @@
 import * as React from "react";
-import { Link } from "react-router-dom";
 
-import { Panel } from "./panel"
+import { Link } from "react-router-dom";
+import { Panel } from "./panel";
 
 export function SavedEvents({ className }: { className: string }) {
   return (
