@@ -4,15 +4,15 @@ import * as QrReader from 'react-qr-reader';
 export class MyScanner extends React.Component {
   public state = {
     result: 'No result',
-  }
- 
+  };
+
   public handleScan = (data: any) => {
     // console.log(data);
     if (data) {
       console.log(data);
       this.setState({
         result: data,
-      })
+      });
     }
   }
   public handleError = (err: any) => {
@@ -29,6 +29,6 @@ export class MyScanner extends React.Component {
         />
         <p> {this.state.result} </p>
       </div>
-    )
+    );
   }
 }

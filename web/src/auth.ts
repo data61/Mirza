@@ -19,9 +19,18 @@ export class AuthState {
     private token: AuthToken;
 
     private tokenRenewalTimerID: number | null;
+    constructor(token: AuthToken) {
+        this.setToken(token);
+    }
 
     public getToken(): AuthToken {
         return this.token;
+    }
+    public getName() {
+        return this.token.idTokenPayload.name;
+    }
+    public getPictureUrl() {
+        return this.token.idTokenPayload.picture;
     }
     private setToken(t: AuthToken): void {
         if (this.tokenRenewalTimerID !== null) {
@@ -29,7 +38,7 @@ export class AuthState {
         }
 
         this.token = t;
-        console.log(t)
+        console.log(t);
 
         if (t.expires !== undefined) {
             // renew a minute before expiration
@@ -37,7 +46,7 @@ export class AuthState {
             const delay = t.expires - now.getTime();
             this.tokenRenewalTimerID = window.setTimeout(() => {
                 this.renewToken();
-            }, delay)
+            }, delay);
         }
     }
 
@@ -45,43 +54,32 @@ export class AuthState {
         webAuth.checkSession({}, (err, authResult) => {
             if (err !== null && err.error === 'login_required') {
                 logOut();
-            }
-            else if (authResult && authResult.accessToken && authResult.idToken) {
+            } else if (authResult && authResult.accessToken && authResult.idToken) {
                 this.setToken(setSession(authResult));
             }
-        })
+        });
     }
 
-    constructor(token: AuthToken) {
-        this.setToken(token);
-    }
-
-    public getName() {
-        return this.token.idTokenPayload.name;
-    }
-    public getPictureUrl() {
-        return this.token.idTokenPayload.picture;
-    }
 }
 
 function setSession(authResult: auth0.Auth0DecodedHash): AuthToken {
-    let result = authResult as AuthToken;
+    const result = authResult as AuthToken;
 
     if (authResult.expiresIn !== undefined) {
-        result.expires = (authResult.expiresIn * 1000) + new Date().getTime()
+        result.expires = (authResult.expiresIn * 1000) + new Date().getTime();
     }
 
-    localStorage.setItem('auth0_tk', JSON.stringify(result))
+    localStorage.setItem('auth0_tk', JSON.stringify(result));
 
-    return result
+    return result;
 }
 
 function getSession(): AuthToken | null {
-    let s = localStorage.getItem('auth0_tk');
+    const s = localStorage.getItem('auth0_tk');
     if (s !== null) {
         return JSON.parse(s);
     }
-    return null
+    return null;
 }
 
 function clearSession(): void {
@@ -100,34 +98,31 @@ export function authInit(): Promise<AuthState | null> {
     // - has query Params from an auth redirect, store and return
     // - has previous (non-expired) session, return it in a new AuthState
     // - has no previous session, or previous has expired - redirect to Auth0
-    //   
-    return new Promise(function(resolve, reject) {
+    return new Promise( (resolve, reject) => {
         // if we have a prev session then we assume we aren't coming back from an auth request...
         const prev = getSession();
 
         if (prev !== null) {
             if (expired(prev)) {
                 clearSession();
-                resolve(null)
+                resolve(null);
             } else {
-                resolve(new AuthState(prev))
+                resolve(new AuthState(prev));
             }
-        }
-        else {
+        } else {
             const h = Q.parse(window.location.hash);
             if (h.access_token) {
-                webAuth.parseHash(function(err, result) {
+                webAuth.parseHash( (err, result) => {
                     if (result && result.accessToken && result.idToken) {
-                        let tk = setSession(result)
+                        const tk = setSession(result);
                         window.location.hash = '';
                         resolve(new AuthState(tk));
 
                     } else if (err) {
-                        reject(err)
+                        reject(err);
                     }
                 });
-            }
-            else {
+            } else {
                 resolve(null);
             }
         }
