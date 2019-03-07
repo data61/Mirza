@@ -1,18 +1,18 @@
-import * as auth0 from "auth0-js";
-import * as Q from "query-string";
+import * as auth0 from 'auth0-js';
+import * as Q from 'query-string';
 
 const webAuthOpts = {
-    domain: 'mirza.au.auth0.com',
     clientID: 'JvrGZu2gNR84nrEOu1kEC3gxpcJn9wkU',
+    domain: 'mirza.au.auth0.com',
+    redirectUri: window.location.href,
     responseType: 'token id_token',
     scope: 'openid profile email',
-    redirectUri: window.location.href
 };
 
 const webAuth = new auth0.WebAuth(webAuthOpts);
 
 export interface AuthToken extends auth0.Auth0DecodedHash {
-    expires: number
+    expires: number;
 }
 
 export class AuthState {
@@ -43,7 +43,7 @@ export class AuthState {
 
     private renewToken() {
         webAuth.checkSession({}, (err, authResult) => {
-            if (err !== null && err.error === "login_required") {
+            if (err !== null && err.error === 'login_required') {
                 logOut();
             }
             else if (authResult && authResult.accessToken && authResult.idToken) {

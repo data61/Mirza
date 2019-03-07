@@ -1,24 +1,24 @@
-import * as React from "react";
+import * as React from 'react';
 import * as QrReader from 'react-qr-reader';
 
 export class MyScanner extends React.Component {
-  state = {
-    result: 'No result'
+  public state = {
+    result: 'No result',
   }
  
-  handleScan = (data: any) => {
+  public handleScan = (data: any) => {
     // console.log(data);
     if (data) {
       console.log(data);
       this.setState({
-        result: data
+        result: data,
       })
     }
   }
-  handleError = function (err: any) {
+  public handleError = (err: any) => {
     console.error(err);
   }
-  render() {
+  public render() {
     return (
       <div>
         <QrReader

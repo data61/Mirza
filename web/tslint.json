@@ -1,19 +1,12 @@
 {
   "extends": "tslint:recommended",
-  "rulesDirectory": "built/local/tslint/rules",
   "rules": {
     "max-line-length": {
-        "options": [120]
+      "options": [100]
     },
-    "new-parens": true,
-    "no-arg": true,
-    "no-bitwise": true,
-    "no-conditional-assignment": true,
-    "no-consecutive-blank-lines": true,
-    "no-console": {
-        "severity": "warning",
-        "options": ["debug", "info", "log", "time", "timeEnd", "trace"]
-    },
-    "no-var-keyword": true
+    "no-console": false,
+    "quotemark": {
+      "options": ["single", "avoid-escape"]
+    }
   }
 }
