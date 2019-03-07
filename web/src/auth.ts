@@ -1,12 +1,12 @@
-import * as auth0 from 'auth0-js';
-import * as Q from 'query-string';
+import * as auth0 from "auth0-js";
+import * as Q from "query-string";
 
 const webAuthOpts = {
-    clientID: 'JvrGZu2gNR84nrEOu1kEC3gxpcJn9wkU',
-    domain: 'mirza.au.auth0.com',
+    clientID: "JvrGZu2gNR84nrEOu1kEC3gxpcJn9wkU",
+    domain: "mirza.au.auth0.com",
     redirectUri: window.location.origin,
-    responseType: 'token id_token',
-    scope: 'openid profile email',
+    responseType: "token id_token",
+    scope: "openid profile email",
 };
 
 const webAuth = new auth0.WebAuth(webAuthOpts);
@@ -52,7 +52,7 @@ export class AuthState {
 
     private renewToken() {
         webAuth.checkSession({}, (err, authResult) => {
-            if (err !== null && err.error === 'login_required') {
+            if (err !== null && err.error === "login_required") {
                 logOut();
             } else if (authResult && authResult.accessToken && authResult.idToken) {
                 this.setToken(setSession(authResult));
@@ -69,13 +69,13 @@ function setSession(authResult: auth0.Auth0DecodedHash): AuthToken {
         result.expires = (authResult.expiresIn * 1000) + new Date().getTime();
     }
 
-    localStorage.setItem('auth0_tk', JSON.stringify(result));
+    localStorage.setItem("auth0_tk", JSON.stringify(result));
 
     return result;
 }
 
 function getSession(): AuthToken | null {
-    const s = localStorage.getItem('auth0_tk');
+    const s = localStorage.getItem("auth0_tk");
     if (s !== null) {
         return JSON.parse(s);
     }
@@ -83,7 +83,7 @@ function getSession(): AuthToken | null {
 }
 
 function clearSession(): void {
-    localStorage.removeItem('auth0_tk');
+    localStorage.removeItem("auth0_tk");
 }
 
 function expired(tk: AuthToken): boolean {
@@ -115,7 +115,7 @@ export function authInit(): Promise<AuthState | null> {
                 webAuth.parseHash( (err, result) => {
                     if (result && result.accessToken && result.idToken) {
                         const tk = setSession(result);
-                        window.location.hash = '';
+                        window.location.hash = "";
                         resolve(new AuthState(tk));
 
                     } else if (err) {
