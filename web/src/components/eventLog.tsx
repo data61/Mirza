@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Panel } from "./panel"
+import { Panel } from "./panel";
 
 export function SavedEvents({ className }: { className: string }) {
   return (
