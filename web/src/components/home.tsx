@@ -8,7 +8,7 @@ export function Home() {
       <div className="container">
         <div className="row">
           <div className="column">
-            <Link to="/events">Scan</Link>
+            <Link to="/scan">Scan</Link>
           </div>
           <div className="column">
             <Link to="/events">Event Log</Link>
