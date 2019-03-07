@@ -7,6 +7,9 @@ module.exports = {
 	// Options for webpack-dev-server
 	devServer: {
 		publicPath: "/dist/",
+		historyApiFallback: {
+      index: 'index.html'
+    },
 		open: true // Open automatically in a browser
 	},
   // Enable sourcemaps for debugging webpack's output.
