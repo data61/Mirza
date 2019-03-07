@@ -1,8 +1,8 @@
 import * as React from "react";
-import { AuthState, logOut } from "../auth"
+import { AuthState, logOut } from "../auth";
 
 export interface HeaderProps {
-  auth: AuthState
+  auth: AuthState;
 }
 
 export function Header(props: HeaderProps) {
@@ -19,5 +19,5 @@ export function Header(props: HeaderProps) {
         </div>
       </div>
     </div>
-  </header>
+  </header>;
 }

@@ -1,11 +1,11 @@
-import * as React from "react"
+import * as React from "react";
 
 export function Panel() {
   const [expanded, setExpanded] = React.useState(false);
 
   const toggle = () => {
     setExpanded(!expanded);
-  }
+  };
 
   return (
     <div className="panel">
@@ -23,5 +23,5 @@ export function Panel() {
       </header>
       {expanded ? <section>Event Type: Aggregation </section> : null}
     </div >
-  )
+  );
 }

@@ -18,7 +18,7 @@ export function SavedEvents({ className }: { className: string }) {
         <a className="button button-outline">Weekly view - Payment</a>
       </div>
     </div>
-  )
+  );
 }
 
 export function EventLookup({ className }: { className: string }) {
@@ -44,7 +44,7 @@ export function EventLookup({ className }: { className: string }) {
         </fieldset>
       </form>
     </div>
-  )
+  );
 }
 
 export function Events() {
@@ -68,7 +68,7 @@ export function Events() {
         </div>
       </div>
     </div >
-  )
+  );
 }
 
 export function EventLog() {
@@ -90,5 +90,5 @@ export function EventLog() {
       </div>
       <Events></Events>
     </section>
-  )
+  );
 }
