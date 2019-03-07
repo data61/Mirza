@@ -1,11 +1,15 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
+import { BrowserRouter, Route, Switch } from 'react-router-dom';
 
-import { authInit, logIn } from './auth';
 import { EventLog } from './components/eventLog';
 import { Footer } from './components/footer';
 import { Header } from './components/header';
+import { Home } from './components/home';
+import { NotFound } from './components/notFound';
 import { MyScanner } from './components/scanner';
+
+import { authInit, logIn } from './auth';
 
 authInit().then( (authState) => {
   if (authState === null) {
@@ -17,12 +21,16 @@ authInit().then( (authState) => {
     auth: authState,
   };
 
-  ReactDOM.render(
+  ReactDOM.render(<BrowserRouter>
     <React.Fragment>
       <Header auth={appState.auth}></Header>
-      <EventLog></EventLog>
-      <MyScanner></MyScanner>
+      <Switch>
+        <Route path='/' exact component={Home} />
+        <Route path='/events' exact component={EventLog} />
+        <Route path='/scan' exact component={MyScanner} />
+        <Route component={NotFound} />
+      </Switch>
       <Footer></Footer>
-    </React.Fragment>,
-    document.querySelector('main'));
+    </React.Fragment>
+  </BrowserRouter>, document.querySelector('main'));
 });

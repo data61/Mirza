@@ -1,4 +1,6 @@
 import * as React from 'react';
+
+import { Link } from 'react-router-dom';
 import { Panel } from './panel';
 
 export function SavedEvents({ className }: { className: string }) {
@@ -75,7 +77,7 @@ export function EventLog() {
       <div className='border-bottom'>
         <div className='container'>
           <div className='row'>
-            <div className='column'><h3>Supply Chain Event Log</h3></div>
+            <div className='column'><h3><Link to='/'><i className='fa fa-chevron-left'></i> </Link> Event Log</h3></div>
             <div className='column'>
               <nav className='tabs'>
                 <a className='active' href='#'><i className='fas fa-fw fa-lg fa-list-alt'></i> Events</a>

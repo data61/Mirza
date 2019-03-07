@@ -4,7 +4,7 @@ import * as Q from 'query-string';
 const webAuthOpts = {
     clientID: 'JvrGZu2gNR84nrEOu1kEC3gxpcJn9wkU',
     domain: 'mirza.au.auth0.com',
-    redirectUri: window.location.href,
+    redirectUri: window.location.origin,
     responseType: 'token id_token',
     scope: 'openid profile email',
 };
