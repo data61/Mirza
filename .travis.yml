@@ -7,14 +7,14 @@ env:
   - secure: k9mPDnNDPA2LKE+u+Z8hDNAdRxD0WiOqbxHRKArX7TuQZRUhznvtMcMYtSv5aF2iL8c8M9814Et2mXoJOage/Wcup8WVZeA403cS7qogt3/gJLZ8Tz1ZkOyt8d7fs6xAYIowqM0qzoqRJ8V9TcjFVmJ3p3hZjzbl/meHF4hsnHYYP2XLzAKyBqepTjCIriD/zOk+P4uF1U7XwCVwfqNdsRjw8VmI/uEZyYX1ekscxf4AJM67kDmYeojcPf/R8h6ufEcTExL7tweQZ6ypXQVjCGJIalb1NsPhfRFJ9f/8Ti4r3Gsq/2KO4JKKW8pu5sf1rx3QZD5jxK57BDXd/cqV94ejU4mBo9cYHxQZ73A2aqMa0PkXBuAF24DpFoRkvamb9aDk30qOxrTmMSZ8Oee1KUlYhtsOtt3Qhm7qjvS6PUoTYJJqKXLK0VsjCyynt20RUH+6p94uNEgrETxDCIVYzS4Eethx1N6GqxKKs1V8cKopwC3C+kJLsYCtVBR/sDxS1IcbnJ7nojNDFr6O6ize5vH7arUiuBmD23ojPIXqL/VFew4RFlD9FsObrVQOqXRneIDOCxNuLBr5+Vsg3/UkMQqZVvUtENszvpPAr5mac92vLLCcwZZoUai7Zj17XZtDi83wyJoHgQboBJbDAv69TQZFZXTNKUhSHiua1ZsYcNo=
 
 stages:
-  - build
-  - name: deploy
+  - "Build"
+  - name: "Deploy"
     if: branch = master
     
 jobs:
   include:
-    - stage: build
     - name: "Web"
+      stage: "Build"
       language: node_js
       node_js:
         - "11"
@@ -35,6 +35,7 @@ jobs:
           fi
     
     - name: "Back-end"
+      stage: "Build"
       language: generic
 
       services:
@@ -84,9 +85,9 @@ jobs:
             ./deploy/docker_push.sh "${BR_DOCKER_TAG}"
           fi
 
-    - stage: deploy
-      
-    - before_install:
+    - name: "Deploy to AWS"
+      stage: "Deploy"
+      before_install:
         # Decrypt the ssh key that will be used for deployments 
         - openssl aes-256-cbc -K $encrypted_8fe1f88deb69_key -iv $encrypted_8fe1f88deb69_iv
           -in deploy/deployment.pem.enc -out ~/.ssh/deployment.pem -d
