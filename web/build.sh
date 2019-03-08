@@ -1,9 +1,9 @@
 #!/bin/bash
-
+set -e
 PREV=$(pwd)
 cd $(dirname "$BASH_SOURCE")
 
-rm -r dist/
+rm -fr dist/
 rm -f deploy.tar
 
 # run tests...
