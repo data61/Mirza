@@ -10,6 +10,8 @@ matrix:
   include:
     - name: "Web"
       language: node_js
+      node_js:
+        - "11"
       services:
         - docker
       before_install:
