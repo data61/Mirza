@@ -6,9 +6,24 @@ networks:
 
 volumes:
   private-ethereum-blockchain:
-
+  
 services:
 
+  web:
+    image: 235945186688.dkr.ecr.ap-southeast-2.amazonaws.com/mirza-web:latest
+    ports:
+      - 80:80
+    depends_on:
+      - businessRegistry
+      - supplyChainServer
+    networks:
+      - backend
+    logging:
+      driver: json-file
+      options:
+        max-size: "200k"
+        max-file: "10"
+  
   supplyChainServer:
     image: 235945186688.dkr.ecr.ap-southeast-2.amazonaws.com/supplychainserver:latest
     ports:
