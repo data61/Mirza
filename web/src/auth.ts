@@ -38,7 +38,6 @@ export class AuthState {
         }
 
         this.token = t;
-        console.log(t);
 
         if (t.expires !== undefined) {
             // renew a minute before expiration
@@ -98,7 +97,7 @@ export function authInit(): Promise<AuthState | null> {
     // - has query Params from an auth redirect, store and return
     // - has previous (non-expired) session, return it in a new AuthState
     // - has no previous session, or previous has expired - redirect to Auth0
-    return new Promise( (resolve, reject) => {
+    return new Promise((resolve, reject) => {
         // if we have a prev session then we assume we aren't coming back from an auth request...
         const prev = getSession();
 
@@ -112,7 +111,7 @@ export function authInit(): Promise<AuthState | null> {
         } else {
             const h = Q.parse(window.location.hash);
             if (h.access_token) {
-                webAuth.parseHash( (err, result) => {
+                webAuth.parseHash((err, result) => {
                     if (result && result.accessToken && result.idToken) {
                         const tk = setSession(result);
                         window.location.hash = "";
