@@ -9,7 +9,7 @@ env:
 stages:
   - "Build"
   - name: "Deploy"
-    if: branch = master
+    if: branch = master AND type = push
     
 jobs:
   include:
