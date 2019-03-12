@@ -30,7 +30,7 @@ jobs:
       script:
         - ./build.sh
         - |
-          if [ "$TRAVIS_BRANCH" == "master" ]; then
+          if [ "$TRAVIS_BRANCH" = "master" -a "$TRAVIS_PULL_REQUEST" = "false" ]; then
             docker build -t "${DOCKER_TAG}" .
             ../deploy/docker_push.sh "${DOCKER_TAG}"
           fi
@@ -79,7 +79,7 @@ jobs:
         - echo 'YES' | stack exec businessRegistry -- initdb -c 'dbname=testbusinessregistry'
         - stack test --ta -j1
         - |
-          if [ "$TRAVIS_BRANCH" == "master" ]; then
+          if [ "$TRAVIS_BRANCH" = "master" -a "$TRAVIS_PULL_REQUEST" = "false" ]; then
             docker build -f Mirza.Dockerfile --target PKG-SCS -t "${SCS_DOCKER_TAG}" .
             docker build -f Mirza.Dockerfile --target PKG-BR -t "${BR_DOCKER_TAG}" .
             ./deploy/docker_push.sh "${SCS_DOCKER_TAG}"
