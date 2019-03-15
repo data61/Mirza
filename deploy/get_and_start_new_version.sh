@@ -7,8 +7,8 @@
 $(aws ecr get-login --no-include-email --region ap-southeast-2)
 
 # Stop and remove the currently running version of code
-docker-compose stop mirza-web supplyChainServer businessRegistry private-ethereum-blockchain blockchain-api-server db || echo "no old containers running"
-docker-compose rm -f mirza-web supplyChainServer businessRegistry private-ethereum-blockchain blockchain-api-server db || echo "no containers to remove"
+docker-compose stop web supplyChainServer businessRegistry private-ethereum-blockchain blockchain-api-server db || echo "no old containers running"
+docker-compose rm -f web supplyChainServer businessRegistry private-ethereum-blockchain blockchain-api-server db || echo "no containers to remove"
 
 # Get the new images (defined in the docker-compose.yml) 
 docker-compose pull
@@ -45,7 +45,7 @@ echo Waiting 10 seconds for the db to finish starting...
 sleep 10
 
 # Start the services
-docker-compose up -d supplyChainServer businessRegistry private-ethereum-blockchain blockchain-api-server mirza-web
+docker-compose up -d supplyChainServer businessRegistry private-ethereum-blockchain blockchain-api-server web
 
 # Run the initdb scripts for scs and br. (UNCOMMENT WHEN NEEDED FOR A CLEAN DEPLOYMENT WITH A FRESH DB)
 # docker-compose up -d dbpopulate-br
