@@ -18,7 +18,6 @@ import           Test.Tasty.Hspec                        (around, testSpec)
 import           Test.Tasty.Runners                      (NumThreads (..))
 
 import           Mirza.BusinessRegistry.Tests.Business   (testBizQueries)
-import           Mirza.BusinessRegistry.Tests.Client
 import           Mirza.BusinessRegistry.Tests.Keys       (testKeyQueries)
 
 import           Control.Exception                       (bracket)
@@ -67,10 +66,8 @@ main = do
 
   keyTests <- testSpec "HSpec" (sequential $ around withDatabaseConnection testKeyQueries)
   bizTests <- testSpec "HSpec" (sequential $ around withDatabaseConnection testBizQueries)
-  clientTests <- clientSpec
 
   defaultMain $ localOption (NumThreads 1) $ testGroup "tests"
     [ keyTests
     , bizTests
-    , clientTests
     ]

@@ -135,7 +135,6 @@ test-suite supplyChainServer-test
                     , Mirza.BusinessRegistry.Tests.Dummies
                     , Mirza.SupplyChain.Tests.Service
                     , Mirza.SupplyChain.Tests.Dummies
-                    , Mirza.SupplyChain.Tests.Client
                     , Mirza.SupplyChain.Tests.Citrus
                     , Mirza.BusinessRegistry.Tests.Utils
   default-extensions:  OverloadedStrings
@@ -188,7 +187,6 @@ test-suite businessRegistry-test
                     , Mirza.BusinessRegistry.Tests.Keys
                     , Mirza.BusinessRegistry.Tests.Dummies
                     , Mirza.BusinessRegistry.Tests.Business
-                    , Mirza.BusinessRegistry.Tests.Client
                     , Mirza.Common.Tests.Utils
                     , Mirza.BusinessRegistry.Tests.Utils
   default-extensions:  OverloadedStrings

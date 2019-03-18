@@ -38,7 +38,6 @@ import           Data.HashMap.Lazy                     as H
 
 import           Servant.Client                        (BaseUrl (..), ClientM)
 
-import           Mirza.BusinessRegistry.Client.Servant as BRClient
 import           Mirza.SupplyChain.Client.Servant      as SCSClient
 
 import           Crypto.JOSE                           (Alg (RS256),
@@ -127,9 +126,9 @@ insertAndAuth scsUrl brUrl auth locMap ht (entity:entities) = do
                   (encodeUtf8 . BT.newUserPassword $ newUserBR)
   pubKey <- fmap expectJust $ liftIO $ readJWK pubKeyPath
   insertedUserIdSCS <- fmap expectRight $ httpSCS $ SCSClient.addUser newUserSCS
-  _insertedPrefix <- httpBR $ BRClient.addBusiness auth newBiz
-  _insertedUserIdBR <- httpBR $ BRClient.addUser auth newUserBR
-  brKeyId <- fmap expectRight $ httpBR $ BRClient.addPublicKey auth pubKey Nothing
+  _insertedPrefix <- httpBR $ undefined
+  _insertedUserIdBR <- httpBR $ undefined
+  brKeyId <- fmap expectRight $ httpBR $ undefined
   let basicAuthDataSCS =
         BasicAuthData
           (toByteString . ST.newUserEmailAddress $ newUserSCS)
@@ -142,7 +141,7 @@ insertAndAuth scsUrl brUrl auth locMap ht (entity:entities) = do
   where
     maybeInsertLocation _ Nothing    = pure ()
     maybeInsertLocation userAuth (Just loc) =
-        void $ runClient brUrl $ BRClient.addLocation userAuth loc
+        void $ runClient brUrl $ undefined
 
 insertEachEvent :: AuthHash -> EachEvent ->  ClientM ()
 insertEachEvent _ (EachEvent [] _) = pure ()
@@ -165,7 +164,7 @@ clientSignEvent ht evInfo entity = do
       (Entity _ _ _ _ (KeyPairPaths privKeyPath pubKeyPath)) = entity
   privKey <- fmap expectJust $ liftIO $ readJWK privKeyPath
   pubKey <- fmap expectJust $ liftIO $ readJWK pubKeyPath
-  keyId <- BRClient.addPublicKey auth pubKey Nothing
+  keyId <- undefined
 
   s <- liftIO $ runExceptT @JOSE.Error (
           signJWS toSign (Identity (newJWSHeader ((), RS256), privKey))

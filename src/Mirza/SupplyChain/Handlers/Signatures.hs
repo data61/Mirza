@@ -38,11 +38,10 @@ import           Data.ByteString                          (ByteString)
 
 import           Control.Lens                             ((&), (.~))
 
-import           Mirza.BusinessRegistry.Client.Servant    (getPublicKey)
 
 scsJWSValidationSettings :: ValidationSettings
 scsJWSValidationSettings = defaultValidationSettings
-    & validationSettingsAlgorithms .~ [RS256,RS384,RS512,PS256,PS384,PS512]
+    & undefined
 
 eventSign :: (Member context '[HasDB, HasBRClientEnv],
               Member err     '[AsError, AsServantError, AsSqlError, AsServiceError])
@@ -50,10 +49,10 @@ eventSign :: (Member context '[HasDB, HasBRClientEnv],
           -> SignedEvent
           -> AppM context err EventInfo
 eventSign user (SignedEvent eventId keyId sig) = do
-  jwk <- runClientFunc $ getPublicKey keyId
+  jwk <- runClientFunc $ undefined keyId
   runDb $ do
     eventBS <- getEventBS eventId
-    event' <- verifyJWS scsJWSValidationSettings jwk sig
+    event' <- undefined
     if eventBS == event'
       then do
         _ <- insertSignature (ST.userId user) eventId keyId sig

@@ -47,7 +47,7 @@ import           System.IO                               (IOMode (AppendMode),
                                                           hPutStr, openFile,
                                                           stderr, stdout)
 
-
+import Servant.Auth.Server
 
 --------------------------------------------------------------------------------
 -- Constants
@@ -170,7 +170,7 @@ server ev =
   swaggerSchemaUIServer serveSwaggerAPI
   :<|> hoistServerWithContext
         (Proxy @ServerAPI)
-        (Proxy @'[BasicAuthCheck BT.AuthUser])
+        (Proxy @'[CookieSettings, JWTSettings])
         (appMToHandler ev)
         (appHandlers @BRContext @BRError)
 

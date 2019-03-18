@@ -46,6 +46,8 @@ import           Data.Time                              (LocalTime)
 import           GHC.Generics                           (Generic)
 import           GHC.Stack                              (CallStack)
 
+import Servant.Auth.Server
+
 -- *****************************************************************************
 -- Context Types
 -- *****************************************************************************
@@ -101,6 +103,10 @@ newtype AuthUser = AuthUser { authUserId :: UserId }
   deriving (Show, Eq, Read, Generic)
 instance ToSchema AuthUser
 instance ToParamSchema AuthUser
+instance ToJSON AuthUser
+instance FromJSON AuthUser
+instance ToJWT AuthUser
+instance FromJWT AuthUser
 
 
 data NewBusiness = NewBusiness

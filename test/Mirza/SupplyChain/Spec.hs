@@ -16,7 +16,6 @@ import           Mirza.Common.Tests.InitClient      (testDbConnectionStringSCS,
 import           Mirza.Common.Tests.Utils
 
 import           Mirza.SupplyChain.Tests.Citrus     (citrusSpec)
-import           Mirza.SupplyChain.Tests.Client
 import           Mirza.SupplyChain.Tests.Service    (testServiceQueries)
 
 import           Control.Exception                  (bracket)
@@ -61,10 +60,8 @@ main = do
   either (error . show) pure =<< liftIO (runExceptT $ makeDatabase testDbNameSCS)
 
   serviceTests <- testSpec "HSpec" (sequential $ around withDatabaseConnection testServiceQueries)
-  clientTests <- clientSpec
   citrusTests <- citrusSpec
   defaultMain $ localOption (NumThreads 1) $ testGroup "SCS tests"
     [ serviceTests
-    , clientTests
     , citrusTests
     ]

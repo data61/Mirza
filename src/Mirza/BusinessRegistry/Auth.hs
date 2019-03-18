@@ -28,13 +28,15 @@ import           Control.Lens
 import           Text.Email.Validate                    (EmailAddress,
                                                          emailAddress)
 
+import Servant.Auth.Server
+
 -- | We need to supply our handlers with the right Context. In this case,
 -- Basic Authentication requires a Context Entry with the 'BasicAuthCheck' value
 -- tagged with "foo-tag" This context is then supplied to 'server' and threaded
 -- to the BasicAuth HasServer handlers.
 basicAuthServerContext :: ( Member context '[HasScryptParams, HasDB])
-                       => context -> Servant.Context '[BasicAuthCheck AuthUser]
-basicAuthServerContext context = authCheck context :. EmptyContext
+                       => context -> Servant.Context '[JWTSettings, CookieSettings]
+basicAuthServerContext context = defaultJWTSettings undefined :. defaultCookieSettings :. EmptyContext
 
 
 -- 'BasicAuthCheck' holds the handler we'll use to verify a username and password.
@@ -50,7 +52,7 @@ authCheck context =
                           authCheckQuery email (Password pass)
             case eitherUser of
               Right (Just user) -> pure (Authorized user)
-              _                 -> pure NoSuchUser
+              _                 -> pure Servant.NoSuchUser
   in BasicAuthCheck check
 
 -- Basic Auth check using Scrypt hashes.
