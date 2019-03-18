@@ -280,7 +280,7 @@ data BRError
   | OperationNotPermittedBRE GS1CompanyPrefix UserId
   -- | An error that isn't specifically excluded by the types, but that the
   -- developers don't think is possible to hit, or know of a situation which
-  -- could cause this case to be excercised.
+  -- could cause this case to be exercised.
   | UnexpectedErrorBRE CallStack
   deriving (Show, Generic)
 
