@@ -89,6 +89,7 @@ privateServer =
   :<|> addPublicKey
   :<|> revokePublicKey
   :<|> addLocation
+  :<|> getBusinessInfo
 
 
 instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub) where

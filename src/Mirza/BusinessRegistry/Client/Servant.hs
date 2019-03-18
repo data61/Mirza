@@ -16,6 +16,7 @@ module Mirza.BusinessRegistry.Client.Servant
   , addPublicKey
   , revokePublicKey
   , addLocation
+  , getBusinessInfo
   ) where
 
 import           Mirza.BusinessRegistry.API
@@ -51,7 +52,7 @@ addBusiness      :: BasicAuthData -> NewBusiness -> ClientM GS1CompanyPrefix
 addPublicKey     :: BasicAuthData -> JWK -> Maybe ExpirationTime -> ClientM BRKeyId
 revokePublicKey  :: BasicAuthData -> BRKeyId -> ClientM RevocationTime
 addLocation      :: BasicAuthData -> NewLocation -> ClientM LocationId
-
+getBusinessInfo  :: BasicAuthData -> ClientM [BusinessResponse]
 
 _api     :: Client ClientM ServerAPI
 _privAPI :: Client ClientM ProtectedAPI
@@ -75,5 +76,6 @@ _api@(
     :<|> addPublicKey
     :<|> revokePublicKey
     :<|> addLocation
+    :<|> getBusinessInfo
   )
  ) = client (Proxy :: Proxy ServerAPI)
