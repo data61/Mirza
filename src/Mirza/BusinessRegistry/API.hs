@@ -34,6 +34,8 @@ import           Data.Text                              (Text)
 import           Data.Time                              (UTCTime)
 
 
+import Servant.Auth.Server
+
 type API
     -- this serves both: swagger.json and swagger-ui
     = SwaggerSchemaUI "swagger-ui" "swagger.json"
@@ -44,7 +46,7 @@ api = Proxy
 
 
 type ServerAPI = PublicAPI :<|> ProtectedAPI
-type ProtectedAPI = Flat (BasicAuth "foo-realm" AuthUser :> PrivateAPI)
+type ProtectedAPI = Flat ((Servant.Auth.Server.Auth '[JWT]) AuthUser :> PrivateAPI)
 
 serverAPI :: Proxy ServerAPI
 serverAPI = Proxy
@@ -74,7 +76,3 @@ type PublicAPI =
 
 type PrivateAPI =
        "user"      :> "add"      :> ReqBody '[JSON] NewUser     :> Post '[JSON] UserId
-  :<|> "business"  :> "add"      :> ReqBody '[JSON] NewBusiness :> Post '[JSON] GS1CompanyPrefix
-  :<|> "key"       :> "add"      :> ReqBody '[JSON] JWK         :> QueryParam "expirationTime" ExpirationTime :> Post '[JSON] BRKeyId
-  :<|> "key"       :> "revoke"   :> Capture "keyId" BRKeyId     :> Post '[JSON] RevocationTime
-  :<|> "location"  :> "add"      :> ReqBody '[JSON] NewLocation :> Post '[JSON] LocationId

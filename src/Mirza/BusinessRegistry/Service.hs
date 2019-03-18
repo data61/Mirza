@@ -52,6 +52,7 @@ import           Text.Printf                              (printf)
 
 import           Data.Swagger
 
+import Servant.Auth.Server
 
 -- Convenience class for contexts which require all possible error types that
 -- could be thrown through the handlers.
@@ -85,13 +86,9 @@ privateServer :: ( Member context '[HasScryptParams, HasDB]
               => ServerT ProtectedAPI (AppM context err)
 privateServer =
        addUserAuth
-  :<|> addBusinessAuth
-  :<|> addPublicKey
-  :<|> revokePublicKey
-  :<|> addLocation
 
 
-instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub) where
+instance (HasSwagger sub) => HasSwagger (Servant.Auth.Server.Auth '[JWT] a :> sub) where
   toSwagger _ =
     let
       authSchemes = IOrd.singleton "basic" $ SecurityScheme SecuritySchemeBasic Nothing

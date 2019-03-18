@@ -19,7 +19,6 @@ library
                     , FlexibleInstances
   hs-source-dirs:     src
   exposed-modules:    Mirza.BusinessRegistry.API
-                    , Mirza.BusinessRegistry.Client.Servant
                     , Mirza.BusinessRegistry.Auth
                     , Mirza.BusinessRegistry.Database.Migrate
                     , Mirza.BusinessRegistry.Database.Schema
@@ -86,6 +85,8 @@ library
                     , resource-pool >= 0.2.3
                     , scrypt
                     , servant
+                    , servant-auth
+                    , servant-auth-server
                     , servant-client >= 0.13
                     , servant-flatten
                     , servant-server

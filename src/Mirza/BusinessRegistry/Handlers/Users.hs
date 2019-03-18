@@ -30,6 +30,7 @@ import           Data.Text.Encoding                       (encodeUtf8)
 
 import           GHC.Stack                                (HasCallStack, callStack)
 
+import Servant.Auth.Server
 
 -- This function is an interface adapter and adds the BT.AuthUser argument to
 -- addUser so that we can use it from behind the private API. This argument
@@ -37,7 +38,7 @@ import           GHC.Stack                                (HasCallStack, callSta
 -- will have the ability to act globally.
 addUserAuth :: ( Member context '[HasDB, HasScryptParams]
                , Member err     '[AsBRError, AsSqlError])
-            => AuthUser
+            => Servant.Auth.Server.AuthResult AuthUser
             -> NewUser
             -> AppM context err UserId
 addUserAuth _authUser = addUser
