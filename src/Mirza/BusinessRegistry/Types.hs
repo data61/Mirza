@@ -276,6 +276,7 @@ data BRError
   | BRKeyErrorBRE BRKeyError
   | LocationNotKnownBRE
   | LocationExistsBRE
+  | UnknownUserBRE
   | OperationNotPermittedBRE GS1CompanyPrefix UserId
   -- | An error that isn't specifically excluded by the types, but that the
   -- developers don't think is possible to hit, or know of a situation which

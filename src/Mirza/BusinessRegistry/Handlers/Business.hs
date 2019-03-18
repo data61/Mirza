@@ -108,4 +108,4 @@ getBusinessInfo (BT.AuthUser (BT.UserId uId)) = do
         pure $ user_biz_id user
   case r of
     Just (BizId pfx) -> fmap businessToBusinessResponse <$> runDb (searchBusinessesQuery (Just pfx) Nothing Nothing)
-    Nothing -> error "User without a business!"
+    Nothing -> throwing_ _UnknownUserBRE
