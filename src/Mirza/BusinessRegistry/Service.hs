@@ -94,6 +94,7 @@ instance (HasSwagger sub) => HasSwagger (Servant.Auth.Server.Auth '[JWT] a :> su
       method = "OAuth2"
       oauth2params = OAuth2Params (OAuth2Implicit " https://mirza.au.auth0.com/authorize") IOrd.empty
       authSchemes = IOrd.singleton method $ SecurityScheme (SecuritySchemeOAuth2 oauth2params) Nothing
+      --authSchemes = IOrd.singleton method $ SecurityScheme (SecuritySchemeApiKey (ApiKeyParams "Authorization" ApiKeyHeader)) Nothing
       securityRequirements = [SecurityRequirement $ IOrd.singleton method []]
     in
       toSwagger (Proxy :: Proxy sub)
