@@ -33,6 +33,7 @@ import Servant.Auth.Server
 -- Basic Authentication requires a Context Entry with the 'BasicAuthCheck' value
 -- tagged with "foo-tag" This context is then supplied to 'server' and threaded
 -- to the BasicAuth HasServer handlers.
+-- todo change the name of this function.
 basicAuthServerContext :: ( Member context '[HasScryptParams, HasDB])
                        => context -> Servant.Context '[JWTSettings, CookieSettings]
 basicAuthServerContext context = defaultJWTSettings undefined :. defaultCookieSettings :. EmptyContext
