@@ -47,6 +47,7 @@ import           GHC.Generics                           (Generic)
 import           GHC.Stack                              (CallStack)
 
 import Servant.Auth.Server
+import Crypto.JWT
 
 -- *****************************************************************************
 -- Context Types
@@ -106,7 +107,12 @@ instance ToParamSchema AuthUser
 instance ToJSON AuthUser
 instance FromJSON AuthUser
 instance ToJWT AuthUser
-instance FromJWT AuthUser
+--instance FromJWT AuthUser
+
+-- but even though we have the claim set...how are we supposed to
+instance FromJWT AuthUser where
+  --decodeJWT :: FromJSON a => ClaimsSet -> Either Text a
+  decodeJWT claims = error "Successfully hit here..."
 
 
 data NewBusiness = NewBusiness
