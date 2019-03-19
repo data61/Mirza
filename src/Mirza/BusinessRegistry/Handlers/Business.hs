@@ -9,10 +9,13 @@ module Mirza.BusinessRegistry.Handlers.Business
   , addBusinessQuery
   , searchBusinesses
   , searchBusinessesQuery
+  , getBusinessInfo
+  , newBusinessToBusiness
+  , businessToBusinessResponse
   ) where
 
 
-import           Mirza.BusinessRegistry.Database.Schema
+import           Mirza.BusinessRegistry.Database.Schema   as Schema
 import           Mirza.BusinessRegistry.SqlUtils
 import           Mirza.BusinessRegistry.Types             as BT
 import           Mirza.Common.Time                        (toDbTimestamp)
@@ -92,3 +95,17 @@ searchBusinessesQuery mpfx mname mafter = pg $ runSelectReturningList $ select $
   for_ mname $ \name -> guard_ (biz_name biz `like_` val_ ("%"<>name<>"%"))
   for_ mafter $ \after -> guard_ (biz_last_update biz >=. just_ (val_ (toDbTimestamp after)))
   pure biz
+
+
+getBusinessInfo :: ( Member context '[HasDB]
+                   , Member err     '[AsBRError, AsSqlError])
+                => BT.AuthUser
+                -> AppM context err [BusinessResponse]
+getBusinessInfo (BT.AuthUser (BT.UserId uId)) = do
+  r <- runDb $ pg $ runSelectReturningOne $ select $ do
+        user <- all_ (_users businessRegistryDB)
+        guard_ (user_id user ==. val_ uId)
+        pure $ user_biz_id user
+  case r of
+    Just (BizId pfx) -> fmap businessToBusinessResponse <$> runDb (searchBusinessesQuery (Just pfx) Nothing Nothing)
+    Nothing -> throwing_ _UnknownUserBRE

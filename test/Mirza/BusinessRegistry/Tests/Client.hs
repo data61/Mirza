@@ -3,47 +3,51 @@
 
 module Mirza.BusinessRegistry.Tests.Client where
 
-import           Control.Concurrent                    (threadDelay)
-import           Control.Exception                     (bracket)
+import           Control.Concurrent                       (threadDelay)
+import           Control.Exception                        (bracket)
 
 import           Mirza.Common.Tests.ServantUtils
 
 import           Servant.API.BasicAuth
 import           Servant.Client
 
-import           Data.ByteString.Lazy                  (ByteString)
-import           Data.Text.Encoding                    (encodeUtf8)
+import           Data.ByteString.Lazy                     (ByteString)
+import           Data.Text.Encoding                       (encodeUtf8)
 
-import           System.Directory                      (listDirectory)
-import           System.FilePath                       ((</>))
+import           System.Directory                         (listDirectory)
+import           System.FilePath                          ((</>))
 
-import           Control.Monad                         (forM_)
-import           Data.Either                           (isLeft, isRight)
-import           Data.Either.Utils                     (fromRight)
-import           Data.Function                         ((&))
-import           Data.List                             (isSuffixOf)
-import           Data.Maybe                            (fromJust, isJust,
-                                                        isNothing)
-import           Data.Time.Clock                       (addUTCTime, diffUTCTime,
-                                                        getCurrentTime)
-import           Data.UUID                             (nil)
-import           Text.Email.Validate                   (toByteString)
+import           Control.Monad                            (forM_)
+import           Data.Either                              (isLeft, isRight)
+import           Data.Either.Utils                        (fromRight)
+import           Data.Function                            ((&))
+import           Data.List                                (isSuffixOf)
+import           Data.Maybe                               (fromJust, isJust,
+                                                           isNothing)
+import           Data.Time.Clock                          (addUTCTime,
+                                                           diffUTCTime,
+                                                           getCurrentTime)
+import           Data.UUID                                (nil)
+import           Text.Email.Validate                      (toByteString)
 
-import qualified Network.HTTP.Types.Status             as NS
+import qualified Network.HTTP.Types.Status                as NS
 
 import           Test.Hspec.Expectations
 import           Test.Tasty
 import           Test.Tasty.HUnit
 
-import           Data.GS1.EPC                          (GS1CompanyPrefix (..),
-                                                        LocationEPC (SGLN),
-                                                        LocationReference (LocationReference))
+import           Data.GS1.EPC                             (GS1CompanyPrefix (..),
+                                                           LocationEPC (SGLN),
+                                                           LocationReference (LocationReference))
 
 import           Mirza.BusinessRegistry.Client.Servant
 import           Mirza.BusinessRegistry.Types
 
+import           Mirza.BusinessRegistry.Handlers.Business (businessToBusinessResponse,
+                                                           newBusinessToBusiness)
+
 import           Mirza.Common.Time
-import           Mirza.Common.Utils                    (readJWK)
+import           Mirza.Common.Utils                       (readJWK)
 
 import           Mirza.BusinessRegistry.Tests.Utils
 import           Mirza.Common.Tests.InitClient
@@ -85,6 +89,7 @@ clientSpec = do
           addBiz1Result <- http (addBusiness brAuthUser biz1)
           addBiz1Result `shouldSatisfy` isRight
           addBiz1Result `shouldBe` (Right biz1Prefix)
+
 
           step "That the added business was added and can be listed."
           http (searchBusinesses Nothing Nothing Nothing) >>=
@@ -200,14 +205,15 @@ clientSpec = do
           -- Add good RSA Public Key for using from the test cases.
           Just goodKey <- goodRsaPublicKey
 
+
           -- We delibrately test the "good user" that we will later add so that
           -- we know that we are failing because they aren't in the DB rather
           -- then because they are somehow otherwise invalid.
           step "That a user that doesn't exist can't login"
-          nonExistantUserResult <- http (addPublicKey (newUserToBasicAuthData user1) goodKey Nothing)
-          nonExistantUserResult `shouldSatisfy` isLeft
-          nonExistantUserResult `shouldSatisfy` (checkFailureStatus NS.unauthorized401)
-          nonExistantUserResult `shouldSatisfy` (checkFailureMessage "")
+          nonExistentUserResult <- http (addPublicKey (newUserToBasicAuthData user1) goodKey Nothing)
+          nonExistentUserResult `shouldSatisfy` isLeft
+          nonExistentUserResult `shouldSatisfy` (checkFailureStatus NS.unauthorized401)
+          nonExistentUserResult `shouldSatisfy` (checkFailureMessage "")
 
           step "Can create a new user"
           http (addUser brAuthUser user1)
@@ -252,6 +258,14 @@ clientSpec = do
           step "Can create a second user"
           http (addUser brAuthUser user2)
             `shouldSatisfyIO` isRight
+
+          step "/company returns the correct company"
+          bizSearchRes <- http (getBusinessInfo (newUserToBasicAuthData user1))
+          bizSearchRes `shouldSatisfy` isRight
+          let (Right [user1Biz]) = bizSearchRes
+          (businessToBusinessResponse . newBusinessToBusiness $ business)
+              `shouldBe`
+                  user1Biz
 
           -- TODO: Include me (github #205):
           -- step "Can't create a user with an empty email."

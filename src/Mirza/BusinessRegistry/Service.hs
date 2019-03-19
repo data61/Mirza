@@ -89,6 +89,7 @@ privateServer =
   :<|> addPublicKey
   :<|> revokePublicKey
   :<|> addLocation
+  :<|> getBusinessInfo
 
 
 instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub) where
@@ -162,6 +163,7 @@ brErrorToHttpError brError =
     (OperationNotPermittedBRE _ _)  -> httpError err403 "A user can only act on behalf of the business they are associated with."
     (UserCreationErrorBRE _ _)      -> userCreationError brError
     (UserCreationSQLErrorBRE _)     -> userCreationError brError
+    UnknownUserBRE                  -> httpError err404 "Unknown User"
 
 -- | A generic internal server error has occured. We include no more information in the result returned to the user to
 -- limit further potential for exploitation, under the expectation that we log the errors to somewhere that is reviewed
