@@ -86,6 +86,7 @@ privateServer :: ( Member context '[HasScryptParams, HasDB]
               => ServerT ProtectedAPI (AppM context err)
 privateServer =
        addUserAuth
+  :<|> addBusinessAuth
 
 
 instance (HasSwagger sub) => HasSwagger (Servant.Auth.Server.Auth '[JWT] a :> sub) where

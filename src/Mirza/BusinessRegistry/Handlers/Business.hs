@@ -30,6 +30,8 @@ import           Data.Time                                (UTCTime)
 import           GHC.Stack                                (HasCallStack,
                                                            callStack)
 
+import Servant.Auth.Server
+
 
 businessToBusinessResponse :: Business -> BusinessResponse
 businessToBusinessResponse BusinessT{..} = BusinessResponse
@@ -44,7 +46,7 @@ businessToBusinessResponse BusinessT{..} = BusinessResponse
 -- will have the ability to act globally.
 addBusinessAuth :: ( Member context '[HasDB]
                    , Member err     '[AsBRError, AsSqlError])
-                => BT.AuthUser -> NewBusiness -> AppM context err GS1CompanyPrefix
+                => Servant.Auth.Server.AuthResult BT.AuthUser -> NewBusiness -> AppM context err GS1CompanyPrefix
 addBusinessAuth _ = addBusiness
 
 addBusiness :: ( Member context '[HasDB]

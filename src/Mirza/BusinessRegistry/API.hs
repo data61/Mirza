@@ -76,3 +76,4 @@ type PublicAPI =
 
 type PrivateAPI =
        "user"      :> "add"      :> ReqBody '[JSON] NewUser     :> Post '[JSON] UserId
+  :<|> "business"  :> "add"      :> ReqBody '[JSON] NewBusiness :> Post '[JSON] GS1CompanyPrefix
