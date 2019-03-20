@@ -29,14 +29,18 @@ import           Text.Email.Validate                    (EmailAddress,
 
 import Servant.Auth.Server
 
+import           Data.Aeson                        (decodeFileStrict)
+
+
+
 -- | We need to supply our handlers with the right Context. In this case,
 -- Basic Authentication requires a Context Entry with the 'BasicAuthCheck' value
 -- tagged with "foo-tag" This context is then supplied to 'server' and threaded
 -- to the BasicAuth HasServer handlers.
 -- todo change the name of this function.
-basicAuthServerContext :: ( Member context '[HasScryptParams, HasDB])
+basicAuthServerContext :: ( Member context '[HasScryptParams, HasDB, BT.HasTheJWK])
                        => context -> Servant.Context '[JWTSettings, CookieSettings]
-basicAuthServerContext context = defaultJWTSettings undefined :. defaultCookieSettings :. EmptyContext
+basicAuthServerContext context = defaultJWTSettings (givemethejtw context) :. defaultCookieSettings :. EmptyContext
 
 
 userToAuthUser :: Schema.User -> AuthUser

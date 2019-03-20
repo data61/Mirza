@@ -9,6 +9,7 @@
 module Mirza.BusinessRegistry.Types (
     module Mirza.BusinessRegistry.Types
   , module CT
+  , HasTheJWK (..)
   ) where
 
 import           Mirza.Common.Time                      (CreationTime,
@@ -48,6 +49,7 @@ import           GHC.Stack                              (CallStack)
 
 import Servant.Auth.Server
 import Crypto.JWT
+import           Control.Lens
 
 -- *****************************************************************************
 -- Context Types
@@ -60,8 +62,13 @@ data BRContext = BRContext
   , _brKatipLogEnv      :: K.LogEnv
   , _brKatipLogContexts :: K.LogContexts
   , _brKatipNamespace   :: K.Namespace
+  , _thejwk             :: JWK
   }
 $(makeLenses ''BRContext)
+
+
+class HasTheJWK a where
+  givemethejtw :: Lens' a (JWK)
 
 instance HasEnvType BRContext where envType = brEnvType
 instance HasConnPool BRContext where connPool = brDbConnPool
@@ -70,6 +77,7 @@ instance HasKatipLogEnv BRContext where katipLogEnv = brKatipLogEnv
 instance HasKatipContext BRContext where
   katipContexts = brKatipLogContexts
   katipNamespace = brKatipNamespace
+instance HasTheJWK BRContext where givemethejtw = thejwk
 
 
 
