@@ -47,7 +47,8 @@ businessToBusinessResponse BusinessT{..} = BusinessResponse
 addBusinessAuth :: ( Member context '[HasDB]
                    , Member err     '[AsBRError, AsSqlError])
                 => Servant.Auth.Server.AuthResult BT.AuthUser -> NewBusiness -> AppM context err GS1CompanyPrefix
-addBusinessAuth _ = addBusiness
+addBusinessAuth (Authenticated _) = addBusiness
+addBusinessAuth a = error $ show a
 
 addBusiness :: ( Member context '[HasDB]
                , Member err     '[AsBRError, AsSqlError])
