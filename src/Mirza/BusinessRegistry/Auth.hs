@@ -29,7 +29,6 @@ import           Text.Email.Validate                    (EmailAddress,
 
 import Servant.Auth.Server
 
-import           Data.Aeson                        (decodeFileStrict)
 
 
 
@@ -40,7 +39,7 @@ import           Data.Aeson                        (decodeFileStrict)
 -- todo change the name of this function.
 basicAuthServerContext :: ( Member context '[HasScryptParams, HasDB, BT.HasTheJWK])
                        => context -> Servant.Context '[JWTSettings, CookieSettings]
-basicAuthServerContext context = defaultJWTSettings (givemethejtw context) :. defaultCookieSettings :. EmptyContext
+basicAuthServerContext context = defaultJWTSettings (view givemethejwk context ) :. defaultCookieSettings :. EmptyContext
 
 
 userToAuthUser :: Schema.User -> AuthUser

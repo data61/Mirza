@@ -68,7 +68,7 @@ $(makeLenses ''BRContext)
 
 
 class HasTheJWK a where
-  givemethejtw :: Lens' a (JWK)
+  givemethejwk :: Lens' a (JWK)
 
 instance HasEnvType BRContext where envType = brEnvType
 instance HasConnPool BRContext where connPool = brDbConnPool
@@ -77,7 +77,7 @@ instance HasKatipLogEnv BRContext where katipLogEnv = brKatipLogEnv
 instance HasKatipContext BRContext where
   katipContexts = brKatipLogContexts
   katipNamespace = brKatipNamespace
-instance HasTheJWK BRContext where givemethejtw = thejwk
+instance HasTheJWK BRContext where givemethejwk = thejwk
 
 
 
