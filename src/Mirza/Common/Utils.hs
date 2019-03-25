@@ -147,7 +147,7 @@ addLastUpdateTriggers db = forM_ (getTableNames db) $ \tName -> do
   liftIO $ execute_ conn $ fromString $ unpack $
     "CREATE OR REPLACE FUNCTION sync_lastmod() RETURNS trigger AS $$ \
       \BEGIN \
-        \NEW.last_update := NOW(); \
+        \NEW.last_update := NOW() AT TIME ZONE 'UTC'; \
         \RETURN NEW; \
       \END; \
       \$$ LANGUAGE plpgsql; \
