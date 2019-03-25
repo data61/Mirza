@@ -23,7 +23,9 @@ fi
 
 stack build --fast
 stack exec supplyChainServer -- --init-db --brhost localhost --brport 8200
-stack exec businessRegistry -- initdb
+echo 'YES' | stack exec businessRegistry -- initdb
+
+exit 0
 
 # eventuially, we will get an updated list from ASIC and populate the db
 # TODO: Update or delete this section. This is out of date.
@@ -58,7 +60,7 @@ export START_IN=2
 echo "Starting the server in $START_IN s. Feed me a SIGINT (CTRL+C or equivalent) to stop."
 
 sleep $START_IN
-google-chrome "http://localhost:8000/swagger-ui/"
+google-chrome-stable "http://localhost:8000/swagger-ui/"
 
 # The sleep here is to queue this process so that it fires AFTER
 # the supplyChainServer executable is run
