@@ -23,36 +23,7 @@ fi
 
 stack build --fast
 stack exec supplyChainServer -- --init-db --brhost localhost --brport 8200
-stack exec businessRegistry -- initdb
-
-# eventuially, we will get an updated list from ASIC and populate the db
-# TODO: Update or delete this section. This is out of date.
-echo "Now inserting some dummy companies"
-echo
-psql \
-    -X \
-    --echo-all \
-    --set AUTOCOMMIT=on \
-    --set ON_ERROR_STOP=on \
-    $BR_DBNAME \
-    << EOF
-INSERT INTO businesses \
-    (biz_gs1_company_prefix, biz_name, biz_function, biz_site_name, biz_address, biz_lat, biz_long) \
-    VALUES \
-    ('4012345', 'Lomondo', 'Truck-driver', 'Holsworthy', '123 Holsworthy St', 123.456, 89.034);
-
-INSERT INTO businesses \
-    (biz_gs1_company_prefix, biz_name, biz_function, biz_site_name, biz_address) \
-    VALUES \
-    ('4000001', 'Manny''s Olive Oil', 'Farmenter', 'Warwick Farm', 'Farmland Av');
-
-INSERT INTO businesses \
-    (biz_gs1_company_prefix, biz_name, biz_function, biz_site_name, biz_address) \
-    VALUES \
-    ('0614141', 'Pulitzer Harvest', 'Harvester', 'Keskuskatu', 'ul. Filtrowa 68');
-EOF
-
-echo "Done"
+echo 'YES' | stack exec businessRegistry -- initdb
 
 export START_IN=2
 echo "Starting the server in $START_IN s. Feed me a SIGINT (CTRL+C or equivalent) to stop."
