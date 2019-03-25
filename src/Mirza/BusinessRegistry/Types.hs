@@ -108,7 +108,7 @@ $(deriveJSON defaultOptions ''NewUser)
 instance ToSchema NewUser
 
 -- Auth User Types:
-newtype AuthUser = AuthUser { authUserId :: UserId }
+newtype AuthUser = AuthUser { authUserId :: UserId } -- Text }
   deriving (Show, Eq, Read, Generic)
 instance ToSchema AuthUser
 instance ToParamSchema AuthUser
@@ -120,7 +120,8 @@ instance ToJWT AuthUser
 -- but even though we have the claim set...how are we supposed to
 instance FromJWT AuthUser where
   --decodeJWT :: FromJSON a => ClaimsSet -> Either Text a
-  decodeJWT claims = error "Successfully hit here..."
+  --decodeJWT claims = Right $ AuthUser $ string _1 -- AuthUser $ string $ claimSub claims
+  decodeJWT claims = error $ show claims
 
 
 data NewBusiness = NewBusiness
