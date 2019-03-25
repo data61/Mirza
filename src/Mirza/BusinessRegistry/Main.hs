@@ -157,7 +157,7 @@ initBRContext opts@(ServerOptionsBR dbConnStr _ _ _ lev mlogPath envT) = do
   maybeJwk <- decodeFileStrict "2019-03-20.json"
   let jwk = fromJust maybeJwk
   error $ show jwk -- todo: working here...need to get it to read the file in correctly...then need to use that to validate the token passed in correctly.
-  break here and show a complier error...
+  --break here and show a complier error...
   pure $ BRContext envT connpool params logEnv mempty mempty jwk
 
 
