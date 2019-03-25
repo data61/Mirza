@@ -193,8 +193,8 @@ migration () =
     <*> createTable "whens" ( When
           lastUpdateField
           (field "when_id" pkSerialType)
-          (field "when_event_time" timestamptz notNull)
-          (field "when_record_time" (maybeType timestamptz))
+          (field "when_event_time" timestamp notNull)
+          (field "when_record_time" (maybeType timestamp))
           (field "when_time_zone" (varchar (Just maxTimeZoneLength)) notNull)
           (EventId $ field "when_event_id" pkSerialType (defaultFkConstraint "events" ["event_id"]))
     )
@@ -221,7 +221,7 @@ migration () =
           (EventId $ field "signature_event_id" pkSerialType notNull (defaultFkConstraint "events" ["event_id"]))
           (field "signature_key_id" brKeyIdType notNull)
           (field "signature_signature" json notNull)
-          (field "signature_timestamp" timestamptz notNull)
+          (field "signature_timestamp" timestamp notNull)
     )
     <*> createTable "hashes" ( Hashes
           lastUpdateField
