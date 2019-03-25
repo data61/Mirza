@@ -47,10 +47,11 @@ import           System.IO                               (IOMode (AppendMode),
                                                           hPutStr, openFile,
                                                           stderr, stdout)
 
-import           Data.Aeson                        (decodeFileStrict)
+import           Data.Aeson                        (decodeFileStrict, eitherDecodeFileStrict)
 
 import Servant.Auth.Server
 import Data.Maybe
+import           Data.Either                       (fromRight)
 
 --------------------------------------------------------------------------------
 -- Constants
@@ -154,9 +155,9 @@ initBRContext opts@(ServerOptionsBR dbConnStr _ _ _ lev mlogPath envT) = do
                       60 -- How long in seconds to keep a connection open for reuse
                       10 -- Max number of connections to have open at any one time
                       -- TODO: Make this a config paramete
-  maybeJwk <- decodeFileStrict "2019-03-20.json"
-  let jwk = fromJust maybeJwk
-  error $ show jwk -- todo: working here...need to get it to read the file in correctly...then need to use that to validate the token passed in correctly.
+  maybeJwk <- eitherDecodeFileStrict "2019-03-20.json"
+  let jwk = fromRight undefined maybeJwk
+  error $ "this one: " <> (show maybeJwk) -- todo: working here...need to get it to read the file in correctly...then need to use that to validate the token passed in correctly.
   --break here and show a complier error...
   pure $ BRContext envT connpool params logEnv mempty mempty jwk
 
