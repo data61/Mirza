@@ -20,6 +20,9 @@ import           Database.Beam.Postgres.Syntax        (PgColumnSchemaSyntax,
                                                        PgDataTypeSyntax,
                                                        pgTextType)
 
+import           Database.Beam.Query.DataTypes        (DataType (..), maybeType,
+                                                       timestamptz)
+
 import           Data.Text                            (Text)
 
 -- | The generic implementation of fromField
@@ -39,11 +42,11 @@ defaultFromField fName f bs = do
     Just val -> pure val
 
 -- | Shorthand for using postgres text type
-textType :: BMigrate.DataType PgDataTypeSyntax a
-textType = BMigrate.DataType pgTextType
+-- textType :: DataType PgDataTypeSyntax a
+textType = error "what even" -- DataType pgTextType
 
 -- | Field definition to use for last updated columns
-lastUpdateField :: BMigrate.TableFieldSchema PgColumnSchemaSyntax (Maybe LocalTime)
+lastUpdateField :: BMigrate.TableFieldSchema Postgres (Maybe LocalTime)
 lastUpdateField = field "last_update" (maybeType timestamptz) (defaultTo_ (B.just_ now_))
 
 -- | Helper function to manage the returnValue of ``readMaybe`` or gracefully
@@ -64,8 +67,16 @@ defaultFromBackendRow colName = do
   let valStr = T.unpack val
   handleReadColumn (readMaybe valStr) colName valStr
 
+-- defaultFkConstraint :: Text -> [Text] -> Constraint be
 defaultFkConstraint :: IsSql92ColumnConstraintSyntax
-                       (Sql92ColumnConstraintDefinitionConstraintSyntax
-                         (Sql92ColumnSchemaColumnConstraintDefinitionSyntax syntax))
-                    => Text -> [Text] -> Constraint syntax
-defaultFkConstraint tblName fields = Constraint $ referencesConstraintSyntax tblName fields Nothing Nothing $ pure referentialActionCascadeSyntax
+                      (Sql92ColumnConstraintDefinitionConstraintSyntax
+                        (Sql92ColumnSchemaColumnConstraintDefinitionSyntax
+                            (Sql92CreateTableColumnSchemaSyntax
+                              (Sql92DdlCommandCreateTableSyntax
+                                  (BSQL.BeamSqlBackendSyntax be)))))
+                    => Text -> [Text] -> Constraint be
+defaultFkConstraint tblName fields =
+  Constraint $
+    referencesConstraintSyntax tblName fields Nothing Nothing $
+      pure referentialActionCascadeSyntax
+
