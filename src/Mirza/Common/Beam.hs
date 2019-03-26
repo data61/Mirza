@@ -44,7 +44,7 @@ textType = BMigrate.DataType pgTextType
 
 -- | Field definition to use for last updated columns
 lastUpdateField :: BMigrate.TableFieldSchema PgColumnSchemaSyntax (Maybe LocalTime)
-lastUpdateField = field "last_update" (maybeType timestamptz) (defaultTo_ (B.just_ now_))
+lastUpdateField = field "last_update" (maybeType timestamp) (defaultTo_ (B.just_ now_))
 
 -- | Helper function to manage the returnValue of ``readMaybe`` or gracefully
 -- fail
