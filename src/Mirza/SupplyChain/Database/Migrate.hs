@@ -16,6 +16,9 @@ import           Mirza.SupplyChain.Database.Schema       (supplyChainDb)
 import qualified Control.Exception                       as E
 import           Control.Monad                           (void)
 
+import           System.Exit                             (exitFailure)
+import           System.IO                               (hPutStrLn, stderr)
+
 import           Data.ByteString.Char8                   (ByteString)
 import           Database.Beam                           (withDatabase,
                                                           withDatabaseDebug)
@@ -47,7 +50,9 @@ tryCreateSchema :: Bool -> Connection -> IO ()
 tryCreateSchema runSilently conn = E.catch (createSchema runSilently conn) handleErr
   where
     handleErr :: SqlError -> IO ()
-    handleErr err = putStrLn $ "XXXXXX " <> show err <> " XXXXXX"
+    handleErr err = do
+      hPutStrLn stderr $ "Migration failed with error:  " <> show err
+      exitFailure
 
 migrate :: (Member context '[HasLogging, HasDB])
         => context -> ByteString -> IO ()
