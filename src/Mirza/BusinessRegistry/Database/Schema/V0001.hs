@@ -80,10 +80,10 @@ migration () =
           (field "key_id" pkSerialType)
           (UserId $ field "key_user_id" pkSerialType)
           (field "jwk" json notNull)
-          (field "creation_time" timestamptz)
-          (field "revocation_time" (maybeType timestamptz))
+          (field "creation_time" timestamp)
+          (field "revocation_time" (maybeType timestamp))
           (UserId $ field "revoking_user_id" (maybeType pkSerialType))
-          (field "expiration_time" (maybeType timestamptz))
+          (field "expiration_time" (maybeType timestamp))
           lastUpdateField
           )
 
