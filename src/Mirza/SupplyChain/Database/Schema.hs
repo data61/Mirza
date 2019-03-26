@@ -8,7 +8,7 @@ module Mirza.SupplyChain.Database.Schema
 
 import           Database.Beam                           (DatabaseSettings)
 import           Database.Beam                           as B
-import           Database.Beam.Migrate.Types             hiding (migrateScript)
+import           Database.Beam.Migrate.Types
 import           Database.Beam.Postgres                  (PgCommandSyntax,
                                                           Postgres)
 import           Database.Beam.Schema.Tables             (primaryKey)
