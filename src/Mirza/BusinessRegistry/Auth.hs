@@ -30,7 +30,7 @@ import           Text.Email.Validate                    (EmailAddress,
 import Servant.Auth.Server
 
 
-
+import Debug.Trace
 
 -- | We need to supply our handlers with the right Context. In this case,
 -- Basic Authentication requires a Context Entry with the 'BasicAuthCheck' value
@@ -39,7 +39,7 @@ import Servant.Auth.Server
 -- todo change the name of this function.
 basicAuthServerContext :: ( Member context '[HasScryptParams, HasDB, BT.HasTheJWK])
                        => context -> Servant.Context '[JWTSettings, CookieSettings]
-basicAuthServerContext context = defaultJWTSettings (view givemethejwk context ) :. defaultCookieSettings :. EmptyContext
+basicAuthServerContext context = defaultJWTSettings (trace ("JWK:" <> (show (view givemethejwk context))) (view givemethejwk context )) :. defaultCookieSettings :. EmptyContext
 
 
 userToAuthUser :: Schema.User -> AuthUser
