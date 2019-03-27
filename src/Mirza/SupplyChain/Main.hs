@@ -114,7 +114,6 @@ serverOptions = ServerOptionsSCS
           )
         )
 
-
 main :: IO ()
 main = runProgram =<< execParser opts
   where
@@ -125,7 +124,8 @@ main = runProgram =<< execParser opts
 
 runProgram :: ServerOptionsSCS -> IO ()
 runProgram so@ServerOptionsSCS{initDB = True, dbPopulateInfo =Just _, brServiceInfo =Just __} = do
-  migrate $ connectionStr so
+  ctx <- initSCSContext so
+  migrate ctx $ connectionStr so
   runDbPopulate so
 runProgram so@ServerOptionsSCS{initDB =False, dbPopulateInfo =Just _, brServiceInfo =Just __} = do
   runDbPopulate so
@@ -136,12 +136,14 @@ runProgram so@ServerOptionsSCS{initDB = False, scsServiceInfo=(scsHst, scsPort),
   putStrLn $ "http://" <> scsHst <> ":" <> show scsPort <> "/swagger-ui/"
   Warp.run (fromIntegral scsPort) (mids app) `finally` closeScribes (ctx ^. ST.scsKatipLogEnv)
 runProgram ServerOptionsSCS{initDB = False, brServiceInfo = Nothing} = do
-  hPutStrLn stderr $ "Required unless initialising the database: --brhost ARG --brport ARG"
+  hPutStrLn stderr "Required unless initialising the database: --brhost ARG --brport ARG"
   exitFailure
 runProgram ServerOptionsSCS{initDB = True, dbPopulateInfo = Just _, brServiceInfo =Nothing} = do
-  hPutStrLn stderr $ "Required for populating the database: --brhost ARG --brport ARG"
+  hPutStrLn stderr "Required for populating the database: --brhost ARG --brport ARG"
   exitFailure
-runProgram so@ServerOptionsSCS{initDB = True, dbPopulateInfo = Nothing} = migrate $ connectionStr so
+runProgram so@ServerOptionsSCS{initDB = True, dbPopulateInfo = Nothing} = do
+  ctx <- initSCSContext so
+  migrate ctx $ connectionStr so
 
 runDbPopulate :: ServerOptionsSCS -> IO ()
 runDbPopulate so = do
@@ -158,7 +160,7 @@ initMiddleware _ = pure id
 
 initSCSContext :: ServerOptionsSCS -> IO ST.SCSContext
 initSCSContext (ServerOptionsSCS envT _ _ dbConnStr _ n p r lev (Just (brHost, bizRegPort)) mlogPath) = do
-  logHandle <- maybe (pure stdout) (flip openFile AppendMode) mlogPath
+  logHandle <- maybe (pure stdout) (`openFile` AppendMode) mlogPath
   hPutStrLn stderr $ "Logging will be to: " <> fromMaybe "stdout" mlogPath
   handleScribe <- mkHandleScribe ColorIfTerminal logHandle lev V3
   logEnv <- initLogEnv "supplyChainServer" (Environment . pack . show $ envT)
@@ -184,9 +186,7 @@ initSCSContext (ServerOptionsSCS envT _ _ dbConnStr _ n p r lev (Just (brHost, b
           mempty
           mempty
           (mkClientEnv manager baseUrl)
-initSCSContext _ = do
-  hPutStrLn stderr $ "Required unless initialising the database: --brhost ARG --brport ARG"
-  exitFailure
+initSCSContext so@(ServerOptionsSCS{ brServiceInfo = Nothing}) = initSCSContext so{brServiceInfo = Just ("localhost", 8200)}
 
 initApplication :: ServerOptionsSCS -> ST.SCSContext -> IO Application
 initApplication _so ev =
