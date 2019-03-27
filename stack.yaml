@@ -9,6 +9,14 @@ packages:
     - beam-core
     - beam-migrate
     - beam-postgres
+- location: hacked-deps/servant-auth/
+  extra-dep: true
+  subdirs:
+    - servant-auth
+    - servant-auth-client
+    - servant-auth-docs
+    - servant-auth-server
+    - servant-auth-swagger
 extra-deps:
 - git: https://github.com/data61/GS1Combinators.git
   commit: 0b41a51a746616350cceef6ca91ee5869340dd12
