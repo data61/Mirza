@@ -14,7 +14,7 @@ DATE=$(date '+%Y%m%d-%H%M')
 
 if docker pull "${IMAGE}:${HASH}"; then
 	echo "Skipping, ${HASH} already exists..."
-	exit 1
+	exit 0
 fi
 
 docker build -f HsBuilder.Dockerfile -t "${IMAGE}:latest" -t "${IMAGE}:${HASH}" -t "${IMAGE}:${DATE}" .
