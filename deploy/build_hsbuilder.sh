@@ -8,7 +8,7 @@ fi
 
 cd "$(dirname "$0")/.."
 
-IMAGE='hsbuilder'
+IMAGE=$1
 HASH=$(./deploy/dephash.sh)
 DATE=$(date '+%Y%m%d-%H%M')
 
