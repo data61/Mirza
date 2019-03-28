@@ -33,7 +33,7 @@ fi
 docker build -f Mirza.Dockerfile --target PKG-SCS --build-arg HS_BUILDER_IMAGE="${HSBUILDER_DOCKER_IMAGE_TAG}" -t "${SCS_DOCKER_IMAGE_TAG}" .
 docker build -f Mirza.Dockerfile --target PKG-BR --build-arg HS_BUILDER_IMAGE="${HSBUILDER_DOCKER_IMAGE_TAG}" -t "${BR_DOCKER_IMAGE_TAG}" .
 
-if [ "$PUSH_MIRZA" = true ]; then
+if [ "$PUSH_MIRZA" ]; then
     docker push "${SCS_DOCKER_IMAGE_TAG}"
     docker push "${BR_DOCKER_IMAGE_TAG}"
 fi

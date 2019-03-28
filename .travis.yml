@@ -40,7 +40,12 @@ jobs:
       services:
         - docker
       script:
-        - ./deploy/build_mirza.sh "${DOCKER_REPO}" "${TRAVIS_COMMIT}" "false"
+        - |
+          if [ "$TRAVIS_BRANCH" = "master" -a "$TRAVIS_PULL_REQUEST" = "false" ]; then
+            ./deploy/build_mirza.sh "${DOCKER_REPO}" "${TRAVIS_COMMIT}" "push"
+          else
+            ./deploy/build_mirza.sh "${DOCKER_REPO}" "${TRAVIS_COMMIT}"
+          fi
 
     - name: "Deploy to AWS"
       stage: "Deploy"
