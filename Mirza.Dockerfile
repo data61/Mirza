@@ -1,6 +1,6 @@
-ARG HS_BUILDER_TAG=latest
+ARG HS_BUILDER_IMAGE=hsbuilder:latest
 
-FROM hsbuilder:$HS_BUILDER_TAG as BUILD
+FROM $HS_BUILDER_IMAGE as BUILD
 WORKDIR /src
 
 COPY stack.yaml Mirza.cabal run_tests.sh LICENSE README.md /src/
