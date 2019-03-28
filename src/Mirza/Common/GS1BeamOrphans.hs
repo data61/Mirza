@@ -552,7 +552,7 @@ instance BSQL.FromBackendRow BPostgres.Postgres EPC.LocationEPC where
 
 instance FromField EPC.LocationEPC where
   fromField fld mbs =
-    either (fail . show) pure . EPC.readURI =<< fromField fld mbs
+    either (returnError ConversionFailed fld . show) pure . EPC.readURI =<< fromField fld mbs
 
 instance ToField EPC.LocationEPC where
   toField = toField . EPC.renderURL
