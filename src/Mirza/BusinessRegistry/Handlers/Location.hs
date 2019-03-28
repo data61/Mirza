@@ -35,12 +35,17 @@ import           GHC.Stack                                (HasCallStack,
 
 import           Katip
 
-import           Control.Lens                             (( # ))
+import           Control.Lens                             (( # ), (^?))
 import           Control.Lens.Operators                   ((&))
 import           Control.Monad                            (when)
 import           Control.Monad.Error.Hoist                ((<!?>))
 import           Data.Foldable                            (find, for_)
 import           Data.Time                                (UTCTime)
+
+import           Database.PostgreSQL.Simple.Errors        (ConstraintViolation (..),
+                                                           constraintViolation)
+
+import           Control.Monad.Except                     (throwError)
 
 addLocation :: ( Member context '[HasEnvType, HasConnPool, HasLogging]
                , Member err     '[AsSqlError, AsBRError])
