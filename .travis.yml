@@ -36,52 +36,31 @@ jobs:
           fi
     
     - name: "Back-end"
+      stage: "Build HsBuilder"
+      language: generic
+      services:
+        - docker
+      env:
+        - HS_BUILDER_DOCKER_IMAGE: ${DOCKER_REPO}/hsbuilder
+      script:
+        # Build the package, its tests, and its docs and run the tests
+        - ./deploy/build_hsbuilder.hs "${HS_BUILDER_DOCKER_IMAGE}"
+
+
       stage: "Build"
       language: generic
-
       services:
-        - postgresql
         - docker
 
-      # Caching so the next build will be fast too.
-      cache:
-        timeout: 4000
-        directories:
-          - "$HOME/.stack"
-          - ".stack-work"
-
-      # Ensure necessary system libraries are present
-      addons:
-        apt:
-          packages:
-            - libgmp-dev
       env:
         - SCS_DOCKER_TAG: ${DOCKER_REPO}/supplychainserver:$TRAVIS_COMMIT
         - BR_DOCKER_TAG: ${DOCKER_REPO}/businessregistry:$TRAVIS_COMMIT
-      before_install:
-        # Download and unpack the stack executable
-        - mkdir -p ~/.local/bin
-        - export PATH=$HOME/.local/bin:$PATH
-        - wget -qO- https://get.haskellstack.org/ | sh
-
-      install:
-        # Build dependencies
-        - stack --no-terminal --install-ghc test --only-dependencies
 
       script:
-        # Build the package, its tests, and its docs and run the tests
-        - stack clean
-        - stack --no-terminal build --copy-bins
-        - stack ls dependencies --license | ./license_check.py
-        - psql -c 'CREATE DATABASE testsupplychainserver;' -U postgres
-        - psql -c 'CREATE DATABASE testbusinessregistry;' -U postgres
-        - stack exec supplyChainServer -- --init-db -c 'dbname=testsupplychainserver'
-        - echo 'YES' | stack exec businessRegistry -- initdb -c 'dbname=testbusinessregistry'
-        - stack test --ta -j1
+        - docker build -f Mirza.Dockerfile --target PKG-SCS --build-arg HS_BUILDER_TAG=$(./deploy/dephash.sh) -t "${SCS_DOCKER_TAG}" .
+        - docker build -f Mirza.Dockerfile --target PKG-BR --build-arg HS_BUILDER_TAG=$(./deploy/dephash.sh) -t "${BR_DOCKER_TAG}" .
         - |
           if [ "$TRAVIS_BRANCH" = "master" -a "$TRAVIS_PULL_REQUEST" = "false" ]; then
-            docker build -f Mirza.Dockerfile --target PKG-SCS -t "${SCS_DOCKER_TAG}" .
-            docker build -f Mirza.Dockerfile --target PKG-BR -t "${BR_DOCKER_TAG}" .
             ./deploy/docker_push.sh "${SCS_DOCKER_TAG}"
             ./deploy/docker_push.sh "${BR_DOCKER_TAG}"
           fi
