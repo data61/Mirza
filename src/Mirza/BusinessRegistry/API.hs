@@ -34,7 +34,7 @@ import           Data.Text                              (Text)
 import           Data.Time                              (UTCTime)
 
 
-import Servant.Auth.Server
+import           Servant.Auth.Server
 
 type API
     -- this serves both: swagger.json and swagger-ui
