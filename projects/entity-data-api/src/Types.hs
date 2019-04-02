@@ -29,3 +29,8 @@ newtype AppM context err a = AppM
 runAppM :: context -> AppM context err a -> IO (Either err a)
 runAppM env aM = runExceptT $ (runReaderT . getAppM) aM env
 
+
+data AuthContext = AuthContext
+  { destServiceInfo :: ProxyDest
+  , srcServiceInfo  :: ProxyDest
+  } deriving (Eq, Show, Read, Generic)
