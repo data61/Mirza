@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveGeneric              #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module Types where
@@ -10,6 +11,8 @@ import           Control.Monad.IO.Class    (MonadIO)
 import           Control.Monad.Reader      (MonadReader, ReaderT, runReaderT)
 
 import           GHC.Generics              (Generic)
+
+type ServiceInfo = (String, Int) -- (Host, Port)
 
 -- runReaderT :: r -> m a
 -- ReaderT r m a
@@ -31,6 +34,6 @@ runAppM env aM = runExceptT $ (runReaderT . getAppM) aM env
 
 
 data AuthContext = AuthContext
-  { destServiceInfo :: ProxyDest
-  , srcServiceInfo  :: ProxyDest
+  { myServiceInfo   :: ServiceInfo
+  , destServiceInfo :: ProxyDest
   } deriving (Eq, Show, Read, Generic)

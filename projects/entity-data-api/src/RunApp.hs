@@ -46,8 +46,12 @@ launchProxy (myhost, myport) = Warp.run (fromIntegral myport) runAuthProxy
 optsParser :: Parser Opts
 optsParser = Opts
   <$> ((,)
-        <$> strOption (long "hostname" <> short 'm' <> value "localhost" <> showDefault <> help "The host to make requests to.")
-        <*> option auto (long "port" <> short 'p' <> value 8000 <> showDefault <> help "Port to make requests to.")
+        <$> strOption (long "host" <> short 'h' <> value "localhost" <> showDefault <> help "The host to run this service on.")
+        <*> option auto (long "port" <> short 'p' <> value 8000 <> showDefault <> help "The port to run this service on.")
+  )
+  <*> ((,)
+        <$> strOption (long "desthost" <> short 'd' <> value "localhost" <> showDefault <> help "The host to make requests to.")
+        <*> option auto (long "destport" <> short 'r' <> value 8000 <> showDefault <> help "Port to make requests to.")
   )
   <*> option auto
     ( long "mode" <> short 'm'
