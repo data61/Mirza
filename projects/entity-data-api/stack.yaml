@@ -1,0 +1,8 @@
+packages:
+- '.'
+
+resolver: lts-13.14
+ghc-options:
+  $locals: -Wall
+
+local-bin-path: dist
