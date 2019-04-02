@@ -2,13 +2,14 @@
 
 module Types where
 
+import           Network.HTTP.ReverseProxy (ProxyDest (..))
 
-import qualified Control.Exception      as Exc
-import           Control.Monad.Except   (ExceptT (..), MonadError, runExceptT,
-                                         throwError)
-import           Control.Monad.IO.Class (MonadIO, liftIO)
-import           Control.Monad.Reader   (MonadReader, ReaderT, ask, asks, local,
-                                         runReaderT)
+import           Control.Monad.Except      (ExceptT (..), MonadError,
+                                            runExceptT)
+import           Control.Monad.IO.Class    (MonadIO)
+import           Control.Monad.Reader      (MonadReader, ReaderT, runReaderT)
+
+import           GHC.Generics              (Generic)
 
 -- runReaderT :: r -> m a
 -- ReaderT r m a
