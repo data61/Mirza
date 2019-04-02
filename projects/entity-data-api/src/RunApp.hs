@@ -4,6 +4,9 @@ module RunApp (run) where
 
 import           Options.Applicative
 
+import           AuthProxy           (runAuthProxy)
+import           Types
+
 import           GHC.Generics        (Generic)
 
 data ProxyMode
@@ -29,7 +32,7 @@ run = multiplexInitOptions =<< execParser opts where
 -- where the single binary could be split into multiple binaries.
 multiplexInitOptions :: Opts -> IO ()
 multiplexInitOptions (Opts (hostname, prt) proxyMode) = case proxyMode of
-  AuthProxy                       -> error "don't know what to do"
+  AuthProxy -> runAuthProxy
 
 
 optsParser :: Parser Opts

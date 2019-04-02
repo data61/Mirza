@@ -60,13 +60,16 @@ library
   -- LANGUAGE extensions used by modules in this package.
   -- other-extensions:
   exposed-modules:    Types
+                    , AuthProxy
                     , RunApp
 
   -- Other library packages from which modules are imported.
   build-depends:        base
                       , http-reverse-proxy
+                      , http-client
                       , mtl
                       , optparse-applicative
+                      , wai
 
   -- Directories containing source files.
   hs-source-dirs:      src
