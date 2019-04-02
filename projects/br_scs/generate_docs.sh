@@ -1,3 +1,3 @@
 #!/bin/sh
 
-stack haddock --haddock-arguments "--odir=./docs/haddocks"
+stack haddock --haddock-arguments "--odir=../../docs/haddocks"
