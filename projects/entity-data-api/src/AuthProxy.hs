@@ -1,6 +1,7 @@
 module AuthProxy (runAuthProxy) where
 
-import           Network.HTTP.Client       (Manager)
+import           Network.HTTP.Client       (Manager, defaultManagerSettings,
+                                            newManager)
 import           Network.Wai               (Application, Request)
 
 import           Network.HTTP.ReverseProxy (WaiProxyResponse, defaultOnExc,
@@ -8,8 +9,16 @@ import           Network.HTTP.ReverseProxy (WaiProxyResponse, defaultOnExc,
 
 import           GHC.Exception             (SomeException)
 
-runAuthProxy :: Request -> IO WaiProxyResponse
-runAuthProxy = error "runAuthProxy: not implemented yet"
+import           System.IO.Unsafe          (unsafePerformIO)
+
+handleRequest :: Request -> IO WaiProxyResponse
+handleRequest = error "runAuthProxy: not implemented yet"
 
 handleError :: SomeException -> Application
 handleError = defaultOnExc
+
+{-# NOINLINE runAuthProxy #-}
+runAuthProxy :: Application
+runAuthProxy = waiProxyTo handleRequest handleError mngr
+  where
+    mngr = unsafePerformIO $ newManager defaultManagerSettings

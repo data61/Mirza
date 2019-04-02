@@ -4,19 +4,26 @@ module RunApp (run) where
 
 import           Options.Applicative
 
-import           AuthProxy           (runAuthProxy)
+import           Control.Exception        (finally)
+
+import           AuthProxy                (runAuthProxy)
 import           Types
 
-import           GHC.Generics        (Generic)
+import           GHC.Generics             (Generic)
+
+import           Network.Wai              (Middleware)
+
+import qualified Network.Wai.Handler.Warp as Warp
+
 
 data ProxyMode
   = AuthProxy
   deriving (Eq, Show, Read, Generic)
 
-
 data Opts = Opts
-  { serviceInfo :: (String, Int) -- (Host, Port)
-  , proxyMode   :: ProxyMode
+  { myServiceInfo   :: ServiceInfo
+  , destServiceInfo :: ServiceInfo
+  , proxyMode       :: ProxyMode
   }
 
 
@@ -31,9 +38,10 @@ run = multiplexInitOptions =<< execParser opts where
 -- Handles the overriding server options (this effectively defines the point
 -- where the single binary could be split into multiple binaries.
 multiplexInitOptions :: Opts -> IO ()
-multiplexInitOptions (Opts (hostname, prt) proxyMode) = case proxyMode of
-  AuthProxy -> runAuthProxy
+multiplexInitOptions (Opts serviceInfo@(myhost, myprt) (desthost, destprt) proxyMode) = case proxyMode of
+  AuthProxy -> launchProxy serviceInfo
 
+launchProxy (myhost, myport) = Warp.run (fromIntegral myport) runAuthProxy
 
 optsParser :: Parser Opts
 optsParser = Opts
