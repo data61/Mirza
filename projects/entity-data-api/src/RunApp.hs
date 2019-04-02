@@ -1,6 +1,6 @@
 {-# LANGUAGE DeriveGeneric #-}
 
-module Main where
+module RunApp (run) where
 
 import           Options.Applicative
 
@@ -17,8 +17,8 @@ data Opts = Opts
   }
 
 
-main :: IO ()
-main = multiplexInitOptions =<< execParser opts where
+run :: IO ()
+run = multiplexInitOptions =<< execParser opts where
   opts = info (optsParser <**> helper)
     (fullDesc
     <> progDesc "Reverse proxy for Mirza services"

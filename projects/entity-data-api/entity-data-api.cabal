@@ -60,11 +60,13 @@ library
   -- LANGUAGE extensions used by modules in this package.
   -- other-extensions:
   exposed-modules:    Types
+                    , RunApp
 
   -- Other library packages from which modules are imported.
   build-depends:        base
                       , http-reverse-proxy
                       , mtl
+                      , optparse-applicative
 
   -- Directories containing source files.
   hs-source-dirs:      src
@@ -89,10 +91,9 @@ executable entity-data-api
   -- Other library packages from which modules are imported.
   build-depends:        base
                       , entity-data-api
-                      , optparse-applicative
   
   -- Directories containing source files.
-  hs-source-dirs:      src
+  hs-source-dirs:      app
   
   -- Base language which the package is written in.
   default-language:    Haskell2010
