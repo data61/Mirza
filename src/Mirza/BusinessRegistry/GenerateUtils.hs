@@ -15,11 +15,9 @@ import           Data.Text.Encoding           (encodeUtf8)
 
 import           Text.Email.Validate          (unsafeEmailAddress)
 
-dummyBusiness :: T.Text -> IO NewBusiness
-dummyBusiness unique = do
-  let newBusinessGS1CompanyPrefix = GS1CompanyPrefix ("Business" <> unique <> "Prefix")
-  let newBusinessName             = "Business" <> unique <> "Name"
-  pure NewBusiness{..}
+dummyBusiness :: T.Text -> NewBusiness
+dummyBusiness unique = NewBusiness (GS1CompanyPrefix ("Business" <> unique <> "Prefix"))
+                                   ("Business" <> unique <> "Name")
 
 
 dummyUser :: T.Text -> GS1CompanyPrefix -> IO NewUser

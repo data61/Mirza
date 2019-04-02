@@ -7,6 +7,7 @@ import           Control.Concurrent                       (threadDelay)
 import           Control.Exception                        (bracket)
 
 import           Mirza.Common.Tests.ServantUtils
+import           Mirza.BusinessRegistry.GenerateUtils (dummyBusiness, dummyUser)
 
 import           Servant.API.BasicAuth
 import           Servant.Client
@@ -318,8 +319,8 @@ clientSpec = do
           _ <- http (addBusiness brAuthUser biz1)
           _ <- http (addBusiness brAuthUser biz2)
 
-          -- Create a business to use from further test cases (this is tested in
-          -- the businesses tests so doesn't need to be explicitly tested here).
+          -- Create a user to use from further test cases (this is tested in
+          -- the users tests so doesn't need to be explicitly tested here).
           userB1U1Response <- http (addUser brAuthUser userB1U1)
           _                <- http (addUser brAuthUser userB1U2)
           _                <- http (addUser brAuthUser userB2U1)
@@ -533,34 +534,109 @@ clientSpec = do
 
   let locationTests = testCaseSteps "That locations work as expected" $ \step ->
         bracket runBRApp (\(a,b,_) -> endWaiApp (a,b)) $ \(_tid, baseurl, brAuthUser) -> do
-          password <- randomPassword
           let http = runClient baseurl
-              biz1Prefix = (GS1CompanyPrefix "5000001")
-              biz1 = NewBusiness biz1Prefix "locationTests_businessName1"
-              biz2Prefix = (GS1CompanyPrefix "5000002")
-              biz2 = NewBusiness biz2Prefix "locationTests_businessName2"
+              business1Gen = dummyBusiness "locationTests_Business1"
+              business1 = business1Gen {newBusinessGS1CompanyPrefix = (GS1CompanyPrefix "5000001")} -- todo fix this properly...
+              business1Prefix = newBusinessGS1CompanyPrefix business1
+              business2Gen = dummyBusiness "locationTests_Business2"
+              business2 = business2Gen {newBusinessGS1CompanyPrefix = (GS1CompanyPrefix "5000002")} -- todo fix this properly...
+              business2Prefix = newBusinessGS1CompanyPrefix business2
+              business3Gen = dummyBusiness "locationTests_Business3"
+              business3 = business3Gen {newBusinessGS1CompanyPrefix = (GS1CompanyPrefix "5000003")} -- todo fix this properly...
+              business3Prefix = newBusinessGS1CompanyPrefix business3
+
+          -- Create a business to use from further test cases (this is tested in
+          --  the businesses tests so doesn't need to be explicitly tested here).
+          _ <- http (addBusiness brAuthUser business1)
+          _ <- http (addBusiness brAuthUser business2)
+          _ <- http (addBusiness brAuthUser business3)
+
 
           -- Business1User1
-          let userB1U1 = NewUser (unsafeMkEmailAddress "locationTests_email1@example.com")
-                                password
-                                biz1Prefix
-                                "locationTests First Name 1"
-                                "locationTests Last Name 1"
-                                "locationTests Phone Number 1"
-          _ <- http (addBusiness brAuthUser biz1)
-          _ <- http (addBusiness brAuthUser biz2)
+          userB1U1 <- dummyUser "locationTests_Business1User1" business1Prefix
+          -- Business2User1
+          userB2U1 <- dummyUser "locationTests_Business2User1" business2Prefix
+          -- Business3User1
+          userB3U1 <- dummyUser "locationTests_Business3User1" business3Prefix
 
-          userB1U1Response <- http (addUser brAuthUser userB1U1)
-          userB1U1Response `shouldSatisfy` isRight
+          -- Create a user to use from further test cases (this is tested in
+          -- the users tests so doesn't need to be explicitly tested here).
+          _userB1U1Response <- http (addUser brAuthUser userB1U1)
+          _userB1U2Response <- http (addUser brAuthUser userB2U1)
+          _userB1U3Response <- http (addUser brAuthUser userB3U1)
 
-          let u1Auth = BasicAuthData "locationTests_email1@example.com" (encodeUtf8 password)
-          step "Can Add a Location with the correct user"
-          let newLoc1 = NewLocation (SGLN biz1Prefix (LocationReference "98765") Nothing)
-                                    (Just (Latitude 1.0, Longitude 2.0))
-                                    (Just "42 Wallby Way, Sydney")
 
-          b1K1StoredKeyIdResult <- http (addLocation u1Auth newLoc1)
-          b1K1StoredKeyIdResult `shouldSatisfy` isRight
+          step "Can add a location"
+          let location1 = NewLocation (SGLN business1Prefix (LocationReference "00011") Nothing)
+                                      (Just (Latitude (-25.344490), Longitude 131.035431))
+                                      (Just "42 Wallby Way, Sydney")
+          addLocation1Result <- http (addLocation (newUserToBasicAuthData userB1U1) location1)
+          addLocation1Result `shouldSatisfy` isRight
+
+
+          -- step "TODO: Can't add a location for a company that doesn't exist."
+          -- let nonExistantCompanyPrefix = (GS1CompanyPrefix "5999999")
+          --     location2 = NewLocation (SGLN nonExistantCompanyPrefix (LocationReference "00013") Nothing)
+          --                             (Just (Latitude (-25.344490), Longitude 131.035431))
+          --                             (Just "42 Wallby Way, Sydney")
+          -- addLocation2Result1 <- http (addLocation brAuthUser location2)
+          -- addLocation2Result1 `shouldSatisfy` isLeft
+          -- addLocation2Result2 <- http (addLocation (newUserToBasicAuthData userB1U1) location2)
+          -- addLocation2Result2 `shouldSatisfy` isLeft
+
+
+          step "That a user can only insert a location from their busniess."
+          let location3 = NewLocation (SGLN business2Prefix (LocationReference "00017") Nothing)
+                                      (Just (Latitude (-25.344490), Longitude 131.035431))
+                                      (Just "42 Wallby Way, Sydney")
+          addLocation3Result <- http (addLocation (newUserToBasicAuthData userB1U1) location3)
+          addLocation3Result `shouldSatisfy` isLeft
+
+
+          step "Can add a second location with a different company."
+          addLocation4Result <- http (addLocation (newUserToBasicAuthData userB2U1) location3)
+          addLocation4Result `shouldSatisfy` isRight
+
+
+          step "Can add a second location with the same company."
+          let location5 = NewLocation (SGLN business1Prefix (LocationReference "00019") Nothing)
+                                      (Just (Latitude (-25.344490), Longitude 131.035431))
+                                      (Just "42 Wallby Way, Sydney")
+          addLocation5Result <- http (addLocation (newUserToBasicAuthData userB1U1) location5)
+          addLocation5Result `shouldSatisfy` isRight
+
+
+          step "Can't add a location with a duplicate LocationReference for the same business."
+          let location6 = NewLocation (SGLN business1Prefix (LocationReference "00019") Nothing)
+                                      (Just (Latitude (-25.344490), Longitude 131.035431))
+                                      (Just "42 Wallby Way, Sydney")
+          addLocation6Result <- http (addLocation (newUserToBasicAuthData userB1U1) location6)
+          addLocation6Result `shouldSatisfy` isLeft
+
+
+          step "Can add a location with a duplicate LocationReference for different businesses."
+          let location7 = NewLocation (SGLN business3Prefix (LocationReference "00019") Nothing)
+                                      (Just (Latitude (-25.344490), Longitude 131.035431))
+                                      (Just "42 Wallby Way, Sydney")
+          addLocation7Result <- http (addLocation (newUserToBasicAuthData userB3U1) location7)
+          addLocation7Result `shouldSatisfy` isRight
+
+
+          -- step "TODO: Can search for a location based on GLN."
+
+          -- step "TODO: Can serach for a location based on a GS1 company prefix."
+          --   Search for 1 of the locations with the exclusion of the other.
+          --   Serach fot the other location with the exclusion of the first.
+          --   (A serach the returns multiple results (should be part of one of the above 2 queries).
+
+          -- step "TODO: Can serach for a location based on modified since field."
+
+          -- step "TODO: uxLocation: Can query all of the locations associated with a business"
+          -- step "TODO: uxLocation: Can query all of the locations associated with multiple business"
+          -- step "TODO: uxLocation: That quering for a non existant business results in an empty result"
+          -- step "TODO: uxLocation: That quering for a non existant business in addition to multiple businesses just ignores the non existant business"
+          -- step "TODO: uxLocation: That quering for locations from more then 25 businesses ignores the businesses beyond 25 are ignored."
+
 
 
   let healthTests = testCaseSteps "Provides health status" $ \step ->
