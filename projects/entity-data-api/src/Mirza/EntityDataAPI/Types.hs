@@ -8,11 +8,17 @@ import           Network.HTTP.ReverseProxy (ProxyDest (..))
 import           Control.Monad.Except      (ExceptT (..), MonadError,
                                             runExceptT)
 import           Control.Monad.IO.Class    (MonadIO)
-import           Control.Monad.Reader      (MonadReader, ReaderT, runReaderT)
+import           Control.Monad.Reader      (MonadReader, ReaderT, liftIO,
+                                            runReaderT)
+import           Control.Monad.Time        (MonadTime (..))
 
 import           GHC.Generics              (Generic)
 
 import           Network.HTTP.Client       (Manager)
+
+import           Crypto.JOSE               (JWK)
+
+import           Data.Time.Clock           (getCurrentTime)
 
 type ServiceInfo = (String, Int) -- (Host, Port)
 
@@ -31,6 +37,9 @@ newtype AppM context err a = AppM
     , MonadError err
     )
 
+instance MonadTime (AppM AuthContext err) where
+  currentTime = liftIO getCurrentTime
+
 runAppM :: context -> AppM context err a -> IO (Either err a)
 runAppM env aM = runExceptT $ (runReaderT . getAppM) aM env
 
@@ -39,4 +48,5 @@ data AuthContext = AuthContext
   { myProxyServiceInfo   :: ServiceInfo
   , destProxyServiceInfo :: ProxyDest
   , appManager           :: Manager
+  , jwtSigningKey        :: JWK
   } deriving (Generic)
