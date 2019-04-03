@@ -15,13 +15,14 @@ import           Mirza.EntityDataAPI.Utils
 handleRequest :: ProxyDest -> Request -> IO WaiProxyResponse
 handleRequest pDest r = do
   print r
-  pure $ WPRModifiedRequest (modifyHeaders r) pDest
+  let (modifiedReq, mAuthHeader) = extractAuthHeader r
+  pure $ WPRModifiedRequest modifiedReq pDest
 
-modifyHeaders :: Request -> Request
-modifyHeaders r =
+extractAuthHeader :: Request -> (Request, Maybe Header)
+extractAuthHeader r =
   let headers = requestHeaders r
-      (modifiedHeaders, mAuthHeader) = extract ((==) hAuthorization . fst) headers
-  in r{requestHeaders = modifiedHeaders}
+      (restOfHeaders, mAuthHeader) = extract ((==) hAuthorization . fst) headers
+  in (r{requestHeaders = restOfHeaders}, mAuthHeader)
 
 
 handleError :: SomeException -> Application
