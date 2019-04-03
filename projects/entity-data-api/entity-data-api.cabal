@@ -70,12 +70,15 @@ library
                       , http-reverse-proxy
                       , http-client
                       , mtl
+                      , monad-time
                       , optparse-applicative
+                      , jose
                       , wai
                       , warp
                       , waargonaut
                       , hoist-error
                       , http-types
+                      , time
 
   -- Directories containing source files.
   hs-source-dirs:      src
