@@ -268,14 +268,14 @@ runPopulateDatabase :: ServerOptionsBR -> IO ()
 runPopulateDatabase opts = do
   ctx     <- initBRContext opts
 
-  b1      <- dummyBusiness "1"
+  let b1  =  dummyBusiness "1"
   _result <- runAppM @_ @BRError ctx $ addBusiness b1
   u1b1    <- dummyUser "B1U1" (newBusinessGS1CompanyPrefix b1)
   u2b1    <- dummyUser "B1U2" (newBusinessGS1CompanyPrefix b1)
   _result <- runAppM @_ @BRError ctx $
              runDb (mapM addUserQuery [u1b1, u2b1])
 
-  b2      <- dummyBusiness "2"
+  let b2  =  dummyBusiness "2"
   _result <- runAppM @_ @BRError ctx $ addBusiness b2
   u1b2    <- dummyUser "B2U1" (newBusinessGS1CompanyPrefix b2)
   u2b2    <- dummyUser "B2U2" (newBusinessGS1CompanyPrefix b2)
