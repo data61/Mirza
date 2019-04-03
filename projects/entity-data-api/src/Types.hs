@@ -12,6 +12,8 @@ import           Control.Monad.Reader      (MonadReader, ReaderT, runReaderT)
 
 import           GHC.Generics              (Generic)
 
+import           Network.HTTP.Client       (Manager)
+
 type ServiceInfo = (String, Int) -- (Host, Port)
 
 -- runReaderT :: r -> m a
@@ -36,4 +38,5 @@ runAppM env aM = runExceptT $ (runReaderT . getAppM) aM env
 data AuthContext = AuthContext
   { myServiceInfo   :: ServiceInfo
   , destServiceInfo :: ProxyDest
-  } deriving (Eq, Show, Read, Generic)
+  , appManager      :: Manager
+  } deriving (Generic)
