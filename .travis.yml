@@ -32,7 +32,7 @@ jobs:
         - |
           if [ "$TRAVIS_BRANCH" = "master" -a "$TRAVIS_PULL_REQUEST" = "false" ]; then
             docker build -t "${DOCKER_TAG}" .
-            ../deploy/docker_push.sh "${DOCKER_TAG}"
+            ../../deploy/docker_push.sh "${DOCKER_TAG}"
           fi
 
     - name: "Back-end"
