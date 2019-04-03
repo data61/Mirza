@@ -51,7 +51,7 @@ optsParser = Opts
   )
   <*> ((,)
         <$> strOption (long "desthost" <> short 'd' <> value "localhost" <> showDefault <> help "The host to make requests to.")
-        <*> option auto (long "destport" <> short 'r' <> value 8000 <> showDefault <> help "Port to make requests to.")
+        <*> option auto (long "destport" <> short 'r' <> value 8200 <> showDefault <> help "Port to make requests to.")
   )
   <*> option auto
     ( long "mode" <> short 'm'
