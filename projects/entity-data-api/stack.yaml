@@ -6,9 +6,5 @@ ghc-options:
   $locals: -Wall
 
 extra-deps:
-- waargonaut-0.6.1.0@sha256:42e040ce7f4439c0f588ffc71778fdc2612834c4546473145ba6f91322f2a141
-- digit-0.7@sha256:d7e8252022d89cc962da29fdb54bdda54d997c2073b6977e6490b8bcd877650c
-- hoist-error-0.2.1.0@sha256:25dba3c9472369f01defad260af30f3d585fb9e2c8775fe04e731a92bbbf7f29
-- natural-0.3.0.4@sha256:c8246773a32240738a18b17b33b794e4fe0a6a41d45a78e9683b616280a8a799
 
 local-bin-path: dist
