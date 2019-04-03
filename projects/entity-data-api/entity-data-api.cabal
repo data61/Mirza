@@ -75,8 +75,6 @@ library
                       , jose
                       , wai
                       , warp
-                      , waargonaut
-                      , hoist-error
                       , http-types
                       , time
 
