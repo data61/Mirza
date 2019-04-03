@@ -91,6 +91,9 @@ library
                     , servant-server
                     , servant-swagger
                     , servant-swagger-ui
+                    , servant-auth
+                    , servant-auth-server
+                    , servant-auth-client
                     , swagger2
                     , text
                     , time

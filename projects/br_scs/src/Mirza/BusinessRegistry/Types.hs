@@ -4,7 +4,8 @@
 {-# LANGUAGE StandaloneDeriving         #-}
 {-# LANGUAGE TemplateHaskell            #-}
 {-# LANGUAGE UndecidableInstances       #-}
-{-# LANGUAGE TypeApplications       #-}
+{-# LANGUAGE TypeApplications           #-}
+{-# LANGUAGE InstanceSigs               #-}
 
 module Mirza.BusinessRegistry.Types (
     module Mirza.BusinessRegistry.Types
@@ -30,11 +31,15 @@ import qualified Database.Beam.Migrate      as BMigrate
 import qualified Database.Beam.Postgres     as BPostgres
 
 import           Crypto.JOSE                            (JWK)
+import           Crypto.JWT                             (ClaimsSet, claimSub, string)
 import           Crypto.Scrypt                          (ScryptParams)
+
+import qualified Servant.Auth.Server                    as SAS
 
 import           Katip                                  as K
 
-import           Control.Lens.TH
+import           Control.Lens
+
 import           Data.Aeson
 import           Data.Aeson.Types
 import           Data.Aeson.TH
@@ -98,6 +103,21 @@ $(deriveJSON defaultOptions ''NewUser)
 instance ToSchema NewUser
 
 -- Auth User Types:
+newtype VerifiedTokenClaims = VerifiedTokenClaims
+  { verifiedTokenClaimsSub :: Text
+  }
+instance SAS.ToJWT VerifiedTokenClaims where
+  encodeJWT = error "Not implemented" -- TODO: Implement this properly
+
+instance SAS.FromJWT VerifiedTokenClaims where
+  decodeJWT :: ClaimsSet -> Either Text VerifiedTokenClaims
+  decodeJWT claims = maybeToEither "No sub present in token" maybeVerifiedTokenClaims where
+    maybeStringOrURISub = view claimSub claims
+    maybeTextSub = (view string) <$> maybeStringOrURISub
+    maybeVerifiedTokenClaims = VerifiedTokenClaims <$> maybeTextSub
+    maybeToEither leftText = maybe (Left leftText) Right
+
+
 newtype AuthUser = AuthUser { authUserId :: UserId }
   deriving (Show, Eq, Read, Generic)
 instance ToSchema AuthUser
