@@ -13,6 +13,9 @@ import qualified Network.Wai.Handler.Warp      as Warp
 
 import qualified Data.ByteString.Char8         as B
 
+import           Crypto.JOSE.JWK               (KeyMaterialGenParam (..),
+                                                genJWK)
+
 data Opts = Opts
   { _myServiceInfo   :: ServiceInfo
   , _destServiceInfo :: ServiceInfo
@@ -28,8 +31,9 @@ main = launchProxy =<< execParser opts where
 initContext :: Opts -> IO AuthContext
 initContext (Opts myService (destHost, destPort)) = do
   mngr <- newManager defaultManagerSettings
+  jwKey <- genJWK (RSAGenParam 2048)
   let proxyDest = ProxyDest (B.pack destHost) destPort
-  pure $ AuthContext myService proxyDest mngr
+  pure $ AuthContext myService proxyDest mngr jwKey
 
 launchProxy :: Opts -> IO ()
 launchProxy opts = do
