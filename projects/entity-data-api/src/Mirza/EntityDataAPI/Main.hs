@@ -31,7 +31,7 @@ main = launchProxy =<< execParser opts where
 initContext :: Opts -> IO AuthContext
 initContext (Opts myService (destHost, destPort)) = do
   mngr <- newManager defaultManagerSettings
-  jwKey <- genJWK (RSAGenParam 2048)
+  jwKey <- genJWK (RSAGenParam 256)
   let proxyDest = ProxyDest (B.pack destHost) destPort
   pure $ AuthContext myService proxyDest mngr jwKey
 
