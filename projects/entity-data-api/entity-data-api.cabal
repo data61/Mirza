@@ -74,6 +74,7 @@ library
                       , warp
                       , waargonaut
                       , hoist-error
+                      , http-types
 
   -- Directories containing source files.
   hs-source-dirs:      src

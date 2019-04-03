@@ -1,5 +1,6 @@
-module Mirza.EntityDataAPI.AuthProxy (runAuthProxy) where
+module Mirza.EntityDataAPI.AuthProxy (runAuthProxy, stripAuthHeader) where
 
+import           Network.HTTP.Types
 import           Network.Wai               (Application, Request (..))
 
 import           Network.HTTP.ReverseProxy (ProxyDest (..),
@@ -13,14 +14,23 @@ import           Mirza.EntityDataAPI.Types
 handleRequest :: ProxyDest -> Request -> IO WaiProxyResponse
 handleRequest pDest r = do
   print r
-  pure $ WPRModifiedRequest r{requestHeaders = []} pDest
+  pure $ WPRModifiedRequest (modifyHeaders r) pDest
+
+modifyHeaders :: Request -> Request
+modifyHeaders r =
+  let headers = requestHeaders r
+      modifiedHeaders = stripAuthHeader headers
+  in r{requestHeaders = modifiedHeaders}
+
+stripAuthHeader :: RequestHeaders -> RequestHeaders
+stripAuthHeader (x@(hName, _):xs) = if hName == hAuthorization then xs else x : stripAuthHeader xs
+stripAuthHeader []                = []
 
 handleError :: SomeException -> Application
 handleError = defaultOnExc
 
 -- type Application = Request -> (Response -> IO ResponseReceived) -> IO ResponseReceived
 
-{-# NOINLINE runAuthProxy #-}
 runAuthProxy :: AuthContext -> Application
 runAuthProxy context = do
   let proxyDest = destProxyServiceInfo context
