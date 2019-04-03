@@ -1,7 +1,7 @@
 {-# LANGUAGE DeriveGeneric              #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
-module Types where
+module Mirza.EntityDataAPI.Types where
 
 import           Network.HTTP.ReverseProxy (ProxyDest (..))
 

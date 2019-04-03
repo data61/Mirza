@@ -1,25 +1,25 @@
 {-# LANGUAGE DeriveGeneric #-}
 
-module Main (main) where
+module Mirza.EntityDataAPI.Main (main) where
 
 import           Options.Applicative
 
-import           Network.HTTP.Client       (Manager, defaultManagerSettings,
-                                            newManager)
+import           Network.HTTP.Client           (Manager, defaultManagerSettings,
+                                                newManager)
 
-import           Control.Exception         (finally)
+import           Control.Exception             (finally)
 
-import           AuthProxy                 (runAuthProxy)
-import           Types
+import           Mirza.EntityDataAPI.AuthProxy (runAuthProxy)
+import           Mirza.EntityDataAPI.Types
 
-import           GHC.Generics              (Generic)
+import           GHC.Generics                  (Generic)
 
-import           Network.Wai               (Middleware)
+import           Network.Wai                   (Middleware)
 
-import           Network.HTTP.ReverseProxy (ProxyDest (..))
-import qualified Network.Wai.Handler.Warp  as Warp
+import           Network.HTTP.ReverseProxy     (ProxyDest (..))
+import qualified Network.Wai.Handler.Warp      as Warp
 
-import qualified Data.ByteString.Char8     as B
+import qualified Data.ByteString.Char8         as B
 
 data ProxyMode
   = AuthProxy

@@ -59,9 +59,9 @@ library
 
   -- LANGUAGE extensions used by modules in this package.
   -- other-extensions:
-  exposed-modules:    Types
-                    , AuthProxy
-                    , Main
+  exposed-modules:    Mirza.EntityDataAPI.Types
+                    , Mirza.EntityDataAPI.AuthProxy
+                    , Mirza.EntityDataAPI.Main
 
   -- Other library packages from which modules are imported.
   build-depends:        base

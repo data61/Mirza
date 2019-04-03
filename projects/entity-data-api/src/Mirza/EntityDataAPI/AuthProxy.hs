@@ -1,4 +1,4 @@
-module AuthProxy (runAuthProxy) where
+module Mirza.EntityDataAPI.AuthProxy (runAuthProxy) where
 
 import           Network.HTTP.Client       (Manager, defaultManagerSettings,
                                             newManager)
@@ -11,7 +11,7 @@ import           GHC.Exception             (SomeException)
 
 import           System.IO.Unsafe          (unsafePerformIO)
 
-import           Types
+import           Mirza.EntityDataAPI.Types
 
 handleRequest :: Request -> IO WaiProxyResponse
 handleRequest = error "runAuthProxy: not implemented yet"

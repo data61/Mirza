@@ -1,6 +1,6 @@
 module Main where
 
-import qualified Main as M
+import qualified Mirza.EntityDataAPI.Main as M
 
 main :: IO ()
 main = M.main
