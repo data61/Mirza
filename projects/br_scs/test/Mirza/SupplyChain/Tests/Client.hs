@@ -163,6 +163,7 @@ clientSpec = do
           step "Adding the same user to BR"
           let prefix = GS1CompanyPrefix "1000001"
           let userBR = BT.NewUser
+                          "EventSign Test Same User OAuthSub"
                           (unsafeMkEmailAddress "abc@example.com")
                           "re4lly$ecret14!"
                           prefix
@@ -223,6 +224,7 @@ clientSpec = do
 
           step "Adding the giver user to BR"
           let userBRGiver = BT.NewUser
+                          "EventSign Test Giver OAuthSub"
                           (unsafeMkEmailAddress "abc@example.com")
                           "re4lly$ecret14!"
                           prefixGiver
@@ -255,6 +257,7 @@ clientSpec = do
 
           step "Adding the receiving user to BR"
           let userBRReceiver = BT.NewUser
+                          "EventSign Test Reciever OAuthSub"
                           (unsafeMkEmailAddress "def@example.com")
                           "re4lly$ecret14!"
                           prefixReceiver

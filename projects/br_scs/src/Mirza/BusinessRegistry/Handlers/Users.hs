@@ -55,7 +55,7 @@ addUser =
 addUserQuery :: (HasScryptParams context, AsBRError err, HasCallStack)
              => NewUser
              -> DB context err UserId
-addUserQuery (BRT.NewUser userEmail password biz firstName lastName phone) = do
+addUserQuery (BRT.NewUser oauthSub userEmail password biz firstName lastName phone) = do
   params <- view $ _2 . scryptParams
   encPass <- liftIO $ Scrypt.encryptPassIO params (Scrypt.Pass $ encodeUtf8 password)
   userId <- newUUID
@@ -69,7 +69,7 @@ addUserQuery (BRT.NewUser userEmail password biz firstName lastName phone) = do
   -- TODO: use Database.Beam.Backend.SQL.runReturningOne?
   res <- pg $ runInsertReturningList (Schema._users Schema.businessRegistryDB) $
       insertValues
-       [Schema.UserT userId (Schema.BizId  biz) firstName lastName
+       [Schema.UserT userId oauthSub (Schema.BizId  biz) firstName lastName
                phone (Scrypt.getEncryptedPass encPass) userEmail Nothing
        ]
   case res of

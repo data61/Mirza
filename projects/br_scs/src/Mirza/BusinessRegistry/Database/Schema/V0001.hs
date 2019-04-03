@@ -68,6 +68,7 @@ migration () =
           )
     <*> createTable "users" (UserT
           (field "user_id" pkSerialType)
+          (field "oauth_sub" (varchar (Just defaultFieldMaxLength)) notNull)
           (BizId $ field "user_biz_id" gs1CompanyPrefixType)
           (field "first_name" (varchar (Just defaultFieldMaxLength)) notNull)
           (field "last_name" (varchar (Just defaultFieldMaxLength)) notNull)
@@ -96,6 +97,7 @@ deriving instance Show User
 
 data UserT f = UserT
   { user_id          :: C f PrimaryKeyType
+  , user_oauth_sub   :: C f Text
   , user_biz_id      :: PrimaryKey BusinessT f
   , first_name       :: C f Text
   , last_name        :: C f Text

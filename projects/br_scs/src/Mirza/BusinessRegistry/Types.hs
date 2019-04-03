@@ -86,7 +86,8 @@ instance HasKatipContext BRContext where
 -- | Note that BusinessRegistry.NewUser is expected to become different in the
 -- future, and hence this duplication
 data NewUser = NewUser
-  { newUserEmailAddress :: EmailAddress
+  { newUserOAuthSub     :: Text
+  , newUserEmailAddress :: EmailAddress
   , newUserPassword     :: Text
   , newUserCompany      :: GS1CompanyPrefix
   , newUserFirstName    :: Text

@@ -160,7 +160,8 @@ bootstrapAuthData ctx = do
   let business = NewBusiness prefix "Business Name"
   insertBusinessResult  <- runAppM @_ @BRError ctx $ BRHB.addBusiness business
   insertBusinessResult `shouldSatisfy` isRight
-  let user = BT.NewUser  (unsafeMkEmailAddress email)
+  let user = BT.NewUser "initialUserOAuthSub"
+                      (unsafeMkEmailAddress email)
                       password
                       prefix
                       "Test User First Name"
