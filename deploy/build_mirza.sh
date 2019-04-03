@@ -21,7 +21,7 @@ set +x # hide output
 eval $(aws ecr get-login --no-include-email --region ap-southeast-2)
 set -x
 
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../projects/br_scs"
 
 if docker pull "${HSBUILDER_DOCKER_IMAGE_TAG}"; then
 	echo "Skipping, ${HSBUILDER_DOCKER_IMAGE_TAG} already exists..."

@@ -24,7 +24,7 @@ jobs:
       env:
         DOCKER_TAG: ${DOCKER_REPO}/mirza-web:$TRAVIS_COMMIT
       before_install:
-        - cd ./web
+        - cd ./projects/web
       install:
         - npm install
       script:
