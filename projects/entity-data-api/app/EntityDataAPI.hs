@@ -1,7 +1,6 @@
-module EntityDataAPI where
+module Main where
 
-import           Main (run)
+import qualified Main as M
 
 main :: IO ()
-main = run
-
+main = M.main

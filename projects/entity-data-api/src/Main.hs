@@ -1,20 +1,25 @@
 {-# LANGUAGE DeriveGeneric #-}
 
-module RunApp (run) where
+module Main (main) where
 
 import           Options.Applicative
 
-import           Control.Exception        (finally)
+import           Network.HTTP.Client       (Manager, defaultManagerSettings,
+                                            newManager)
 
-import           AuthProxy                (runAuthProxy)
+import           Control.Exception         (finally)
+
+import           AuthProxy                 (runAuthProxy)
 import           Types
 
-import           GHC.Generics             (Generic)
+import           GHC.Generics              (Generic)
 
-import           Network.Wai              (Middleware)
+import           Network.Wai               (Middleware)
 
-import qualified Network.Wai.Handler.Warp as Warp
+import           Network.HTTP.ReverseProxy (ProxyDest (..))
+import qualified Network.Wai.Handler.Warp  as Warp
 
+import qualified Data.ByteString.Char8     as B
 
 data ProxyMode
   = AuthProxy
@@ -27,13 +32,18 @@ data Opts = Opts
   }
 
 
-run :: IO ()
-run = multiplexInitOptions =<< execParser opts where
+main :: IO ()
+main = multiplexInitOptions =<< execParser opts where
   opts = info (optsParser <**> helper)
     (fullDesc
     <> progDesc "Reverse proxy for Mirza services"
     <> header "Entity Data API")
 
+initContext :: Opts -> IO AuthContext
+initContext (Opts myService (destHost, destPort) _) = do
+  mngr <- newManager defaultManagerSettings
+  let proxyDest = ProxyDest (B.pack destHost) destPort
+  pure $ AuthContext myService proxyDest mngr
 
 -- Handles the overriding server options (this effectively defines the point
 -- where the single binary could be split into multiple binaries.

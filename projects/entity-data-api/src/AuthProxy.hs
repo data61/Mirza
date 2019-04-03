@@ -11,6 +11,8 @@ import           GHC.Exception             (SomeException)
 
 import           System.IO.Unsafe          (unsafePerformIO)
 
+import           Types
+
 handleRequest :: Request -> IO WaiProxyResponse
 handleRequest = error "runAuthProxy: not implemented yet"
 

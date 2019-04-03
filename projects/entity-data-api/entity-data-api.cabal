@@ -65,6 +65,7 @@ library
 
   -- Other library packages from which modules are imported.
   build-depends:        base
+                      , bytestring
                       , http-reverse-proxy
                       , http-client
                       , mtl
