@@ -61,6 +61,7 @@ library
   -- other-extensions:
   exposed-modules:    Mirza.EntityDataAPI.Types
                     , Mirza.EntityDataAPI.AuthProxy
+                    , Mirza.EntityDataAPI.Utils
                     , Mirza.EntityDataAPI.Main
 
   -- Other library packages from which modules are imported.
