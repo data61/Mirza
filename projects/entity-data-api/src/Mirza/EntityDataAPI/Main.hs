@@ -19,6 +19,7 @@ import           Crypto.JOSE.JWK               (KeyMaterialGenParam (..),
 data Opts = Opts
   { _myServiceInfo   :: ServiceInfo
   , _destServiceInfo :: ServiceInfo
+  , _keySize         :: Int
   }
 
 main :: IO ()
@@ -29,9 +30,9 @@ main = launchProxy =<< execParser opts where
     <> header "Entity Data API")
 
 initContext :: Opts -> IO AuthContext
-initContext (Opts myService (destHost, destPort)) = do
+initContext (Opts myService (destHost, destPort) kSize) = do
   mngr <- newManager defaultManagerSettings
-  jwKey <- genJWK (RSAGenParam 256)
+  jwKey <- genJWK (RSAGenParam kSize)
   let proxyDest = ProxyDest (B.pack destHost) destPort
   pure $ AuthContext myService proxyDest mngr jwKey
 
@@ -52,3 +53,4 @@ optsParser = Opts
         <$> strOption (long "desthost" <> short 'd' <> value "localhost" <> showDefault <> help "The host to make requests to.")
         <*> option auto (long "destport" <> short 'r' <> value 8200 <> showDefault <> help "Port to make requests to.")
   )
+  <*> option auto (long "keysize" <> short 'k' <> value 256 <> showDefault <> help "RSA Key size (Bytes)")
