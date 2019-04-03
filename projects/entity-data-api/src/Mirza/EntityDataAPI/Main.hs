@@ -37,7 +37,9 @@ initContext (Opts myService (destHost, destPort)) = do
 
 launchProxy :: Opts -> IO ()
 launchProxy opts = do
+  putStrLn "Initializing context..."
   ctx <- initContext opts
+  putStrLn $ "Starting service on " <> (fst . myProxyServiceInfo $ ctx) <> ":" <> (show . snd . myProxyServiceInfo $ ctx)
   Warp.run (fromIntegral . snd . myProxyServiceInfo $ ctx) (runAuthProxy ctx)
 
 optsParser :: Parser Opts
