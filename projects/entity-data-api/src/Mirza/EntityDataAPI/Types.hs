@@ -36,7 +36,7 @@ runAppM env aM = runExceptT $ (runReaderT . getAppM) aM env
 
 
 data AuthContext = AuthContext
-  { myServiceInfo   :: ServiceInfo
-  , destServiceInfo :: ProxyDest
-  , appManager      :: Manager
+  { myProxyServiceInfo   :: ServiceInfo
+  , destProxyServiceInfo :: ProxyDest
+  , appManager           :: Manager
   } deriving (Generic)

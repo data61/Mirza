@@ -1,26 +1,28 @@
 module Mirza.EntityDataAPI.AuthProxy (runAuthProxy) where
 
-import           Network.HTTP.Client       (Manager, defaultManagerSettings,
-                                            newManager)
-import           Network.Wai               (Application, Request)
+import           Network.Wai               (Application, Request (..))
 
-import           Network.HTTP.ReverseProxy (WaiProxyResponse, defaultOnExc,
+import           Network.HTTP.ReverseProxy (ProxyDest (..),
+                                            WaiProxyResponse (..), defaultOnExc,
                                             waiProxyTo)
 
 import           GHC.Exception             (SomeException)
 
-import           System.IO.Unsafe          (unsafePerformIO)
-
 import           Mirza.EntityDataAPI.Types
 
-handleRequest :: Request -> IO WaiProxyResponse
-handleRequest = error "runAuthProxy: not implemented yet"
+handleRequest :: ProxyDest -> Request -> IO WaiProxyResponse
+handleRequest pDest r = do
+  print r
+  pure $ WPRModifiedRequest r{requestHeaders = []} pDest
 
 handleError :: SomeException -> Application
 handleError = defaultOnExc
 
+-- type Application = Request -> (Response -> IO ResponseReceived) -> IO ResponseReceived
+
 {-# NOINLINE runAuthProxy #-}
-runAuthProxy :: Application
-runAuthProxy = waiProxyTo handleRequest handleError mngr
-  where
-    mngr = unsafePerformIO $ newManager defaultManagerSettings
+runAuthProxy :: AuthContext -> Application
+runAuthProxy context = do
+  let proxyDest = destProxyServiceInfo context
+  waiProxyTo (handleRequest proxyDest) handleError $ appManager context
+
