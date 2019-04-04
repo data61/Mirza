@@ -2,8 +2,8 @@ module Mirza.EntityDataAPI.Main (main) where
 
 import           Options.Applicative
 
-import           Network.HTTP.Client           (defaultManagerSettings,
-                                                newManager)
+import           Network.HTTP.Client           (newManager)
+import           Network.HTTP.Client.TLS       (tlsManagerSettings)
 
 import           Mirza.EntityDataAPI.AuthProxy (runAuthProxy)
 import           Mirza.EntityDataAPI.Types
@@ -31,7 +31,7 @@ main = launchProxy =<< execParser opts where
 
 initContext :: Opts -> IO AuthContext
 initContext (Opts myService (destHost, destPort) kSize) = do
-  mngr <- newManager defaultManagerSettings
+  mngr <- newManager tlsManagerSettings
   jwKey <- genJWK (RSAGenParam kSize)
   let proxyDest = ProxyDest (B.pack destHost) destPort
   pure $ AuthContext myService proxyDest mngr jwKey

@@ -69,6 +69,7 @@ library
                       , bytestring
                       , http-reverse-proxy
                       , http-client
+                      , http-client-tls
                       , mtl
                       , monad-time
                       , optparse-applicative
