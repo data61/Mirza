@@ -1,3 +1,6 @@
+{-# LANGUAGE LambdaCase #-}
+
+
 module Mirza.EntityDataAPI.Main (main) where
 
 import           Options.Applicative
@@ -7,6 +10,7 @@ import           Network.HTTP.Client.TLS       (tlsManagerSettings)
 
 import           Mirza.EntityDataAPI.AuthProxy (runAuthProxy)
 import           Mirza.EntityDataAPI.Types
+import           Mirza.EntityDataAPI.Utils     (fetchJWKs)
 
 import           Network.HTTP.ReverseProxy     (ProxyDest (..))
 import qualified Network.Wai.Handler.Warp      as Warp
@@ -20,6 +24,7 @@ data Opts = Opts
   { _myServiceInfo   :: ServiceInfo
   , _destServiceInfo :: ServiceInfo
   , _keySize         :: Int
+  , _jwkUrl          :: String
   }
 
 main :: IO ()
@@ -30,11 +35,12 @@ main = launchProxy =<< execParser opts where
     <> header "Entity Data API")
 
 initContext :: Opts -> IO AuthContext
-initContext (Opts myService (destHost, destPort) kSize) = do
-  mngr <- newManager tlsManagerSettings
-  jwKey <- genJWK (RSAGenParam kSize)
+initContext (Opts myService (destHost, destPort) kSize url) = do
   let proxyDest = ProxyDest (B.pack destHost) destPort
-  pure $ AuthContext myService proxyDest mngr jwKey
+  mngr <- newManager tlsManagerSettings
+  fetchJWKs mngr url >>= \case
+    Left err -> fail err
+    Right jwkSet -> pure $ AuthContext myService proxyDest mngr jwkSet
 
 launchProxy :: Opts -> IO ()
 launchProxy opts = do
@@ -54,3 +60,4 @@ optsParser = Opts
         <*> option auto (long "destport" <> short 'r' <> value 8200 <> showDefault <> help "Port to make requests to.")
   )
   <*> option auto (long "keysize" <> short 'k' <> value 256 <> showDefault <> help "RSA Key size (Bytes)")
+  <*> strOption (long "jwkurl" <> short 'j' <> value "https://mirza.au.auth0.com/.well-known/jwks.json" <> showDefault <> help "URL to fetch ")

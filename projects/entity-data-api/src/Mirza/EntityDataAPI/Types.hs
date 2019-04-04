@@ -16,7 +16,7 @@ import           GHC.Generics              (Generic)
 
 import           Network.HTTP.Client       (Manager)
 
-import           Crypto.JOSE               (JWK)
+import           Crypto.JOSE               (JWKSet)
 
 import           Data.Time.Clock           (getCurrentTime)
 
@@ -48,5 +48,5 @@ data AuthContext = AuthContext
   { myProxyServiceInfo   :: ServiceInfo
   , destProxyServiceInfo :: ProxyDest
   , appManager           :: Manager
-  , jwtSigningKey        :: JWK
+  , jwtSigningKeys       :: JWKSet
   } deriving (Generic)

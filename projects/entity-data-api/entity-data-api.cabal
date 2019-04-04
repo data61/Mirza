@@ -66,18 +66,25 @@ library
 
   -- Other library packages from which modules are imported.
   build-depends:        base
+                      , aeson
+                      , lens-aeson
+                      , base16-bytestring
+                      , base64-bytestring
                       , bytestring
                       , http-reverse-proxy
                       , http-client
                       , http-client-tls
+                      , lens
                       , mtl
                       , monad-time
                       , optparse-applicative
                       , jose
+                      , req
                       , wai
                       , warp
                       , http-types
                       , time
+                      , text
 
   -- Directories containing source files.
   hs-source-dirs:      src

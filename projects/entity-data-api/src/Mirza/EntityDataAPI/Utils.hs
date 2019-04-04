@@ -1,6 +1,31 @@
+{-# LANGUAGE ScopedTypeVariables #-}
+
 module Mirza.EntityDataAPI.Utils where
 
+import           Network.HTTP.Client    (Manager)
+import           Network.HTTP.Req
 
+import           Crypto.JOSE            (JWKSet)
+
+import           Control.Lens
+
+import           Control.Monad          ((<$!>))
+
+import           Control.Exception      (try)
+
+import           Data.Aeson             (Result (..), Value (..), fromJSON)
+import           Data.Aeson.Lens
+
+import           Data.Text              (Text)
+import           Data.Text.Encoding
+import           Data.Text.Strict.Lens  (packed, utf8)
+
+import           Data.ByteString.Base16 as B16
+import           Data.ByteString.Base64 as B64
+
+import qualified Data.ByteString.Char8  as BS
+
+import           Debug.Trace
 
 -- | Extract one element from a list.
 -- Function implementation copied from:
@@ -25,3 +50,26 @@ rollback ::
    -> [a] -- ^ The list to be appended.
    -> [a] -- ^ The resulting list
 rollback = flip (foldl (flip (:)))
+
+
+fetchJWKs :: Manager -> String -> IO (Either String JWKSet)
+fetchJWKs m url =
+  case parseUrlHttps (url ^. packed . re utf8) of
+    Nothing   -> pure $ Left ("Could not parse URL: " <> url)
+    Just url' -> ((toJWKS =<<) . (fmap responseBody)) <$!> (mkReq url')
+    where
+      mkReq url' = do
+        res <- try $ runReq (defaultHttpConfig{ httpConfigAltManager = Just m }) $ req GET (url' ^. _1) NoReqBody jsonResponse mempty
+        case res of
+          Left (e :: HttpException) -> pure . Left . show $ e
+          Right v                   -> pure . Right $ v
+
+      -- Change the x5t to be spec compliant
+      toJWKS :: Value -> Either String JWKSet
+      toJWKS v = let v' = over (key "keys" . values . key "x5t" . _String) b64HexToB64 v in
+        case fromJSON v' of
+          Error e   -> Left e
+          Success a -> Right a
+
+      b64HexToB64 :: Text -> Text
+      b64HexToB64 = decodeUtf8 . B64.encode . fst . B16.decode . B64.decodeLenient . encodeUtf8

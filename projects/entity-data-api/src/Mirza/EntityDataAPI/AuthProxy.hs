@@ -33,7 +33,7 @@ handleRequest ctx r = do
 
 handleToken :: (Jose.AsJWTError err, Jose.AsError err) => Maybe Header -> AppM AuthContext err Jose.ClaimsSet
 handleToken (Just (_, authHdr)) = do
-  jwKey <- asks jwtSigningKey
+  jwKey <- asks jwtSigningKeys
   let bearer = "Bearer "
       (_mbearer, token) = BS.splitAt (BS.length bearer) authHdr
   unverifiedJWT <- Jose.decodeCompact $ BSL.fromStrict token
