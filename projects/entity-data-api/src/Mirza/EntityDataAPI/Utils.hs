@@ -20,8 +20,8 @@ import           Data.Text              (Text)
 import           Data.Text.Encoding
 import           Data.Text.Strict.Lens  (packed, utf8)
 
-import           Data.ByteString.Base16 as B16
-import           Data.ByteString.Base64 as B64
+import           Data.ByteString.Base16     as B16
+import           Data.ByteString.Base64.URL as B64
 
 import qualified Data.ByteString.Char8  as BS
 
