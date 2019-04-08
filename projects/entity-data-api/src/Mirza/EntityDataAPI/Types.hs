@@ -27,6 +27,9 @@ import           Data.Time.Clock           (getCurrentTime)
 
 import           Text.Read                 (readMaybe)
 
+import qualified Crypto.JWT                as Jose
+
+--  ------------------- AppM -----------------------
 -- runReaderT :: r -> m a
 -- ReaderT r m a
 -- type Handler a = ExceptT ServantErr IO a
@@ -48,6 +51,10 @@ instance MonadTime (AppM AuthContext err) where
 runAppM :: context -> AppM context err a -> IO (Either err a)
 runAppM ctx aM = runExceptT $ (runReaderT . getAppM) aM ctx
 
+--  ------------------------------------------------
+
+--  ---------------Context--------------------------
+
 data AuthContext = AuthContext
   { myProxyServiceInfo   :: ServiceInfo
   , destProxyServiceInfo :: ProxyDest
@@ -55,6 +62,10 @@ data AuthContext = AuthContext
   , jwtSigningKeys       :: JWKSet
   } deriving (Generic)
 
+--  ------------------------------------------------
+
+
+--  ----------------Service Info--------------------
 
 newtype Hostname = Hostname { getHostname :: String } deriving (Eq, Show, Read, Generic)
 newtype Port = Port { getPort :: Int } deriving (Eq, Show, Read, Generic)
@@ -85,6 +96,11 @@ fromEnvDestServiceInfo = ServiceInfo
 defaultJwkUrl :: String
 defaultJwkUrl = "https://mirza.au.auth0.com/.well-known/jwks.json"
 
+--  ------------------------------------------------
+
+
+--  ----------------Opts----------------------------
+
 data Opts = Opts
   { myServiceInfo   :: ServiceInfo
   , destServiceInfo :: ServiceInfo
@@ -103,3 +119,14 @@ instance FromEnv Opts where
     <$> fromEnvMyServiceInfo
     <*> fromEnvDestServiceInfo
     <*> envMaybe "JWK_URL" .!= defaultJwkUrl
+
+--  ------------------------------------------------
+
+--  ---------------- Errors ------------------------
+
+
+data AppError
+  = JWKFetchFailed
+  | AuthFailed Jose.JWTError
+  | NoAuthHeader
+  deriving (Show, Eq, Generic)
