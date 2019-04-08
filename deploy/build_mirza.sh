@@ -38,7 +38,7 @@ if [ "$PUSH_MIRZA" ]; then
     docker push "${BR_DOCKER_IMAGE_TAG}"
 fi
 
-
-cd "$(dirname "$0")/../projects/entity-data-api"
+pwd; ls
+cd ~/projects/entity-data-api
 pwd
 docker build -f EntityDataAPI.Dockerfile --target PKG-EDAPI --build-arg HS_BUILDER_IMAGE="${HSBUILDER_DOCKER_IMAGE_TAG}" -t "${BR_DOCKER_IMAGE_TAG}" .
