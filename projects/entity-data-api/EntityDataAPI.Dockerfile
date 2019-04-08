@@ -3,7 +3,7 @@ ARG HS_BUILDER_IMAGE=hsbuilder:latest
 FROM $HS_BUILDER_IMAGE as BUILD
 WORKDIR /src
 
-COPY stack.yaml EntityDataAPI.cabal LICENSE README.md /src/
+COPY stack.yaml entity-data-api.cabal LICENSE README.md /src/
 COPY src/ /src/src/
 COPY app/ /src/app/
 
