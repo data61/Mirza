@@ -28,6 +28,8 @@ import           Database.PostgreSQL.Simple
 import           Network.Wai                             (Middleware)
 import qualified Network.Wai.Handler.Warp                as Warp
 
+import           Data.Aeson                              (eitherDecodeFileStrict)
+
 import qualified Data.Attoparsec.ByteString              as A
 import           Data.ByteString                         (ByteString)
 import qualified Data.ByteString.Char8                   as BS
@@ -151,7 +153,10 @@ initBRContext opts@(ServerOptionsBR dbConnStr _ _ _ lev mlogPath envT) = do
                       60 -- How long in seconds to keep a connection open for reuse
                       10 -- Max number of connections to have open at any one time
                       -- TODO: Make this a config paramete
-  pure $ BRContext envT connpool params logEnv mempty mempty
+  eitherJwk <- eitherDecodeFileStrict "auth_public_key_2019-04-01.json"
+  let makeError errorMessage = error $ "Unable to get the OAuth Public Key. Error was: " <> (show errorMessage)
+  let jwk = either makeError id eitherJwk
+  pure $ BRContext envT connpool params logEnv mempty mempty jwk
 
 
 initApplication :: ServerOptionsBR -> RunServerOptions -> BT.BRContext -> IO Application

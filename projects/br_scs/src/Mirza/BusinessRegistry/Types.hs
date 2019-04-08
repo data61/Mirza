@@ -58,10 +58,11 @@ import           GHC.Stack                              (CallStack)
 data BRContext = BRContext
   { _brEnvType          :: EnvType
   , _brDbConnPool       :: Pool Connection
-  , _brScryptPs         :: ScryptParams
+  , _brScryptPs         :: ScryptParams      -- TODO: Remove Crypto once we remove storage of passwords.
   , _brKatipLogEnv      :: K.LogEnv
   , _brKatipLogContexts :: K.LogContexts
   , _brKatipNamespace   :: K.Namespace
+  , _brAuthPublicKey    :: JWK
   }
 $(makeLenses ''BRContext)
 
