@@ -71,6 +71,7 @@ library
                       , base16-bytestring
                       , base64-bytestring
                       , bytestring
+                      , envy
                       , http-reverse-proxy
                       , http-client
                       , http-client-tls

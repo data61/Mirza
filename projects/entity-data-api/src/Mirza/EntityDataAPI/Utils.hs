@@ -23,10 +23,6 @@ import           Data.Text.Strict.Lens      (packed, utf8)
 import           Data.ByteString.Base16     as B16
 import           Data.ByteString.Base64.URL as B64
 
-import qualified Data.ByteString.Char8      as BS
-
-import           Debug.Trace
-
 -- | Extract one element from a list.
 -- Function implementation copied from:
 -- https://hackage.haskell.org/package/raft-0.3.7.0/docs/Data-List-Util.html
