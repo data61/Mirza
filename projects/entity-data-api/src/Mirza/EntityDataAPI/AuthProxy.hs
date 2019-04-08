@@ -10,6 +10,7 @@ import           Network.HTTP.ReverseProxy (WaiProxyResponse (..), defaultOnExc,
 
 import           GHC.Exception             (SomeException)
 
+import           Control.Monad.Except      (throwError)
 import           Control.Monad.Reader      (asks)
 
 import           Mirza.EntityDataAPI.Types
@@ -28,17 +29,17 @@ handleRequest ctx r = do
   let (modifiedReq, mAuthHeader) = extractAuthHeader r
   mUnverifiedJWT <- runAppM ctx $ handleToken mAuthHeader
   case mUnverifiedJWT of
-    Left (err :: Jose.JWTError) -> error $ show err
+    Left (err :: AppError) -> fail $ show err
     Right _ -> pure $ WPRModifiedRequest modifiedReq (destProxyServiceInfo ctx)
 
-handleToken :: (Jose.AsJWTError err, Jose.AsError err) => Maybe Header -> AppM AuthContext err Jose.ClaimsSet
+handleToken :: Maybe Header -> AppM AuthContext AppError Jose.ClaimsSet
 handleToken (Just (_, authHdr)) = do
   jwKey <- asks jwtSigningKeys
   let bearer = "Bearer "
       (_mbearer, token) = BS.splitAt (BS.length bearer) authHdr
   unverifiedJWT <- Jose.decodeCompact $ BSL.fromStrict token
   Jose.verifyClaims (Jose.defaultJWTValidationSettings (const True)) jwKey unverifiedJWT
-handleToken Nothing = error "nuthin'"
+handleToken Nothing = throwError NoAuthHeader
 
 extractAuthHeader :: Request -> (Request, Maybe Header)
 extractAuthHeader r =
@@ -50,8 +51,5 @@ extractAuthHeader r =
 handleError :: SomeException -> Application
 handleError = defaultOnExc
 
--- type Application = Request -> (Response -> IO ResponseReceived) -> IO ResponseReceived
-
 runAuthProxy :: AuthContext -> Application
 runAuthProxy context = waiProxyTo (handleRequest context) handleError $ appManager context
-

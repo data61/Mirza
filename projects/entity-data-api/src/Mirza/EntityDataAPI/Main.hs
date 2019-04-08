@@ -37,7 +37,7 @@ initContext (Opts myService (ServiceInfo (Hostname destHost) (Port destPort)) ur
   let proxyDest = ProxyDest (B.pack destHost) destPort
   mngr <- newManager tlsManagerSettings
   fetchJWKs mngr url >>= \case
-    Left err -> fail err
+    Left err -> fail $ show err
     Right jwkSet -> pure $ AuthContext myService proxyDest mngr jwkSet
 
 launchProxy :: Opts -> IO ()

@@ -1,6 +1,7 @@
 {-# LANGUAGE DeriveGeneric              #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE NamedFieldPuns             #-}
+{-# LANGUAGE TemplateHaskell            #-}
 
 module Mirza.EntityDataAPI.Types where
 
@@ -8,6 +9,7 @@ import           System.Envy               (DefConfig (..), FromEnv (..),
                                             Var (..), envMaybe, (.!=))
 import qualified System.Envy               as Envy
 
+import           Network.HTTP.Req          (HttpException)
 import           Network.HTTP.ReverseProxy (ProxyDest (..))
 
 import           Control.Monad.Except      (ExceptT (..), MonadError,
@@ -20,14 +22,16 @@ import           GHC.Generics              (Generic)
 
 import           Network.HTTP.Client       (Manager)
 
-import           Crypto.JOSE               (JWKSet)
 
 import           Control.Monad.Time        (MonadTime (..))
 import           Data.Time.Clock           (getCurrentTime)
 
 import           Text.Read                 (readMaybe)
 
+import           Crypto.JWT                (AsError, AsJWTError, JWKSet)
 import qualified Crypto.JWT                as Jose
+
+import           Control.Lens              (makeClassyPrisms, prism')
 
 --  ------------------- AppM -----------------------
 -- runReaderT :: r -> m a
@@ -128,5 +132,19 @@ instance FromEnv Opts where
 data AppError
   = JWKFetchFailed
   | AuthFailed Jose.JWTError
+  | AppJoseError Jose.Error
   | NoAuthHeader
-  deriving (Show, Eq, Generic)
+  | UrlParseFailed
+  | ReqFailure HttpException
+  | JWKParseFailure String
+  deriving (Show, Generic)
+makeClassyPrisms ''AppError
+
+instance AsJWTError AppError where
+  _JWTError = prism' AuthFailed
+              (\err -> case err of
+                (AuthFailed e) -> Just e
+                _              -> Nothing
+              )
+instance AsError AppError where
+  _Error = _AppJoseError
