@@ -25,7 +25,6 @@ main :: IO ()
 --     (fullDesc
 --     <> progDesc "Reverse proxy for Mirza services"
 --     <> header "Entity Data API")
-
 main = (decodeEnv :: IO (Either String Opts)) >>= \case
   Left err -> fail $ "Failed to parse Opts: " <> err
   Right opts -> do
@@ -34,7 +33,7 @@ main = (decodeEnv :: IO (Either String Opts)) >>= \case
 
 
 initContext :: Opts -> IO AuthContext
-initContext (Opts myService (DestServiceInfo (ServiceInfo (Hostname destHost) (Port destPort))) url) = do
+initContext (Opts myService (ServiceInfo (Hostname destHost) (Port destPort)) url) = do
   let proxyDest = ProxyDest (B.pack destHost) destPort
   mngr <- newManager tlsManagerSettings
   fetchJWKs mngr url >>= \case
@@ -46,18 +45,18 @@ launchProxy opts = do
   putStrLn "Initializing context..."
   ctx <- initContext opts
   putStrLn $  "Starting service on " <>
-              (getHostname . serviceHost . getMyServiceInfo . myProxyServiceInfo $ ctx) <> ":" <>
-              (show . servicePort . getMyServiceInfo . myProxyServiceInfo $ ctx)
-  Warp.run (fromIntegral . getPort . servicePort . getMyServiceInfo . myProxyServiceInfo $ ctx) (runAuthProxy ctx)
+              (getHostname . serviceHost . myProxyServiceInfo $ ctx) <> ":" <>
+              (show . servicePort . myProxyServiceInfo $ ctx)
+  Warp.run (fromIntegral . getPort . servicePort . myProxyServiceInfo $ ctx) (runAuthProxy ctx)
 
 _optsParser :: Parser Opts
 _optsParser = Opts
-  <$> (fmap MyServiceInfo $ ServiceInfo
+  <$> (ServiceInfo
         <$> (Hostname <$> strOption (long "host" <> short 'h' <> value "localhost" <> showDefault <> help "The host to run this service on."))
         <*> (Port <$> option auto (long "port" <> short 'p' <> value 8000 <> showDefault <> help "The port to run this service on."))
   )
-  <*> (fmap DestServiceInfo $ ServiceInfo
+  <*> (ServiceInfo
         <$> (Hostname <$> strOption (long "desthost" <> short 'd' <> value "localhost" <> showDefault <> help "The host to make requests to."))
-        <*> (Port <$> option auto (long "destport" <> short 'r' <> value 8200 <> showDefault <> help "Port to make requests to."))
-  )
+        <*> (Port <$> option auto (long "destport" <> short 'r' <> value 8200 <> showDefault <> help "Port to make requests to.")))
   <*> strOption (long "jwkurl" <> short 'j' <> value "https://mirza.au.auth0.com/.well-known/jwks.json" <> showDefault <> help "URL to fetch ")
+

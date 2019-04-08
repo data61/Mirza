@@ -6,6 +6,7 @@ module Mirza.EntityDataAPI.Types where
 
 import           System.Envy               (DefConfig (..), FromEnv (..),
                                             Var (..), envMaybe, (.!=))
+import qualified System.Envy               as Envy
 
 import           Network.HTTP.ReverseProxy (ProxyDest (..))
 
@@ -25,23 +26,6 @@ import           Control.Monad.Time        (MonadTime (..))
 import           Data.Time.Clock           (getCurrentTime)
 
 import           Text.Read                 (readMaybe)
-
-newtype Hostname = Hostname { getHostname :: String } deriving (Eq, Show, Read, Generic)
-newtype Port = Port { getPort :: Int } deriving (Eq, Show, Read, Generic)
-
-instance Var Hostname where
-  toVar = getHostname
-  fromVar = Just . Hostname -- can this be a smart constructor?
-
-instance Var Port where
-  toVar = show . getPort
-  fromVar s = Port <$> (readMaybe s :: Maybe Int)
-
-data ServiceInfo = ServiceInfo
-  { serviceHost :: Hostname
-  , servicePort :: Port
-  } deriving (Eq, Show, Read, Generic)
-
 
 -- runReaderT :: r -> m a
 -- ReaderT r m a
@@ -64,46 +48,58 @@ instance MonadTime (AppM AuthContext err) where
 runAppM :: context -> AppM context err a -> IO (Either err a)
 runAppM ctx aM = runExceptT $ (runReaderT . getAppM) aM ctx
 
-
 data AuthContext = AuthContext
-  { myProxyServiceInfo   :: MyServiceInfo
+  { myProxyServiceInfo   :: ServiceInfo
   , destProxyServiceInfo :: ProxyDest
   , appManager           :: Manager
   , jwtSigningKeys       :: JWKSet
   } deriving (Generic)
 
 
-newtype MyServiceInfo = MyServiceInfo {getMyServiceInfo :: ServiceInfo} deriving (Show, Eq, Read, Generic)
-newtype DestServiceInfo = DestServiceInfo {getDestServiceInfo :: ServiceInfo} deriving (Show, Eq, Read, Generic)
+newtype Hostname = Hostname { getHostname :: String } deriving (Eq, Show, Read, Generic)
+newtype Port = Port { getPort :: Int } deriving (Eq, Show, Read, Generic)
 
-instance FromEnv MyServiceInfo where
-  fromEnv = fmap MyServiceInfo $ (ServiceInfo
+instance Var Hostname where
+  toVar = getHostname
+  fromVar = Just . Hostname -- can this be a smart constructor?
+
+instance Var Port where
+  toVar = show . getPort
+  fromVar s = Port <$> (readMaybe s :: Maybe Int)
+
+data ServiceInfo = ServiceInfo
+  { serviceHost :: Hostname
+  , servicePort :: Port
+  } deriving (Eq, Show, Read, Generic)
+
+fromEnvMyServiceInfo :: Envy.Parser ServiceInfo
+fromEnvMyServiceInfo = ServiceInfo
     <$> envMaybe "MY_HOST" .!= Hostname "localhost"
-    <*> envMaybe "MY_PORT" .!= Port 8000)
+    <*> envMaybe "MY_PORT" .!= Port 8080
 
-instance FromEnv DestServiceInfo where
-  fromEnv = fmap DestServiceInfo $ (ServiceInfo
+fromEnvDestServiceInfo :: Envy.Parser ServiceInfo
+fromEnvDestServiceInfo = ServiceInfo
     <$> envMaybe "DEST_HOST" .!= Hostname "localhost"
-    <*> envMaybe "DEST_PORT" .!= Port 8000)
+    <*> envMaybe "DEST_PORT" .!= Port 8000
 
 defaultJwkUrl :: String
 defaultJwkUrl = "https://mirza.au.auth0.com/.well-known/jwks.json"
 
 data Opts = Opts
-  { myServiceInfo   :: MyServiceInfo
-  , destServiceInfo :: DestServiceInfo
+  { myServiceInfo   :: ServiceInfo
+  , destServiceInfo :: ServiceInfo
   , jwkUrl          :: String
   } deriving (Show, Generic, Eq)
 
 instance DefConfig Opts where
   defConfig = Opts
-    { myServiceInfo   = MyServiceInfo ServiceInfo{serviceHost=Hostname "localhost", servicePort=Port 8080 }
-    , destServiceInfo = DestServiceInfo ServiceInfo{serviceHost=Hostname "localhost", servicePort=Port 8000 }
+    { myServiceInfo   = ServiceInfo{serviceHost=Hostname "localhost", servicePort=Port 8080 }
+    , destServiceInfo = ServiceInfo{serviceHost=Hostname "localhost", servicePort=Port 8000 }
     , jwkUrl          = defaultJwkUrl
     }
 
 instance FromEnv Opts where
   fromEnv = Opts
-    <$> fromEnv
-    <*> fromEnv
+    <$> fromEnvMyServiceInfo
+    <*> fromEnvDestServiceInfo
     <*> envMaybe "JWK_URL" .!= defaultJwkUrl
