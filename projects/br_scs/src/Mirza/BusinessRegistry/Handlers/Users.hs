@@ -4,10 +4,10 @@
 module Mirza.BusinessRegistry.Handlers.Users
   (
     addUser
+  , addUserOnlyId
   , addUserAuth
   , addUserQuery
   , getUserByIdQuery
-  , tableToAuthUser
   ) where
 
 import           Mirza.BusinessRegistry.Database.Schema   hiding (UserId)
@@ -40,21 +40,30 @@ addUserAuth :: ( Member context '[HasDB, HasScryptParams]
             => AuthUser
             -> NewUser
             -> AppM context err UserId
-addUserAuth _authUser = addUser
+addUserAuth _authUser = addUserOnlyId
+
+
+addUserOnlyId :: ( Member context '[HasDB, HasScryptParams]
+           , Member err     '[AsBRError, AsSqlError])
+        => NewUser
+        -> AppM context err UserId
+addUserOnlyId user = (UserId . user_id) <$> (addUser user)
+
 
 addUser :: ( Member context '[HasDB, HasScryptParams]
            , Member err     '[AsBRError, AsSqlError])
         => NewUser
-        -> AppM context err UserId
+        -> AppM context err Schema.User
 addUser =
   (handleError (handleSqlUniqueViloation "users_email_address_key" (_UserCreationSQLErrorBRE #)))
   . runDb
   . addUserQuery
 
+
 -- | Hashes the password of the NewUser and inserts the user into the database
 addUserQuery :: (HasScryptParams context, AsBRError err, HasCallStack)
              => NewUser
-             -> DB context err UserId
+             -> DB context err Schema.User
 addUserQuery (BRT.NewUser oauthSub userEmail password biz firstName lastName phone) = do
   params <- view $ _2 . scryptParams
   encPass <- liftIO $ Scrypt.encryptPassIO params (Scrypt.Pass $ encodeUtf8 password)
@@ -73,7 +82,7 @@ addUserQuery (BRT.NewUser oauthSub userEmail password biz firstName lastName pho
                phone (Scrypt.getEncryptedPass encPass) userEmail Nothing
        ]
   case res of
-      [r] -> pure $ UserId $ user_id r
+      [r] -> pure $ r
       -- The user creation has failed, but we can't really think of what would lead to this case.
       _   -> throwing _UserCreationErrorBRE ((show res), callStack)
 
@@ -88,7 +97,3 @@ getUserByIdQuery (UserId uid) = do
     [user] -> pure $ Just user
     _      -> pure Nothing
 
-
--- | Converts a DB representation of ``User`` to ``AuthUser``
-tableToAuthUser :: Schema.User -> AuthUser
-tableToAuthUser tUser = AuthUser (UserId $ Schema.user_id tUser)

@@ -7,85 +7,72 @@
 
 module Mirza.BusinessRegistry.Auth
   (
-    basicAuthServerContext
-  , authCheck
+    tokenServerContext
+  , tableUserToAuthUser
   , listUsersQuery
+  , oauthClaimsToAuthUser
+  , getUserByOAuthSubQuery
   ) where
 
 import           Mirza.BusinessRegistry.Database.Schema as Schema
+import           Mirza.BusinessRegistry.Handlers.Users  as BU
 import           Mirza.BusinessRegistry.Types           as BT
 import           Mirza.Common.Types                     as CT
 
+import           Data.GS1.EPC                           as EPC
+
 import           Database.Beam                          as B
-import           Database.PostgreSQL.Simple             (SqlError)
 
 import           Servant
-
-import qualified Crypto.Scrypt                          as Scrypt
+import           Servant.Auth.Server
 
 import           Control.Lens
 
-import           Text.Email.Validate                    (EmailAddress,
-                                                         emailAddress)
+import           Text.Email.Validate                    (unsafeEmailAddress)
+
+import           Data.Text                              (Text)
+import           Data.Functor                           (void)
 
 -- | We need to supply our handlers with the right Context. In this case,
--- Basic Authentication requires a Context Entry with the 'BasicAuthCheck' value
--- tagged with "foo-tag" This context is then supplied to 'server' and threaded
--- to the BasicAuth HasServer handlers.
-basicAuthServerContext :: ( Member context '[HasScryptParams, HasDB])
-                       => context -> Servant.Context '[BasicAuthCheck AuthUser]
-basicAuthServerContext context = authCheck context :. EmptyContext
+-- JWT requires a Context Entry with the 'JWTSettings and CookiesSettings values.
+tokenServerContext :: ( Member context '[HasScryptParams, HasDB, HasAuthPublicKey])
+                       => context -> Servant.Context '[JWTSettings, CookieSettings]
+tokenServerContext context = defaultJWTSettings (view authPublicKey context ) :. defaultCookieSettings :. EmptyContext
 
 
--- 'BasicAuthCheck' holds the handler we'll use to verify a username and password.
--- authCheck :: SCSContext -> BasicAuthCheck ST.User
-authCheck ::  ( Member context '[HasScryptParams, HasDB])
-          => context -> BasicAuthCheck AuthUser
-authCheck context =
-  let check (BasicAuthData userEmail pass) =
-        case emailAddress userEmail of
-          Nothing -> pure Unauthorized
-          Just email -> do
-            eitherUser <- runAppM @_ @SqlError context . runDb $
-                          authCheckQuery email (Password pass)
-            case eitherUser of
-              Right (Just user) -> pure (Authorized user)
-              _                 -> pure NoSuchUser
-  in BasicAuthCheck check
-
--- Basic Auth check using Scrypt hashes.
--- TODO: How safe is this to timing attacks? Can we tell which emails are in the
--- system easily?
-authCheckQuery :: (HasScryptParams context)
-               => EmailAddress
-               -> Password
-               -> DB context err (Maybe AuthUser)
-authCheckQuery userEmail (Password password) = do
-  let userTable = _users businessRegistryDB
-  r <- pg $ runSelectReturningList $ select $ do
-        user <- all_ userTable
-        guard_ (email_address user  ==. val_ userEmail)
-        pure user
-  params <- view $ _2 . scryptParams
-  case r of
-    [user] ->
-        case Scrypt.verifyPass params (Scrypt.Pass password)
-              (Scrypt.EncryptedPass $ password_hash user)
-        of
-          (False, _     ) -> pure Nothing
-          (True, Nothing) -> pure $ Just (userToAuthUser user)
-          (True, Just (Scrypt.EncryptedPass password')) -> do
-            _ <- pg $ runUpdate $ update userTable
-                    (\u -> [password_hash u <-. val_ password'])
-                    (\u -> user_id u ==. val_ (user_id user))
-            pure $ Just (userToAuthUser user)
-    _ -> pure Nothing
-
-
-userToAuthUser :: Schema.User -> AuthUser
-userToAuthUser user = AuthUser (CT.UserId $ user_id user)
+-- | Converts a DB representation of ``User`` to ``AuthUser``
+tableUserToAuthUser :: Schema.User -> AuthUser
+tableUserToAuthUser user = AuthUser (CT.UserId $ Schema.user_id user)
 
 
 listUsersQuery :: DB context err [Schema.User]
 listUsersQuery = pg $ runSelectReturningList $ select $
     all_ (_users businessRegistryDB)
+
+
+oauthClaimsToAuthUser :: ( Member context '[HasEnvType, HasConnPool, HasLogging, HasScryptParams]
+                       , Member err     '[AsBRError, AsSqlError])
+                    => Servant.Auth.Server.AuthResult BT.VerifiedTokenClaims
+                    -> AppM context err BT.AuthUser
+oauthClaimsToAuthUser (Authenticated claims) = do
+  maybeUser <- runDb (getUserByOAuthSubQuery $ verifiedTokenClaimsSub claims)
+  case maybeUser of
+    Just user -> pure $ tableUserToAuthUser user
+    Nothing   -> tableUserToAuthUser <$> (addUser promotedUser) where
+                 -- TODO: Prmoted user is a hack, this allows us to update the auth process without changing to much of the
+                 --       user structure. For this to work there needs to be a company with the GS1CompanyPrefix "bootstrap"
+                 --       as it is an assumption of this code. In phase 2 of this implementation we will come back and remove
+                 --       all of the additional user metadata which is no longer needed.
+                 promotedUser = NewUser (verifiedTokenClaimsSub claims) (unsafeEmailAddress "promoted-user" "example.com") "" (GS1CompanyPrefix "bootstrap") "" "" ""
+oauthClaimsToAuthUser failure = throwing _UserAuthFailureBRE (void failure)
+
+
+getUserByOAuthSubQuery :: Text -> DB context err (Maybe Schema.User)
+getUserByOAuthSubQuery oauthSub = do
+  r <- pg $ runSelectReturningList $ select $ do
+          user <- all_ (Schema._users Schema.businessRegistryDB)
+          guard_ (user_oauth_sub user ==. val_ oauthSub)
+          pure user
+  case r of
+    [user] -> pure $ Just user
+    _      -> pure Nothing

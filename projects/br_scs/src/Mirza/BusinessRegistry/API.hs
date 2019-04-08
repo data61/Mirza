@@ -28,6 +28,7 @@ import           Data.GS1.EPC                           as EPC
 import           Servant
 import           Servant.API.Flatten
 import           Servant.Swagger.UI
+import           Servant.Auth.Server
 
 import           Crypto.JOSE.JWK
 import           Data.Text                              (Text)
@@ -44,7 +45,7 @@ api = Proxy
 
 
 type ServerAPI = PublicAPI :<|> ProtectedAPI
-type ProtectedAPI = Flat (BasicAuth "foo-realm" AuthUser :> PrivateAPI)
+type ProtectedAPI = Flat ((Servant.Auth.Server.Auth '[JWT]) VerifiedTokenClaims :> PrivateAPI)
 
 serverAPI :: Proxy ServerAPI
 serverAPI = Proxy

@@ -73,7 +73,11 @@ instance HasKatipLogEnv BRContext where katipLogEnv = brKatipLogEnv
 instance HasKatipContext BRContext where
   katipContexts = brKatipLogContexts
   katipNamespace = brKatipNamespace
+instance HasAuthPublicKey BRContext where authPublicKey = brAuthPublicKey
 
+
+class HasAuthPublicKey a where
+  authPublicKey :: Lens' a (JWK)
 
 
 -- *****************************************************************************
@@ -106,7 +110,7 @@ instance ToSchema NewUser
 -- Auth User Types:
 newtype VerifiedTokenClaims = VerifiedTokenClaims
   { verifiedTokenClaimsSub :: Text
-  }
+  } deriving (Show)
 instance SAS.ToJWT VerifiedTokenClaims where
   encodeJWT = error "Not implemented" -- TODO: Implement this properly
 
@@ -291,6 +295,7 @@ data BRError
   -- | The user tried to add a business with the a GS1CompanyPrefix that already exsits.
   | GS1CompanyPrefixExistsBRE
   | BusinessDoesNotExistBRE
+  | UserAuthFailureBRE (SAS.AuthResult ())
   -- | When adding a user fails with an underlying error arising from the database.
   | UserCreationSQLErrorBRE SqlError
   -- | When adding a user fails for an unknown reason.

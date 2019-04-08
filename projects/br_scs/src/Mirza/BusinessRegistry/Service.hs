@@ -33,14 +33,14 @@ import           Mirza.BusinessRegistry.Handlers.Health   as Handlers
 import           Mirza.BusinessRegistry.Handlers.Keys     as Handlers
 import           Mirza.BusinessRegistry.Handlers.Location as Handlers
 import           Mirza.BusinessRegistry.Handlers.Users    as Handlers
+import           Mirza.BusinessRegistry.Handlers.Shims    as Handlers
 import           Mirza.BusinessRegistry.Types
 
 import           Katip
 
 import           Servant
 import           Servant.Swagger
-
-import           GHC.TypeLits                             (KnownSymbol)
+import           Servant.Auth.Server
 
 import           Control.Lens                             hiding ((.=))
 import           Control.Monad.IO.Class                   (liftIO)
@@ -84,23 +84,29 @@ privateServer :: ( Member context '[HasScryptParams, HasDB]
                  , APIPossibleErrors err)
               => ServerT ProtectedAPI (AppM context err)
 privateServer =
-       addUserAuth
-  :<|> addBusinessAuth
-  :<|> addPublicKey
-  :<|> revokePublicKey
-  :<|> addLocation
-  :<|> getBusinessInfo
+       addUserAuthShim
+  :<|> addBusinessAuthShim
+  :<|> addPublicKeyShim
+  :<|> revokePublicKeyShim
+  :<|> addLocationShim
+  :<|> getBusinessInfoShim
 
 
-instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub) where
-  toSwagger _ =
+instance (HasSwagger sub) => HasSwagger (Servant.Auth.Server.Auth '[JWT] a :> sub) where
+  toSwagger _ = -- TODO: Update this properly...can do this nowish...
     let
-      authSchemes = IOrd.singleton "basic" $ SecurityScheme SecuritySchemeBasic Nothing
-      securityRequirements = [SecurityRequirement $ IOrd.singleton "basic" []]
+      method = "OAuth2"
+      securityRequirements = [SecurityRequirement $ IOrd.singleton method []]
+      -- Using the proper OAuth implementation doesn't work because the redirect is broken. Leaving this here for if the
+      -- issue gets fixed. The relevant issue is: https://github.com/haskell-servant/servant-swagger-ui/issues/54
+      --oauth2params = OAuth2Params (OAuth2Implicit " https://mirza.au.auth0.com/authorize") IOrd.empty
+      --authSchemes = IOrd.singleton method $ SecurityScheme (SecuritySchemeOAuth2 oauth2params) Nothing
+      authDescription = "Use the format 'Bearer [Token]' to supply the token to the Authorization field."
+      authSchemes = IOrd.singleton method $ SecurityScheme (SecuritySchemeApiKey (ApiKeyParams "Authorization" ApiKeyHeader)) (Just authDescription)
     in
       toSwagger (Proxy :: Proxy sub)
-      & securityDefinitions .~ authSchemes
       & allOperations . security .~ securityRequirements
+      & securityDefinitions .~ authSchemes
 
 
 appMToHandler :: (HasLogging context) => context -> AppM context BRError x -> Handler x
@@ -161,6 +167,7 @@ brErrorToHttpError brError =
     (GS1CompanyPrefixExistsBRE)     -> httpError err400 "GS1 company prefix already exists."
     (BusinessDoesNotExistBRE)       -> httpError err400 "Business does not exist."
     (OperationNotPermittedBRE _ _)  -> httpError err403 "A user can only act on behalf of the business they are associated with."
+    (UserAuthFailureBRE _)          -> httpError err401 "Authorization invalid."
     (UserCreationErrorBRE _ _)      -> userCreationError brError
     (UserCreationSQLErrorBRE _)     -> userCreationError brError
     UnknownUserBRE                  -> httpError err404 "Unknown User"

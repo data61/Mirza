@@ -34,6 +34,7 @@ import           Mirza.SupplyChain.Database.Schema     as Schema
 import           Mirza.BusinessRegistry.Client.Servant (addPublicKey)
 import           Mirza.BusinessRegistry.Tests.Utils    (goodRsaPrivateKey,
                                                         goodRsaPublicKey)
+import           Mirza.BusinessRegistry.Client.Servant (authDataToTokenTodoRemove)
 
 import           Mirza.Common.Tests.ServantUtils
 import           Mirza.Common.Tests.Utils
@@ -180,7 +181,7 @@ clientSpec = do
           step "Tying the user with a good key"
           Just goodPubKey <- goodRsaPublicKey
           Just goodPrivKey <- goodRsaPrivateKey
-          keyIdResponse <- httpBR (addPublicKey authABC goodPubKey Nothing)
+          keyIdResponse <- httpBR (addPublicKey (authDataToTokenTodoRemove authABC) goodPubKey Nothing)
           keyIdResponse `shouldSatisfy` isRight
           let keyId = fromRight (BRKeyId nil) keyIdResponse
 
@@ -236,7 +237,7 @@ clientSpec = do
           step "Tying the giver user with a good key"
           Just goodPubKeyGiver <- readJWK "./test/Mirza/Common/TestData/testKeys/goodJWKs/4096bit_rsa_pub.json"
           Just goodPrivKeyGiver <- readJWK "./test/Mirza/Common/TestData/testKeys/goodJWKs/4096bit_rsa.json"
-          keyIdResponseGiver <- httpBR (addPublicKey authABC goodPubKeyGiver Nothing)
+          keyIdResponseGiver <- httpBR (addPublicKey (authDataToTokenTodoRemove authABC) goodPubKeyGiver Nothing)
           keyIdResponseGiver `shouldSatisfy` isRight
           let keyIdGiver = fromRight (BRKeyId nil) keyIdResponseGiver
 
@@ -271,7 +272,7 @@ clientSpec = do
           step "Tying the receiver user with a good key"
           Just goodPubKeyReceiver <- readJWK "./test/Mirza/Common/TestData/testKeys/goodJWKs/16384bit_rsa_pub.json"
           Just goodPrivKeyReceiver <- readJWK "./test/Mirza/Common/TestData/testKeys/goodJWKs/16384bit_rsa.json"
-          keyIdResponseReceiver <- httpBR (addPublicKey authDEF goodPubKeyReceiver Nothing)
+          keyIdResponseReceiver <- httpBR (addPublicKey (authDataToTokenTodoRemove authDEF) goodPubKeyReceiver Nothing)
           keyIdResponseReceiver `shouldSatisfy` isRight
           let keyIdReceiver = fromRight (BRKeyId nil) keyIdResponseReceiver
 

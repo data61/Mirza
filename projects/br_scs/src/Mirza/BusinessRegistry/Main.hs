@@ -21,6 +21,7 @@ import           Data.GS1.EPC                            (GS1CompanyPrefix (..))
 
 import           Servant
 import           Servant.Swagger.UI
+import           Servant.Auth.Server
 
 import qualified Data.Pool                               as Pool
 import           Database.PostgreSQL.Simple
@@ -35,10 +36,10 @@ import           Data.ByteString                         (ByteString)
 import qualified Data.ByteString.Char8                   as BS
 import           Data.Semigroup                          ((<>))
 import           Data.Text                               (Text, pack)
-import           Data.Text.Encoding                      (encodeUtf8)
+import           Data.Text.Encoding                      (encodeUtf8, decodeUtf8)
 import           Options.Applicative                     hiding (action)
 import           Text.Email.Parser                       (addrSpec)
-import           Text.Email.Validate                     (validate)
+import           Text.Email.Validate                     (validate, toByteString)
 
 import qualified Crypto.Scrypt                           as Scrypt
 
@@ -162,7 +163,7 @@ initBRContext opts@(ServerOptionsBR dbConnStr _ _ _ lev mlogPath envT) = do
 initApplication :: ServerOptionsBR -> RunServerOptions -> BT.BRContext -> IO Application
 initApplication _go _so ev =
   pure $ serveWithContext api
-          (basicAuthServerContext ev)
+          (tokenServerContext ev)
           (server ev)
 
 
@@ -175,7 +176,7 @@ server ev =
   swaggerSchemaUIServer serveSwaggerAPI
   :<|> hoistServerWithContext
         (Proxy @ServerAPI)
-        (Proxy @'[BasicAuthCheck BT.AuthUser])
+        (Proxy @'[CookieSettings, JWTSettings])
         (appMToHandler ev)
         (appHandlers @BRContext @BRError)
 
@@ -210,6 +211,7 @@ runUserCommand opts UserAdd = do
 
 interactivelyGetNewUser :: IO NewUser
 interactivelyGetNewUser = do
+  newUserOAuthSub     <- pack <$> prompt "OAuthSub:"
   newUserEmailAddress <- getUserEmailInteractive
   newUserPassword     <- pack <$> prompt "Password:"
   newUserCompany      <- GS1CompanyPrefix . read <$> prompt "GS1CompanyPrefix:"
@@ -344,6 +346,7 @@ runBootstrap opts email password companyPrefix = do
 
     bootstrapUser :: EmailAddress -> Text -> GS1CompanyPrefix -> NewUser
     bootstrapUser userEmail userPassword company = do
+      let newUserOAuthSub     = "bootstrapped-user-oauth-sub" <> decodeUtf8 (toByteString userEmail)
       let newUserEmailAddress = userEmail
       let newUserPassword     = userPassword
       let newUserCompany      = company

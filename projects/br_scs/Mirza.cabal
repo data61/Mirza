@@ -29,6 +29,7 @@ library
                     , Mirza.BusinessRegistry.Handlers.Health
                     , Mirza.BusinessRegistry.Handlers.Keys
                     , Mirza.BusinessRegistry.Handlers.Location
+                    , Mirza.BusinessRegistry.Handlers.Shims
                     , Mirza.BusinessRegistry.Main
                     , Mirza.BusinessRegistry.Service
                     , Mirza.BusinessRegistry.Handlers.Users
@@ -159,6 +160,7 @@ test-suite supplyChainServer-test
                      , process
                      , scrypt
                      , servant
+                     , servant-auth-client
                      , servant-server
                      , text
                      , time
@@ -190,7 +192,7 @@ test-suite businessRegistry-test
                     , Mirza.BusinessRegistry.Tests.Keys
                     , Mirza.BusinessRegistry.Tests.Dummies
                     , Mirza.BusinessRegistry.Tests.Business
-                    , Mirza.BusinessRegistry.Tests.Client
+                    -- , Mirza.BusinessRegistry.Tests.Client  TODO: Reinclude when tests are updated to use OAuth rather then basic auth.
                     , Mirza.Common.Tests.Utils
                     , Mirza.BusinessRegistry.Tests.Utils
   default-extensions:  OverloadedStrings
@@ -215,6 +217,7 @@ test-suite businessRegistry-test
                      , postgresql-simple
                      , process
                      , servant
+                     , servant-auth-client
                      , text
                      , time
                      , tasty
