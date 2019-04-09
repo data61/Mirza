@@ -19,6 +19,8 @@ import qualified Network.Wai.Handler.Warp      as Warp
 
 import qualified Data.ByteString.Char8         as B
 
+import           Data.String                   (IsString (..))
+
 main :: IO ()
 -- main = launchProxy =<< execParser opts where
 --   opts = info (optsParser <**> helper)
@@ -33,12 +35,12 @@ main = (decodeEnv :: IO (Either String Opts)) >>= \case
 
 
 initContext :: Opts -> IO AuthContext
-initContext (Opts myService (ServiceInfo (Hostname destHost) (Port destPort)) url) = do
+initContext (Opts myService (ServiceInfo (Hostname destHost) (Port destPort)) url clientId) = do
   let proxyDest = ProxyDest (B.pack destHost) destPort
   mngr <- newManager tlsManagerSettings
   fetchJWKs mngr url >>= \case
     Left err -> fail $ show err
-    Right jwkSet -> pure $ AuthContext myService proxyDest mngr jwkSet
+    Right jwkSet -> pure $ AuthContext myService proxyDest mngr jwkSet (fromString clientId)
 
 launchProxy :: Opts -> IO ()
 launchProxy opts = do
@@ -59,4 +61,5 @@ _optsParser = Opts
         <$> (Hostname <$> strOption (long "desthost" <> short 'd' <> value "localhost" <> showDefault <> help "The host to make requests to."))
         <*> (Port <$> option auto (long "destport" <> short 'r' <> value 8200 <> showDefault <> help "Port to make requests to.")))
   <*> strOption (long "jwkurl" <> short 'j' <> value "https://mirza.au.auth0.com/.well-known/jwks.json" <> showDefault <> help "URL to fetch ")
+  <*> strOption (long "jwkclientid" <> short 'c' <> help "Audience Claim.")
 

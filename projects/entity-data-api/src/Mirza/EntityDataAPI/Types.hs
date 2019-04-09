@@ -6,7 +6,7 @@
 module Mirza.EntityDataAPI.Types where
 
 import           System.Envy               (DefConfig (..), FromEnv (..),
-                                            Var (..), envMaybe, (.!=))
+                                            Var (..), env, envMaybe, (.!=))
 import qualified System.Envy               as Envy
 
 import           Network.HTTP.Req          (HttpException)
@@ -28,7 +28,8 @@ import           Data.Time.Clock           (getCurrentTime)
 
 import           Text.Read                 (readMaybe)
 
-import           Crypto.JWT                (AsError, AsJWTError, JWKSet)
+import           Crypto.JWT                (AsError, AsJWTError, JWKSet,
+                                            StringOrURI)
 import qualified Crypto.JWT                as Jose
 
 import           Control.Lens              (makeClassyPrisms, prism')
@@ -64,6 +65,7 @@ data AuthContext = AuthContext
   , destProxyServiceInfo :: ProxyDest
   , appManager           :: Manager
   , jwtSigningKeys       :: JWKSet
+  , ctxJwkClientId       :: StringOrURI
   } deriving (Generic)
 
 --  ------------------------------------------------
@@ -109,6 +111,7 @@ data Opts = Opts
   { myServiceInfo   :: ServiceInfo
   , destServiceInfo :: ServiceInfo
   , jwkUrl          :: String
+  , jwkClientId     :: String
   } deriving (Show, Generic, Eq)
 
 instance DefConfig Opts where
@@ -116,6 +119,7 @@ instance DefConfig Opts where
     { myServiceInfo   = ServiceInfo{serviceHost=Hostname "localhost", servicePort=Port 8080 }
     , destServiceInfo = ServiceInfo{serviceHost=Hostname "localhost", servicePort=Port 8000 }
     , jwkUrl          = defaultJwkUrl
+    , jwkClientId     = ""
     }
 
 instance FromEnv Opts where
@@ -123,6 +127,7 @@ instance FromEnv Opts where
     <$> fromEnvMyServiceInfo
     <*> fromEnvDestServiceInfo
     <*> envMaybe "JWK_URL" .!= defaultJwkUrl
+    <*> env "JWK_CLIENT_ID"
 
 --  ------------------------------------------------
 

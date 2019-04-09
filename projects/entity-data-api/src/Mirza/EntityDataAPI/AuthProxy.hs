@@ -35,10 +35,11 @@ handleRequest ctx r = do
 handleToken :: Maybe Header -> AppM AuthContext AppError Jose.ClaimsSet
 handleToken (Just (_, authHdr)) = do
   jwKey <- asks jwtSigningKeys
+  aud <- asks ctxJwkClientId
   let bearer = "Bearer "
       (_mbearer, token) = BS.splitAt (BS.length bearer) authHdr
   unverifiedJWT <- Jose.decodeCompact $ BSL.fromStrict token
-  Jose.verifyClaims (Jose.defaultJWTValidationSettings (const True)) jwKey unverifiedJWT
+  Jose.verifyClaims (Jose.defaultJWTValidationSettings (== aud)) jwKey unverifiedJWT
 handleToken Nothing = throwError NoAuthHeader
 
 extractAuthHeader :: Request -> (Request, Maybe Header)
