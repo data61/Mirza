@@ -2,11 +2,11 @@
 
 module Mirza.EntityDataAPI.AuthProxy where
 
-import           Network.HTTP.Types
-import           Network.Wai               (Application, Request (..))
-
 import           Network.HTTP.ReverseProxy (WaiProxyResponse (..), defaultOnExc,
                                             waiProxyTo)
+import           Network.HTTP.Types
+import           Network.Wai               (Application, Request (..),
+                                            responseBuilder)
 
 import           GHC.Exception             (SomeException)
 
@@ -29,7 +29,7 @@ handleRequest ctx r = do
   let (modifiedReq, mAuthHeader) = extractAuthHeader r
   mUnverifiedJWT <- runAppM ctx $ handleToken mAuthHeader
   case mUnverifiedJWT of
-    Left (err :: AppError) -> fail $ show err
+    Left (_err :: AppError) -> pure $ WPRResponse $ responseBuilder status401 mempty mempty
     Right _ -> pure $ WPRModifiedRequest modifiedReq (destProxyServiceInfo ctx)
 
 handleToken :: Maybe Header -> AppM AuthContext AppError Jose.ClaimsSet
