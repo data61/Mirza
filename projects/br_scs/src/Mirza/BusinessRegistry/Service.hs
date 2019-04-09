@@ -93,7 +93,7 @@ privateServer =
 
 
 instance (HasSwagger sub) => HasSwagger (Servant.Auth.Server.Auth '[JWT] a :> sub) where
-  toSwagger _ = -- TODO: Update this properly...can do this nowish...
+  toSwagger _ =
     let
       method = "OAuth2"
       securityRequirements = [SecurityRequirement $ IOrd.singleton method []]
