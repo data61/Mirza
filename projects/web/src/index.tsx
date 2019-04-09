@@ -7,30 +7,37 @@ import { Footer } from "./components/footer";
 import { Header } from "./components/header";
 import { Home } from "./components/home";
 import { NotFound } from "./components/notFound";
-import { MyScanner } from "./components/scanner";
+import { Submit } from "./components/submit";
 
 import { authInit, logIn } from "./auth";
+import { BusinessRegistry } from "./business-registry";
 
-authInit().then( (authState) => {
+authInit().then((authState) => {
   if (authState === null) {
     logIn();
     return;
   }
 
-  const appState = {
-    auth: authState,
-  };
+  const br = new BusinessRegistry(authState.getToken());
 
-  ReactDOM.render(<BrowserRouter>
-    <React.Fragment>
-      <Header auth={appState.auth}></Header>
-      <Switch>
-        <Route path="/" exact component={Home} />
-        <Route path="/events" exact component={EventLog} />
-        <Route path="/scan" exact component={MyScanner} />
-        <Route component={NotFound} />
-      </Switch>
-      <Footer></Footer>
-    </React.Fragment>
-  </BrowserRouter>, document.querySelector("main"));
+  br.getBusiness().then((business) => {
+
+    const appState = {
+      auth: authState,
+      business,
+    };
+
+    ReactDOM.render(<BrowserRouter>
+      <React.Fragment>
+        <Header auth={appState.auth} business={appState.business}></Header>
+        <Switch>
+          <Route path="/" exact component={Home} />
+          <Route path="/events" exact component={EventLog} />
+          <Route path="/scan" exact component={Submit} />
+          <Route component={NotFound} />
+        </Switch>
+        <Footer></Footer>
+      </React.Fragment>
+    </BrowserRouter>, document.querySelector("main"));
+  });
 });

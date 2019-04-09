@@ -15,13 +15,14 @@
     "@types/react-dom": "^16.8.2",
     "@types/react-qr-reader": "^2.1.2",
     "auth0-js": "^9.10.0",
+    "digital-link.js": "^1.0.0",
     "jsqr": "^1.2.0",
     "query-string": "^6.3.0",
     "react": "^16.8.3",
     "react-dom": "^16.8.3",
-    "tslint-react": "^3.6.0",
+    "react-qr-reader": "^2.2.1",
     "react-router-dom": "^4.3.1",
-    "react-qr-reader": "^2.2.1"
+    "tslint-react": "^3.6.0"
   },
   "devDependencies": {
     "@types/auth0-js": "^8.11.11",
