@@ -26,7 +26,7 @@ import           Database.Beam                 as B
 import           Database.Beam.Migrate.SQL     as BSQL
 import           Database.Beam.Migrate.Types
 import           Database.Beam.Postgres        (PgCommandSyntax, PgJSON,
-                                                Postgres, json, uuid)
+                                                Postgres, json, uuid, text)
 import           Database.Beam.Postgres.Syntax (PgDataTypeSyntax)
 
 import           Data.Aeson                    hiding (json)
@@ -62,8 +62,9 @@ migration :: () -> Migration PgCommandSyntax (CheckedDatabaseSettings Postgres B
 migration () =
   BusinessRegistryDB
     <$> createTable "businesses" (BusinessT
-          (field "biz_gs1_company_prefix" gs1CompanyPrefixType)
-          (field "biz_name" (varchar (Just defaultFieldMaxLength)) notNull)
+          (field "business_gs1_company_prefix" gs1CompanyPrefixType)
+          (field "business_name" (varchar (Just defaultFieldMaxLength)) notNull)
+          (field "business_url"  (text) notNull)
           lastUpdateField
           )
     <*> createTable "users" (UserT
@@ -134,9 +135,10 @@ type Business = BusinessT Identity
 deriving instance Show Business
 
 data BusinessT f = BusinessT
-  { biz_gs1_company_prefix :: C f EPC.GS1CompanyPrefix
-  , biz_name               :: C f Text
-  , biz_last_update        :: C f (Maybe LocalTime)
+  { business_gs1_company_prefix :: C f EPC.GS1CompanyPrefix
+  , business_name               :: C f Text
+  , business_url                :: C f Text
+  , business_last_update        :: C f (Maybe LocalTime)
   }
   deriving Generic
 
@@ -149,7 +151,7 @@ instance Beamable (PrimaryKey BusinessT)
 instance Table BusinessT where
   data PrimaryKey BusinessT f = BizId (C f EPC.GS1CompanyPrefix)
     deriving Generic
-  primaryKey = BizId . biz_gs1_company_prefix
+  primaryKey = BizId . business_gs1_company_prefix
 deriving instance Eq (PrimaryKey BusinessT Identity)
 
 
