@@ -15,8 +15,8 @@ RUN mkdir /edapi/dist/ && \
 
 FROM ubuntu:18.04 as PKG-EDAPI
 
-# RUN apt update && \
-# 	apt install -y libpq-dev libffi-dev ca-certificates
+RUN apt update && \
+	apt install -y libpq-dev libffi-dev ca-certificates
 
 COPY --from=0 /edapi/dist/entity-data-api /opt/Mirza/entity-data-api
 
