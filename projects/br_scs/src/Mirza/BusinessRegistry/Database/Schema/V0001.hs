@@ -36,6 +36,7 @@ import           Text.Email.Validate           (EmailAddress)
 
 import           GHC.Generics                  (Generic)
 
+
 -- Convention: Table types and constructors are suffixed with T (for Table).
 
 --------------------------------------------------------------------------------

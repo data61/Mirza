@@ -27,6 +27,7 @@ import           Database.PostgreSQL.Simple
 
 import           Network.Wai                             (Middleware)
 import qualified Network.Wai.Handler.Warp                as Warp
+import           Network.URI                             (nullURI)
 
 import qualified Data.Attoparsec.ByteString              as A
 import           Data.ByteString                         (ByteString)
@@ -336,6 +337,7 @@ runBootstrap opts email password companyPrefix = do
     bootstrapBusiness prefix = do
       let newBusinessGS1CompanyPrefix = prefix
       let newBusinessName             = "Bootstrapped Business"
+      let newBusinessUrl              = nullURI
       NewBusiness{..}
 
     bootstrapUser :: EmailAddress -> Text -> GS1CompanyPrefix -> NewUser

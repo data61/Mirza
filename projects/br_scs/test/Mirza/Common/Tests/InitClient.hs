@@ -11,7 +11,7 @@ import           Mirza.SupplyChain.Types                  as ST
 
 import           Data.GS1.EPC                             (GS1CompanyPrefix (..))
 import           Mirza.Common.Tests.ServantUtils
-import           Mirza.Common.Utils                       (randomText)
+import           Mirza.Common.Utils                       (randomText, mockURI)
 
 import           Control.Concurrent                       (ThreadId)
 
@@ -39,7 +39,7 @@ import           Mirza.BusinessRegistry.Main              (RunServerOptions (..)
                                                            ServerOptionsBR (..),
                                                            initBRContext)
 import qualified Mirza.BusinessRegistry.Main              as BRMain
-import           Mirza.BusinessRegistry.Types             as BT
+import           Mirza.BusinessRegistry.Types             as BT hiding (businessName)
 
 import           Mirza.Common.Tests.Utils                 (DatabaseConnectionString (..),
                                                            DatabaseName (..),
@@ -140,7 +140,7 @@ testDbConnectionStringBR = databaseNameToConnectionString testDbNameBR
 
 newBusinessToBusinessResponse :: NewBusiness -> BusinessResponse
 newBusinessToBusinessResponse =
-  BusinessResponse <$> newBusinessGS1CompanyPrefix <*> newBusinessName
+  BusinessResponse <$> newBusinessGS1CompanyPrefix <*> newBusinessName <*> newBusinessUrl
 
 
 newUserToBasicAuthData :: BT.NewUser -> BasicAuthData
@@ -157,8 +157,9 @@ bootstrapAuthData ctx = do
   let email = "initialUser@example.com"
   password <- randomPassword
   let prefix = GS1CompanyPrefix "1000000"
-  let business = NewBusiness prefix "Business Name"
-  insertBusinessResult  <- runAppM @_ @BRError ctx $ BRHB.addBusiness business
+  let businessName = "Business Name"
+      business = NewBusiness prefix businessName (mockURI businessName)
+  insertBusinessResult <- runAppM @_ @BRError ctx $ BRHB.addBusiness business
   insertBusinessResult `shouldSatisfy` isRight
   let user = BT.NewUser  (unsafeMkEmailAddress email)
                       password
