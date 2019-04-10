@@ -13,6 +13,8 @@ import           Mirza.Common.Utils
 import           Servant.API.BasicAuth
 import           Servant.Client
 
+import           Network.URI                              (URI (..), URIAuth (..), nullURI)
+
 import           Data.ByteString.Lazy                     (ByteString)
 import           Data.Text.Encoding                       (encodeUtf8)
 
@@ -155,6 +157,18 @@ clientSpec = do
           -- stringPrefixResult `shouldSatisfy` isLeft
           -- stringPrefixResult `shouldSatisfy` (checkFailureStatus NS.badRequest400)
           -- stringPrefixResult `shouldSatisfy` (checkFailureMessage "TODO")
+
+          step "Can't add business with a nullUIL"
+          nullURLResult <- http (addBusiness brAuthUser biz1{newBusinessUrl = nullURI})
+          nullURLResult `shouldSatisfy` isLeft
+          nullURLResult `shouldSatisfy` (checkFailureStatus NS.badRequest400)
+          nullURLResult `shouldSatisfy` (checkFailureMessage "Error in $.newBusinessUrl: not a URI")
+
+          step "Can't add business with an invalid URL"
+          invalidURLResult <- http (addBusiness brAuthUser biz1{newBusinessUrl = URI "" (Just $ URIAuth "" "invalid" "") "" "" ""})
+          invalidURLResult `shouldSatisfy` isLeft
+          invalidURLResult `shouldSatisfy` (checkFailureStatus NS.badRequest400)
+          invalidURLResult `shouldSatisfy` (checkFailureMessage "Error in $.newBusinessUrl: not a URI")
 
 
   let userTests = testCaseSteps "Can create users" $ \step ->
