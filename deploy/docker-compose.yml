@@ -37,7 +37,7 @@ services:
       - backend
     env_file:
       - .env
-    command: /opt/Mirza/supplyChainServer --brhost br --brport 8200 -c "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db/devsupplychainserver"
+    command: --brhost br --brport 8200 -c "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db/devsupplychainserver"
     logging:
       driver: json-file
       options:
@@ -55,7 +55,7 @@ services:
       - backend
     env_file:
       - .env
-    command: /opt/Mirza/businessRegistry -c 'postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db/devbusinessregistry' server
+    command: -c 'postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db/devbusinessregistry' server
     logging:
       driver: json-file
       options:
@@ -92,7 +92,7 @@ services:
       - businessRegistry:br
     env_file:
       - .env
-    command: /bin/sh -c "cd /opt/Mirza && ./supplyChainServer --init-db -c 'postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/devsupplychainserver' && ./supplyChainServer --username '${BR_USER}' --password '${BR_PASSWORD}' --scshost scs --brhost br --brport 8200"
+    entrypoint: /bin/sh -c "cd /opt/Mirza && ./supplyChainServer --init-db -c 'postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/devsupplychainserver' && ./supplyChainServer --username '${BR_USER}' --password '${BR_PASSWORD}' --scshost scs --brhost br --brport 8200"
     depends_on:
       - db
     logging:
@@ -107,7 +107,7 @@ services:
       - backend
     env_file:
       - .env
-    command: /bin/sh -c "echo 'YES' | /opt/Mirza/businessRegistry initdb -c 'postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db/devbusinessregistry' && /opt/Mirza/businessRegistry -c 'postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db/devbusinessregistry' bootstrap ${BR_USER} ${BR_PASSWORD} bootstrap"
+    entrypoint: /bin/sh -c "echo 'YES' | /opt/Mirza/businessRegistry initdb -c 'postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db/devbusinessregistry' && /opt/Mirza/businessRegistry -c 'postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db/devbusinessregistry' bootstrap ${BR_USER} ${BR_PASSWORD} bootstrap"
     depends_on:
       - db
     logging:
