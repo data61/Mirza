@@ -35,12 +35,23 @@ import           GHC.Stack                                (HasCallStack,
 
 import           Network.URI                              (uriToString, parseURI, nullURI)
 
+
 businessToBusinessResponse :: Business -> BusinessResponse
 businessToBusinessResponse BusinessT{..} = BusinessResponse
   { businessGS1CompanyPrefix = business_gs1_company_prefix
   , businessName             = business_name
   , businessUrl              = maybe nullURI id $ parseURI $ unpack business_url
   }
+
+
+newBusinessToBusiness :: NewBusiness -> Business
+newBusinessToBusiness NewBusiness{..} =
+  BusinessT
+    { business_gs1_company_prefix = newBusinessGS1CompanyPrefix
+    , business_name               = newBusinessName
+    , business_url                = pack $ uriToString id newBusinessUrl ""
+    , business_last_update        = Nothing
+    }
 
 
 -- This function is an interface adapter and adds the BT.AuthUser argument to
@@ -60,16 +71,6 @@ addBusiness = (fmap business_gs1_company_prefix)
   . runDb
   . addBusinessQuery
   . newBusinessToBusiness
-
-
-newBusinessToBusiness :: NewBusiness -> Business
-newBusinessToBusiness NewBusiness{..} =
-  BusinessT
-    { business_gs1_company_prefix = newBusinessGS1CompanyPrefix
-    , business_name               = newBusinessName
-    , business_url                = pack $ uriToString id newBusinessUrl ""
-    , business_last_update        = Nothing
-    }
 
 
 addBusinessQuery :: (AsBRError err, HasCallStack)
