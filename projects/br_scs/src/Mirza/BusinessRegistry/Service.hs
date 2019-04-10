@@ -28,12 +28,12 @@ import           Mirza.Common.Utils
 
 import           Mirza.BusinessRegistry.API
 
+import           Mirza.BusinessRegistry.Auth ( oauthClaimsToAuthUser )
 import           Mirza.BusinessRegistry.Handlers.Business as Handlers
 import           Mirza.BusinessRegistry.Handlers.Health   as Handlers
 import           Mirza.BusinessRegistry.Handlers.Keys     as Handlers
 import           Mirza.BusinessRegistry.Handlers.Location as Handlers
 import           Mirza.BusinessRegistry.Handlers.Users    as Handlers
-import           Mirza.BusinessRegistry.Handlers.Shims    as Handlers
 import           Mirza.BusinessRegistry.Types
 
 import           Katip
@@ -43,6 +43,7 @@ import           Servant.Swagger
 import           Servant.Auth.Server
 
 import           Control.Lens                             hiding ((.=))
+import           Control.Monad                            ( (<=<) )
 import           Control.Monad.IO.Class                   (liftIO)
 import           Control.Monad.Trans
 
@@ -83,14 +84,17 @@ publicServer =
 privateServer :: ( Member context '[HasScryptParams, HasDB]
                  , APIPossibleErrors err)
               => ServerT ProtectedAPI (AppM context err)
-privateServer =
-       addUserAuthShim
-  :<|> addBusinessAuthShim
-  :<|> addPublicKeyShim
-  :<|> revokePublicKeyShim
-  :<|> addLocationShim
-  :<|> getBusinessInfoShim
+privateServer = (wrapH1 addUserAuth)
+                :<|> (wrapH1 addBusinessAuth)
+                :<|> (wrapH2 addPublicKey)
+                :<|> (wrapH1 revokePublicKey)
+                :<|> (wrapH1 addLocation)
+                :<|> (wrapH getBusinessInfo)
 
+  where
+    wrapH f = f <=< oauthClaimsToAuthUser
+    wrapH1 f claims a = (\u -> f u a) =<< (oauthClaimsToAuthUser claims)
+    wrapH2 f claims a b = (\u -> f u a b) =<< (oauthClaimsToAuthUser claims)
 
 instance (HasSwagger sub) => HasSwagger (Servant.Auth.Server.Auth '[JWT] a :> sub) where
   toSwagger _ =

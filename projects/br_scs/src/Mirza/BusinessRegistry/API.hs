@@ -45,7 +45,7 @@ api = Proxy
 
 
 type ServerAPI = PublicAPI :<|> ProtectedAPI
-type ProtectedAPI = Flat ((Servant.Auth.Server.Auth '[JWT]) VerifiedTokenClaims :> PrivateAPI)
+type ProtectedAPI = Flat (Servant.Auth.Server.Auth '[JWT] VerifiedTokenClaims :> PrivateAPI)
 
 serverAPI :: Proxy ServerAPI
 serverAPI = Proxy
@@ -82,4 +82,5 @@ type PrivateAPI =
   :<|> "key"       :> "revoke"   :> Capture "keyId" BRKeyId     :> Post '[JSON] RevocationTime
   :<|> "location"  :> "add"      :> ReqBody '[JSON] NewLocation :> Post '[JSON] LocationId
   :<|> "company"   :> Get '[JSON] [BusinessResponse]
+
 
