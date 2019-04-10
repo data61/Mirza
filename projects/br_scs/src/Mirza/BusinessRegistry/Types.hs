@@ -66,14 +66,19 @@ data BRContext = BRContext
   }
 $(makeLenses ''BRContext)
 
-instance HasEnvType BRContext where envType = brEnvType
-instance HasConnPool BRContext where connPool = brDbConnPool
-instance HasScryptParams BRContext where scryptParams = brScryptPs
-instance HasKatipLogEnv BRContext where katipLogEnv = brKatipLogEnv
+instance HasEnvType BRContext where
+  envType = brEnvType
+instance HasConnPool BRContext where
+  connPool = brDbConnPool
+instance HasScryptParams BRContext where
+  scryptParams = brScryptPs
+instance HasKatipLogEnv BRContext where
+  katipLogEnv = brKatipLogEnv
 instance HasKatipContext BRContext where
   katipContexts = brKatipLogContexts
   katipNamespace = brKatipNamespace
-instance HasAuthPublicKey BRContext where authPublicKey = brAuthPublicKey
+instance HasAuthPublicKey BRContext where
+  authPublicKey = brAuthPublicKey
 
 
 class HasAuthPublicKey a where
