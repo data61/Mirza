@@ -251,9 +251,10 @@ runBusinessCommand opts BusinessAdd = do
 
 interactivelyGetBusinessT :: IO Business
 interactivelyGetBusinessT = do
-  biz_gs1_company_prefix <- GS1CompanyPrefix . pack <$>  prompt "GS1CompanyPrefix"
-  biz_name      <- pack <$> prompt "Name"
-  let biz_last_update = Nothing
+  business_gs1_company_prefix <- GS1CompanyPrefix . pack <$>  prompt "GS1CompanyPrefix:"
+  business_name               <- pack <$> prompt "Name:"
+  business_url                <- pack <$> prompt "Url:"
+  let business_last_update = Nothing
   pure BusinessT{..}
 
 prompt :: String -> IO String
