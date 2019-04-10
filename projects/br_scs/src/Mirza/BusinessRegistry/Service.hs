@@ -84,17 +84,20 @@ publicServer =
 privateServer :: ( Member context '[HasScryptParams, HasDB]
                  , APIPossibleErrors err)
               => ServerT ProtectedAPI (AppM context err)
-privateServer = (wrapH1 addUserAuth)
-                :<|> (wrapH1 addBusinessAuth)
-                :<|> (wrapH2 addPublicKey)
-                :<|> (wrapH1 revokePublicKey)
-                :<|> (wrapH1 addLocation)
-                :<|> (wrapH getBusinessInfo)
-
+privateServer =      (transformUser1 addUserAuth)
+                :<|> (transformUser1 addBusinessAuth)
+                :<|> (transformUser2 addPublicKey)
+                :<|> (transformUser1 revokePublicKey)
+                :<|> (transformUser1 addLocation)
+                :<|> (transformUser0 getBusinessInfo)
   where
-    wrapH f = f <=< oauthClaimsToAuthUser
-    wrapH1 f claims a = (\u -> f u a) =<< (oauthClaimsToAuthUser claims)
-    wrapH2 f claims a b = (\u -> f u a b) =<< (oauthClaimsToAuthUser claims)
+    -- Because decodeJWT is pure we can't properly transform our user which requires acess the database and the ability
+    -- to fail using our error types. It would be nice to apply oauthClaimsToAuthUser uniformly to all endpoints, but
+    -- currently the following method is the cleanest way that we know of applying it to each of the end points. The
+    -- number is the number of argument that the end point takes.
+    transformUser0 f            = f <=< oauthClaimsToAuthUser
+    transformUser1 f claims a   = (\user -> f user a)   =<< (oauthClaimsToAuthUser claims)
+    transformUser2 f claims a b = (\user -> f user a b) =<< (oauthClaimsToAuthUser claims)
 
 instance (HasSwagger sub) => HasSwagger (Servant.Auth.Server.Auth '[JWT] a :> sub) where
   toSwagger _ =

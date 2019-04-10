@@ -29,7 +29,6 @@ library
                     , Mirza.BusinessRegistry.Handlers.Health
                     , Mirza.BusinessRegistry.Handlers.Keys
                     , Mirza.BusinessRegistry.Handlers.Location
-                    , Mirza.BusinessRegistry.Handlers.Shims
                     , Mirza.BusinessRegistry.Main
                     , Mirza.BusinessRegistry.Service
                     , Mirza.BusinessRegistry.Handlers.Users
