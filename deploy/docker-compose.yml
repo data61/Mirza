@@ -13,6 +13,7 @@ services:
     image: 235945186688.dkr.ecr.ap-southeast-2.amazonaws.com/mirza-web:latest
     ports:
       - 80:80
+    restart: always
     depends_on:
       - businessRegistry
       - supplyChainServer
@@ -30,6 +31,7 @@ services:
       - 8000:8000
     links:
       - businessRegistry:br
+    restart: always
     depends_on:
       - db
     networks:
@@ -48,6 +50,7 @@ services:
     image: 235945186688.dkr.ecr.ap-southeast-2.amazonaws.com/businessregistry:latest
     ports:
       - 8200:8200
+    restart: always
     depends_on:
       - db
     networks:
