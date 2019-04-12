@@ -41,7 +41,7 @@ library
                     , Mirza.Common.Utils
                     , Mirza.Common.Time
                     , Mirza.SupplyChain.API
-                    , Mirza.SupplyChain.Auth
+                    -- , Mirza.SupplyChain.Auth
                     , Mirza.SupplyChain.Client.Servant
                     , Mirza.SupplyChain.Database.Migrate
                     , Mirza.SupplyChain.Database.Schema
