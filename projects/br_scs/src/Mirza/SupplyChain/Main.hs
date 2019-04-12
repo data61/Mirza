@@ -5,7 +5,6 @@
 module Mirza.SupplyChain.Main where
 
 import           Mirza.SupplyChain.API
-import           Mirza.SupplyChain.Auth
 import           Mirza.SupplyChain.Database.Migrate
 import           Mirza.SupplyChain.Service
 import           Mirza.SupplyChain.Types            (AppError, EnvType (..),
@@ -186,12 +185,12 @@ initSCSContext (ServerOptionsSCS envT _ _ dbConnStr _ n p r lev (Just (brHost, b
           mempty
           mempty
           (mkClientEnv manager baseUrl)
-initSCSContext so@(ServerOptionsSCS{ brServiceInfo = Nothing}) = initSCSContext so{brServiceInfo = Just ("localhost", 8200)}
+initSCSContext so@ServerOptionsSCS{brServiceInfo = Nothing} = initSCSContext so{brServiceInfo = Just ("localhost", 8200)}
 
 initApplication :: ServerOptionsSCS -> ST.SCSContext -> IO Application
 initApplication _so ev =
   pure $ serveWithContext api
-          (basicAuthServerContext ev)
+          EmptyContext
           (server' ev)
 
 server' :: SCSContext -> Server API
@@ -199,6 +198,5 @@ server' ev =
   swaggerSchemaUIServer serveSwaggerAPI
   :<|> hoistServerWithContext
         (Proxy @ServerAPI)
-        (Proxy @'[BasicAuthCheck User])
         (appMToHandler ev)
         (appHandlers @SCSContext @AppError)

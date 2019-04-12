@@ -6,7 +6,6 @@
 {-# LANGUAGE OverloadedStrings     #-}
 {-# LANGUAGE PolyKinds             #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
-{-# LANGUAGE TypeApplications      #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
 {-# OPTIONS_GHC -fno-warn-orphans  #-}
@@ -14,13 +13,11 @@
 -- | Endpoint definitions go here. Most of the endpoint definitions are
 -- light wrappers around functions in BeamQueries
 module Mirza.SupplyChain.Service
- (
-    appHandlers
+  ( appHandlers
   , publicServer
-  , privateServer
   , appMToHandler
   , serveSwaggerAPI
- ) where
+  ) where
 
 import           Mirza.Common.Utils
 
@@ -53,27 +50,17 @@ import           Mirza.Common.GS1BeamOrphans                  ()
 import qualified Crypto.JOSE                                  as JOSE
 
 
-appHandlers :: (Member context '[HasDB, HasScryptParams, HasBRClientEnv],
-                Member err     '[JOSE.AsError, AsServiceError, AsServantError, AsBRError, AsSqlError])
-            => ServerT ServerAPI (AppM context err)
-appHandlers = publicServer :<|> privateServer :<|> frontEndApi
-
-publicServer :: (Member context '[HasDB, HasScryptParams],
-                 Member err     '[AsServiceError, AsSqlError])
-             => ServerT PublicAPI (AppM context err)
-publicServer =
+appHandlers :: (Member context '[HasDB, HasScryptParams],
+                Member err     '[AsServiceError, AsSqlError])
+             => ServerT ServerAPI (AppM context err)
+appHandlers =
   -- Health
-       health
+       healthEndpoint
   -- Users
   :<|> addUser
-  :<|> versionInfo
-
-privateServer :: (Member context '[HasDB, HasScryptParams, HasBRClientEnv],
-                  Member err     '[JOSE.AsError, AsServiceError, AsServantError, AsBRError, AsSqlError])
-              => ServerT ProtectedAPI (AppM context err)
-privateServer =
+  :<|> versionInfoEndpoint
 -- Contacts
-       listContacts
+  :<|> listContacts
   :<|> addContact
   :<|> removeContact
 --  :<|> contactsSearch
@@ -92,21 +79,25 @@ privateServer =
   :<|> insertAggEvent
   :<|> insertTransactEvent
   :<|> insertTransfEvent
+-- UI API
+  :<|> listEventsPretty
 
-frontEndApi :: (Member context '[HasDB, HasScryptParams, HasBRClientEnv],
-                Member err     '[JOSE.AsError, AsServiceError, AsServantError, AsBRError, AsSqlError])
-              => ServerT UIAPI (AppM context err)
-frontEndApi = listEventsPretty
+healthEndpoint :: User -> AppM context err HealthResponse
+healthEndpoint _ = health
 
-instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub) where
-  toSwagger _ =
-    let
-      authSchemes = IOrd.singleton "basic" $ SecurityScheme SecuritySchemeBasic Nothing
-      securityRequirements = [SecurityRequirement $ IOrd.singleton "basic" []]
-    in
-      toSwagger (Proxy :: Proxy sub)
-      & securityDefinitions .~ authSchemes
-      & allOperations . security .~ securityRequirements
+versionInfoEndpoint :: User -> AppM context err String
+versionInfoEndpoint _ = versionInfo
+
+
+-- instance (HasSwagger sub) => HasSwagger sub where
+--   toSwagger _ =
+--     let
+--       authSchemes = IOrd.singleton "basic" $ SecurityScheme SecuritySchemeBasic Nothing
+--       securityRequirements = [SecurityRequirement $ IOrd.singleton "basic" []]
+--     in
+--       toSwagger (Proxy :: Proxy sub)
+--       & securityDefinitions .~ authSchemes
+--       & allOperations . security .~ securityRequirements
 
 
 
