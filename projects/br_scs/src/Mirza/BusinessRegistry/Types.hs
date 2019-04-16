@@ -4,7 +4,8 @@
 {-# LANGUAGE StandaloneDeriving         #-}
 {-# LANGUAGE TemplateHaskell            #-}
 {-# LANGUAGE UndecidableInstances       #-}
-{-# LANGUAGE TypeApplications       #-}
+{-# LANGUAGE TypeApplications           #-}
+{-# OPTIONS_GHC -fno-warn-orphans       #-}
 
 module Mirza.BusinessRegistry.Types (
     module Mirza.BusinessRegistry.Types
