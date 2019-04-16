@@ -13,6 +13,8 @@ import           Mirza.SupplyChain.Types            (AppError, EnvType (..),
 import           Mirza.SupplyChain.PopulateUtils    (insertCitrusData)
 import qualified Mirza.SupplyChain.Types            as ST
 
+import           Mirza.BusinessRegistry.Client.Servant
+
 import           Servant
 import           Servant.Client
 import           Servant.Swagger.UI
@@ -151,7 +153,7 @@ runDbPopulate so = do
       Just (brHst, brPrt) = brServiceInfo so
       brUrl = BaseUrl Http brHst brPrt ""
       Just (username, pswd) = dbPopulateInfo so
-  _ <- insertCitrusData scsUrl brUrl (BasicAuthData username pswd)
+  _ <- insertCitrusData scsUrl brUrl (authDataToTokenTodoRemove $ BasicAuthData username pswd)
   pure ()
 
 initMiddleware :: ServerOptionsSCS -> IO Middleware

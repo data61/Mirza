@@ -35,6 +35,8 @@ import           GHC.Stack                                (HasCallStack,
 
 import           Katip
 
+import           Network.URI                              (nullURI)
+
 import           Control.Lens                             (( # ))
 import           Control.Lens.Operators                   ((&))
 import           Control.Monad                            (when)
@@ -240,7 +242,7 @@ uxLocation userPrefixes = do
         -- seems the most reasonable compromise.
         unfoundBusiness = do
           $(logTM) WarningS "Could not find a business that corresponds with this business location."
-          pure (BusinessResponse (locationBiz location) "[Unknown]")
+          pure (BusinessResponse (locationBiz location) "[Unknown]" nullURI)
         matchedBusiness = maybe unfoundBusiness pure $ find (matchId location) businesses
 
     buildBusinessAndLocationResponses :: Member context '[HasLogging]

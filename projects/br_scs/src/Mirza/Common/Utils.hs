@@ -20,6 +20,7 @@ module Mirza.Common.Utils
   , expectRight
   , expectJust
   , unsafeMkEmailAddress
+  , mockURI
   , versionInfo
   ) where
 
@@ -50,6 +51,8 @@ import           Data.ByteString                   (ByteString)
 
 import           Database.Beam.Postgres            (PgJSON (..), Postgres)
 import           Database.Beam.Schema.Tables
+
+import           Network.URI                       hiding (path)
 
 import           Data.Either                       (fromRight)
 import           Data.Maybe                        (fromJust, fromMaybe)
@@ -188,3 +191,8 @@ expectRight = fromRight (error "Expected: Right b")
 -- a ``Just``
 unsafeMkEmailAddress :: ByteString -> EmailAddress
 unsafeMkEmailAddress = fromJust . emailAddress
+
+-- | Create a mock URI based on some unique text.
+mockURI :: Text -> Network.URI.URI
+mockURI unique = (Network.URI.URI "http:" (Just (URIAuth "" "example.com" "")) path "" "") where
+                 path = Network.URI.escapeURIString Network.URI.isUnescapedInURI ("/" <> T.unpack unique)

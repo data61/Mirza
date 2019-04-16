@@ -4,7 +4,9 @@
 {-# LANGUAGE StandaloneDeriving         #-}
 {-# LANGUAGE TemplateHaskell            #-}
 {-# LANGUAGE UndecidableInstances       #-}
-{-# LANGUAGE TypeApplications       #-}
+{-# LANGUAGE TypeApplications           #-}
+{-# LANGUAGE InstanceSigs               #-}
+{-# OPTIONS_GHC -fno-warn-orphans       #-}
 
 module Mirza.BusinessRegistry.Types (
     module Mirza.BusinessRegistry.Types
@@ -30,11 +32,17 @@ import qualified Database.Beam.Migrate      as BMigrate
 import qualified Database.Beam.Postgres     as BPostgres
 
 import           Crypto.JOSE                            (JWK)
+import           Crypto.JWT                             (Audience, ClaimsSet, claimSub, string)
 import           Crypto.Scrypt                          (ScryptParams)
+
+import qualified Servant.Auth.Server                    as SAS
 
 import           Katip                                  as K
 
-import           Control.Lens.TH
+import           Network.URI                            (URI)
+
+import           Control.Lens
+
 import           Data.Aeson
 import           Data.Aeson.Types
 import           Data.Aeson.TH
@@ -42,6 +50,9 @@ import           Data.Aeson.TH
 import           Data.Swagger
 import           Data.Text                              (Text)
 import           Data.Time                              (LocalTime)
+
+import           Control.Lens
+import           Data.Proxy                             (Proxy (..))
 
 import           GHC.Generics                           (Generic)
 import           GHC.Stack                              (CallStack)
@@ -53,21 +64,36 @@ import           GHC.Stack                              (CallStack)
 data BRContext = BRContext
   { _brEnvType          :: EnvType
   , _brDbConnPool       :: Pool Connection
-  , _brScryptPs         :: ScryptParams
+  , _brScryptPs         :: ScryptParams      -- TODO: Remove Crypto once we remove storage of passwords.
   , _brKatipLogEnv      :: K.LogEnv
   , _brKatipLogContexts :: K.LogContexts
   , _brKatipNamespace   :: K.Namespace
+  , _brAuthAudience     :: Audience
+  , _brAuthPublicKey    :: JWK
   }
 $(makeLenses ''BRContext)
 
-instance HasEnvType BRContext where envType = brEnvType
-instance HasConnPool BRContext where connPool = brDbConnPool
-instance HasScryptParams BRContext where scryptParams = brScryptPs
-instance HasKatipLogEnv BRContext where katipLogEnv = brKatipLogEnv
+instance HasEnvType BRContext where
+  envType = brEnvType
+instance HasConnPool BRContext where
+  connPool = brDbConnPool
+instance HasScryptParams BRContext where
+  scryptParams = brScryptPs
+instance HasKatipLogEnv BRContext where
+  katipLogEnv = brKatipLogEnv
 instance HasKatipContext BRContext where
   katipContexts = brKatipLogContexts
   katipNamespace = brKatipNamespace
+instance HasAuthAudience BRContext where
+  authAudience = brAuthAudience
+instance HasAuthPublicKey BRContext where
+  authPublicKey = brAuthPublicKey
 
+
+class HasAuthAudience a where
+  authAudience :: Lens' a (Audience)
+class HasAuthPublicKey a where
+  authPublicKey :: Lens' a (JWK)
 
 
 -- *****************************************************************************
@@ -86,7 +112,8 @@ instance HasKatipContext BRContext where
 -- | Note that BusinessRegistry.NewUser is expected to become different in the
 -- future, and hence this duplication
 data NewUser = NewUser
-  { newUserEmailAddress :: EmailAddress
+  { newUserOAuthSub     :: Text
+  , newUserEmailAddress :: EmailAddress
   , newUserPassword     :: Text
   , newUserCompany      :: GS1CompanyPrefix
   , newUserFirstName    :: Text
@@ -97,6 +124,21 @@ $(deriveJSON defaultOptions ''NewUser)
 instance ToSchema NewUser
 
 -- Auth User Types:
+newtype VerifiedTokenClaims = VerifiedTokenClaims
+  { verifiedTokenClaimsSub :: Text
+  } deriving (Show)
+instance SAS.ToJWT VerifiedTokenClaims where
+  encodeJWT = error "Not implemented" -- TODO: Implement this properly
+
+instance SAS.FromJWT VerifiedTokenClaims where
+  decodeJWT :: ClaimsSet -> Either Text VerifiedTokenClaims
+  decodeJWT claims = maybeToEither "No sub present in token" maybeVerifiedTokenClaims where
+    maybeStringOrURISub = view claimSub claims
+    maybeTextSub = (view string) <$> maybeStringOrURISub
+    maybeVerifiedTokenClaims = VerifiedTokenClaims <$> maybeTextSub
+    maybeToEither leftText = maybe (Left leftText) Right
+
+
 newtype AuthUser = AuthUser { authUserId :: UserId }
   deriving (Show, Eq, Read, Generic)
 instance ToSchema AuthUser
@@ -106,6 +148,7 @@ instance ToParamSchema AuthUser
 data NewBusiness = NewBusiness
   { newBusinessGS1CompanyPrefix :: GS1CompanyPrefix
   , newBusinessName             :: Text
+  , newBusinessUrl              :: Network.URI.URI
   } deriving (Generic, Eq, Show)
 $(deriveJSON defaultOptions ''NewBusiness)
 instance ToSchema NewBusiness
@@ -114,11 +157,19 @@ instance ToSchema NewBusiness
 data BusinessResponse = BusinessResponse
   { businessGS1CompanyPrefix :: EPC.GS1CompanyPrefix
   , businessName             :: Text
+  , businessUrl              :: Network.URI.URI
   }
-  deriving (Show, Eq, Read, Generic)
+  deriving (Show, Eq, Generic)
 instance ToSchema BusinessResponse
 instance ToJSON BusinessResponse
 instance FromJSON BusinessResponse
+
+
+instance ToSchema Network.URI.URI where
+  declareNamedSchema _ = declareNamedSchema (Proxy :: Proxy Text)
+    <&> name ?~ "URI"
+    <&> schema . description ?~ "An RFC 3986 compliant URI."
+
 
 data NewLocation = NewLocation
   { newLocGLN     :: LocationEPC
@@ -269,6 +320,7 @@ data BRError
   -- | The user tried to add a business with the a GS1CompanyPrefix that already exsits.
   | GS1CompanyPrefixExistsBRE
   | BusinessDoesNotExistBRE
+  | UserAuthFailureBRE (SAS.AuthResult ())
   -- | When adding a user fails with an underlying error arising from the database.
   | UserCreationSQLErrorBRE SqlError
   -- | When adding a user fails for an unknown reason.

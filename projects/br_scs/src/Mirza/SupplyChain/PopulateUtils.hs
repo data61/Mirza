@@ -30,6 +30,7 @@ import qualified Data.Text                             as T
 import           Data.Text.Encoding                    (encodeUtf8)
 
 import           Servant.API.BasicAuth                 (BasicAuthData (..))
+import           Servant.Auth.Client                   (Token)
 
 import           Text.Email.Validate                   (toByteString)
 
@@ -46,12 +47,15 @@ import           Crypto.JOSE                           (Alg (RS256),
 import qualified Crypto.JOSE                           as JOSE
 import           Crypto.JOSE.Types                     (Base64Octets (..))
 
+import           Network.URI                           (URI)
+
 import qualified Mirza.BusinessRegistry.GenerateUtils  as GenBR (generateMultipleUsers)
 import           Mirza.SupplyChain.GenerateUtils       as GenSCS
 
 import           Data.Maybe                            (fromJust)
 
 import           Data.List.NonEmpty                    (NonEmpty (..))
+
 
 
 -- =============================================================================
@@ -71,6 +75,7 @@ data Entity = Entity {
     entitiName          :: EntityName
   , entityCompanyPrefix :: GS1CompanyPrefix
   , entityBizName       :: BusinessName
+  , entityBizUrl        :: Network.URI.URI
   , entityLocList       :: [LocationEPC]
   , entityKeyPairPaths  :: KeyPairPaths
   }
@@ -96,11 +101,11 @@ type LocationMap = H.HashMap LocationEPC BT.NewLocation
 -- Insertion and Signature utils
 -- =============================================================================
 
-insertCitrusData :: BaseUrl -> BaseUrl -> BasicAuthData -> IO [Event]
-insertCitrusData scsUrl brUrl brAuthUser = do
+insertCitrusData :: BaseUrl -> BaseUrl -> Token -> IO [Event]
+insertCitrusData scsUrl brUrl authToken = do
   let httpSCS = runClient scsUrl
       initAuthHt = H.empty
-  authHt <- insertAndAuth scsUrl brUrl brAuthUser locationMap initAuthHt allEntities
+  authHt <- insertAndAuth scsUrl brUrl authToken locationMap initAuthHt allEntities
   currTime <- getCurrentTime
   let citrusEachEvents = makeCitrusEvents (EPCISTime currTime) utc
       citrusEvents = eachEventEvent <$> citrusEachEvents
@@ -109,36 +114,36 @@ insertCitrusData scsUrl brUrl brAuthUser = do
 
 insertAndAuth :: BaseUrl
               -> BaseUrl
-              -> BasicAuthData
+              -> Token
               -> LocationMap
               -> AuthHash
               -> [Entity]
               -> IO AuthHash
 insertAndAuth _ _ _ _          ht [] = pure ht
-insertAndAuth scsUrl brUrl auth locMap ht (entity:entities) = do
+insertAndAuth scsUrl brUrl authToken locMap ht (entity:entities) = do
   let httpSCS = runClient scsUrl
       httpBR = runClient brUrl
-      (Entity name companyPrefix bizName locations (KeyPairPaths _ pubKeyPath)) = entity
+      (Entity name companyPrefix bizName bizUrl locations (KeyPairPaths _ pubKeyPath)) = entity
       [newUserSCS] = GenSCS.genMultipleUsers [(name, companyPrefix)]
-      newBiz = BT.NewBusiness companyPrefix bizName
+      newBiz = BT.NewBusiness companyPrefix bizName bizUrl
   [newUserBR] <- GenBR.generateMultipleUsers [(name, companyPrefix)]
   let userAuth = BasicAuthData
                   (toByteString . BT.newUserEmailAddress $ newUserBR)
                   (encodeUtf8 . BT.newUserPassword $ newUserBR)
   pubKey <- fmap expectJust $ liftIO $ readJWK pubKeyPath
   insertedUserIdSCS <- fmap expectRight $ httpSCS $ SCSClient.addUser newUserSCS
-  _insertedPrefix <- httpBR $ BRClient.addBusiness auth newBiz
-  _insertedUserIdBR <- httpBR $ BRClient.addUser auth newUserBR
-  brKeyId <- fmap expectRight $ httpBR $ BRClient.addPublicKey auth pubKey Nothing
+  _insertedPrefix <- httpBR $ BRClient.addBusiness authToken newBiz
+  _insertedUserIdBR <- httpBR $ BRClient.addUser authToken newUserBR
+  brKeyId <- fmap expectRight $ httpBR $ BRClient.addPublicKey authToken pubKey Nothing
   let basicAuthDataSCS =
         BasicAuthData
           (toByteString . ST.newUserEmailAddress $ newUserSCS)
           (encodeUtf8   . ST.newUserPassword     $ newUserSCS)
 
   let newLocs = flip H.lookup locMap <$> locations
-  traverse_  (maybeInsertLocation userAuth) newLocs
+  traverse_  (maybeInsertLocation (authDataToTokenTodoRemove userAuth)) newLocs
   let updatedHt = H.insert entity (insertedUserIdSCS, basicAuthDataSCS, brKeyId) ht
-  insertAndAuth scsUrl brUrl auth locMap updatedHt entities
+  insertAndAuth scsUrl brUrl authToken locMap updatedHt entities
   where
     maybeInsertLocation _ Nothing    = pure ()
     maybeInsertLocation userAuth (Just loc) =
@@ -162,10 +167,10 @@ clientSignEvent ht evInfo entity = do
   let (_, auth, _) = expectJust $ H.lookup entity ht
       (EventInfo event _ _ (Base64Octets toSign) _) = evInfo
       eventId = fromJust $ _eid event
-      (Entity _ _ _ _ (KeyPairPaths privKeyPath pubKeyPath)) = entity
+      (Entity _ _ _ _ _ (KeyPairPaths privKeyPath pubKeyPath)) = entity
   privKey <- fmap expectJust $ liftIO $ readJWK privKeyPath
   pubKey <- fmap expectJust $ liftIO $ readJWK pubKeyPath
-  keyId <- BRClient.addPublicKey auth pubKey Nothing
+  keyId <- BRClient.addPublicKey (authDataToTokenTodoRemove auth) pubKey Nothing
 
   s <- liftIO $ runExceptT @JOSE.Error (
           signJWS toSign (Identity (newJWSHeader ((), RS256), privKey))
@@ -263,25 +268,25 @@ makeCitrusEvents startTime tz =
 
 -- Entities
 farmerE :: Entity
-farmerE = Entity "farmer" farmerCompanyPrefix "Citrus Sensation Farm" [farmLocation, farmerBiz] farmerKP
+farmerE = Entity "farmer" farmerCompanyPrefix "Citrus Sensation Farm" (mockURI "farmer") [farmLocation, farmerBiz] farmerKP
 truckDriver1E :: Entity
-truckDriver1E = Entity "truckDriver1" truckDriver1CompanyPrefix "Super Transport Solutions" [truckDriver1Biz] truckDriver1KP
+truckDriver1E = Entity "truckDriver1" truckDriver1CompanyPrefix "Super Transport Solutions" (mockURI "truckDriver1") [truckDriver1Biz] truckDriver1KP
 regulator1E :: Entity
-regulator1E = Entity "regulator1" regulator1CompanyPrefix "Pest Controllers" [regulator1Biz] regulator1KP
+regulator1E = Entity "regulator1" regulator1CompanyPrefix "Pest Controllers" (mockURI "regulator1") [regulator1Biz] regulator1KP
 regulator2E :: Entity
-regulator2E = Entity "regulator2" regulator2CompanyPrefix "Residue Checkers" [regulator2Biz] regulator2KP
+regulator2E = Entity "regulator2" regulator2CompanyPrefix "Residue Checkers" (mockURI "regulator2") [regulator2Biz] regulator2KP
 packingHouseE :: Entity
-packingHouseE = Entity "packingHouse" packingHouseCompanyPrefix "Packing Citrus R Us" [packingHouseLocation] packingHouseKP
+packingHouseE = Entity "packingHouse" packingHouseCompanyPrefix "Packing Citrus R Us" (mockURI "packingHouse") [packingHouseLocation] packingHouseKP
 auPortE :: Entity
-auPortE = Entity "AustralianPort" auPortCompanyPrefix "Port Melbourne" [auPortLocation] auPortKP
+auPortE = Entity "AustralianPort" auPortCompanyPrefix "Port Melbourne" (mockURI "AustralianPort") [auPortLocation] auPortKP
 cnPortE :: Entity
-cnPortE = Entity "ChinesePort" cnPortCompanyPrefix "Shanghai Port" [cnPortLocation] cnPortKP
+cnPortE = Entity "ChinesePort" cnPortCompanyPrefix "Shanghai Port" (mockURI "ChinesePort") [cnPortLocation] cnPortKP
 truckDriver2E :: Entity
-truckDriver2E = Entity "truckDriver2" truck2CompanyPrefix "Duper Transport Solutions" [truck2Biz] truck2KP
+truckDriver2E = Entity "truckDriver2" truck2CompanyPrefix "Duper Transport Solutions" (mockURI "truckDriver2") [truck2Biz] truck2KP
 regulator3E :: Entity
-regulator3E = Entity "regulator3" regulator3CompanyPrefix "Quarantine Australia" [regulator3Biz] regulator3KP
+regulator3E = Entity "regulator3" regulator3CompanyPrefix "Quarantine Australia" (mockURI "regulator3") [regulator3Biz] regulator3KP
 regulator4E :: Entity
-regulator4E = Entity "regulator4" regulator4CompanyPrefix "Quarantine China" [regulator4Biz] regulator4KP
+regulator4E = Entity "regulator4" regulator4CompanyPrefix "Quarantine China" (mockURI "regulator4") [regulator4Biz] regulator4KP
 
 
 allEntities :: [Entity]

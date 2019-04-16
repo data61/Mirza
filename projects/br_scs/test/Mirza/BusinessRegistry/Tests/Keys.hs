@@ -11,6 +11,7 @@ module Mirza.BusinessRegistry.Tests.Keys
 
 import           Mirza.BusinessRegistry.Database.Schema   as BSchema
 
+import           Mirza.BusinessRegistry.Auth              (tableUserToAuthUser)
 import           Mirza.BusinessRegistry.Handlers.Business
 import           Mirza.BusinessRegistry.Handlers.Keys     as BKey
 import           Mirza.BusinessRegistry.Handlers.Users
@@ -243,9 +244,9 @@ testKeyQueries = do
 insertDummies :: AppM BRContext BRError AuthUser
 insertDummies = do
   businessPfx <- addBusiness dummyBusiness
-  uid <- addUser dummyNewUser {newUserCompany=businessPfx}
+  uid <- addUserOnlyId dummyNewUser {newUserCompany=businessPfx}
   tableUser <- runDb $ getUserByIdQuery uid
-  pure (tableToAuthUser . fromJust $ tableUser)
+  pure (tableUserToAuthUser . fromJust $ tableUser)
 
 -- | Produces the minimal +ve NominalDiffTime (epsilon).
 epsNominalDiffTime :: NominalDiffTime

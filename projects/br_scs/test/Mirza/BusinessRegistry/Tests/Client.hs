@@ -8,12 +8,14 @@ import           Control.Exception                        (bracket)
 
 import           Mirza.Common.Tests.ServantUtils
 import           Mirza.BusinessRegistry.GenerateUtils (dummyBusiness, dummyUser)
+import           Mirza.Common.Utils
 
 import           Servant.API.BasicAuth
 import           Servant.Client
 
+import           Network.URI                              (URI (..), URIAuth (..), nullURI)
+
 import           Data.ByteString.Lazy                     (ByteString)
-import           Data.Text.Encoding                       (encodeUtf8)
 
 import           System.Directory                         (listDirectory)
 import           System.FilePath                          ((</>))
@@ -29,7 +31,6 @@ import           Data.Time.Clock                          (addUTCTime,
                                                            diffUTCTime,
                                                            getCurrentTime)
 import           Data.UUID                                (nil)
-import           Text.Email.Validate                      (toByteString)
 
 import qualified Network.HTTP.Types.Status                as NS
 
@@ -42,7 +43,7 @@ import           Data.GS1.EPC                             (GS1CompanyPrefix (..)
                                                            LocationReference (LocationReference))
 
 import           Mirza.BusinessRegistry.Client.Servant
-import           Mirza.BusinessRegistry.Types
+import           Mirza.BusinessRegistry.Types             hiding (businessName)
 
 import           Mirza.BusinessRegistry.Handlers.Business (businessToBusinessResponse,
                                                            newBusinessToBusiness)
@@ -55,33 +56,22 @@ import           Mirza.Common.Tests.InitClient
 import           Mirza.Common.Tests.Utils
 
 -- === BR Servant Client tests
-userABC :: NewUser
-userABC = NewUser
-  { newUserPhoneNumber = "0400 111 222"
-  , newUserEmailAddress = unsafeMkEmailAddress "abc@example.com"
-  , newUserFirstName = "Johnny"
-  , newUserLastName = "Smith"
-  , newUserCompany = GS1CompanyPrefix "something"
-  , newUserPassword = "re4lly$ecret14!"}
-
-authABC :: BasicAuthData
-authABC = BasicAuthData
-  (toByteString . newUserEmailAddress $ userABC)
-  (encodeUtf8   . newUserPassword     $ userABC)
-
 clientSpec :: IO TestTree
 clientSpec = do
   let businessTests = testCaseSteps "Can create businesses" $ \step ->
         bracket runBRApp (\(a,b,_) -> endWaiApp (a,b)) $ \(_tid,baseurl,brAuthUser) -> do
           let http = runClient baseurl
               biz1Prefix   = GS1CompanyPrefix "2000001"
-              biz1         = NewBusiness biz1Prefix "businessTests_biz1Name"
+              biz1Name     = "businessTests_biz1Name"
+              biz1         = NewBusiness biz1Prefix biz1Name (mockURI biz1Name)
               biz1Response = newBusinessToBusinessResponse biz1
               biz2Prefix   = GS1CompanyPrefix "2000002"
-              biz2         =  NewBusiness biz2Prefix "businessTests_biz2Name"
+              biz2Name     = "businessTests_biz2Name"
+              biz2         =  NewBusiness biz2Prefix biz2Name (mockURI biz2Name)
               biz2Response = newBusinessToBusinessResponse biz2
               biz3Prefix   = GS1CompanyPrefix "3000003"
-              biz3         =  NewBusiness biz3Prefix "A strange name"
+              biz3Name     = "A strange name"
+              biz3         =  NewBusiness biz3Prefix biz3Name (mockURI biz3Name)
               biz3Response = newBusinessToBusinessResponse biz3
               -- emptyPrefixBiz = NewBusiness (GS1CompanyPrefix "") "EmptyBusiness"
               -- stringPrefix1Biz = NewBusiness (GS1CompanyPrefix "string") "EmptyBusiness"
@@ -152,6 +142,18 @@ clientSpec = do
           -- stringPrefixResult `shouldSatisfy` (checkFailureStatus NS.badRequest400)
           -- stringPrefixResult `shouldSatisfy` (checkFailureMessage "TODO")
 
+          step "Can't add business with a nullUIL"
+          nullURLResult <- http (addBusiness brAuthUser biz1{newBusinessUrl = nullURI})
+          nullURLResult `shouldSatisfy` isLeft
+          nullURLResult `shouldSatisfy` (checkFailureStatus NS.badRequest400)
+          nullURLResult `shouldSatisfy` (checkFailureMessage "Error in $.newBusinessUrl: not a URI")
+
+          step "Can't add business with an invalid URL"
+          invalidURLResult <- http (addBusiness brAuthUser biz1{newBusinessUrl = URI "" (Just $ URIAuth "" "invalid" "") "" "" ""})
+          invalidURLResult `shouldSatisfy` isLeft
+          invalidURLResult `shouldSatisfy` (checkFailureStatus NS.badRequest400)
+          invalidURLResult `shouldSatisfy` (checkFailureMessage "Error in $.newBusinessUrl: not a URI")
+
 
   let userTests = testCaseSteps "Can create users" $ \step ->
         bracket runBRApp (\(a,b,_) -> endWaiApp (a,b)) $ \(_tid,baseurl,brAuthUser) -> do
@@ -159,28 +161,33 @@ clientSpec = do
 
           let http = runClient baseurl
               companyPrefix = (GS1CompanyPrefix "3000001")
-              business = NewBusiness companyPrefix "userTests_businessName"
+              businessName = "userTests_businessName"
+              business = NewBusiness companyPrefix businessName (mockURI businessName)
 
-          let user1 = NewUser (unsafeMkEmailAddress "userTests_email1@example.com")
+          let user1 = NewUser "OAuthSub_userTests_email1"
+                              (unsafeMkEmailAddress "userTests_email1@example.com")
                               password
                               companyPrefix
                               "userTests First Name 1"
                               "userTests Last Name 1"
                               "userTests Phone Number 1"
-              user2 = NewUser (unsafeMkEmailAddress "userTests_email2@example.com")
+              user2 = NewUser "OAuthSub_userTests_email2"
+                              (unsafeMkEmailAddress "userTests_email2@example.com")
                               password
                               companyPrefix
                               "userTests First Name 2"
                               "userTests Last Name 2"
                               "userTests Phone Number 2"
               -- Same email address as user1 other fields different.
-              userSameEmail = NewUser (newUserEmailAddress user1)
+              userSameEmail = NewUser "OAuthSub_userTests_same_email"
+                                      (newUserEmailAddress user1)
                                       password
                                       companyPrefix
                                       "userTests First Name Same Email"
                                       "userTests Last Name Same Email"
                                       "userTests Phone Number Same Email"
-              userNonRegisteredBiz = NewUser (unsafeMkEmailAddress "userTests_unregisteredBusiness@example.com")
+              userNonRegisteredBiz = NewUser "OAuthSub_userTests_unregistered"
+                                             (unsafeMkEmailAddress "userTests_unregisteredBusiness@example.com")
                                              password
                                              (GS1CompanyPrefix "unregistered")
                                              "userTests First Name Unregistered Business"
@@ -288,26 +295,31 @@ clientSpec = do
           password <- randomPassword
           let http = runClient baseurl
               biz1Prefix = (GS1CompanyPrefix "4000001")
-              biz1 = NewBusiness biz1Prefix "userTests_businessName1"
+              biz1Name = "userTests_businessName1"
+              biz1 = NewBusiness biz1Prefix biz1Name (mockURI biz1Name)
               biz2Prefix = (GS1CompanyPrefix "4000002")
-              biz2 = NewBusiness biz2Prefix "userTests_businessName2"
+              biz2Name = "userTests_businessName2"
+              biz2 = NewBusiness biz2Prefix biz2Name (mockURI biz2Name)
 
           -- Business1User1
-          let userB1U1 = NewUser (unsafeMkEmailAddress "keysTests_email1@example.com")
+          let userB1U1 = NewUser "OAuthSub_keysTests_email1"
+                                 (unsafeMkEmailAddress "keysTests_email1@example.com")
                                  password
                                  biz1Prefix
                                  "keysTests First Name 1"
                                  "keysTests Last Name 1"
                                  "keysTests Phone Number 1"
           -- Business1User2
-          let userB1U2 = NewUser (unsafeMkEmailAddress "keysTests_email2@example.com")
+          let userB1U2 = NewUser "OAuthSub_keysTests_email2"
+                                 (unsafeMkEmailAddress "keysTests_email2@example.com")
                                  password
                                  biz1Prefix
                                  "keysTests First Name 2"
                                  "keysTests Last Name 2"
                                  "keysTests Phone Number 2"
           -- Business2User1
-          let userB2U1 = NewUser (unsafeMkEmailAddress "keysTests_email3@example.com")
+          let userB2U1 = NewUser "OAuthSub_keysTests_email3"
+                                 (unsafeMkEmailAddress "keysTests_email3@example.com")
                                  password
                                  biz2Prefix
                                  "keysTests First Name 3"

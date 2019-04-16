@@ -80,6 +80,7 @@ library
                     , katip >= 0.5.4
                     , lens
                     , mtl
+                    , network-uri
                     , optparse-applicative
                     , postgresql-simple
                     , random
@@ -91,6 +92,9 @@ library
                     , servant-server
                     , servant-swagger
                     , servant-swagger-ui
+                    , servant-auth
+                    , servant-auth-server
+                    , servant-auth-client
                     , swagger2
                     , text
                     , time
@@ -152,10 +156,12 @@ test-suite supplyChainServer-test
                      , http-client
                      , mtl
                      , network
+                     , network-uri
                      , postgresql-simple
                      , process
                      , scrypt
                      , servant
+                     , servant-auth-client
                      , servant-server
                      , text
                      , time
@@ -187,7 +193,7 @@ test-suite businessRegistry-test
                     , Mirza.BusinessRegistry.Tests.Keys
                     , Mirza.BusinessRegistry.Tests.Dummies
                     , Mirza.BusinessRegistry.Tests.Business
-                    , Mirza.BusinessRegistry.Tests.Client
+                    -- , Mirza.BusinessRegistry.Tests.Client  TODO: Reinclude when tests are updated to use OAuth rather then basic auth.
                     , Mirza.Common.Tests.Utils
                     , Mirza.BusinessRegistry.Tests.Utils
   default-extensions:  OverloadedStrings
@@ -209,9 +215,11 @@ test-suite businessRegistry-test
                      , MissingH
                      , mtl
                      , network
+                     , network-uri
                      , postgresql-simple
                      , process
                      , servant
+                     , servant-auth-client
                      , text
                      , time
                      , tasty
