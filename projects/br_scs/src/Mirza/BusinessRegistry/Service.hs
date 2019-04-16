@@ -28,6 +28,7 @@ import           Mirza.Common.Utils
 
 import           Mirza.BusinessRegistry.API
 
+import           Mirza.BusinessRegistry.Auth ( oauthClaimsToAuthUser )
 import           Mirza.BusinessRegistry.Handlers.Business as Handlers
 import           Mirza.BusinessRegistry.Handlers.Health   as Handlers
 import           Mirza.BusinessRegistry.Handlers.Keys     as Handlers
@@ -39,10 +40,10 @@ import           Katip
 
 import           Servant
 import           Servant.Swagger
-
-import           GHC.TypeLits                             (KnownSymbol)
+import           Servant.Auth.Server
 
 import           Control.Lens                             hiding ((.=))
+import           Control.Monad                            ( (<=<) )
 import           Control.Monad.IO.Class                   (liftIO)
 import           Control.Monad.Trans
 
@@ -83,24 +84,36 @@ publicServer =
 privateServer :: ( Member context '[HasScryptParams, HasDB]
                  , APIPossibleErrors err)
               => ServerT ProtectedAPI (AppM context err)
-privateServer =
-       addUserAuth
-  :<|> addBusinessAuth
-  :<|> addPublicKey
-  :<|> revokePublicKey
-  :<|> addLocation
-  :<|> getBusinessInfo
+privateServer =      (transformUser1 addUserAuth)
+                :<|> (transformUser1 addBusinessAuth)
+                :<|> (transformUser2 addPublicKey)
+                :<|> (transformUser1 revokePublicKey)
+                :<|> (transformUser1 addLocation)
+                :<|> (transformUser0 getBusinessInfo)
+  where
+    -- Because decodeJWT is pure we can't properly transform our user which requires acess the database and the ability
+    -- to fail using our error types. It would be nice to apply oauthClaimsToAuthUser uniformly to all endpoints, but
+    -- currently the following method is the cleanest way that we know of applying it to each of the end points. The
+    -- number is the number of argument that the end point takes.
+    transformUser0 f            = f <=< oauthClaimsToAuthUser
+    transformUser1 f claims a   = (\user -> f user a)   =<< (oauthClaimsToAuthUser claims)
+    transformUser2 f claims a b = (\user -> f user a b) =<< (oauthClaimsToAuthUser claims)
 
-
-instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub) where
+instance (HasSwagger sub) => HasSwagger (Servant.Auth.Server.Auth '[JWT] a :> sub) where
   toSwagger _ =
     let
-      authSchemes = IOrd.singleton "basic" $ SecurityScheme SecuritySchemeBasic Nothing
-      securityRequirements = [SecurityRequirement $ IOrd.singleton "basic" []]
+      method = "OAuth2"
+      securityRequirements = [SecurityRequirement $ IOrd.singleton method []]
+      -- Using the proper OAuth implementation doesn't work because the redirect is broken. Leaving this here for if the
+      -- issue gets fixed. The relevant issue is: https://github.com/haskell-servant/servant-swagger-ui/issues/54
+      --oauth2params = OAuth2Params (OAuth2Implicit " https://mirza.au.auth0.com/authorize") IOrd.empty
+      --authSchemes = IOrd.singleton method $ SecurityScheme (SecuritySchemeOAuth2 oauth2params) Nothing
+      authDescription = "Use the format 'Bearer [Token]' to supply the token to the Authorization field."
+      authSchemes = IOrd.singleton method $ SecurityScheme (SecuritySchemeApiKey (ApiKeyParams "Authorization" ApiKeyHeader)) (Just authDescription)
     in
       toSwagger (Proxy :: Proxy sub)
-      & securityDefinitions .~ authSchemes
       & allOperations . security .~ securityRequirements
+      & securityDefinitions .~ authSchemes
 
 
 appMToHandler :: (HasLogging context) => context -> AppM context BRError x -> Handler x
@@ -161,6 +174,7 @@ brErrorToHttpError brError =
     (GS1CompanyPrefixExistsBRE)     -> httpError err400 "GS1 company prefix already exists."
     (BusinessDoesNotExistBRE)       -> httpError err400 "Business does not exist."
     (OperationNotPermittedBRE _ _)  -> httpError err403 "A user can only act on behalf of the business they are associated with."
+    (UserAuthFailureBRE _)          -> httpError err401 "Authorization invalid."
     (UserCreationErrorBRE _ _)      -> userCreationError brError
     (UserCreationSQLErrorBRE _)     -> userCreationError brError
     UnknownUserBRE                  -> httpError err404 "Unknown User"

@@ -91,6 +91,9 @@ library
                     , servant-server
                     , servant-swagger
                     , servant-swagger-ui
+                    , servant-auth
+                    , servant-auth-server
+                    , servant-auth-client
                     , swagger2
                     , text
                     , time
@@ -156,6 +159,7 @@ test-suite supplyChainServer-test
                      , process
                      , scrypt
                      , servant
+                     , servant-auth-client
                      , servant-server
                      , text
                      , time
@@ -187,7 +191,7 @@ test-suite businessRegistry-test
                     , Mirza.BusinessRegistry.Tests.Keys
                     , Mirza.BusinessRegistry.Tests.Dummies
                     , Mirza.BusinessRegistry.Tests.Business
-                    , Mirza.BusinessRegistry.Tests.Client
+                    -- , Mirza.BusinessRegistry.Tests.Client  TODO: Reinclude when tests are updated to use OAuth rather then basic auth.
                     , Mirza.Common.Tests.Utils
                     , Mirza.BusinessRegistry.Tests.Utils
   default-extensions:  OverloadedStrings
@@ -212,6 +216,7 @@ test-suite businessRegistry-test
                      , postgresql-simple
                      , process
                      , servant
+                     , servant-auth-client
                      , text
                      , time
                      , tasty

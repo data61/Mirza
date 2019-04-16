@@ -28,6 +28,7 @@ import           Data.GS1.EPC                           as EPC
 import           Servant
 import           Servant.API.Flatten
 import           Servant.Swagger.UI
+import           Servant.Auth.Server
 
 import           Crypto.JOSE.JWK
 import           Data.Text                              (Text)
@@ -44,7 +45,7 @@ api = Proxy
 
 
 type ServerAPI = PublicAPI :<|> ProtectedAPI
-type ProtectedAPI = Flat (BasicAuth "foo-realm" AuthUser :> PrivateAPI)
+type ProtectedAPI = Flat (Servant.Auth.Server.Auth '[JWT] VerifiedTokenClaims :> PrivateAPI)
 
 serverAPI :: Proxy ServerAPI
 serverAPI = Proxy
@@ -73,10 +74,13 @@ type PublicAPI =
 
 
 type PrivateAPI =
+       -- TODO: Note the following end point does't really make sense any more, it has only been left in place for now
+       --       because the plan is to basically refactor it into an associate user with a business end point.
        "user"      :> "add"      :> ReqBody '[JSON] NewUser     :> Post '[JSON] UserId
   :<|> "business"  :> "add"      :> ReqBody '[JSON] NewBusiness :> Post '[JSON] GS1CompanyPrefix
   :<|> "key"       :> "add"      :> ReqBody '[JSON] JWK         :> QueryParam "expirationTime" ExpirationTime :> Post '[JSON] BRKeyId
   :<|> "key"       :> "revoke"   :> Capture "keyId" BRKeyId     :> Post '[JSON] RevocationTime
   :<|> "location"  :> "add"      :> ReqBody '[JSON] NewLocation :> Post '[JSON] LocationId
   :<|> "company"   :> Get '[JSON] [BusinessResponse]
+
 
