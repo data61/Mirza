@@ -28,17 +28,30 @@ import           Database.Beam.Backend.SQL.BeamExtensions
 import           Control.Lens                             (( # ))
 
 import           Data.Foldable                            (for_)
-import           Data.Text                                (Text)
+import           Data.Text                                (Text, pack, unpack)
 import           Data.Time                                (UTCTime)
 import           GHC.Stack                                (HasCallStack,
                                                            callStack)
 
+import           Network.URI                              (uriToString, parseURI, nullURI)
+
 
 businessToBusinessResponse :: Business -> BusinessResponse
 businessToBusinessResponse BusinessT{..} = BusinessResponse
-  { businessGS1CompanyPrefix = biz_gs1_company_prefix
-  , businessName             = biz_name
+  { businessGS1CompanyPrefix = business_gs1_company_prefix
+  , businessName             = business_name
+  , businessUrl              = maybe nullURI id $ parseURI $ unpack business_url
   }
+
+
+newBusinessToBusiness :: NewBusiness -> Business
+newBusinessToBusiness NewBusiness{..} =
+  BusinessT
+    { business_gs1_company_prefix = newBusinessGS1CompanyPrefix
+    , business_name               = newBusinessName
+    , business_url                = pack $ uriToString id newBusinessUrl ""
+    , business_last_update        = Nothing
+    }
 
 
 -- This function is an interface adapter and adds the BT.AuthUser argument to
@@ -53,20 +66,11 @@ addBusinessAuth _ = addBusiness
 addBusiness :: ( Member context '[HasDB]
                , Member err     '[AsBRError, AsSqlError])
             => NewBusiness -> AppM context err GS1CompanyPrefix
-addBusiness = (fmap biz_gs1_company_prefix)
+addBusiness = (fmap business_gs1_company_prefix)
   . (handleError (handleSqlUniqueViloation "businesses_pkey" (const $ _GS1CompanyPrefixExistsBRE # ())))
   . runDb
   . addBusinessQuery
   . newBusinessToBusiness
-
-
-newBusinessToBusiness :: NewBusiness -> Business
-newBusinessToBusiness NewBusiness{..} =
-  BusinessT
-    { biz_gs1_company_prefix = newBusinessGS1CompanyPrefix
-    , biz_name               = newBusinessName
-    , biz_last_update        = Nothing
-    }
 
 
 addBusinessQuery :: (AsBRError err, HasCallStack)
@@ -91,9 +95,9 @@ searchBusinesses mpfx mname mafter =
 searchBusinessesQuery :: Maybe GS1CompanyPrefix -> Maybe Text -> Maybe UTCTime -> DB context err [Business]
 searchBusinessesQuery mpfx mname mafter = pg $ runSelectReturningList $ select $ do
   biz <- all_ (_businesses businessRegistryDB)
-  for_ mpfx $ \pfx -> guard_ (biz_gs1_company_prefix biz ==. val_ pfx)
-  for_ mname $ \name -> guard_ (biz_name biz `like_` val_ ("%"<>name<>"%"))
-  for_ mafter $ \after -> guard_ (biz_last_update biz >=. just_ (val_ (toDbTimestamp after)))
+  for_ mpfx $ \pfx -> guard_ (business_gs1_company_prefix biz ==. val_ pfx)
+  for_ mname $ \name -> guard_ (business_name biz `like_` val_ ("%"<>name<>"%"))
+  for_ mafter $ \after -> guard_ (business_last_update biz >=. just_ (val_ (toDbTimestamp after)))
   pure biz
 
 

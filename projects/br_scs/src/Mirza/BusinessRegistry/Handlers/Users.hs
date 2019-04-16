@@ -71,7 +71,7 @@ addUserQuery (BRT.NewUser oauthSub userEmail password biz firstName lastName pho
 
   business <- pg $ runSelectReturningOne $ select $ do
     businesses <- all_ (Schema._businesses Schema.businessRegistryDB)
-    guard_ (biz_gs1_company_prefix businesses ==. val_ biz)
+    guard_ (business_gs1_company_prefix businesses ==. val_ biz)
     pure businesses
   when (isNothing business) $ throwing_ _BusinessDoesNotExistBRE
 

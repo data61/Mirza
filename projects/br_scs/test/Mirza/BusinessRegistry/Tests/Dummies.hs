@@ -3,15 +3,17 @@
 module Mirza.BusinessRegistry.Tests.Dummies where
 
 import           Data.GS1.EPC                 (GS1CompanyPrefix (..))
-import           Mirza.BusinessRegistry.Types as BRT
+import           Mirza.BusinessRegistry.Types as BRT hiding (businessName)
 import           Mirza.Common.Types           as CT
+import           Mirza.Common.Utils
 
 import           Mirza.Common.Tests.Utils     (unsafeMkEmailAddress)
 
 import           Data.Text
 
 dummyBusiness :: BRT.NewBusiness
-dummyBusiness = NewBusiness (GS1CompanyPrefix "3000001") "pubKeyTests_businessName"
+dummyBusiness = NewBusiness (GS1CompanyPrefix "3000001") businessName (mockURI businessName) where
+                businessName = "pubKeyTests_businessName"
 
 dummyNewUser :: BRT.NewUser
 dummyNewUser = makeDummyNewUser (unsafeMkEmailAddress "fake@gmail.com")

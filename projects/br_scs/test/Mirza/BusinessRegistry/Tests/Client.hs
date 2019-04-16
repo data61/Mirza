@@ -8,9 +8,12 @@ import           Control.Exception                        (bracket)
 
 import           Mirza.Common.Tests.ServantUtils
 import           Mirza.BusinessRegistry.GenerateUtils (dummyBusiness, dummyUser)
+import           Mirza.Common.Utils
 
 import           Servant.API.BasicAuth
 import           Servant.Client
+
+import           Network.URI                              (URI (..), URIAuth (..), nullURI)
 
 import           Data.ByteString.Lazy                     (ByteString)
 
@@ -40,7 +43,7 @@ import           Data.GS1.EPC                             (GS1CompanyPrefix (..)
                                                            LocationReference (LocationReference))
 
 import           Mirza.BusinessRegistry.Client.Servant
-import           Mirza.BusinessRegistry.Types
+import           Mirza.BusinessRegistry.Types             hiding (businessName)
 
 import           Mirza.BusinessRegistry.Handlers.Business (businessToBusinessResponse,
                                                            newBusinessToBusiness)
@@ -59,13 +62,16 @@ clientSpec = do
         bracket runBRApp (\(a,b,_) -> endWaiApp (a,b)) $ \(_tid,baseurl,brAuthUser) -> do
           let http = runClient baseurl
               biz1Prefix   = GS1CompanyPrefix "2000001"
-              biz1         = NewBusiness biz1Prefix "businessTests_biz1Name"
+              biz1Name     = "businessTests_biz1Name"
+              biz1         = NewBusiness biz1Prefix biz1Name (mockURI biz1Name)
               biz1Response = newBusinessToBusinessResponse biz1
               biz2Prefix   = GS1CompanyPrefix "2000002"
-              biz2         =  NewBusiness biz2Prefix "businessTests_biz2Name"
+              biz2Name     = "businessTests_biz2Name"
+              biz2         =  NewBusiness biz2Prefix biz2Name (mockURI biz2Name)
               biz2Response = newBusinessToBusinessResponse biz2
               biz3Prefix   = GS1CompanyPrefix "3000003"
-              biz3         =  NewBusiness biz3Prefix "A strange name"
+              biz3Name     = "A strange name"
+              biz3         =  NewBusiness biz3Prefix biz3Name (mockURI biz3Name)
               biz3Response = newBusinessToBusinessResponse biz3
               -- emptyPrefixBiz = NewBusiness (GS1CompanyPrefix "") "EmptyBusiness"
               -- stringPrefix1Biz = NewBusiness (GS1CompanyPrefix "string") "EmptyBusiness"
@@ -136,6 +142,18 @@ clientSpec = do
           -- stringPrefixResult `shouldSatisfy` (checkFailureStatus NS.badRequest400)
           -- stringPrefixResult `shouldSatisfy` (checkFailureMessage "TODO")
 
+          step "Can't add business with a nullUIL"
+          nullURLResult <- http (addBusiness brAuthUser biz1{newBusinessUrl = nullURI})
+          nullURLResult `shouldSatisfy` isLeft
+          nullURLResult `shouldSatisfy` (checkFailureStatus NS.badRequest400)
+          nullURLResult `shouldSatisfy` (checkFailureMessage "Error in $.newBusinessUrl: not a URI")
+
+          step "Can't add business with an invalid URL"
+          invalidURLResult <- http (addBusiness brAuthUser biz1{newBusinessUrl = URI "" (Just $ URIAuth "" "invalid" "") "" "" ""})
+          invalidURLResult `shouldSatisfy` isLeft
+          invalidURLResult `shouldSatisfy` (checkFailureStatus NS.badRequest400)
+          invalidURLResult `shouldSatisfy` (checkFailureMessage "Error in $.newBusinessUrl: not a URI")
+
 
   let userTests = testCaseSteps "Can create users" $ \step ->
         bracket runBRApp (\(a,b,_) -> endWaiApp (a,b)) $ \(_tid,baseurl,brAuthUser) -> do
@@ -143,7 +161,8 @@ clientSpec = do
 
           let http = runClient baseurl
               companyPrefix = (GS1CompanyPrefix "3000001")
-              business = NewBusiness companyPrefix "userTests_businessName"
+              businessName = "userTests_businessName"
+              business = NewBusiness companyPrefix businessName (mockURI businessName)
 
           let user1 = NewUser "OAuthSub_userTests_email1"
                               (unsafeMkEmailAddress "userTests_email1@example.com")
@@ -276,9 +295,11 @@ clientSpec = do
           password <- randomPassword
           let http = runClient baseurl
               biz1Prefix = (GS1CompanyPrefix "4000001")
-              biz1 = NewBusiness biz1Prefix "userTests_businessName1"
+              biz1Name = "userTests_businessName1"
+              biz1 = NewBusiness biz1Prefix biz1Name (mockURI biz1Name)
               biz2Prefix = (GS1CompanyPrefix "4000002")
-              biz2 = NewBusiness biz2Prefix "userTests_businessName2"
+              biz2Name = "userTests_businessName2"
+              biz2 = NewBusiness biz2Prefix biz2Name (mockURI biz2Name)
 
           -- Business1User1
           let userB1U1 = NewUser "OAuthSub_keysTests_email1"

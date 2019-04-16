@@ -6,6 +6,7 @@
 {-# LANGUAGE UndecidableInstances       #-}
 {-# LANGUAGE TypeApplications           #-}
 {-# LANGUAGE InstanceSigs               #-}
+{-# OPTIONS_GHC -fno-warn-orphans       #-}
 
 module Mirza.BusinessRegistry.Types (
     module Mirza.BusinessRegistry.Types
@@ -38,6 +39,8 @@ import qualified Servant.Auth.Server                    as SAS
 
 import           Katip                                  as K
 
+import           Network.URI                            (URI)
+
 import           Control.Lens
 
 import           Data.Aeson
@@ -47,6 +50,9 @@ import           Data.Aeson.TH
 import           Data.Swagger
 import           Data.Text                              (Text)
 import           Data.Time                              (LocalTime)
+
+import           Control.Lens
+import           Data.Proxy                             (Proxy (..))
 
 import           GHC.Generics                           (Generic)
 import           GHC.Stack                              (CallStack)
@@ -142,6 +148,7 @@ instance ToParamSchema AuthUser
 data NewBusiness = NewBusiness
   { newBusinessGS1CompanyPrefix :: GS1CompanyPrefix
   , newBusinessName             :: Text
+  , newBusinessUrl              :: Network.URI.URI
   } deriving (Generic, Eq, Show)
 $(deriveJSON defaultOptions ''NewBusiness)
 instance ToSchema NewBusiness
@@ -150,11 +157,19 @@ instance ToSchema NewBusiness
 data BusinessResponse = BusinessResponse
   { businessGS1CompanyPrefix :: EPC.GS1CompanyPrefix
   , businessName             :: Text
+  , businessUrl              :: Network.URI.URI
   }
-  deriving (Show, Eq, Read, Generic)
+  deriving (Show, Eq, Generic)
 instance ToSchema BusinessResponse
 instance ToJSON BusinessResponse
 instance FromJSON BusinessResponse
+
+
+instance ToSchema Network.URI.URI where
+  declareNamedSchema _ = declareNamedSchema (Proxy :: Proxy Text)
+    <&> name ?~ "URI"
+    <&> schema . description ?~ "An RFC 3986 compliant URI."
+
 
 data NewLocation = NewLocation
   { newLocGLN     :: LocationEPC

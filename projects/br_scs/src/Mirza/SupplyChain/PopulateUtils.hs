@@ -47,12 +47,15 @@ import           Crypto.JOSE                           (Alg (RS256),
 import qualified Crypto.JOSE                           as JOSE
 import           Crypto.JOSE.Types                     (Base64Octets (..))
 
+import           Network.URI                           (URI)
+
 import qualified Mirza.BusinessRegistry.GenerateUtils  as GenBR (generateMultipleUsers)
 import           Mirza.SupplyChain.GenerateUtils       as GenSCS
 
 import           Data.Maybe                            (fromJust)
 
 import           Data.List.NonEmpty                    (NonEmpty (..))
+
 
 
 -- =============================================================================
@@ -72,6 +75,7 @@ data Entity = Entity {
     entitiName          :: EntityName
   , entityCompanyPrefix :: GS1CompanyPrefix
   , entityBizName       :: BusinessName
+  , entityBizUrl        :: Network.URI.URI
   , entityLocList       :: [LocationEPC]
   , entityKeyPairPaths  :: KeyPairPaths
   }
@@ -119,9 +123,9 @@ insertAndAuth _ _ _ _          ht [] = pure ht
 insertAndAuth scsUrl brUrl authToken locMap ht (entity:entities) = do
   let httpSCS = runClient scsUrl
       httpBR = runClient brUrl
-      (Entity name companyPrefix bizName locations (KeyPairPaths _ pubKeyPath)) = entity
+      (Entity name companyPrefix bizName bizUrl locations (KeyPairPaths _ pubKeyPath)) = entity
       [newUserSCS] = GenSCS.genMultipleUsers [(name, companyPrefix)]
-      newBiz = BT.NewBusiness companyPrefix bizName
+      newBiz = BT.NewBusiness companyPrefix bizName bizUrl
   [newUserBR] <- GenBR.generateMultipleUsers [(name, companyPrefix)]
   let userAuth = BasicAuthData
                   (toByteString . BT.newUserEmailAddress $ newUserBR)
@@ -163,7 +167,7 @@ clientSignEvent ht evInfo entity = do
   let (_, auth, _) = expectJust $ H.lookup entity ht
       (EventInfo event _ _ (Base64Octets toSign) _) = evInfo
       eventId = fromJust $ _eid event
-      (Entity _ _ _ _ (KeyPairPaths privKeyPath pubKeyPath)) = entity
+      (Entity _ _ _ _ _ (KeyPairPaths privKeyPath pubKeyPath)) = entity
   privKey <- fmap expectJust $ liftIO $ readJWK privKeyPath
   pubKey <- fmap expectJust $ liftIO $ readJWK pubKeyPath
   keyId <- BRClient.addPublicKey (authDataToTokenTodoRemove auth) pubKey Nothing
@@ -264,25 +268,25 @@ makeCitrusEvents startTime tz =
 
 -- Entities
 farmerE :: Entity
-farmerE = Entity "farmer" farmerCompanyPrefix "Citrus Sensation Farm" [farmLocation, farmerBiz] farmerKP
+farmerE = Entity "farmer" farmerCompanyPrefix "Citrus Sensation Farm" (mockURI "farmer") [farmLocation, farmerBiz] farmerKP
 truckDriver1E :: Entity
-truckDriver1E = Entity "truckDriver1" truckDriver1CompanyPrefix "Super Transport Solutions" [truckDriver1Biz] truckDriver1KP
+truckDriver1E = Entity "truckDriver1" truckDriver1CompanyPrefix "Super Transport Solutions" (mockURI "truckDriver1") [truckDriver1Biz] truckDriver1KP
 regulator1E :: Entity
-regulator1E = Entity "regulator1" regulator1CompanyPrefix "Pest Controllers" [regulator1Biz] regulator1KP
+regulator1E = Entity "regulator1" regulator1CompanyPrefix "Pest Controllers" (mockURI "regulator1") [regulator1Biz] regulator1KP
 regulator2E :: Entity
-regulator2E = Entity "regulator2" regulator2CompanyPrefix "Residue Checkers" [regulator2Biz] regulator2KP
+regulator2E = Entity "regulator2" regulator2CompanyPrefix "Residue Checkers" (mockURI "regulator2") [regulator2Biz] regulator2KP
 packingHouseE :: Entity
-packingHouseE = Entity "packingHouse" packingHouseCompanyPrefix "Packing Citrus R Us" [packingHouseLocation] packingHouseKP
+packingHouseE = Entity "packingHouse" packingHouseCompanyPrefix "Packing Citrus R Us" (mockURI "packingHouse") [packingHouseLocation] packingHouseKP
 auPortE :: Entity
-auPortE = Entity "AustralianPort" auPortCompanyPrefix "Port Melbourne" [auPortLocation] auPortKP
+auPortE = Entity "AustralianPort" auPortCompanyPrefix "Port Melbourne" (mockURI "AustralianPort") [auPortLocation] auPortKP
 cnPortE :: Entity
-cnPortE = Entity "ChinesePort" cnPortCompanyPrefix "Shanghai Port" [cnPortLocation] cnPortKP
+cnPortE = Entity "ChinesePort" cnPortCompanyPrefix "Shanghai Port" (mockURI "ChinesePort") [cnPortLocation] cnPortKP
 truckDriver2E :: Entity
-truckDriver2E = Entity "truckDriver2" truck2CompanyPrefix "Duper Transport Solutions" [truck2Biz] truck2KP
+truckDriver2E = Entity "truckDriver2" truck2CompanyPrefix "Duper Transport Solutions" (mockURI "truckDriver2") [truck2Biz] truck2KP
 regulator3E :: Entity
-regulator3E = Entity "regulator3" regulator3CompanyPrefix "Quarantine Australia" [regulator3Biz] regulator3KP
+regulator3E = Entity "regulator3" regulator3CompanyPrefix "Quarantine Australia" (mockURI "regulator3") [regulator3Biz] regulator3KP
 regulator4E :: Entity
-regulator4E = Entity "regulator4" regulator4CompanyPrefix "Quarantine China" [regulator4Biz] regulator4KP
+regulator4E = Entity "regulator4" regulator4CompanyPrefix "Quarantine China" (mockURI "regulator4") [regulator4Biz] regulator4KP
 
 
 allEntities :: [Entity]

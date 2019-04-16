@@ -30,6 +30,7 @@ import           Database.PostgreSQL.Simple
 
 import           Network.Wai                             (Middleware)
 import qualified Network.Wai.Handler.Warp                as Warp
+import           Network.URI                             (nullURI)
 
 import           Data.Aeson                              (eitherDecodeFileStrict)
 
@@ -262,9 +263,10 @@ runBusinessCommand opts BusinessAdd = do
 
 interactivelyGetBusinessT :: IO Business
 interactivelyGetBusinessT = do
-  biz_gs1_company_prefix <- GS1CompanyPrefix . pack <$>  prompt "GS1CompanyPrefix"
-  biz_name      <- pack <$> prompt "Name"
-  let biz_last_update = Nothing
+  business_gs1_company_prefix <- GS1CompanyPrefix . pack <$>  prompt "GS1CompanyPrefix:"
+  business_name               <- pack <$> prompt "Name:"
+  business_url                <- pack <$> prompt "Url:"
+  let business_last_update = Nothing
   pure BusinessT{..}
 
 prompt :: String -> IO String
@@ -346,6 +348,7 @@ runBootstrap opts email password companyPrefix = do
     bootstrapBusiness prefix = do
       let newBusinessGS1CompanyPrefix = prefix
       let newBusinessName             = "Bootstrapped Business"
+      let newBusinessUrl              = nullURI
       NewBusiness{..}
 
     bootstrapUser :: EmailAddress -> Text -> GS1CompanyPrefix -> NewUser

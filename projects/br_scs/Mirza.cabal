@@ -80,6 +80,7 @@ library
                     , katip >= 0.5.4
                     , lens
                     , mtl
+                    , network-uri
                     , optparse-applicative
                     , postgresql-simple
                     , random
@@ -155,6 +156,7 @@ test-suite supplyChainServer-test
                      , http-client
                      , mtl
                      , network
+                     , network-uri
                      , postgresql-simple
                      , process
                      , scrypt
@@ -213,6 +215,7 @@ test-suite businessRegistry-test
                      , MissingH
                      , mtl
                      , network
+                     , network-uri
                      , postgresql-simple
                      , process
                      , servant

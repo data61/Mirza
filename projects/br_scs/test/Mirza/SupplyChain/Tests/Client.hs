@@ -25,7 +25,7 @@ import           Mirza.SupplyChain.Types               as ST
 import qualified Mirza.BusinessRegistry.Client.Servant as BRClient
 import           Mirza.SupplyChain.Client.Servant
 
-import           Mirza.Common.Utils                    (readJWK)
+import           Mirza.Common.Utils                    (readJWK, mockURI)
 
 import           Mirza.Common.Tests.InitClient         (TestData (..), endApps,
                                                         runApps)
@@ -172,7 +172,9 @@ clientSpec = do
                           "Smith Biz"
                           "0400 111 222"
 
-          let business = BT.NewBusiness prefix "Business Name"
+
+          let businessName = "Business Name"
+              business = BT.NewBusiness prefix businessName (mockURI businessName)
           httpBR (BRClient.addBusiness brAuthUser business)
             `shouldSatisfyIO` isRight
 
@@ -219,7 +221,8 @@ clientSpec = do
 
           step "Adding business for the Giver"
           let prefixGiver = GS1CompanyPrefix "1000001"
-          let businessGiver = BT.NewBusiness prefixGiver "Giver Biz"
+              businessGiverName = "Giver Biz"
+              businessGiver = BT.NewBusiness prefixGiver businessGiverName (mockURI businessGiverName)
           httpBR (BRClient.addBusiness globalAuthData businessGiver)
             `shouldSatisfyIO` isRight
 
@@ -251,7 +254,8 @@ clientSpec = do
 
           step "Adding business for receiver"
           let prefixReceiver = GS1CompanyPrefix "1000002"
-          let businessReceiver = BT.NewBusiness prefixReceiver "Receiving Biz"
+              businessReceiverName = "Receiving Biz"
+              businessReceiver = BT.NewBusiness prefixReceiver businessReceiverName (mockURI businessReceiverName)
 
           httpBR (BRClient.addBusiness globalAuthData businessReceiver)
             `shouldSatisfyIO` isRight

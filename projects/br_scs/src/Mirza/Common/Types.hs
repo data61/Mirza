@@ -124,7 +124,7 @@ instance FromJSON EmailAddress where
 instance ToSchema EmailAddress where
   declareNamedSchema _ = declareNamedSchema (Proxy :: Proxy Text)
     <&> name ?~ "Email address"
-    <&> schema . description ?~ "An RFC 5322 email address"
+    <&> schema . description ?~ "An RFC 5322 compliant email address"
 
 emailToText :: EmailAddress -> Text
 emailToText = decodeUtf8 . toByteString

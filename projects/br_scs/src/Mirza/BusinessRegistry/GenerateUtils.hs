@@ -6,7 +6,7 @@
 module Mirza.BusinessRegistry.GenerateUtils where
 
 import           Mirza.BusinessRegistry.Types as BT
-import           Mirza.Common.Utils           (randomText)
+import           Mirza.Common.Utils           (randomText, mockURI)
 
 import           Data.GS1.EPC
 
@@ -15,9 +15,11 @@ import           Data.Text.Encoding           (encodeUtf8)
 
 import           Text.Email.Validate          (unsafeEmailAddress)
 
+
 dummyBusiness :: T.Text -> NewBusiness
 dummyBusiness unique = NewBusiness (GS1CompanyPrefix ("Business" <> unique <> "Prefix"))
                                    ("Business" <> unique <> "Name")
+                                   (mockURI unique)
 
 
 dummyUser :: T.Text -> GS1CompanyPrefix -> IO NewUser
