@@ -181,8 +181,9 @@ randomPassword :: IO Text
 randomPassword = ("PlainTextPassword:" <>) <$> randomText
 
 brOptions :: Maybe FilePath -> ServerOptionsBR
-brOptions mfp = ServerOptionsBR connectionString 14 8 1 DebugS mfp Dev "" where  -- TODO: Use the proper oauth aud (audience) rathern then the empty text "".
-  connectionString = getDatabaseConnectionString testDbConnectionStringBR
+brOptions mfp = ServerOptionsBR connectionString 14 8 1 DebugS mfp Dev ""  -- TODO: Use the proper oauth aud (audience) rathern then the empty text "".
+  where
+    connectionString = getDatabaseConnectionString testDbConnectionStringBR
 
 
 runBRApp :: IO (ThreadId, BaseUrl, Token)
