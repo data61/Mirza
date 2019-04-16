@@ -33,11 +33,18 @@ import           Text.Email.Validate                    (unsafeEmailAddress)
 import           Data.Text                              (Text)
 import           Data.Functor                           (void)
 
+import           Crypto.JWT                              (Audience (..))
+
+
 -- | We need to supply our handlers with the right Context. In this case,
 -- JWT requires a Context Entry with the 'JWTSettings and CookiesSettings values.
-tokenServerContext :: ( Member context '[HasScryptParams, HasDB, HasAuthPublicKey])
+tokenServerContext :: ( Member context '[HasScryptParams, HasDB, HasAuthAudience, HasAuthPublicKey])
                        => context -> Servant.Context '[JWTSettings, CookieSettings]
-tokenServerContext context = defaultJWTSettings (view authPublicKey context ) :. defaultCookieSettings :. EmptyContext
+tokenServerContext context = jwtSettings :. defaultCookieSettings :. EmptyContext where
+  defaultSettings = defaultJWTSettings (view authPublicKey context)
+  Audience audienceList = view authAudience context
+  matchAudience aud = if (elem aud audienceList) then Matches else DoesNotMatch
+  jwtSettings = defaultSettings {audienceMatches = matchAudience}
 
 
 -- | Converts a DB representation of ``User`` to ``AuthUser``

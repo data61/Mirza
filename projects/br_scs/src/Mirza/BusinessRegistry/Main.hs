@@ -23,6 +23,8 @@ import           Servant
 import           Servant.Swagger.UI
 import           Servant.Auth.Server
 
+import           Crypto.JWT                              (Audience (..), string)
+
 import qualified Data.Pool                               as Pool
 import           Database.PostgreSQL.Simple
 
@@ -43,13 +45,13 @@ import           Text.Email.Validate                     (validate, toByteString
 
 import qualified Crypto.Scrypt                           as Scrypt
 
+import           Control.Lens                            (review)
 import           Control.Exception                       (finally)
 import           Data.Maybe                              (fromMaybe)
 import           Katip                                   as K
 import           System.IO                               (IOMode (AppendMode),
                                                           hPutStr, openFile,
                                                           stderr, stdout)
-
 
 
 --------------------------------------------------------------------------------
@@ -81,13 +83,14 @@ data ExecMode
   | Bootstrap EmailAddress Text GS1CompanyPrefix
 
 data ServerOptionsBR = ServerOptionsBR
-  { sobDbConnStr    :: ByteString
-  , sobScryptN      :: Integer
-  , sobScryptP      :: Integer
-  , sobScryptR      :: Integer
-  , sobLoggingLevel :: K.Severity
-  , sobLogLocation  :: Maybe FilePath
-  , sobEnvType      :: CT.EnvType
+  { sobDbConnStr     :: ByteString
+  , sobScryptN       :: Integer
+  , sobScryptP       :: Integer
+  , sobScryptR       :: Integer
+  , sobLoggingLevel  :: K.Severity
+  , sobLogLocation   :: Maybe FilePath
+  , sobEnvType       :: CT.EnvType
+  , sobOAuthAudience :: Text
   }
 
 data RunServerOptions = RunServerOptions
@@ -142,7 +145,7 @@ launchServer opts rso = do
 
 
 initBRContext :: ServerOptionsBR -> IO BT.BRContext
-initBRContext opts@(ServerOptionsBR dbConnStr _ _ _ lev mlogPath envT) = do
+initBRContext opts@(ServerOptionsBR dbConnStr _ _ _ lev mlogPath envT oauthAudience) = do
   logHandle <- maybe (pure stdout) (flip openFile AppendMode) mlogPath
   hPutStr stderr $ "(Logging will be to: " ++ fromMaybe "stdout" mlogPath ++ ") "
   handleScribe <- mkHandleScribe ColorIfTerminal logHandle lev V3
@@ -157,7 +160,8 @@ initBRContext opts@(ServerOptionsBR dbConnStr _ _ _ lev mlogPath envT) = do
   eitherJwk <- eitherDecodeFileStrict "auth_public_key_2019-04-01.json"
   let makeError errorMessage = error $ "Unable to get the OAuth Public Key. Error was: " <> (show errorMessage)
   let jwk = either makeError id eitherJwk
-  pure $ BRContext envT connpool params logEnv mempty mempty jwk
+  let audience = (Audience $ [review string oauthAudience])
+  pure $ BRContext envT connpool params logEnv mempty mempty audience jwk
 
 
 initApplication :: ServerOptionsBR -> RunServerOptions -> BT.BRContext -> IO Application
@@ -453,6 +457,11 @@ parsedServerOptions = ServerOptionsBR
       ( long "env" <> short 'e'
       <> value Dev <> showDefault
       <> help "Environment, Dev | Prod"
+      )
+    <*> strOption
+      ( long "aud"
+      <> short 'a'
+      <> help "OAuth audience claim to match against user tokens"
       )
 
 

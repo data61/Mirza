@@ -31,7 +31,7 @@ import qualified Database.Beam.Migrate      as BMigrate
 import qualified Database.Beam.Postgres     as BPostgres
 
 import           Crypto.JOSE                            (JWK)
-import           Crypto.JWT                             (ClaimsSet, claimSub, string)
+import           Crypto.JWT                             (Audience, ClaimsSet, claimSub, string)
 import           Crypto.Scrypt                          (ScryptParams)
 
 import qualified Servant.Auth.Server                    as SAS
@@ -62,6 +62,7 @@ data BRContext = BRContext
   , _brKatipLogEnv      :: K.LogEnv
   , _brKatipLogContexts :: K.LogContexts
   , _brKatipNamespace   :: K.Namespace
+  , _brAuthAudience     :: Audience
   , _brAuthPublicKey    :: JWK
   }
 $(makeLenses ''BRContext)
@@ -77,10 +78,14 @@ instance HasKatipLogEnv BRContext where
 instance HasKatipContext BRContext where
   katipContexts = brKatipLogContexts
   katipNamespace = brKatipNamespace
+instance HasAuthAudience BRContext where
+  authAudience = brAuthAudience
 instance HasAuthPublicKey BRContext where
   authPublicKey = brAuthPublicKey
 
 
+class HasAuthAudience a where
+  authAudience :: Lens' a (Audience)
 class HasAuthPublicKey a where
   authPublicKey :: Lens' a (JWK)
 
