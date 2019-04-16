@@ -5,34 +5,40 @@
 
 module Mirza.EntityDataAPI.Types where
 
-import           System.Envy               (DefConfig (..), FromEnv (..),
-                                            Var (..), env, envMaybe, (.!=))
-import qualified System.Envy               as Envy
+import           System.Envy                (DefConfig (..), FromEnv (..),
+                                             Var (..), env, envMaybe, (.!=))
+import qualified System.Envy                as Envy
 
-import           Network.HTTP.Req          (HttpException)
-import           Network.HTTP.ReverseProxy (ProxyDest (..))
+import           Network.HTTP.Req           (HttpException)
+import           Network.HTTP.ReverseProxy  (ProxyDest (..))
 
-import           Control.Monad.Except      (ExceptT (..), MonadError,
-                                            runExceptT)
-import           Control.Monad.IO.Class    (MonadIO)
-import           Control.Monad.Reader      (MonadReader, ReaderT, liftIO,
-                                            runReaderT)
+import           Control.Monad.Except       (ExceptT (..), MonadError,
+                                             runExceptT)
+import           Control.Monad.IO.Class     (MonadIO)
+import           Control.Monad.Reader       (MonadReader, ReaderT, liftIO,
+                                             runReaderT)
 
-import           GHC.Generics              (Generic)
+import           GHC.Generics               (Generic)
 
-import           Network.HTTP.Client       (Manager)
+import           Network.HTTP.Client        (Manager)
 
 
-import           Control.Monad.Time        (MonadTime (..))
-import           Data.Time.Clock           (getCurrentTime)
+import           Control.Monad.Time         (MonadTime (..))
+import           Data.Time.Clock            (getCurrentTime)
 
-import           Text.Read                 (readMaybe)
+import           Text.Read                  (readMaybe)
 
-import           Crypto.JWT                (AsError, AsJWTError, JWKSet,
-                                            StringOrURI)
-import qualified Crypto.JWT                as Jose
+import           Crypto.JWT                 (AsError, AsJWTError, JWKSet,
+                                             StringOrURI)
+import qualified Crypto.JWT                 as Jose
 
-import           Control.Lens              (makeClassyPrisms, prism')
+import           Control.Lens               (makeClassyPrisms, prism')
+
+import           Data.Pool                  as Pool
+import           Database.PostgreSQL.Simple (Connection)
+
+import           Data.ByteString            (ByteString)
+
 
 --  ------------------- AppM -----------------------
 -- runReaderT :: r -> m a
@@ -66,6 +72,7 @@ data AuthContext = AuthContext
   , appManager           :: Manager
   , jwtSigningKeys       :: JWKSet
   , ctxJwkClientId       :: StringOrURI
+  , dbConnPool           :: Pool Connection
   } deriving (Generic)
 
 --  ------------------------------------------------
@@ -112,6 +119,7 @@ data Opts = Opts
   , destServiceInfo :: ServiceInfo
   , jwkUrl          :: String
   , jwkClientId     :: String
+  , dbConnectionStr :: ByteString
   } deriving (Show, Generic, Eq)
 
 instance DefConfig Opts where
@@ -120,6 +128,7 @@ instance DefConfig Opts where
     , destServiceInfo = ServiceInfo{serviceHost=Hostname "localhost", servicePort=Port 8000 }
     , jwkUrl          = defaultJwkUrl
     , jwkClientId     = ""
+    , dbConnectionStr = "dbname=deventitydataapi"
     }
 
 instance FromEnv Opts where
@@ -128,6 +137,7 @@ instance FromEnv Opts where
     <*> fromEnvDestServiceInfo
     <*> envMaybe "JWK_URL" .!= defaultJwkUrl
     <*> env "JWK_CLIENT_ID"
+    <*> env "EDAPI_DB_CONN"
 
 --  ------------------------------------------------
 
@@ -138,6 +148,8 @@ data AppError
   = JWKFetchFailed
   | AuthFailed Jose.JWTError
   | AppJoseError Jose.Error
+  | NoClaimSubject
+  | UnauthClaimsSubject
   | NoAuthHeader
   | UrlParseFailed
   | ReqFailure HttpException

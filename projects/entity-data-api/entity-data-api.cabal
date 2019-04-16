@@ -63,6 +63,7 @@ library
                     , Mirza.EntityDataAPI.AuthProxy
                     , Mirza.EntityDataAPI.Utils
                     , Mirza.EntityDataAPI.Main
+                    , Mirza.EntityDataAPI.Database.Utils
 
   -- Other library packages from which modules are imported.
   build-depends:        base
@@ -80,7 +81,9 @@ library
                       , monad-time
                       , optparse-applicative
                       , jose
+                      , postgresql-simple
                       , req
+                      , resource-pool
                       , wai
                       , warp
                       , http-types
