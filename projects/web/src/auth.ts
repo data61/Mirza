@@ -131,6 +131,10 @@ export function authInit(): Promise<AuthState | null> {
 export function logOut() {
     clearSession();
     window.location.reload(false);
+    webAuth.logout({
+        returnTo: "https://demo.mirza.d61.io",
+        clientID: webAuthOpts.clientID,
+    });
 }
 export function logIn() {
     clearSession();
