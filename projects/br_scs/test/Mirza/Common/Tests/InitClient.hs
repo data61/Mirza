@@ -15,6 +15,7 @@ import           Mirza.Common.Utils                       (randomText, mockURI)
 
 import           Control.Concurrent                       (ThreadId)
 
+import           Servant.Auth.Client                      (Token)
 import           Servant.API.BasicAuth
 import           Servant.Client                           (BaseUrl (..))
 
@@ -33,6 +34,7 @@ import           Database.Beam.Query                      (delete, runDelete,
                                                            val_)
 
 import           Mirza.BusinessRegistry.Database.Schema
+import           Mirza.BusinessRegistry.Client.Servant
 import qualified Mirza.BusinessRegistry.Handlers.Business as BRHB (addBusiness)
 import qualified Mirza.BusinessRegistry.Handlers.Users    as BRHU (addUserQuery)
 import           Mirza.BusinessRegistry.Main              (RunServerOptions (..),
@@ -152,7 +154,7 @@ newUserToBasicAuthData =
 
 bootstrapAuthData :: (HasEnvType w, HasConnPool w, HasKatipContext w,
                       HasKatipLogEnv w, HasScryptParams w)
-                     => w -> IO BasicAuthData
+                     => w -> IO Token
 bootstrapAuthData ctx = do
   let email = "initialUser@example.com"
   password <- randomPassword
@@ -161,7 +163,8 @@ bootstrapAuthData ctx = do
       business = NewBusiness prefix businessName (mockURI businessName)
   insertBusinessResult <- runAppM @_ @BRError ctx $ BRHB.addBusiness business
   insertBusinessResult `shouldSatisfy` isRight
-  let user = BT.NewUser  (unsafeMkEmailAddress email)
+  let user = BT.NewUser "initialUserOAuthSub"
+                      (unsafeMkEmailAddress email)
                       password
                       prefix
                       "Test User First Name"
@@ -170,7 +173,7 @@ bootstrapAuthData ctx = do
   insertUserResult <- runAppM @_ @BRError ctx $ runDb (BRHU.addUserQuery user)
   insertUserResult `shouldSatisfy` isRight
 
-  pure $ newUserToBasicAuthData user
+  pure $ authDataToTokenTodoRemove $ newUserToBasicAuthData user
 
 -- We specifically prefix the password with "PlainTextPassword:" so that it
 -- makes it more obvious if this password shows up anywhere in plain text by
@@ -179,11 +182,12 @@ randomPassword :: IO Text
 randomPassword = ("PlainTextPassword:" <>) <$> randomText
 
 brOptions :: Maybe FilePath -> ServerOptionsBR
-brOptions mfp = ServerOptionsBR connectionString 14 8 1 DebugS mfp Dev where
-  connectionString = getDatabaseConnectionString testDbConnectionStringBR
+brOptions mfp = ServerOptionsBR connectionString 14 8 1 DebugS mfp Dev ""  -- TODO: Use the proper oauth aud (audience) rathern then the empty text "".
+  where
+    connectionString = getDatabaseConnectionString testDbConnectionStringBR
 
 
-runBRApp :: IO (ThreadId, BaseUrl, BasicAuthData)
+runBRApp :: IO (ThreadId, BaseUrl, Token)
 runBRApp = do
   tempFile <- emptySystemTempFile "businessRegistryTests.log"
   let currentBrOptions = brOptions (Just tempFile)
@@ -203,10 +207,10 @@ runBRApp = do
   -- This construct somewhat destroys the integrity of these test since it is
   -- necessary to assume that these functions work correctly in order for the
   -- test cases to complete.
-  brAuthUser <- bootstrapAuthData ctx
+  token <- bootstrapAuthData ctx
 
   (tid,brul) <- startWaiApp =<< BRMain.initApplication currentBrOptions (RunServerOptions 8000) ctx
-  pure (tid,brul,brAuthUser)
+  pure (tid, brul, token)
 
 -- *****************************************************************************
 -- Common Utility Functions
@@ -217,7 +221,7 @@ data TestData = TestData
   , scsThread  :: ThreadId
   , brBaseUrl  :: BaseUrl
   , scsBaseUrl :: BaseUrl
-  , brAuthData :: BasicAuthData
+  , brAuthData :: Token
   }
 
 endApps :: TestData -> IO ()

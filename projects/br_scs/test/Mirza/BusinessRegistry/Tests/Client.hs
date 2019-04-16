@@ -16,7 +16,6 @@ import           Servant.Client
 import           Network.URI                              (URI (..), URIAuth (..), nullURI)
 
 import           Data.ByteString.Lazy                     (ByteString)
-import           Data.Text.Encoding                       (encodeUtf8)
 
 import           System.Directory                         (listDirectory)
 import           System.FilePath                          ((</>))
@@ -32,7 +31,6 @@ import           Data.Time.Clock                          (addUTCTime,
                                                            diffUTCTime,
                                                            getCurrentTime)
 import           Data.UUID                                (nil)
-import           Text.Email.Validate                      (toByteString)
 
 import qualified Network.HTTP.Types.Status                as NS
 
@@ -58,20 +56,6 @@ import           Mirza.Common.Tests.InitClient
 import           Mirza.Common.Tests.Utils
 
 -- === BR Servant Client tests
-userABC :: NewUser
-userABC = NewUser
-  { newUserPhoneNumber = "0400 111 222"
-  , newUserEmailAddress = unsafeMkEmailAddress "abc@example.com"
-  , newUserFirstName = "Johnny"
-  , newUserLastName = "Smith"
-  , newUserCompany = GS1CompanyPrefix "something"
-  , newUserPassword = "re4lly$ecret14!"}
-
-authABC :: BasicAuthData
-authABC = BasicAuthData
-  (toByteString . newUserEmailAddress $ userABC)
-  (encodeUtf8   . newUserPassword     $ userABC)
-
 clientSpec :: IO TestTree
 clientSpec = do
   let businessTests = testCaseSteps "Can create businesses" $ \step ->
@@ -180,26 +164,30 @@ clientSpec = do
               businessName = "userTests_businessName"
               business = NewBusiness companyPrefix businessName (mockURI businessName)
 
-          let user1 = NewUser (unsafeMkEmailAddress "userTests_email1@example.com")
+          let user1 = NewUser "OAuthSub_userTests_email1"
+                              (unsafeMkEmailAddress "userTests_email1@example.com")
                               password
                               companyPrefix
                               "userTests First Name 1"
                               "userTests Last Name 1"
                               "userTests Phone Number 1"
-              user2 = NewUser (unsafeMkEmailAddress "userTests_email2@example.com")
+              user2 = NewUser "OAuthSub_userTests_email2"
+                              (unsafeMkEmailAddress "userTests_email2@example.com")
                               password
                               companyPrefix
                               "userTests First Name 2"
                               "userTests Last Name 2"
                               "userTests Phone Number 2"
               -- Same email address as user1 other fields different.
-              userSameEmail = NewUser (newUserEmailAddress user1)
+              userSameEmail = NewUser "OAuthSub_userTests_same_email"
+                                      (newUserEmailAddress user1)
                                       password
                                       companyPrefix
                                       "userTests First Name Same Email"
                                       "userTests Last Name Same Email"
                                       "userTests Phone Number Same Email"
-              userNonRegisteredBiz = NewUser (unsafeMkEmailAddress "userTests_unregisteredBusiness@example.com")
+              userNonRegisteredBiz = NewUser "OAuthSub_userTests_unregistered"
+                                             (unsafeMkEmailAddress "userTests_unregisteredBusiness@example.com")
                                              password
                                              (GS1CompanyPrefix "unregistered")
                                              "userTests First Name Unregistered Business"
@@ -314,21 +302,24 @@ clientSpec = do
               biz2 = NewBusiness biz2Prefix biz2Name (mockURI biz2Name)
 
           -- Business1User1
-          let userB1U1 = NewUser (unsafeMkEmailAddress "keysTests_email1@example.com")
+          let userB1U1 = NewUser "OAuthSub_keysTests_email1"
+                                 (unsafeMkEmailAddress "keysTests_email1@example.com")
                                  password
                                  biz1Prefix
                                  "keysTests First Name 1"
                                  "keysTests Last Name 1"
                                  "keysTests Phone Number 1"
           -- Business1User2
-          let userB1U2 = NewUser (unsafeMkEmailAddress "keysTests_email2@example.com")
+          let userB1U2 = NewUser "OAuthSub_keysTests_email2"
+                                 (unsafeMkEmailAddress "keysTests_email2@example.com")
                                  password
                                  biz1Prefix
                                  "keysTests First Name 2"
                                  "keysTests Last Name 2"
                                  "keysTests Phone Number 2"
           -- Business2User1
-          let userB2U1 = NewUser (unsafeMkEmailAddress "keysTests_email3@example.com")
+          let userB2U1 = NewUser "OAuthSub_keysTests_email3"
+                                 (unsafeMkEmailAddress "keysTests_email3@example.com")
                                  password
                                  biz2Prefix
                                  "keysTests First Name 3"

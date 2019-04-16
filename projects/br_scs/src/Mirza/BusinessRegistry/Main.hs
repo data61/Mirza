@@ -21,6 +21,9 @@ import           Data.GS1.EPC                            (GS1CompanyPrefix (..))
 
 import           Servant
 import           Servant.Swagger.UI
+import           Servant.Auth.Server
+
+import           Crypto.JWT                              (Audience (..), string)
 
 import qualified Data.Pool                               as Pool
 import           Database.PostgreSQL.Simple
@@ -29,25 +32,27 @@ import           Network.Wai                             (Middleware)
 import qualified Network.Wai.Handler.Warp                as Warp
 import           Network.URI                             (nullURI)
 
+import           Data.Aeson                              (eitherDecodeFileStrict)
+
 import qualified Data.Attoparsec.ByteString              as A
 import           Data.ByteString                         (ByteString)
 import qualified Data.ByteString.Char8                   as BS
 import           Data.Semigroup                          ((<>))
 import           Data.Text                               (Text, pack)
-import           Data.Text.Encoding                      (encodeUtf8)
+import           Data.Text.Encoding                      (encodeUtf8, decodeUtf8)
 import           Options.Applicative                     hiding (action)
 import           Text.Email.Parser                       (addrSpec)
-import           Text.Email.Validate                     (validate)
+import           Text.Email.Validate                     (validate, toByteString)
 
 import qualified Crypto.Scrypt                           as Scrypt
 
+import           Control.Lens                            (review)
 import           Control.Exception                       (finally)
 import           Data.Maybe                              (fromMaybe)
 import           Katip                                   as K
 import           System.IO                               (IOMode (AppendMode),
                                                           hPutStr, openFile,
                                                           stderr, stdout)
-
 
 
 --------------------------------------------------------------------------------
@@ -79,13 +84,14 @@ data ExecMode
   | Bootstrap EmailAddress Text GS1CompanyPrefix
 
 data ServerOptionsBR = ServerOptionsBR
-  { sobDbConnStr    :: ByteString
-  , sobScryptN      :: Integer
-  , sobScryptP      :: Integer
-  , sobScryptR      :: Integer
-  , sobLoggingLevel :: K.Severity
-  , sobLogLocation  :: Maybe FilePath
-  , sobEnvType      :: CT.EnvType
+  { sobDbConnStr     :: ByteString
+  , sobScryptN       :: Integer
+  , sobScryptP       :: Integer
+  , sobScryptR       :: Integer
+  , sobLoggingLevel  :: K.Severity
+  , sobLogLocation   :: Maybe FilePath
+  , sobEnvType       :: CT.EnvType
+  , sobOAuthAudience :: Text
   }
 
 data RunServerOptions = RunServerOptions
@@ -140,7 +146,7 @@ launchServer opts rso = do
 
 
 initBRContext :: ServerOptionsBR -> IO BT.BRContext
-initBRContext opts@(ServerOptionsBR dbConnStr _ _ _ lev mlogPath envT) = do
+initBRContext opts@(ServerOptionsBR dbConnStr _ _ _ lev mlogPath envT oauthAudience) = do
   logHandle <- maybe (pure stdout) (flip openFile AppendMode) mlogPath
   hPutStr stderr $ "(Logging will be to: " ++ fromMaybe "stdout" mlogPath ++ ") "
   handleScribe <- mkHandleScribe ColorIfTerminal logHandle lev V3
@@ -152,13 +158,17 @@ initBRContext opts@(ServerOptionsBR dbConnStr _ _ _ lev mlogPath envT) = do
                       60 -- How long in seconds to keep a connection open for reuse
                       10 -- Max number of connections to have open at any one time
                       -- TODO: Make this a config paramete
-  pure $ BRContext envT connpool params logEnv mempty mempty
+  eitherJwk <- eitherDecodeFileStrict "auth_public_key_2019-04-01.json"
+  let makeError errorMessage = error $ "Unable to get the OAuth Public Key. Error was: " <> (show errorMessage)
+  let jwk = either makeError id eitherJwk
+  let audience = Audience [review string oauthAudience]
+  pure $ BRContext envT connpool params logEnv mempty mempty audience jwk
 
 
 initApplication :: ServerOptionsBR -> RunServerOptions -> BT.BRContext -> IO Application
 initApplication _go _so ev =
   pure $ serveWithContext api
-          (basicAuthServerContext ev)
+          (tokenServerContext ev)
           (server ev)
 
 
@@ -171,7 +181,7 @@ server ev =
   swaggerSchemaUIServer serveSwaggerAPI
   :<|> hoistServerWithContext
         (Proxy @ServerAPI)
-        (Proxy @'[BasicAuthCheck BT.AuthUser])
+        (Proxy @'[CookieSettings, JWTSettings])
         (appMToHandler ev)
         (appHandlers @BRContext @BRError)
 
@@ -206,6 +216,7 @@ runUserCommand opts UserAdd = do
 
 interactivelyGetNewUser :: IO NewUser
 interactivelyGetNewUser = do
+  newUserOAuthSub     <- pack <$> prompt "OAuthSub:"
   newUserEmailAddress <- getUserEmailInteractive
   newUserPassword     <- pack <$> prompt "Password:"
   newUserCompany      <- GS1CompanyPrefix . read <$> prompt "GS1CompanyPrefix:"
@@ -342,6 +353,7 @@ runBootstrap opts email password companyPrefix = do
 
     bootstrapUser :: EmailAddress -> Text -> GS1CompanyPrefix -> NewUser
     bootstrapUser userEmail userPassword company = do
+      let newUserOAuthSub     = "bootstrapped-user-oauth-sub" <> decodeUtf8 (toByteString userEmail)
       let newUserEmailAddress = userEmail
       let newUserPassword     = userPassword
       let newUserCompany      = company
@@ -448,6 +460,11 @@ parsedServerOptions = ServerOptionsBR
       ( long "env" <> short 'e'
       <> value Dev <> showDefault
       <> help "Environment, Dev | Prod"
+      )
+    <*> strOption
+      ( long "aud"
+      <> short 'a'
+      <> help "OAuth audience claim to match against user tokens"
       )
 
 

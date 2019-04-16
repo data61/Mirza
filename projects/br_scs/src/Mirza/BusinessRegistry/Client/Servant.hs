@@ -17,6 +17,8 @@ module Mirza.BusinessRegistry.Client.Servant
   , revokePublicKey
   , addLocation
   , getBusinessInfo
+  -- * Other
+  , authDataToTokenTodoRemove
   ) where
 
 import           Mirza.BusinessRegistry.API
@@ -32,6 +34,7 @@ import           Crypto.JOSE.JWK                        (JWK)
 
 import           Servant.API
 import           Servant.Client
+import           Servant.Auth.Client
 
 import           Data.Proxy                             (Proxy (..))
 import           Data.Text                              (Text)
@@ -47,12 +50,12 @@ uxLocation       :: [GS1CompanyPrefix] -> ClientM [BusinessAndLocationResponse]
 uxLocationByGLN  :: LocationEPC -> GS1CompanyPrefix -> ClientM BusinessAndLocationResponse
 versionInfo      :: ClientM String
 
-addUser          :: BasicAuthData -> NewUser     -> ClientM UserId
-addBusiness      :: BasicAuthData -> NewBusiness -> ClientM GS1CompanyPrefix
-addPublicKey     :: BasicAuthData -> JWK -> Maybe ExpirationTime -> ClientM BRKeyId
-revokePublicKey  :: BasicAuthData -> BRKeyId -> ClientM RevocationTime
-addLocation      :: BasicAuthData -> NewLocation -> ClientM LocationId
-getBusinessInfo  :: BasicAuthData -> ClientM [BusinessResponse]
+addUser          :: Token -> NewUser     -> ClientM UserId
+addBusiness      :: Token -> NewBusiness -> ClientM GS1CompanyPrefix
+addPublicKey     :: Token -> JWK -> Maybe ExpirationTime -> ClientM BRKeyId
+revokePublicKey  :: Token -> BRKeyId -> ClientM RevocationTime
+addLocation      :: Token -> NewLocation -> ClientM LocationId
+getBusinessInfo  :: Token -> ClientM [BusinessResponse]
 
 _api     :: Client ClientM ServerAPI
 _privAPI :: Client ClientM ProtectedAPI
@@ -79,3 +82,9 @@ _api@(
     :<|> getBusinessInfo
   )
  ) = client (Proxy :: Proxy ServerAPI)
+
+-- This is a filler function which we can use while porting the implementation.
+-- There is no implementation for this function because we still need to decide
+-- how we are going to auth from the tests.
+authDataToTokenTodoRemove :: BasicAuthData -> Token
+authDataToTokenTodoRemove = undefined

@@ -30,6 +30,7 @@ import qualified Data.Text                             as T
 import           Data.Text.Encoding                    (encodeUtf8)
 
 import           Servant.API.BasicAuth                 (BasicAuthData (..))
+import           Servant.Auth.Client                   (Token)
 
 import           Text.Email.Validate                   (toByteString)
 
@@ -100,11 +101,11 @@ type LocationMap = H.HashMap LocationEPC BT.NewLocation
 -- Insertion and Signature utils
 -- =============================================================================
 
-insertCitrusData :: BaseUrl -> BaseUrl -> BasicAuthData -> IO [Event]
-insertCitrusData scsUrl brUrl brAuthUser = do
+insertCitrusData :: BaseUrl -> BaseUrl -> Token -> IO [Event]
+insertCitrusData scsUrl brUrl authToken = do
   let httpSCS = runClient scsUrl
       initAuthHt = H.empty
-  authHt <- insertAndAuth scsUrl brUrl brAuthUser locationMap initAuthHt allEntities
+  authHt <- insertAndAuth scsUrl brUrl authToken locationMap initAuthHt allEntities
   currTime <- getCurrentTime
   let citrusEachEvents = makeCitrusEvents (EPCISTime currTime) utc
       citrusEvents = eachEventEvent <$> citrusEachEvents
@@ -113,13 +114,13 @@ insertCitrusData scsUrl brUrl brAuthUser = do
 
 insertAndAuth :: BaseUrl
               -> BaseUrl
-              -> BasicAuthData
+              -> Token
               -> LocationMap
               -> AuthHash
               -> [Entity]
               -> IO AuthHash
 insertAndAuth _ _ _ _          ht [] = pure ht
-insertAndAuth scsUrl brUrl auth locMap ht (entity:entities) = do
+insertAndAuth scsUrl brUrl authToken locMap ht (entity:entities) = do
   let httpSCS = runClient scsUrl
       httpBR = runClient brUrl
       (Entity name companyPrefix bizName bizUrl locations (KeyPairPaths _ pubKeyPath)) = entity
@@ -131,18 +132,18 @@ insertAndAuth scsUrl brUrl auth locMap ht (entity:entities) = do
                   (encodeUtf8 . BT.newUserPassword $ newUserBR)
   pubKey <- fmap expectJust $ liftIO $ readJWK pubKeyPath
   insertedUserIdSCS <- fmap expectRight $ httpSCS $ SCSClient.addUser newUserSCS
-  _insertedPrefix <- httpBR $ BRClient.addBusiness auth newBiz
-  _insertedUserIdBR <- httpBR $ BRClient.addUser auth newUserBR
-  brKeyId <- fmap expectRight $ httpBR $ BRClient.addPublicKey auth pubKey Nothing
+  _insertedPrefix <- httpBR $ BRClient.addBusiness authToken newBiz
+  _insertedUserIdBR <- httpBR $ BRClient.addUser authToken newUserBR
+  brKeyId <- fmap expectRight $ httpBR $ BRClient.addPublicKey authToken pubKey Nothing
   let basicAuthDataSCS =
         BasicAuthData
           (toByteString . ST.newUserEmailAddress $ newUserSCS)
           (encodeUtf8   . ST.newUserPassword     $ newUserSCS)
 
   let newLocs = flip H.lookup locMap <$> locations
-  traverse_  (maybeInsertLocation userAuth) newLocs
+  traverse_  (maybeInsertLocation (authDataToTokenTodoRemove userAuth)) newLocs
   let updatedHt = H.insert entity (insertedUserIdSCS, basicAuthDataSCS, brKeyId) ht
-  insertAndAuth scsUrl brUrl auth locMap updatedHt entities
+  insertAndAuth scsUrl brUrl authToken locMap updatedHt entities
   where
     maybeInsertLocation _ Nothing    = pure ()
     maybeInsertLocation userAuth (Just loc) =
@@ -169,7 +170,7 @@ clientSignEvent ht evInfo entity = do
       (Entity _ _ _ _ _ (KeyPairPaths privKeyPath pubKeyPath)) = entity
   privKey <- fmap expectJust $ liftIO $ readJWK privKeyPath
   pubKey <- fmap expectJust $ liftIO $ readJWK pubKeyPath
-  keyId <- BRClient.addPublicKey auth pubKey Nothing
+  keyId <- BRClient.addPublicKey (authDataToTokenTodoRemove auth) pubKey Nothing
 
   s <- liftIO $ runExceptT @JOSE.Error (
           signJWS toSign (Identity (newJWSHeader ((), RS256), privKey))

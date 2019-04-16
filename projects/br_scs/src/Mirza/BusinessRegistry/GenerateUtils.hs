@@ -25,6 +25,7 @@ dummyBusiness unique = NewBusiness (GS1CompanyPrefix ("Business" <> unique <> "P
 dummyUser :: T.Text -> GS1CompanyPrefix -> IO NewUser
 dummyUser unique business_uid = do
   passwordEntropy <- randomText
+  let newUserOAuthSub     = "User" <> unique <> "OAuthSub"
   let newUserEmailAddress = unsafeEmailAddress (encodeUtf8 unique) "example.com"
   let newUserPassword     = "User" <> unique <> "Password" <> passwordEntropy
   let newUserCompany      = business_uid
