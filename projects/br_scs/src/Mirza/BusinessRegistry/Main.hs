@@ -160,7 +160,7 @@ initBRContext opts@(ServerOptionsBR dbConnStr _ _ _ lev mlogPath envT oauthAudie
   eitherJwk <- eitherDecodeFileStrict "auth_public_key_2019-04-01.json"
   let makeError errorMessage = error $ "Unable to get the OAuth Public Key. Error was: " <> (show errorMessage)
   let jwk = either makeError id eitherJwk
-  let audience = (Audience $ [review string oauthAudience])
+  let audience = Audience [review string oauthAudience]
   pure $ BRContext envT connpool params logEnv mempty mempty audience jwk
 
 
