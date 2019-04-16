@@ -40,11 +40,12 @@ import           Crypto.JWT                              (Audience (..))
 -- JWT requires a Context Entry with the 'JWTSettings and CookiesSettings values.
 tokenServerContext :: ( Member context '[HasScryptParams, HasDB, HasAuthAudience, HasAuthPublicKey])
                        => context -> Servant.Context '[JWTSettings, CookieSettings]
-tokenServerContext context = jwtSettings :. defaultCookieSettings :. EmptyContext where
-  defaultSettings = defaultJWTSettings (view authPublicKey context)
-  Audience audienceList = view authAudience context
-  matchAudience aud = if (elem aud audienceList) then Matches else DoesNotMatch
-  jwtSettings = defaultSettings {audienceMatches = matchAudience}
+tokenServerContext context = jwtSettings :. defaultCookieSettings :. EmptyContext
+  where
+    defaultSettings = defaultJWTSettings (view authPublicKey context)
+    Audience audienceList = view authAudience context
+    matchAudience aud = if (elem aud audienceList) then Matches else DoesNotMatch
+    jwtSettings = defaultSettings {audienceMatches = matchAudience}
 
 
 -- | Converts a DB representation of ``User`` to ``AuthUser``
@@ -65,12 +66,13 @@ oauthClaimsToAuthUser (Authenticated claims) = do
   maybeUser <- runDb (getUserByOAuthSubQuery $ verifiedTokenClaimsSub claims)
   case maybeUser of
     Just user -> pure $ tableUserToAuthUser user
-    Nothing   -> tableUserToAuthUser <$> (addUser promotedUser) where
-                 -- TODO: Prmoted user is a hack, this allows us to update the auth process without changing to much of the
-                 --       user structure. For this to work there needs to be a company with the GS1CompanyPrefix "bootstrap"
-                 --       as it is an assumption of this code. In phase 2 of this implementation we will come back and remove
-                 --       all of the additional user metadata which is no longer needed.
-                 promotedUser = NewUser (verifiedTokenClaimsSub claims) (unsafeEmailAddress "promoted-user" "example.com") "" (GS1CompanyPrefix "bootstrap") "" "" ""
+    Nothing   -> tableUserToAuthUser <$> (addUser promotedUser)
+  where
+    -- TODO: Prmoted user is a hack, this allows us to update the auth process without changing to much of the
+    --       user structure. For this to work there needs to be a company with the GS1CompanyPrefix "bootstrap"
+    --       as it is an assumption of this code. In phase 2 of this implementation we will come back and remove
+    --       all of the additional user metadata which is no longer needed.
+    promotedUser = NewUser (verifiedTokenClaimsSub claims) (unsafeEmailAddress "promoted-user" "example.com") "" (GS1CompanyPrefix "bootstrap") "" "" ""
 oauthClaimsToAuthUser failure = throwing _UserAuthFailureBRE (void failure)
 
 
