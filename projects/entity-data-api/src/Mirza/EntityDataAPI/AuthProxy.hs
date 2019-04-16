@@ -13,16 +13,19 @@ import           GHC.Exception             (SomeException)
 import           Control.Monad.Except      (throwError)
 import           Control.Monad.Reader      (asks)
 
+import           Control.Lens              (view)
+
 import           Mirza.EntityDataAPI.Types
 import           Mirza.EntityDataAPI.Utils
 
 import qualified Crypto.JOSE               as Jose
-import qualified Crypto.JWT                as Jose
+import qualified Crypto.JWT                as JWT
 
 
 import qualified Data.ByteString           as BS
 import qualified Data.ByteString.Lazy      as BSL
 
+import           Debug.Trace
 
 handleRequest :: AuthContext -> Request -> IO WaiProxyResponse
 handleRequest ctx r = do
@@ -32,14 +35,16 @@ handleRequest ctx r = do
     Left (_err :: AppError) -> pure $ WPRResponse $ responseBuilder status401 mempty mempty
     Right _ -> pure $ WPRModifiedRequest modifiedReq (destProxyServiceInfo ctx)
 
-handleToken :: Maybe Header -> AppM AuthContext AppError Jose.ClaimsSet
+handleToken :: Maybe Header -> AppM AuthContext AppError JWT.ClaimsSet
 handleToken (Just (_, authHdr)) = do
   jwKey <- asks jwtSigningKeys
   aud <- asks ctxJwkClientId
   let bearer = "Bearer "
       (_mbearer, token) = BS.splitAt (BS.length bearer) authHdr
-  unverifiedJWT <- Jose.decodeCompact $ BSL.fromStrict token
-  Jose.verifyClaims (Jose.defaultJWTValidationSettings (== aud)) jwKey unverifiedJWT
+  (unverifiedJWT :: JWT.SignedJWT) <- JWT.decodeCompact $ BSL.fromStrict token
+  claimSet <- JWT.verifyClaims (JWT.defaultJWTValidationSettings (== aud)) jwKey unverifiedJWT
+  traceM . show $ view JWT.claimSub claimSet
+  pure claimSet
 handleToken Nothing = throwError NoAuthHeader
 
 extractAuthHeader :: Request -> (Request, Maybe Header)
