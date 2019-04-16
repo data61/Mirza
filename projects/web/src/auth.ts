@@ -132,7 +132,7 @@ export function logOut() {
     clearSession();
     window.location.reload(false);
     webAuth.logout({
-        returnTo: "https://demo.mirza.d61.io",
+        returnTo: window.location.href,
         clientID: webAuthOpts.clientID,
     });
 }
