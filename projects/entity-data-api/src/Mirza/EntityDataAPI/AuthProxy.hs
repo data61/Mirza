@@ -21,16 +21,10 @@ import           Control.Lens                       (view)
 import           Mirza.EntityDataAPI.Types
 import           Mirza.EntityDataAPI.Utils
 
-import qualified Crypto.JOSE                        as Jose
 import qualified Crypto.JWT                         as JWT
-
 
 import qualified Data.ByteString                    as BS
 import qualified Data.ByteString.Lazy               as BSL
-
-import           Debug.Trace
-
-import           Data.Aeson
 
 handleRequest :: AuthContext -> Request -> IO WaiProxyResponse
 handleRequest ctx r = do
