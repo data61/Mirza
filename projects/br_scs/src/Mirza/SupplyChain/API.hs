@@ -10,8 +10,13 @@
 {-# LANGUAGE DataKinds             #-}
 
 module Mirza.SupplyChain.API
-  ( serverAPI
+  (
+    serverAPI
   , ServerAPI
+  , PublicAPI
+  , PrivateAPI
+  , ProtectedAPI
+  , UIAPI, FrontEndAPI
   , API, api
   ) where
 
@@ -26,6 +31,7 @@ import qualified Data.GS1.Event                     as Ev
 import           Data.GS1.EventId                   as EvId
 
 import           Servant
+import           Servant.API.Flatten
 import           Servant.Swagger.UI
 
 import           Data.Text                          (Text)
@@ -39,18 +45,24 @@ api :: Proxy API
 api = Proxy
 
 
+type ServerAPI = PublicAPI :<|> ProtectedAPI :<|> UIAPI
+type ProtectedAPI = Flat (BasicAuth "foo-realm" User :> PrivateAPI)
+type UIAPI = Flat (BasicAuth "foo-realm" User :> FrontEndAPI)
+
 serverAPI :: Proxy ServerAPI
 serverAPI = Proxy
 
 
-type ServerAPI =
+type PublicAPI =
   -- Health
        "healthz" :> Get '[JSON] HealthResponse
   -- Users
   :<|> "newUser" :> ReqBody '[JSON] NewUser :> Post '[JSON] UserId
   :<|> "version" :> Get '[JSON] String
+
+type PrivateAPI =
 -- Contacts
-  :<|> "contacts" :> Get '[JSON] [User]
+       "contacts" :> Get '[JSON] [User]
   :<|> "contacts" :> "add"
                   :> Capture "userId" ST.UserId
                   :> Get '[JSON] Bool
@@ -98,7 +110,7 @@ type ServerAPI =
                   :> ReqBody '[JSON] TransformationEvent
                   :> Post '[JSON] (EventInfo, Schema.EventId)
 
--- UIAPI
-  :<|> "prototype" :> "events"
-                   :> Capture "urn" LabelEPCUrn
-                   :> Get '[JSON] [PrettyEventResponse]
+type FrontEndAPI =
+  "prototype" :> "list" :> "events"
+              :> Capture "urn" LabelEPCUrn
+              :> Get '[JSON] [PrettyEventResponse]
