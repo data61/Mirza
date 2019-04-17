@@ -46,7 +46,7 @@ handleToken (Just (_, authHdr)) = do
     Nothing -> throwError NoClaimSubject
     Just sub -> doesSubExist sub >>= \case
         False -> throwError UnauthClaimsSubject
-        True -> pure claimSet
+        True  -> pure claimSet
 handleToken Nothing = throwError NoAuthHeader
 
 extractAuthHeader :: Request -> (Request, Maybe Header)

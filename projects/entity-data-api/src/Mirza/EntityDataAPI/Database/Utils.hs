@@ -29,7 +29,6 @@ doesSubExist s = runDb $ \conn -> do
       1 -> pure True
       _ -> pure False
 
-
 runDb :: (Connection -> IO a) -> AppM AuthContext AppError a
 runDb act = do
   pool <- asks dbConnPool
