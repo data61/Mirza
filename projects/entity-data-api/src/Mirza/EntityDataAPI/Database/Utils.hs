@@ -40,10 +40,6 @@ runDb act = do
     Left (err :: SqlError) -> throwError . DatabaseError . SqlErr $ err
     Right lol              -> pure lol
 
-unpackStringOrURI :: StringOrURI -> String
-unpackStringOrURI sUri =
-  let (String str) = toJSON sUri
-    in T.unpack str
 
 instance ToField StringOrURI where
   toField = toField . unpackStringOrURI
@@ -52,3 +48,18 @@ instance FromField StringOrURI where
   fromField f bs = fromField f bs >>= \case
     Nothing -> returnError ConversionFailed f "Could not 'read' value for StringOrURI"
     Just val -> pure val
+
+unpackStringOrURI :: StringOrURI -> String
+unpackStringOrURI sUri =
+  let (String str) = toJSON sUri
+    in T.unpack str
+
+addUserSub :: StringOrURI -> StringOrURI -> AppM AuthContext AppError Bool
+addUserSub existingUser toAddUser =
+  doesSubExist existingUser >>= \case
+    False -> pure False
+    True -> runDb $ \conn -> do
+      res <- execute conn "INSERT INTO users (user_sub) values (?)" [toAddUser]
+      case res of
+        1 -> pure True
+        _ -> pure False
