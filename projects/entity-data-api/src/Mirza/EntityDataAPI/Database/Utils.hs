@@ -1,10 +1,12 @@
+{-# LANGUAGE LambdaCase          #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# OPTIONS_GHC -fno-warn-orphans  #-}
 
 module Mirza.EntityDataAPI.Database.Utils where
 
 import           Database.PostgreSQL.Simple           as DB
-import           Database.PostgreSQL.Simple.FromField (FromField (..))
+import           Database.PostgreSQL.Simple.FromField (FromField (..),
+                                                       returnError)
 import           Database.PostgreSQL.Simple.ToField   (ToField (..))
 
 import           Mirza.EntityDataAPI.Types
@@ -47,5 +49,6 @@ instance ToField StringOrURI where
   toField = toField . unpackStringOrURI
 
 instance FromField StringOrURI where
-  fromField s = error "not implemented yet"
-
+  fromField f bs = fromField f bs >>= \case
+    Nothing -> returnError ConversionFailed f "Could not 'read' value for StringOrURI"
+    Just val -> pure val
