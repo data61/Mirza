@@ -16,6 +16,7 @@ import           Mirza.Common.Tests.Utils                     (getDatabaseConnec
                                                                unsafeMkEmailAddress)
 import           Mirza.SupplyChain.Tests.Dummies
 
+import           Mirza.SupplyChain.Auth
 import           Mirza.SupplyChain.Database.Schema            as Schema
 import           Mirza.SupplyChain.EventUtils
 import           Mirza.SupplyChain.Handlers.Contacts
@@ -77,7 +78,7 @@ testServiceQueries = do
                 (Scrypt.EncryptedPass $ Schema.user_password_hash u)) &&
               (Schema.user_id u) == uid
             )
-    it "addUser test users with duplicate emails" $ \scsContext ->
+    it "addUser test users with duplicate emails" $ \scsContext -> do
       testAppM scsContext $  do
         _ <- addUser dummyNewUser
         catchError (addUser dummyNewUser *> pure ()) $ \err -> case err of
