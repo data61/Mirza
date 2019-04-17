@@ -91,11 +91,11 @@ data ServerOptionsBR = ServerOptionsBR
   , sobLoggingLevel  :: K.Severity
   , sobLogLocation   :: Maybe FilePath
   , sobEnvType       :: CT.EnvType
-  , sobOAuthAudience :: Text
   }
 
 data RunServerOptions = RunServerOptions
   { rsoPortNumber :: Int
+  , sobOAuthAudience :: Text
   }
 
 data UserCommand
@@ -138,15 +138,29 @@ multiplexInitOptions (InitOptionsBR opts mode) = case mode of
 launchServer :: ServerOptionsBR -> RunServerOptions -> IO ()
 launchServer opts rso = do
       let portNumber = rsoPortNumber rso
-      ctx <- initBRContext opts
-      app <- initApplication opts rso ctx
+      minimalContext <- initBRContext opts
+      completeContext <- addServerOptions minimalContext rso
+      app <- initApplication completeContext
       mids <- initMiddleware opts rso
       putStrLn $ "http://localhost:" ++ show portNumber ++ "/swagger-ui/"
-      Warp.run (fromIntegral portNumber) (mids app) `finally` closeScribes (BT._brKatipLogEnv ctx)
+      Warp.run (fromIntegral portNumber) (mids app) `finally` closeScribes (BT._brKatipLogEnv completeContext)
 
 
-initBRContext :: ServerOptionsBR -> IO BT.BRContext
-initBRContext opts@(ServerOptionsBR dbConnStr _ _ _ lev mlogPath envT oauthAudience) = do
+addServerOptions :: BRContextMinimal -> RunServerOptions -> IO BRContextComplete
+addServerOptions minimalContext (RunServerOptions _port oauthAudience) = addAuthOptions minimalContext oauthAudience
+
+
+addAuthOptions :: BRContextMinimal -> Text -> IO BRContextComplete
+addAuthOptions minimalContext oauthAudience = do
+  eitherJwk <- eitherDecodeFileStrict "auth_public_key_2019-04-01.json"
+  let makeError errorMessage = error $ "Unable to get the OAuth Public Key. Error was: " <> (show errorMessage)
+  let jwk = either makeError id eitherJwk
+  let audience = Audience [review string oauthAudience]
+  pure $ brContextComplete minimalContext audience jwk
+
+
+initBRContext :: ServerOptionsBR -> IO BT.BRContextMinimal
+initBRContext opts@(ServerOptionsBR dbConnStr _ _ _ lev mlogPath envT) = do
   logHandle <- maybe (pure stdout) (flip openFile AppendMode) mlogPath
   hPutStr stderr $ "(Logging will be to: " ++ fromMaybe "stdout" mlogPath ++ ") "
   handleScribe <- mkHandleScribe ColorIfTerminal logHandle lev V3
@@ -158,15 +172,11 @@ initBRContext opts@(ServerOptionsBR dbConnStr _ _ _ lev mlogPath envT oauthAudie
                       60 -- How long in seconds to keep a connection open for reuse
                       10 -- Max number of connections to have open at any one time
                       -- TODO: Make this a config paramete
-  eitherJwk <- eitherDecodeFileStrict "auth_public_key_2019-04-01.json"
-  let makeError errorMessage = error $ "Unable to get the OAuth Public Key. Error was: " <> (show errorMessage)
-  let jwk = either makeError id eitherJwk
-  let audience = Audience [review string oauthAudience]
-  pure $ BRContext envT connpool params logEnv mempty mempty audience jwk
+  pure $ brContextMinimal envT connpool params logEnv mempty mempty
 
 
-initApplication :: ServerOptionsBR -> RunServerOptions -> BT.BRContext -> IO Application
-initApplication _go _so ev =
+initApplication :: BRContextComplete -> IO Application
+initApplication ev =
   pure $ serveWithContext api
           (tokenServerContext ev)
           (server ev)
@@ -176,14 +186,14 @@ initMiddleware :: ServerOptionsBR -> RunServerOptions -> IO Middleware
 initMiddleware _ _ = pure id
 
 -- Implementation
-server :: BRContext -> Server API
+server :: BRContextComplete -> Server API
 server ev =
   swaggerSchemaUIServer serveSwaggerAPI
   :<|> hoistServerWithContext
         (Proxy @ServerAPI)
         (Proxy @'[CookieSettings, JWTSettings])
         (appMToHandler ev)
-        (appHandlers @BRContext @BRError)
+        (appHandlers @BRContextComplete @BRError)
 
 
 --------------------------------------------------------------------------------
@@ -193,7 +203,7 @@ server ev =
 runMigration :: ServerOptionsBR -> IO ()
 runMigration opts = do
   ctx <- initBRContext opts
-  res <- runMigrationWithConfirmation @BRContext @SqlError ctx interactiveMigrationConfirm
+  res <- runMigrationWithConfirmation @BRContextMinimal @SqlError ctx interactiveMigrationConfirm
   print res
 
 
@@ -412,6 +422,12 @@ runServer = RunServer <$>
       <>  showDefault
       <>  value defaultPortNumber
       )
+  <*> strOption
+    (
+       long "aud"
+    <> short 'a'
+    <> help "OAuth audience claim to match against user tokens."
+    )
   )
 
 parsedServerOptions :: Parser ServerOptionsBR
@@ -460,11 +476,6 @@ parsedServerOptions = ServerOptionsBR
       ( long "env" <> short 'e'
       <> value Dev <> showDefault
       <> help "Environment, Dev | Prod"
-      )
-    <*> strOption
-      ( long "aud"
-      <> short 'a'
-      <> help "OAuth audience claim to match against user tokens"
       )
 
 
