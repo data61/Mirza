@@ -44,8 +44,6 @@ import           Options.Applicative                     hiding (action)
 import           Text.Email.Parser                       (addrSpec)
 import           Text.Email.Validate                     (validate, toByteString)
 
-import qualified Crypto.Scrypt                           as Scrypt
-
 import           Control.Lens                            (review)
 import           Control.Exception                       (finally)
 import           Data.Maybe                              (fromMaybe)
@@ -81,13 +79,10 @@ data ExecMode
   | UserAction UserCommand
   | BusinessAction BusinessCommand
   | PopulateDatabase  -- TODO: This option should be removed....this is for testing and debugging only.
-  | Bootstrap EmailAddress Text GS1CompanyPrefix
+  | Bootstrap EmailAddress GS1CompanyPrefix
 
 data ServerOptionsBR = ServerOptionsBR
   { sobDbConnStr     :: ByteString
-  , sobScryptN       :: Integer
-  , sobScryptP       :: Integer
-  , sobScryptR       :: Integer
   , sobLoggingLevel  :: K.Severity
   , sobLogLocation   :: Maybe FilePath
   , sobEnvType       :: CT.EnvType
@@ -128,7 +123,7 @@ multiplexInitOptions (InitOptionsBR opts mode) = case mode of
   UserAction uc                          -> runUserCommand opts uc
   BusinessAction bc                      -> runBusinessCommand opts bc
   PopulateDatabase                       -> runPopulateDatabase opts
-  Bootstrap email password companyPrefix -> runBootstrap opts email password companyPrefix
+  Bootstrap email companyPrefix          -> runBootstrap opts email companyPrefix
 
 
 --------------------------------------------------------------------------------
@@ -160,19 +155,18 @@ addAuthOptions minimalContext oauthAudience = do
 
 
 initBRContext :: ServerOptionsBR -> IO BT.BRContextMinimal
-initBRContext opts@(ServerOptionsBR dbConnStr _ _ _ lev mlogPath envT) = do
+initBRContext (ServerOptionsBR dbConnStr lev mlogPath envT) = do
   logHandle <- maybe (pure stdout) (flip openFile AppendMode) mlogPath
   hPutStr stderr $ "(Logging will be to: " ++ fromMaybe "stdout" mlogPath ++ ") "
   handleScribe <- mkHandleScribe ColorIfTerminal logHandle lev V3
   logEnv <- initLogEnv "businessRegistry" (Environment . pack . show $ envT)
             >>= registerScribe "stdout" handleScribe defaultScribeSettings
-  params <- createScryptParams opts
   connpool <- Pool.createPool (connectPostgreSQL dbConnStr) close
                       1 -- Number of "sub-pools",
                       60 -- How long in seconds to keep a connection open for reuse
                       10 -- Max number of connections to have open at any one time
                       -- TODO: Make this a config paramete
-  pure $ brContextMinimal envT connpool params logEnv mempty mempty
+  pure $ brContextMinimal envT connpool logEnv mempty mempty
 
 
 initApplication :: BRContextComplete -> IO Application
@@ -228,7 +222,6 @@ interactivelyGetNewUser :: IO NewUser
 interactivelyGetNewUser = do
   newUserOAuthSub     <- pack <$> prompt "OAuthSub:"
   newUserEmailAddress <- getUserEmailInteractive
-  newUserPassword     <- pack <$> prompt "Password:"
   newUserCompany      <- GS1CompanyPrefix . read <$> prompt "GS1CompanyPrefix:"
   newUserFirstName    <- pack <$> prompt "First Name:"
   newUserLastName     <- pack <$> prompt "Last Name:"
@@ -243,15 +236,6 @@ getUserEmailInteractive = do
       putStrLn $ "Invalid Email. Reason: " ++ reason
       getUserEmailInteractive
     Right email -> pure email
-
-createScryptParams :: ServerOptionsBR -> IO Scrypt.ScryptParams
-createScryptParams ServerOptionsBR{sobScryptN,sobScryptP,sobScryptR} =
-  case Scrypt.scryptParams (max sobScryptN 14) (max sobScryptP 8) (max sobScryptR 1) of
-    Just scparams -> pure scparams
-    Nothing -> do
-      putStrLn $  "Invalid Scrypt params:" ++ show (sobScryptN,sobScryptP,sobScryptR)
-               ++ " using defaults"
-      pure Scrypt.defaultParams
 
 
 --------------------------------------------------------------------------------
@@ -326,7 +310,6 @@ runPopulateDatabase opts = do
 printCredentials :: NewUser -> IO ()
 printCredentials user = do
   putStrLn $ "Username: " <> show (newUserEmailAddress user)
-  putStrLn $ "Password: " <> show (newUserPassword user)
 
 
 --------------------------------------------------------------------------------
@@ -339,10 +322,10 @@ printCredentials user = do
 -- doesn't take proper credentials suggests that our user model is wrong
 -- (incomplete)... i.e. we need users that aren't associated with businesses,
 -- but we need to do much more work here when we deal with permssions in general.
-runBootstrap :: ServerOptionsBR -> EmailAddress -> Text -> GS1CompanyPrefix -> IO ()
-runBootstrap opts email password companyPrefix = do
+runBootstrap :: ServerOptionsBR -> EmailAddress -> GS1CompanyPrefix -> IO ()
+runBootstrap opts email companyPrefix = do
   let newBusiness = bootstrapBusiness companyPrefix
-  let newUser = bootstrapUser email password companyPrefix
+  let newUser = bootstrapUser email companyPrefix
 
   ctx        <- initBRContext opts
   -- We ignore the business insert result, because the business may already
@@ -361,11 +344,10 @@ runBootstrap opts email password companyPrefix = do
       let newBusinessUrl              = nullURI
       NewBusiness{..}
 
-    bootstrapUser :: EmailAddress -> Text -> GS1CompanyPrefix -> NewUser
-    bootstrapUser userEmail userPassword company = do
+    bootstrapUser :: EmailAddress -> GS1CompanyPrefix -> NewUser
+    bootstrapUser userEmail company = do
       let newUserOAuthSub     = "bootstrapped-user-oauth-sub" <> decodeUtf8 (toByteString userEmail)
       let newUserEmailAddress = userEmail
-      let newUserPassword     = userPassword
       let newUserCompany      = company
       let newUserFirstName    = "Bootstrapped User"
       let newUserLastName     = "Bootstrapped User"
@@ -440,26 +422,6 @@ parsedServerOptions = ServerOptionsBR
       <>  showDefault
       <>  value defaultDatabaseConnectionString
       )
-  <*> option auto
-      (
-          long "scryptN"
-      <>  help "Scrypt N parameter (>= 14)"
-      <>  showDefault
-      <>  value 14
-      )
-  <*> option auto
-      (
-          long "scryptP"
-      <>  help "Scrypt r parameter (>= 8)"
-      <>  showDefault
-      <>  value 8
-      )
-  <*> option auto
-      (  long "scryptR"
-      <> help "Scrypt r parameter (>= 1)"
-      <> showDefault
-      <> value 1
-      )
     <*> option auto
       (  long "log-level"
       <> value InfoS
@@ -531,7 +493,7 @@ businessList = pure BusinessList
 
 
 bootstrap :: Parser ExecMode
-bootstrap = Bootstrap <$> emailParser <*> passwordParser <*> companyPrefixParser
+bootstrap = Bootstrap <$> emailParser <*> companyPrefixParser
 
 
 populateDb :: Parser ExecMode
@@ -544,10 +506,6 @@ emailParser = argument emailReader (metavar "EmailAddress")
 
 emailReader :: ReadM EmailAddress
 emailReader = eitherReader (A.parseOnly addrSpec . BS.pack)
-
-
-passwordParser :: Parser Text
-passwordParser = argument str (metavar "Password")
 
 
 companyPrefixParser :: Parser GS1CompanyPrefix

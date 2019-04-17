@@ -166,7 +166,6 @@ clientSpec = do
           let userBR = BT.NewUser
                           "EventSign Test Same User OAuthSub"
                           (unsafeMkEmailAddress "abc@example.com")
-                          "re4lly$ecret14!"
                           prefix
                           "Biz Johnny"
                           "Smith Biz"
@@ -230,7 +229,6 @@ clientSpec = do
           let userBRGiver = BT.NewUser
                           "EventSign Test Giver OAuthSub"
                           (unsafeMkEmailAddress "abc@example.com")
-                          "re4lly$ecret14!"
                           prefixGiver
                           "Biz Giver"
                           "Smith Biz"
@@ -264,7 +262,6 @@ clientSpec = do
           let userBRReceiver = BT.NewUser
                           "EventSign Test Reciever OAuthSub"
                           (unsafeMkEmailAddress "def@example.com")
-                          "re4lly$ecret14!"
                           prefixReceiver
                           "Biz Receiver"
                           "Smith Biz"

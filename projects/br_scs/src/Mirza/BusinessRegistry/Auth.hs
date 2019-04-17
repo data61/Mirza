@@ -38,7 +38,7 @@ import           Crypto.JWT                              (Audience (..))
 
 -- | We need to supply our handlers with the right Context. In this case,
 -- JWT requires a Context Entry with the 'JWTSettings and CookiesSettings values.
-tokenServerContext :: ( Member context '[HasScryptParams, HasDB, HasAuthAudience, HasAuthPublicKey])
+tokenServerContext :: ( Member context '[HasDB, HasAuthAudience, HasAuthPublicKey])
                        => context -> Servant.Context '[JWTSettings, CookieSettings]
 tokenServerContext context = jwtSettings :. defaultCookieSettings :. EmptyContext
   where
@@ -58,7 +58,7 @@ listUsersQuery = pg $ runSelectReturningList $ select $
     all_ (_users businessRegistryDB)
 
 
-oauthClaimsToAuthUser :: ( Member context '[HasEnvType, HasConnPool, HasLogging, HasScryptParams]
+oauthClaimsToAuthUser :: ( Member context '[HasEnvType, HasConnPool, HasLogging]
                        , Member err     '[AsBRError, AsSqlError])
                     => Servant.Auth.Server.AuthResult BT.VerifiedTokenClaims
                     -> AppM context err BT.AuthUser
@@ -72,7 +72,7 @@ oauthClaimsToAuthUser (Authenticated claims) = do
     --       user structure. For this to work there needs to be a company with the GS1CompanyPrefix "bootstrap"
     --       as it is an assumption of this code. In phase 2 of this implementation we will come back and remove
     --       all of the additional user metadata which is no longer needed.
-    promotedUser = NewUser (verifiedTokenClaimsSub claims) (unsafeEmailAddress "promoted-user" "example.com") "" (GS1CompanyPrefix "bootstrap") "" "" ""
+    promotedUser = NewUser (verifiedTokenClaimsSub claims) (unsafeEmailAddress "promoted-user" "example.com") (GS1CompanyPrefix "bootstrap") "" "" ""
 oauthClaimsToAuthUser failure = throwing _UserAuthFailureBRE (void failure)
 
 

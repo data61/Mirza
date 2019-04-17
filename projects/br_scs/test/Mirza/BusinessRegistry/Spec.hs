@@ -48,7 +48,7 @@ openConnection = do
   _ <- withResource connpool $ dropTables businessRegistryDB -- drop tables before so if already exist no problems... means tables get overwritten though
   tempFile <- emptySystemTempFile "businessRegistryTests.log"
   let connectionString = getDatabaseConnectionString testDbConnectionStringBR
-  ctx <- initBRContext (ServerOptionsBR connectionString 16 10 4 DebugS (Just tempFile) Dev)
+  ctx <- initBRContext (ServerOptionsBR connectionString DebugS (Just tempFile) Dev)
   initRes <- runMigrationWithConfirmation ctx (const (pure Execute))
   case initRes of
     Left err -> print @SqlError err >> error "Database initialisation failed"

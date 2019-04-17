@@ -21,4 +21,4 @@ dummyNewUser = makeDummyNewUser (unsafeMkEmailAddress "fake@gmail.com")
 -- | Utility function to make many users on the fly
 makeDummyNewUser :: CT.EmailAddress -> BRT.NewUser
 makeDummyNewUser userEmail =
-    BRT.NewUser ("OAuthSub" <> pack (show userEmail))  userEmail "password" (GS1CompanyPrefix "Company Prefix") "First Name" "Last Name" "Phone Number"
+    BRT.NewUser ("OAuthSub" <> pack (show userEmail))  userEmail (GS1CompanyPrefix "Company Prefix") "First Name" "Last Name" "Phone Number"

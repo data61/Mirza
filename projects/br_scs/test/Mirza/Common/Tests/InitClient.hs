@@ -22,7 +22,6 @@ import           Servant.Client                           (BaseUrl (..))
 import           Data.Either                              (isRight)
 
 import           Data.Text
-import           Data.Text.Encoding                       (encodeUtf8)
 
 import           Test.Tasty.Hspec
 
@@ -145,18 +144,14 @@ newBusinessToBusinessResponse =
 
 
 newUserToBasicAuthData :: BT.NewUser -> BasicAuthData
-newUserToBasicAuthData =
-  BasicAuthData
-  <$> toByteString . BT.newUserEmailAddress
-  <*> encodeUtf8 . BT.newUserPassword
+newUserToBasicAuthData newUser = BasicAuthData (toByteString $ BT.newUserEmailAddress newUser) ""
 
 
 bootstrapAuthData :: (HasEnvType w, HasConnPool w, HasKatipContext w,
-                      HasKatipLogEnv w, HasScryptParams w)
+                      HasKatipLogEnv w)
                      => w -> IO Token
 bootstrapAuthData ctx = do
   let email = "initialUser@example.com"
-  password <- randomPassword
   let prefix = GS1CompanyPrefix "1000000"
   let businessName = "Business Name"
       business = NewBusiness prefix businessName (mockURI businessName)
@@ -164,7 +159,6 @@ bootstrapAuthData ctx = do
   insertBusinessResult `shouldSatisfy` isRight
   let user = BT.NewUser "initialUserOAuthSub"
                       (unsafeMkEmailAddress email)
-                      password
                       prefix
                       "Test User First Name"
                       "Test User Last Name"
@@ -181,7 +175,7 @@ randomPassword :: IO Text
 randomPassword = ("PlainTextPassword:" <>) <$> randomText
 
 brOptions :: Maybe FilePath -> ServerOptionsBR
-brOptions mfp = ServerOptionsBR connectionString 14 8 1 DebugS mfp Dev
+brOptions mfp = ServerOptionsBR connectionString DebugS mfp Dev
   where
     connectionString = getDatabaseConnectionString testDbConnectionStringBR
 
