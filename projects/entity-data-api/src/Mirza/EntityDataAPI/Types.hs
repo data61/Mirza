@@ -35,7 +35,7 @@ import qualified Crypto.JWT                 as Jose
 import           Control.Lens               (makeClassyPrisms, prism')
 
 import           Data.Pool                  as Pool
-import           Database.PostgreSQL.Simple (Connection)
+import           Database.PostgreSQL.Simple (Connection, SqlError (..))
 
 import           Data.ByteString            (ByteString)
 
@@ -144,6 +144,10 @@ instance FromEnv Opts where
 --  ---------------- Errors ------------------------
 
 
+data DBError
+  = SqlErr SqlError
+  deriving (Eq, Show, Generic)
+
 data AppError
   = JWKFetchFailed
   | AuthFailed Jose.JWTError
@@ -154,6 +158,7 @@ data AppError
   | UrlParseFailed
   | ReqFailure HttpException
   | JWKParseFailure String
+  | DatabaseError DBError
   deriving (Show, Generic)
 makeClassyPrisms ''AppError
 
