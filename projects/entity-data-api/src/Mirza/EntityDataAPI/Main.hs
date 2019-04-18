@@ -88,6 +88,7 @@ tryAddBootstrapUser ctx = do
 launchUserManager :: AuthContext -> IO () -- run the UserManager.main in an infinite loop
 launchUserManager ctx = do
   res <- tryAddUser ctx
+  -- not failing until EOL
   launchUserManager ctx
   -- case res of
   --   Right True -> launchUserManager ctx
