@@ -362,19 +362,6 @@ runBootstrap opts email password companyPrefix = do
       let newUserPhoneNumber  = ""
       NewUser{..}
 
-
---------------------------------------------------------------------------------
--- Debug Command
---------------------------------------------------------------------------------
-
--- This is a debug function for activating development test stub functions.
--- TODO: Remove this stub before release.
-debugFunc :: IO()
-debugFunc = do
-  putStrLn "Running Debug Option"
-  -- Debug test code goes here...
-
-
 --------------------------------------------------------------------------------
 -- Command Line Options Argument Parsers
 --------------------------------------------------------------------------------
