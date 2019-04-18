@@ -114,9 +114,20 @@ defaultJwkUrl = "https://mirza.au.auth0.com/.well-known/jwks.json"
 
 --  ----------------Opts----------------------------
 
+
+data AppMode
+  = Proxy
+  | API -- placeholder
+  | Bootstrap
+  deriving (Show, Eq, Generic, Read)
+
+instance Var AppMode where
+  fromVar m = readMaybe m :: Maybe AppMode
+
 data Opts = Opts
   { myServiceInfo   :: ServiceInfo
   , destServiceInfo :: ServiceInfo
+  , appMode         :: AppMode
   , jwkUrl          :: String
   , jwkClientId     :: String
   , dbConnectionStr :: ByteString
@@ -126,6 +137,7 @@ instance DefConfig Opts where
   defConfig = Opts
     { myServiceInfo   = ServiceInfo{serviceHost=Hostname "localhost", servicePort=Port 8080 }
     , destServiceInfo = ServiceInfo{serviceHost=Hostname "localhost", servicePort=Port 8000 }
+    , appMode         = Proxy
     , jwkUrl          = defaultJwkUrl
     , jwkClientId     = ""
     , dbConnectionStr = "dbname=deventitydataapi"
@@ -135,6 +147,7 @@ instance FromEnv Opts where
   fromEnv = Opts
     <$> fromEnvMyServiceInfo
     <*> fromEnvDestServiceInfo
+    <*> envMaybe "EDAPI_MODE" .!= Proxy
     <*> envMaybe "JWK_URL" .!= defaultJwkUrl
     <*> env "JWK_CLIENT_ID"
     <*> env "EDAPI_DB_CONN"
