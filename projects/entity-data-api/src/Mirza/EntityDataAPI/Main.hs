@@ -11,7 +11,7 @@ import           Network.HTTP.Client                (newManager)
 import           Network.HTTP.Client.TLS            (tlsManagerSettings)
 
 import           Mirza.EntityDataAPI.AuthProxy      (runAuthProxy)
-import           Mirza.EntityDataAPI.Database.Utils (addUserSub)
+import           Mirza.EntityDataAPI.Database.Utils (addUser, addUserSub)
 import           Mirza.EntityDataAPI.Types
 import           Mirza.EntityDataAPI.Utils          (fetchJWKs)
 
@@ -72,6 +72,18 @@ tryAddUser ctx = do
     Right False -> print "Failed to add the user."
     Left err    -> print $ "Failed with error : " <> show err
   pure res
+
+tryAddBootstrapUser :: AuthContext -> IO (Either AppError Bool)
+tryAddBootstrapUser ctx = do
+  (toAddUserStr :: String) <- promptLine "User you want to add: "
+  let (toAddUserSub :: StringOrURI) = fromString toAddUserStr
+  res <- runAppM ctx $ addUser toAddUserSub
+  case res of
+    Right True  -> print $ "Successfully added user"
+    Right False -> print "Failed to add the user."
+    Left err    -> print $ "Failed with error : " <> show err
+  pure res
+
 
 launchUserManager :: AuthContext -> IO () -- run the UserManager.main in an infinite loop
 launchUserManager ctx = do

@@ -58,8 +58,11 @@ addUserSub :: StringOrURI -> StringOrURI -> AppM AuthContext AppError Bool
 addUserSub existingUser toAddUser =
   doesSubExist existingUser >>= \case
     False -> pure False
-    True -> runDb $ \conn -> do
-      res <- DB.execute conn "INSERT INTO users (user_sub) values (?)" [toAddUser]
-      case res of
-        1 -> pure True
-        _ -> pure False
+    True -> addUser toAddUser
+
+addUser :: StringOrURI -> AppM AuthContext AppError Bool
+addUser toAddUser = runDb $ \conn -> do
+  res <- DB.execute conn "INSERT INTO users (user_sub) values (?)" [toAddUser]
+  case res of
+    1 -> pure True
+    _ -> pure False
