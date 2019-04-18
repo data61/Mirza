@@ -28,8 +28,6 @@ import           Database.PostgreSQL.Simple         (close, connectPostgreSQL)
 
 import           Data.Pool                          (createPool)
 
-import           Control.Monad                      (void)
-
 main :: IO ()
 -- main = launchProxy =<< execParser opts where
 --   opts = info (optsParser <**> helper)
@@ -50,9 +48,8 @@ multiplexInitOptions opts = do
     Proxy     -> launchProxy ctx
     API       -> launchUserManager ctx
     Bootstrap -> do
-      res <- tryAddUser ctx
+      res <- tryAddBootstrapUser ctx
       print res
-
 
 promptLine :: String -> IO String
 promptLine prompt = do
@@ -85,14 +82,10 @@ tryAddBootstrapUser ctx = do
   pure res
 
 
-launchUserManager :: AuthContext -> IO () -- run the UserManager.main in an infinite loop
+launchUserManager :: AuthContext -> IO ()
 launchUserManager ctx = do
-  res <- tryAddUser ctx
-  -- not failing until EOL
+  _ <- tryAddUser ctx
   launchUserManager ctx
-  -- case res of
-  --   Right True -> launchUserManager ctx
-  --   Left err   -> launchUserManager ctx
 
 
 initContext :: Opts -> IO AuthContext
