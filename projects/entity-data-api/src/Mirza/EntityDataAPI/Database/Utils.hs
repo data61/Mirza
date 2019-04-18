@@ -46,7 +46,7 @@ instance ToField StringOrURI where
 
 instance FromField StringOrURI where
   fromField f bs = fromField f bs >>= \case
-    Nothing -> returnError ConversionFailed f "Could not 'read' value for StringOrURI"
+    Nothing -> returnError ConversionFailed f "Could not read value for StringOrURI"
     Just val -> pure val
 
 unpackStringOrURI :: StringOrURI -> String
@@ -59,7 +59,7 @@ addUserSub existingUser toAddUser =
   doesSubExist existingUser >>= \case
     False -> pure False
     True -> runDb $ \conn -> do
-      res <- execute conn "INSERT INTO users (user_sub) values (?)" [toAddUser]
+      res <- DB.execute conn "INSERT INTO users (user_sub) values (?)" [toAddUser]
       case res of
         1 -> pure True
         _ -> pure False
