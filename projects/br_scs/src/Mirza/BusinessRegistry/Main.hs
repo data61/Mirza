@@ -20,17 +20,17 @@ import           Mirza.Common.Types                      as CT
 import           Data.GS1.EPC                            (GS1CompanyPrefix (..))
 
 import           Servant
-import           Servant.Swagger.UI
 import           Servant.Auth.Server
+import           Servant.Swagger.UI
 
 import           Crypto.JWT                              (Audience (..), string)
 
 import qualified Data.Pool                               as Pool
 import           Database.PostgreSQL.Simple
 
+import           Network.URI                             (nullURI)
 import           Network.Wai                             (Middleware)
 import qualified Network.Wai.Handler.Warp                as Warp
-import           Network.URI                             (nullURI)
 
 import           Data.Aeson                              (eitherDecodeFileStrict)
 
@@ -39,15 +39,17 @@ import           Data.ByteString                         (ByteString)
 import qualified Data.ByteString.Char8                   as BS
 import           Data.Semigroup                          ((<>))
 import           Data.Text                               (Text, pack)
-import           Data.Text.Encoding                      (encodeUtf8, decodeUtf8)
+import           Data.Text.Encoding                      (decodeUtf8,
+                                                          encodeUtf8)
 import           Options.Applicative                     hiding (action)
 import           Text.Email.Parser                       (addrSpec)
-import           Text.Email.Validate                     (validate, toByteString)
+import           Text.Email.Validate                     (toByteString,
+                                                          validate)
 
 import qualified Crypto.Scrypt                           as Scrypt
 
-import           Control.Lens                            (review)
 import           Control.Exception                       (finally)
+import           Control.Lens                            (review)
 import           Data.Maybe                              (fromMaybe)
 import           Katip                                   as K
 import           System.IO                               (IOMode (AppendMode),
