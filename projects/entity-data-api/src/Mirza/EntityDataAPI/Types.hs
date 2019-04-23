@@ -123,6 +123,7 @@ data AppMode
 
 instance Var AppMode where
   fromVar m = readMaybe m :: Maybe AppMode
+  toVar = show
 
 data Opts = Opts
   { myServiceInfo   :: ServiceInfo
