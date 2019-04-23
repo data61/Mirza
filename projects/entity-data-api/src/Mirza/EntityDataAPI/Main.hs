@@ -65,9 +65,9 @@ tryAddUser ctx = do
   let (toAddUserSub :: StringOrURI) = fromString toAddUserStr
   res <- runAppM ctx $ addUserSub authorisedUserSub toAddUserSub
   case res of
-    Right True  -> print $ "Successfully added user"
-    Right False -> print "Failed to add the user."
-    Left err    -> print $ "Failed with error : " <> show err
+    Right True  -> putStrLn "Successfully added user"
+    Right False -> putStrLn "Failed to add the user."
+    Left err    -> putStrLn $ "Failed with error : " <> show err
   pure res
 
 tryAddBootstrapUser :: AuthContext -> IO (Either AppError Bool)
@@ -76,9 +76,9 @@ tryAddBootstrapUser ctx = do
   let (toAddUserSub :: StringOrURI) = fromString toAddUserStr
   res <- runAppM ctx $ addUser toAddUserSub
   case res of
-    Right True  -> print $ "Successfully added user"
-    Right False -> print "Failed to add the user."
-    Left err    -> print $ "Failed with error : " <> show err
+    Right True  -> putStrLn "Successfully added user"
+    Right False -> putStrLn "Failed to add the user."
+    Left err    -> putStrLn $ "Failed with error : " <> show err
   pure res
 
 
