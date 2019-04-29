@@ -17,10 +17,12 @@ export function LabelField({ eventState: [event, setEvent], updateFn }: EventSta
   const toggleQR = () => setShowQR(!showQR);
   const onScan = (data?: string) => {
     if (data !== null) {
-      // setEPCLabel(data);
+      // TODO: we need to extract the label from the DigitalLink
+      setEvent(updateFn(event, data));
+      toggleQR();
     }
   };
-  const onScanError = () => console.log("N"); // setEPCLabel("");
+  const onScanError = () => alert("Unable to scan QR code");
 
   return (
     <label>
@@ -43,7 +45,7 @@ export function LabelField({ eventState: [event, setEvent], updateFn }: EventSta
           onError={onScanError}
           onScan={onScan}
           showViewFinder={false}
-          style={{ width: "128px" }}
+        //          style={{ width: "128px" }}
         />}
     </label>
   );

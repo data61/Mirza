@@ -8,18 +8,21 @@ export function Submit() {
   const eventState = React.useState(objectEvent());
   const [event, _] = eventState;
 
+  const submitEvent = () => {
+    alert("TODO: Send event to server");
+
+    // TODO:
+    // - Fetch data entity api URL from BR (based off user/selected company)
+    // - Submit event to entity api URL
+  };
+
   return (
     <section>
       <div className="border-bottom">
         <div className="container">
           <div className="row">
             <div className="column">
-              <h3><Link to="/"><i className="fa fa-chevron-left"></i> </Link> Submit Event</h3>
-            </div>
-            <div className="column">
-              <nav className="tabs">
-                <a className="active" href="#"><i className="fas fa-fw fa-lg fa-qrcode"></i> Scan</a>
-              </nav>
+              <h3><Link to="/"><i className="fa fa-chevron-left"></i> </Link> New Event</h3>
             </div>
           </div>
         </div>
@@ -28,14 +31,19 @@ export function Submit() {
         <div className="border-bottom pad-tb">
           <div className="container">
             <div className="row">
-              <div className="column border-right"><EventForm eventState={eventState} /></div>
+              <div className="column border-right">
+                <EventForm eventState={eventState} />
+
+                <button onClick={submitEvent}>Submit Event</button>
+              </div>
               <div className="column">
-                <textarea style={({ height: "100%" })} value={JSON.stringify(event, null, 2)} readOnly></textarea>
+                <label>Raw EPCIS Event</label>
+                <textarea style={({ height: "10em" })} value={JSON.stringify(event, null, 2)} readOnly></textarea>
               </div>
             </div>
           </div>
         </div>
       </div >
-    </section>
+    </section >
   );
 }

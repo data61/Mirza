@@ -88,7 +88,11 @@ export interface Event {
 
 export function objectEvent() {
     return {
-        eventTime: new Date(),
         isA: EventType.Object,
+
+        action: EventAction.Add,
+        bizStep: EventBusinessStep.Accepting,
+        disposition: EventDisposition.Active,
+        eventTime: new Date(),
     };
 }
