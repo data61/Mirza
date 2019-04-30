@@ -86,7 +86,7 @@ export interface Event {
     disposition?: string;
 }
 
-export function objectEvent() {
+export function objectEvent(): Event {
     return {
         isA: EventType.Object,
 
