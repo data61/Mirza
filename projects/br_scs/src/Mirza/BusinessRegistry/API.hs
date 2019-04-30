@@ -27,8 +27,8 @@ import           Data.GS1.EPC                           as EPC
 
 import           Servant
 import           Servant.API.Flatten
-import           Servant.Swagger.UI
 import           Servant.Auth.Server
+import           Servant.Swagger.UI
 
 import           Crypto.JOSE.JWK
 import           Data.Text                              (Text)
