@@ -1,5 +1,6 @@
 import * as React from "react";
 import { Link } from "react-router-dom";
+const { DigitalLink, Utils } = require('digital-link.js');
 
 import { objectEvent } from "../epcis";
 import { EventForm } from "./epcis/event";
@@ -9,6 +10,9 @@ export function Submit() {
   const [event, _] = eventState;
 
   const submitEvent = () => {
+    console.log(event.label);
+    const dl = DigitalLink(event.label);
+    console.log(dl.isValid());
     alert("TODO: Send event to server");
 
     // TODO:
