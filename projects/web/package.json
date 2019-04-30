@@ -11,6 +11,7 @@
   "author": "CSIRO Data61",
   "license": "Apache-2.0",
   "dependencies": {
+    "@types/node": "^11.13.8",
     "@types/react": "^16.8.5",
     "@types/react-dom": "^16.8.2",
     "@types/react-qr-reader": "^2.1.2",
