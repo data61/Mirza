@@ -10,6 +10,8 @@ packages:
     - beam-migrate
     - beam-postgres
 extra-deps:
+- git: https://github.com/sajidanower23/hs-jose.git
+  commit: d7aca4d13b27235af47d522b5d093e567750628e
 - git: https://github.com/data61/GS1Combinators.git
   commit: 0b41a51a746616350cceef6ca91ee5869340dd12
 - git: https://github.com/kapralVV/Unique.git

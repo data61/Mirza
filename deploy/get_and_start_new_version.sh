@@ -52,4 +52,4 @@ docker-compose up -d supplyChainServer businessRegistry private-ethereum-blockch
 # docker-compose up -d dbpopulate-scs
 
 # remove all unused docker images and exited containers
-docker system prune -a --force
+# docker system prune -a --force

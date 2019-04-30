@@ -7,6 +7,7 @@ PUSH_MIRZA=$3
 
 SCS_DOCKER_IMAGE_TAG="${DOCKER_REPO}/supplychainserver:$COMMIT"
 BR_DOCKER_IMAGE_TAG="${DOCKER_REPO}/businessregistry:$COMMIT"
+EDAPI_DOCKER_IMAGE_TAG="${DOCKER_REPO}/entity-data-api:$COMMIT"
 HSBUILDER_DOCKER_IMAGE="${DOCKER_REPO}/hsbuilder"
 HSBUILDER_DOCKER_IMAGE_TAG="${HSBUILDER_DOCKER_IMAGE}:$(./deploy/dephash.sh)"
 
@@ -37,3 +38,6 @@ if [ "$PUSH_MIRZA" ]; then
     docker push "${SCS_DOCKER_IMAGE_TAG}"
     docker push "${BR_DOCKER_IMAGE_TAG}"
 fi
+
+cd ../entity-data-api
+docker build -f EntityDataAPI.Dockerfile --target PKG-EDAPI --build-arg HS_BUILDER_IMAGE="${HSBUILDER_DOCKER_IMAGE_TAG}" -t "${EDAPI_DOCKER_IMAGE_TAG}" .
