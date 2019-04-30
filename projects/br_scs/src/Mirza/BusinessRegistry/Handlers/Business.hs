@@ -106,10 +106,9 @@ getBusinessInfo :: ( Member context '[HasDB]
                 => BT.AuthUser
                 -> AppM context err [BusinessResponse]
 getBusinessInfo (BT.AuthUser (BT.UserId uId)) = do
-  r <- runDb $ pg $ runSelectReturningOne $ select $ do
-        user <- all_ (_users businessRegistryDB)
-        guard_ (user_id user ==. val_ uId)
-        pure $ user_biz_id user
-  case r of
-    Just (BizId pfx) -> fmap businessToBusinessResponse <$> runDb (searchBusinessesQuery (Just pfx) Nothing Nothing)
-    Nothing -> throwing_ _UnknownUserBRE
+  organisations <- runDb $ pg $ runSelectReturningList $ select $ do
+        mapping <- all_ (_organisationMapping businessRegistryDB)
+        guard_ (organisation_mapping_user_id mapping ==. val_ uId)
+        pure $ organisation_mapping_gs1_company_prefix mapping
+  let queryOrganistaion gs1CompanyPrefix = fmap businessToBusinessResponse <$> runDb (searchBusinessesQuery (Just gs1CompanyPrefix) Nothing Nothing)
+  concat <$> traverse queryOrganistaion organisations

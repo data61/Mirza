@@ -71,7 +71,7 @@ addUserQuery (BRT.NewUser oauthSub userEmail biz firstName lastName phone) = do
   -- TODO: use Database.Beam.Backend.SQL.runReturningOne?
   res <- pg $ runInsertReturningList (Schema._users Schema.businessRegistryDB) $
       insertValues
-       [Schema.UserT userId oauthSub (Schema.BizId  biz) firstName lastName
+       [Schema.UserT userId oauthSub firstName lastName
                phone userEmail Nothing
        ]
   case res of
