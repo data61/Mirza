@@ -108,7 +108,11 @@ getBusinessInfo :: ( Member context '[HasDB]
 getBusinessInfo (BT.AuthUser (BT.UserId uId)) = do
   organisations <- runDb $ pg $ runSelectReturningList $ select $ do
         mapping <- all_ (_organisationMapping businessRegistryDB)
-        guard_ (organisation_mapping_user_id mapping ==. val_ uId)
+        guard_ (organisation_mapping_user_id mapping ==. val_ (Schema.UserId uId))
         pure $ organisation_mapping_gs1_company_prefix mapping
   let queryOrganistaion gs1CompanyPrefix = fmap businessToBusinessResponse <$> runDb (searchBusinessesQuery (Just gs1CompanyPrefix) Nothing Nothing)
-  concat <$> traverse queryOrganistaion organisations
+      getPrefix :: PrimaryKey BusinessT Identity -> GS1CompanyPrefix
+      getPrefix (BizId prefix) = prefix
+      companyPrefixes :: [GS1CompanyPrefix]
+      companyPrefixes = getPrefix <$> organisations
+  concat <$> traverse queryOrganistaion companyPrefixes
