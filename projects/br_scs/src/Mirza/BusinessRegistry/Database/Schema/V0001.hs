@@ -50,9 +50,10 @@ pkSerialType = uuid
 
 -- Database
 data BusinessRegistryDB f = BusinessRegistryDB
-  { _businesses :: f (TableEntity BusinessT)
-  , _users      :: f (TableEntity UserT)
-  , _keys       :: f (TableEntity KeyT)
+  { _businesses          :: f (TableEntity BusinessT)
+  , _users               :: f (TableEntity UserT)
+  , _organisationMapping :: f (TableEntity OrganisationMappingT)
+  , _keys                :: f (TableEntity KeyT)
   }
   deriving Generic
 instance Database anybackend BusinessRegistryDB
@@ -76,6 +77,10 @@ migration () =
           (field "phone_number" (varchar (Just defaultFieldMaxLength)) notNull)
           (field "email_address" emailAddressType unique)
           lastUpdateField
+          )
+    <*> createTable "organisation_mapping" (OrganisationMappingT
+          (BizId $ field "mapping_organisation_id" gs1CompanyPrefixType)
+          (UserId $ field "mapping_user_id" pkSerialType)
           )
     <*> createTable "keys" (KeyT
           (field "key_id" pkSerialType)
@@ -153,6 +158,32 @@ instance Table BusinessT where
     deriving Generic
   primaryKey = BizId . business_gs1_company_prefix
 deriving instance Eq (PrimaryKey BusinessT Identity)
+
+
+--------------------------------------------------------------------------------
+-- Organisation Mapping Table
+--------------------------------------------------------------------------------
+
+type OrganisationMapping = OrganisationMappingT Identity
+deriving instance Show OrganisationMapping
+
+data OrganisationMappingT f = OrganisationMappingT
+  { organisation_mapping_gs1_company_prefix :: PrimaryKey BusinessT f
+  , organisation_mapping_user_id            :: PrimaryKey UserT f
+  }
+  deriving Generic
+
+type OrganisationMappingId = PrimaryKey OrganisationMappingT Identity
+deriving instance Show (PrimaryKey OrganisationMappingT Identity)
+
+instance Beamable OrganisationMappingT
+instance Beamable (PrimaryKey OrganisationMappingT)
+
+instance Table OrganisationMappingT where
+  data PrimaryKey OrganisationMappingT f = OrganisationMappingId (PrimaryKey BusinessT f) (PrimaryKey UserT f)
+    deriving Generic
+  primaryKey = OrganisationMappingId <$> organisation_mapping_gs1_company_prefix <*> organisation_mapping_user_id
+deriving instance Eq (PrimaryKey OrganisationMappingT Identity)
 
 
 --------------------------------------------------------------------------------
