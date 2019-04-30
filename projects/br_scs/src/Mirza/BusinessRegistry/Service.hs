@@ -61,12 +61,12 @@ instance (AsBRKeyError err, AsBRError err, AsSqlError err)
   => APIPossibleErrors err
 
 
-appHandlers :: ( Member context '[HasScryptParams, HasDB]
+appHandlers :: ( Member context '[HasDB]
                , APIPossibleErrors err)
             => ServerT ServerAPI (AppM context err)
 appHandlers = publicServer :<|> privateServer
 
-publicServer :: ( Member context '[HasScryptParams, HasDB]
+publicServer :: ( Member context '[HasDB]
                 , APIPossibleErrors err)
              => ServerT PublicAPI (AppM context err)
 publicServer =
@@ -80,7 +80,7 @@ publicServer =
   :<|> uxLocation
   :<|> uxLocationByGLN
 
-privateServer :: ( Member context '[HasScryptParams, HasDB]
+privateServer :: ( Member context '[HasDB]
                  , APIPossibleErrors err)
               => ServerT ProtectedAPI (AppM context err)
 privateServer =      (transformUser1 addUserAuth)

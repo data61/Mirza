@@ -22,7 +22,6 @@ import           Servant.Client                           (BaseUrl (..))
 import           Data.Either                              (isRight)
 
 import           Data.Text
-import           Data.Text.Encoding                       (encodeUtf8)
 
 import           Test.Tasty.Hspec
 
@@ -37,9 +36,8 @@ import           Mirza.BusinessRegistry.Database.Schema
 import           Mirza.BusinessRegistry.Client.Servant
 import qualified Mirza.BusinessRegistry.Handlers.Business as BRHB (addBusiness)
 import qualified Mirza.BusinessRegistry.Handlers.Users    as BRHU (addUserQuery)
-import           Mirza.BusinessRegistry.Main              (RunServerOptions (..),
-                                                           ServerOptionsBR (..),
-                                                           initBRContext)
+import           Mirza.BusinessRegistry.Main              (ServerOptionsBR (..),
+                                                           initBRContext, addAuthOptions)
 import qualified Mirza.BusinessRegistry.Main              as BRMain
 import           Mirza.BusinessRegistry.Types             as BT hiding (businessName)
 
@@ -146,18 +144,14 @@ newBusinessToBusinessResponse =
 
 
 newUserToBasicAuthData :: BT.NewUser -> BasicAuthData
-newUserToBasicAuthData =
-  BasicAuthData
-  <$> toByteString . BT.newUserEmailAddress
-  <*> encodeUtf8 . BT.newUserPassword
+newUserToBasicAuthData newUser = BasicAuthData (toByteString $ BT.newUserEmailAddress newUser) ""
 
 
 bootstrapAuthData :: (HasEnvType w, HasConnPool w, HasKatipContext w,
-                      HasKatipLogEnv w, HasScryptParams w)
+                      HasKatipLogEnv w)
                      => w -> IO Token
 bootstrapAuthData ctx = do
   let email = "initialUser@example.com"
-  password <- randomPassword
   let prefix = GS1CompanyPrefix "1000000"
   let businessName = "Business Name"
       business = NewBusiness prefix businessName (mockURI businessName)
@@ -165,7 +159,6 @@ bootstrapAuthData ctx = do
   insertBusinessResult `shouldSatisfy` isRight
   let user = BT.NewUser "initialUserOAuthSub"
                       (unsafeMkEmailAddress email)
-                      password
                       prefix
                       "Test User First Name"
                       "Test User Last Name"
@@ -182,7 +175,7 @@ randomPassword :: IO Text
 randomPassword = ("PlainTextPassword:" <>) <$> randomText
 
 brOptions :: Maybe FilePath -> ServerOptionsBR
-brOptions mfp = ServerOptionsBR connectionString 14 8 1 DebugS mfp Dev ""  -- TODO: Use the proper oauth aud (audience) rathern then the empty text "".
+brOptions mfp = ServerOptionsBR connectionString DebugS mfp Dev
   where
     connectionString = getDatabaseConnectionString testDbConnectionStringBR
 
@@ -191,11 +184,12 @@ runBRApp :: IO (ThreadId, BaseUrl, Token)
 runBRApp = do
   tempFile <- emptySystemTempFile "businessRegistryTests.log"
   let currentBrOptions = brOptions (Just tempFile)
-  ctx <- initBRContext currentBrOptions
+  minimalContext <- initBRContext currentBrOptions
+  completeContext <- addAuthOptions minimalContext "" -- TODO: Use the proper oauth aud (audience) rathern then the empty text "".
   let BusinessRegistryDB businessesTable usersTable keysTable locationsTable geolocationsTable
         = businessRegistryDB
 
-  flushDbResult <- runAppM @_ @BRError ctx $ runDb $ do
+  flushDbResult <- runAppM @_ @BRError completeContext $ runDb $ do
       let deleteTable table = pg $ runDelete $ delete table (const (val_ True))
       deleteTable geolocationsTable
       deleteTable locationsTable
@@ -207,9 +201,9 @@ runBRApp = do
   -- This construct somewhat destroys the integrity of these test since it is
   -- necessary to assume that these functions work correctly in order for the
   -- test cases to complete.
-  token <- bootstrapAuthData ctx
+  token <- bootstrapAuthData completeContext
 
-  (tid,brul) <- startWaiApp =<< BRMain.initApplication currentBrOptions (RunServerOptions 8000) ctx
+  (tid,brul) <- startWaiApp =<< BRMain.initApplication completeContext
   pure (tid, brul, token)
 
 -- *****************************************************************************

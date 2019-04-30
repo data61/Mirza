@@ -129,7 +129,7 @@ insertAndAuth scsUrl brUrl authToken locMap ht (entity:entities) = do
   [newUserBR] <- GenBR.generateMultipleUsers [(name, companyPrefix)]
   let userAuth = BasicAuthData
                   (toByteString . BT.newUserEmailAddress $ newUserBR)
-                  (encodeUtf8 . BT.newUserPassword $ newUserBR)
+                  ""
   pubKey <- fmap expectJust $ liftIO $ readJWK pubKeyPath
   insertedUserIdSCS <- fmap expectRight $ httpSCS $ SCSClient.addUser newUserSCS
   _insertedPrefix <- httpBR $ BRClient.addBusiness authToken newBiz

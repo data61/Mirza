@@ -35,7 +35,6 @@ import           Database.PostgreSQL.Simple.ToField   (ToField, toField)
 import           Crypto.JOSE                          (JWK)
 import           Crypto.JWT                           (Audience, ClaimsSet,
                                                        claimSub, string)
-import           Crypto.Scrypt                        (ScryptParams)
 
 import qualified Servant.Auth.Server                  as SAS
 
@@ -61,39 +60,57 @@ import           GHC.Stack                            (CallStack)
 -- Context Types
 -- *****************************************************************************
 
-data BRContext = BRContext
+type BRContextMinimal  = BRContextGeneric () ()
+type BRContextComplete = BRContextGeneric Audience JWK
+
+brContextMinimal :: EnvType -> Pool Connection -> K.LogEnv -> K.LogContexts -> K.Namespace -> BRContextMinimal
+brContextMinimal a b c d e = BRContextGeneric a b c d e () ()
+
+brContextComplete :: BRContextMinimal -> Audience -> JWK-> BRContextComplete
+brContextComplete (BRContextGeneric a b c d e () ()) f g = BRContextGeneric a b c d e f g
+
+data BRContextGeneric audienceType publicKeyType = BRContextGeneric
   { _brEnvType          :: EnvType
   , _brDbConnPool       :: Pool Connection
-  , _brScryptPs         :: ScryptParams      -- TODO: Remove Crypto once we remove storage of passwords.
   , _brKatipLogEnv      :: K.LogEnv
   , _brKatipLogContexts :: K.LogContexts
   , _brKatipNamespace   :: K.Namespace
-  , _brAuthAudience     :: Audience
-  , _brAuthPublicKey    :: JWK
+  , _brAuthAudience     :: audienceType
+  , _brAuthPublicKey    :: publicKeyType
   }
-$(makeLenses ''BRContext)
+$(makeLenses ''BRContextGeneric)
 
-instance HasEnvType BRContext where
+instance HasEnvType (BRContextGeneric a b) where
   envType = brEnvType
-instance HasConnPool BRContext where
+instance HasConnPool (BRContextGeneric a b) where
   connPool = brDbConnPool
-instance HasScryptParams BRContext where
-  scryptParams = brScryptPs
-instance HasKatipLogEnv BRContext where
+instance HasKatipLogEnv (BRContextGeneric a b) where
   katipLogEnv = brKatipLogEnv
-instance HasKatipContext BRContext where
+instance HasKatipContext (BRContextGeneric a b) where
   katipContexts = brKatipLogContexts
   katipNamespace = brKatipNamespace
-instance HasAuthAudience BRContext where
+instance HasAuthAudience (BRContextGeneric Audience a) where
   authAudience = brAuthAudience
-instance HasAuthPublicKey BRContext where
+instance HasAuthPublicKey (BRContextGeneric a JWK) where
   authPublicKey = brAuthPublicKey
 
+
+-- Lenses that are only required by the Business Registry.
 
 class HasAuthAudience a where
   authAudience :: Lens' a (Audience)
 class HasAuthPublicKey a where
   authPublicKey :: Lens' a (JWK)
+
+
+-- | Convenience class for contexts which can be used for verifying JWKs.
+-- @
+--   foo :: Member context '[HasLogging] => Foo -> DB context err Bar
+-- @
+class (HasAuthAudience context, HasAuthPublicKey context)
+  => HasJWKVerificationInformation context where
+instance (HasAuthAudience context, HasAuthPublicKey context)
+  => HasJWKVerificationInformation context
 
 
 -- *****************************************************************************
@@ -114,7 +131,6 @@ class HasAuthPublicKey a where
 data NewUser = NewUser
   { newUserOAuthSub     :: Text
   , newUserEmailAddress :: EmailAddress
-  , newUserPassword     :: Text
   , newUserCompany      :: GS1CompanyPrefix
   , newUserFirstName    :: Text
   , newUserLastName     :: Text

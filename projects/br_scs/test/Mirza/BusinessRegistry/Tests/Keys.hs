@@ -45,7 +45,7 @@ testAppM brContext act = runAppM brContext act >>= \case
     Right a -> pure a
 
 
-testKeyQueries :: HasCallStack => SpecWith BT.BRContext
+testKeyQueries :: HasCallStack => SpecWith BT.BRContextMinimal
 testKeyQueries = do
 
   describe "addPublicKey tests" $
@@ -241,7 +241,7 @@ testKeyQueries = do
 -- *****************************************************************************
 
 -- | Adds the dummy business and user and returns the user id and auth user.
-insertDummies :: AppM BRContext BRError AuthUser
+insertDummies :: AppM BRContextMinimal BRError AuthUser
 insertDummies = do
   businessPfx <- addBusiness dummyBusiness
   uid <- addUserOnlyId dummyNewUser {newUserCompany=businessPfx}
