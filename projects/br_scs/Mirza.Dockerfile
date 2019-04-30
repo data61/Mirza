@@ -8,6 +8,7 @@ COPY src/ /src/src/
 COPY test/ /src/test/
 COPY app/ /src/app/
 COPY license_check.py /src/
+COPY auth_public_key_2019-04-01.json /src/
 
 RUN /usr/local/bin/stack install --test --dependencies-only --ghc-options='-O2 -j -fPIC' 2>&1
 

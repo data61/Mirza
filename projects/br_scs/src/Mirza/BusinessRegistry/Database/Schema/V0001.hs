@@ -17,7 +17,6 @@ import           Mirza.Common.Types            (PrimaryKeyType)
 import           Control.Lens
 
 import           Crypto.JOSE.JWK               (JWK)
-import           Data.ByteString               (ByteString)
 import           Data.Text                     (Text)
 import           Data.Time                     (LocalTime)
 import           Data.UUID                     (UUID)
@@ -75,7 +74,6 @@ migration () =
           (field "first_name" (varchar (Just defaultFieldMaxLength)) notNull)
           (field "last_name" (varchar (Just defaultFieldMaxLength)) notNull)
           (field "phone_number" (varchar (Just defaultFieldMaxLength)) notNull)
-          (field "password_hash" binaryLargeObject notNull)
           (field "email_address" emailAddressType unique)
           lastUpdateField
           )
@@ -104,7 +102,6 @@ data UserT f = UserT
   , first_name       :: C f Text
   , last_name        :: C f Text
   , phone_number     :: C f Text
-  , password_hash    :: C f ByteString
   , email_address    :: C f EmailAddress
   , user_last_update :: C f (Maybe LocalTime)
   } deriving Generic

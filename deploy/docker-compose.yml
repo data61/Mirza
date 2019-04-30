@@ -110,7 +110,7 @@ services:
       - backend
     env_file:
       - .env
-    entrypoint: /bin/sh -c "echo 'YES' | /opt/Mirza/businessRegistry initdb -c 'postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db/devbusinessregistry' && /opt/Mirza/businessRegistry -c 'postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db/devbusinessregistry' bootstrap ${BR_USER} ${BR_PASSWORD} bootstrap"
+    entrypoint: /bin/sh -c "echo 'YES' | /opt/Mirza/businessRegistry initdb -c 'postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db/devbusinessregistry' && /opt/Mirza/businessRegistry -c 'postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db/devbusinessregistry' bootstrap ${BR_USER} bootstrap"
     depends_on:
       - db
     logging:

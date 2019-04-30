@@ -20,13 +20,9 @@ import           Mirza.Common.Utils
 import           Database.Beam                            as B
 import           Database.Beam.Backend.SQL.BeamExtensions
 
-import qualified Crypto.Scrypt                            as Scrypt
-
-import           Control.Lens                             ((#),view, _2)
+import           Control.Lens                             ((#))
 import           Control.Monad                            (when)
-import           Control.Monad.IO.Class                   (liftIO)
 import           Data.Maybe                               (isNothing)
-import           Data.Text.Encoding                       (encodeUtf8)
 
 import           GHC.Stack                                (HasCallStack, callStack)
 
@@ -35,7 +31,7 @@ import           GHC.Stack                                (HasCallStack, callSta
 -- addUser so that we can use it from behind the private API. This argument
 -- is not used in the current implementation as it is assumed that all users
 -- will have the ability to act globally.
-addUserAuth :: ( Member context '[HasDB, HasScryptParams]
+addUserAuth :: ( Member context '[HasDB]
                , Member err     '[AsBRError, AsSqlError])
             => AuthUser
             -> NewUser
@@ -43,14 +39,14 @@ addUserAuth :: ( Member context '[HasDB, HasScryptParams]
 addUserAuth _authUser = addUserOnlyId
 
 
-addUserOnlyId :: ( Member context '[HasDB, HasScryptParams]
+addUserOnlyId :: ( Member context '[HasDB]
            , Member err     '[AsBRError, AsSqlError])
         => NewUser
         -> AppM context err UserId
 addUserOnlyId user = (UserId . user_id) <$> (addUser user)
 
 
-addUser :: ( Member context '[HasDB, HasScryptParams]
+addUser :: ( Member context '[HasDB]
            , Member err     '[AsBRError, AsSqlError])
         => NewUser
         -> AppM context err Schema.User
@@ -61,14 +57,11 @@ addUser =
 
 
 -- | Hashes the password of the NewUser and inserts the user into the database
-addUserQuery :: (HasScryptParams context, AsBRError err, HasCallStack)
+addUserQuery :: (AsBRError err, HasCallStack)
              => NewUser
              -> DB context err Schema.User
-addUserQuery (BRT.NewUser oauthSub userEmail password biz firstName lastName phone) = do
-  params <- view $ _2 . scryptParams
-  encPass <- liftIO $ Scrypt.encryptPassIO params (Scrypt.Pass $ encodeUtf8 password)
+addUserQuery (BRT.NewUser oauthSub userEmail biz firstName lastName phone) = do
   userId <- newUUID
-
   business <- pg $ runSelectReturningOne $ select $ do
     businesses <- all_ (Schema._businesses Schema.businessRegistryDB)
     guard_ (business_gs1_company_prefix businesses ==. val_ biz)
@@ -79,7 +72,7 @@ addUserQuery (BRT.NewUser oauthSub userEmail password biz firstName lastName pho
   res <- pg $ runInsertReturningList (Schema._users Schema.businessRegistryDB) $
       insertValues
        [Schema.UserT userId oauthSub (Schema.BizId  biz) firstName lastName
-               phone (Scrypt.getEncryptedPass encPass) userEmail Nothing
+               phone userEmail Nothing
        ]
   case res of
       [r] -> pure $ r
