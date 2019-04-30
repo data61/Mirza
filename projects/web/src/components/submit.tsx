@@ -2,18 +2,28 @@ import * as React from "react";
 import { Link } from "react-router-dom";
 const { DigitalLink, Utils } = require('digital-link.js');
 
+import axois from 'axios';
+
 import { objectEvent } from "../epcis";
 import { EventForm } from "./epcis/event";
 
 export function Submit() {
   const eventState = React.useState(objectEvent());
   const [event, _] = eventState;
+  const bizUrl = 'localhost:8200'
 
   const submitEvent = () => {
     console.log(event.label);
     const dl = DigitalLink(event.label);
-    console.log(dl.isValid());
-    alert("TODO: Send event to server");
+    if(dl.isValid()) {
+      axois.post(bizUrl + '/event/objectEvent', event).then(function(res) {
+        console.log(res);
+      }).catch(function(err) {
+        console.error(err);
+      })
+    } else {
+      alert("Invalid event lol");
+    }
 
     // TODO:
     // - Fetch data entity api URL from BR (based off user/selected company)
