@@ -42,23 +42,23 @@ defaultPool = Pool.createPool (connectPostgreSQL connectionString) close
 
 
 
-openConnection :: IO BRContext
+openConnection :: IO BRContextMinimal
 openConnection = do
   connpool <- defaultPool
   _ <- withResource connpool $ dropTables businessRegistryDB -- drop tables before so if already exist no problems... means tables get overwritten though
   tempFile <- emptySystemTempFile "businessRegistryTests.log"
   let connectionString = getDatabaseConnectionString testDbConnectionStringBR
-  ctx <- initBRContext (ServerOptionsBR connectionString 16 10 4 DebugS (Just tempFile) Dev "") -- TODO: Use the proper oauth aud (audience) rathern then the empty text "".
+  ctx <- initBRContext (ServerOptionsBR connectionString DebugS (Just tempFile) Dev)
   initRes <- runMigrationWithConfirmation ctx (const (pure Execute))
   case initRes of
     Left err -> print @SqlError err >> error "Database initialisation failed"
     Right () -> pure ctx
 
 
-closeConnection :: BRContext -> IO ()
+closeConnection :: BRContextMinimal -> IO ()
 closeConnection = Pool.destroyAllResources . BRT._brDbConnPool
 
-withDatabaseConnection :: (BRContext -> IO ()) -> IO ()
+withDatabaseConnection :: (BRContextMinimal -> IO ()) -> IO ()
 withDatabaseConnection = bracket openConnection closeConnection
 
 main :: IO ()

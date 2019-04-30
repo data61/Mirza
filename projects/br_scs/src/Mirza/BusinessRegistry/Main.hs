@@ -44,8 +44,6 @@ import           Options.Applicative                     hiding (action)
 import           Text.Email.Parser                       (addrSpec)
 import           Text.Email.Validate                     (validate, toByteString)
 
-import qualified Crypto.Scrypt                           as Scrypt
-
 import           Control.Lens                            (review)
 import           Control.Exception                       (finally)
 import           Data.Maybe                              (fromMaybe)
@@ -81,21 +79,18 @@ data ExecMode
   | UserAction UserCommand
   | BusinessAction BusinessCommand
   | PopulateDatabase  -- TODO: This option should be removed....this is for testing and debugging only.
-  | Bootstrap EmailAddress Text GS1CompanyPrefix
+  | Bootstrap EmailAddress GS1CompanyPrefix
 
 data ServerOptionsBR = ServerOptionsBR
   { sobDbConnStr     :: ByteString
-  , sobScryptN       :: Integer
-  , sobScryptP       :: Integer
-  , sobScryptR       :: Integer
   , sobLoggingLevel  :: K.Severity
   , sobLogLocation   :: Maybe FilePath
   , sobEnvType       :: CT.EnvType
-  , sobOAuthAudience :: Text
   }
 
 data RunServerOptions = RunServerOptions
   { rsoPortNumber :: Int
+  , sobOAuthAudience :: Text
   }
 
 data UserCommand
@@ -128,7 +123,7 @@ multiplexInitOptions (InitOptionsBR opts mode) = case mode of
   UserAction uc                          -> runUserCommand opts uc
   BusinessAction bc                      -> runBusinessCommand opts bc
   PopulateDatabase                       -> runPopulateDatabase opts
-  Bootstrap email password companyPrefix -> runBootstrap opts email password companyPrefix
+  Bootstrap email companyPrefix          -> runBootstrap opts email companyPrefix
 
 
 --------------------------------------------------------------------------------
@@ -138,35 +133,44 @@ multiplexInitOptions (InitOptionsBR opts mode) = case mode of
 launchServer :: ServerOptionsBR -> RunServerOptions -> IO ()
 launchServer opts rso = do
       let portNumber = rsoPortNumber rso
-      ctx <- initBRContext opts
-      app <- initApplication opts rso ctx
+      minimalContext <- initBRContext opts
+      completeContext <- addServerOptions minimalContext rso
+      app <- initApplication completeContext
       mids <- initMiddleware opts rso
       putStrLn $ "http://localhost:" ++ show portNumber ++ "/swagger-ui/"
-      Warp.run (fromIntegral portNumber) (mids app) `finally` closeScribes (BT._brKatipLogEnv ctx)
+      Warp.run (fromIntegral portNumber) (mids app) `finally` closeScribes (BT._brKatipLogEnv completeContext)
 
 
-initBRContext :: ServerOptionsBR -> IO BT.BRContext
-initBRContext opts@(ServerOptionsBR dbConnStr _ _ _ lev mlogPath envT oauthAudience) = do
+addServerOptions :: BRContextMinimal -> RunServerOptions -> IO BRContextComplete
+addServerOptions minimalContext (RunServerOptions _port oauthAudience) = addAuthOptions minimalContext oauthAudience
+
+
+addAuthOptions :: BRContextMinimal -> Text -> IO BRContextComplete
+addAuthOptions minimalContext oauthAudience = do
+  eitherJwk <- eitherDecodeFileStrict "auth_public_key_2019-04-01.json"
+  let makeError errorMessage = error $ "Unable to get the OAuth Public Key. Error was: " <> (show errorMessage)
+  let jwk = either makeError id eitherJwk
+  let audience = Audience [review string oauthAudience]
+  pure $ brContextComplete minimalContext audience jwk
+
+
+initBRContext :: ServerOptionsBR -> IO BT.BRContextMinimal
+initBRContext (ServerOptionsBR dbConnStr lev mlogPath envT) = do
   logHandle <- maybe (pure stdout) (flip openFile AppendMode) mlogPath
   hPutStr stderr $ "(Logging will be to: " ++ fromMaybe "stdout" mlogPath ++ ") "
   handleScribe <- mkHandleScribe ColorIfTerminal logHandle lev V3
   logEnv <- initLogEnv "businessRegistry" (Environment . pack . show $ envT)
             >>= registerScribe "stdout" handleScribe defaultScribeSettings
-  params <- createScryptParams opts
   connpool <- Pool.createPool (connectPostgreSQL dbConnStr) close
                       1 -- Number of "sub-pools",
                       60 -- How long in seconds to keep a connection open for reuse
                       10 -- Max number of connections to have open at any one time
                       -- TODO: Make this a config paramete
-  eitherJwk <- eitherDecodeFileStrict "auth_public_key_2019-04-01.json"
-  let makeError errorMessage = error $ "Unable to get the OAuth Public Key. Error was: " <> (show errorMessage)
-  let jwk = either makeError id eitherJwk
-  let audience = Audience [review string oauthAudience]
-  pure $ BRContext envT connpool params logEnv mempty mempty audience jwk
+  pure $ brContextMinimal envT connpool logEnv mempty mempty
 
 
-initApplication :: ServerOptionsBR -> RunServerOptions -> BT.BRContext -> IO Application
-initApplication _go _so ev =
+initApplication :: BRContextComplete -> IO Application
+initApplication ev =
   pure $ serveWithContext api
           (tokenServerContext ev)
           (server ev)
@@ -176,14 +180,14 @@ initMiddleware :: ServerOptionsBR -> RunServerOptions -> IO Middleware
 initMiddleware _ _ = pure id
 
 -- Implementation
-server :: BRContext -> Server API
+server :: BRContextComplete -> Server API
 server ev =
   swaggerSchemaUIServer serveSwaggerAPI
   :<|> hoistServerWithContext
         (Proxy @ServerAPI)
         (Proxy @'[CookieSettings, JWTSettings])
         (appMToHandler ev)
-        (appHandlers @BRContext @BRError)
+        (appHandlers @BRContextComplete @BRError)
 
 
 --------------------------------------------------------------------------------
@@ -193,7 +197,7 @@ server ev =
 runMigration :: ServerOptionsBR -> IO ()
 runMigration opts = do
   ctx <- initBRContext opts
-  res <- runMigrationWithConfirmation @BRContext @SqlError ctx interactiveMigrationConfirm
+  res <- runMigrationWithConfirmation @BRContextMinimal @SqlError ctx interactiveMigrationConfirm
   print res
 
 
@@ -218,7 +222,6 @@ interactivelyGetNewUser :: IO NewUser
 interactivelyGetNewUser = do
   newUserOAuthSub     <- pack <$> prompt "OAuthSub:"
   newUserEmailAddress <- getUserEmailInteractive
-  newUserPassword     <- pack <$> prompt "Password:"
   newUserCompany      <- GS1CompanyPrefix . read <$> prompt "GS1CompanyPrefix:"
   newUserFirstName    <- pack <$> prompt "First Name:"
   newUserLastName     <- pack <$> prompt "Last Name:"
@@ -233,15 +236,6 @@ getUserEmailInteractive = do
       putStrLn $ "Invalid Email. Reason: " ++ reason
       getUserEmailInteractive
     Right email -> pure email
-
-createScryptParams :: ServerOptionsBR -> IO Scrypt.ScryptParams
-createScryptParams ServerOptionsBR{sobScryptN,sobScryptP,sobScryptR} =
-  case Scrypt.scryptParams (max sobScryptN 14) (max sobScryptP 8) (max sobScryptR 1) of
-    Just scparams -> pure scparams
-    Nothing -> do
-      putStrLn $  "Invalid Scrypt params:" ++ show (sobScryptN,sobScryptP,sobScryptR)
-               ++ " using defaults"
-      pure Scrypt.defaultParams
 
 
 --------------------------------------------------------------------------------
@@ -316,7 +310,6 @@ runPopulateDatabase opts = do
 printCredentials :: NewUser -> IO ()
 printCredentials user = do
   putStrLn $ "Username: " <> show (newUserEmailAddress user)
-  putStrLn $ "Password: " <> show (newUserPassword user)
 
 
 --------------------------------------------------------------------------------
@@ -329,10 +322,10 @@ printCredentials user = do
 -- doesn't take proper credentials suggests that our user model is wrong
 -- (incomplete)... i.e. we need users that aren't associated with businesses,
 -- but we need to do much more work here when we deal with permssions in general.
-runBootstrap :: ServerOptionsBR -> EmailAddress -> Text -> GS1CompanyPrefix -> IO ()
-runBootstrap opts email password companyPrefix = do
+runBootstrap :: ServerOptionsBR -> EmailAddress -> GS1CompanyPrefix -> IO ()
+runBootstrap opts email companyPrefix = do
   let newBusiness = bootstrapBusiness companyPrefix
-  let newUser = bootstrapUser email password companyPrefix
+  let newUser = bootstrapUser email companyPrefix
 
   ctx        <- initBRContext opts
   -- We ignore the business insert result, because the business may already
@@ -351,11 +344,10 @@ runBootstrap opts email password companyPrefix = do
       let newBusinessUrl              = nullURI
       NewBusiness{..}
 
-    bootstrapUser :: EmailAddress -> Text -> GS1CompanyPrefix -> NewUser
-    bootstrapUser userEmail userPassword company = do
+    bootstrapUser :: EmailAddress -> GS1CompanyPrefix -> NewUser
+    bootstrapUser userEmail company = do
       let newUserOAuthSub     = "bootstrapped-user-oauth-sub" <> decodeUtf8 (toByteString userEmail)
       let newUserEmailAddress = userEmail
-      let newUserPassword     = userPassword
       let newUserCompany      = company
       let newUserFirstName    = "Bootstrapped User"
       let newUserLastName     = "Bootstrapped User"
@@ -412,6 +404,12 @@ runServer = RunServer <$>
       <>  showDefault
       <>  value defaultPortNumber
       )
+  <*> strOption
+    (
+       long "aud"
+    <> short 'a'
+    <> help "OAuth audience claim to match against user tokens."
+    )
   )
 
 parsedServerOptions :: Parser ServerOptionsBR
@@ -423,26 +421,6 @@ parsedServerOptions = ServerOptionsBR
       <>  help "Database connection string in libpq format. See: https://www.postgresql.org/docs/9.5/static/libpq-connect.html#LIBPQ-CONNSTRING"
       <>  showDefault
       <>  value defaultDatabaseConnectionString
-      )
-  <*> option auto
-      (
-          long "scryptN"
-      <>  help "Scrypt N parameter (>= 14)"
-      <>  showDefault
-      <>  value 14
-      )
-  <*> option auto
-      (
-          long "scryptP"
-      <>  help "Scrypt r parameter (>= 8)"
-      <>  showDefault
-      <>  value 8
-      )
-  <*> option auto
-      (  long "scryptR"
-      <> help "Scrypt r parameter (>= 1)"
-      <> showDefault
-      <> value 1
       )
     <*> option auto
       (  long "log-level"
@@ -460,11 +438,6 @@ parsedServerOptions = ServerOptionsBR
       ( long "env" <> short 'e'
       <> value Dev <> showDefault
       <> help "Environment, Dev | Prod"
-      )
-    <*> strOption
-      ( long "aud"
-      <> short 'a'
-      <> help "OAuth audience claim to match against user tokens"
       )
 
 
@@ -520,7 +493,7 @@ businessList = pure BusinessList
 
 
 bootstrap :: Parser ExecMode
-bootstrap = Bootstrap <$> emailParser <*> passwordParser <*> companyPrefixParser
+bootstrap = Bootstrap <$> emailParser <*> companyPrefixParser
 
 
 populateDb :: Parser ExecMode
@@ -533,10 +506,6 @@ emailParser = argument emailReader (metavar "EmailAddress")
 
 emailReader :: ReadM EmailAddress
 emailReader = eitherReader (A.parseOnly addrSpec . BS.pack)
-
-
-passwordParser :: Parser Text
-passwordParser = argument str (metavar "Password")
 
 
 companyPrefixParser :: Parser GS1CompanyPrefix

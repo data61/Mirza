@@ -6,7 +6,7 @@
 module Mirza.BusinessRegistry.GenerateUtils where
 
 import           Mirza.BusinessRegistry.Types as BT
-import           Mirza.Common.Utils           (randomText, mockURI)
+import           Mirza.Common.Utils           (mockURI)
 
 import           Data.GS1.EPC
 
@@ -24,10 +24,8 @@ dummyBusiness unique = NewBusiness (GS1CompanyPrefix ("Business" <> unique <> "P
 
 dummyUser :: T.Text -> GS1CompanyPrefix -> IO NewUser
 dummyUser unique business_uid = do
-  passwordEntropy <- randomText
   let newUserOAuthSub     = "User" <> unique <> "OAuthSub"
   let newUserEmailAddress = unsafeEmailAddress (encodeUtf8 unique) "example.com"
-  let newUserPassword     = "User" <> unique <> "Password" <> passwordEntropy
   let newUserCompany      = business_uid
   let newUserFirstName    = "User" <> unique <> "FirstName"
   let newUserLastName     = "User" <> unique <> "LastName"

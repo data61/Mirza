@@ -25,7 +25,7 @@ testAppM brContext act = runAppM brContext act >>= \case
     Left err -> fail (show err)
     Right a -> pure a
 
-testBizQueries :: (HasCallStack) => SpecWith BT.BRContext
+testBizQueries :: (HasCallStack) => SpecWith BT.BRContextMinimal
 testBizQueries = do
 
   describe "Business" $ do
