@@ -71,7 +71,7 @@ dummyParentLabel :: Maybe ParentLabel
 dummyParentLabel = Just . ParentLabel $ (SSCC (GS1CompanyPrefix "0614141") (SerialNumber "1234567890"))
 
 dummyBizTransaction :: BizTransaction
-dummyBizTransaction = BizTransaction{_btid=BizTransactionId "12345", _bt=Bol}
+dummyBizTransaction = BizTransaction{_btid=Just (BizTransactionId "12345"), _bt=Bol}
 -- Events
 
 -- Object Events
@@ -185,12 +185,12 @@ dummyDWhere =
     (Just $ BizLocation $ SGLN (GS1CompanyPrefix "0012345") (LocationReference "11111") Nothing)
     -- [BizLocation]
     [
-      SrcDestLocation (SDOwningParty,
-      SGLN (GS1CompanyPrefix "0012347") (LocationReference "12345") Nothing)
+      SourceLocation SDOwningParty
+        $ SGLN (GS1CompanyPrefix "0012347") (LocationReference "12345") Nothing
     ]
     [
-      SrcDestLocation (SDPossessingParty,
-      SGLN (GS1CompanyPrefix "0012348") (LocationReference "12346") (Just $ SGLNExtension "400"))
+      DestinationLocation SDPossessingParty
+        $ SGLN (GS1CompanyPrefix "0012348") (LocationReference "12346") (Just $ SGLNExtension "400")
     ]
 
 dummyDWhy :: DWhy
