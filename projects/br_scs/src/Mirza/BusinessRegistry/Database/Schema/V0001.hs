@@ -81,6 +81,7 @@ migration () =
     <*> createTable "organisation_mapping" (OrganisationMappingT
           (BizId $ field "mapping_organisation_id" gs1CompanyPrefixType)
           (UserId $ field "mapping_user_id" pkSerialType)
+          lastUpdateField
           )
     <*> createTable "keys" (KeyT
           (field "key_id" pkSerialType)
@@ -170,6 +171,7 @@ deriving instance Show OrganisationMapping
 data OrganisationMappingT f = OrganisationMappingT
   { organisation_mapping_gs1_company_prefix :: PrimaryKey BusinessT f
   , organisation_mapping_user_id            :: PrimaryKey UserT f
+  , organisation_mapping_last_update        :: C f (Maybe LocalTime)
   }
   deriving Generic
 
