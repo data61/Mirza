@@ -61,26 +61,46 @@ newBusinessToBusiness NewBusiness{..} =
 addBusinessAuth :: ( Member context '[HasDB]
                    , Member err     '[AsBRError, AsSqlError])
                 => BT.AuthUser -> NewBusiness -> AppM context err GS1CompanyPrefix
-addBusinessAuth _ = addBusiness
+addBusinessAuth authUser = addBusiness (authUserId authUser)
 
 addBusiness :: ( Member context '[HasDB]
                , Member err     '[AsBRError, AsSqlError])
-            => NewBusiness -> AppM context err GS1CompanyPrefix
-addBusiness = (fmap business_gs1_company_prefix)
+            => BT.UserId -> NewBusiness -> AppM context err GS1CompanyPrefix
+addBusiness userId = (fmap business_gs1_company_prefix)
   . (handleError (handleSqlUniqueViloation "businesses_pkey" (const $ _GS1CompanyPrefixExistsBRE # ())))
   . runDb
-  . addBusinessQuery
+  . addBusinessAndInitialUserQuery userId
   . newBusinessToBusiness
 
 
+addBusinessAndInitialUserQuery :: (AsBRError err, HasCallStack)
+                               => BT.UserId -> Business -> DB context err Business
+addBusinessAndInitialUserQuery user business = do
+  insertedBusiness  <- addBusinessQuery business
+  _insertedMapping <- addOrgainsationMappingQuery (business_gs1_company_prefix insertedBusiness) user
+  pure insertedBusiness
+
+-- Note: This function is separated from addBusinessAndInitialUserQuery to separate concerns and inputs during design,
+--       however from a use perspective you will almost definately want to call addBusinessAndInitialUserQuery to make
+--       sure that the company also has an initial user setup.
 addBusinessQuery :: (AsBRError err, HasCallStack)
                  => Business -> DB context err Business
 addBusinessQuery biz@BusinessT{..} = do
-  res <- pg $ runInsertReturningList (_businesses businessRegistryDB)
+  result <- pg $ runInsertReturningList (_businesses businessRegistryDB)
             $ insertValues [biz]
-  case res of
-        [r] -> pure r
-        _   -> throwing _UnexpectedErrorBRE callStack
+  case result of
+    [insertedBusiness] -> pure insertedBusiness
+    _                  -> throwing _UnexpectedErrorBRE callStack
+
+
+addOrgainsationMappingQuery :: (AsBRError err, HasCallStack)
+                            => GS1CompanyPrefix -> BT.UserId -> DB context err OrganisationMapping
+addOrgainsationMappingQuery prefix userId = do
+  result <- pg $ runInsertReturningList (_organisationMapping businessRegistryDB)
+            $ insertValues [OrganisationMappingT (BizId prefix) (Schema.UserId $ getUserId userId) Nothing]
+  case result of
+    [insertedOrganisationMapping] -> pure insertedOrganisationMapping
+    _                             -> throwing _UnexpectedErrorBRE callStack
 
 
 searchBusinesses :: ( Member context '[HasDB]
