@@ -3,20 +3,25 @@
 
 module Mirza.EntityDataAPI.Errors where
 
-import           Control.Lens               (makeClassyPrisms, prism')
+import           Control.Lens                      (makeClassyPrisms, prism')
 
-import           GHC.Generics               (Generic)
+import           GHC.Generics                      (Generic)
 
-import           Database.PostgreSQL.Simple (SqlError (..))
+import           Database.PostgreSQL.Simple        (SqlError (..))
 
-import           Crypto.JWT                 (AsError, AsJWTError)
-import qualified Crypto.JWT                 as Jose
+import           Crypto.JWT                        (AsError, AsJWTError)
+import qualified Crypto.JWT                        as Jose
 
-import           Network.HTTP.Req           (HttpException)
+import           Network.HTTP.Req                  (HttpException)
 
+
+import           Database.PostgreSQL.Simple.Errors (ConstraintViolation (..))
 
 data DBError
   = SqlErr SqlError
+  | DBConstraintFailed ConstraintViolation
+  | InsertionFailed
+  | UnauthorisedInsertionAttempt
   deriving (Eq, Show, Generic)
 
 data AppError
