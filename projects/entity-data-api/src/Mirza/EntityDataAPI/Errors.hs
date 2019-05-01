@@ -9,7 +9,8 @@ import           GHC.Generics                      (Generic)
 
 import           Database.PostgreSQL.Simple        (SqlError (..))
 
-import           Crypto.JWT                        (AsError, AsJWTError)
+import           Crypto.JWT                        (AsError, AsJWTError,
+                                                    StringOrURI)
 import qualified Crypto.JWT                        as Jose
 
 import           Network.HTTP.Req                  (HttpException)
@@ -21,7 +22,7 @@ data DBError
   = SqlErr SqlError
   | DBConstraintFailed ConstraintViolation
   | InsertionFailed
-  | UnauthorisedInsertionAttempt
+  | UnauthorisedInsertionAttempt StringOrURI
   deriving (Eq, Show, Generic)
 
 data AppError

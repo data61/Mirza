@@ -59,7 +59,7 @@ unpackStringOrURI sUri =
 addUserSub :: StringOrURI -> StringOrURI -> AppM AuthContext AppError ()
 addUserSub existingUser toAddUser =
   doesSubExist existingUser >>= \case
-    False -> throwError . DatabaseError $ UnauthorisedInsertionAttempt
+    False -> throwError . DatabaseError $ UnauthorisedInsertionAttempt existingUser
     True -> addUser toAddUser
 
 addUser :: StringOrURI -> AppM AuthContext AppError ()
