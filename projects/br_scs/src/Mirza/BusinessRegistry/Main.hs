@@ -273,36 +273,41 @@ prompt message = putStrLn message *> getLine
 
 runPopulateDatabase :: ServerOptionsBR -> IO ()
 runPopulateDatabase opts = do
-  ctx     <- initBRContext opts
+  context     <- initBRContext opts
+  let runWithContext = runAppM @_ @BRError context
+  let right = fromRight (error "Error inserting user.")
 
+  b1u1    <- dummyUser "B1U1"
+  b1u1Result <- runWithContext $ addUserOnlyId b1u1
   let b1  =  dummyBusiness "1"
-  _result <- runAppM @_ @BRError ctx $ addBusiness b1
-  u1b1    <- dummyUser "B1U1" (newBusinessGS1CompanyPrefix b1)
-  u2b1    <- dummyUser "B1U2" (newBusinessGS1CompanyPrefix b1)
-  _result <- runAppM @_ @BRError ctx $
-             runDb (mapM addUserQuery [u1b1, u2b1])
+  _result <- runWithContext $ addBusiness (right b1u1Result) b1
+  b1u2    <- dummyUser "B1U2"
+  b1u2Result <- runWithContext $ addUserOnlyId b1u2
+  _result <- runWithContext $ addOrgainsationMapping (newBusinessGS1CompanyPrefix b1) (right b1u2Result)
 
+  b2u1    <- dummyUser "B2U1"
+  b2u1Result <- runWithContext $ addUserOnlyId b2u1
   let b2  =  dummyBusiness "2"
-  _result <- runAppM @_ @BRError ctx $ addBusiness b2
-  u1b2    <- dummyUser "B2U1" (newBusinessGS1CompanyPrefix b2)
-  u2b2    <- dummyUser "B2U2" (newBusinessGS1CompanyPrefix b2)
-  _result <- runAppM @_ @BRError ctx $
-             runDb (mapM addUserQuery [u1b2, u2b2])
+  _result <- runWithContext $ addBusiness (right b2u1Result) b2
+  b2u2    <- dummyUser "B2U2"
+  b2u2Result <- runWithContext $ addUserOnlyId b2u2
+  _result <- runWithContext $ addOrgainsationMapping (newBusinessGS1CompanyPrefix b2) (right b2u2Result)
+
 
   putStrLn "Credentials"
-  printCredentials u1b1
-  printCredentials u2b1
-  printCredentials u1b2
-  printCredentials u2b2
+  printCredentials b1u1
+  printCredentials b1u2
+  printCredentials b2u1
+  printCredentials b2u2
 
   putStrLn "Full User Information"
   print b1
-  print u1b1
-  print u2b1
+  print b1u1
+  print b1u2
 
   print b2
-  print u1b2
-  print u2b2
+  print b2u1
+  print b2u2
 
 
 
@@ -316,6 +321,10 @@ printCredentials user = do
 -- Bootstrap Command
 --------------------------------------------------------------------------------
 
+-- TODO: Remove this. This functionality is now redundant with our new user
+-- model, but leaving this here for now because we still have some unresolved
+-- user issues and so will leave this until we are sure that there is no longer
+-- any use for it whatsoever.
 -- This command is a bit of a hack. We need it so that we can noninteractively
 -- add a user to the database so that this user can authenticate over the API
 -- and add other users and businesses into the database. The fact that this user
@@ -324,26 +333,23 @@ printCredentials user = do
 -- but we need to do much more work here when we deal with permssions in general.
 runBootstrap :: ServerOptionsBR -> EmailAddress -> GS1CompanyPrefix -> IO ()
 runBootstrap opts email companyPrefix = do
-  let newBusiness = bootstrapBusiness companyPrefix
   let newUser = bootstrapUser email companyPrefix
+  let newBusiness = bootstrapBusiness companyPrefix
 
-  ctx        <- initBRContext opts
-  -- We ignore the business insert result, because the business may already
-  -- exist and so for now we just try best effort on the user because thats what
-  -- we care about. Can always improve the check and error handling here later
-  -- if we need to improve the reliability or error reporting.
-  _result    <- runAppM @_ @BRError ctx $ addBusiness newBusiness
-  userResult <- runAppM @_ @BRError ctx $ addUser newUser
+  context        <- initBRContext opts
+
+  userResult <- runAppM @_ @BRError context $ addUser newUser
   either (print @BRError) print userResult
 
-  where
-    bootstrapBusiness :: GS1CompanyPrefix -> NewBusiness
-    bootstrapBusiness prefix = do
-      let newBusinessGS1CompanyPrefix = prefix
-      let newBusinessName             = "Bootstrapped Business"
-      let newBusinessUrl              = nullURI
-      NewBusiness{..}
+  -- We ignore the business insert result, for now we just try best effort.
+  -- Can always improve the check and error handling here later if we need to
+  -- improve the reliability or error reporting.
+  case userResult of
+      Right user -> do
+                    businessResult <- runAppM @_ @BRError context $ addBusiness (CT.UserId $ user_id user) newBusiness
+                    either (print @BRError) print businessResult
 
+  where
     bootstrapUser :: EmailAddress -> GS1CompanyPrefix -> NewUser
     bootstrapUser userEmail company = do
       let newUserOAuthSub     = "bootstrapped-user-oauth-sub" <> decodeUtf8 (toByteString userEmail)
@@ -353,6 +359,13 @@ runBootstrap opts email companyPrefix = do
       let newUserLastName     = "Bootstrapped User"
       let newUserPhoneNumber  = ""
       NewUser{..}
+
+    bootstrapBusiness :: GS1CompanyPrefix -> NewBusiness
+    bootstrapBusiness prefix = do
+      let newBusinessGS1CompanyPrefix = prefix
+      let newBusinessName             = "Bootstrapped Business"
+      let newBusinessUrl              = nullURI
+      NewBusiness{..}
 
 
 --------------------------------------------------------------------------------

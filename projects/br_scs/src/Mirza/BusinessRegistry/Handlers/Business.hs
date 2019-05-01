@@ -7,6 +7,7 @@ module Mirza.BusinessRegistry.Handlers.Business
   ( addBusiness
   , addBusinessAuth
   , addBusinessQuery
+  , addOrgainsationMapping
   , searchBusinesses
   , searchBusinessesQuery
   , getBusinessInfo
@@ -80,6 +81,7 @@ addBusinessAndInitialUserQuery user business = do
   _insertedMapping <- addOrgainsationMappingQuery (business_gs1_company_prefix insertedBusiness) user
   pure insertedBusiness
 
+
 -- Note: This function is separated from addBusinessAndInitialUserQuery to separate concerns and inputs during design,
 --       however from a use perspective you will almost definately want to call addBusinessAndInitialUserQuery to make
 --       sure that the company also has an initial user setup.
@@ -91,6 +93,12 @@ addBusinessQuery biz@BusinessT{..} = do
   case result of
     [insertedBusiness] -> pure insertedBusiness
     _                  -> throwing _UnexpectedErrorBRE callStack
+
+
+addOrgainsationMapping :: ( Member context '[HasDB]
+                          , Member err     '[AsBRError, AsSqlError])
+                       => GS1CompanyPrefix -> BT.UserId -> AppM context err OrganisationMapping
+addOrgainsationMapping prefix user = runDb $ addOrgainsationMappingQuery prefix user
 
 
 addOrgainsationMappingQuery :: (AsBRError err, HasCallStack)

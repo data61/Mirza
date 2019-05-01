@@ -166,12 +166,13 @@ clientSpec = do
           let userBR = BT.NewUser
                           "EventSign Test Same User OAuthSub"
                           (unsafeMkEmailAddress "abc@example.com")
-                          prefix
                           "Biz Johnny"
                           "Smith Biz"
                           "0400 111 222"
 
-
+          -- TODO Note: The business will now be associated with the brAuthUser
+          -- and not created user, expect this may have to be fixed when we
+          -- devise a means of authing test users.
           let businessName = "Business Name"
               business = BT.NewBusiness prefix businessName (mockURI businessName)
           httpBR (BRClient.addBusiness brAuthUser business)
@@ -218,6 +219,9 @@ clientSpec = do
           uidGiver `shouldSatisfy` isRight
           let (Right userIdGiver) = uidGiver
 
+          -- TODO Note: The business will now be associated with the brAuthUser
+          -- and not created user, expect this may have to be fixed when we
+          -- devise a means of authing test users.
           step "Adding business for the Giver"
           let prefixGiver = GS1CompanyPrefix "1000001"
               businessGiverName = "Giver Biz"
@@ -229,7 +233,6 @@ clientSpec = do
           let userBRGiver = BT.NewUser
                           "EventSign Test Giver OAuthSub"
                           (unsafeMkEmailAddress "abc@example.com")
-                          prefixGiver
                           "Biz Giver"
                           "Smith Biz"
                           "0400 111 222"
@@ -250,6 +253,9 @@ clientSpec = do
           uidReceiver `shouldSatisfy` isRight
           let (Right userIdReceiver) = uidReceiver
 
+          -- TODO Note: The business will now be associated with the brAuthUser
+          -- and not created user, expect this will have to be fixed when we
+          -- devise a means of authing test users.
           step "Adding business for receiver"
           let prefixReceiver = GS1CompanyPrefix "1000002"
               businessReceiverName = "Receiving Biz"
@@ -262,7 +268,6 @@ clientSpec = do
           let userBRReceiver = BT.NewUser
                           "EventSign Test Reciever OAuthSub"
                           (unsafeMkEmailAddress "def@example.com")
-                          prefixReceiver
                           "Biz Receiver"
                           "Smith Biz"
                           "0400 123 432"

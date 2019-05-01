@@ -19,11 +19,14 @@ module Mirza.Common.Utils
   , readJWK
   , expectRight
   , expectJust
+  , expectUser
   , unsafeMkEmailAddress
   , mockURI
   , versionInfo
   ) where
 
+
+import qualified Mirza.Common.Types                as CT
 
 import           Control.Monad                     (replicateM)
 import           Control.Monad.IO.Class            (MonadIO, liftIO)
@@ -182,6 +185,10 @@ expectJust = fromMaybe (error "Expected: Just a")
 -- | Returns b if Right, otherwise calls error
 expectRight :: Either a b -> b
 expectRight = fromRight (error "Expected: Right b")
+
+-- | Same as expectRight but specalised for the type UserId with a more descript error message.
+expectUser :: Either a CT.UserId -> CT.UserId
+expectUser = fromRight (error "Expected: UserId")
 
 --------------------------------------------------------------------------------
 -- Email Utils

@@ -60,7 +60,7 @@ addUser =
 addUserQuery :: (AsBRError err, HasCallStack)
              => NewUser
              -> DB context err Schema.User
-addUserQuery (BRT.NewUser oauthSub userEmail biz firstName lastName phone) = do
+addUserQuery (BRT.NewUser oauthSub userEmail firstName lastName phone) = do
   userId <- newUUID
   -- TODO: use Database.Beam.Backend.SQL.runReturningOne?
   res <- pg $ runInsertReturningList (Schema._users Schema.businessRegistryDB) $

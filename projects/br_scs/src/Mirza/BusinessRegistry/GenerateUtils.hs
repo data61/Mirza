@@ -22,16 +22,15 @@ dummyBusiness unique = NewBusiness (GS1CompanyPrefix ("Business" <> unique <> "P
                                    (mockURI unique)
 
 
-dummyUser :: T.Text -> GS1CompanyPrefix -> IO NewUser
-dummyUser unique business_uid = do
+dummyUser :: T.Text -> IO NewUser
+dummyUser unique = do
   let newUserOAuthSub     = "User" <> unique <> "OAuthSub"
   let newUserEmailAddress = unsafeEmailAddress (encodeUtf8 unique) "example.com"
-  let newUserCompany      = business_uid
   let newUserFirstName    = "User" <> unique <> "FirstName"
   let newUserLastName     = "User" <> unique <> "LastName"
   let newUserPhoneNumber  = "User" <> unique <> "PhoneNumber"
   pure NewUser{..}
 
 
-generateMultipleUsers :: [(T.Text, GS1CompanyPrefix)] -> IO [NewUser]
-generateMultipleUsers = traverse (uncurry dummyUser)
+generateMultipleUsers :: [T.Text] -> IO [NewUser]
+generateMultipleUsers = traverse dummyUser

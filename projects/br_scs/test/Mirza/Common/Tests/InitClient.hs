@@ -11,7 +11,7 @@ import           Mirza.SupplyChain.Types                  as ST
 
 import           Data.GS1.EPC                             (GS1CompanyPrefix (..))
 import           Mirza.Common.Tests.ServantUtils
-import           Mirza.Common.Utils                       (randomText, mockURI)
+import           Mirza.Common.Utils                       (randomText, mockURI, expectUser)
 
 import           Control.Concurrent                       (ThreadId)
 
@@ -35,7 +35,7 @@ import           Database.Beam.Query                      (delete, runDelete,
 import           Mirza.BusinessRegistry.Database.Schema
 import           Mirza.BusinessRegistry.Client.Servant
 import qualified Mirza.BusinessRegistry.Handlers.Business as BRHB (addBusiness)
-import qualified Mirza.BusinessRegistry.Handlers.Users    as BRHU (addUserQuery)
+import qualified Mirza.BusinessRegistry.Handlers.Users    as BRHU (addUserOnlyId)
 import           Mirza.BusinessRegistry.Main              (ServerOptionsBR (..),
                                                            initBRContext, addAuthOptions)
 import qualified Mirza.BusinessRegistry.Main              as BRMain
@@ -47,6 +47,7 @@ import           Mirza.Common.Tests.Utils                 (DatabaseConnectionStr
                                                            getDatabaseConnectionString,
                                                            unsafeMkEmailAddress)
 import           Text.Email.Validate                      (toByteString)
+
 
 -- *****************************************************************************
 -- SCS Utility Functions
@@ -152,19 +153,18 @@ bootstrapAuthData :: (HasEnvType w, HasConnPool w, HasKatipContext w,
                      => w -> IO Token
 bootstrapAuthData ctx = do
   let email = "initialUser@example.com"
-  let prefix = GS1CompanyPrefix "1000000"
-  let businessName = "Business Name"
-      business = NewBusiness prefix businessName (mockURI businessName)
-  insertBusinessResult <- runAppM @_ @BRError ctx $ BRHB.addBusiness business
-  insertBusinessResult `shouldSatisfy` isRight
   let user = BT.NewUser "initialUserOAuthSub"
                       (unsafeMkEmailAddress email)
-                      prefix
                       "Test User First Name"
                       "Test User Last Name"
                       "Test User Phone Number"
-  insertUserResult <- runAppM @_ @BRError ctx $ runDb (BRHU.addUserQuery user)
+  let prefix = GS1CompanyPrefix "1000000"
+  let businessName = "Business Name"
+      business = NewBusiness prefix businessName (mockURI businessName)
+  insertUserResult <- runAppM @_ @BRError ctx $ BRHU.addUserOnlyId user
   insertUserResult `shouldSatisfy` isRight
+  insertBusinessResult <- runAppM @_ @BRError ctx $ BRHB.addBusiness (expectUser $ insertUserResult) business
+  insertBusinessResult `shouldSatisfy` isRight
 
   pure $ authDataToTokenTodoRemove $ newUserToBasicAuthData user
 

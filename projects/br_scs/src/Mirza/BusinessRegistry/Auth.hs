@@ -77,7 +77,7 @@ oauthClaimsToAuthUser (Authenticated claims) = do
     --       user structure. For this to work there needs to be a company with the GS1CompanyPrefix "bootstrap"
     --       as it is an assumption of this code. In phase 2 of this implementation we will come back and remove
     --       all of the additional user metadata which is no longer needed.
-    promotedUser = NewUser (verifiedTokenClaimsSub claims) (unsafeEmailAddress "promoted-user" "example.com") (GS1CompanyPrefix "bootstrap") "" "" ""
+    promotedUser = NewUser (verifiedTokenClaimsSub claims) (unsafeEmailAddress "promoted-user" "example.com") "" "" ""
 oauthClaimsToAuthUser failure = throwing _UserAuthFailureBRE (void failure)
 
 

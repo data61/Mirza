@@ -130,7 +130,6 @@ instance (HasAuthAudience context, HasAuthPublicKey context)
 data NewUser = NewUser
   { newUserOAuthSub     :: Text
   , newUserEmailAddress :: EmailAddress
-  , newUserCompany      :: GS1CompanyPrefix
   , newUserFirstName    :: Text
   , newUserLastName     :: Text
   , newUserPhoneNumber  :: Text
