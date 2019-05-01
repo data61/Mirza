@@ -186,7 +186,7 @@ runBRApp = do
   let currentBrOptions = brOptions (Just tempFile)
   minimalContext <- initBRContext currentBrOptions
   completeContext <- addAuthOptions minimalContext "" -- TODO: Use the proper oauth aud (audience) rathern then the empty text "".
-  let BusinessRegistryDB businessesTable usersTable keysTable locationsTable geolocationsTable
+  let BusinessRegistryDB businessesTable usersTable organisationMappingTable keysTable locationsTable geolocationsTable
         = businessRegistryDB
 
   flushDbResult <- runAppM @_ @BRError completeContext $ runDb $ do
@@ -194,6 +194,7 @@ runBRApp = do
       deleteTable geolocationsTable
       deleteTable locationsTable
       deleteTable keysTable
+      deleteTable organisationMappingTable
       deleteTable usersTable
       deleteTable businessesTable
   flushDbResult `shouldSatisfy` isRight
