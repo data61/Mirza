@@ -25,10 +25,6 @@ dummyBusiness unique = NewBusiness (GS1CompanyPrefix ("Business" <> unique <> "P
 dummyUser :: T.Text -> IO NewUser
 dummyUser unique = do
   let newUserOAuthSub     = "User" <> unique <> "OAuthSub"
-  let newUserEmailAddress = unsafeEmailAddress (encodeUtf8 unique) "example.com"
-  let newUserFirstName    = "User" <> unique <> "FirstName"
-  let newUserLastName     = "User" <> unique <> "LastName"
-  let newUserPhoneNumber  = "User" <> unique <> "PhoneNumber"
   pure NewUser{..}
 
 

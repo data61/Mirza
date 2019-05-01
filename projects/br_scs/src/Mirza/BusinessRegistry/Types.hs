@@ -129,10 +129,6 @@ instance (HasAuthAudience context, HasAuthPublicKey context)
 -- future, and hence this duplication
 data NewUser = NewUser
   { newUserOAuthSub     :: Text
-  , newUserEmailAddress :: EmailAddress
-  , newUserFirstName    :: Text
-  , newUserLastName     :: Text
-  , newUserPhoneNumber  :: Text
   } deriving (Generic, Eq, Show)
 $(deriveJSON defaultOptions ''NewUser)
 instance ToSchema NewUser

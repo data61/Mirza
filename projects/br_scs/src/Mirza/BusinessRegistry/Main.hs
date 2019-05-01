@@ -47,6 +47,7 @@ import           Text.Email.Validate                     (validate, toByteString
 import           Control.Lens                            (review)
 import           Control.Exception                       (finally)
 import           Data.Maybe                              (fromMaybe)
+import           Data.Either                             (fromRight)
 import           Katip                                   as K
 import           System.IO                               (IOMode (AppendMode),
                                                           hPutStr, openFile,
@@ -79,7 +80,7 @@ data ExecMode
   | UserAction UserCommand
   | BusinessAction BusinessCommand
   | PopulateDatabase  -- TODO: This option should be removed....this is for testing and debugging only.
-  | Bootstrap EmailAddress GS1CompanyPrefix
+  | Bootstrap Text GS1CompanyPrefix
 
 data ServerOptionsBR = ServerOptionsBR
   { sobDbConnStr     :: ByteString
@@ -123,7 +124,7 @@ multiplexInitOptions (InitOptionsBR opts mode) = case mode of
   UserAction uc                          -> runUserCommand opts uc
   BusinessAction bc                      -> runBusinessCommand opts bc
   PopulateDatabase                       -> runPopulateDatabase opts
-  Bootstrap email companyPrefix          -> runBootstrap opts email companyPrefix
+  Bootstrap oAuthSubSuffix companyPrefix -> runBootstrap opts oAuthSubSuffix companyPrefix
 
 
 --------------------------------------------------------------------------------
@@ -314,7 +315,7 @@ runPopulateDatabase opts = do
 
 printCredentials :: NewUser -> IO ()
 printCredentials user = do
-  putStrLn $ "Username: " <> show (newUserEmailAddress user)
+  putStrLn $ "Username: " <> show (newUserOAuthSub user)
 
 
 --------------------------------------------------------------------------------
@@ -331,7 +332,7 @@ printCredentials user = do
 -- doesn't take proper credentials suggests that our user model is wrong
 -- (incomplete)... i.e. we need users that aren't associated with businesses,
 -- but we need to do much more work here when we deal with permssions in general.
-runBootstrap :: ServerOptionsBR -> EmailAddress -> GS1CompanyPrefix -> IO ()
+runBootstrap :: ServerOptionsBR -> Text -> GS1CompanyPrefix -> IO ()
 runBootstrap opts email companyPrefix = do
   let newUser = bootstrapUser email companyPrefix
   let newBusiness = bootstrapBusiness companyPrefix
@@ -350,14 +351,9 @@ runBootstrap opts email companyPrefix = do
                     either (print @BRError) print businessResult
 
   where
-    bootstrapUser :: EmailAddress -> GS1CompanyPrefix -> NewUser
-    bootstrapUser userEmail company = do
-      let newUserOAuthSub     = "bootstrapped-user-oauth-sub" <> decodeUtf8 (toByteString userEmail)
-      let newUserEmailAddress = userEmail
-      let newUserCompany      = company
-      let newUserFirstName    = "Bootstrapped User"
-      let newUserLastName     = "Bootstrapped User"
-      let newUserPhoneNumber  = ""
+    bootstrapUser :: Text -> GS1CompanyPrefix -> NewUser
+    bootstrapUser oAuthSubSuffix company = do
+      let newUserOAuthSub     = "bootstrapped-user-oauth-sub" <> oAuthSubSuffix
       NewUser{..}
 
     bootstrapBusiness :: GS1CompanyPrefix -> NewBusiness
@@ -506,15 +502,15 @@ businessList = pure BusinessList
 
 
 bootstrap :: Parser ExecMode
-bootstrap = Bootstrap <$> emailParser <*> companyPrefixParser
+bootstrap = Bootstrap <$> oAuthSubSuffixParser <*> companyPrefixParser
 
 
 populateDb :: Parser ExecMode
 populateDb = pure PopulateDatabase
 
 
-emailParser :: Parser EmailAddress
-emailParser = argument emailReader (metavar "EmailAddress")
+oAuthSubSuffixParser :: Parser Text
+oAuthSubSuffixParser = argument str (metavar "oAuth Sub Suffix")
 
 
 emailReader :: ReadM EmailAddress

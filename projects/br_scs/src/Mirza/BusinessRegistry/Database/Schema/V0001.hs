@@ -71,10 +71,6 @@ migration () =
     <*> createTable "users" (UserT
           (field "user_id" pkSerialType)
           (field "oauth_sub" (varchar (Just defaultFieldMaxLength)) notNull)
-          (field "first_name" (varchar (Just defaultFieldMaxLength)) notNull)
-          (field "last_name" (varchar (Just defaultFieldMaxLength)) notNull)
-          (field "phone_number" (varchar (Just defaultFieldMaxLength)) notNull)
-          (field "email_address" emailAddressType unique)
           lastUpdateField
           )
     <*> createTable "organisation_mapping" (OrganisationMappingT
@@ -103,10 +99,6 @@ deriving instance Show User
 data UserT f = UserT
   { user_id          :: C f PrimaryKeyType
   , user_oauth_sub   :: C f Text
-  , first_name       :: C f Text
-  , last_name        :: C f Text
-  , phone_number     :: C f Text
-  , email_address    :: C f EmailAddress
   , user_last_update :: C f (Maybe LocalTime)
   } deriving Generic
 

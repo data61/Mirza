@@ -163,12 +163,7 @@ clientSpec = do
 
           step "Adding the same user to BR"
           let prefix = GS1CompanyPrefix "1000001"
-          let userBR = BT.NewUser
-                          "EventSign Test Same User OAuthSub"
-                          (unsafeMkEmailAddress "abc@example.com")
-                          "Biz Johnny"
-                          "Smith Biz"
-                          "0400 111 222"
+          let userBR = BT.NewUser "EventSign Test Same User OAuthSub"
 
           -- TODO Note: The business will now be associated with the brAuthUser
           -- and not created user, expect this may have to be fixed when we
@@ -230,12 +225,7 @@ clientSpec = do
             `shouldSatisfyIO` isRight
 
           step "Adding the giver user to BR"
-          let userBRGiver = BT.NewUser
-                          "EventSign Test Giver OAuthSub"
-                          (unsafeMkEmailAddress "abc@example.com")
-                          "Biz Giver"
-                          "Smith Biz"
-                          "0400 111 222"
+          let userBRGiver = BT.NewUser "EventSign Test Giver OAuthSub"
           httpBR (BRClient.addUser globalAuthData userBRGiver) `shouldSatisfyIO` isRight
 
           step "Tying the giver user with a good key"
@@ -265,12 +255,7 @@ clientSpec = do
             `shouldSatisfyIO` isRight
 
           step "Adding the receiving user to BR"
-          let userBRReceiver = BT.NewUser
-                          "EventSign Test Reciever OAuthSub"
-                          (unsafeMkEmailAddress "def@example.com")
-                          "Biz Receiver"
-                          "Smith Biz"
-                          "0400 123 432"
+          let userBRReceiver = BT.NewUser "EventSign Test Reciever OAuthSub"
           httpBR (BRClient.addUser globalAuthData userBRReceiver) `shouldSatisfyIO` isRight
 
 

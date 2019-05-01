@@ -60,12 +60,12 @@ addUser =
 addUserQuery :: (AsBRError err, HasCallStack)
              => NewUser
              -> DB context err Schema.User
-addUserQuery (BRT.NewUser oauthSub userEmail firstName lastName phone) = do
+addUserQuery (BRT.NewUser oauthSub) = do
   userId <- newUUID
   -- TODO: use Database.Beam.Backend.SQL.runReturningOne?
   res <- pg $ runInsertReturningList (Schema._users Schema.businessRegistryDB) $
       insertValues
-       [Schema.UserT userId oauthSub firstName lastName phone userEmail Nothing]
+       [Schema.UserT userId oauthSub Nothing]
   case res of
       [r] -> pure $ r
       -- The user creation has failed, but we can't really think of what would lead to this case.

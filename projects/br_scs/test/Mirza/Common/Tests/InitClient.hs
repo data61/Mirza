@@ -44,9 +44,7 @@ import           Mirza.BusinessRegistry.Types             as BT hiding (business
 import           Mirza.Common.Tests.Utils                 (DatabaseConnectionString (..),
                                                            DatabaseName (..),
                                                            databaseNameToConnectionString,
-                                                           getDatabaseConnectionString,
-                                                           unsafeMkEmailAddress)
-import           Text.Email.Validate                      (toByteString)
+                                                           getDatabaseConnectionString)
 
 
 -- *****************************************************************************
@@ -145,19 +143,14 @@ newBusinessToBusinessResponse =
 
 
 newUserToBasicAuthData :: BT.NewUser -> BasicAuthData
-newUserToBasicAuthData newUser = BasicAuthData (toByteString $ BT.newUserEmailAddress newUser) ""
+newUserToBasicAuthData _newUser = BasicAuthData "" "" -- TODO: Extract info from or associated with newUser.
 
 
 bootstrapAuthData :: (HasEnvType w, HasConnPool w, HasKatipContext w,
                       HasKatipLogEnv w)
                      => w -> IO Token
 bootstrapAuthData ctx = do
-  let email = "initialUser@example.com"
   let user = BT.NewUser "initialUserOAuthSub"
-                      (unsafeMkEmailAddress email)
-                      "Test User First Name"
-                      "Test User Last Name"
-                      "Test User Phone Number"
   let prefix = GS1CompanyPrefix "1000000"
   let businessName = "Business Name"
       business = NewBusiness prefix businessName (mockURI businessName)
