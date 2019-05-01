@@ -56,15 +56,15 @@ unpackStringOrURI sUri =
   let (String str) = toJSON sUri
     in T.unpack str
 
-addUserSub :: StringOrURI -> StringOrURI -> AppM AuthContext AppError Bool
+addUserSub :: StringOrURI -> StringOrURI -> AppM AuthContext AppError ()
 addUserSub existingUser toAddUser =
   doesSubExist existingUser >>= \case
-    False -> pure False
+    False -> throwError . DatabaseError $ UnauthorisedInsertionAttempt
     True -> addUser toAddUser
 
-addUser :: StringOrURI -> AppM AuthContext AppError Bool
-addUser toAddUser = runDb $ \conn -> do
-  res <- DB.execute conn "INSERT INTO users (user_sub) values (?)" [toAddUser]
+addUser :: StringOrURI -> AppM AuthContext AppError ()
+addUser toAddUser = do
+  res <- runDb $ \conn -> DB.execute conn "INSERT INTO users (user_sub) values (?)" [toAddUser]
   case res of
-    1 -> pure True
-    _ -> pure False
+    1 -> pure ()
+    _ -> throwError . DatabaseError $ InsertionFailed

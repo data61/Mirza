@@ -58,7 +58,7 @@ promptLine prompt = do
   getLine
 
 
-tryAddUser :: AuthContext -> IO (Either AppError Bool)
+tryAddUser :: AuthContext -> IO (Either AppError ())
 tryAddUser ctx = do
   (authorisedUserStr :: String) <- promptLine "Enter thy creds: "
   (toAddUserStr :: String) <- promptLine "User you want to add: "
@@ -66,20 +66,18 @@ tryAddUser ctx = do
   let (toAddUserSub :: StringOrURI) = fromString toAddUserStr
   res <- runAppM ctx $ addUserSub authorisedUserSub toAddUserSub
   case res of
-    Right True  -> putStrLn "Successfully added user"
-    Right False -> putStrLn "Failed to add the user."
-    Left err    -> putStrLn $ "Failed with error : " <> show err
+    Right () -> putStrLn "Successfully added user"
+    Left err -> putStrLn $ "Failed with error : " <> show err
   pure res
 
-tryAddBootstrapUser :: AuthContext -> IO (Either AppError Bool)
+tryAddBootstrapUser :: AuthContext -> IO (Either AppError ())
 tryAddBootstrapUser ctx = do
   (toAddUserStr :: String) <- promptLine "User you want to add: "
   let (toAddUserSub :: StringOrURI) = fromString toAddUserStr
   res <- runAppM ctx $ addUser toAddUserSub
   case res of
-    Right True  -> putStrLn "Successfully added user"
-    Right False -> putStrLn "Failed to add the user."
-    Left err    -> putStrLn $ "Failed with error : " <> show err
+    Right () -> putStrLn "Successfully added user"
+    Left err -> putStrLn $ "Failed with error : " <> show err
   pure res
 
 
