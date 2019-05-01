@@ -64,6 +64,7 @@ library
                     , Mirza.EntityDataAPI.Utils
                     , Mirza.EntityDataAPI.Main
                     , Mirza.EntityDataAPI.Database.Utils
+                    , Mirza.EntityDataAPI.Errors
 
   -- Other library packages from which modules are imported.
   build-depends:        base

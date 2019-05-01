@@ -1,7 +1,6 @@
 {-# LANGUAGE DeriveGeneric              #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE NamedFieldPuns             #-}
-{-# LANGUAGE TemplateHaskell            #-}
 
 module Mirza.EntityDataAPI.Types where
 
@@ -9,7 +8,6 @@ import           System.Envy                (DefConfig (..), FromEnv (..),
                                              Var (..), env, envMaybe, (.!=))
 import qualified System.Envy                as Envy
 
-import           Network.HTTP.Req           (HttpException)
 import           Network.HTTP.ReverseProxy  (ProxyDest (..))
 
 import           Control.Monad.Except       (ExceptT (..), MonadError,
@@ -28,14 +26,10 @@ import           Data.Time.Clock            (getCurrentTime)
 
 import           Text.Read                  (readMaybe)
 
-import           Crypto.JWT                 (AsError, AsJWTError, JWKSet,
-                                             StringOrURI)
-import qualified Crypto.JWT                 as Jose
-
-import           Control.Lens               (makeClassyPrisms, prism')
+import           Crypto.JWT                 (JWKSet, StringOrURI)
 
 import           Data.Pool                  as Pool
-import           Database.PostgreSQL.Simple (Connection, SqlError (..))
+import           Database.PostgreSQL.Simple (Connection)
 
 import           Data.ByteString            (ByteString)
 
@@ -152,35 +146,3 @@ instance FromEnv Opts where
     <*> envMaybe "JWK_URL" .!= defaultJwkUrl
     <*> env "JWK_CLIENT_ID"
     <*> env "EDAPI_DB_CONN"
-
---  ------------------------------------------------
-
---  ---------------- Errors ------------------------
-
-
-data DBError
-  = SqlErr SqlError
-  deriving (Eq, Show, Generic)
-
-data AppError
-  = JWKFetchFailed
-  | AuthFailed Jose.JWTError
-  | AppJoseError Jose.Error
-  | NoClaimSubject
-  | UnauthClaimsSubject
-  | NoAuthHeader
-  | UrlParseFailed
-  | ReqFailure HttpException
-  | JWKParseFailure String
-  | DatabaseError DBError
-  deriving (Show, Generic)
-makeClassyPrisms ''AppError
-
-instance AsJWTError AppError where
-  _JWTError = prism' AuthFailed
-              (\err -> case err of
-                (AuthFailed e) -> Just e
-                _              -> Nothing
-              )
-instance AsError AppError where
-  _Error = _AppJoseError

@@ -18,6 +18,7 @@ import           Control.Monad.Reader               (asks)
 
 import           Control.Lens                       (view)
 
+import           Mirza.EntityDataAPI.Errors
 import           Mirza.EntityDataAPI.Types
 import           Mirza.EntityDataAPI.Utils
 

@@ -9,6 +9,8 @@ import           Database.PostgreSQL.Simple.FromField (FromField (..),
                                                        returnError)
 import           Database.PostgreSQL.Simple.ToField   (ToField (..))
 
+import           Mirza.EntityDataAPI.Errors           (AppError (..),
+                                                       DBError (..))
 import           Mirza.EntityDataAPI.Types
 
 import           Crypto.JWT                           (StringOrURI)

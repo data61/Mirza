@@ -12,6 +12,7 @@ import           Network.HTTP.Client.TLS            (tlsManagerSettings)
 
 import           Mirza.EntityDataAPI.AuthProxy      (runAuthProxy)
 import           Mirza.EntityDataAPI.Database.Utils (addUser, addUserSub)
+import           Mirza.EntityDataAPI.Errors
 import           Mirza.EntityDataAPI.Types
 import           Mirza.EntityDataAPI.Utils          (fetchJWKs)
 

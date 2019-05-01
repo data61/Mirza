@@ -2,7 +2,7 @@
 
 module Mirza.EntityDataAPI.Utils where
 
-import           Mirza.EntityDataAPI.Types  (AppError (..))
+import           Mirza.EntityDataAPI.Errors (AppError (..))
 
 import           Network.HTTP.Client        (Manager)
 import           Network.HTTP.Req
