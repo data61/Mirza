@@ -19,6 +19,7 @@ import           Mirza.BusinessRegistry.Database.Schema   as DB
 import qualified Mirza.BusinessRegistry.Handlers.Business as BRHB (searchBusinesses)
 import           Mirza.BusinessRegistry.SqlUtils
 import           Mirza.BusinessRegistry.Types             as BT
+import           Mirza.BusinessRegistry.Auth
 import           Mirza.Common.Time                        (toDbTimestamp)
 import           Mirza.Common.Types                       (Member)
 import           Mirza.Common.Utils
@@ -69,35 +70,24 @@ addLocation auser newLoc = do
   --         _ -> throwError e
 
 addLocationQuery  :: ( Member context '[]
-                     , Member err     '[AsBRError]
-                     , HasCallStack)
+                     , Member err     '[AsBRError])
                   => AuthUser
                   -> PrimaryKeyType
                   -> GeoLocationId
                   -> NewLocation
                   -> DB context err Location
-addLocationQuery (AuthUser (BT.UserId uId)) locId geoLocId newLoc = do
-  mbizId <- pg $ runSelectReturningOne $ select $ do
-    user <- all_ (_users businessRegistryDB)
-    guard_ (user_id user ==. val_ uId)
-    pure $ user_biz_id user
-  case mbizId of
-    -- Since the user has authenticated, this should never happen
-    Nothing -> throwing _UnexpectedErrorBRE callStack
-    Just userBizId -> do
-      let pfx = _sglnCompanyPrefix . newLocGLN $ newLoc
-          bizId = BizId pfx
-      when (userBizId /= bizId) $
-          throwing _OperationNotPermittedBRE (pfx, BT.UserId uId)
-      let (loc,geoLoc) = newLocationToLocation locId geoLocId bizId newLoc
-      res <- pg $ runInsertReturningList (_locations businessRegistryDB) $
-                  insertValues [loc]
-      case res of
-        [r] -> do
-            _ <- pg $ runInsertReturningList (_geoLocations businessRegistryDB) $
-                  insertValues [geoLoc]
-            pure r
-        _   -> throwing _UnexpectedErrorBRE callStack
+addLocationQuery authUser locId geoLocId newLoc = do
+  let gs1CompanyPrefix = _sglnCompanyPrefix $ newLocGLN newLoc
+  mapping <- userOrganisationAutherisation authUser gs1CompanyPrefix
+  let organisationId = (organisation_mapping_gs1_company_prefix mapping)
+  let (loc,geoLoc) = newLocationToLocation locId geoLocId organisationId newLoc
+  res <- pg $ runInsertReturningList (_locations businessRegistryDB) $ insertValues [loc]
+  case res of
+    [r] -> do
+           _ <- pg $ runInsertReturningList (_geoLocations businessRegistryDB) $
+               insertValues [geoLoc]
+           pure r
+    _   -> throwing _UnexpectedErrorBRE callStack
 
 
 newLocationToLocation :: PrimaryKeyType

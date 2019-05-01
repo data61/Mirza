@@ -12,6 +12,7 @@ module Mirza.BusinessRegistry.Auth
   , listUsersQuery
   , oauthClaimsToAuthUser
   , getUserByOAuthSubQuery
+  , userOrganisationAutherisation
   ) where
 
 import           Mirza.BusinessRegistry.Database.Schema as Schema
@@ -35,6 +36,10 @@ import           Data.Functor                           (void)
 
 import           Crypto.JWT                              (Audience (..))
 
+
+--------------------------------------------------------------------------------
+-- Authentication
+--------------------------------------------------------------------------------
 
 -- | We need to supply our handlers with the right Context. In this case,
 -- JWT requires a Context Entry with the 'JWTSettings and CookiesSettings values.
@@ -85,3 +90,23 @@ getUserByOAuthSubQuery oauthSub = do
   case r of
     [user] -> pure $ Just user
     _      -> pure Nothing
+
+
+--------------------------------------------------------------------------------
+-- Authorisation
+--------------------------------------------------------------------------------
+
+userOrganisationAutherisation :: ( Member context '[]
+                                 , Member err     '[AsBRError])
+                              => AuthUser
+                              -> GS1CompanyPrefix
+                              -> DB context err OrganisationMapping
+userOrganisationAutherisation (AuthUser (BT.UserId uId)) gs1CompantPrefix = do
+  maybeMapping <- pg $ runSelectReturningOne $ select $ do
+    mapping <- all_ (_organisationMapping businessRegistryDB)
+    guard_ (organisation_mapping_user_id mapping ==. val_ (Schema.UserId uId))
+    guard_ (organisation_mapping_gs1_company_prefix mapping ==. val_ (BizId gs1CompantPrefix))
+    pure $ mapping
+  case maybeMapping of
+    Nothing -> throwing _OperationNotPermittedBRE (gs1CompantPrefix, BT.UserId uId)
+    Just mapping -> pure mapping
