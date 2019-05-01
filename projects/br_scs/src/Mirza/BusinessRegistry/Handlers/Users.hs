@@ -62,18 +62,10 @@ addUserQuery :: (AsBRError err, HasCallStack)
              -> DB context err Schema.User
 addUserQuery (BRT.NewUser oauthSub userEmail biz firstName lastName phone) = do
   userId <- newUUID
-  business <- pg $ runSelectReturningOne $ select $ do
-    businesses <- all_ (Schema._businesses Schema.businessRegistryDB)
-    guard_ (business_gs1_company_prefix businesses ==. val_ biz)
-    pure businesses
-  when (isNothing business) $ throwing_ _BusinessDoesNotExistBRE
-
   -- TODO: use Database.Beam.Backend.SQL.runReturningOne?
   res <- pg $ runInsertReturningList (Schema._users Schema.businessRegistryDB) $
       insertValues
-       [Schema.UserT userId oauthSub firstName lastName
-               phone userEmail Nothing
-       ]
+       [Schema.UserT userId oauthSub firstName lastName phone userEmail Nothing]
   case res of
       [r] -> pure $ r
       -- The user creation has failed, but we can't really think of what would lead to this case.
