@@ -1,3 +1,3 @@
 CREATE TABLE users (
-    user_sub varchar(511) NOT NULL PRIMARY KEY
+    user_sub text NOT NULL PRIMARY KEY
 );
