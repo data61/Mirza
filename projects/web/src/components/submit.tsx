@@ -10,7 +10,7 @@ import { EventForm } from "./epcis/event";
 export function Submit() {
   const eventState = React.useState(objectEvent());
   const [event, _] = eventState;
-  const bizUrl = 'localhost:8200'
+  const bizUrl = 'http://localhost:8080'
 
   const submitEvent = () => {
     console.log(event.label);
