@@ -1,6 +1,7 @@
 ARG HS_BUILDER_IMAGE=hsbuilder:latest
 
 FROM $HS_BUILDER_IMAGE as BUILD
+RUN mkdir /edapi 
 WORKDIR /edapi
 
 COPY stack.yaml entity-data-api.cabal LICENSE README.md /edapi/
