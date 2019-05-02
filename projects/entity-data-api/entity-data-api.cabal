@@ -86,6 +86,7 @@ library
                       , req
                       , resource-pool
                       , wai
+                      , wai-cors
                       , warp
                       , http-types
                       , time

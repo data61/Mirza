@@ -18,6 +18,7 @@ import           Mirza.EntityDataAPI.Utils          (fetchJWKs)
 
 import           Network.HTTP.ReverseProxy          (ProxyDest (..))
 import qualified Network.Wai.Handler.Warp           as Warp
+import           Network.Wai.Middleware.Cors        (simpleCors)
 
 import qualified Data.ByteString.Char8              as B
 
@@ -105,7 +106,7 @@ launchProxy ctx = do
   putStrLn $  "Starting service on " <>
               (getHostname . serviceHost . myProxyServiceInfo $ ctx) <> ":" <>
               (show . getPort . servicePort . myProxyServiceInfo $ ctx)
-  Warp.run (fromIntegral . getPort . servicePort . myProxyServiceInfo $ ctx) (runAuthProxy ctx)
+  Warp.run (fromIntegral . getPort . servicePort . myProxyServiceInfo $ ctx) (simpleCors $ runAuthProxy ctx)
 
 -- _optsParser :: Parser Opts
 -- _optsParser = Opts

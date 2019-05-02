@@ -27,6 +27,7 @@ import           Network.HTTP.Client                   (defaultManagerSettings,
                                                         newManager)
 import           Network.Wai                           (Middleware)
 import qualified Network.Wai.Handler.Warp              as Warp
+import           Network.Wai.Middleware.Cors           (simpleCors)
 
 import           Data.ByteString                       (ByteString)
 import           Data.Text                             (pack)
@@ -157,7 +158,7 @@ runDbPopulate so = do
   pure ()
 
 initMiddleware :: ServerOptionsSCS -> IO Middleware
-initMiddleware _ = pure id
+initMiddleware _ = pure simpleCors
 
 initSCSContext :: ServerOptionsSCS -> IO ST.SCSContext
 initSCSContext (ServerOptionsSCS envT _ _ dbConnStr _ n p r lev (Just (brHost, bizRegPort)) mlogPath) = do
