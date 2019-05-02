@@ -10,7 +10,7 @@ stages:
   - "Build"
   - name: "Deploy"
     if: branch = master AND type = push
-    
+
 jobs:
   include:
     - name: "Web"

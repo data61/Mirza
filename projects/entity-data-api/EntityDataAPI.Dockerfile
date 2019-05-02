@@ -21,6 +21,6 @@ RUN apt update && \
 
 RUN pwd; ls; ls /
 
-COPY --from=0 /src/edapi/dist/entity-data-api /opt/Mirza/entity-data-api
+COPY /src/edapi/dist/entity-data-api /opt/Mirza/entity-data-api
 
 ENTRYPOINT [ "/opt/Mirza/entity-data-api" ]
