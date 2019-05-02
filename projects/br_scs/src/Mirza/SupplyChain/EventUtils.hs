@@ -38,8 +38,9 @@ import           Data.GS1.DWhat                    (AggregationDWhat (..),
 import           Data.GS1.DWhen                    (DWhen (..))
 import           Data.GS1.DWhere                   (BizLocation (..),
                                                     DWhere (..),
+                                                    DestinationLocation (..),
                                                     ReadPointLocation (..),
-                                                    SrcDestLocation (..))
+                                                    SourceLocation (..))
 import           Data.GS1.DWhy                     (DWhy (..))
 
 import           Data.Maybe                        (catMaybes, listToMaybe)
@@ -275,14 +276,13 @@ insertDWhy dwhy eventId = QU.withPKey $ \pKey ->
 
 insertSrcDestType :: MU.LocationField
                   -> Schema.EventId
-                  -> SrcDestLocation
+                  -> (SourceDestType, LocationEPC)
                   -> DB context err PrimaryKeyType
-insertSrcDestType locField eventId
-  (SrcDestLocation (sdType, SGLN pfix locationRef ext)) =
+insertSrcDestType locField eventId (sdType, (SGLN pfix locationRef ext)) =
   QU.withPKey $ \pKey -> do
     let stWhere = Schema.Where Nothing pKey pfix (Just sdType) locationRef locField ext eventId
     pg $ B.runInsert $ B.insert (Schema._wheres Schema.supplyChainDb)
-             $ insertValues [stWhere]
+       $ insertValues [stWhere]
 
 insertLocationEPC :: MU.LocationField
                   -> Schema.EventId
@@ -292,7 +292,7 @@ insertLocationEPC locField eventId (SGLN pfix locationRef ext) =
   QU.withPKey $ \pKey -> do
     let stWhere = Schema.Where Nothing pKey pfix Nothing locationRef locField ext eventId
     pg $ B.runInsert $ B.insert (Schema._wheres Schema.supplyChainDb)
-                $ insertValues [stWhere]
+       $ insertValues [stWhere]
 
 -- | Maps the relevant insert function for all
 -- ReadPoint, BizLocation, Src, Dest
@@ -300,8 +300,15 @@ insertDWhere :: DWhere -> Schema.EventId -> DB context err ()
 insertDWhere (DWhere rPoint bizLoc srcTs destTs) eventId = do
     sequence_ $ insertLocationEPC MU.ReadPoint eventId . unReadPointLocation <$> rPoint
     sequence_ $ insertLocationEPC MU.BizLocation eventId . unBizLocation <$> bizLoc
-    sequence_ $ insertSrcDestType MU.Src eventId <$> srcTs
-    sequence_ $ insertSrcDestType MU.Dest eventId <$> destTs
+    sequence_ $ insertSrcDestType MU.Src eventId . unwrapSrc <$> srcTs
+    sequence_ $ insertSrcDestType MU.Dest eventId . unwrapDest <$> destTs
+
+unwrapSrc :: SourceLocation -> (SourceDestType, LocationEPC)
+unwrapSrc (SourceLocation t l) = (t, l)
+
+unwrapDest :: DestinationLocation -> (SourceDestType, LocationEPC)
+unwrapDest (DestinationLocation t l) = (t, l)
+
 
 -- | Given a DWhere, looks for all the insertions associated with the DWHere
 -- Think of this as the inverse of ``insertDWhere``
@@ -332,17 +339,17 @@ mergeSBWheres :: Maybe ReadPointLocation
               -> [Schema.WhereT Identity]
               -> Maybe DWhere
 mergeSBWheres rPoints bizLocs srcTsW destTsW =
-  let srcTs = constructSrcDestLocation <$> srcTsW
-      destTs = constructSrcDestLocation <$> destTsW
+  let srcTs = constructSrcDestLocation SourceLocation <$> srcTsW
+      destTs = constructSrcDestLocation DestinationLocation <$> destTsW
       in
         DWhere rPoints bizLocs <$> sequence srcTs <*> sequence destTs
 
--- | This relies on the user calling this function in the appropriate WhereT
-constructSrcDestLocation :: Schema.WhereT Identity -> Maybe SrcDestLocation
-constructSrcDestLocation whereT =
-  SrcDestLocation . (,constructLocation whereT)
-    <$> Schema.where_source_dest_type whereT
-
+-- -- | This relies on the user calling this function in the appropriate WhereT
+constructSrcDestLocation :: (SourceDestType -> LocationEPC -> srcOrDest)
+                         -> WhereT Identity
+                         -> Maybe srcOrDest
+constructSrcDestLocation c whereT =
+  flip c (constructLocation whereT) <$> Schema.where_source_dest_type whereT
 
 -- | This relies on the user calling this function in the appropriate WhereT
 constructLocation :: Schema.WhereT Identity -> LocationEPC

@@ -1,11 +1,12 @@
 {-# LANGUAGE DeriveGeneric              #-}
+{-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE InstanceSigs               #-}
 {-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE StandaloneDeriving         #-}
 {-# LANGUAGE TemplateHaskell            #-}
-{-# LANGUAGE UndecidableInstances       #-}
 {-# LANGUAGE TypeApplications           #-}
-{-# LANGUAGE InstanceSigs               #-}
+{-# LANGUAGE UndecidableInstances       #-}
 {-# OPTIONS_GHC -fno-warn-orphans       #-}
 
 module Mirza.BusinessRegistry.Types (
@@ -13,47 +14,47 @@ module Mirza.BusinessRegistry.Types (
   , module CT
   ) where
 
-import           Mirza.Common.Time                      (CreationTime,
-                                                         ExpirationTime,
-                                                         RevocationTime)
-import           Mirza.Common.Types                     as CT
+import           Mirza.Common.Time                    (CreationTime,
+                                                       ExpirationTime,
+                                                       RevocationTime)
+import           Mirza.Common.Types                   as CT
 
-import           Data.GS1.EPC                           as EPC
+import           Data.GS1.EPC                         as EPC
 
-import           Data.Pool                              as Pool
+import           Data.Pool                            as Pool
 
 import           Database.Beam
 import           Database.Beam.Backend.SQL
-import           Database.Beam.Postgres.Syntax (PgDataTypeSyntax)
-import           Database.PostgreSQL.Simple             (Connection, SqlError)
+import qualified Database.Beam.Migrate                as BMigrate
+import qualified Database.Beam.Postgres               as BPostgres
+import           Database.Beam.Postgres.Syntax        (PgDataTypeSyntax)
+import           Database.PostgreSQL.Simple           (Connection, SqlError)
 import           Database.PostgreSQL.Simple.FromField (FromField, fromField)
 import           Database.PostgreSQL.Simple.ToField   (ToField, toField)
-import qualified Database.Beam.Migrate      as BMigrate
-import qualified Database.Beam.Postgres     as BPostgres
 
-import           Crypto.JOSE                            (JWK)
-import           Crypto.JWT                             (Audience, ClaimsSet, claimSub, string)
+import           Crypto.JOSE                          (JWK)
+import           Crypto.JWT                           (Audience, ClaimsSet,
+                                                       claimSub, string)
 
-import qualified Servant.Auth.Server                    as SAS
+import qualified Servant.Auth.Server                  as SAS
 
-import           Katip                                  as K
+import           Katip                                as K
 
-import           Network.URI                            (URI)
-
-import           Control.Lens
+import           Network.URI                          (URI)
 
 import           Data.Aeson
-import           Data.Aeson.Types
 import           Data.Aeson.TH
+import           Data.Aeson.Types
 
 import           Data.Swagger
-import           Data.Text                              (Text)
-import           Data.Time                              (LocalTime)
+import           Data.Text                            (Text)
+import           Data.Time                            (LocalTime)
 
-import           Data.Proxy                             (Proxy (..))
+import           Control.Lens
+import           Data.Proxy                           (Proxy (..))
 
-import           GHC.Generics                           (Generic)
-import           GHC.Stack                              (CallStack)
+import           GHC.Generics                         (Generic)
+import           GHC.Stack                            (CallStack)
 
 -- *****************************************************************************
 -- Context Types
@@ -258,12 +259,12 @@ longitudeType = BMigrate.DataType doubleType
 
 
 data LocationResponse = LocationResponse
-  { locationId         :: PrimaryKeyType
-  , locationGLN        :: EPC.LocationEPC
-  , locationBiz        :: GS1CompanyPrefix
-  , geoLocId           :: PrimaryKeyType
-  , geoLocCoord        :: Maybe (Latitude, Longitude)
-  , geoLocAddress      :: Maybe Text
+  { locationId    :: PrimaryKeyType
+  , locationGLN   :: EPC.LocationEPC
+  , locationBiz   :: GS1CompanyPrefix
+  , geoLocId      :: PrimaryKeyType
+  , geoLocCoord   :: Maybe (Latitude, Longitude)
+  , geoLocAddress :: Maybe Text
   } deriving (Show, Generic, Eq)
 instance ToSchema LocationResponse
 instance ToJSON LocationResponse
