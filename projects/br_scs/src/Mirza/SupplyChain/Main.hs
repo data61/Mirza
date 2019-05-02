@@ -8,11 +8,11 @@ import           Mirza.SupplyChain.API
 import           Mirza.SupplyChain.Auth
 import           Mirza.SupplyChain.Database.Migrate
 import           Mirza.SupplyChain.Service
-import           Mirza.SupplyChain.Types            (AppError, EnvType (..),
-                                                     SCSContext (..), User)
+import           Mirza.SupplyChain.Types               (AppError, EnvType (..),
+                                                        SCSContext (..), User)
 
-import           Mirza.SupplyChain.PopulateUtils    (insertCitrusData)
-import qualified Mirza.SupplyChain.Types            as ST
+import           Mirza.SupplyChain.PopulateUtils       (insertCitrusData)
+import qualified Mirza.SupplyChain.Types               as ST
 
 import           Mirza.BusinessRegistry.Client.Servant
 
@@ -20,32 +20,32 @@ import           Servant
 import           Servant.Client
 import           Servant.Swagger.UI
 
-import qualified Data.Pool                          as Pool
+import qualified Data.Pool                             as Pool
 import           Database.PostgreSQL.Simple
 
-import           Network.HTTP.Client                (defaultManagerSettings,
-                                                     newManager)
-import           Network.Wai                        (Middleware)
-import qualified Network.Wai.Handler.Warp           as Warp
+import           Network.HTTP.Client                   (defaultManagerSettings,
+                                                        newManager)
+import           Network.Wai                           (Middleware)
+import qualified Network.Wai.Handler.Warp              as Warp
 
-import           Data.ByteString                    (ByteString)
-import           Data.Text                          (pack)
+import           Data.ByteString                       (ByteString)
+import           Data.Text                             (pack)
 
-import           Data.Semigroup                     ((<>))
+import           Data.Semigroup                        ((<>))
 import           Options.Applicative
 
 import           Control.Lens
 
-import qualified Crypto.Scrypt                      as Scrypt
+import qualified Crypto.Scrypt                         as Scrypt
 
-import           Control.Exception                  (finally)
-import           Data.Maybe                         (fromMaybe)
-import           Katip                              as K
+import           Control.Exception                     (finally)
+import           Data.Maybe                            (fromMaybe)
+import           Katip                                 as K
 
-import           System.Exit                        (exitFailure)
-import           System.IO                          (IOMode (AppendMode),
-                                                     hPutStrLn, openFile,
-                                                     stderr, stdout)
+import           System.Exit                           (exitFailure)
+import           System.IO                             (IOMode (AppendMode),
+                                                        hPutStrLn, openFile,
+                                                        stderr, stdout)
 
 data ServerOptionsSCS = ServerOptionsSCS
   { env            :: EnvType
@@ -125,13 +125,12 @@ main = runProgram =<< execParser opts
       <> header "SupplyChainServer - A server for capturing GS1 events and recording them on a blockchain")
 
 runProgram :: ServerOptionsSCS -> IO ()
-runProgram so@ServerOptionsSCS{initDB = True, dbPopulateInfo =Just _, brServiceInfo =Just __} = do
+runProgram so@ServerOptionsSCS{initDB = True, dbPopulateInfo =Just _, brServiceInfo =Just _} = do
   ctx <- initSCSContext so
   migrate ctx $ connectionStr so
   runDbPopulate so
-runProgram so@ServerOptionsSCS{initDB =False, dbPopulateInfo =Just _, brServiceInfo =Just __} = do
-  runDbPopulate so
-runProgram so@ServerOptionsSCS{initDB = False, scsServiceInfo=(scsHst, scsPort), brServiceInfo =Just __} = do
+runProgram so@ServerOptionsSCS{initDB =False, dbPopulateInfo =Just _, brServiceInfo =Just _} = runDbPopulate so
+runProgram so@ServerOptionsSCS{initDB = False, scsServiceInfo=(scsHst, scsPort), brServiceInfo =Just _} = do
   ctx <- initSCSContext so
   app <- initApplication so ctx
   mids <- initMiddleware so
@@ -188,7 +187,7 @@ initSCSContext (ServerOptionsSCS envT _ _ dbConnStr _ n p r lev (Just (brHost, b
           mempty
           mempty
           (mkClientEnv manager baseUrl)
-initSCSContext so@(ServerOptionsSCS{ brServiceInfo = Nothing}) = initSCSContext so{brServiceInfo = Just ("localhost", 8200)}
+initSCSContext so@ServerOptionsSCS{brServiceInfo = Nothing} = initSCSContext so{brServiceInfo = Just ("localhost", 8200)}
 
 initApplication :: ServerOptionsSCS -> ST.SCSContext -> IO Application
 initApplication _so ev =

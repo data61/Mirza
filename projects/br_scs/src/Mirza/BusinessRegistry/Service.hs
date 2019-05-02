@@ -15,14 +15,13 @@
 -- | Endpoint definitions go here. Most of the endpoint definitions are
 -- light wrappers around functions in BeamQueries
 module Mirza.BusinessRegistry.Service
- (
-    appHandlers
+  ( appHandlers
   , publicServer
   , privateServer
   , appMToHandler
   , serveSwaggerAPI
   , module Handlers
- ) where
+  ) where
 
 import           Mirza.Common.Utils
 

@@ -63,6 +63,8 @@ library
                     , Mirza.EntityDataAPI.AuthProxy
                     , Mirza.EntityDataAPI.Utils
                     , Mirza.EntityDataAPI.Main
+                    , Mirza.EntityDataAPI.Database.Utils
+                    , Mirza.EntityDataAPI.Errors
 
   -- Other library packages from which modules are imported.
   build-depends:        base
@@ -80,7 +82,9 @@ library
                       , monad-time
                       , optparse-applicative
                       , jose
+                      , postgresql-simple
                       , req
+                      , resource-pool
                       , wai
                       , warp
                       , http-types
@@ -94,13 +98,12 @@ library
   default-language:    Haskell2010
 
 
-executable entity-data-api
-  default-extensions: OverloadedStrings
-                    , FlexibleContexts
-                    , FlexibleInstances
+executable entity-data-api-proxy
+  default-extensions:  OverloadedStrings
+                     , FlexibleContexts
+                     , FlexibleInstances
   -- .hs or .lhs file containing the Main module.
   main-is:             EntityDataAPI.hs
-  
   -- Modules included in this executable, other than Main.
   -- other-modules:       
   

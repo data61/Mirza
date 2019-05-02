@@ -20,17 +20,17 @@ import           Mirza.Common.Types                      as CT
 import           Data.GS1.EPC                            (GS1CompanyPrefix (..))
 
 import           Servant
-import           Servant.Swagger.UI
 import           Servant.Auth.Server
+import           Servant.Swagger.UI
 
 import           Crypto.JWT                              (Audience (..), string)
 
 import qualified Data.Pool                               as Pool
 import           Database.PostgreSQL.Simple
 
+import           Network.URI                             (nullURI)
 import           Network.Wai                             (Middleware)
 import qualified Network.Wai.Handler.Warp                as Warp
-import           Network.URI                             (nullURI)
 
 import           Data.Aeson                              (eitherDecodeFileStrict)
 
@@ -39,13 +39,15 @@ import           Data.ByteString                         (ByteString)
 import qualified Data.ByteString.Char8                   as BS
 import           Data.Semigroup                          ((<>))
 import           Data.Text                               (Text, pack)
-import           Data.Text.Encoding                      (encodeUtf8, decodeUtf8)
+import           Data.Text.Encoding                      (decodeUtf8,
+                                                          encodeUtf8)
 import           Options.Applicative                     hiding (action)
 import           Text.Email.Parser                       (addrSpec)
-import           Text.Email.Validate                     (validate, toByteString)
+import           Text.Email.Validate                     (toByteString,
+                                                          validate)
 
-import           Control.Lens                            (review)
 import           Control.Exception                       (finally)
+import           Control.Lens                            (review)
 import           Data.Maybe                              (fromMaybe)
 import           Katip                                   as K
 import           System.IO                               (IOMode (AppendMode),
@@ -82,14 +84,14 @@ data ExecMode
   | Bootstrap EmailAddress GS1CompanyPrefix
 
 data ServerOptionsBR = ServerOptionsBR
-  { sobDbConnStr     :: ByteString
-  , sobLoggingLevel  :: K.Severity
-  , sobLogLocation   :: Maybe FilePath
-  , sobEnvType       :: CT.EnvType
+  { sobDbConnStr    :: ByteString
+  , sobLoggingLevel :: K.Severity
+  , sobLogLocation  :: Maybe FilePath
+  , sobEnvType      :: CT.EnvType
   }
 
 data RunServerOptions = RunServerOptions
-  { rsoPortNumber :: Int
+  { rsoPortNumber    :: Int
   , sobOAuthAudience :: Text
   }
 
@@ -118,12 +120,12 @@ main = multiplexInitOptions =<< execParser opts where
 -- where the single binary could be split into multiple binaries.
 multiplexInitOptions :: InitOptionsBR -> IO ()
 multiplexInitOptions (InitOptionsBR opts mode) = case mode of
-  RunServer rsOpts                       -> launchServer opts rsOpts
-  InitDb                                 -> runMigration opts
-  UserAction uc                          -> runUserCommand opts uc
-  BusinessAction bc                      -> runBusinessCommand opts bc
-  PopulateDatabase                       -> runPopulateDatabase opts
-  Bootstrap email companyPrefix          -> runBootstrap opts email companyPrefix
+  RunServer rsOpts              -> launchServer opts rsOpts
+  InitDb                        -> runMigration opts
+  UserAction uc                 -> runUserCommand opts uc
+  BusinessAction bc             -> runBusinessCommand opts bc
+  PopulateDatabase              -> runPopulateDatabase opts
+  Bootstrap email companyPrefix -> runBootstrap opts email companyPrefix
 
 
 --------------------------------------------------------------------------------
@@ -353,19 +355,6 @@ runBootstrap opts email companyPrefix = do
       let newUserLastName     = "Bootstrapped User"
       let newUserPhoneNumber  = ""
       NewUser{..}
-
-
---------------------------------------------------------------------------------
--- Debug Command
---------------------------------------------------------------------------------
-
--- This is a debug function for activating development test stub functions.
--- TODO: Remove this stub before release.
-debugFunc :: IO()
-debugFunc = do
-  putStrLn "Running Debug Option"
-  -- Debug test code goes here...
-
 
 --------------------------------------------------------------------------------
 -- Command Line Options Argument Parsers
