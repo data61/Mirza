@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveGeneric   #-}
+{-# LANGUAGE LambdaCase      #-}
 {-# LANGUAGE TemplateHaskell #-}
 
 module Mirza.EntityDataAPI.Errors where
@@ -41,7 +42,7 @@ makeClassyPrisms ''AppError
 
 instance AsJWTError AppError where
   _JWTError = prism' AuthFailed
-              (\err -> case err of
+              (\case
                 (AuthFailed e) -> Just e
                 _              -> Nothing
               )
