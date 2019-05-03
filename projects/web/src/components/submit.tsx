@@ -2,27 +2,36 @@ import * as React from "react";
 import { Link } from "react-router-dom";
 const { DigitalLink, Utils } = require('digital-link.js');
 
-import axois from 'axios';
-
 import { objectEvent } from "../epcis";
 import { EventForm } from "./epcis/event";
 
 export function Submit() {
   const eventState = React.useState(objectEvent());
   const [event, _] = eventState;
-  const bizUrl = 'http://localhost:8080'
+  const url = 'http://localhost:8020'
 
   const submitEvent = () => {
     console.log(event.label);
     const dl = DigitalLink(event.label);
     if(dl.isValid()) {
-      axois.post(bizUrl + '/event/objectEvent', event).then(function(res) {
+      const token = 'Bearer ' + JSON.parse(localStorage.getItem('auth0_tk'))['idToken']
+      const request = new Request(url + '/event/objectEvent', {
+        method: 'POST',
+        body: JSON.stringify(event),
+        headers: new Headers({
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Authorization': token,
+        }),
+        credentials: 'include'
+      });
+      return fetch(url + '/event/objectEvent', request).then(function(res: Response) {
         console.log(res);
       }).catch(function(err) {
         console.error(err);
       })
     } else {
-      alert("Invalid event lol");
+      alert("Invalid event.");
     }
 
     // TODO:
