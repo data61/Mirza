@@ -17,8 +17,12 @@ import           Mirza.EntityDataAPI.Types
 import           Mirza.EntityDataAPI.Utils          (fetchJWKs)
 
 import           Network.HTTP.ReverseProxy          (ProxyDest (..))
+import           Network.Wai                        (Middleware)
 import qualified Network.Wai.Handler.Warp           as Warp
-import           Network.Wai.Middleware.Cors        (simpleCors)
+import           Network.Wai.Middleware.Cors        (CorsResourcePolicy (..),
+                                                     cors,
+                                                     simpleCorsResourcePolicy,
+                                                     simpleMethods)
 
 import qualified Data.ByteString.Char8              as B
 
@@ -101,12 +105,27 @@ initContext (Opts myService (ServiceInfo (Hostname destHost) (Port destPort)) _m
     Left err -> fail $ show err
     Right jwkSet -> pure $ AuthContext myService proxyDest mngr jwkSet (fromString clientId) connpool
 
+
+myCors :: Middleware
+myCors = cors (const $ Just policy)
+    where
+      policy = simpleCorsResourcePolicy
+        { corsRequestHeaders = ["Content-Type", "Authorization"]
+        , corsMethods = "PUT" : simpleMethods
+        , corsOrigins = Just ([
+            "http://localhost:8080"
+          , "http://localhost:8081"
+          , "http://localhost:8020"
+          , "http://localhost:8000"
+          ], True)
+        }
+
 launchProxy :: AuthContext -> IO ()
 launchProxy ctx = do
   putStrLn $  "Starting service on " <>
               (getHostname . serviceHost . myProxyServiceInfo $ ctx) <> ":" <>
               (show . getPort . servicePort . myProxyServiceInfo $ ctx)
-  Warp.run (fromIntegral . getPort . servicePort . myProxyServiceInfo $ ctx) (simpleCors $ runAuthProxy ctx)
+  Warp.run (fromIntegral . getPort . servicePort . myProxyServiceInfo $ ctx) (myCors $ runAuthProxy ctx)
 
 -- _optsParser :: Parser Opts
 -- _optsParser = Opts
