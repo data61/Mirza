@@ -19,8 +19,6 @@ FROM ubuntu:18.04 as PKG-EDAPI
 RUN apt update && \
 	apt install -y libpq-dev libffi-dev ca-certificates
 
-RUN pwd; ls /; ls /src/edapi; ls /src
-
-COPY /src/edapi/dist/entity-data-api /opt/Mirza/entity-data-api
+COPY --from=0 /src/edapi/dist/entity-data-api-proxy /opt/Mirza/entity-data-api
 
 ENTRYPOINT [ "/opt/Mirza/entity-data-api" ]
