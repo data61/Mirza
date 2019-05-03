@@ -130,9 +130,10 @@ export function authInit(): Promise<AuthState | null> {
 
 export function logOut() {
     clearSession();
-    window.location.reload(false);
-    webAuth.logout({
-        returnTo: window.location.href,
+    // window.location.reload(false);
+    console.log(window.location.href);
+    return webAuth.logout({
+        returnTo: window.location.origin,
         clientID: webAuthOpts.clientID,
     });
 }
