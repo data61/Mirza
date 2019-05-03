@@ -1,0 +1,141 @@
+version: "3"
+
+networks:
+  frontend:
+  backend:
+
+volumes:
+  private-ethereum-blockchain:
+  
+services:
+
+  web:
+    image: 235945186688.dkr.ecr.ap-southeast-2.amazonaws.com/mirza-web:latest
+    ports:
+      - 80:80
+    restart: always
+    depends_on:
+      - businessRegistry
+      - supplyChainServer
+    networks:
+      - frontend
+    logging:
+      driver: json-file
+      options:
+        max-size: "200k"
+        max-file: "10"
+  
+  supplyChainServer:
+    image: 235945186688.dkr.ecr.ap-southeast-2.amazonaws.com/supplychainserver:latest
+    ports:
+      - 8000:8000
+    links:
+      - businessRegistry:br
+    restart: always
+    depends_on:
+      - db
+    networks:
+      - frontend
+      - backend
+    env_file:
+      - .env
+    command: --brhost br --brport 8200 -c "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db/devsupplychainserver"
+    logging:
+      driver: json-file
+      options:
+        max-size: "200k"
+        max-file: "10"
+
+  businessRegistry:
+    image: 235945186688.dkr.ecr.ap-southeast-2.amazonaws.com/businessregistry:latest
+    ports:
+      - 8200:8200
+    restart: always
+    depends_on:
+      - db
+    networks:
+      - frontend
+      - backend
+    env_file:
+      - .env
+    command: -c 'postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db/devbusinessregistry' server
+    logging:
+      driver: json-file
+      options:
+        max-size: "200k"
+        max-file: "10"
+
+  db:
+    image: postgres:10.5
+    networks:
+      - backend
+    env_file:
+      - .env
+    healthcheck:
+       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+       interval: 30s
+       timeout: 10s
+       retries: 5
+    restart: always
+    volumes:
+      - ./create_databases.sh:/docker-entrypoint-initdb.d/create_databases.sh
+      - /opt/Mirza/postgresql/data:/var/lib/postgresql/data
+    logging:
+      driver: json-file
+      options:
+        max-size: "200k"
+        max-file: "10"
+
+  dbpopulate-scs:
+    image: 235945186688.dkr.ecr.ap-southeast-2.amazonaws.com/supplychainserver:latest
+    networks:
+      - backend
+    links:
+      - supplyChainServer:scs
+      - businessRegistry:br
+    env_file:
+      - .env
+    entrypoint: /bin/sh -c "cd /opt/Mirza && ./supplyChainServer --init-db -c 'postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/devsupplychainserver' && ./supplyChainServer --username '${BR_USER}' --password '${BR_PASSWORD}' --scshost scs --brhost br --brport 8200"
+    depends_on:
+      - db
+    logging:
+      driver: json-file
+      options:
+        max-size: "200k"
+        max-file: "10"
+
+  dbpopulate-br:
+    image: 235945186688.dkr.ecr.ap-southeast-2.amazonaws.com/businessregistry:latest
+    networks:
+      - backend
+    env_file:
+      - .env
+    entrypoint: /bin/sh -c "echo 'YES' | /opt/Mirza/businessRegistry initdb -c 'postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db/devbusinessregistry' && /opt/Mirza/businessRegistry -c 'postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db/devbusinessregistry' bootstrap ${BR_USER} bootstrap"
+    depends_on:
+      - db
+    logging:
+      driver: json-file
+      options:
+        max-size: "200k"
+        max-file: "10"
+  
+  private-ethereum-blockchain:
+    image: 235945186688.dkr.ecr.ap-southeast-2.amazonaws.com/privateethereumblockchain:191f2b7e145a02004c8e9e871e92d989c7ec69c7
+    ports:
+      - '8545:8545'
+      - '8546:8546'
+    volumes:
+      - private-ethereum-blockchain:/root/.local/share/io.parity.ethereum
+    networks:
+      - backend
+  
+  blockchain-api-server:
+    image: 235945186688.dkr.ecr.ap-southeast-2.amazonaws.com/blockchainapiserver:191f2b7e145a02004c8e9e871e92d989c7ec69c7
+    ports:
+      - '5000:5000'
+    env_file:
+      - .env
+    networks:
+      - backend
+    depends_on:
+      - private-ethereum-blockchain

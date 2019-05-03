@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "outDir": "./dist/",
+    "sourceMap": true,
+    "noImplicitAny": true,
+    "module": "commonjs",
+    "target": "es6",
+    "jsx": "react",
+    "plugins": [
+      {
+        "name": "typescript-tslint-plugin"
+      }
+    ]
+  },
+  "include": [
+    "./src/**/*"
+  ]
+}

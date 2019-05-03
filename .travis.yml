@@ -1,52 +1,58 @@
-# This is the simple Travis configuration, which is intended for use
-# on applications which do not require cross-platform and
-# multiple-GHC-version support. For more information and other
-# options, see:
-#
-# https://docs.haskellstack.org/en/stable/travis_ci/
-#
-# Copy these contents into the root directory of your Github project in a file
-# named .travis.yml
-
-# Choose a build environment
 dist: xenial
 
-cache:
-  timeout: 4000
+env:
+  global:
+  - DOCKER_REPO=235945186688.dkr.ecr.ap-southeast-2.amazonaws.com
+  - secure: mx34e7ZMoGhJlobOvY8mUMIISC3dDUBDSYcb9s6BFKD5gDC1qT2nz0whmWcCQh5XlAzVcLHcEmzAWhpDoBLecRPzq+pHTJg8WwmZEpQt8NLJMvvtQwcYLls8lm3samfQUjsqY4MB4qzb2YedY7052AI7VseKxpwop2GnqM3x1FcCmYQ2DKLNiomUH2F+GpZz30VGhJKwu7RblZAES8aIr00jQ4KcuhhsWnGLf7s5B2oDa3S56HhyPvEUIeS75APu4XYxSVLhF6aNm6qgQjudAXbjAzV6YRNOAFVf/7IL6dsPVwwnPF4Nrxio76eLXE0u7ey4PK+akacxTUYAY9HP0M9TAmH+Cq3pSnDAwqZFBBXQfCZz2jC8IS9UBTIUYQU2Uo9H2hVD0zYI5OCTnsiuH1xsj1arZwSs3USanyzm6InrDUdQGx17iiwz9t3dnbEJk/aM1trCHKOEAta9Il4so3KaVtK/0GPVIC1JATYkNkgiqj1UK1lFqolGhLr/vP+jgMF9HmlzT1RGuEPPni3Upk3QMQZBIoC3r+kxAnlGJ54wgUCYjeNMoTsLK9Cf9vaZhhpDPjuOhiFlGKEVdw2vVjQ4ZDyk0RSK0uBrOY6R3RnrO+AOmAhYO7fWGvjRR5yNIR9UFJbg3mIZ3T3jauMjuPPplfbqGzS13gFkzbxMcbk=
+  - secure: k9mPDnNDPA2LKE+u+Z8hDNAdRxD0WiOqbxHRKArX7TuQZRUhznvtMcMYtSv5aF2iL8c8M9814Et2mXoJOage/Wcup8WVZeA403cS7qogt3/gJLZ8Tz1ZkOyt8d7fs6xAYIowqM0qzoqRJ8V9TcjFVmJ3p3hZjzbl/meHF4hsnHYYP2XLzAKyBqepTjCIriD/zOk+P4uF1U7XwCVwfqNdsRjw8VmI/uEZyYX1ekscxf4AJM67kDmYeojcPf/R8h6ufEcTExL7tweQZ6ypXQVjCGJIalb1NsPhfRFJ9f/8Ti4r3Gsq/2KO4JKKW8pu5sf1rx3QZD5jxK57BDXd/cqV94ejU4mBo9cYHxQZ73A2aqMa0PkXBuAF24DpFoRkvamb9aDk30qOxrTmMSZ8Oee1KUlYhtsOtt3Qhm7qjvS6PUoTYJJqKXLK0VsjCyynt20RUH+6p94uNEgrETxDCIVYzS4Eethx1N6GqxKKs1V8cKopwC3C+kJLsYCtVBR/sDxS1IcbnJ7nojNDFr6O6ize5vH7arUiuBmD23ojPIXqL/VFew4RFlD9FsObrVQOqXRneIDOCxNuLBr5+Vsg3/UkMQqZVvUtENszvpPAr5mac92vLLCcwZZoUai7Zj17XZtDi83wyJoHgQboBJbDAv69TQZFZXTNKUhSHiua1ZsYcNo=
 
-# Do not choose a language; we provide our own build tools.
-language: generic
+stages:
+  - "Build"
+  - name: "Deploy"
+    if: branch = master AND type = push
 
-services:
-  - postgresql
+jobs:
+  include:
+    - name: "Web"
+      stage: "Build"
+      language: node_js
+      node_js:
+        - "11"
+      cache: npm
+      services:
+        - docker
+      env:
+        DOCKER_TAG: ${DOCKER_REPO}/mirza-web:$TRAVIS_COMMIT
+      before_install:
+        - cd ./projects/web
+      install:
+        - npm install
+      script:
+        - ./build.sh
+        - |
+          if [ "$TRAVIS_BRANCH" = "master" -a "$TRAVIS_PULL_REQUEST" = "false" ]; then
+            docker build -t "${DOCKER_TAG}" .
+            ../../deploy/docker_push.sh "${DOCKER_TAG}"
+          fi
 
-# Caching so the next build will be fast too.
-cache:
-  directories:
-  - $HOME/.stack
-  - .stack-work
+    - name: "Back-end"
+      language: generic
+      services:
+        - docker
+      script:
+        - |
+          if [ "$TRAVIS_BRANCH" = "master" -a "$TRAVIS_PULL_REQUEST" = "false" ]; then
+            ./deploy/build_mirza.sh "${DOCKER_REPO}" "${TRAVIS_COMMIT}" "push"
+          else
+            ./deploy/build_mirza.sh "${DOCKER_REPO}" "${TRAVIS_COMMIT}"
+          fi
 
-# Ensure necessary system libraries are present
-addons:
-  apt:
-    packages:
-      - libgmp-dev
-
-before_install:
-# Download and unpack the stack executable
-- mkdir -p ~/.local/bin
-- export PATH=$HOME/.local/bin:$PATH
-- wget -qO- https://get.haskellstack.org/ | sh
-
-install:
-# Build dependencies
-- stack --no-terminal --install-ghc test --only-dependencies
-
-script:
-# Build the package, its tests, and its docs and run the tests
-- stack --no-terminal build --fast
-- psql -c 'CREATE DATABASE testsupplychainserver;' -U postgres
-- psql -c 'CREATE DATABASE testbusinessregistry;' -U postgres
-- stack exec supplyChainServer -- --init-db -c 'dbname=testsupplychainserver'
-- echo 'YES' | stack exec businessRegistry -- initdb -c 'dbname=testbusinessregistry'
-- ./run_tests.sh --no-terminal
+    - name: "Deploy to AWS"
+      stage: "Deploy"
+      before_install:
+        # Decrypt the ssh key that will be used for deployments 
+        - openssl aes-256-cbc -K $encrypted_8fe1f88deb69_key -iv $encrypted_8fe1f88deb69_iv
+          -in deploy/deployment.pem.enc -out ~/.ssh/deployment.pem -d
+          
+      script:
+        - deploy/deploy.sh

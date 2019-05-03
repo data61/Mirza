@@ -1,0 +1,15 @@
+{
+  "extends": "tslint:recommended",
+  "rules": {
+    "max-line-length": {
+      "options": [120]
+    },
+    "no-console": false,
+    "quotemark": {
+      "options": ["double", "avoid-escape"]
+    },
+    "interface-name": {
+      "options": ["never-prefix"]
+    }
+  }
+}
