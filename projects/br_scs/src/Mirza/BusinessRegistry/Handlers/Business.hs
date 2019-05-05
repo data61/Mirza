@@ -7,7 +7,7 @@ module Mirza.BusinessRegistry.Handlers.Business
   ( addBusiness
   , addBusinessAuth
   , addBusinessQuery
-  , addOrgainsationMapping
+  , addOrganisationMapping
   , searchBusinesses
   , searchBusinessesQuery
   , getBusinessInfo
@@ -78,7 +78,7 @@ addBusinessAndInitialUserQuery :: (AsBRError err, HasCallStack)
                                => BT.UserId -> Business -> DB context err Business
 addBusinessAndInitialUserQuery user business = do
   insertedBusiness  <- addBusinessQuery business
-  _insertedMapping <- addOrgainsationMappingQuery (business_gs1_company_prefix insertedBusiness) user
+  _insertedMapping <- addOrganisationMappingQuery (business_gs1_company_prefix insertedBusiness) user
   pure insertedBusiness
 
 
@@ -95,15 +95,15 @@ addBusinessQuery biz@BusinessT{..} = do
     _                  -> throwing _UnexpectedErrorBRE callStack
 
 
-addOrgainsationMapping :: ( Member context '[HasDB]
+addOrganisationMapping :: ( Member context '[HasDB]
                           , Member err     '[AsBRError, AsSqlError])
                        => GS1CompanyPrefix -> BT.UserId -> AppM context err OrganisationMapping
-addOrgainsationMapping prefix user = runDb $ addOrgainsationMappingQuery prefix user
+addOrganisationMapping prefix user = runDb $ addOrganisationMappingQuery prefix user
 
 
-addOrgainsationMappingQuery :: (AsBRError err, HasCallStack)
+addOrganisationMappingQuery :: (AsBRError err, HasCallStack)
                             => GS1CompanyPrefix -> BT.UserId -> DB context err OrganisationMapping
-addOrgainsationMappingQuery prefix userId = do
+addOrganisationMappingQuery prefix userId = do
   result <- pg $ runInsertReturningList (_organisationMapping businessRegistryDB)
             $ insertValues [OrganisationMappingT (BizId prefix) (Schema.UserId $ getUserId userId) Nothing]
   case result of

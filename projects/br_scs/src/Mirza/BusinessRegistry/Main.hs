@@ -284,7 +284,7 @@ runPopulateDatabase opts = do
   _result <- runWithContext $ addBusiness (right b1u1Result) b1
   b1u2    <- dummyUser "B1U2"
   b1u2Result <- runWithContext $ addUserOnlyId b1u2
-  _result <- runWithContext $ addOrgainsationMapping (newBusinessGS1CompanyPrefix b1) (right b1u2Result)
+  _result <- runWithContext $ addOrganisationMapping (newBusinessGS1CompanyPrefix b1) (right b1u2Result)
 
   b2u1    <- dummyUser "B2U1"
   b2u1Result <- runWithContext $ addUserOnlyId b2u1
@@ -292,7 +292,7 @@ runPopulateDatabase opts = do
   _result <- runWithContext $ addBusiness (right b2u1Result) b2
   b2u2    <- dummyUser "B2U2"
   b2u2Result <- runWithContext $ addUserOnlyId b2u2
-  _result <- runWithContext $ addOrgainsationMapping (newBusinessGS1CompanyPrefix b2) (right b2u2Result)
+  _result <- runWithContext $ addOrganisationMapping (newBusinessGS1CompanyPrefix b2) (right b2u2Result)
 
 
   putStrLn "Credentials"
