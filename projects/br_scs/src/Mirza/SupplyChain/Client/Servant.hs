@@ -1,17 +1,9 @@
 module Mirza.SupplyChain.Client.Servant
-  (
-  -- * Public API
-    health
-  , addUser
+  ( health
   , versionInfo
-  -- * Authenticated API
   , eventSign
-  , eventHashed
   , listEvents
   , eventInfo
-  , eventList
-  , eventUserList
-  , queryUserId
   , insertObjectEvent
   , insertAggEvent
   , insertTransactEvent
@@ -36,54 +28,34 @@ import           Data.GS1.EventId
 
 -- * Public API
 health       :: ClientM HealthResponse
-addUser      :: NewUser -> ClientM UserId
 versionInfo  :: ClientM String
 
 -- * Authenticated API
-eventSign           :: BasicAuthData -> SignedEvent -> ClientM EventInfo
-eventHashed         :: BasicAuthData -> EventId -> ClientM HashedEvent
+eventSign           :: SignedEvent -> ClientM EventInfo
 
-listEvents          :: BasicAuthData -> LabelEPCUrn -> ClientM [Ev.Event]
-eventInfo           :: BasicAuthData -> EventId -> ClientM EventInfo
-eventList           :: BasicAuthData -> UserId -> ClientM [Ev.Event]
-eventUserList       :: BasicAuthData -> EventId -> ClientM [(T.User, Bool)]
-queryUserId         :: BasicAuthData -> ClientM UserId
+listEvents          :: LabelEPCUrn -> ClientM [Ev.Event]
+eventInfo           :: EventId -> ClientM EventInfo
 
-insertObjectEvent   :: BasicAuthData -> ObjectEvent -> ClientM (EventInfo, Schema.EventId)
-insertAggEvent      :: BasicAuthData -> AggregationEvent -> ClientM (EventInfo, Schema.EventId)
-insertTransactEvent :: BasicAuthData -> TransactionEvent -> ClientM (EventInfo, Schema.EventId)
-insertTransfEvent   :: BasicAuthData -> TransformationEvent -> ClientM (EventInfo, Schema.EventId)
+insertObjectEvent   :: ObjectEvent -> ClientM (EventInfo, Schema.EventId)
+insertAggEvent      :: AggregationEvent -> ClientM (EventInfo, Schema.EventId)
+insertTransactEvent :: TransactionEvent -> ClientM (EventInfo, Schema.EventId)
+insertTransfEvent   :: TransformationEvent -> ClientM (EventInfo, Schema.EventId)
 
-listEventsPretty    :: BasicAuthData -> LabelEPCUrn -> ClientM [PrettyEventResponse]
+listEventsPretty    :: LabelEPCUrn -> ClientM [PrettyEventResponse]
 
 _api     :: Client ClientM ServerAPI
-_privAPI :: Client ClientM ProtectedAPI
-_pubAPI  :: Client ClientM PublicAPI
-_frontEndAPI :: Client ClientM UIAPI
-_api@(
-  _pubAPI@(
-         health
-    :<|> addUser
+_api@(   health
     :<|> versionInfo
-  )
-  :<|>
-  _privAPI@(
-         eventSign
-    :<|> eventHashed
+
+    :<|> eventSign
 
     :<|> listEvents
     :<|> eventInfo
-    :<|> eventList
-    :<|> eventUserList
-    :<|> queryUserId
 
     :<|> insertObjectEvent
     :<|> insertAggEvent
     :<|> insertTransactEvent
     :<|> insertTransfEvent
-  )
-  :<|>
-  _frontEndAPI@(
-    listEventsPretty
-  )
- ) = client (Proxy :: Proxy ServerAPI)
+
+    :<|> listEventsPretty
+  ) = client (Proxy :: Proxy ServerAPI)

@@ -45,8 +45,6 @@ import           Database.Beam.Postgres.Syntax    (PgDataTypeSyntax)
 
 import           Crypto.JOSE                      (CompactJWS, JWSHeader)
 
-import           Text.Email.Validate              (EmailAddress)
-
 --------------------------------------------------------------------------------
 -- Constants and Utils
 --------------------------------------------------------------------------------
@@ -64,7 +62,6 @@ pkSerialType = uuid
 -- Database
 data SupplyChainDb f = SupplyChainDb
   { _businesses       :: f (TableEntity BusinessT)
-  , _users            :: f (TableEntity UserT)
   , _labels           :: f (TableEntity LabelT)
   , _transformations  :: f (TableEntity TransformationT)
   , _events           :: f (TableEntity EventT)
@@ -76,7 +73,6 @@ data SupplyChainDb f = SupplyChainDb
   , _wheres           :: f (TableEntity WhereT)
   , _whens            :: f (TableEntity WhenT)
   , _label_events     :: f (TableEntity LabelEventT)
-  , _user_events      :: f (TableEntity UserEventT)
   , _signatures       :: f (TableEntity SignatureT)
   , _hashes           :: f (TableEntity HashesT)
   , _blockchain       :: f (TableEntity BlockChainT)
@@ -92,16 +88,6 @@ migration () =
           lastUpdateField
           (field "biz_gs1_company_prefix" gs1CompanyPrefixType)
           (field "biz_name" (varchar (Just defaultFieldMaxLength)) notNull)
-    )
-    <*> createTable "users" ( User
-          lastUpdateField
-          (field "user_id" pkSerialType)
-          (BizId $ field "user_biz_id" gs1CompanyPrefixType)
-          (field "user_first_name" (varchar (Just defaultFieldMaxLength)) notNull)
-          (field "user_last_name" (varchar (Just defaultFieldMaxLength)) notNull)
-          (field "user_phone_number" (varchar (Just defaultFieldMaxLength)) notNull)
-          (field "user_password_hash" binaryLargeObject notNull)
-          (field "user_email_address" emailAddressType unique)
     )
     <*> createTable "labels" ( Label
           lastUpdateField
@@ -127,7 +113,6 @@ migration () =
           lastUpdateField
           (field "event_id" pkSerialType)
           (field "event_foreign_event_id" (maybeType uuid))
-          (UserId $ field "event_created_by" pkSerialType (defaultFkConstraint "users" ["user_id"]))
           (field "event_json" json notNull)
           (field "event_to_sign" bytea notNull unique)
     )
@@ -198,19 +183,9 @@ migration () =
           (EventId $ field "label_event_event_id" pkSerialType (defaultFkConstraint "events" ["event_id"]))
           (field "label_event_label_type" (maybeType labelType))
     )
-    <*> createTable "user_event" ( UserEvent
-          lastUpdateField
-          (field "user_events_id" pkSerialType)
-          (EventId $ field "user_events_event_id" pkSerialType notNull (defaultFkConstraint "events" ["event_id"]))
-          (UserId $ field "user_events_user_id" pkSerialType notNull (defaultFkConstraint "users" ["user_id"]))
-          (field "user_events_has_signed" boolean notNull)
-          (UserId $ field "user_events_added_by" pkSerialType notNull (defaultFkConstraint "users" ["user_id"]))
-          (field "user_events_signed_hash" (maybeType bytea))
-    )
     <*> createTable "signatures" ( Signature
           lastUpdateField
           (field "signature_id" pkSerialType)
-          (UserId $ field "signature_user_id" pkSerialType notNull (defaultFkConstraint "users" ["user_id"]))
           (EventId $ field "signature_event_id" pkSerialType notNull (defaultFkConstraint "events" ["event_id"]))
           (field "signature_key_id" brKeyIdType notNull)
           (field "signature_signature" json notNull)
@@ -222,7 +197,6 @@ migration () =
           (EventId $ field "hashes_event_id" pkSerialType notNull (defaultFkConstraint "events" ["event_id"]))
           (field "hashes_hash" bytea notNull)
           (field "hashes_is_signed" boolean notNull)
-          (UserId $ field "hashes_signed_by_user_id" pkSerialType notNull (defaultFkConstraint "users" ["user_id"]))
           (field "hashes_key_id" brKeyIdType notNull)
     )
     <*> createTable "blockchain" ( BlockChain
@@ -233,38 +207,6 @@ migration () =
           (field "blockchain_address" text notNull)
           (field "blockchain_foreign_id" int notNull)
     )
-
-
---------------------------------------------------------------------------------
--- User table.
---------------------------------------------------------------------------------
-
-type User = UserT Identity
-type UserId = PrimaryKey UserT Identity
-
-data UserT f = User
-  { user_last_update   :: C f (Maybe LocalTime)
-  , user_id            :: C f PrimaryKeyType
-  , user_biz_id        :: PrimaryKey BusinessT f
-  , user_first_name    :: C f Text
-  , user_last_name     :: C f Text
-  , user_phone_number  :: C f Text
-  , user_password_hash :: C f ByteString --XXX - should this be blob?
-  , user_email_address :: C f EmailAddress }
-  deriving Generic
-
-deriving instance Show User
-deriving instance Show (PrimaryKey UserT Identity)
-
-instance Beamable UserT
-instance Beamable (PrimaryKey UserT)
-
-instance Table UserT where
-  data PrimaryKey UserT f = UserId (C f PrimaryKeyType)
-    deriving Generic
-  primaryKey = UserId . user_id
-deriving instance Eq (PrimaryKey UserT Identity)
-
 
 --------------------------------------------------------------------------------
 -- Business Table
@@ -429,7 +371,6 @@ data EventT f = Event
   { event_last_update      :: C f (Maybe LocalTime)
   , event_id               :: C f PrimaryKeyType
   , event_foreign_event_id :: C f (Maybe UUID) -- Event ID from XML from foreign systems.
-  , event_created_by       :: PrimaryKey UserT f
   , event_json             :: C f (PgJSON Ev.Event)
   , event_to_sign          :: C f ByteString -- this is what users will be given for signing purposes
   }
@@ -631,37 +572,6 @@ instance Table LabelEventT where
     deriving Generic
   primaryKey = LabelEventId . label_event_id
 
-
---------------------------------------------------------------------------------
--- User Events Table
---------------------------------------------------------------------------------
-
-type UserEvent = UserEventT Identity
-type UserEventId = PrimaryKey UserEventT Identity
-
-data UserEventT f = UserEvent
-  { user_events_last_update :: C f (Maybe LocalTime)
-  , user_events_id          :: C f PrimaryKeyType
-  , user_events_event_id    :: PrimaryKey EventT f
-  , user_events_user_id     :: PrimaryKey UserT f
-  , user_events_has_signed  :: C f Bool
-  , user_events_owner       :: PrimaryKey UserT f
-  , user_events_signed_hash :: C f (Maybe ByteString)
-  }
-  deriving Generic
-
-deriving instance Show UserEvent
-deriving instance Show (PrimaryKey UserEventT Identity)
-
-instance Beamable UserEventT
-instance Beamable (PrimaryKey UserEventT)
-
-instance Table UserEventT where
-  data PrimaryKey UserEventT f = UserEventId (C f PrimaryKeyType)
-    deriving Generic
-  primaryKey = UserEventId . user_events_id
-
-
 --------------------------------------------------------------------------------
 -- Signatures Table
 --------------------------------------------------------------------------------
@@ -672,7 +582,6 @@ type SignatureId = PrimaryKey SignatureT Identity
 data SignatureT f = Signature
   { signature_last_update :: C f (Maybe LocalTime)
   , signature_id          :: C f PrimaryKeyType
-  , signature_user_id     :: PrimaryKey UserT f
   , signature_event_id    :: PrimaryKey EventT f
   , signature_key_id      :: C f BRKeyId
   , signature_signature   :: C f (PgJSON (CompactJWS JWSHeader))
@@ -699,13 +608,12 @@ type Hashes = HashesT Identity
 type HashesId = PrimaryKey HashesT Identity
 
 data HashesT f = Hashes
-  { hashes_last_update       :: C f (Maybe LocalTime)
-  , hashes_id                :: C f PrimaryKeyType
-  , hashes_event_id          :: PrimaryKey EventT f
-  , hashes_hash              :: C f ByteString
-  , hashes_is_signed         :: C f Bool
-  , hashes_signed_by_user_id :: PrimaryKey UserT f
-  , hashes_key_id            :: C f BRKeyId
+  { hashes_last_update :: C f (Maybe LocalTime)
+  , hashes_id          :: C f PrimaryKeyType
+  , hashes_event_id    :: PrimaryKey EventT f
+  , hashes_hash        :: C f ByteString
+  , hashes_is_signed   :: C f Bool
+  , hashes_key_id      :: C f BRKeyId
   }
   deriving Generic
 

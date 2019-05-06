@@ -8,8 +8,7 @@
 -- functions that start with `to` converts between
 -- Model type and its Storage equivalent
 module Mirza.SupplyChain.QueryUtils
-  (
-    storageToModelEvent, userTableToModel
+  ( storageToModelEvent
   , constructEventToSign
   , handleError
   , withPKey
@@ -17,8 +16,7 @@ module Mirza.SupplyChain.QueryUtils
 
 import           Mirza.Common.Utils
 import           Mirza.SupplyChain.Database.Schema as Schema
-import           Mirza.SupplyChain.Types           hiding (User (..))
-import qualified Mirza.SupplyChain.Types           as ST
+import           Mirza.SupplyChain.Types
 
 import qualified Data.GS1.Event                    as Ev
 
@@ -43,12 +41,6 @@ withPKey f = do
 
 storageToModelEvent :: Schema.Event -> Ev.Event
 storageToModelEvent = fromPgJSON . Schema.event_json
-
--- | Converts a DB representation of ``User`` to a Model representation
--- Schema.User = Schema.User uid bizId fName lName phNum passHash email
-userTableToModel :: Schema.User -> ST.User
-userTableToModel (Schema.User _ uid _ fName lName _ _ _)
-    = ST.User (ST.UserId uid) fName lName
 
 constructEventToSign :: Ev.Event -> ByteString
 constructEventToSign = toStrict . encode

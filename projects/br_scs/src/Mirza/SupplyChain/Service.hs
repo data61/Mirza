@@ -6,7 +6,6 @@
 {-# LANGUAGE OverloadedStrings     #-}
 {-# LANGUAGE PolyKinds             #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
-{-# LANGUAGE TypeApplications      #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
 {-# OPTIONS_GHC -fno-warn-orphans  #-}
@@ -14,13 +13,10 @@
 -- | Endpoint definitions go here. Most of the endpoint definitions are
 -- light wrappers around functions in BeamQueries
 module Mirza.SupplyChain.Service
- (
-    appHandlers
-  , publicServer
-  , privateServer
+  ( appHandlers
   , appMToHandler
   , serveSwaggerAPI
- ) where
+  ) where
 
 import           Mirza.Common.Utils
 
@@ -31,7 +27,6 @@ import           Mirza.SupplyChain.Handlers.EventRegistration as Handlers
 import           Mirza.SupplyChain.Handlers.Health            as Handlers
 import           Mirza.SupplyChain.Handlers.Queries           as Handlers
 import           Mirza.SupplyChain.Handlers.Signatures        as Handlers
-import           Mirza.SupplyChain.Handlers.Users             as Handlers
 import           Mirza.SupplyChain.Handlers.UXUtils           as Handlers
 
 import           Mirza.BusinessRegistry.Types                 (AsBRError)
@@ -55,41 +50,23 @@ import qualified Crypto.JOSE                                  as JOSE
 appHandlers :: (Member context '[HasDB, HasScryptParams, HasBRClientEnv],
                 Member err     '[JOSE.AsError, AsServiceError, AsServantError, AsBRError, AsSqlError])
             => ServerT ServerAPI (AppM context err)
-appHandlers = publicServer :<|> privateServer :<|> frontEndApi
-
-publicServer :: (Member context '[HasDB, HasScryptParams],
-                 Member err     '[AsServiceError, AsSqlError])
-             => ServerT PublicAPI (AppM context err)
-publicServer =
+appHandlers =
   -- Health
        health
   -- Users
-  :<|> addUser
   :<|> versionInfo
 
-privateServer :: (Member context '[HasDB, HasScryptParams, HasBRClientEnv],
-                  Member err     '[JOSE.AsError, AsServiceError, AsServantError, AsBRError, AsSqlError])
-              => ServerT ProtectedAPI (AppM context err)
-privateServer =
 -- Signatures
-       eventSign
-  :<|> eventHashed
+  :<|> eventSign
 -- Queries
   :<|> listEvents
   :<|> eventInfo
-  :<|> eventList
-  :<|> eventUserList
-  :<|> queryUserId
 -- Event Registration
   :<|> insertObjectEvent
   :<|> insertAggEvent
   :<|> insertTransactEvent
   :<|> insertTransfEvent
-
-frontEndApi :: (Member context '[HasDB, HasScryptParams, HasBRClientEnv],
-                Member err     '[JOSE.AsError, AsServiceError, AsServantError, AsBRError, AsSqlError])
-              => ServerT UIAPI (AppM context err)
-frontEndApi = listEventsPretty
+  :<|> listEventsPretty
 
 instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub) where
   toSwagger _ =

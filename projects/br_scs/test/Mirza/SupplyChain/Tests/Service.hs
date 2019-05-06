@@ -13,12 +13,11 @@ import           Mirza.Common.GS1BeamOrphans                  (LabelEPCUrn (..))
 
 import           Mirza.SupplyChain.Tests.Dummies
 
-import           Mirza.SupplyChain.Auth
+-- import           Mirza.SupplyChain.Auth
 import           Mirza.SupplyChain.Database.Schema            as Schema
 import           Mirza.SupplyChain.EventUtils
 import           Mirza.SupplyChain.Handlers.EventRegistration
 import           Mirza.SupplyChain.Handlers.Queries
-import           Mirza.SupplyChain.Handlers.Users
 import           Mirza.SupplyChain.Types                      as ST
 
 import           Control.Monad.Except                         (catchError)

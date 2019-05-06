@@ -1,16 +1,11 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE TupleSections         #-}
 
 module Mirza.SupplyChain.EventUtils
   ( insertEvent
   , insertDWhat, insertDWhen, insertDWhere, insertDWhy
-  , insertWhatLabel, insertLabelEvent, insertLabel
-  , hasUserCreatedEvent
-  , insertUserEvent
-  , findEvent, findSchemaEvent
+  , insertWhatLabel, insertLabelEvent, insertLabel, findInstLabelIdByUrn
+  , findEvent, findSchemaEvent, getEventList
   , findLabelId, getParent
-  , getEventList
-  , getUser, getUserById
   , findDWhere
   ) where
 
@@ -18,8 +13,7 @@ import qualified Mirza.Common.GS1BeamOrphans       as MU
 import           Mirza.Common.Time                 (toDbTimestamp)
 import           Mirza.SupplyChain.Database.Schema as Schema
 import           Mirza.SupplyChain.ErrorUtils      (throwBackendError)
-import           Mirza.SupplyChain.Types           hiding (User (..))
-import qualified Mirza.SupplyChain.Types           as ST
+import           Mirza.SupplyChain.Types
 
 import qualified Mirza.SupplyChain.QueryUtils      as QU
 
@@ -52,8 +46,6 @@ import           Data.Time.LocalTime               (timeZoneOffsetString)
 
 import           Database.Beam                     as B
 import           Database.Beam.Postgres            (PgJSON (..))
-
-import           Control.Monad                     (void)
 
 import           Crypto.JOSE.Types                 (Base64Octets (..))
 
@@ -178,17 +170,6 @@ findInstLabelId' cp sn msfv mir mat = do
     [lbl] -> Just $ Schema.label_id lbl
     _     -> Nothing
 
-
-getUser :: EmailAddress -> DB context err (Maybe ST.User)
-getUser userEmail = do
-  r <- pg $ runSelectReturningList $ select $ do
-    allUsers <- all_ (Schema._users Schema.supplyChainDb)
-    guard_ (Schema.user_email_address allUsers ==. val_ userEmail)
-    pure allUsers
-  pure $ case r of
-    [u] -> Just . QU.userTableToModel $ u
-    _   -> Nothing
-
 findClassLabelId :: ClassLabelEPC -> DB context err (Maybe PrimaryKeyType)
 findClassLabelId (LGTIN cp ir lot)  = findClassLabelId' cp Nothing ir (Just lot)
 findClassLabelId (CSGTIN cp msfv ir) = findClassLabelId' cp msfv ir Nothing
@@ -246,7 +227,6 @@ toStorageDWhy (Schema.WhyId pKey) (DWhy mBiz mDisp)
 
 toStorageEvent :: Schema.EventId
                -> Maybe EvId.EventId
-               -> Schema.UserId
                -> PgJSON Ev.Event
                -> ByteString
                -> Schema.Event
@@ -360,35 +340,16 @@ constructLocation whereT =
     (Schema.where_sgln_ext whereT)
 
 
-insertEvent :: Schema.UserId
-            -> Ev.Event
+insertEvent :: Ev.Event
             -> DB context err (EventInfo, Schema.EventId)
-insertEvent userId@(Schema.UserId uuid) event = do
+insertEvent event = do
   let toSignEvent = QU.constructEventToSign event
   eventId <- fmap (Schema.EventId <$>) QU.withPKey $ \pKey ->
     pg $ B.runInsert $ B.insert (Schema._events Schema.supplyChainDb)
         $ insertValues
-            [toStorageEvent (Schema.EventId pKey) (_eid event)
-              userId (PgJSON event) toSignEvent]
-  pure ((EventInfo event [] [(ST.UserId uuid)] (Base64Octets toSignEvent) NeedMoreSignatures),
+            [toStorageEvent (Schema.EventId pKey) (_eid event) (PgJSON event) toSignEvent]
+  pure ((EventInfo event (Base64Octets toSignEvent) NeedMoreSignatures),
       eventId)
-
-
-insertUserEvent :: Schema.EventId
-                -> EventOwner
-                -> Bool
-                -> (Maybe ByteString)
-                -> SigningUser
-                -> DB context err ()
-insertUserEvent eventId (EventOwner addedByUserId) signed signedHash (SigningUser userId) =
-  let signingId = Schema.UserId . getUserId $ userId
-      ownerId = Schema.UserId . getUserId $ addedByUserId
-  in
-    void $ QU.withPKey $ \pKey ->
-      pg $ B.runInsert $ B.insert (Schema._user_events Schema.supplyChainDb)
-          $ insertValues
-            [ Schema.UserEvent Nothing  pKey eventId signingId signed ownerId signedHash
-            ]
 
 insertWhatLabel :: Maybe MU.LabelType
                 -> Schema.WhatId
@@ -425,16 +386,6 @@ insertLabelEvent labelType eventId labelId = QU.withPKey $ \pKey ->
   pg $ B.runInsert $ B.insert (Schema._label_events Schema.supplyChainDb)
         $ insertValues [ Schema.LabelEvent Nothing pKey labelId eventId labelType ]
 
-getUserById :: ST.UserId -> DB context err (Maybe Schema.User)
-getUserById (ST.UserId uid) = do
-  r <- pg $ runSelectReturningList $ select $ do
-          user <- all_ (Schema._users Schema.supplyChainDb)
-          guard_ (Schema.user_id user ==. val_ uid)
-          pure user
-  case r of
-    [user] -> pure $ Just user
-    _      -> pure Nothing
-
 getEventList :: AsServiceError err
              => Schema.LabelId
              -> DB context err [Ev.Event]
@@ -469,16 +420,3 @@ findSchemaEvent (Schema.EventId eventId) = do
     []      -> pure Nothing
     -- TODO: Do the right thing here
     _       -> throwBackendError r
-
--- | Checks if a user is associated with an event
-hasUserCreatedEvent :: ST.UserId -> EvId.EventId -> DB context err Bool
-hasUserCreatedEvent (ST.UserId userId) (EvId.EventId eventId) = do
-  r <- pg $ runSelectReturningList $ select $ do
-        userEvent <- all_ (Schema._user_events Schema.supplyChainDb)
-        guard_ (Schema.user_events_owner userEvent ==. (val_ . Schema.UserId $ userId) &&.
-                Schema.user_events_event_id userEvent ==. (val_ . Schema.EventId $ eventId))
-        pure userEvent
-  pure $ case r of
-    [_userEvent] -> True
-    _            -> False
-

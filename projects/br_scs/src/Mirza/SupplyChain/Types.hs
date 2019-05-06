@@ -74,39 +74,13 @@ instance HasKatipContext SCSContext where
   katipContexts = scsKatipLogContexts
   katipNamespace = scsKatipNamespace
 
-
--- *****************************************************************************
--- User Types
--- *****************************************************************************
-
-data User = User {
-  userId        :: UserId,
-  userFirstName :: Text,
-  userLastName  :: Text
-} deriving (Generic, Eq, Show)
-$(deriveJSON defaultOptions ''User)
-instance ToSchema User
-
-data NewUser = NewUser {
-  newUserPhoneNumber  :: Text,
-  newUserEmailAddress :: EmailAddress,
-  newUserFirstName    :: Text,
-  newUserLastName     :: Text,
-  newUserCompany      :: GS1CompanyPrefix,
-  newUserPassword     :: Text
-} deriving (Generic, Eq, Show)
-$(deriveJSON defaultOptions ''NewUser)
-instance ToSchema NewUser
-
-
--- TODO: This should really be in GS1Combinators
-deriving instance ToHttpApiData EventId
-
-
 -- *****************************************************************************
 -- Event Types
 -- *****************************************************************************
 -- TODO: The factory functions should probably be removed from here.
+
+-- TODO: This should really be in GS1Combinators
+deriving instance ToHttpApiData EventId
 
 newtype EventOwner = EventOwner UserId deriving(Generic, Show, Eq, Read)
 
@@ -203,7 +177,6 @@ data TransactionEvent = TransactionEvent {
   transaction_parent_label         :: Maybe ParentLabel,
   transaction_biz_transaction_list :: [BizTransaction],
   transaction_epc_list             :: [LabelEPC],
-  transaction_other_user_ids       :: NonEmpty UserId,
   transaction_when                 :: DWhen,
   transaction_why                  :: DWhy,
   transaction_where                :: DWhere
@@ -211,29 +184,25 @@ data TransactionEvent = TransactionEvent {
 $(deriveJSON defaultOptions ''TransactionEvent)
 instance ToSchema TransactionEvent
 
-mkTransactEvent :: Ev.Event -> NonEmpty UserId -> Maybe TransactionEvent
+mkTransactEvent :: Ev.Event -> Maybe TransactionEvent
 mkTransactEvent
   (Ev.Event Ev.TransactionEventT
     mEid
     (TransactWhat (TransactionDWhat act mParentLabel bizTransactions epcList))
     dwhen dwhy dwhere
-  ) otherUsers = Just $
+  ) = Just $
       TransactionEvent
-        mEid act mParentLabel bizTransactions epcList otherUsers
+        mEid act mParentLabel bizTransactions epcList
         dwhen dwhy dwhere
-mkTransactEvent _ _  = Nothing
+mkTransactEvent _ = Nothing
 
 fromTransactEvent :: TransactionEvent ->  Ev.Event
-fromTransactEvent
-  (TransactionEvent
-  -- FIXME: userIds is unused?
-    mEid act mParentLabel bizTransactions epcList _userIds
-    dwhen dwhy dwhere) =
-  Ev.Event
-    Ev.TransformationEventT
-    mEid
-    (TransactWhat (TransactionDWhat act mParentLabel bizTransactions epcList))
-    dwhen dwhy dwhere
+fromTransactEvent (TransactionEvent mEid act mParentLabel bizTransactions epcList dwhen dwhy dwhere)
+  = Ev.Event
+      Ev.TransformationEventT
+      mEid
+      (TransactWhat (TransactionDWhat act mParentLabel bizTransactions epcList))
+      dwhen dwhy dwhere
 
 
 newtype SigningUser = SigningUser UserId deriving(Generic, Show, Eq, Read)
@@ -287,8 +256,6 @@ instance ToSchema EventBlockchainStatus
 
 data EventInfo = EventInfo {
   eventInfoEvent            :: Ev.Event,
-  eventInfoUserSigs         :: [(UserId, SignedEvent)],
-  eventInfoUnsignedUsers    :: [UserId],
   eventToSign               :: Base64Octets, --this is what users would be required to sign
   eventInfoBlockChainStatus :: EventBlockchainStatus
 } deriving (Show, Eq, Generic)
