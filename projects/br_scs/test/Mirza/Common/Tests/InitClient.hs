@@ -78,7 +78,6 @@ runSCSApp brUrl = do
   let so' = mkSoSCS brUrl (Just tempFile)
   ctx <- initSCSContext so'
   let SupplyChainDb
-        usersTable
         businessesTable
         labelsTable
         whatLabelsTable
@@ -91,14 +90,12 @@ runSCSApp brUrl = do
         wheresTable
         whensTable
         labelEventsTable
-        userEventsTable
         signaturesTable
         hashesTable
         blockchainTable
           = supplyChainDb
   flushDbResult <- runAppM @_ @ServiceError ctx $ runDb $ do
       let deleteTable table = pg $ runDelete $ delete table (const (val_ True))
-      deleteTable $ usersTable
       deleteTable $ businessesTable
       deleteTable $ labelsTable
       deleteTable $ whatLabelsTable
@@ -111,7 +108,6 @@ runSCSApp brUrl = do
       deleteTable $ wheresTable
       deleteTable $ whensTable
       deleteTable $ labelEventsTable
-      deleteTable $ userEventsTable
       deleteTable $ signaturesTable
       deleteTable $ hashesTable
       deleteTable $ blockchainTable
