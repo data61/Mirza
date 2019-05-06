@@ -1,4 +1,3 @@
-
 module Mirza.SupplyChain.Client.Servant
   (
   -- * Public API
@@ -6,10 +5,6 @@ module Mirza.SupplyChain.Client.Servant
   , addUser
   , versionInfo
   -- * Authenticated API
-  , contactsInfo
-  , addContact
-  , removeContact
-  , userSearch
   , eventSign
   , eventHashed
   , listEvents
@@ -36,11 +31,8 @@ import           Servant.Client
 
 import           Data.Proxy                         (Proxy (..))
 
-import           Data.GS1.EPC                       as EPC
 import qualified Data.GS1.Event                     as Ev
 import           Data.GS1.EventId
-
-import           Data.Text                          (Text)
 
 -- * Public API
 health       :: ClientM HealthResponse
@@ -48,11 +40,6 @@ addUser      :: NewUser -> ClientM UserId
 versionInfo  :: ClientM String
 
 -- * Authenticated API
-contactsInfo        :: BasicAuthData -> ClientM [T.User]
-addContact          :: BasicAuthData -> UserId -> ClientM Bool
-removeContact       :: BasicAuthData -> UserId -> ClientM Bool
-userSearch          :: BasicAuthData -> Maybe GS1CompanyPrefix -> Maybe Text -> ClientM [T.User]
-
 eventSign           :: BasicAuthData -> SignedEvent -> ClientM EventInfo
 eventHashed         :: BasicAuthData -> EventId -> ClientM HashedEvent
 
@@ -81,12 +68,7 @@ _api@(
   )
   :<|>
   _privAPI@(
-         contactsInfo
-    :<|> addContact
-    :<|> removeContact
-    :<|> userSearch
-
-    :<|> eventSign
+         eventSign
     :<|> eventHashed
 
     :<|> listEvents

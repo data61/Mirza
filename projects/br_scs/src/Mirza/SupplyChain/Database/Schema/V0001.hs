@@ -65,7 +65,6 @@ pkSerialType = uuid
 data SupplyChainDb f = SupplyChainDb
   { _businesses       :: f (TableEntity BusinessT)
   , _users            :: f (TableEntity UserT)
-  , _contacts         :: f (TableEntity ContactT)
   , _labels           :: f (TableEntity LabelT)
   , _transformations  :: f (TableEntity TransformationT)
   , _events           :: f (TableEntity EventT)
@@ -103,12 +102,6 @@ migration () =
           (field "user_phone_number" (varchar (Just defaultFieldMaxLength)) notNull)
           (field "user_password_hash" binaryLargeObject notNull)
           (field "user_email_address" emailAddressType unique)
-    )
-    <*> createTable "contacts" ( Contact
-          lastUpdateField
-          (field "contact_id" pkSerialType)
-          (UserId $ field "contact_user1_id" pkSerialType (defaultFkConstraint "users" ["user_id"]))
-          (UserId $ field "contact_user2_id" pkSerialType (defaultFkConstraint "users" ["user_id"]))
     )
     <*> createTable "labels" ( Label
           lastUpdateField
@@ -299,32 +292,6 @@ instance Table BusinessT where
     deriving Generic
   primaryKey = BizId . biz_gs1_company_prefix
 deriving instance Eq (PrimaryKey BusinessT Identity)
-
-
---------------------------------------------------------------------------------
--- Contact Table
---------------------------------------------------------------------------------
-
-type Contact = ContactT Identity
-type ContactId = PrimaryKey ContactT Identity
-
-data ContactT f = Contact
-  { contact_last_update :: C f (Maybe LocalTime)
-  , contact_id          :: C f PrimaryKeyType
-  , contact_user1_id    :: PrimaryKey UserT f
-  , contact_user2_id    :: PrimaryKey UserT f }
-  deriving Generic
-
-deriving instance Show Contact
-deriving instance Show (PrimaryKey ContactT Identity)
-
-instance Beamable ContactT
-instance Beamable (PrimaryKey ContactT)
-
-instance Table ContactT where
-  data PrimaryKey ContactT f = ContactId (C f PrimaryKeyType)
-    deriving Generic
-  primaryKey = ContactId . contact_id
 
 
 --------------------------------------------------------------------------------

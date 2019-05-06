@@ -10,8 +10,7 @@
 {-# LANGUAGE DataKinds             #-}
 
 module Mirza.SupplyChain.API
-  (
-    serverAPI
+  ( serverAPI
   , ServerAPI
   , PublicAPI
   , PrivateAPI
@@ -26,15 +25,12 @@ import           Mirza.SupplyChain.Types            as ST
 
 import           Mirza.SupplyChain.Handlers.UXUtils (PrettyEventResponse (..))
 
-import           Data.GS1.EPC                       (GS1CompanyPrefix)
 import qualified Data.GS1.Event                     as Ev
 import           Data.GS1.EventId                   as EvId
 
 import           Servant
 import           Servant.API.Flatten
 import           Servant.Swagger.UI
-
-import           Data.Text                          (Text)
 
 type API
     -- this serves both: swagger.json and swagger-ui
@@ -61,21 +57,8 @@ type PublicAPI =
   :<|> "version" :> Get '[JSON] String
 
 type PrivateAPI =
--- Contacts
-       "contacts" :> Get '[JSON] [User]
-  :<|> "contacts" :> "add"
-                  :> Capture "userId" ST.UserId
-                  :> Get '[JSON] Bool
-  :<|> "contacts" :> "remove"
-                  :> Capture "userId" ST.UserId
-                  :> Get '[JSON] Bool
--- Users
-  :<|> "user"     :> "search"
-                  :> QueryParam "GS1CompanyPrefix" GS1CompanyPrefix
-                  :> QueryParam "lastname" Text
-                  :> Post '[JSON] [User]
 -- Signatures
-  :<|> "event"    :> "sign"
+       "event"    :> "sign"
                   :> ReqBody '[JSON] SignedEvent
                   :> Post '[JSON] EventInfo
   :<|> "event"    :> "getHash"

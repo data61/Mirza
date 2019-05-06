@@ -25,16 +25,15 @@ import           Mirza.SupplyChain.Types               as ST
 import qualified Mirza.BusinessRegistry.Client.Servant as BRClient
 import           Mirza.SupplyChain.Client.Servant
 
-import           Mirza.Common.Utils                    (readJWK, mockURI)
+import           Mirza.Common.Utils                    (mockURI, readJWK)
 
 import           Mirza.Common.Tests.InitClient         (TestData (..), endApps,
                                                         runApps)
 import           Mirza.SupplyChain.Database.Schema     as Schema
 
-import           Mirza.BusinessRegistry.Client.Servant (addPublicKey)
+import           Mirza.BusinessRegistry.Client.Servant (addPublicKey, authDataToTokenTodoRemove)
 import           Mirza.BusinessRegistry.Tests.Utils    (goodRsaPrivateKey,
                                                         goodRsaPublicKey)
-import           Mirza.BusinessRegistry.Client.Servant (authDataToTokenTodoRemove)
 
 import           Mirza.Common.Tests.ServantUtils
 import           Mirza.Common.Tests.Utils
@@ -109,14 +108,6 @@ clientSpec = do
           step "Can create a second user"
           http (addUser user2)
             `shouldSatisfyIO` isRight
-
-          step "Should be able to authenticate"
-          http (contactsInfo authABC)
-            `shouldSatisfyIO` isRight
-
-          step "Should fail to authenticate with unknown user"
-          http (contactsInfo (BasicAuthData "xyz@example.com" "notagoodpassword"))
-            `shouldSatisfyIO` isLeft
 
   let eventInsertionTests = testCaseSteps "User can add single events" $ \step ->
         bracket runApps endApps $ \testData -> do

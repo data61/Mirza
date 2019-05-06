@@ -11,12 +11,12 @@ import           Mirza.SupplyChain.Types                  as ST
 
 import           Data.GS1.EPC                             (GS1CompanyPrefix (..))
 import           Mirza.Common.Tests.ServantUtils
-import           Mirza.Common.Utils                       (randomText, mockURI)
+import           Mirza.Common.Utils                       (mockURI, randomText)
 
 import           Control.Concurrent                       (ThreadId)
 
-import           Servant.Auth.Client                      (Token)
 import           Servant.API.BasicAuth
+import           Servant.Auth.Client                      (Token)
 import           Servant.Client                           (BaseUrl (..))
 
 import           Data.Either                              (isRight)
@@ -32,14 +32,16 @@ import           Katip                                    (Severity (DebugS))
 import           Database.Beam.Query                      (delete, runDelete,
                                                            val_)
 
-import           Mirza.BusinessRegistry.Database.Schema
 import           Mirza.BusinessRegistry.Client.Servant
+import           Mirza.BusinessRegistry.Database.Schema
 import qualified Mirza.BusinessRegistry.Handlers.Business as BRHB (addBusiness)
 import qualified Mirza.BusinessRegistry.Handlers.Users    as BRHU (addUserQuery)
 import           Mirza.BusinessRegistry.Main              (ServerOptionsBR (..),
-                                                           initBRContext, addAuthOptions)
+                                                           addAuthOptions,
+                                                           initBRContext)
 import qualified Mirza.BusinessRegistry.Main              as BRMain
-import           Mirza.BusinessRegistry.Types             as BT hiding (businessName)
+import           Mirza.BusinessRegistry.Types             as BT hiding
+                                                                 (businessName)
 
 import           Mirza.Common.Tests.Utils                 (DatabaseConnectionString (..),
                                                            DatabaseName (..),
@@ -78,7 +80,6 @@ runSCSApp brUrl = do
   let SupplyChainDb
         usersTable
         businessesTable
-        contactsTable
         labelsTable
         whatLabelsTable
         transformationsTable
@@ -99,7 +100,6 @@ runSCSApp brUrl = do
       let deleteTable table = pg $ runDelete $ delete table (const (val_ True))
       deleteTable $ usersTable
       deleteTable $ businessesTable
-      deleteTable $ contactsTable
       deleteTable $ labelsTable
       deleteTable $ whatLabelsTable
       deleteTable $ transformationsTable

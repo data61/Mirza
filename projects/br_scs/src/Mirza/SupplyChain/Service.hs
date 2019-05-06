@@ -27,7 +27,6 @@ import           Mirza.Common.Utils
 import           Mirza.SupplyChain.API
 import           Mirza.SupplyChain.ErrorUtils                 (appErrToHttpErr)
 
-import           Mirza.SupplyChain.Handlers.Contacts          as Handlers
 import           Mirza.SupplyChain.Handlers.EventRegistration as Handlers
 import           Mirza.SupplyChain.Handlers.Health            as Handlers
 import           Mirza.SupplyChain.Handlers.Queries           as Handlers
@@ -72,14 +71,8 @@ privateServer :: (Member context '[HasDB, HasScryptParams, HasBRClientEnv],
                   Member err     '[JOSE.AsError, AsServiceError, AsServantError, AsBRError, AsSqlError])
               => ServerT ProtectedAPI (AppM context err)
 privateServer =
--- Contacts
-       listContacts
-  :<|> addContact
-  :<|> removeContact
---  :<|> contactsSearch
-  :<|> userSearch
 -- Signatures
-  :<|> eventSign
+       eventSign
   :<|> eventHashed
 -- Queries
   :<|> listEvents
