@@ -13,6 +13,7 @@ module Mirza.BusinessRegistry.Client.Servant
   -- * Authenticated API
   , addUser
   , addBusiness
+  , addUserToBusiness
   , addPublicKey
   , revokePublicKey
   , addLocation
@@ -52,6 +53,7 @@ versionInfo      :: ClientM String
 
 addUser          :: Token -> NewUser     -> ClientM UserId
 addBusiness      :: Token -> NewBusiness -> ClientM GS1CompanyPrefix
+addUserToBusiness :: Token -> GS1CompanyPrefix -> UserId -> ClientM NoContent
 addPublicKey     :: Token -> JWK -> Maybe ExpirationTime -> ClientM BRKeyId
 revokePublicKey  :: Token -> BRKeyId -> ClientM RevocationTime
 addLocation      :: Token -> NewLocation -> ClientM LocationId
@@ -76,6 +78,7 @@ _api@(
   _privAPI@(
          addUser
     :<|> addBusiness
+    :<|> addUserToBusiness
     :<|> addPublicKey
     :<|> revokePublicKey
     :<|> addLocation

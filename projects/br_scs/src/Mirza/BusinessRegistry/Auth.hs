@@ -13,6 +13,7 @@ module Mirza.BusinessRegistry.Auth
   , oauthClaimsToAuthUser
   , getUserByOAuthSubQuery
   , userOrganisationAutherisation
+  , checkUserExistsQuery
   ) where
 
 import           Mirza.BusinessRegistry.Database.Schema as Schema
@@ -33,6 +34,8 @@ import           Text.Email.Validate                    (unsafeEmailAddress)
 
 import           Data.Text                              (Text)
 import           Data.Functor                           (void)
+import           Data.Maybe                             (isNothing)
+import           Control.Monad                          (when)
 
 import           Crypto.JWT                              (Audience (..))
 
@@ -106,3 +109,18 @@ userOrganisationAutherisation (AuthUser (BT.UserId uId)) gs1CompantPrefix = do
   case maybeMapping of
     Nothing -> throwing _OperationNotPermittedBRE (gs1CompantPrefix, BT.UserId uId)
     Just mapping -> pure mapping
+
+
+
+
+-- This doesn't really belong anywhere atm, so for now it can go here, but can
+-- be moved somewhere better when a suitable location is found.
+checkUserExistsQuery :: (AsBRError err)
+                => BT.UserId -> DB context err ()
+checkUserExistsQuery userId = do
+  user <- pg $ runSelectReturningOne $ select $ do
+    user <- all_ (Schema._users Schema.businessRegistryDB)
+    guard_ (user_id user ==. val_ (getUserId userId))
+    pure user
+  when (isNothing user) $ throwing_ _UserDoesNotExistBRE
+  pure ()

@@ -330,6 +330,7 @@ data BRError
   -- | The user tried to add a business with the a GS1CompanyPrefix that already exsits.
   | GS1CompanyPrefixExistsBRE
   | BusinessDoesNotExistBRE
+  | UserDoesNotExistBRE
   | UserAuthFailureBRE (SAS.AuthResult ())
   -- | When adding a user fails with an underlying error arising from the database.
   | UserCreationSQLErrorBRE SqlError

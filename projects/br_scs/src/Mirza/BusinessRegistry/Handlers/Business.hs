@@ -7,6 +7,7 @@ module Mirza.BusinessRegistry.Handlers.Business
   ( addBusiness
   , addBusinessAuth
   , addBusinessQuery
+  , addOrganisationMappingAuth
   , addOrganisationMapping
   , searchBusinesses
   , searchBusinessesQuery
@@ -16,12 +17,15 @@ module Mirza.BusinessRegistry.Handlers.Business
   ) where
 
 
+import           Mirza.BusinessRegistry.Auth
 import           Mirza.BusinessRegistry.Database.Schema   as Schema
 import           Mirza.BusinessRegistry.SqlUtils
 import           Mirza.BusinessRegistry.Types             as BT
 import           Mirza.Common.Time                        (toDbTimestamp)
 
 import           Data.GS1.EPC                             as EPC
+
+import           Servant.API                              (NoContent (..))
 
 import           Database.Beam                            as B
 import           Database.Beam.Backend.SQL.BeamExtensions
@@ -94,6 +98,14 @@ addBusinessQuery biz@BusinessT{..} = do
     [insertedBusiness] -> pure insertedBusiness
     _                  -> throwing _UnexpectedErrorBRE callStack
 
+addOrganisationMappingAuth :: ( Member context '[HasDB]
+                              , Member err     '[AsBRError, AsSqlError])
+                           => BT.AuthUser -> GS1CompanyPrefix -> BT.UserId -> AppM context err NoContent
+addOrganisationMappingAuth authUser gs1CompanyPrefix addedUserId = do
+  runDb $ userOrganisationAutherisation authUser gs1CompanyPrefix
+  addOrganisationMapping gs1CompanyPrefix addedUserId
+  pure NoContent
+
 
 addOrganisationMapping :: ( Member context '[HasDB]
                           , Member err     '[AsBRError, AsSqlError])
@@ -104,6 +116,8 @@ addOrganisationMapping prefix user = runDb $ addOrganisationMappingQuery prefix 
 addOrganisationMappingQuery :: (AsBRError err, HasCallStack)
                             => GS1CompanyPrefix -> BT.UserId -> DB context err OrganisationMapping
 addOrganisationMappingQuery prefix userId = do
+  checkUserExistsQuery userId
+
   result <- pg $ runInsertReturningList (_organisationMapping businessRegistryDB)
             $ insertValues [OrganisationMappingT (BizId prefix) (Schema.UserId $ getUserId userId) Nothing]
   case result of
