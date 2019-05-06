@@ -52,11 +52,11 @@ serverAPI = Proxy
 
 
 type PublicAPI =
-       "healthz"                                          :> Get '[JSON] HealthResponse
-  :<|> "version"                                          :> Get '[JSON] String
-  :<|> "key"      :> "get"     :> Capture "keyId" BRKeyId :> Get '[JSON] JWK
-  :<|> "key"      :> "getInfo" :> Capture "keyId" BRKeyId :> Get '[JSON] KeyInfoResponse
-  :<|> "business" :> "search"
+       "healthz" :> Get '[JSON] HealthResponse
+  :<|> "version" :> Get '[JSON] String
+  :<|> "key"          :> "get"     :> Capture "keyId" BRKeyId :> Get '[JSON] JWK
+  :<|> "key"          :> "getInfo" :> Capture "keyId" BRKeyId :> Get '[JSON] KeyInfoResponse
+  :<|> "organisation" :> "search"
       :> QueryParam "gs1id" GS1CompanyPrefix
       :> QueryParam "name" Text
       :> QueryParam "modifiedsince" UTCTime
@@ -74,10 +74,10 @@ type PublicAPI =
 
 
 type PrivateAPI =
-       "user"      :> "add"      :> Put '[JSON] NoContent
-  :<|> "business"  :> "add"      :> ReqBody '[JSON] NewBusiness             :> Post '[JSON] GS1CompanyPrefix
-  :<|> "business"  :> Capture "gs1CompanyPrefix" GS1CompanyPrefix :> "user" :> Capture "userId" UserId                    :> Put '[JSON] NoContent
-  :<|> "key"       :> "add"      :> ReqBody '[JSON] JWK                     :> QueryParam "expirationTime" ExpirationTime :> Post '[JSON] BRKeyId
-  :<|> "key"       :> "revoke"   :> Capture "keyId" BRKeyId                 :> Post '[JSON] RevocationTime
-  :<|> "location"  :> "add"      :> ReqBody '[JSON] NewLocation             :> Post '[JSON] LocationId
-  :<|> "company"   :> Get '[JSON] [BusinessResponse]
+       "user"          :> "add"      :> Put '[JSON] NoContent
+  :<|> "organisation"  :> "add"      :> ReqBody '[JSON] NewBusiness             :> Post '[JSON] GS1CompanyPrefix
+  :<|> "organisation"  :> Capture "gs1CompanyPrefix" GS1CompanyPrefix :> "user" :> Capture "userId" UserId                    :> Put '[JSON] NoContent
+  :<|> "key"           :> "add"      :> ReqBody '[JSON] JWK                     :> QueryParam "expirationTime" ExpirationTime :> Post '[JSON] BRKeyId
+  :<|> "key"           :> "revoke"   :> Capture "keyId" BRKeyId                 :> Post '[JSON] RevocationTime
+  :<|> "location"      :> "add"      :> ReqBody '[JSON] NewLocation             :> Post '[JSON] LocationId
+  :<|> "user"          :> "listorganisations"                                   :> Get '[JSON] [BusinessResponse]
