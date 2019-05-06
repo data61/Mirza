@@ -163,7 +163,8 @@ clientSpec = do
 
           step "Adding the same user to BR"
           let prefix = GS1CompanyPrefix "1000001"
-          let userBR = BT.NewUser "EventSign Test Same User OAuthSub"
+          -- TODO: Create a user for associating with tests.
+          --let userBR = BT.NewUser "EventSign Test Same User OAuthSub"
 
           -- TODO Note: The business will now be associated with the brAuthUser
           -- and not created user, expect this may have to be fixed when we
@@ -173,7 +174,8 @@ clientSpec = do
           httpBR (BRClient.addBusiness brAuthUser business)
             `shouldSatisfyIO` isRight
 
-          httpBR (BRClient.addUser brAuthUser userBR) `shouldSatisfyIO` isRight
+          -- TODO: Create a user for associating with tests.
+          --httpBR (BRClient.addUser brAuthUser userBR) `shouldSatisfyIO` isRight
 
           step "Tying the user with a good key"
           Just goodPubKey <- goodRsaPublicKey
@@ -224,9 +226,10 @@ clientSpec = do
           httpBR (BRClient.addBusiness globalAuthData businessGiver)
             `shouldSatisfyIO` isRight
 
-          step "Adding the giver user to BR"
-          let userBRGiver = BT.NewUser "EventSign Test Giver OAuthSub"
-          httpBR (BRClient.addUser globalAuthData userBRGiver) `shouldSatisfyIO` isRight
+          -- TODO: Create a user for associating with tests.
+          --step "Adding the giver user to BR"
+          --let userBRGiver = BT.NewUser "EventSign Test Giver OAuthSub"
+          --httpBR (BRClient.addUser globalAuthData userBRGiver) `shouldSatisfyIO` isRight
 
           step "Tying the giver user with a good key"
           Just goodPubKeyGiver <- readJWK "./test/Mirza/Common/TestData/testKeys/goodJWKs/4096bit_rsa_pub.json"
@@ -254,9 +257,10 @@ clientSpec = do
           httpBR (BRClient.addBusiness globalAuthData businessReceiver)
             `shouldSatisfyIO` isRight
 
-          step "Adding the receiving user to BR"
-          let userBRReceiver = BT.NewUser "EventSign Test Reciever OAuthSub"
-          httpBR (BRClient.addUser globalAuthData userBRReceiver) `shouldSatisfyIO` isRight
+          -- TODO: Create a user for associating with tests.
+          --step "Adding the receiving user to BR"
+          --let userBRReceiver = BT.NewUser "EventSign Test Reciever OAuthSub"
+          --httpBR (BRClient.addUser globalAuthData userBRReceiver) `shouldSatisfyIO` isRight
 
 
           -- step "Signing the event with the second user"

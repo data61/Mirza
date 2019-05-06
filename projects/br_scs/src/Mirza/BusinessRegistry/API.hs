@@ -74,14 +74,9 @@ type PublicAPI =
 
 
 type PrivateAPI =
-       -- TODO: Note the following end point does't really make sense any more, it has only been left in place for now
-       --       because the plan is to basically refactor it into an associate user with a business end point.
-       "user"      :> "add"      :> ReqBody '[JSON] NewUser                 :> Post '[JSON] UserId
-  :<|> "business"  :> "add"      :> ReqBody '[JSON] NewBusiness             :> Post '[JSON] GS1CompanyPrefix
+       "business"  :> "add"      :> ReqBody '[JSON] NewBusiness             :> Post '[JSON] GS1CompanyPrefix
   :<|> "business"  :> Capture "gs1CompanyPrefix" GS1CompanyPrefix :> "user" :> Capture "userId" UserId                    :> Put '[JSON] NoContent
   :<|> "key"       :> "add"      :> ReqBody '[JSON] JWK                     :> QueryParam "expirationTime" ExpirationTime :> Post '[JSON] BRKeyId
   :<|> "key"       :> "revoke"   :> Capture "keyId" BRKeyId                 :> Post '[JSON] RevocationTime
   :<|> "location"  :> "add"      :> ReqBody '[JSON] NewLocation             :> Post '[JSON] LocationId
   :<|> "company"   :> Get '[JSON] [BusinessResponse]
-
-

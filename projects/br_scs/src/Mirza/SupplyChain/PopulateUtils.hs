@@ -131,7 +131,8 @@ insertAndAuth scsUrl brUrl authToken locMap ht (entity:entities) = do
   pubKey <- fmap expectJust $ liftIO $ readJWK pubKeyPath
   insertedUserIdSCS <- fmap expectRight $ httpSCS $ SCSClient.addUser newUserSCS
   _insertedPrefix <- httpBR $ BRClient.addBusiness authToken newBiz
-  _insertedUserIdBR <- httpBR $ BRClient.addUser authToken newUserBR
+  -- TODO: Create a user for associating with tests.
+  --_insertedUserIdBR <- httpBR $ BRClient.addUser authToken newUserBR
   brKeyId <- fmap expectRight $ httpBR $ BRClient.addPublicKey authToken pubKey Nothing
   let basicAuthDataSCS =
         BasicAuthData

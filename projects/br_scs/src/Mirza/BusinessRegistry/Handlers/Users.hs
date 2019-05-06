@@ -5,7 +5,6 @@ module Mirza.BusinessRegistry.Handlers.Users
   (
     addUser
   , addUserOnlyId
-  , addUserAuth
   , addUserQuery
   , getUserByIdQuery
   ) where
@@ -25,18 +24,6 @@ import           Control.Monad                            (when)
 import           Data.Maybe                               (isNothing)
 
 import           GHC.Stack                                (HasCallStack, callStack)
-
-
--- This function is an interface adapter and adds the BT.AuthUser argument to
--- addUser so that we can use it from behind the private API. This argument
--- is not used in the current implementation as it is assumed that all users
--- will have the ability to act globally.
-addUserAuth :: ( Member context '[HasDB]
-               , Member err     '[AsBRError, AsSqlError])
-            => AuthUser
-            -> NewUser
-            -> AppM context err UserId
-addUserAuth _authUser = addUserOnlyId
 
 
 addUserOnlyId :: ( Member context '[HasDB]

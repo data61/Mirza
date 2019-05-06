@@ -11,7 +11,6 @@ module Mirza.BusinessRegistry.Client.Servant
   , uxLocation
   , uxLocationByGLN
   -- * Authenticated API
-  , addUser
   , addBusiness
   , addUserToBusiness
   , addPublicKey
@@ -51,7 +50,6 @@ uxLocation       :: [GS1CompanyPrefix] -> ClientM [BusinessAndLocationResponse]
 uxLocationByGLN  :: LocationEPC -> GS1CompanyPrefix -> ClientM BusinessAndLocationResponse
 versionInfo      :: ClientM String
 
-addUser          :: Token -> NewUser     -> ClientM UserId
 addBusiness      :: Token -> NewBusiness -> ClientM GS1CompanyPrefix
 addUserToBusiness :: Token -> GS1CompanyPrefix -> UserId -> ClientM NoContent
 addPublicKey     :: Token -> JWK -> Maybe ExpirationTime -> ClientM BRKeyId
@@ -76,8 +74,7 @@ _api@(
   )
   :<|>
   _privAPI@(
-         addUser
-    :<|> addBusiness
+         addBusiness
     :<|> addUserToBusiness
     :<|> addPublicKey
     :<|> revokePublicKey
