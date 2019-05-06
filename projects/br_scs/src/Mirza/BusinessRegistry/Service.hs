@@ -84,7 +84,8 @@ publicServer =
 privateServer :: ( Member context '[HasDB]
                  , APIPossibleErrors err)
               => ServerT ProtectedAPI (AppM context err)
-privateServer =      (transformUser1 addBusinessAuth)
+privateServer =      (transformUser0 addUserAuth)
+                :<|> (transformUser1 addBusinessAuth)
                 :<|> (transformUser2 addOrganisationMappingAuth)
                 :<|> (transformUser2 addPublicKey)
                 :<|> (transformUser1 revokePublicKey)

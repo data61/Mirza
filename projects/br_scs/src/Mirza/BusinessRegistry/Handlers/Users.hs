@@ -3,7 +3,8 @@
 
 module Mirza.BusinessRegistry.Handlers.Users
   (
-    addUser
+    addUserAuth
+  , addUser
   , addUserOnlyId
   , addUserQuery
   , getUserByIdQuery
@@ -16,6 +17,8 @@ import           Mirza.BusinessRegistry.SqlUtils
 import           Mirza.BusinessRegistry.Types             as BRT
 import           Mirza.Common.Utils
 
+import           Servant.API                              (NoContent (..))
+
 import           Database.Beam                            as B
 import           Database.Beam.Backend.SQL.BeamExtensions
 
@@ -26,10 +29,19 @@ import           Data.Maybe                               (isNothing)
 import           GHC.Stack                                (HasCallStack, callStack)
 
 
+-- Nothing needs to be done by this endpoint, because by the time that this
+-- function is called the user will already be added to the users table. This
+-- could be achieved by calling any of the other private endpoints, but we have
+-- made this endpoint so that there is a well defined intuative process for
+-- "regsitering" a user with the system.
+addUserAuth :: AuthUser -> AppM context err NoContent
+addUserAuth _ = pure NoContent
+
+
 addUserOnlyId :: ( Member context '[HasDB]
-           , Member err     '[AsBRError, AsSqlError])
-        => NewUser
-        -> AppM context err UserId
+                 , Member err     '[AsBRError, AsSqlError])
+              => NewUser
+              -> AppM context err UserId
 addUserOnlyId user = (UserId . user_id) <$> (addUser user)
 
 

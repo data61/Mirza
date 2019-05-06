@@ -74,7 +74,8 @@ type PublicAPI =
 
 
 type PrivateAPI =
-       "business"  :> "add"      :> ReqBody '[JSON] NewBusiness             :> Post '[JSON] GS1CompanyPrefix
+       "user"      :> "add"      :> Put '[JSON] NoContent
+  :<|> "business"  :> "add"      :> ReqBody '[JSON] NewBusiness             :> Post '[JSON] GS1CompanyPrefix
   :<|> "business"  :> Capture "gs1CompanyPrefix" GS1CompanyPrefix :> "user" :> Capture "userId" UserId                    :> Put '[JSON] NoContent
   :<|> "key"       :> "add"      :> ReqBody '[JSON] JWK                     :> QueryParam "expirationTime" ExpirationTime :> Post '[JSON] BRKeyId
   :<|> "key"       :> "revoke"   :> Capture "keyId" BRKeyId                 :> Post '[JSON] RevocationTime
