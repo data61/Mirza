@@ -148,8 +148,8 @@ runDbPopulate so = do
   let (scsHst, scsPrt) = scsServiceInfo so
       scsUrl = BaseUrl Http scsHst scsPrt ""
       Just (brHst, brPrt) = brServiceInfo so
-      brUrl = BaseUrl Http brHst brPrt ""
-      Just (username, pswd) = dbPopulateInfo so
+      _brUrl = BaseUrl Http brHst brPrt ""
+      Just (_username, _pswd) = dbPopulateInfo so
   _ <- insertCitrusData scsUrl
   pure ()
 

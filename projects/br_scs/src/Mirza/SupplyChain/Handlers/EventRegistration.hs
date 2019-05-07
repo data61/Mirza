@@ -26,12 +26,9 @@ import           Data.GS1.DWhat                    (AggregationDWhat (..),
                                                     TransformationDWhat (..))
 import           Data.GS1.Event                    as Ev
 
-import           Data.List.NonEmpty                (toList)
-import           Data.List.Unique                  (allUnique)
-
 import           Data.Maybe                        (isJust)
 
-import           Control.Monad.Except              (unless, when)
+import           Control.Monad.Except              (when)
 
 insertObjectEvent :: (Member context '[HasDB],
                       Member err     '[AsSqlError])

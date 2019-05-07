@@ -31,8 +31,6 @@ import qualified Data.Text                             as T
 import           Servant.API.BasicAuth                 (BasicAuthData (..))
 import           Servant.Auth.Client                   (Token)
 
-import           Text.Email.Validate                   (toByteString)
-
 import           Data.Hashable                         (Hashable (..))
 import           Data.HashMap.Lazy                     as H
 
