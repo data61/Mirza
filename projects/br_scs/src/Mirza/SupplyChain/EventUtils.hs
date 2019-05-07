@@ -8,7 +8,7 @@ module Mirza.SupplyChain.EventUtils
   , hasUserCreatedEvent
   , insertUserEvent
   , findEvent, findSchemaEvent
-  , findLabelId, getParent
+  , findLabelId, findInstLabelIdByUrn, getParent
   , getEventList
   , getUser, getUserById
   , findDWhere
