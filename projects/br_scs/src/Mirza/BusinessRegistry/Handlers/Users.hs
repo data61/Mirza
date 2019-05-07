@@ -12,8 +12,6 @@ module Mirza.BusinessRegistry.Handlers.Users
 
 import           Mirza.BusinessRegistry.Database.Schema   hiding (UserId)
 import qualified Mirza.BusinessRegistry.Database.Schema   as Schema
-import           Mirza.BusinessRegistry.SqlUtils
-
 import           Mirza.BusinessRegistry.Types             as BRT
 import           Mirza.Common.Utils
 
@@ -21,8 +19,6 @@ import           Servant.API                              (NoContent (..))
 
 import           Database.Beam                            as B
 import           Database.Beam.Backend.SQL.BeamExtensions
-
-import           Control.Lens                             ((#))
 
 import           GHC.Stack                                (HasCallStack, callStack)
 
@@ -47,13 +43,10 @@ addUser :: ( Member context '[HasDB]
            , Member err     '[AsBRError, AsSqlError])
         => NewUser
         -> AppM context err Schema.User
-addUser =
-  (handleError (transformSqlUniqueViloation "users_email_address_key" (_UserCreationSQLErrorBRE #)))
-  . runDb
-  . addUserQuery
+addUser = runDb . addUserQuery
 
 
--- | Hashes the password of the NewUser and inserts the user into the database
+-- | Inserts the user into the database.
 addUserQuery :: (AsBRError err, HasCallStack)
              => NewUser
              -> DB context err Schema.User

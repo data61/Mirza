@@ -333,8 +333,6 @@ data BRError
   | BusinessDoesNotExistBRE
   | UserDoesNotExistBRE
   | UserAuthFailureBRE (SAS.AuthResult ())
-  -- | When adding a user fails with an underlying error arising from the database.
-  | UserCreationSQLErrorBRE SqlError
   -- | When adding a user fails for an unknown reason.
   | UserCreationErrorBRE String CallStack
   | BRKeyErrorBRE BRKeyError

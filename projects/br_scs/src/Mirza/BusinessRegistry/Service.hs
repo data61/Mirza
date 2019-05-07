@@ -177,7 +177,6 @@ brErrorToHttpError brError =
     (OperationNotPermittedBRE _ _)  -> httpError err403 "A user can only act on behalf of the business they are associated with."
     (UserAuthFailureBRE _)          -> httpError err401 "Authorization invalid."
     (UserCreationErrorBRE _ _)      -> userCreationError brError
-    (UserCreationSQLErrorBRE _)     -> userCreationError brError
     UnknownUserBRE                  -> httpError err404 "Unknown User"
 
 -- | A generic internal server error has occured. We include no more information in the result returned to the user to
