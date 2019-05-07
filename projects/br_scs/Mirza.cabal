@@ -41,25 +41,21 @@ library
                     , Mirza.Common.Utils
                     , Mirza.Common.Time
                     , Mirza.SupplyChain.API
-                    , Mirza.SupplyChain.Auth
                     , Mirza.SupplyChain.Client.Servant
                     , Mirza.SupplyChain.Database.Migrate
                     , Mirza.SupplyChain.Database.Schema
                     , Mirza.SupplyChain.Database.Schema.V0001
-                    , Mirza.SupplyChain.Handlers.Contacts
                     , Mirza.SupplyChain.Handlers.Health
                     , Mirza.SupplyChain.EventUtils
                     , Mirza.SupplyChain.Handlers.Queries
                     , Mirza.SupplyChain.Handlers.Signatures
                     , Mirza.SupplyChain.Handlers.EventRegistration
-                    , Mirza.SupplyChain.Handlers.Users
                     , Mirza.SupplyChain.Handlers.UXUtils
                     , Mirza.SupplyChain.Main
                     , Mirza.SupplyChain.QueryUtils
                     , Mirza.SupplyChain.Service
                     , Mirza.SupplyChain.Types
                     , Mirza.SupplyChain.SqlUtils
-                    , Mirza.SupplyChain.GenerateUtils
                     , Mirza.SupplyChain.PopulateUtils
 
 

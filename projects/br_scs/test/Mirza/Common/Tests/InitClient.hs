@@ -15,8 +15,8 @@ import           Mirza.Common.Utils                       (randomText, mockURI, 
 
 import           Control.Concurrent                       (ThreadId)
 
-import           Servant.Auth.Client                      (Token)
 import           Servant.API.BasicAuth
+import           Servant.Auth.Client                      (Token)
 import           Servant.Client                           (BaseUrl (..))
 
 import           Data.Either                              (isRight)
@@ -32,14 +32,16 @@ import           Katip                                    (Severity (DebugS))
 import           Database.Beam.Query                      (delete, runDelete,
                                                            val_)
 
-import           Mirza.BusinessRegistry.Database.Schema
 import           Mirza.BusinessRegistry.Client.Servant
+import           Mirza.BusinessRegistry.Database.Schema
 import qualified Mirza.BusinessRegistry.Handlers.Business as BRHB (addBusiness)
 import qualified Mirza.BusinessRegistry.Handlers.Users    as BRHU (addUserOnlyId)
 import           Mirza.BusinessRegistry.Main              (ServerOptionsBR (..),
-                                                           initBRContext, addAuthOptions)
+                                                           addAuthOptions,
+                                                           initBRContext)
 import qualified Mirza.BusinessRegistry.Main              as BRMain
-import           Mirza.BusinessRegistry.Types             as BT hiding (businessName)
+import           Mirza.BusinessRegistry.Types             as BT hiding
+                                                                 (businessName)
 
 import           Mirza.Common.Tests.Utils                 (DatabaseConnectionString (..),
                                                            DatabaseName (..),
@@ -75,9 +77,7 @@ runSCSApp brUrl = do
   let so' = mkSoSCS brUrl (Just tempFile)
   ctx <- initSCSContext so'
   let SupplyChainDb
-        usersTable
         businessesTable
-        contactsTable
         labelsTable
         whatLabelsTable
         transformationsTable
@@ -89,16 +89,13 @@ runSCSApp brUrl = do
         wheresTable
         whensTable
         labelEventsTable
-        userEventsTable
         signaturesTable
         hashesTable
         blockchainTable
           = supplyChainDb
   flushDbResult <- runAppM @_ @ServiceError ctx $ runDb $ do
       let deleteTable table = pg $ runDelete $ delete table (const (val_ True))
-      deleteTable $ usersTable
       deleteTable $ businessesTable
-      deleteTable $ contactsTable
       deleteTable $ labelsTable
       deleteTable $ whatLabelsTable
       deleteTable $ transformationsTable
@@ -110,7 +107,6 @@ runSCSApp brUrl = do
       deleteTable $ wheresTable
       deleteTable $ whensTable
       deleteTable $ labelEventsTable
-      deleteTable $ userEventsTable
       deleteTable $ signaturesTable
       deleteTable $ hashesTable
       deleteTable $ blockchainTable

@@ -19,9 +19,7 @@ import           Mirza.SupplyChain.Handlers.Queries    (listEventsQuery)
 
 import           Mirza.SupplyChain.ErrorUtils          (throwParseError)
 import           Mirza.SupplyChain.EventUtils          (getParent)
-import           Mirza.SupplyChain.Types               hiding (NewUser (..),
-                                                        User (..))
-import qualified Mirza.SupplyChain.Types               as ST
+import           Mirza.SupplyChain.Types
 
 import           Mirza.BusinessRegistry.Types          (BusinessAndLocationResponse (..),
                                                         BusinessResponse (..))
@@ -69,10 +67,9 @@ instance ToSchema PrettyEventResponse
 -- and looks up all the events related to that item.
 listEventsPretty  :: (Member context '[HasDB, HasBRClientEnv],
                       Member err     '[AsServiceError, AsServantError, AsSqlError, BT.AsBRError])
-                  => ST.User
-                  -> LabelEPCUrn
+                  => LabelEPCUrn
                   -> AppM context err [PrettyEventResponse]
-listEventsPretty _user = either throwParseError fetchPrettyEvents . urn2LabelEPC . getLabelEPCUrn
+listEventsPretty = either throwParseError fetchPrettyEvents . urn2LabelEPC . getLabelEPCUrn
 
 fetchPrettyEvents :: (Member context '[HasDB, HasBRClientEnv],
                     Member err     '[AsServiceError, AsServantError, AsSqlError, BT.AsBRError])

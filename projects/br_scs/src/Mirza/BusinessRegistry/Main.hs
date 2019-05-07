@@ -20,17 +20,17 @@ import           Mirza.Common.Types                      as CT
 import           Data.GS1.EPC                            (GS1CompanyPrefix (..))
 
 import           Servant
-import           Servant.Swagger.UI
 import           Servant.Auth.Server
+import           Servant.Swagger.UI
 
 import           Crypto.JWT                              (Audience (..), string)
 
 import qualified Data.Pool                               as Pool
 import           Database.PostgreSQL.Simple
 
+import           Network.URI                             (nullURI)
 import           Network.Wai                             (Middleware)
 import qualified Network.Wai.Handler.Warp                as Warp
-import           Network.URI                             (nullURI)
 
 import           Data.Aeson                              (eitherDecodeFileStrict)
 
@@ -42,8 +42,8 @@ import           Data.Text                               (Text, pack)
 import           Options.Applicative                     hiding (action)
 import           Text.Email.Parser                       (addrSpec)
 
-import           Control.Lens                            (review)
 import           Control.Exception                       (finally)
+import           Control.Lens                            (review)
 import           Data.Maybe                              (fromMaybe)
 import           Data.Either                             (fromRight)
 import           Katip                                   as K
@@ -81,14 +81,14 @@ data ExecMode
   | Bootstrap Text GS1CompanyPrefix
 
 data ServerOptionsBR = ServerOptionsBR
-  { sobDbConnStr     :: ByteString
-  , sobLoggingLevel  :: K.Severity
-  , sobLogLocation   :: Maybe FilePath
-  , sobEnvType       :: CT.EnvType
+  { sobDbConnStr    :: ByteString
+  , sobLoggingLevel :: K.Severity
+  , sobLogLocation  :: Maybe FilePath
+  , sobEnvType      :: CT.EnvType
   }
 
 data RunServerOptions = RunServerOptions
-  { rsoPortNumber :: Int
+  { rsoPortNumber    :: Int
   , sobOAuthAudience :: Text
   }
 
@@ -347,19 +347,6 @@ runBootstrap opts email companyPrefix = do
       let newBusinessName             = "Bootstrapped Business"
       let newBusinessUrl              = nullURI
       NewBusiness{..}
-
-
---------------------------------------------------------------------------------
--- Debug Command
---------------------------------------------------------------------------------
-
--- This is a debug function for activating development test stub functions.
--- TODO: Remove this stub before release.
-debugFunc :: IO()
-debugFunc = do
-  putStrLn "Running Debug Option"
-  -- Debug test code goes here...
-
 
 --------------------------------------------------------------------------------
 -- Command Line Options Argument Parsers

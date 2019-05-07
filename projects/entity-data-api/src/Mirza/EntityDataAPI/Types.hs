@@ -1,38 +1,38 @@
 {-# LANGUAGE DeriveGeneric              #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE NamedFieldPuns             #-}
-{-# LANGUAGE TemplateHaskell            #-}
 
 module Mirza.EntityDataAPI.Types where
 
-import           System.Envy               (DefConfig (..), FromEnv (..),
-                                            Var (..), env, envMaybe, (.!=))
-import qualified System.Envy               as Envy
+import           System.Envy                (DefConfig (..), FromEnv (..),
+                                             Var (..), env, envMaybe, (.!=))
+import qualified System.Envy                as Envy
 
-import           Network.HTTP.Req          (HttpException)
-import           Network.HTTP.ReverseProxy (ProxyDest (..))
+import           Network.HTTP.ReverseProxy  (ProxyDest (..))
 
-import           Control.Monad.Except      (ExceptT (..), MonadError,
-                                            runExceptT)
-import           Control.Monad.IO.Class    (MonadIO)
-import           Control.Monad.Reader      (MonadReader, ReaderT, liftIO,
-                                            runReaderT)
+import           Control.Monad.Except       (ExceptT (..), MonadError,
+                                             runExceptT)
+import           Control.Monad.IO.Class     (MonadIO)
+import           Control.Monad.Reader       (MonadReader, ReaderT, liftIO,
+                                             runReaderT)
 
-import           GHC.Generics              (Generic)
+import           GHC.Generics               (Generic)
 
-import           Network.HTTP.Client       (Manager)
+import           Network.HTTP.Client        (Manager)
 
 
-import           Control.Monad.Time        (MonadTime (..))
-import           Data.Time.Clock           (getCurrentTime)
+import           Control.Monad.Time         (MonadTime (..))
+import           Data.Time.Clock            (getCurrentTime)
 
-import           Text.Read                 (readMaybe)
+import           Text.Read                  (readMaybe)
 
-import           Crypto.JWT                (AsError, AsJWTError, JWKSet,
-                                            StringOrURI)
-import qualified Crypto.JWT                as Jose
+import           Crypto.JWT                 (JWKSet, StringOrURI)
 
-import           Control.Lens              (makeClassyPrisms, prism')
+import           Data.Pool                  as Pool
+import           Database.PostgreSQL.Simple (Connection)
+
+import           Data.ByteString            (ByteString)
+
 
 --  ------------------- AppM -----------------------
 -- runReaderT :: r -> m a
@@ -66,6 +66,7 @@ data AuthContext = AuthContext
   , appManager           :: Manager
   , jwtSigningKeys       :: JWKSet
   , ctxJwkClientId       :: StringOrURI
+  , dbConnPool           :: Pool Connection
   } deriving (Generic)
 
 --  ------------------------------------------------
@@ -107,49 +108,41 @@ defaultJwkUrl = "https://mirza.au.auth0.com/.well-known/jwks.json"
 
 --  ----------------Opts----------------------------
 
+
+data AppMode
+  = Proxy
+  | API -- placeholder
+  | Bootstrap
+  deriving (Show, Eq, Generic, Read)
+
+instance Var AppMode where
+  fromVar m = readMaybe m :: Maybe AppMode
+  toVar = show
+
 data Opts = Opts
   { myServiceInfo   :: ServiceInfo
   , destServiceInfo :: ServiceInfo
+  , appMode         :: AppMode
   , jwkUrl          :: String
   , jwkClientId     :: String
+  , dbConnectionStr :: ByteString
   } deriving (Show, Generic, Eq)
 
 instance DefConfig Opts where
   defConfig = Opts
     { myServiceInfo   = ServiceInfo{serviceHost=Hostname "localhost", servicePort=Port 8080 }
     , destServiceInfo = ServiceInfo{serviceHost=Hostname "localhost", servicePort=Port 8000 }
+    , appMode         = Proxy
     , jwkUrl          = defaultJwkUrl
     , jwkClientId     = ""
+    , dbConnectionStr = "dbname=deventitydataapi"
     }
 
 instance FromEnv Opts where
   fromEnv = Opts
     <$> fromEnvMyServiceInfo
     <*> fromEnvDestServiceInfo
+    <*> envMaybe "EDAPI_MODE" .!= Proxy
     <*> envMaybe "JWK_URL" .!= defaultJwkUrl
     <*> env "JWK_CLIENT_ID"
-
---  ------------------------------------------------
-
---  ---------------- Errors ------------------------
-
-
-data AppError
-  = JWKFetchFailed
-  | AuthFailed Jose.JWTError
-  | AppJoseError Jose.Error
-  | NoAuthHeader
-  | UrlParseFailed
-  | ReqFailure HttpException
-  | JWKParseFailure String
-  deriving (Show, Generic)
-makeClassyPrisms ''AppError
-
-instance AsJWTError AppError where
-  _JWTError = prism' AuthFailed
-              (\err -> case err of
-                (AuthFailed e) -> Just e
-                _              -> Nothing
-              )
-instance AsError AppError where
-  _Error = _AppJoseError
+    <*> env "EDAPI_DB_CONN"

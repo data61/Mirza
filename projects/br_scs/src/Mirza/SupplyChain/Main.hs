@@ -5,16 +5,13 @@
 module Mirza.SupplyChain.Main where
 
 import           Mirza.SupplyChain.API
-import           Mirza.SupplyChain.Auth
 import           Mirza.SupplyChain.Database.Migrate
 import           Mirza.SupplyChain.Service
 import           Mirza.SupplyChain.Types            (AppError, EnvType (..),
-                                                     SCSContext (..), User)
+                                                     SCSContext (..))
 
 import           Mirza.SupplyChain.PopulateUtils    (insertCitrusData)
 import qualified Mirza.SupplyChain.Types            as ST
-
-import           Mirza.BusinessRegistry.Client.Servant
 
 import           Servant
 import           Servant.Client
@@ -125,13 +122,12 @@ main = runProgram =<< execParser opts
       <> header "SupplyChainServer - A server for capturing GS1 events and recording them on a blockchain")
 
 runProgram :: ServerOptionsSCS -> IO ()
-runProgram so@ServerOptionsSCS{initDB = True, dbPopulateInfo =Just _, brServiceInfo =Just __} = do
+runProgram so@ServerOptionsSCS{initDB = True, dbPopulateInfo =Just _, brServiceInfo =Just _} = do
   ctx <- initSCSContext so
   migrate ctx $ connectionStr so
   runDbPopulate so
-runProgram so@ServerOptionsSCS{initDB =False, dbPopulateInfo =Just _, brServiceInfo =Just __} = do
-  runDbPopulate so
-runProgram so@ServerOptionsSCS{initDB = False, scsServiceInfo=(scsHst, scsPort), brServiceInfo =Just __} = do
+runProgram so@ServerOptionsSCS{initDB =False, dbPopulateInfo =Just _, brServiceInfo =Just _} = runDbPopulate so
+runProgram so@ServerOptionsSCS{initDB = False, scsServiceInfo=(scsHst, scsPort), brServiceInfo =Just _} = do
   ctx <- initSCSContext so
   app <- initApplication so ctx
   mids <- initMiddleware so
@@ -154,7 +150,7 @@ runDbPopulate so = do
       Just (brHst, brPrt) = brServiceInfo so
       brUrl = BaseUrl Http brHst brPrt ""
       Just (username, pswd) = dbPopulateInfo so
-  _ <- insertCitrusData scsUrl brUrl (authDataToTokenTodoRemove $ BasicAuthData username pswd)
+  _ <- insertCitrusData scsUrl
   pure ()
 
 initMiddleware :: ServerOptionsSCS -> IO Middleware
@@ -188,12 +184,12 @@ initSCSContext (ServerOptionsSCS envT _ _ dbConnStr _ n p r lev (Just (brHost, b
           mempty
           mempty
           (mkClientEnv manager baseUrl)
-initSCSContext so@(ServerOptionsSCS{ brServiceInfo = Nothing}) = initSCSContext so{brServiceInfo = Just ("localhost", 8200)}
+initSCSContext so@ServerOptionsSCS{brServiceInfo = Nothing} = initSCSContext so{brServiceInfo = Just ("localhost", 8200)}
 
 initApplication :: ServerOptionsSCS -> ST.SCSContext -> IO Application
 initApplication _so ev =
   pure $ serveWithContext api
-          (basicAuthServerContext ev)
+          EmptyContext
           (server' ev)
 
 server' :: SCSContext -> Server API
@@ -201,6 +197,6 @@ server' ev =
   swaggerSchemaUIServer serveSwaggerAPI
   :<|> hoistServerWithContext
         (Proxy @ServerAPI)
-        (Proxy @'[BasicAuthCheck User])
+        mempty -- (Proxy @'[EmptyContext])
         (appMToHandler ev)
         (appHandlers @SCSContext @AppError)
