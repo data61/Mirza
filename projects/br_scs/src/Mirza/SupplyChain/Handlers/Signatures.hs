@@ -1,11 +1,11 @@
+{-# LANGUAGE DataKinds             #-}
+{-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedLists       #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
-{-# LANGUAGE DataKinds             #-}
 
 module Mirza.SupplyChain.Handlers.Signatures
-  (
-    eventSign, getEventBS, insertSignature, eventHashed
+  ( eventSign, getEventBS, insertSignature
   ) where
 
 import           Mirza.Common.Time
@@ -14,11 +14,7 @@ import           Mirza.Common.Utils
 
 import           Mirza.SupplyChain.Database.Schema        as Schema
 import           Mirza.SupplyChain.Handlers.Queries       (eventInfoQuery)
-import           Mirza.SupplyChain.Types                  hiding (NewUser (..),
-                                                           User (userId),
-                                                           UserId)
-import qualified Mirza.SupplyChain.Types                  as ST
-
+import           Mirza.SupplyChain.Types
 
 import qualified Data.GS1.EventId                         as EvId
 
@@ -46,17 +42,16 @@ scsJWSValidationSettings = defaultValidationSettings
 
 eventSign :: (Member context '[HasDB, HasBRClientEnv],
               Member err     '[AsError, AsServantError, AsSqlError, AsServiceError])
-          => ST.User
-          -> SignedEvent
+          => SignedEvent
           -> AppM context err EventInfo
-eventSign user (SignedEvent eventId keyId sig) = do
+eventSign (SignedEvent eventId keyId sig) = do
   jwk <- runClientFunc $ getPublicKey keyId
   runDb $ do
     eventBS <- getEventBS eventId
     event' <- verifyJWS scsJWSValidationSettings jwk sig
     if eventBS == event'
       then do
-        _ <- insertSignature (ST.userId user) eventId keyId sig
+        _ <- insertSignature eventId keyId sig
         eventInfoQuery eventId
       else throwing _SigVerificationFailure (show sig) -- TODO: This should be more than show
 
@@ -72,50 +67,24 @@ getEventBS eventId = do
     [eventBS] -> pure eventBS
     _         -> throwing _InvalidEventId eventId
 
-
 insertSignature :: Member err '[AsServiceError]
-                => ST.UserId
-                -> EvId.EventId
+                => EvId.EventId
                 -> BRKeyId
                 -> CompactJWS JWSHeader
                 -> DB environmentUnused err PrimaryKeyType
-insertSignature userId@(ST.UserId uId) eId kId sig = do
+insertSignature eId kId sig = do
   sigId <- newUUID
   timestamp <- generateTimestamp
   r <- pg $ runInsertReturningList (Schema._signatures Schema.supplyChainDb) $
         insertValues
-        [Schema.Signature Nothing sigId (Schema.UserId uId) (Schema.EventId $ EvId.unEventId eId)
+        [Schema.Signature Nothing sigId (Schema.EventId $ EvId.unEventId eId)
          (BRKeyId $ getBRKeyId kId) (PgJSON sig) (toDbTimestamp timestamp)]
   case r of
-    [rowId] -> do
-      updateUserEventSignature userId eId True
+    [rowId] ->
+      -- updateUserEventSignature userId eId True
+      -- TODO: Update the list of required signatures
       pure ( Schema.signature_id rowId)
     _       -> throwing _BackendErr "Failed to add signature"
-
-updateUserEventSignature :: ST.UserId
-                         -> EvId.EventId
-                         -> Bool
-                         -> DB environmentUnused err ()
-updateUserEventSignature (ST.UserId userId) (EvId.EventId eventId) hasSignedNew = do
-  _r <- pg $ runUpdate $ update
-              (_user_events supplyChainDb)
-              (\userEvent -> [user_events_has_signed userEvent <-. val_ hasSignedNew])
-              (\userEvent -> (user_events_event_id userEvent ==. val_ (Schema.EventId eventId) &&.
-                              (user_events_user_id userEvent ==. val_ (Schema.UserId userId))))
-  pure ()
-
--- do we need this?
-eventHashed :: ST.User -> EvId.EventId -> AppM context err HashedEvent
-eventHashed _user _eventId = error "not implemented yet"
--- pure (HashedEvent eventId (EventHash "Blob"))
-
-{-
-eventHashed user eventId = do
-  mHash <- liftIO $ Storage.eventHashed user eventId
-  case mHash of
-    Nothing -> throwError err404 { errBody = "Unknown eventId" }
-    Just i -> pure i
--}
 
 -- BeamQueries residue
 

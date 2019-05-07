@@ -27,7 +27,6 @@ import qualified Mirza.BusinessRegistry.Types          as BT
 import           Mirza.SupplyChain.Types               as ST
 
 import qualified Data.Text                             as T
-import           Data.Text.Encoding                    (encodeUtf8)
 
 import           Servant.API.BasicAuth                 (BasicAuthData (..))
 import           Servant.Auth.Client                   (Token)
@@ -50,13 +49,8 @@ import           Crypto.JOSE.Types                     (Base64Octets (..))
 import           Network.URI                           (URI)
 
 import qualified Mirza.BusinessRegistry.GenerateUtils  as GenBR (generateMultipleUsers)
-import           Mirza.SupplyChain.GenerateUtils       as GenSCS
 
 import           Data.Maybe                            (fromJust)
-
-import           Data.List.NonEmpty                    (NonEmpty (..))
-
-
 
 -- =============================================================================
 -- Utility Data structures/Type aliases
@@ -93,23 +87,20 @@ privateKeyPath entityName = "./test/Mirza/SupplyChain/TestData/testKeys/goodJWKs
 publicKeyPath :: String -> FilePath
 publicKeyPath entityName = "./test/Mirza/SupplyChain/TestData/testKeys/goodJWKs/" <> entityName <> "_rsa_pub.json"
 
-type AuthHash = H.HashMap Entity (UserId, BasicAuthData, BRKeyId)
+type AuthHash = H.HashMap Entity BRKeyId
 type LocationMap = H.HashMap LocationEPC BT.NewLocation
-
 
 -- =============================================================================
 -- Insertion and Signature utils
 -- =============================================================================
 
-insertCitrusData :: BaseUrl -> BaseUrl -> Token -> IO [Event]
-insertCitrusData scsUrl brUrl authToken = do
+insertCitrusData :: BaseUrl -> IO [Event]
+insertCitrusData scsUrl = do
   let httpSCS = runClient scsUrl
-      initAuthHt = H.empty
-  authHt <- insertAndAuth scsUrl brUrl authToken locationMap initAuthHt allEntities
   currTime <- getCurrentTime
   let citrusEachEvents = makeCitrusEvents (EPCISTime currTime) utc
       citrusEvents = eachEventEvent <$> citrusEachEvents
-  _insertionRes <- traverse (httpSCS . (insertEachEvent authHt)) citrusEachEvents
+  _insertionRes <- traverse (httpSCS . insertEachEvent) citrusEachEvents
   pure citrusEvents
 
 insertAndAuth :: BaseUrl
@@ -121,63 +112,52 @@ insertAndAuth :: BaseUrl
               -> IO AuthHash
 insertAndAuth _ _ _ _          ht [] = pure ht
 insertAndAuth scsUrl brUrl authToken locMap ht (entity:entities) = do
-  let httpSCS = runClient scsUrl
-      httpBR = runClient brUrl
+  let httpBR = runClient brUrl
       (Entity name companyPrefix bizName bizUrl locations (KeyPairPaths _ pubKeyPath)) = entity
-      [newUserSCS] = GenSCS.genMultipleUsers [(name, companyPrefix)]
       newBiz = BT.NewBusiness companyPrefix bizName bizUrl
   [newUserBR] <- GenBR.generateMultipleUsers [(name, companyPrefix)]
   let userAuth = BasicAuthData
                   (toByteString . BT.newUserEmailAddress $ newUserBR)
                   ""
   pubKey <- fmap expectJust $ liftIO $ readJWK pubKeyPath
-  insertedUserIdSCS <- fmap expectRight $ httpSCS $ SCSClient.addUser newUserSCS
   _insertedPrefix <- httpBR $ BRClient.addBusiness authToken newBiz
   _insertedUserIdBR <- httpBR $ BRClient.addUser authToken newUserBR
   brKeyId <- fmap expectRight $ httpBR $ BRClient.addPublicKey authToken pubKey Nothing
-  let basicAuthDataSCS =
-        BasicAuthData
-          (toByteString . ST.newUserEmailAddress $ newUserSCS)
-          (encodeUtf8   . ST.newUserPassword     $ newUserSCS)
 
   let newLocs = flip H.lookup locMap <$> locations
   traverse_  (maybeInsertLocation (authDataToTokenTodoRemove userAuth)) newLocs
-  let updatedHt = H.insert entity (insertedUserIdSCS, basicAuthDataSCS, brKeyId) ht
+  let updatedHt = H.insert entity brKeyId ht
   insertAndAuth scsUrl brUrl authToken locMap updatedHt entities
   where
     maybeInsertLocation _ Nothing    = pure ()
     maybeInsertLocation userAuth (Just loc) =
         void $ runClient brUrl $ BRClient.addLocation userAuth loc
 
-insertEachEvent :: AuthHash -> EachEvent ->  ClientM ()
-insertEachEvent _ (EachEvent [] _) = pure ()
-insertEachEvent ht (EachEvent (initialEntity: entities) ev) = do
-  let (entityUserId, auth, _) = expectJust $ H.lookup initialEntity ht
+insertEachEvent :: EachEvent ->  ClientM ()
+insertEachEvent (EachEvent [] _) = pure ()
+insertEachEvent (EachEvent entities ev) = do
   (insertedEventInfo, _eventId) <- case _etype ev of
-          AggregationEventT -> SCSClient.insertAggEvent auth (fromJust $ mkAggEvent ev)
-          ObjectEventT -> SCSClient.insertObjectEvent auth (fromJust $ mkObjectEvent ev)
-          TransactionEventT -> SCSClient.insertTransactEvent auth (fromJust $ mkTransactEvent ev (entityUserId :| []))
-          TransformationEventT -> SCSClient.insertTransfEvent auth (fromJust $ mkTransfEvent ev)
+          AggregationEventT -> SCSClient.insertAggEvent (fromJust $ mkAggEvent ev)
+          ObjectEventT -> SCSClient.insertObjectEvent (fromJust $ mkObjectEvent ev)
+          TransactionEventT -> SCSClient.insertTransactEvent (fromJust $ mkTransactEvent ev)
+          TransformationEventT -> SCSClient.insertTransfEvent (fromJust $ mkTransfEvent ev)
 
-  traverse_ (clientSignEvent ht insertedEventInfo) entities
+  traverse_ (clientSignEvent insertedEventInfo) entities
 
 
-clientSignEvent :: AuthHash -> EventInfo -> Entity -> ClientM EventInfo
-clientSignEvent ht evInfo entity = do
-  let (_, auth, _) = expectJust $ H.lookup entity ht
-      (EventInfo event _ _ (Base64Octets toSign) _) = evInfo
+clientSignEvent :: EventInfo -> Entity -> ClientM EventInfo
+clientSignEvent evInfo entity = do
+  let (EventInfo event (Base64Octets toSign) _) = evInfo
       eventId = fromJust $ _eid event
       (Entity _ _ _ _ _ (KeyPairPaths privKeyPath pubKeyPath)) = entity
   privKey <- fmap expectJust $ liftIO $ readJWK privKeyPath
   pubKey <- fmap expectJust $ liftIO $ readJWK pubKeyPath
-  keyId <- BRClient.addPublicKey (authDataToTokenTodoRemove auth) pubKey Nothing
+  keyId <- BRClient.addPublicKey undefined pubKey Nothing
 
   s <- liftIO $ runExceptT @JOSE.Error (
           signJWS toSign (Identity (newJWSHeader ((), RS256), privKey))
           )
-  eventSign auth . SignedEvent eventId keyId . expectRight $ s
-
-
+  eventSign . SignedEvent eventId keyId . expectRight $ s
 
 -- =============================================================================
 -- Event list/data - Dummy Data of a Citrus supply chain
