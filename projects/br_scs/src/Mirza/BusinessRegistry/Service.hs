@@ -173,11 +173,10 @@ brErrorToHttpError brError =
     (LocationExistsBRE)             -> httpError err409 "GLN already exists"
     (GS1CompanyPrefixExistsBRE)     -> httpError err400 "GS1 company prefix already exists."
     (BusinessDoesNotExistBRE)       -> httpError err400 "Business does not exist."
-    (UserDoesNotExistBRE)           -> httpError err400 "User doesn't exist."
     (OperationNotPermittedBRE _ _)  -> httpError err403 "A user can only act on behalf of the business they are associated with."
     (UserAuthFailureBRE _)          -> httpError err401 "Authorization invalid."
     (UserCreationErrorBRE _ _)      -> userCreationError brError
-    UnknownUserBRE                  -> httpError err404 "Unknown User"
+    UnknownUserBRE                  -> httpError err400 "Unknown User"
 
 -- | A generic internal server error has occured. We include no more information in the result returned to the user to
 -- limit further potential for exploitation, under the expectation that we log the errors to somewhere that is reviewed

@@ -118,5 +118,5 @@ checkUserExistsQuery userId = do
     user <- all_ (Schema._users Schema.businessRegistryDB)
     guard_ (user_id user ==. val_ (getUserId userId))
     pure user
-  when (isNothing user) $ throwing_ _UserDoesNotExistBRE
+  when (isNothing user) $ throwing_ _UnknownUserBRE
   pure ()
