@@ -10,13 +10,8 @@
 {-# LANGUAGE DataKinds             #-}
 
 module Mirza.SupplyChain.API
-  (
-    serverAPI
+  ( serverAPI
   , ServerAPI
-  , PublicAPI
-  , PrivateAPI
-  , ProtectedAPI
-  , UIAPI, FrontEndAPI
   , API, api
   ) where
 
@@ -26,15 +21,11 @@ import           Mirza.SupplyChain.Types            as ST
 
 import           Mirza.SupplyChain.Handlers.UXUtils (PrettyEventResponse (..))
 
-import           Data.GS1.EPC                       (GS1CompanyPrefix)
 import qualified Data.GS1.Event                     as Ev
 import           Data.GS1.EventId                   as EvId
 
 import           Servant
-import           Servant.API.Flatten
 import           Servant.Swagger.UI
-
-import           Data.Text                          (Text)
 
 type API
     -- this serves both: swagger.json and swagger-ui
@@ -44,43 +35,19 @@ type API
 api :: Proxy API
 api = Proxy
 
-
-type ServerAPI = PublicAPI :<|> ProtectedAPI :<|> UIAPI
-type ProtectedAPI = Flat (BasicAuth "foo-realm" User :> PrivateAPI)
-type UIAPI = Flat (BasicAuth "foo-realm" User :> FrontEndAPI)
-
 serverAPI :: Proxy ServerAPI
 serverAPI = Proxy
 
 
-type PublicAPI =
+type ServerAPI =
   -- Health
        "healthz" :> Get '[JSON] HealthResponse
-  -- Users
-  :<|> "newUser" :> ReqBody '[JSON] NewUser :> Post '[JSON] UserId
   :<|> "version" :> Get '[JSON] String
 
-type PrivateAPI =
--- Contacts
-       "contacts" :> Get '[JSON] [User]
-  :<|> "contacts" :> "add"
-                  :> Capture "userId" ST.UserId
-                  :> Get '[JSON] Bool
-  :<|> "contacts" :> "remove"
-                  :> Capture "userId" ST.UserId
-                  :> Get '[JSON] Bool
--- Users
-  :<|> "user"     :> "search"
-                  :> QueryParam "GS1CompanyPrefix" GS1CompanyPrefix
-                  :> QueryParam "lastname" Text
-                  :> Post '[JSON] [User]
 -- Signatures
   :<|> "event"    :> "sign"
                   :> ReqBody '[JSON] SignedEvent
                   :> Post '[JSON] EventInfo
-  :<|> "event"    :> "getHash"
-                  :> ReqBody '[JSON] EventId
-                  :> Post '[JSON] HashedEvent
 -- Queries
   :<|> "epc"      :> "events"
                   :> Capture "urn" LabelEPCUrn
@@ -88,14 +55,9 @@ type PrivateAPI =
   :<|> "event"    :> "info"
                   :> Capture "eventId" EventId
                   :> Get '[JSON] EventInfo
-  :<|> "event"    :> "list"
-                  :> Capture "userId" UserId
-                  :> Get '[JSON] [Ev.Event]
-  :<|> "event"    :> "listUsers"
-                  :> Capture "eventId" EventId
-                  :> Get '[JSON] [(User, Bool)]
-  :<|> "user"     :> "getId"
-                  :> Get '[JSON] UserId
+  -- :<|> "event"    :> "list"
+  --                 :> Capture "userId" UserId
+  --                 :> Get '[JSON] [Ev.Event]
 -- Event Registration
   :<|> "event"    :> "objectEvent"
                   :> ReqBody '[JSON] ObjectEvent
@@ -109,8 +71,7 @@ type PrivateAPI =
   :<|> "event"    :> "transformationEvent"
                   :> ReqBody '[JSON] TransformationEvent
                   :> Post '[JSON] (EventInfo, Schema.EventId)
-
-type FrontEndAPI =
-  "prototype" :> "list" :> "events"
+  -- UI
+  :<|> "prototype" :> "list" :> "events"
               :> Capture "urn" LabelEPCUrn
               :> Get '[JSON] [PrettyEventResponse]
