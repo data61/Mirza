@@ -103,8 +103,8 @@ addOrganisationMappingAuth :: ( Member context '[HasDB]
                               , Member err     '[AsBRError, AsSqlError])
                            => BT.AuthUser -> GS1CompanyPrefix -> BT.UserId -> AppM context err NoContent
 addOrganisationMappingAuth authUser gs1CompanyPrefix addedUserId = do
-  runDb $ userOrganisationAutherisation authUser gs1CompanyPrefix
-  addOrganisationMapping gs1CompanyPrefix addedUserId
+  _ <- runDb $ userOrganisationAutherisation authUser gs1CompanyPrefix
+  _ <- addOrganisationMapping gs1CompanyPrefix addedUserId
   pure NoContent
 
 
