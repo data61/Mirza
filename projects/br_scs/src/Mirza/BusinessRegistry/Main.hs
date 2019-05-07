@@ -349,6 +349,7 @@ runBootstrap opts email companyPrefix = do
       Right user -> do
                     businessResult <- runAppM @_ @BRError context $ addBusiness (CT.UserId $ user_id user) newBusiness
                     either (print @BRError) print businessResult
+      Left _     -> putStrLn "Error inserting user, skipping adding organisation."
 
   where
     bootstrapUser :: Text -> GS1CompanyPrefix -> NewUser
