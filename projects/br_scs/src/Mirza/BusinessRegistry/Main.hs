@@ -308,7 +308,7 @@ runBootstrap opts email companyPrefix = do
   let newUser = bootstrapUser email
   let newBusiness = bootstrapBusiness companyPrefix
 
-  context        <- initBRContext opts
+  context <- initBRContext opts
 
   userResult <- runAppM @_ @BRError context $ addUser newUser
   either (print @BRError) print userResult
