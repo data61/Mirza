@@ -39,10 +39,8 @@ import           Data.ByteString                         (ByteString)
 import qualified Data.ByteString.Char8                   as BS
 import           Data.Semigroup                          ((<>))
 import           Data.Text                               (Text, pack)
-import           Data.Text.Encoding                      (encodeUtf8, decodeUtf8)
 import           Options.Applicative                     hiding (action)
 import           Text.Email.Parser                       (addrSpec)
-import           Text.Email.Validate                     (validate, toByteString)
 
 import           Control.Lens                            (review)
 import           Control.Exception                       (finally)

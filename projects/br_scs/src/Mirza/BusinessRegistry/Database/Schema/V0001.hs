@@ -31,8 +31,6 @@ import           Database.Beam.Postgres.Syntax (PgDataTypeSyntax)
 import           Data.Aeson                    hiding (json)
 import           Data.Swagger
 
-import           Text.Email.Validate           (EmailAddress)
-
 import           GHC.Generics                  (Generic)
 
 

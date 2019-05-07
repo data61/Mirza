@@ -11,9 +11,6 @@ import           Mirza.Common.Utils           (mockURI)
 import           Data.GS1.EPC
 
 import qualified Data.Text                    as T
-import           Data.Text.Encoding           (encodeUtf8)
-
-import           Text.Email.Validate          (unsafeEmailAddress)
 
 
 dummyBusiness :: T.Text -> NewBusiness

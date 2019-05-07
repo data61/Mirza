@@ -23,8 +23,6 @@ import           Database.Beam                            as B
 import           Database.Beam.Backend.SQL.BeamExtensions
 
 import           Control.Lens                             ((#))
-import           Control.Monad                            (when)
-import           Data.Maybe                               (isNothing)
 
 import           GHC.Stack                                (HasCallStack, callStack)
 

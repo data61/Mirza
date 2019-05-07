@@ -30,8 +30,6 @@ import           Servant.Auth.Server
 
 import           Control.Lens
 
-import           Text.Email.Validate                    (unsafeEmailAddress)
-
 import           Data.Text                              (Text)
 import           Data.Functor                           (void)
 import           Data.Maybe                             (isNothing)

@@ -40,7 +40,6 @@ import           Network.URI                              (nullURI)
 
 import           Control.Lens                             (( # ))
 import           Control.Lens.Operators                   ((&))
-import           Control.Monad                            (when)
 import           Control.Monad.Error.Hoist                ((<!?>))
 import           Data.Foldable                            (find, for_)
 import           Data.Time                                (UTCTime)
