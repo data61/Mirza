@@ -222,21 +222,7 @@ runUserCommand opts UserAdd = do
 interactivelyGetNewUser :: IO NewUser
 interactivelyGetNewUser = do
   newUserOAuthSub     <- pack <$> prompt "OAuthSub:"
-  newUserEmailAddress <- getUserEmailInteractive
-  newUserCompany      <- GS1CompanyPrefix . read <$> prompt "GS1CompanyPrefix:"
-  newUserFirstName    <- pack <$> prompt "First Name:"
-  newUserLastName     <- pack <$> prompt "Last Name:"
-  newUserPhoneNumber  <- pack <$> prompt "Phone Number:"
   pure NewUser{..}
-
-getUserEmailInteractive :: IO EmailAddress
-getUserEmailInteractive = do
-  userEmail <- encodeUtf8 . pack <$> prompt "Email Address"
-  case validate userEmail of
-    Left reason -> do
-      putStrLn $ "Invalid Email. Reason: " ++ reason
-      getUserEmailInteractive
-    Right email -> pure email
 
 
 --------------------------------------------------------------------------------
@@ -334,7 +320,7 @@ printCredentials user = do
 -- but we need to do much more work here when we deal with permssions in general.
 runBootstrap :: ServerOptionsBR -> Text -> GS1CompanyPrefix -> IO ()
 runBootstrap opts email companyPrefix = do
-  let newUser = bootstrapUser email companyPrefix
+  let newUser = bootstrapUser email
   let newBusiness = bootstrapBusiness companyPrefix
 
   context        <- initBRContext opts
@@ -352,8 +338,8 @@ runBootstrap opts email companyPrefix = do
       Left _     -> putStrLn "Error inserting user, skipping adding organisation."
 
   where
-    bootstrapUser :: Text -> GS1CompanyPrefix -> NewUser
-    bootstrapUser oAuthSubSuffix company = do
+    bootstrapUser :: Text -> NewUser
+    bootstrapUser oAuthSubSuffix = do
       let newUserOAuthSub     = "bootstrapped-user-oauth-sub" <> oAuthSubSuffix
       NewUser{..}
 
