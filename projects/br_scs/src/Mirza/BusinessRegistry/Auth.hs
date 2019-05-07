@@ -28,7 +28,7 @@ import           Database.Beam                          as B
 import           Servant
 import           Servant.Auth.Server
 
-import           Control.Lens
+import           Control.Lens                           hiding (mapping)
 
 import           Data.Text                              (Text)
 import           Data.Functor                           (void)
