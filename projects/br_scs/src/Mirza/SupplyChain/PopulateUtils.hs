@@ -113,7 +113,7 @@ insertAndAuth scsUrl brUrl authToken locMap ht (entity:entities) = do
   let httpBR = runClient brUrl
       (Entity name companyPrefix bizName bizUrl locations (KeyPairPaths _ pubKeyPath)) = entity
       newBiz = BT.NewBusiness companyPrefix bizName bizUrl
-  [_newUserBR] <- GenBR.generateMultipleUsers [name]
+  let [_newUserBR] = GenBR.generateMultipleUsers [name]
   let userAuth = BasicAuthData "" "" -- TODO: Extract info from or associated with newUserBR.
   pubKey <- fmap expectJust $ liftIO $ readJWK pubKeyPath
   _insertedPrefix <- httpBR $ BRClient.addBusiness authToken newBiz

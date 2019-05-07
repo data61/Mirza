@@ -19,11 +19,9 @@ dummyBusiness unique = NewBusiness (GS1CompanyPrefix ("Business" <> unique <> "P
                                    (mockURI unique)
 
 
-dummyUser :: T.Text -> IO NewUser
-dummyUser unique = do
-  let newUserOAuthSub     = "User" <> unique <> "OAuthSub"
-  pure NewUser{..}
+dummyUser :: T.Text -> NewUser
+dummyUser unique = NewUser $ "User" <> unique <> "OAuthSub"
 
 
-generateMultipleUsers :: [T.Text] -> IO [NewUser]
-generateMultipleUsers = traverse dummyUser
+generateMultipleUsers :: [T.Text] -> [NewUser]
+generateMultipleUsers = fmap dummyUser

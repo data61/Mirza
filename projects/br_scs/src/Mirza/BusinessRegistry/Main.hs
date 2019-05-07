@@ -262,19 +262,19 @@ runPopulateDatabase opts = do
   let runWithContext = runAppM @_ @BRError context
   let right = fromRight (error "Error inserting user.")
 
-  b1u1    <- dummyUser "B1U1"
+  let b1u1 = dummyUser "B1U1"
   b1u1Result <- runWithContext $ addUserOnlyId b1u1
   let b1  =  dummyBusiness "1"
   _result <- runWithContext $ addBusiness (right b1u1Result) b1
-  b1u2    <- dummyUser "B1U2"
+  let b1u2 = dummyUser "B1U2"
   b1u2Result <- runWithContext $ addUserOnlyId b1u2
   _result <- runWithContext $ addOrganisationMapping (newBusinessGS1CompanyPrefix b1) (right b1u2Result)
 
-  b2u1    <- dummyUser "B2U1"
+  let b2u1 = dummyUser "B2U1"
   b2u1Result <- runWithContext $ addUserOnlyId b2u1
   let b2  =  dummyBusiness "2"
   _result <- runWithContext $ addBusiness (right b2u1Result) b2
-  b2u2    <- dummyUser "B2U2"
+  let b2u2 = dummyUser "B2U2"
   b2u2Result <- runWithContext $ addUserOnlyId b2u2
   _result <- runWithContext $ addOrganisationMapping (newBusinessGS1CompanyPrefix b2) (right b2u2Result)
 
