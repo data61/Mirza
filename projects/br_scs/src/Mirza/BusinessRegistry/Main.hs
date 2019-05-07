@@ -278,14 +278,7 @@ runPopulateDatabase opts = do
   b2u2Result <- runWithContext $ addUserOnlyId b2u2
   _result <- runWithContext $ addOrganisationMapping (newBusinessGS1CompanyPrefix b2) (right b2u2Result)
 
-
-  putStrLn "Credentials"
-  printCredentials b1u1
-  printCredentials b1u2
-  printCredentials b2u1
-  printCredentials b2u2
-
-  putStrLn "Full User Information"
+  putStrLn "Inserted Businesses and Users Information"
   print b1
   print b1u1
   print b1u2
@@ -294,12 +287,6 @@ runPopulateDatabase opts = do
   print b2u1
   print b2u2
 
-
-
-
-printCredentials :: NewUser -> IO ()
-printCredentials user = do
-  putStrLn $ "Username: " <> show (newUserOAuthSub user)
 
 
 --------------------------------------------------------------------------------
