@@ -10,6 +10,7 @@ module Mirza.Common.Utils
   , notImplemented
   , newUUID
   , handleError
+  , transformSqlUniqueViloationTemplate
   , handleSqlUniqueViloationTemplate
   , fromPgJSON
   , addLastUpdateTriggers
@@ -112,7 +113,7 @@ newUUID = liftIO nextRandom
 handleError :: MonadError err m => (err -> m a) -> m a -> m a
 handleError = flip catchError
 
-handleSqlUniqueViloationTemplate  :: (AsSqlError err, MonadError err m, MonadIO m)
+transformSqlUniqueViloationTemplate  :: (AsSqlError err, MonadError err m, MonadIO m)
                           => (SqlError -> err) -- ^ Handles every other unique constraint violation
                           -> ByteString        -- ^ UniqueViolation name.
                           -> (SqlError -> err) -- ^ A function which takes the original SQL error for the
@@ -120,12 +121,22 @@ handleSqlUniqueViloationTemplate  :: (AsSqlError err, MonadError err m, MonadIO 
                                                --   when the UniqueViolation name is matched.
                           -> err               -- ^ The error that we are catching.
                           -> m a
-handleSqlUniqueViloationTemplate f expectedName uniqueViolationError e = case e ^? _SqlError of
+transformSqlUniqueViloationTemplate f expectedName uniqueViolationError e = handleSqlUniqueViloationTemplate f expectedName (throwError . uniqueViolationError) e
+
+
+handleSqlUniqueViloationTemplate  :: (AsSqlError err, MonadError err m, MonadIO m)
+                                  => (SqlError -> err) -- ^ Handles every other unique constraint violation
+                                  -> ByteString        -- ^ UniqueViolation name.
+                                  -> (SqlError -> m a) -- ^ A function which takes the original SQL error for the
+                                                       --   UniqueViolation and handles what should happen in this case.
+                                  -> err               -- ^ The error that we are catching.
+                                  -> m a
+handleSqlUniqueViloationTemplate f expectedName action e = case e ^? _SqlError of
   Nothing -> throwError e
   Just sqlError ->
     case constraintViolation sqlError of
       Just (UniqueViolation violationName)
-        | violationName == expectedName -> throwError (uniqueViolationError sqlError)
+        | violationName == expectedName -> action sqlError
         | otherwise -> throwError (f sqlError)
       _ -> throwError e
 

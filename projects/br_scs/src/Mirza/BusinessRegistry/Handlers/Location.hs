@@ -54,7 +54,7 @@ addLocation auser newLoc = do
   newLocId <- newUUID
   newGeoLocId <- newUUID
   (fmap primaryKey)
-    . (handleError (handleSqlUniqueViloation "location_pkey" (\_sqlerr -> _LocationExistsBRE # ())))
+    . (handleError (transformSqlUniqueViloation "location_pkey" (\_sqlerr -> _LocationExistsBRE # ())))
     . runDb
     . addLocationQuery auser newLocId (GeoLocationId newGeoLocId)
     $ newLoc

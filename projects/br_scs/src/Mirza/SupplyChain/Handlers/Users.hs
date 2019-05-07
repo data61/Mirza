@@ -31,7 +31,7 @@ addUser :: (Member context '[HasDB, HasScryptParams],
         -> AppM context err ST.UserId
 addUser user =
     handleError
-      (handleSqlUniqueViloation
+      (transformSqlUniqueViloation
         "users_user_email_address_key"
         (const $ _EmailExists # (ST.newUserEmailAddress user))
       )

@@ -50,7 +50,7 @@ addUser :: ( Member context '[HasDB]
         => NewUser
         -> AppM context err Schema.User
 addUser =
-  (handleError (handleSqlUniqueViloation "users_email_address_key" (_UserCreationSQLErrorBRE #)))
+  (handleError (transformSqlUniqueViloation "users_email_address_key" (_UserCreationSQLErrorBRE #)))
   . runDb
   . addUserQuery
 

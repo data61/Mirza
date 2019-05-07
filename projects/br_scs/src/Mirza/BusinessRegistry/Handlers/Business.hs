@@ -72,7 +72,7 @@ addBusiness :: ( Member context '[HasDB]
                , Member err     '[AsBRError, AsSqlError])
             => BT.UserId -> NewBusiness -> AppM context err GS1CompanyPrefix
 addBusiness userId = (fmap business_gs1_company_prefix)
-  . (handleError (handleSqlUniqueViloation "businesses_pkey" (const $ _GS1CompanyPrefixExistsBRE # ())))
+  . (handleError (transformSqlUniqueViloation "businesses_pkey" (const $ _GS1CompanyPrefixExistsBRE # ())))
   . runDb
   . addBusinessAndInitialUserQuery userId
   . newBusinessToBusiness
@@ -98,6 +98,7 @@ addBusinessQuery biz@BusinessT{..} = do
     [insertedBusiness] -> pure insertedBusiness
     _                  -> throwing _UnexpectedErrorBRE callStack
 
+
 addOrganisationMappingAuth :: ( Member context '[HasDB]
                               , Member err     '[AsBRError, AsSqlError])
                            => BT.AuthUser -> GS1CompanyPrefix -> BT.UserId -> AppM context err NoContent
@@ -110,7 +111,14 @@ addOrganisationMappingAuth authUser gs1CompanyPrefix addedUserId = do
 addOrganisationMapping :: ( Member context '[HasDB]
                           , Member err     '[AsBRError, AsSqlError])
                        => GS1CompanyPrefix -> BT.UserId -> AppM context err OrganisationMapping
-addOrganisationMapping prefix user = runDb $ addOrganisationMappingQuery prefix user
+addOrganisationMapping prefix user =
+  -- We really probably should get the OrganisationMapping from the database here rather then constructing a new one,
+  -- which will mean that the updated time is correct rather then being empty, but this is not perfectly clean either
+  -- since in "theory" we need to permit for that database operation to fail. Other options include not returning the
+  -- OrganisationMappingT at all. Constructing the OrganisationMappingT seems reasonable for now.
+  (handleError (handleSqlUniqueViloation "organisation_mapping_pkey" (const $ pure (OrganisationMappingT (BizId prefix) (Schema.UserId $ getUserId user) Nothing))))
+  $ runDb
+  $ (addOrganisationMappingQuery prefix user)
 
 
 addOrganisationMappingQuery :: (AsBRError err, HasCallStack)
