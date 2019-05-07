@@ -25,7 +25,7 @@ export function Submit() {
         }),
         credentials: 'include'
       });
-      return fetch(url + '/event/objectEvent', request).then(function(res: Response) {
+      return fetch(request).then(function(res: Response) {
         console.log(res);
       }).catch(function(err) {
         console.error(err);
