@@ -12,7 +12,7 @@ module Mirza.BusinessRegistry.Auth
   , listUsersQuery
   , oauthClaimsToAuthUser
   , getUserByOAuthSubQuery
-  , userOrganisationAutherisation
+  , userOrganisationAutherisationQuery
   , checkUserExistsQuery
   ) where
 
@@ -93,12 +93,12 @@ getUserByOAuthSubQuery oauthSub = do
 -- Authorisation
 --------------------------------------------------------------------------------
 
-userOrganisationAutherisation :: ( Member context '[]
-                                 , Member err     '[AsBRError])
-                              => AuthUser
-                              -> GS1CompanyPrefix
-                              -> DB context err OrganisationMapping
-userOrganisationAutherisation (AuthUser (BT.UserId uId)) gs1CompantPrefix = do
+userOrganisationAutherisationQuery :: ( Member context '[]
+                                      , Member err     '[AsBRError])
+                                   => AuthUser
+                                   -> GS1CompanyPrefix
+                                   -> DB context err OrganisationMapping
+userOrganisationAutherisationQuery (AuthUser (BT.UserId uId)) gs1CompantPrefix = do
   maybeMapping <- pg $ runSelectReturningOne $ select $ do
     mapping <- all_ (_organisationMapping businessRegistryDB)
     guard_ (organisation_mapping_user_id mapping ==. val_ (Schema.UserId uId))

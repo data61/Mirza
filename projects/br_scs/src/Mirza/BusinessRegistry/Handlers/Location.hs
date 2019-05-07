@@ -77,7 +77,7 @@ addLocationQuery  :: ( Member context '[]
                   -> DB context err Location
 addLocationQuery authUser locId geoLocId newLoc = do
   let gs1CompanyPrefix = _sglnCompanyPrefix $ newLocGLN newLoc
-  mapping <- userOrganisationAutherisation authUser gs1CompanyPrefix
+  mapping <- userOrganisationAutherisationQuery authUser gs1CompanyPrefix
   let organisationId = (organisation_mapping_gs1_company_prefix mapping)
   let (loc,geoLoc) = newLocationToLocation locId geoLocId organisationId newLoc
   res <- pg $ runInsertReturningList (_locations businessRegistryDB) $ insertValues [loc]
