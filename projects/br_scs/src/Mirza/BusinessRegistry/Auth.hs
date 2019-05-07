@@ -109,8 +109,6 @@ userOrganisationAutherisation (AuthUser (BT.UserId uId)) gs1CompantPrefix = do
     Just mapping -> pure mapping
 
 
-
-
 -- This doesn't really belong anywhere atm, so for now it can go here, but can
 -- be moved somewhere better when a suitable location is found.
 checkUserExistsQuery :: (AsBRError err)
