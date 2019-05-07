@@ -24,7 +24,7 @@ import           Network.HTTP.Client                (defaultManagerSettings,
                                                      newManager)
 import           Network.Wai                        (Middleware)
 import qualified Network.Wai.Handler.Warp           as Warp
-import           Network.Wai.Middleware.Cors        (simpleCors)
+import           Network.Wai.Middleware.Cors
 
 import           Data.ByteString                    (ByteString)
 import           Data.Text                          (pack)
@@ -154,8 +154,20 @@ runDbPopulate so = do
   _ <- insertCitrusData scsUrl
   pure ()
 
+myCors :: Middleware
+myCors = cors (const $ Just policy)
+    where
+      policy = simpleCorsResourcePolicy
+        { corsRequestHeaders = ["Content-Type", "Authorization"]
+        , corsMethods = "PUT" : simpleMethods
+        , corsOrigins = Just ([
+            "http://localhost:8020"
+          , "http://localhost:8000"
+          ], True)
+        }
+
 initMiddleware :: ServerOptionsSCS -> IO Middleware
-initMiddleware _ = pure simpleCors
+initMiddleware _ = pure myCors
 
 initSCSContext :: ServerOptionsSCS -> IO ST.SCSContext
 initSCSContext (ServerOptionsSCS envT _ _ dbConnStr _ n p r lev (Just (brHost, bizRegPort)) mlogPath) = do

@@ -31,7 +31,7 @@ import           Database.PostgreSQL.Simple
 import           Network.URI                             (nullURI)
 import           Network.Wai                             (Middleware)
 import qualified Network.Wai.Handler.Warp                as Warp
-import           Network.Wai.Middleware.Cors             (simpleCors)
+import           Network.Wai.Middleware.Cors
 
 import           Data.Aeson                              (eitherDecodeFileStrict)
 
@@ -141,7 +141,7 @@ launchServer opts rso = do
       app <- initApplication completeContext
       mids <- initMiddleware opts rso
       putStrLn $ "http://localhost:" ++ show portNumber ++ "/swagger-ui/"
-      Warp.run (fromIntegral portNumber) (simpleCors app) `finally` closeScribes (BT._brKatipLogEnv completeContext)
+      Warp.run (fromIntegral portNumber) (mids app) `finally` closeScribes (BT._brKatipLogEnv completeContext)
 
 
 addServerOptions :: BRContextMinimal -> RunServerOptions -> IO BRContextComplete
@@ -179,8 +179,22 @@ initApplication ev =
           (server ev)
 
 
+myCors :: Middleware
+myCors = cors (const $ Just policy)
+    where
+      policy = simpleCorsResourcePolicy
+        { corsRequestHeaders = ["Content-Type", "Authorization"]
+        , corsMethods = "PUT" : simpleMethods
+        , corsOrigins = Just ([
+            "http://localhost:8080"
+          , "http://localhost:8081"
+          , "http://localhost:8020"
+          , "http://localhost:8000"
+          ], True)
+        }
+
 initMiddleware :: ServerOptionsBR -> RunServerOptions -> IO Middleware
-initMiddleware _ _ = pure simpleCors
+initMiddleware _ _ = pure myCors
 
 -- Implementation
 server :: BRContextComplete -> Server API
