@@ -65,9 +65,9 @@ listUsersQuery = pg $ runSelectReturningList $ select $
 
 
 oauthClaimsToAuthUser :: ( Member context '[HasEnvType, HasConnPool, HasLogging]
-                       , Member err     '[AsBRError, AsSqlError])
-                    => Servant.Auth.Server.AuthResult BT.VerifiedTokenClaims
-                    -> AppM context err BT.AuthUser
+                         , Member err     '[AsBRError, AsSqlError])
+                      => Servant.Auth.Server.AuthResult BT.VerifiedTokenClaims
+                      -> AppM context err BT.AuthUser
 oauthClaimsToAuthUser (Authenticated claims) = do
   maybeUser <- runDb (getUserByOAuthSubQuery $ verifiedTokenClaimsSub claims)
   case maybeUser of
