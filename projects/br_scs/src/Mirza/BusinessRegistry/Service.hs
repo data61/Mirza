@@ -72,8 +72,8 @@ publicServer :: ( Member context '[HasDB]
 publicServer =
        health
   :<|> versionInfo
-  :<|> getPublicKey
   :<|> getPublicKeyInfo
+  :<|> getPublicKey
   :<|> searchBusinesses
   :<|> getLocationByGLN
   :<|> searchLocation
@@ -84,12 +84,12 @@ privateServer :: ( Member context '[HasDB]
                  , APIPossibleErrors err)
               => ServerT ProtectedAPI (AppM context err)
 privateServer =      (transformUser0 addUserAuth)
+                :<|> (transformUser0 getBusinessInfo)
                 :<|> (transformUser1 addBusinessAuth)
                 :<|> (transformUser2 addOrganisationMappingAuth)
                 :<|> (transformUser2 addPublicKey)
                 :<|> (transformUser1 revokePublicKey)
                 :<|> (transformUser1 addLocation)
-                :<|> (transformUser0 getBusinessInfo)
   where
     -- Because decodeJWT is pure we can't properly transform our user which requires acess the database and the ability
     -- to fail using our error types. It would be nice to apply oauthClaimsToAuthUser uniformly to all endpoints, but

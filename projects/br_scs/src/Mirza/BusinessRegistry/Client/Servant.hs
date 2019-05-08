@@ -3,8 +3,8 @@ module Mirza.BusinessRegistry.Client.Servant
   -- * Public API
     health
   , versionInfo
-  , getPublicKey
   , getPublicKeyInfo
+  , getPublicKey
   , searchBusinesses
   , getLocationByGLN
   , searchLocation
@@ -42,8 +42,8 @@ import           Data.Text                              (Text)
 import           Data.Time                              (UTCTime)
 
 health           :: ClientM HealthResponse
-getPublicKey     :: BRKeyId -> ClientM JWK
 getPublicKeyInfo :: BRKeyId -> ClientM KeyInfoResponse
+getPublicKey     :: BRKeyId -> ClientM JWK
 searchBusinesses :: Maybe GS1CompanyPrefix -> Maybe Text -> Maybe UTCTime -> ClientM [BusinessResponse]
 getLocationByGLN :: LocationEPC -> ClientM LocationResponse
 searchLocation   :: Maybe GS1CompanyPrefix -> Maybe UTCTime -> ClientM [LocationResponse]
@@ -66,8 +66,8 @@ _api@(
   _pubAPI@(
          health
     :<|> versionInfo
-    :<|> getPublicKey
     :<|> getPublicKeyInfo
+    :<|> getPublicKey
     :<|> searchBusinesses
     :<|> getLocationByGLN
     :<|> searchLocation
@@ -77,12 +77,12 @@ _api@(
   :<|>
   _privAPI@(
          addUser
+    :<|> getBusinessInfo
     :<|> addBusiness
     :<|> addUserToBusiness
     :<|> addPublicKey
     :<|> revokePublicKey
     :<|> addLocation
-    :<|> getBusinessInfo
   )
  ) = client (Proxy :: Proxy ServerAPI)
 
