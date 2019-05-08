@@ -47,7 +47,7 @@ import           Mirza.Common.GS1BeamOrphans                  ()
 import qualified Crypto.JOSE                                  as JOSE
 
 
-appHandlers :: (Member context '[HasDB, HasScryptParams, HasBRClientEnv],
+appHandlers :: (Member context '[HasDB, HasBRClientEnv],
                 Member err     '[JOSE.AsError, AsServiceError, AsServantError, AsBRError, AsSqlError])
             => ServerT ServerAPI (AppM context err)
 appHandlers =

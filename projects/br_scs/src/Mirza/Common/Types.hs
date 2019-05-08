@@ -30,7 +30,6 @@ module Mirza.Common.Types
   , AsSqlError(..)
   , HasConnPool(..)
   , HasEnvType(..)
-  , HasScryptParams(..)
   , HasKatipContext(..)
   , HasKatipLogEnv(..)
   , HasBRClientEnv(..)
@@ -76,7 +75,6 @@ import           Data.Pool                            as Pool
 import           Crypto.JOSE                          (JWK, JWS, JWSHeader,
                                                        Signature)
 import           Crypto.JOSE.Types                    (Base64Octets)
-import           Crypto.Scrypt                        (ScryptParams)
 
 import qualified Data.ByteString                      as BS
 import           Data.Text                            (Text)
@@ -242,9 +240,6 @@ class AsSqlError a where
 instance AsSqlError SqlError where
   _SqlError = id
 
--- | The class of contexts which have Scrypt parameters
-class HasScryptParams a where
-  scryptParams :: Lens' a ScryptParams
 
 -- Logging classes
 -- ===============

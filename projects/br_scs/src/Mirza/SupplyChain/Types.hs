@@ -26,7 +26,6 @@ import           Database.PostgreSQL.Simple   (Connection, SqlError)
 
 import           Crypto.JOSE                  as JOSE hiding (Digest)
 import           Crypto.JOSE.Types            (Base64Octets)
-import           Crypto.Scrypt                (ScryptParams)
 
 import           Servant                      (ToHttpApiData)
 import           Servant.Client               (ClientEnv (..),
@@ -57,7 +56,6 @@ import           Mirza.BusinessRegistry.Types (AsBRError (..), BRError)
 data SCSContext = SCSContext
   { _scsEnvType          :: EnvType
   , _scsDbConnPool       :: Pool Connection
-  , _scsScryptPs         :: ScryptParams
   , _scsKatipLogEnv      :: K.LogEnv
   , _scsKatipLogContexts :: K.LogContexts
   , _scsKatipNamespace   :: K.Namespace
@@ -67,7 +65,6 @@ $(makeLenses ''SCSContext)
 
 instance HasEnvType SCSContext where envType = scsEnvType
 instance HasConnPool SCSContext where connPool = scsDbConnPool
-instance HasScryptParams SCSContext where scryptParams = scsScryptPs
 instance HasBRClientEnv SCSContext where clientEnv = scsBRClientEnv
 instance HasKatipLogEnv SCSContext where katipLogEnv = scsKatipLogEnv
 instance HasKatipContext SCSContext where

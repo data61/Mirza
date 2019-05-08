@@ -68,7 +68,7 @@ testDbConnectionStringSCS = databaseNameToConnectionString testDbNameSCS
 
 mkSoSCS :: BaseUrl -> Maybe FilePath -> ServerOptionsSCS
 mkSoSCS (BaseUrl _ brHost brPrt _) =
-  ServerOptionsSCS Dev False Nothing connectionString ("localhost", 8000) 14 8 1 DebugS (Just (brHost, brPrt)) where
+  ServerOptionsSCS Dev False Nothing connectionString ("localhost", 8000) DebugS (Just (brHost, brPrt)) where
     connectionString = getDatabaseConnectionString testDbConnectionStringSCS
 
 runSCSApp :: BaseUrl -> IO (ThreadId, BaseUrl)
