@@ -325,7 +325,7 @@ runBootstrap opts oAuthSub companyPrefix = do
   where
     bootstrapUser :: Text -> NewUser
     bootstrapUser oAuthSubSuffix = do
-      let newUserOAuthSub     = "bootstrapped-user-oauth-sub" <> oAuthSubSuffix
+      let newUserOAuthSub     = "bootstrapped-user-oauth-sub-" <> oAuthSubSuffix
       NewUser{..}
 
     bootstrapBusiness :: GS1CompanyPrefix -> NewBusiness
