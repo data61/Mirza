@@ -24,10 +24,13 @@ import           GHC.Stack                                (HasCallStack, callSta
 
 
 -- Nothing needs to be done by this endpoint, because by the time that this
--- function is called the user will already be added to the users table. This
--- could be achieved by calling any of the other private endpoints, but we have
--- made this endpoint so that there is a well defined intuitive process for
--- "regsitering" a user with the system.
+-- function is called the user will already be added to the users table (this
+-- happens via `(transformUser0 addUserAuth)` which calls `oauthClaimsToAuthUser`
+-- and adds the user to the database if not present). This could be achieved by
+-- calling any of the other private endpoints, but we have made this endpoint so
+-- that there is a well defined intuitive process for "regsitering" a user with
+-- the system. This function also acts as a placeholder incase we ever want to
+-- add any other associated metadata when adding a user to the system.
 addUserAuth :: AuthUser -> AppM context err NoContent
 addUserAuth _ = pure NoContent
 
