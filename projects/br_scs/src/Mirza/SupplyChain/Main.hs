@@ -33,8 +33,6 @@ import           Options.Applicative
 
 import           Control.Lens
 
-import qualified Crypto.Scrypt                      as Scrypt
-
 import           Control.Exception                  (finally)
 import           Data.Maybe                         (fromMaybe)
 import           Katip                              as K
@@ -50,9 +48,6 @@ data ServerOptionsSCS = ServerOptionsSCS
   , dbPopulateInfo :: Maybe (ByteString, ByteString)
   , connectionStr  :: ByteString
   , scsServiceInfo :: (String, Int) -- Maybe (scsHost, scsPort)
-  , sScryptN       :: Integer
-  , sScryptP       :: Integer
-  , sScryptR       :: Integer
   , loggingLevel   :: K.Severity
   , brServiceInfo  :: Maybe (String, Int) -- Maybe (brhost, brport)
   , loggingPath    :: Maybe FilePath
@@ -88,15 +83,6 @@ serverOptions = ServerOptionsSCS
             <*>
             option auto (long "scsport" <> value 8000 <> help "Port to run the supply chain server on")
           )
-      <*> option auto
-          (long "scryptN" <> value 14 <> showDefault
-          <> help "Scrypt N parameter (>= 14)")
-      <*> option auto
-          (long "scryptP" <> value 8 <> showDefault
-          <> help "Scrypt r parameter (>= 8)")
-      <*> option auto
-          (long "scryptR" <> value 1 <> showDefault
-          <> help "Scrypt r parameter (>= 1)")
       <*> option auto
           (long "log-level" <> value InfoS <> showDefault
           <> help ("Logging level: " ++ show [minBound .. maxBound :: Severity]))
@@ -157,17 +143,12 @@ initMiddleware :: ServerOptionsSCS -> IO Middleware
 initMiddleware _ = pure id
 
 initSCSContext :: ServerOptionsSCS -> IO ST.SCSContext
-initSCSContext (ServerOptionsSCS envT _ _ dbConnStr _ n p r lev (Just (brHost, bizRegPort)) mlogPath) = do
+initSCSContext (ServerOptionsSCS envT _ _ dbConnStr _ lev (Just (brHost, bizRegPort)) mlogPath) = do
   logHandle <- maybe (pure stdout) (`openFile` AppendMode) mlogPath
   hPutStrLn stderr $ "Logging will be to: " <> fromMaybe "stdout" mlogPath
   handleScribe <- mkHandleScribe ColorIfTerminal logHandle lev V3
   logEnv <- initLogEnv "supplyChainServer" (Environment . pack . show $ envT)
             >>= registerScribe "stdout" handleScribe defaultScribeSettings
-  params <- case Scrypt.scryptParams (max n 14) (max p 8) (max r 1) of
-    Just scparams -> pure scparams
-    Nothing -> do
-      putStrLn $ "Invalid Scrypt params:" ++ show (n,p,r) ++ " using defaults"
-      pure Scrypt.defaultParams
   connpool <- Pool.createPool (connectPostgreSQL dbConnStr) close
                       1 -- Number of "sub-pools",
                       60 -- How long in seconds to keep a connection open for reuse
@@ -179,7 +160,6 @@ initSCSContext (ServerOptionsSCS envT _ _ dbConnStr _ n p r lev (Just (brHost, b
   pure $ SCSContext
           envT
           connpool
-          params
           logEnv
           mempty
           mempty
