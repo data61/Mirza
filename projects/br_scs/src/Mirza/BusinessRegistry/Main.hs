@@ -305,7 +305,7 @@ runPopulateDatabase opts = do
 -- but we need to do much more work here when we deal with permssions in general.
 runBootstrap :: ServerOptionsBR -> Text -> GS1CompanyPrefix -> IO ()
 runBootstrap opts oAuthSub companyPrefix = do
-  let newUser = bootstrapUser email
+  let newUser = bootstrapUser oAuthSub
   let newBusiness = bootstrapBusiness companyPrefix
 
   context <- initBRContext opts
