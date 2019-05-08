@@ -39,16 +39,13 @@ import           Data.ByteString                         (ByteString)
 import qualified Data.ByteString.Char8                   as BS
 import           Data.Semigroup                          ((<>))
 import           Data.Text                               (Text, pack)
-import           Data.Text.Encoding                      (decodeUtf8,
-                                                          encodeUtf8)
 import           Options.Applicative                     hiding (action)
 import           Text.Email.Parser                       (addrSpec)
-import           Text.Email.Validate                     (toByteString,
-                                                          validate)
 
 import           Control.Exception                       (finally)
 import           Control.Lens                            (review)
 import           Data.Maybe                              (fromMaybe)
+import           Data.Either                             (fromRight)
 import           Katip                                   as K
 import           System.IO                               (IOMode (AppendMode),
                                                           hPutStr, openFile,
@@ -81,7 +78,7 @@ data ExecMode
   | UserAction UserCommand
   | BusinessAction BusinessCommand
   | PopulateDatabase  -- TODO: This option should be removed....this is for testing and debugging only.
-  | Bootstrap EmailAddress GS1CompanyPrefix
+  | Bootstrap Text GS1CompanyPrefix
 
 data ServerOptionsBR = ServerOptionsBR
   { sobDbConnStr    :: ByteString
@@ -120,12 +117,12 @@ main = multiplexInitOptions =<< execParser opts where
 -- where the single binary could be split into multiple binaries.
 multiplexInitOptions :: InitOptionsBR -> IO ()
 multiplexInitOptions (InitOptionsBR opts mode) = case mode of
-  RunServer rsOpts              -> launchServer opts rsOpts
-  InitDb                        -> runMigration opts
-  UserAction uc                 -> runUserCommand opts uc
-  BusinessAction bc             -> runBusinessCommand opts bc
-  PopulateDatabase              -> runPopulateDatabase opts
-  Bootstrap email companyPrefix -> runBootstrap opts email companyPrefix
+  RunServer rsOpts                       -> launchServer opts rsOpts
+  InitDb                                 -> runMigration opts
+  UserAction uc                          -> runUserCommand opts uc
+  BusinessAction bc                      -> runBusinessCommand opts bc
+  PopulateDatabase                       -> runPopulateDatabase opts
+  Bootstrap oAuthSubSuffix companyPrefix -> runBootstrap opts oAuthSubSuffix companyPrefix
 
 
 --------------------------------------------------------------------------------
@@ -223,21 +220,7 @@ runUserCommand opts UserAdd = do
 interactivelyGetNewUser :: IO NewUser
 interactivelyGetNewUser = do
   newUserOAuthSub     <- pack <$> prompt "OAuthSub:"
-  newUserEmailAddress <- getUserEmailInteractive
-  newUserCompany      <- GS1CompanyPrefix . read <$> prompt "GS1CompanyPrefix:"
-  newUserFirstName    <- pack <$> prompt "First Name:"
-  newUserLastName     <- pack <$> prompt "Last Name:"
-  newUserPhoneNumber  <- pack <$> prompt "Phone Number:"
   pure NewUser{..}
-
-getUserEmailInteractive :: IO EmailAddress
-getUserEmailInteractive = do
-  userEmail <- encodeUtf8 . pack <$> prompt "Email Address"
-  case validate userEmail of
-    Left reason -> do
-      putStrLn $ "Invalid Email. Reason: " ++ reason
-      getUserEmailInteractive
-    Right email -> pure email
 
 
 --------------------------------------------------------------------------------
@@ -275,86 +258,82 @@ prompt message = putStrLn message *> getLine
 
 runPopulateDatabase :: ServerOptionsBR -> IO ()
 runPopulateDatabase opts = do
-  ctx     <- initBRContext opts
+  context     <- initBRContext opts
+  let runWithContext = runAppM @_ @BRError context
+  let right = fromRight (error "Error inserting user.")
 
+  let b1u1 = dummyUser "B1U1"
+  b1u1Result <- runWithContext $ addUserOnlyId b1u1
   let b1  =  dummyBusiness "1"
-  _result <- runAppM @_ @BRError ctx $ addBusiness b1
-  u1b1    <- dummyUser "B1U1" (newBusinessGS1CompanyPrefix b1)
-  u2b1    <- dummyUser "B1U2" (newBusinessGS1CompanyPrefix b1)
-  _result <- runAppM @_ @BRError ctx $
-             runDb (mapM addUserQuery [u1b1, u2b1])
+  _result <- runWithContext $ addBusiness (right b1u1Result) b1
+  let b1u2 = dummyUser "B1U2"
+  b1u2Result <- runWithContext $ addUserOnlyId b1u2
+  _result <- runWithContext $ addOrganisationMapping (newBusinessGS1CompanyPrefix b1) (right b1u2Result)
 
+  let b2u1 = dummyUser "B2U1"
+  b2u1Result <- runWithContext $ addUserOnlyId b2u1
   let b2  =  dummyBusiness "2"
-  _result <- runAppM @_ @BRError ctx $ addBusiness b2
-  u1b2    <- dummyUser "B2U1" (newBusinessGS1CompanyPrefix b2)
-  u2b2    <- dummyUser "B2U2" (newBusinessGS1CompanyPrefix b2)
-  _result <- runAppM @_ @BRError ctx $
-             runDb (mapM addUserQuery [u1b2, u2b2])
+  _result <- runWithContext $ addBusiness (right b2u1Result) b2
+  let b2u2 = dummyUser "B2U2"
+  b2u2Result <- runWithContext $ addUserOnlyId b2u2
+  _result <- runWithContext $ addOrganisationMapping (newBusinessGS1CompanyPrefix b2) (right b2u2Result)
 
-  putStrLn "Credentials"
-  printCredentials u1b1
-  printCredentials u2b1
-  printCredentials u1b2
-  printCredentials u2b2
-
-  putStrLn "Full User Information"
+  putStrLn "Inserted Businesses and Users Information"
   print b1
-  print u1b1
-  print u2b1
+  print b1u1
+  print b1u2
 
   print b2
-  print u1b2
-  print u2b2
+  print b2u1
+  print b2u2
 
-
-
-
-printCredentials :: NewUser -> IO ()
-printCredentials user = do
-  putStrLn $ "Username: " <> show (newUserEmailAddress user)
 
 
 --------------------------------------------------------------------------------
 -- Bootstrap Command
 --------------------------------------------------------------------------------
 
+-- TODO: Remove this. This functionality is now redundant with our new user
+-- model, but leaving this here for now because we still have some unresolved
+-- user issues and so will leave this until we are sure that there is no longer
+-- any use for it whatsoever.
 -- This command is a bit of a hack. We need it so that we can noninteractively
 -- add a user to the database so that this user can authenticate over the API
 -- and add other users and businesses into the database. The fact that this user
 -- doesn't take proper credentials suggests that our user model is wrong
 -- (incomplete)... i.e. we need users that aren't associated with businesses,
 -- but we need to do much more work here when we deal with permssions in general.
-runBootstrap :: ServerOptionsBR -> EmailAddress -> GS1CompanyPrefix -> IO ()
-runBootstrap opts email companyPrefix = do
+runBootstrap :: ServerOptionsBR -> Text -> GS1CompanyPrefix -> IO ()
+runBootstrap opts oAuthSub companyPrefix = do
+  let newUser = bootstrapUser oAuthSub
   let newBusiness = bootstrapBusiness companyPrefix
-  let newUser = bootstrapUser email companyPrefix
 
-  ctx        <- initBRContext opts
-  -- We ignore the business insert result, because the business may already
-  -- exist and so for now we just try best effort on the user because thats what
-  -- we care about. Can always improve the check and error handling here later
-  -- if we need to improve the reliability or error reporting.
-  _result    <- runAppM @_ @BRError ctx $ addBusiness newBusiness
-  userResult <- runAppM @_ @BRError ctx $ addUser newUser
+  context <- initBRContext opts
+
+  userResult <- runAppM @_ @BRError context $ addUser newUser
   either (print @BRError) print userResult
 
+  -- We ignore the business insert result, for now we just try best effort.
+  -- Can always improve the check and error handling here later if we need to
+  -- improve the reliability or error reporting.
+  case userResult of
+      Right user -> do
+                    businessResult <- runAppM @_ @BRError context $ addBusiness (CT.UserId $ user_id user) newBusiness
+                    either (print @BRError) print businessResult
+      Left _     -> putStrLn "Error inserting user, skipping adding organisation."
+
   where
+    bootstrapUser :: Text -> NewUser
+    bootstrapUser oAuthSubSuffix = do
+      let newUserOAuthSub     = "bootstrapped-user-oauth-sub-" <> oAuthSubSuffix
+      NewUser{..}
+
     bootstrapBusiness :: GS1CompanyPrefix -> NewBusiness
     bootstrapBusiness prefix = do
       let newBusinessGS1CompanyPrefix = prefix
       let newBusinessName             = "Bootstrapped Business"
       let newBusinessUrl              = nullURI
       NewBusiness{..}
-
-    bootstrapUser :: EmailAddress -> GS1CompanyPrefix -> NewUser
-    bootstrapUser userEmail company = do
-      let newUserOAuthSub     = "bootstrapped-user-oauth-sub" <> decodeUtf8 (toByteString userEmail)
-      let newUserEmailAddress = userEmail
-      let newUserCompany      = company
-      let newUserFirstName    = "Bootstrapped User"
-      let newUserLastName     = "Bootstrapped User"
-      let newUserPhoneNumber  = ""
-      NewUser{..}
 
 --------------------------------------------------------------------------------
 -- Command Line Options Argument Parsers
@@ -482,15 +461,15 @@ businessList = pure BusinessList
 
 
 bootstrap :: Parser ExecMode
-bootstrap = Bootstrap <$> emailParser <*> companyPrefixParser
+bootstrap = Bootstrap <$> oAuthSubSuffixParser <*> companyPrefixParser
 
 
 populateDb :: Parser ExecMode
 populateDb = pure PopulateDatabase
 
 
-emailParser :: Parser EmailAddress
-emailParser = argument emailReader (metavar "EmailAddress")
+oAuthSubSuffixParser :: Parser Text
+oAuthSubSuffixParser = argument str (metavar "oAuth Sub Suffix")
 
 
 emailReader :: ReadM EmailAddress

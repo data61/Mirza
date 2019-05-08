@@ -52,35 +52,32 @@ serverAPI = Proxy
 
 
 type PublicAPI =
-       "healthz"                                          :> Get '[JSON] HealthResponse
-  :<|> "version"                                          :> Get '[JSON] String
-  :<|> "key"      :> "get"     :> Capture "keyId" BRKeyId :> Get '[JSON] JWK
-  :<|> "key"      :> "getInfo" :> Capture "keyId" BRKeyId :> Get '[JSON] KeyInfoResponse
-  :<|> "business" :> "search"
+       "healthz" :> Get '[JSON] HealthResponse
+  :<|> "version" :> Get '[JSON] String
+  :<|> "keys"          :> Capture "keyId" BRKeyId          :> Get '[JSON] KeyInfoResponse
+  :<|> "keys"          :> Capture "keyId" BRKeyId :> "jwk" :> Get '[JSON] JWK
+  :<|> "organisations"
       :> QueryParam "gs1id" GS1CompanyPrefix
       :> QueryParam "name" Text
       :> QueryParam "modifiedsince" UTCTime
       :> Get '[JSON] [BusinessResponse]
-  :<|> "location"  :> "get"      :> Capture "GLN" EPC.LocationEPC :> Get  '[JSON] LocationResponse
-  :<|> "location"  :> "search"
+  :<|> "locations"  :> Capture "GLN" EPC.LocationEPC       :> Get  '[JSON] LocationResponse
+  :<|> "locations"
       :> QueryParam "gs1id" GS1CompanyPrefix
       :> QueryParam "modifiedsince" UTCTime
       :> Get '[JSON] [LocationResponse]
-  :<|> "prototype" :> "location" :> "ux" :> QueryParams "gs1companyprefix" GS1CompanyPrefix :> Get '[JSON] [BusinessAndLocationResponse]
-  :<|> "prototype" :> "location" :> "uxgln"
+  :<|> "prototype" :> "locations" :> "ux" :> QueryParams "gs1companyprefix" GS1CompanyPrefix :> Get '[JSON] [BusinessAndLocationResponse]
+  :<|> "prototype" :> "locations" :> "uxgln"
           :> Capture "GLN" EPC.LocationEPC
           :> Capture "gs1companyprefix" GS1CompanyPrefix
           :> Get '[JSON] BusinessAndLocationResponse
 
 
 type PrivateAPI =
-       -- TODO: Note the following end point does't really make sense any more, it has only been left in place for now
-       --       because the plan is to basically refactor it into an associate user with a business end point.
-       "user"      :> "add"      :> ReqBody '[JSON] NewUser     :> Post '[JSON] UserId
-  :<|> "business"  :> "add"      :> ReqBody '[JSON] NewBusiness :> Post '[JSON] GS1CompanyPrefix
-  :<|> "key"       :> "add"      :> ReqBody '[JSON] JWK         :> QueryParam "expirationTime" ExpirationTime :> Post '[JSON] BRKeyId
-  :<|> "key"       :> "revoke"   :> Capture "keyId" BRKeyId     :> Post '[JSON] RevocationTime
-  :<|> "location"  :> "add"      :> ReqBody '[JSON] NewLocation :> Post '[JSON] LocationId
-  :<|> "company"   :> Get '[JSON] [BusinessResponse]
-
-
+       "user"          :> Put '[JSON] NoContent
+  :<|> "user"          :> "organisations"                                                                           :> Get '[JSON] [BusinessResponse]
+  :<|> "organisations" :> "add"      :> ReqBody '[JSON] NewBusiness                                                 :> Post '[JSON] GS1CompanyPrefix
+  :<|> "organisations" :> Capture "gs1CompanyPrefix" GS1CompanyPrefix :> "member" :> Capture "userId" UserId        :> Put '[JSON] NoContent
+  :<|> "keys"          :> ReqBody '[JSON] JWK                         :> QueryParam "expirationTime" ExpirationTime :> Post '[JSON] BRKeyId
+  :<|> "keys"          :> Capture "keyId" BRKeyId                     :> "revoke"                                   :> Post '[JSON] RevocationTime
+  :<|> "locations"     :> ReqBody '[JSON] NewLocation                                                               :> Post '[JSON] LocationId

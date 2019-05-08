@@ -3,46 +3,42 @@
 
 module Mirza.BusinessRegistry.Handlers.Users
   (
-    addUser
+    addUserAuth
+  , addUser
   , addUserOnlyId
-  , addUserAuth
   , addUserQuery
   , getUserByIdQuery
   ) where
 
 import           Mirza.BusinessRegistry.Database.Schema   hiding (UserId)
 import qualified Mirza.BusinessRegistry.Database.Schema   as Schema
-import           Mirza.BusinessRegistry.SqlUtils
-
 import           Mirza.BusinessRegistry.Types             as BRT
 import           Mirza.Common.Utils
+
+import           Servant.API                              (NoContent (..))
 
 import           Database.Beam                            as B
 import           Database.Beam.Backend.SQL.BeamExtensions
 
-import           Control.Lens                             ((#))
-import           Control.Monad                            (when)
-import           Data.Maybe                               (isNothing)
-
 import           GHC.Stack                                (HasCallStack, callStack)
 
 
--- This function is an interface adapter and adds the BT.AuthUser argument to
--- addUser so that we can use it from behind the private API. This argument
--- is not used in the current implementation as it is assumed that all users
--- will have the ability to act globally.
-addUserAuth :: ( Member context '[HasDB]
-               , Member err     '[AsBRError, AsSqlError])
-            => AuthUser
-            -> NewUser
-            -> AppM context err UserId
-addUserAuth _authUser = addUserOnlyId
+-- Nothing needs to be done by this endpoint, because by the time that this
+-- function is called the user will already be added to the users table (this
+-- happens via `(transformUser0 addUserAuth)` which calls `oauthClaimsToAuthUser`
+-- and adds the user to the database if not present). This could be achieved by
+-- calling any of the other private endpoints, but we have made this endpoint so
+-- that there is a well defined intuitive process for "regsitering" a user with
+-- the system. This function also acts as a placeholder incase we ever want to
+-- add any other associated metadata when adding a user to the system.
+addUserAuth :: AuthUser -> AppM context err NoContent
+addUserAuth _ = pure NoContent
 
 
 addUserOnlyId :: ( Member context '[HasDB]
-           , Member err     '[AsBRError, AsSqlError])
-        => NewUser
-        -> AppM context err UserId
+                 , Member err     '[AsBRError, AsSqlError])
+              => NewUser
+              -> AppM context err UserId
 addUserOnlyId user = (UserId . user_id) <$> (addUser user)
 
 
@@ -50,30 +46,19 @@ addUser :: ( Member context '[HasDB]
            , Member err     '[AsBRError, AsSqlError])
         => NewUser
         -> AppM context err Schema.User
-addUser =
-  (handleError (handleSqlUniqueViloation "users_email_address_key" (_UserCreationSQLErrorBRE #)))
-  . runDb
-  . addUserQuery
+addUser = runDb . addUserQuery
 
 
--- | Hashes the password of the NewUser and inserts the user into the database
+-- | Inserts the user into the database.
 addUserQuery :: (AsBRError err, HasCallStack)
              => NewUser
              -> DB context err Schema.User
-addUserQuery (BRT.NewUser oauthSub userEmail biz firstName lastName phone) = do
+addUserQuery (BRT.NewUser oauthSub) = do
   userId <- newUUID
-  business <- pg $ runSelectReturningOne $ select $ do
-    businesses <- all_ (Schema._businesses Schema.businessRegistryDB)
-    guard_ (business_gs1_company_prefix businesses ==. val_ biz)
-    pure businesses
-  when (isNothing business) $ throwing_ _BusinessDoesNotExistBRE
-
   -- TODO: use Database.Beam.Backend.SQL.runReturningOne?
   res <- pg $ runInsertReturningList (Schema._users Schema.businessRegistryDB) $
       insertValues
-       [Schema.UserT userId oauthSub (Schema.BizId  biz) firstName lastName
-               phone userEmail Nothing
-       ]
+       [Schema.UserT userId oauthSub Nothing]
   case res of
       [r] -> pure $ r
       -- The user creation has failed, but we can't really think of what would lead to this case.

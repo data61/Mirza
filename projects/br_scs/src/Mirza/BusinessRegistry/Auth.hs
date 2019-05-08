@@ -12,6 +12,8 @@ module Mirza.BusinessRegistry.Auth
   , listUsersQuery
   , oauthClaimsToAuthUser
   , getUserByOAuthSubQuery
+  , userOrganisationAuthorisationQuery
+  , checkUserExistsQuery
   ) where
 
 import           Mirza.BusinessRegistry.Database.Schema as Schema
@@ -26,15 +28,19 @@ import           Database.Beam                          as B
 import           Servant
 import           Servant.Auth.Server
 
-import           Control.Lens
-
-import           Text.Email.Validate                    (unsafeEmailAddress)
+import           Control.Lens                           hiding (mapping)
 
 import           Data.Text                              (Text)
 import           Data.Functor                           (void)
+import           Data.Maybe                             (isNothing)
+import           Control.Monad                          (when)
 
 import           Crypto.JWT                              (Audience (..))
 
+
+--------------------------------------------------------------------------------
+-- Authentication
+--------------------------------------------------------------------------------
 
 -- | We need to supply our handlers with the right Context. In this case,
 -- JWT requires a Context Entry with the 'JWTSettings and CookiesSettings values.
@@ -59,20 +65,16 @@ listUsersQuery = pg $ runSelectReturningList $ select $
 
 
 oauthClaimsToAuthUser :: ( Member context '[HasEnvType, HasConnPool, HasLogging]
-                       , Member err     '[AsBRError, AsSqlError])
-                    => Servant.Auth.Server.AuthResult BT.VerifiedTokenClaims
-                    -> AppM context err BT.AuthUser
+                         , Member err     '[AsBRError, AsSqlError])
+                      => Servant.Auth.Server.AuthResult BT.VerifiedTokenClaims
+                      -> AppM context err BT.AuthUser
 oauthClaimsToAuthUser (Authenticated claims) = do
   maybeUser <- runDb (getUserByOAuthSubQuery $ verifiedTokenClaimsSub claims)
   case maybeUser of
     Just user -> pure $ tableUserToAuthUser user
     Nothing   -> tableUserToAuthUser <$> (addUser promotedUser)
   where
-    -- TODO: Prmoted user is a hack, this allows us to update the auth process without changing to much of the
-    --       user structure. For this to work there needs to be a company with the GS1CompanyPrefix "bootstrap"
-    --       as it is an assumption of this code. In phase 2 of this implementation we will come back and remove
-    --       all of the additional user metadata which is no longer needed.
-    promotedUser = NewUser (verifiedTokenClaimsSub claims) (unsafeEmailAddress "promoted-user" "example.com") (GS1CompanyPrefix "bootstrap") "" "" ""
+    promotedUser = NewUser (verifiedTokenClaimsSub claims)
 oauthClaimsToAuthUser failure = throwing _UserAuthFailureBRE (void failure)
 
 
@@ -85,3 +87,36 @@ getUserByOAuthSubQuery oauthSub = do
   case r of
     [user] -> pure $ Just user
     _      -> pure Nothing
+
+
+--------------------------------------------------------------------------------
+-- Authorisation
+--------------------------------------------------------------------------------
+
+userOrganisationAuthorisationQuery :: ( Member context '[]
+                                      , Member err     '[AsBRError])
+                                   => AuthUser
+                                   -> GS1CompanyPrefix
+                                   -> DB context err OrganisationMapping
+userOrganisationAuthorisationQuery (AuthUser (BT.UserId uId)) gs1CompantPrefix = do
+  maybeMapping <- pg $ runSelectReturningOne $ select $ do
+    mapping <- all_ (_organisationMapping businessRegistryDB)
+    guard_ (organisation_mapping_user_id mapping ==. val_ (Schema.UserId uId))
+    guard_ (organisation_mapping_gs1_company_prefix mapping ==. val_ (BizId gs1CompantPrefix))
+    pure $ mapping
+  case maybeMapping of
+    Nothing -> throwing _OperationNotPermittedBRE (gs1CompantPrefix, BT.UserId uId)
+    Just mapping -> pure mapping
+
+
+-- This doesn't really belong anywhere atm, so for now it can go here, but can
+-- be moved somewhere better when a suitable location is found.
+checkUserExistsQuery :: (AsBRError err)
+                => BT.UserId -> DB context err ()
+checkUserExistsQuery userId = do
+  user <- pg $ runSelectReturningOne $ select $ do
+    user <- all_ (Schema._users Schema.businessRegistryDB)
+    guard_ (user_id user ==. val_ (getUserId userId))
+    pure user
+  when (isNothing user) $ throwing_ _UnknownUserBRE
+  pure ()

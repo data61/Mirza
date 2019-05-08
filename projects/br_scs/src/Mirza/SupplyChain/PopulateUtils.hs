@@ -31,8 +31,6 @@ import qualified Data.Text                             as T
 import           Servant.API.BasicAuth                 (BasicAuthData (..))
 import           Servant.Auth.Client                   (Token)
 
-import           Text.Email.Validate                   (toByteString)
-
 import           Data.Hashable                         (Hashable (..))
 import           Data.HashMap.Lazy                     as H
 
@@ -115,13 +113,12 @@ insertAndAuth scsUrl brUrl authToken locMap ht (entity:entities) = do
   let httpBR = runClient brUrl
       (Entity name companyPrefix bizName bizUrl locations (KeyPairPaths _ pubKeyPath)) = entity
       newBiz = BT.NewBusiness companyPrefix bizName bizUrl
-  [newUserBR] <- GenBR.generateMultipleUsers [(name, companyPrefix)]
-  let userAuth = BasicAuthData
-                  (toByteString . BT.newUserEmailAddress $ newUserBR)
-                  ""
+  let [_newUserBR] = GenBR.generateMultipleUsers [name]
+  let userAuth = BasicAuthData "" "" -- TODO: Extract info from or associated with newUserBR.
   pubKey <- fmap expectJust $ liftIO $ readJWK pubKeyPath
   _insertedPrefix <- httpBR $ BRClient.addBusiness authToken newBiz
-  _insertedUserIdBR <- httpBR $ BRClient.addUser authToken newUserBR
+  -- TODO: Create a user for associating with tests.
+  --_insertedUserIdBR <- httpBR $ BRClient.addUser authToken newUserBR
   brKeyId <- fmap expectRight $ httpBR $ BRClient.addPublicKey authToken pubKey Nothing
 
   let newLocs = flip H.lookup locMap <$> locations

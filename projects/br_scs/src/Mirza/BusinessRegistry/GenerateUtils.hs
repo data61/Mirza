@@ -11,9 +11,6 @@ import           Mirza.Common.Utils           (mockURI)
 import           Data.GS1.EPC
 
 import qualified Data.Text                    as T
-import           Data.Text.Encoding           (encodeUtf8)
-
-import           Text.Email.Validate          (unsafeEmailAddress)
 
 
 dummyBusiness :: T.Text -> NewBusiness
@@ -22,16 +19,9 @@ dummyBusiness unique = NewBusiness (GS1CompanyPrefix ("Business" <> unique <> "P
                                    (mockURI unique)
 
 
-dummyUser :: T.Text -> GS1CompanyPrefix -> IO NewUser
-dummyUser unique business_uid = do
-  let newUserOAuthSub     = "User" <> unique <> "OAuthSub"
-  let newUserEmailAddress = unsafeEmailAddress (encodeUtf8 unique) "example.com"
-  let newUserCompany      = business_uid
-  let newUserFirstName    = "User" <> unique <> "FirstName"
-  let newUserLastName     = "User" <> unique <> "LastName"
-  let newUserPhoneNumber  = "User" <> unique <> "PhoneNumber"
-  pure NewUser{..}
+dummyUser :: T.Text -> NewUser
+dummyUser unique = NewUser $ "User" <> unique <> "OAuthSub"
 
 
-generateMultipleUsers :: [(T.Text, GS1CompanyPrefix)] -> IO [NewUser]
-generateMultipleUsers = traverse (uncurry dummyUser)
+generateMultipleUsers :: [T.Text] -> [NewUser]
+generateMultipleUsers = fmap dummyUser

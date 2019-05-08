@@ -7,6 +7,8 @@ module Mirza.BusinessRegistry.Handlers.Business
   ( addBusiness
   , addBusinessAuth
   , addBusinessQuery
+  , addOrganisationMappingAuth
+  , addOrganisationMapping
   , searchBusinesses
   , searchBusinessesQuery
   , getBusinessInfo
@@ -15,12 +17,15 @@ module Mirza.BusinessRegistry.Handlers.Business
   ) where
 
 
+import           Mirza.BusinessRegistry.Auth
 import           Mirza.BusinessRegistry.Database.Schema   as Schema
 import           Mirza.BusinessRegistry.SqlUtils
 import           Mirza.BusinessRegistry.Types             as BT
 import           Mirza.Common.Time                        (toDbTimestamp)
 
 import           Data.GS1.EPC                             as EPC
+
+import           Servant.API                              (NoContent (..))
 
 import           Database.Beam                            as B
 import           Database.Beam.Backend.SQL.BeamExtensions
@@ -61,26 +66,71 @@ newBusinessToBusiness NewBusiness{..} =
 addBusinessAuth :: ( Member context '[HasDB]
                    , Member err     '[AsBRError, AsSqlError])
                 => BT.AuthUser -> NewBusiness -> AppM context err GS1CompanyPrefix
-addBusinessAuth _ = addBusiness
+addBusinessAuth authUser = addBusiness (authUserId authUser)
 
 addBusiness :: ( Member context '[HasDB]
                , Member err     '[AsBRError, AsSqlError])
-            => NewBusiness -> AppM context err GS1CompanyPrefix
-addBusiness = (fmap business_gs1_company_prefix)
-  . (handleError (handleSqlUniqueViloation "businesses_pkey" (const $ _GS1CompanyPrefixExistsBRE # ())))
+            => BT.UserId -> NewBusiness -> AppM context err GS1CompanyPrefix
+addBusiness userId = (fmap business_gs1_company_prefix)
+  . (handleError (transformSqlUniqueViloation "businesses_pkey" (const $ _GS1CompanyPrefixExistsBRE # ())))
   . runDb
-  . addBusinessQuery
+  . addBusinessAndInitialUserQuery userId
   . newBusinessToBusiness
 
 
+addBusinessAndInitialUserQuery :: (AsBRError err, HasCallStack)
+                               => BT.UserId -> Business -> DB context err Business
+addBusinessAndInitialUserQuery user business = do
+  insertedBusiness  <- addBusinessQuery business
+  _insertedMapping <- addOrganisationMappingQuery (business_gs1_company_prefix insertedBusiness) user
+  pure insertedBusiness
+
+
+-- Note: This function is separated from addBusinessAndInitialUserQuery to separate concerns and inputs during design,
+--       however from a use perspective you will almost definately want to call addBusinessAndInitialUserQuery to make
+--       sure that the company also has an initial user setup.
 addBusinessQuery :: (AsBRError err, HasCallStack)
                  => Business -> DB context err Business
 addBusinessQuery biz@BusinessT{..} = do
-  res <- pg $ runInsertReturningList (_businesses businessRegistryDB)
+  result <- pg $ runInsertReturningList (_businesses businessRegistryDB)
             $ insertValues [biz]
-  case res of
-        [r] -> pure r
-        _   -> throwing _UnexpectedErrorBRE callStack
+  case result of
+    [insertedBusiness] -> pure insertedBusiness
+    _                  -> throwing _UnexpectedErrorBRE callStack
+
+
+addOrganisationMappingAuth :: ( Member context '[HasDB]
+                              , Member err     '[AsBRError, AsSqlError])
+                           => BT.AuthUser -> GS1CompanyPrefix -> BT.UserId -> AppM context err NoContent
+addOrganisationMappingAuth authUser gs1CompanyPrefix addedUserId = do
+  _ <- runDb $ userOrganisationAuthorisationQuery authUser gs1CompanyPrefix
+  _ <- addOrganisationMapping gs1CompanyPrefix addedUserId
+  pure NoContent
+
+
+addOrganisationMapping :: ( Member context '[HasDB]
+                          , Member err     '[AsBRError, AsSqlError])
+                       => GS1CompanyPrefix -> BT.UserId -> AppM context err OrganisationMapping
+addOrganisationMapping prefix user =
+  -- We really probably should get the OrganisationMapping from the database here rather then constructing a new one,
+  -- which will mean that the updated time is correct rather then being empty, but this is not perfectly clean either
+  -- since in "theory" we need to permit for that database operation to fail. Other options include not returning the
+  -- OrganisationMappingT at all. Constructing the OrganisationMappingT seems reasonable for now.
+  (handleError (handleSqlUniqueViloation "organisation_mapping_pkey" (const $ pure (OrganisationMappingT (BizId prefix) (Schema.UserId $ getUserId user) Nothing))))
+  $ runDb
+  $ (addOrganisationMappingQuery prefix user)
+
+
+addOrganisationMappingQuery :: (AsBRError err, HasCallStack)
+                            => GS1CompanyPrefix -> BT.UserId -> DB context err OrganisationMapping
+addOrganisationMappingQuery prefix userId = do
+  checkUserExistsQuery userId
+
+  result <- pg $ runInsertReturningList (_organisationMapping businessRegistryDB)
+            $ insertValues [OrganisationMappingT (BizId prefix) (Schema.UserId $ getUserId userId) Nothing]
+  case result of
+    [insertedOrganisationMapping] -> pure insertedOrganisationMapping
+    _                             -> throwing _UnexpectedErrorBRE callStack
 
 
 searchBusinesses :: ( Member context '[HasDB]
@@ -106,10 +156,13 @@ getBusinessInfo :: ( Member context '[HasDB]
                 => BT.AuthUser
                 -> AppM context err [BusinessResponse]
 getBusinessInfo (BT.AuthUser (BT.UserId uId)) = do
-  r <- runDb $ pg $ runSelectReturningOne $ select $ do
-        user <- all_ (_users businessRegistryDB)
-        guard_ (user_id user ==. val_ uId)
-        pure $ user_biz_id user
-  case r of
-    Just (BizId pfx) -> fmap businessToBusinessResponse <$> runDb (searchBusinessesQuery (Just pfx) Nothing Nothing)
-    Nothing -> throwing_ _UnknownUserBRE
+  organisations <- runDb $ pg $ runSelectReturningList $ select $ do
+        mapping <- all_ (_organisationMapping businessRegistryDB)
+        guard_ (organisation_mapping_user_id mapping ==. val_ (Schema.UserId uId))
+        pure $ organisation_mapping_gs1_company_prefix mapping
+  let queryOrganistaion gs1CompanyPrefix = fmap businessToBusinessResponse <$> runDb (searchBusinessesQuery (Just gs1CompanyPrefix) Nothing Nothing)
+      getPrefix :: PrimaryKey BusinessT Identity -> GS1CompanyPrefix
+      getPrefix (BizId prefix) = prefix
+      companyPrefixes :: [GS1CompanyPrefix]
+      companyPrefixes = getPrefix <$> organisations
+  concat <$> traverse queryOrganistaion companyPrefixes
