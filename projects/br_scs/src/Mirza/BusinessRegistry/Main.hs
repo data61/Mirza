@@ -304,7 +304,7 @@ runPopulateDatabase opts = do
 -- (incomplete)... i.e. we need users that aren't associated with businesses,
 -- but we need to do much more work here when we deal with permssions in general.
 runBootstrap :: ServerOptionsBR -> Text -> GS1CompanyPrefix -> IO ()
-runBootstrap opts email companyPrefix = do
+runBootstrap opts oAuthSub companyPrefix = do
   let newUser = bootstrapUser email
   let newBusiness = bootstrapBusiness companyPrefix
 
