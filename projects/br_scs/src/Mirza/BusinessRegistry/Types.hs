@@ -130,11 +130,6 @@ instance (HasAuthAudience context, HasAuthPublicKey context)
 -- future, and hence this duplication
 data NewUser = NewUser
   { newUserOAuthSub     :: Text
-  , newUserEmailAddress :: EmailAddress
-  , newUserCompany      :: GS1CompanyPrefix
-  , newUserFirstName    :: Text
-  , newUserLastName     :: Text
-  , newUserPhoneNumber  :: Text
   } deriving (Generic, Eq, Show)
 $(deriveJSON defaultOptions ''NewUser)
 instance ToSchema NewUser
@@ -337,8 +332,6 @@ data BRError
   | GS1CompanyPrefixExistsBRE
   | BusinessDoesNotExistBRE
   | UserAuthFailureBRE (SAS.AuthResult ())
-  -- | When adding a user fails with an underlying error arising from the database.
-  | UserCreationSQLErrorBRE SqlError
   -- | When adding a user fails for an unknown reason.
   | UserCreationErrorBRE String CallStack
   | BRKeyErrorBRE BRKeyError

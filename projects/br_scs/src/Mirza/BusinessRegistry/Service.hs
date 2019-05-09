@@ -72,8 +72,8 @@ publicServer :: ( Member context '[HasDB]
 publicServer =
        health
   :<|> versionInfo
-  :<|> getPublicKey
   :<|> getPublicKeyInfo
+  :<|> getPublicKey
   :<|> searchBusinesses
   :<|> getLocationByGLN
   :<|> searchLocation
@@ -83,12 +83,13 @@ publicServer =
 privateServer :: ( Member context '[HasDB]
                  , APIPossibleErrors err)
               => ServerT ProtectedAPI (AppM context err)
-privateServer =      (transformUser1 addUserAuth)
+privateServer =      (transformUser0 addUserAuth)
+                :<|> (transformUser0 getBusinessInfo)
                 :<|> (transformUser1 addBusinessAuth)
+                :<|> (transformUser2 addOrganisationMappingAuth)
                 :<|> (transformUser2 addPublicKey)
                 :<|> (transformUser1 revokePublicKey)
                 :<|> (transformUser1 addLocation)
-                :<|> (transformUser0 getBusinessInfo)
   where
     -- Because decodeJWT is pure we can't properly transform our user which requires acess the database and the ability
     -- to fail using our error types. It would be nice to apply oauthClaimsToAuthUser uniformly to all endpoints, but
@@ -175,8 +176,7 @@ brErrorToHttpError brError =
     (OperationNotPermittedBRE _ _)  -> httpError err403 "A user can only act on behalf of the business they are associated with."
     (UserAuthFailureBRE _)          -> httpError err401 "Authorization invalid."
     (UserCreationErrorBRE _ _)      -> userCreationError brError
-    (UserCreationSQLErrorBRE _)     -> userCreationError brError
-    UnknownUserBRE                  -> httpError err404 "Unknown User"
+    UnknownUserBRE                  -> httpError err400 "Unknown User"
 
 -- | A generic internal server error has occured. We include no more information in the result returned to the user to
 -- limit further potential for exploitation, under the expectation that we log the errors to somewhere that is reviewed

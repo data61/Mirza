@@ -11,7 +11,7 @@ import           Mirza.SupplyChain.Types                  as ST
 
 import           Data.GS1.EPC                             (GS1CompanyPrefix (..))
 import           Mirza.Common.Tests.ServantUtils
-import           Mirza.Common.Utils                       (mockURI, randomText)
+import           Mirza.Common.Utils                       (randomText, mockURI, expectUser)
 
 import           Control.Concurrent                       (ThreadId)
 
@@ -35,7 +35,7 @@ import           Database.Beam.Query                      (delete, runDelete,
 import           Mirza.BusinessRegistry.Client.Servant
 import           Mirza.BusinessRegistry.Database.Schema
 import qualified Mirza.BusinessRegistry.Handlers.Business as BRHB (addBusiness)
-import qualified Mirza.BusinessRegistry.Handlers.Users    as BRHU (addUserQuery)
+import qualified Mirza.BusinessRegistry.Handlers.Users    as BRHU (addUserOnlyId)
 import           Mirza.BusinessRegistry.Main              (ServerOptionsBR (..),
                                                            addAuthOptions,
                                                            initBRContext)
@@ -46,9 +46,8 @@ import           Mirza.BusinessRegistry.Types             as BT hiding
 import           Mirza.Common.Tests.Utils                 (DatabaseConnectionString (..),
                                                            DatabaseName (..),
                                                            databaseNameToConnectionString,
-                                                           getDatabaseConnectionString,
-                                                           unsafeMkEmailAddress)
-import           Text.Email.Validate                      (toByteString)
+                                                           getDatabaseConnectionString)
+
 
 -- *****************************************************************************
 -- SCS Utility Functions
@@ -69,7 +68,7 @@ testDbConnectionStringSCS = databaseNameToConnectionString testDbNameSCS
 
 mkSoSCS :: BaseUrl -> Maybe FilePath -> ServerOptionsSCS
 mkSoSCS (BaseUrl _ brHost brPrt _) =
-  ServerOptionsSCS Dev False Nothing connectionString ("localhost", 8000) 14 8 1 DebugS (Just (brHost, brPrt)) where
+  ServerOptionsSCS Dev False Nothing connectionString ("localhost", 8000) DebugS (Just (brHost, brPrt)) where
     connectionString = getDatabaseConnectionString testDbConnectionStringSCS
 
 runSCSApp :: BaseUrl -> IO (ThreadId, BaseUrl)
@@ -140,27 +139,21 @@ newBusinessToBusinessResponse =
 
 
 newUserToBasicAuthData :: BT.NewUser -> BasicAuthData
-newUserToBasicAuthData newUser = BasicAuthData (toByteString $ BT.newUserEmailAddress newUser) ""
+newUserToBasicAuthData _newUser = BasicAuthData "" "" -- TODO: Extract info from or associated with newUser.
 
 
 bootstrapAuthData :: (HasEnvType w, HasConnPool w, HasKatipContext w,
                       HasKatipLogEnv w)
                      => w -> IO Token
 bootstrapAuthData ctx = do
-  let email = "initialUser@example.com"
+  let user = BT.NewUser "initialUserOAuthSub"
   let prefix = GS1CompanyPrefix "1000000"
   let businessName = "Business Name"
       business = NewBusiness prefix businessName (mockURI businessName)
-  insertBusinessResult <- runAppM @_ @BRError ctx $ BRHB.addBusiness business
-  insertBusinessResult `shouldSatisfy` isRight
-  let user = BT.NewUser "initialUserOAuthSub"
-                      (unsafeMkEmailAddress email)
-                      prefix
-                      "Test User First Name"
-                      "Test User Last Name"
-                      "Test User Phone Number"
-  insertUserResult <- runAppM @_ @BRError ctx $ runDb (BRHU.addUserQuery user)
+  insertUserResult <- runAppM @_ @BRError ctx $ BRHU.addUserOnlyId user
   insertUserResult `shouldSatisfy` isRight
+  insertBusinessResult <- runAppM @_ @BRError ctx $ BRHB.addBusiness (expectUser $ insertUserResult) business
+  insertBusinessResult `shouldSatisfy` isRight
 
   pure $ authDataToTokenTodoRemove $ newUserToBasicAuthData user
 
@@ -182,7 +175,7 @@ runBRApp = do
   let currentBrOptions = brOptions (Just tempFile)
   minimalContext <- initBRContext currentBrOptions
   completeContext <- addAuthOptions minimalContext "" -- TODO: Use the proper oauth aud (audience) rathern then the empty text "".
-  let BusinessRegistryDB businessesTable usersTable keysTable locationsTable geolocationsTable
+  let BusinessRegistryDB businessesTable usersTable organisationMappingTable keysTable locationsTable geolocationsTable
         = businessRegistryDB
 
   flushDbResult <- runAppM @_ @BRError completeContext $ runDb $ do
@@ -190,6 +183,7 @@ runBRApp = do
       deleteTable geolocationsTable
       deleteTable locationsTable
       deleteTable keysTable
+      deleteTable organisationMappingTable
       deleteTable usersTable
       deleteTable businessesTable
   flushDbResult `shouldSatisfy` isRight

@@ -42,11 +42,12 @@ import qualified Mirza.BusinessRegistry.Database.Schema.V0001 as V0001
 
 -- Database
 data BusinessRegistryDB f = BusinessRegistryDB
-  { _businesses   :: f (TableEntity V0001.BusinessT)
-  , _users        :: f (TableEntity V0001.UserT)
-  , _keys         :: f (TableEntity V0001.KeyT)
-  , _locations    :: f (TableEntity       LocationT)
-  , _geoLocations :: f (TableEntity       GeoLocationT)
+  { _businesses          :: f (TableEntity V0001.BusinessT)
+  , _users               :: f (TableEntity V0001.UserT)
+  , _organisationMapping :: f (TableEntity V0001.OrganisationMappingT)
+  , _keys                :: f (TableEntity V0001.KeyT)
+  , _locations           :: f (TableEntity       LocationT)
+  , _geoLocations        :: f (TableEntity       GeoLocationT)
   }
   deriving Generic
 instance Database anybackend BusinessRegistryDB
@@ -55,9 +56,10 @@ instance Database anybackend BusinessRegistryDB
 migration :: CheckedDatabaseSettings Postgres V0001.BusinessRegistryDB
           -> Migration PgCommandSyntax (CheckedDatabaseSettings Postgres BusinessRegistryDB)
 migration v0001 = BusinessRegistryDB
-  <$> preserve (V0001._businesses v0001)
-  <*> preserve (V0001._users      v0001)
-  <*> preserve (V0001._keys       v0001)
+  <$> preserve (V0001._businesses          v0001)
+  <*> preserve (V0001._users               v0001)
+  <*> preserve (V0001._organisationMapping v0001)
+  <*> preserve (V0001._keys                v0001)
   <*> createTable "location" (LocationT
         (field "location_id" V0001.pkSerialType)
         (field "location_gln" locationEPCType)

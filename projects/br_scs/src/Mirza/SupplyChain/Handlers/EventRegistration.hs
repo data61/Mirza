@@ -28,7 +28,7 @@ import           Data.GS1.Event                    as Ev
 
 import           Data.Maybe                        (isJust)
 
-import           Control.Monad                     (when)
+import           Control.Monad.Except              (when)
 
 insertObjectEvent :: (Member context '[HasDB],
                       Member err     '[AsSqlError])

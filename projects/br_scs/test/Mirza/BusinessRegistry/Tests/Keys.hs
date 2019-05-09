@@ -243,8 +243,8 @@ testKeyQueries = do
 -- | Adds the dummy business and user and returns the user id and auth user.
 insertDummies :: AppM BRContextMinimal BRError AuthUser
 insertDummies = do
-  businessPfx <- addBusiness dummyBusiness
-  uid <- addUserOnlyId dummyNewUser {newUserCompany=businessPfx}
+  uid <- addUserOnlyId dummyNewUser
+  _businessPrefix <- addBusiness uid dummyBusiness
   tableUser <- runDb $ getUserByIdQuery uid
   pure (tableUserToAuthUser . fromJust $ tableUser)
 

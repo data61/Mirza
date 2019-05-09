@@ -81,7 +81,6 @@ library
                     , postgresql-simple
                     , random
                     , resource-pool >= 0.2.3
-                    , scrypt
                     , servant
                     , servant-client >= 0.13
                     , servant-flatten
@@ -156,7 +155,6 @@ test-suite supplyChainServer-test
                      , network-uri
                      , postgresql-simple
                      , process
-                     , scrypt
                      , servant
                      , servant-auth-client
                      , servant-server

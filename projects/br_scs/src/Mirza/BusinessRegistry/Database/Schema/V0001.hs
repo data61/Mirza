@@ -31,8 +31,6 @@ import           Database.Beam.Postgres.Syntax (PgDataTypeSyntax)
 import           Data.Aeson                    hiding (json)
 import           Data.Swagger
 
-import           Text.Email.Validate           (EmailAddress)
-
 import           GHC.Generics                  (Generic)
 
 
@@ -50,9 +48,10 @@ pkSerialType = uuid
 
 -- Database
 data BusinessRegistryDB f = BusinessRegistryDB
-  { _businesses :: f (TableEntity BusinessT)
-  , _users      :: f (TableEntity UserT)
-  , _keys       :: f (TableEntity KeyT)
+  { _businesses          :: f (TableEntity BusinessT)
+  , _users               :: f (TableEntity UserT)
+  , _organisationMapping :: f (TableEntity OrganisationMappingT)
+  , _keys                :: f (TableEntity KeyT)
   }
   deriving Generic
 instance Database anybackend BusinessRegistryDB
@@ -70,11 +69,11 @@ migration () =
     <*> createTable "users" (UserT
           (field "user_id" pkSerialType)
           (field "oauth_sub" (varchar (Just defaultFieldMaxLength)) notNull)
-          (BizId $ field "user_biz_id" gs1CompanyPrefixType)
-          (field "first_name" (varchar (Just defaultFieldMaxLength)) notNull)
-          (field "last_name" (varchar (Just defaultFieldMaxLength)) notNull)
-          (field "phone_number" (varchar (Just defaultFieldMaxLength)) notNull)
-          (field "email_address" emailAddressType unique)
+          lastUpdateField
+          )
+    <*> createTable "organisation_mapping" (OrganisationMappingT
+          (BizId $ field "mapping_organisation_id" gs1CompanyPrefixType)
+          (UserId $ field "mapping_user_id" pkSerialType)
           lastUpdateField
           )
     <*> createTable "keys" (KeyT
@@ -98,11 +97,6 @@ deriving instance Show User
 data UserT f = UserT
   { user_id          :: C f PrimaryKeyType
   , user_oauth_sub   :: C f Text
-  , user_biz_id      :: PrimaryKey BusinessT f
-  , first_name       :: C f Text
-  , last_name        :: C f Text
-  , phone_number     :: C f Text
-  , email_address    :: C f EmailAddress
   , user_last_update :: C f (Maybe LocalTime)
   } deriving Generic
 
@@ -153,6 +147,33 @@ instance Table BusinessT where
     deriving Generic
   primaryKey = BizId . business_gs1_company_prefix
 deriving instance Eq (PrimaryKey BusinessT Identity)
+
+
+--------------------------------------------------------------------------------
+-- Organisation Mapping Table
+--------------------------------------------------------------------------------
+
+type OrganisationMapping = OrganisationMappingT Identity
+deriving instance Show OrganisationMapping
+
+data OrganisationMappingT f = OrganisationMappingT
+  { organisation_mapping_gs1_company_prefix :: PrimaryKey BusinessT f
+  , organisation_mapping_user_id            :: PrimaryKey UserT f
+  , organisation_mapping_last_update        :: C f (Maybe LocalTime)
+  }
+  deriving Generic
+
+type OrganisationMappingId = PrimaryKey OrganisationMappingT Identity
+deriving instance Show (PrimaryKey OrganisationMappingT Identity)
+
+instance Beamable OrganisationMappingT
+instance Beamable (PrimaryKey OrganisationMappingT)
+
+instance Table OrganisationMappingT where
+  data PrimaryKey OrganisationMappingT f = OrganisationMappingId (PrimaryKey BusinessT f) (PrimaryKey UserT f)
+    deriving Generic
+  primaryKey = OrganisationMappingId <$> organisation_mapping_gs1_company_prefix <*> organisation_mapping_user_id
+deriving instance Eq (PrimaryKey OrganisationMappingT Identity)
 
 
 --------------------------------------------------------------------------------
