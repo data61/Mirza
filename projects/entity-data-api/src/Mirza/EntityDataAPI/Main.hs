@@ -47,8 +47,6 @@ multiplexInitOptions :: Opts -> IO ()
 multiplexInitOptions opts = do
   ctx <- initContext opts
   putStrLn $ "Initialized context. Starting app on mode " <> (show . appMode $ opts)
-  putStrLn $ "Here are the client ids:\n " <> (show. ctxJwkClientIds $ ctx)
-
   case appMode opts of
     Proxy     -> launchProxy ctx
     API       -> launchUserManager ctx
