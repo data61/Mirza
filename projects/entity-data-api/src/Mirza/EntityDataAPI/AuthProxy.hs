@@ -38,11 +38,11 @@ handleRequest ctx r = do
 handleToken :: Maybe Header -> AppM AuthContext AppError JWT.ClaimsSet
 handleToken (Just (_, authHdr)) = do
   jwKey <- asks jwtSigningKeys
-  aud <- asks ctxJwkClientId
+  aud <- asks ctxJwkClientIds
   let bearer = "Bearer "
       (_mbearer, token) = BS.splitAt (BS.length bearer) authHdr
   (unverifiedJWT :: JWT.SignedJWT) <- JWT.decodeCompact $ BSL.fromStrict token
-  claimSet <- JWT.verifyClaims (JWT.defaultJWTValidationSettings (== aud)) jwKey unverifiedJWT
+  claimSet <- JWT.verifyClaims (JWT.defaultJWTValidationSettings (`elem` aud)) jwKey unverifiedJWT
   case view JWT.claimSub claimSet of
     Nothing -> throwError NoClaimSubject
     Just sub -> doesSubExist sub >>= \case
