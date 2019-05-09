@@ -82,7 +82,7 @@ export const EventDisposition = {
 export interface Event {
     isA: string;
     eventTime: Date;
-    eventTimeZoneOffset: string;
+    eventTimeZoneOffset: number;
     action?: string;
     epcList?: Array<string>;
     bizStep?: string;
@@ -97,6 +97,6 @@ export function objectEvent(): Event {
         bizStep: EventBusinessStep.Accepting,
         disposition: EventDisposition.Active,
         eventTime: new Date(),
-        eventTimeZoneOffset: stringify((new Date()).getTimezoneOffset())
+        eventTimeZoneOffset: (new Date()).getTimezoneOffset()
     };
 }
