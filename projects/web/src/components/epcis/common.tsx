@@ -31,7 +31,7 @@ export function LabelField({ eventState: [event, setEvent], updateFn }: EventSta
         <div className="column column-90">
           <input type="text"
             placeholder="EPC Label"
-            defaultValue={event.label}
+            // defaultValue={}
             onChange={(e) => setEvent(updateFn(event, e.target.value))}
           />
         </div>

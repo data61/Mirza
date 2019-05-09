@@ -11,9 +11,9 @@ export function Submit() {
   const url = 'http://localhost:8020'
 
   const submitEvent = () => {
-    console.log(event.label);
-    const dl = DigitalLink(event.label);
-    if(dl.isValid()) {
+    console.log(event.epcList);
+    // const dl = DigitalLink(event.epcList[0]);
+    if(true) {
       const token = 'Bearer ' + JSON.parse(localStorage.getItem('auth0_tk'))['idToken']
       const request = new Request(url + '/event/objectEvent', {
         method: 'POST',

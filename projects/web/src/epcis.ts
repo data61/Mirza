@@ -1,3 +1,5 @@
+import { stringify } from "query-string";
+
 export const EventType = {
     Aggregation: "AggregationEvent",
     Object: "ObjectEvent",
@@ -80,8 +82,9 @@ export const EventDisposition = {
 export interface Event {
     isA: string;
     eventTime: Date;
+    eventTimeZoneOffset: string;
     action?: string;
-    label?: string;
+    epcList?: Array<string>;
     bizStep?: string;
     disposition?: string;
 }
@@ -89,10 +92,11 @@ export interface Event {
 export function objectEvent(): Event {
     return {
         isA: EventType.Object,
-
+        epcList: [],
         action: EventAction.Add,
         bizStep: EventBusinessStep.Accepting,
         disposition: EventDisposition.Active,
         eventTime: new Date(),
+        eventTimeZoneOffset: stringify((new Date()).getTimezoneOffset())
     };
 }

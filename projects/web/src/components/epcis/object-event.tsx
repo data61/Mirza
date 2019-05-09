@@ -8,7 +8,7 @@ export function ObjectEventForm({ eventState }: EventStateProps) {
 
   return (
     <fieldset>
-      <LabelField eventState={eventState} updateFn={(e, v) => ({ ...e, label: v })} />
+      <LabelField eventState={eventState} updateFn={(e, v) => ({ ...e, epcList: [v] })} />
 
       <label>
         <span>Action</span>
