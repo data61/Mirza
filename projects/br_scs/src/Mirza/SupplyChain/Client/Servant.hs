@@ -4,10 +4,7 @@ module Mirza.SupplyChain.Client.Servant
   , eventSign
   , listEvents
   , eventInfo
-  , insertObjectEvent
-  , insertAggEvent
-  , insertTransactEvent
-  , insertTransfEvent
+  , insertGS1Event
   , listEventsPretty
   ) where
 
@@ -36,10 +33,7 @@ eventSign           :: SignedEvent -> ClientM EventInfo
 listEvents          :: LabelEPCUrn -> ClientM [Ev.Event]
 eventInfo           :: EventId -> ClientM EventInfo
 
-insertObjectEvent   :: ObjectEvent -> ClientM (EventInfo, Schema.EventId)
-insertAggEvent      :: AggregationEvent -> ClientM (EventInfo, Schema.EventId)
-insertTransactEvent :: TransactionEvent -> ClientM (EventInfo, Schema.EventId)
-insertTransfEvent   :: TransformationEvent -> ClientM (EventInfo, Schema.EventId)
+insertGS1Event   :: Ev.Event -> ClientM (EventInfo, Schema.EventId)
 
 listEventsPretty    :: LabelEPCUrn -> ClientM [PrettyEventResponse]
 
@@ -52,10 +46,7 @@ _api@(   health
     :<|> listEvents
     :<|> eventInfo
 
-    :<|> insertObjectEvent
-    :<|> insertAggEvent
-    :<|> insertTransactEvent
-    :<|> insertTransfEvent
+    :<|> insertGS1Event
 
     :<|> listEventsPretty
   ) = client (Proxy :: Proxy ServerAPI)

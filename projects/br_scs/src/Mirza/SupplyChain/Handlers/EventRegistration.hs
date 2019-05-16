@@ -3,10 +3,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 
 module Mirza.SupplyChain.Handlers.EventRegistration
-  ( insertAggEvent
-  , insertObjectEvent
-  , insertTransactEvent
-  , insertTransfEvent
+  ( insertGS1Event
   -- , sendToBlockchain
   ) where
 
@@ -30,11 +27,36 @@ import           Data.Maybe                        (isJust)
 
 import           Control.Monad.Except              (when)
 
-insertObjectEvent :: (Member context '[HasDB],
+insertGS1Event :: (Member context '[HasDB],
                       Member err     '[AsSqlError])
-                  => ObjectEvent
+                  => Ev.Event
                   -> AppM context err (EventInfo, Schema.EventId)
-insertObjectEvent ob = runDb $ insertObjectEventQuery ob
+insertGS1Event ev = runDb $ insertEventQuery ev
+
+insertEventQuery :: Ev.Event
+                 -> DB context err (EventInfo, Schema.EventId)
+insertEventQuery
+  event@(Ev.Event
+    eType
+    foreignEventId
+    dwhat
+    dwhen
+    dwhy
+    dwhere
+  ) = do
+  -- insertEvent has to be the first thing that happens here so that
+  -- uniqueness of the JSON event is enforced
+  (evInfo, eventId) <- insertEvent event
+  whatId <- insertDWhat Nothing dwhat eventId
+  labelIds' <- mapM insertLabel (getLabels dwhat)
+  let labelIds = Schema.LabelId <$> labelIds'
+  _whenId <- insertDWhen dwhen eventId
+  _whyId <- insertDWhy dwhy eventId
+  insertDWhere dwhere eventId
+  mapM_ (insertWhatLabel Nothing (Schema.WhatId whatId)) labelIds
+  mapM_ (insertLabelEvent Nothing eventId) labelIds
+  pure (evInfo, eventId)
+
 
 insertObjectEventQuery :: ObjectEvent
                        -> DB context err (EventInfo, Schema.EventId)
@@ -183,6 +205,20 @@ insertTransfEventQuery
   mapM_ ((insertLabelEvent (Just MU.Output) eventId) . Schema.LabelId) outputLabelIds
 
   pure (evInfo, eventId)
+
+
+
+
+
+
+
+
+{-
+Special cases:
+- Parent in Transact and AggWhat
+- Input and Output in TransformationEvent
+
+ -}
 
 
 -- sendToBlockchain  :: (Member context '[HasDB],

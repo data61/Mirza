@@ -133,12 +133,7 @@ insertAndAuth scsUrl brUrl authToken locMap ht (entity:entities) = do
 insertEachEvent :: EachEvent ->  ClientM ()
 insertEachEvent (EachEvent [] _) = pure ()
 insertEachEvent (EachEvent entities ev) = do
-  (insertedEventInfo, _eventId) <- case _etype ev of
-          AggregationEventT -> SCSClient.insertAggEvent (fromJust $ mkAggEvent ev)
-          ObjectEventT -> SCSClient.insertObjectEvent (fromJust $ mkObjectEvent ev)
-          TransactionEventT -> SCSClient.insertTransactEvent (fromJust $ mkTransactEvent ev)
-          TransformationEventT -> SCSClient.insertTransfEvent (fromJust $ mkTransfEvent ev)
-
+  (insertedEventInfo, _eventId) <- SCSClient.insertGS1Event ev
   traverse_ (clientSignEvent insertedEventInfo) entities
 
 

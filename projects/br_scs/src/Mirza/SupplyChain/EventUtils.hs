@@ -5,7 +5,7 @@ module Mirza.SupplyChain.EventUtils
   , insertDWhat, insertDWhen, insertDWhere, insertDWhy
   , insertWhatLabel, insertLabelEvent, insertLabel, findInstLabelIdByUrn
   , findEvent, findSchemaEvent, getEventList
-  , findLabelId, getParent
+  , findLabelId, getParent, getLabels
   , findDWhere
   ) where
 
@@ -119,7 +119,7 @@ toStorageDWhat pKey mParentId mBizTranId eventId dwhat
         (getAction dwhat)
         (Schema.LabelId mParentId)
         (Schema.BizTransactionId mBizTranId)
-        (Schema.TransformationId $ unTransformationId <$> (getTransformationId dwhat))
+        (Schema.TransformationId $ unTransformationId <$> getTransformationId dwhat)
         eventId
 
 getTransformationId :: DWhat -> Maybe EPC.TransformationId
@@ -220,6 +220,9 @@ toStorageDWhen (Schema.WhenId pKey) (DWhen eventTime mRecordTime tZone) =
     (toDbTimestamp <$> mRecordTime)
     (T.pack . timeZoneOffsetString $ tZone)
 
+getLabels :: DWhat -> [LabelEPC]
+getLabels = undefined
+
 
 toStorageDWhy :: Schema.WhyId -> DWhy -> Schema.EventId -> Schema.Why
 toStorageDWhy (Schema.WhyId pKey) (DWhy mBiz mDisp)
@@ -258,7 +261,7 @@ insertSrcDestType :: MU.LocationField
                   -> Schema.EventId
                   -> (SourceDestType, LocationEPC)
                   -> DB context err PrimaryKeyType
-insertSrcDestType locField eventId (sdType, (SGLN pfix locationRef ext)) =
+insertSrcDestType locField eventId (sdType, SGLN pfix locationRef ext) =
   QU.withPKey $ \pKey -> do
     let stWhere = Schema.Where Nothing pKey pfix (Just sdType) locationRef locField ext eventId
     pg $ B.runInsert $ B.insert (Schema._wheres Schema.supplyChainDb)

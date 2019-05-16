@@ -55,17 +55,14 @@ appHandlers =
        health
   -- Users
   :<|> versionInfo
-
--- Signatures
+  -- Signatures
   :<|> eventSign
--- Queries
+  -- Queries
   :<|> listEvents
   :<|> eventInfo
--- Event Registration
-  :<|> insertObjectEvent
-  :<|> insertAggEvent
-  :<|> insertTransactEvent
-  :<|> insertTransfEvent
+  -- Event Registration
+  :<|> insertGS1Event
+  -- UI
   :<|> listEventsPretty
 
 instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub) where
