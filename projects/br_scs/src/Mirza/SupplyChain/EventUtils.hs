@@ -24,8 +24,10 @@ import qualified Data.GS1.Event                    as Ev
 import qualified Data.GS1.EventId                  as EvId
 
 import           Data.GS1.DWhat                    (AggregationDWhat (..),
-                                                    DWhat (..), LabelEPC (..),
+                                                    DWhat (..), InputEPC (..),
+                                                    LabelEPC (..),
                                                     ObjectDWhat (..),
+                                                    OutputEPC (..),
                                                     ParentLabel (..),
                                                     TransactionDWhat (..),
                                                     TransformationDWhat (..))
@@ -37,7 +39,8 @@ import           Data.GS1.DWhere                   (BizLocation (..),
                                                     SourceLocation (..))
 import           Data.GS1.DWhy                     (DWhy (..))
 
-import           Data.Maybe                        (catMaybes, listToMaybe)
+import           Data.Maybe                        (catMaybes, listToMaybe,
+                                                    maybeToList)
 
 import           Data.ByteString                   (ByteString)
 import qualified Data.Text                         as T
@@ -221,7 +224,10 @@ toStorageDWhen (Schema.WhenId pKey) (DWhen eventTime mRecordTime tZone) =
     (T.pack . timeZoneOffsetString $ tZone)
 
 getLabels :: DWhat -> [LabelEPC]
-getLabels = undefined
+getLabels (ObjWhat (ObjectDWhat _act epcList)) = epcList
+getLabels (AggWhat (AggregationDWhat _act mParent childEpcList)) = childEpcList <> maybeToList (IL . unParentLabel <$> mParent)
+getLabels (TransactWhat (TransactionDWhat _act mParent _bizT epcList)) = epcList <> maybeToList (IL . unParentLabel <$> mParent)
+getLabels (TransformWhat (TransformationDWhat _tId input output)) = (unInputEPC <$> input) <> (unOutputEPC <$> output)
 
 
 toStorageDWhy :: Schema.WhyId -> DWhy -> Schema.EventId -> Schema.Why
