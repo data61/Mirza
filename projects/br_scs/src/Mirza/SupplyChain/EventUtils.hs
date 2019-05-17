@@ -1,11 +1,12 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TupleSections         #-}
 
 module Mirza.SupplyChain.EventUtils
   ( insertEvent
   , insertDWhat, insertDWhen, insertDWhere, insertDWhy
   , insertWhatLabel, insertLabelEvent, insertLabel, findInstLabelIdByUrn
   , findEvent, findSchemaEvent, getEventList
-  , findLabelId, getParent, getLabels
+  , findLabelId, getParent, getLabelsWithType
   , findDWhere
   ) where
 
@@ -223,11 +224,20 @@ toStorageDWhen (Schema.WhenId pKey) (DWhen eventTime mRecordTime tZone) =
     (toDbTimestamp <$> mRecordTime)
     (T.pack . timeZoneOffsetString $ tZone)
 
-getLabels :: DWhat -> [LabelEPC]
-getLabels (ObjWhat (ObjectDWhat _act epcList)) = epcList
-getLabels (AggWhat (AggregationDWhat _act mParent childEpcList)) = childEpcList <> maybeToList (IL . unParentLabel <$> mParent)
-getLabels (TransactWhat (TransactionDWhat _act mParent _bizT epcList)) = epcList <> maybeToList (IL . unParentLabel <$> mParent)
-getLabels (TransformWhat (TransformationDWhat _tId input output)) = (unInputEPC <$> input) <> (unOutputEPC <$> output)
+-- | Extracts all labels from a DWhat, and stores it alongside its type
+-- so that we don't lose the labeltype information
+getLabelsWithType :: DWhat -> [LabelWithType]
+getLabelsWithType (ObjWhat (ObjectDWhat _act epcList))
+    = LabelWithType Nothing <$> epcList
+getLabelsWithType (AggWhat (AggregationDWhat _act mParent childEpcList))
+    =  (LabelWithType Nothing <$> childEpcList)
+    <> (LabelWithType (Just MU.Parent) <$> maybeToList (IL . unParentLabel <$> mParent))
+getLabelsWithType (TransactWhat (TransactionDWhat _act mParent _bizT epcList))
+    =  (LabelWithType Nothing <$> epcList)
+    <> (LabelWithType (Just MU.Parent) <$> maybeToList (IL . unParentLabel <$> mParent))
+getLabelsWithType (TransformWhat (TransformationDWhat _tId input output))
+    =  (LabelWithType (Just MU.Input)  . unInputEPC <$> input)
+    <> (LabelWithType (Just MU.Output) . unOutputEPC <$> output)
 
 
 toStorageDWhy :: Schema.WhyId -> DWhy -> Schema.EventId -> Schema.Why

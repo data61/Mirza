@@ -1,5 +1,6 @@
 {-# LANGUAGE DeriveGeneric              #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE KindSignatures             #-}
 {-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE StandaloneDeriving         #-}
 {-# LANGUAGE TemplateHaskell            #-}
@@ -12,6 +13,7 @@ module Mirza.SupplyChain.Types
   )
   where
 
+import           Mirza.Common.GS1BeamOrphans  (LabelType)
 import           Mirza.Common.Types           as Common
 
 import           Data.GS1.DWhat
@@ -48,6 +50,8 @@ import           Katip                        as K
 
 import           Mirza.BusinessRegistry.Types (AsBRError (..), BRError)
 
+import           Data.Bifunctor               (Bifunctor (..))
+import           Data.Bitraversable           (Bitraversable (..))
 
 -- *****************************************************************************
 -- Context Types
@@ -71,13 +75,20 @@ instance HasKatipContext SCSContext where
   katipContexts = scsKatipLogContexts
   katipNamespace = scsKatipNamespace
 
+data LabelWithType = LabelWithType
+  { getLabelType :: Maybe LabelType
+  , getLabel     :: LabelEPC
+  } deriving (Show, Eq)
+$(makeLenses ''LabelWithType)
+
+deriving instance ToHttpApiData EventId
+
 -- *****************************************************************************
 -- Event Types
 -- *****************************************************************************
 -- TODO: The factory functions should probably be removed from here.
 
 -- TODO: This should really be in GS1Combinators
-deriving instance ToHttpApiData EventId
 
 newtype EventOwner = EventOwner UserId deriving(Generic, Show, Eq, Read)
 
