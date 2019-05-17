@@ -3,7 +3,6 @@
 -- in GS1Combinators
 module Mirza.SupplyChain.Tests.Dummies where
 
-import           Mirza.SupplyChain.Types
 import qualified Mirza.SupplyChain.Types as ST
 
 import           Data.GS1.DWhat
@@ -13,7 +12,6 @@ import           Data.GS1.DWhy
 import           Data.GS1.EPC
 import qualified Data.GS1.Event          as Ev
 
-import           Data.Maybe              (fromJust)
 import qualified Data.Text               as T
 import           Data.Time
 import           Data.UUID               (nil)
@@ -75,9 +73,6 @@ dummyObjectDWhat =
     Add
     dummyEpcList
 
-dummyObject :: ObjectEvent
-dummyObject = fromJust $ mkObjectEvent dummyObjEvent
-
 
 -- Aggregation Events
 dummyAggDWhat :: DWhat
@@ -97,9 +92,6 @@ dummyAggEvent =
     dummyDWhen
     dummyDWhy
     dummyDWhere
-
-dummyAggregation :: AggregationEvent
-dummyAggregation = fromJust $ mkAggEvent dummyAggEvent
 
 -- Transaction Events
 
@@ -122,10 +114,6 @@ dummyTransactEvent =
     dummyDWhy
     dummyDWhere
 
-dummyTransaction :: TransactionEvent
-dummyTransaction = fromJust $ mkTransactEvent dummyTransactEvent
-
-
 -- Transformation Events
 
 dummyTransfDWhat :: DWhat
@@ -147,9 +135,6 @@ dummyTransfEvent =
     dummyDWhen
     dummyDWhy
     dummyDWhere
-
-dummyTransformation :: TransformationEvent
-dummyTransformation = fromJust $ mkTransfEvent dummyTransfEvent
 
 -- Dimensions
 
