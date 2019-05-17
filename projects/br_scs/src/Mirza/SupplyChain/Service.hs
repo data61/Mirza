@@ -10,8 +10,7 @@
 {-# LANGUAGE TypeOperators         #-}
 {-# OPTIONS_GHC -fno-warn-orphans  #-}
 
--- | Endpoint definitions go here. Most of the endpoint definitions are
--- light wrappers around functions in BeamQueries
+-- | Endpoint definitions go here
 module Mirza.SupplyChain.Service
   ( appHandlers
   , appMToHandler
