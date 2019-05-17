@@ -64,7 +64,6 @@ library
                     , GS1Combinators
                     , aeson
                     , attoparsec
-                    , base64-bytestring
                     , beam-core
                     , beam-migrate
                     , beam-postgres
@@ -94,7 +93,6 @@ library
                     , text
                     , time
                     , transformers >= 0.4
-                    , Unique
                     , uuid
                     , uuid-types
                     , wai
@@ -138,25 +136,20 @@ test-suite supplyChainServer-test
                     , Mirza.BusinessRegistry.Tests.Utils
   default-extensions:  OverloadedStrings
   build-depends:       base
-                     , base64-bytestring
                      , GS1Combinators
                      , Mirza
                      , resource-pool >= 0.2.3
                      , beam-core
                      , beam-postgres
                      , bytestring
-                     , email-validate
                      , hspec
                      , hspec-core
-                     , http-client
                      , mtl
                      , network
-                     , network-uri
                      , postgresql-simple
                      , process
                      , servant
                      , servant-auth-client
-                     , servant-server
                      , text
                      , time
                      , uuid
@@ -165,15 +158,12 @@ test-suite supplyChainServer-test
                      , tasty-hunit
                      , transformers
                      , hspec-expectations
-                     , unordered-containers
-                     , hashable
                      , wai
                      , warp
                      , servant-client
                      , katip
                      , temporary
                      , jose
-                     , aeson
   default-language:    Haskell2010
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N -Wall -Werror
 
