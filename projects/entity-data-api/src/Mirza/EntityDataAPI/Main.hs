@@ -34,6 +34,8 @@ import           Database.PostgreSQL.Simple         (close, connectPostgreSQL)
 
 import           Data.Pool                          (createPool)
 
+import           Data.List.Split                    (splitOn)
+
 main :: IO ()
 -- main = launchProxy =<< execParser opts where
 --   opts = info (optsParser <**> helper)
@@ -93,7 +95,7 @@ launchUserManager ctx = do
 
 
 initContext :: Opts -> IO AuthContext
-initContext (Opts myService (ServiceInfo (Hostname destHost) (Port destPort)) _mode url clientId dbConnStr) = do
+initContext (Opts myService (ServiceInfo (Hostname destHost) (Port destPort)) _mode url clientIds dbConnStr) = do
   putStrLn "Initializing context..."
   let proxyDest = ProxyDest (B.pack destHost) destPort
   mngr <- newManager tlsManagerSettings
@@ -103,7 +105,9 @@ initContext (Opts myService (ServiceInfo (Hostname destHost) (Port destPort)) _m
                     20 -- Max number of connections to have open at any one time
   fetchJWKs mngr url >>= \case
     Left err -> fail $ show err
-    Right jwkSet -> pure $ AuthContext myService proxyDest mngr jwkSet (fromString clientId) connpool
+    Right jwkSet -> pure $ AuthContext myService proxyDest mngr jwkSet (parseClientIdList clientIds) connpool
+    where
+      parseClientIdList cIds = fromString <$> splitOn ":" cIds
 
 
 myCors :: Middleware

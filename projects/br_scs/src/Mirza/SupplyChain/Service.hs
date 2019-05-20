@@ -10,8 +10,7 @@
 {-# LANGUAGE TypeOperators         #-}
 {-# OPTIONS_GHC -fno-warn-orphans  #-}
 
--- | Endpoint definitions go here. Most of the endpoint definitions are
--- light wrappers around functions in BeamQueries
+-- | Endpoint definitions go here
 module Mirza.SupplyChain.Service
   ( appHandlers
   , appMToHandler
@@ -55,17 +54,14 @@ appHandlers =
        health
   -- Users
   :<|> versionInfo
-
--- Signatures
+  -- Signatures
   :<|> eventSign
--- Queries
+  -- Queries
   :<|> listEvents
   :<|> eventInfo
--- Event Registration
-  :<|> insertObjectEvent
-  :<|> insertAggEvent
-  :<|> insertTransactEvent
-  :<|> insertTransfEvent
+  -- Event Registration
+  :<|> insertGS1Event
+  -- UI
   :<|> listEventsPretty
 
 instance (KnownSymbol sym, HasSwagger sub) => HasSwagger (BasicAuth sym a :> sub) where

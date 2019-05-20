@@ -14,8 +14,6 @@ extra-deps:
   commit: d7aca4d13b27235af47d522b5d093e567750628e
 - git: https://github.com/data61/GS1Combinators.git
   commit: 8fb62ddcd789a159041598fb8576e70e24217875
-- git: https://github.com/kapralVV/Unique.git
-  commit: 8b543fd9c9f9e3909875942098a47df19a68c9da  # Head on 2019-01-10
 - servant-flatten-0.2
 - hoist-error-0.2.1.0
 

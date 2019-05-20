@@ -1,11 +1,12 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TupleSections         #-}
 
 module Mirza.SupplyChain.EventUtils
   ( insertEvent
   , insertDWhat, insertDWhen, insertDWhere, insertDWhy
   , insertWhatLabel, insertLabelEvent, insertLabel, findInstLabelIdByUrn
   , findEvent, findSchemaEvent, getEventList
-  , findLabelId, getParent
+  , findLabelId, getParent, getLabelsWithType
   , findDWhere
   ) where
 
@@ -24,8 +25,10 @@ import qualified Data.GS1.Event                    as Ev
 import qualified Data.GS1.EventId                  as EvId
 
 import           Data.GS1.DWhat                    (AggregationDWhat (..),
-                                                    DWhat (..), LabelEPC (..),
+                                                    DWhat (..), InputEPC (..),
+                                                    LabelEPC (..),
                                                     ObjectDWhat (..),
+                                                    OutputEPC (..),
                                                     ParentLabel (..),
                                                     TransactionDWhat (..),
                                                     TransformationDWhat (..))
@@ -37,7 +40,8 @@ import           Data.GS1.DWhere                   (BizLocation (..),
                                                     SourceLocation (..))
 import           Data.GS1.DWhy                     (DWhy (..))
 
-import           Data.Maybe                        (catMaybes, listToMaybe)
+import           Data.Maybe                        (catMaybes, listToMaybe,
+                                                    maybeToList)
 
 import           Data.ByteString                   (ByteString)
 import qualified Data.Text                         as T
@@ -119,7 +123,7 @@ toStorageDWhat pKey mParentId mBizTranId eventId dwhat
         (getAction dwhat)
         (Schema.LabelId mParentId)
         (Schema.BizTransactionId mBizTranId)
-        (Schema.TransformationId $ unTransformationId <$> (getTransformationId dwhat))
+        (Schema.TransformationId $ unTransformationId <$> getTransformationId dwhat)
         eventId
 
 getTransformationId :: DWhat -> Maybe EPC.TransformationId
@@ -220,6 +224,21 @@ toStorageDWhen (Schema.WhenId pKey) (DWhen eventTime mRecordTime tZone) =
     (toDbTimestamp <$> mRecordTime)
     (T.pack . timeZoneOffsetString $ tZone)
 
+-- | Extracts all labels from a DWhat, and stores it alongside its type
+-- so that we don't lose the labeltype information
+getLabelsWithType :: DWhat -> [LabelWithType]
+getLabelsWithType (ObjWhat (ObjectDWhat _act epcList))
+    = LabelWithType Nothing <$> epcList
+getLabelsWithType (AggWhat (AggregationDWhat _act mParent childEpcList))
+    =  (LabelWithType Nothing <$> childEpcList)
+    <> (LabelWithType (Just MU.Parent) <$> maybeToList (IL . unParentLabel <$> mParent))
+getLabelsWithType (TransactWhat (TransactionDWhat _act mParent _bizT epcList))
+    =  (LabelWithType Nothing <$> epcList)
+    <> (LabelWithType (Just MU.Parent) <$> maybeToList (IL . unParentLabel <$> mParent))
+getLabelsWithType (TransformWhat (TransformationDWhat _tId input output))
+    =  (LabelWithType (Just MU.Input)  . unInputEPC <$> input)
+    <> (LabelWithType (Just MU.Output) . unOutputEPC <$> output)
+
 
 toStorageDWhy :: Schema.WhyId -> DWhy -> Schema.EventId -> Schema.Why
 toStorageDWhy (Schema.WhyId pKey) (DWhy mBiz mDisp)
@@ -258,7 +277,7 @@ insertSrcDestType :: MU.LocationField
                   -> Schema.EventId
                   -> (SourceDestType, LocationEPC)
                   -> DB context err PrimaryKeyType
-insertSrcDestType locField eventId (sdType, (SGLN pfix locationRef ext)) =
+insertSrcDestType locField eventId (sdType, SGLN pfix locationRef ext) =
   QU.withPKey $ \pKey -> do
     let stWhere = Schema.Where Nothing pKey pfix (Just sdType) locationRef locField ext eventId
     pg $ B.runInsert $ B.insert (Schema._wheres Schema.supplyChainDb)
