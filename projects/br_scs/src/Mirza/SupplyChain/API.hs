@@ -59,17 +59,7 @@ type ServerAPI =
   --                 :> Capture "userId" UserId
   --                 :> Get '[JSON] [Ev.Event]
 -- Event Registration
-  :<|> "event"    :> "objectEvent"
-                  :> ReqBody '[JSON] ObjectEvent
-                  :> Post '[JSON] (EventInfo, Schema.EventId)
-  :<|> "event"    :> "aggregateEvent"
-                  :> ReqBody '[JSON] AggregationEvent
-                  :> Post '[JSON] (EventInfo, Schema.EventId)
-  :<|> "event"    :> "transactionEvent"
-                  :> ReqBody '[JSON] TransactionEvent
-                  :> Post '[JSON] (EventInfo, Schema.EventId)
-  :<|> "event"    :> "transformationEvent"
-                  :> ReqBody '[JSON] TransformationEvent
+  :<|> "event"    :> ReqBody '[JSON] Ev.Event
                   :> Post '[JSON] (EventInfo, Schema.EventId)
   -- UI
   :<|> "prototype" :> "list" :> "events"

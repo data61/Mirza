@@ -56,19 +56,19 @@ clientSpec = do
 
           step "Can insert Object events"
             -- TODO: Events need their EventId returned to user
-          http (insertObjectEvent dummyObject)
+          http (insertGS1Event dummyObjEvent)
             `shouldSatisfyIO` isRight
 
           step "Can insert Aggregation events"
-          http (insertAggEvent dummyAggregation)
+          http (insertGS1Event dummyAggEvent)
             `shouldSatisfyIO` isRight
 
           step "Can insert Transaction events"
-          http (insertTransactEvent dummyTransaction)
+          http (insertGS1Event dummyTransactEvent)
             `shouldSatisfyIO` isRight
 
           step "Can insert Transformation events"
-          http (insertTransfEvent dummyTransformation)
+          http (insertGS1Event dummyTransfEvent)
             `shouldSatisfyIO` isRight
 
   let _eventSignTests = testCaseSteps "eventSign" $ \step ->
@@ -104,7 +104,7 @@ clientSpec = do
           let keyId = fromRight (BRKeyId nil) keyIdResponse
 
           step "Inserting the object event"
-          objInsertionResponse <- httpSCS (insertObjectEvent dummyObject)
+          objInsertionResponse <- httpSCS (insertGS1Event dummyObjEvent)
           objInsertionResponse `shouldSatisfy` isRight
           let (EventInfo _ (Base64Octets to_sign_event) _, (Schema.EventId eventId)) = fromRight (error "Should be right") objInsertionResponse
 
@@ -179,7 +179,7 @@ clientSpec = do
           let keyIdReceiver = fromRight (BRKeyId nil) keyIdResponseReceiver
 
           step "Inserting the transaction event with the giver user"
-          transactInsertionResponse <- httpSCS (insertTransactEvent dummyTransaction)
+          transactInsertionResponse <- httpSCS (insertGS1Event dummyTransactEvent)
           transactInsertionResponse `shouldSatisfy` isRight
           let (_transactEvInfo@(EventInfo insertedTransactEvent (Base64Octets to_sign_transact_event) _), (Schema.EventId transactEvId)) =
                   fromRight (error "Should be right") transactInsertionResponse

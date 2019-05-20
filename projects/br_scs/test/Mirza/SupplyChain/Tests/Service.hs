@@ -32,48 +32,48 @@ testServiceQueries = do
   describe "Object Event" $ do
     it "Insert Object Event" $ \scsContext -> do
       (evInfo, _) <- testAppM scsContext $
-        insertObjectEvent dummyObject
+        insertGS1Event dummyObjEvent
       (eventInfoEvent evInfo) `shouldBe` dummyObjEvent
 
     it "Should not allow duplicate Object events" $ \scsContext -> do
-      _res <- runAppM @_ @AppError scsContext $ insertObjectEvent dummyObject
-      res <- runAppM @_ @AppError scsContext $ insertObjectEvent dummyObject
+      _res <- runAppM @_ @AppError scsContext $ insertGS1Event dummyObjEvent
+      res <- runAppM @_ @AppError scsContext $ insertGS1Event dummyObjEvent
       res `shouldSatisfy` isLeft
 
   describe "Aggregation Event" $ do
     it "Insert Aggregation Event" $ \scsContext -> do
-      (evInfo, _) <- testAppM scsContext $ insertAggEvent dummyAggregation
+      (evInfo, _) <- testAppM scsContext $ insertGS1Event dummyAggEvent
       (eventInfoEvent evInfo) `shouldBe` dummyAggEvent
 
     it "Should not allow duplicate Aggregation events" $ \scsContext -> do
-      _res <- runAppM @_ @AppError scsContext $ insertAggEvent dummyAggregation
-      res <- runAppM @_ @AppError scsContext $ insertAggEvent dummyAggregation
+      _res <- runAppM @_ @AppError scsContext $ insertGS1Event dummyAggEvent
+      res <- runAppM @_ @AppError scsContext $ insertGS1Event dummyAggEvent
       res `shouldSatisfy` isLeft
 
   describe "Transformation Event" $ do
     it "Insert Transformation Event" $ \scsContext -> do
-      (evInfo, _) <- testAppM scsContext $ insertTransfEvent dummyTransformation
+      (evInfo, _) <- testAppM scsContext $ insertGS1Event dummyTransfEvent
       (eventInfoEvent evInfo) `shouldBe` dummyTransfEvent
 
     it "Should not allow duplicate Transformation events" $ \scsContext -> do
-      _res <- runAppM @_ @AppError scsContext $ insertTransfEvent dummyTransformation
-      res <- runAppM @_ @AppError scsContext $ insertTransfEvent dummyTransformation
+      _res <- runAppM @_ @AppError scsContext $ insertGS1Event dummyTransfEvent
+      res <- runAppM @_ @AppError scsContext $ insertGS1Event dummyTransfEvent
       res `shouldSatisfy` isLeft
 
   describe "Transaction Event" $ do
   -- The otherUserIds are being stubbed out here
     it "Insert Transaction Event" $ \scsContext -> do
-      (evInfo, _) <- testAppM scsContext $ insertTransactEvent dummyTransaction
+      (evInfo, _) <- testAppM scsContext $ insertGS1Event dummyTransactEvent
       (eventInfoEvent evInfo) `shouldBe` dummyTransactEvent
 
     it "Should not allow duplicate Transaction events" $ \scsContext -> do
-      _res <- runAppM @_ @AppError scsContext $ insertTransactEvent dummyTransaction
-      res <- runAppM @_ @AppError scsContext $ insertTransactEvent dummyTransaction
+      _res <- runAppM @_ @AppError scsContext $ insertGS1Event dummyTransactEvent
+      res <- runAppM @_ @AppError scsContext $ insertGS1Event dummyTransactEvent
       res `shouldSatisfy` isLeft
 
   describe "DWhere" $
     it "Insert and find DWhere" $ \scsContext -> do
       insertedDWhere <- testAppM scsContext $ do
-        (_, eventId) <- insertObjectEvent dummyObject
+        (_, eventId) <- insertGS1Event dummyObjEvent
         runDb $ findDWhere eventId
       insertedDWhere `shouldBe` Just dummyDWhere
