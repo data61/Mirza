@@ -1,26 +1,23 @@
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE ScopedTypeVariables   #-}
 
 module Mirza.SupplyChain.Handlers.EventRegistration
   ( insertGS1Event
   -- , sendToBlockchain
   ) where
 
-import qualified Mirza.Common.GS1BeamOrphans       as MU
 import           Mirza.SupplyChain.Database.Schema as Schema
 
 import           Mirza.SupplyChain.EventUtils
 import           Mirza.SupplyChain.Types
 
-import           Data.GS1.DWhat                    (LabelEPC (..))
 import           Data.GS1.Event                    as Ev
 
-insertGS1Event :: (Member context '[HasDB],
-                      Member err     '[AsSqlError])
-                  => Ev.Event
-                  -> AppM context err (EventInfo, Schema.EventId)
+insertGS1Event  :: (Member context '[HasDB],
+                    Member err     '[AsSqlError])
+                => Ev.Event
+                -> AppM context err (EventInfo, Schema.EventId)
 insertGS1Event ev = runDb $ insertEventQuery ev
 
 insertEventQuery :: Ev.Event
@@ -31,9 +28,9 @@ insertEventQuery
   -- uniqueness of the JSON event is enforced
   (evInfo, eventId) <- insertEvent event
   whatId <- insertDWhat Nothing dwhat eventId
-  let (labelWithTypes :: [LabelWithType]) = getLabelsWithType dwhat
-      (labelEpcs :: [LabelEPC]) = getLabel <$> labelWithTypes
-      (labelTypes :: [Maybe MU.LabelType]) = getLabelType <$> labelWithTypes
+  let labelWithTypes = getLabelsWithType dwhat
+      labelEpcs = getLabel <$> labelWithTypes
+      labelTypes = getLabelType <$> labelWithTypes
   labelIds' <- mapM insertLabel labelEpcs
   let labelIds = Schema.LabelId <$> labelIds'
       labelIdWithTypes = zip labelTypes labelIds
