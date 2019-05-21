@@ -10,8 +10,8 @@ module Mirza.BusinessRegistry.Handlers.Location
   ( addLocation
   , getLocationByGLN
   , searchLocation
-  , uxLocationByGLN
-  , uxLocation
+  , searchBusinessLocationByGLN
+  , searchBusinessLocation
   ) where
 
 
@@ -179,12 +179,12 @@ searchLocationQuery mpfx mafter = pg $ runSelectReturningList $ select $ do
 
   pure (loc, geoloc)
 
-uxLocationByGLN :: ( Member context '[HasDB, HasLogging]
+searchBusinessLocationByGLN :: ( Member context '[HasDB, HasLogging]
                    , Member err     '[AsBRError, AsSqlError])
                 => LocationEPC
                 -> GS1CompanyPrefix
                 -> AppM context err BusinessAndLocationResponse
-uxLocationByGLN locEpc pfx = do
+searchBusinessLocationByGLN locEpc pfx = do
   loc <- getLocationByGLN locEpc
   biz <- BRHB.searchBusinesses (Just pfx) Nothing Nothing
   case biz of
@@ -197,11 +197,11 @@ maxPrefixesForUxLocations :: Int
 maxPrefixesForUxLocations = 25
 
 
-uxLocation :: ( Member context '[HasDB, HasLogging]
+searchBusinessLocation :: ( Member context '[HasDB, HasLogging]
               , Member err     '[AsSqlError])
            => [GS1CompanyPrefix]
            -> AppM context err [BusinessAndLocationResponse]
-uxLocation userPrefixes = do
+searchBusinessLocation userPrefixes = do
   -- We constrain the maximum number of company prefixes that can be quired in a single invocation to prevent abuse.
   let prefixes = take maxPrefixesForUxLocations userPrefixes
   locations <- traverse getLocations prefixes

@@ -31,7 +31,7 @@ import           Data.GS1.DWhere
 import           Data.GS1.EPC
 import qualified Data.GS1.Event                        as Ev
 
-import           Mirza.BusinessRegistry.Client.Servant (uxLocationByGLN)
+import           Mirza.BusinessRegistry.Client.Servant (searchBusinessLocationByGLN)
 
 import           Data.Aeson
 
@@ -104,5 +104,5 @@ eventToPrettyEvent ev = do
     Nothing -> throwing BT._LocationNotKnownBRE ()
     Just (ReadPointLocation loc) -> do
       let pfx = _sglnCompanyPrefix loc
-      locResp <- runClientFunc $ Just <$> uxLocationByGLN loc pfx
+      locResp <- runClientFunc $ Just <$> searchBusinessLocationByGLN loc pfx
       pure $ PrettyEventResponse ev locResp

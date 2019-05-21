@@ -66,12 +66,15 @@ type PublicAPI =
       :> QueryParam "gs1id" GS1CompanyPrefix
       :> QueryParam "modifiedsince" UTCTime
       :> Get '[JSON] [LocationResponse]
-  :<|> "prototype" :> "locations" :> "ux" :> QueryParams "gs1companyprefix" GS1CompanyPrefix :> Get '[JSON] [BusinessAndLocationResponse]
-  :<|> "prototype" :> "locations" :> "uxgln"
-          :> Capture "GLN" EPC.LocationEPC
-          :> Capture "gs1companyprefix" GS1CompanyPrefix
-          :> Get '[JSON] BusinessAndLocationResponse
-
+  :<|> "prototype"
+      :> "businesslocations"
+      :> QueryParams "gs1companyprefix" GS1CompanyPrefix
+      :> Get '[JSON] [BusinessAndLocationResponse]
+  :<|> "prototype"
+      :> "businesslocations"
+      :> Capture "GLN" EPC.LocationEPC
+      :> Capture "gs1companyprefix" GS1CompanyPrefix
+      :> Get '[JSON] BusinessAndLocationResponse
 
 type PrivateAPI =
        "user"          :> Put '[JSON] NoContent

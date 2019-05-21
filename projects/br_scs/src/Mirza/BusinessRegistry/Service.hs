@@ -77,8 +77,8 @@ publicServer =
   :<|> searchBusinesses
   :<|> getLocationByGLN
   :<|> searchLocation
-  :<|> uxLocation
-  :<|> uxLocationByGLN
+  :<|> searchBusinessLocation
+  :<|> searchBusinessLocationByGLN
 
 privateServer :: ( Member context '[HasDB]
                  , APIPossibleErrors err)
