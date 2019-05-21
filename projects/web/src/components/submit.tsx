@@ -15,7 +15,7 @@ export function Submit() {
     // const dl = DigitalLink(event.epcList[0]);
     if(true) {
       const token = 'Bearer ' + JSON.parse(localStorage.getItem('auth0_tk'))['idToken']
-      const request = new Request(url + '/event/objectEvent', {
+      const request = new Request(url + '/event', {
         method: 'POST',
         body: JSON.stringify(event),
         headers: new Headers({
