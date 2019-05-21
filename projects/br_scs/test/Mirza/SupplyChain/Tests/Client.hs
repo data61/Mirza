@@ -89,8 +89,8 @@ clientSpec = do
           -- and not created user, expect this may have to be fixed when we
           -- devise a means of authing test users.
           let businessName = "Business Name"
-              business = BT.NewBusiness prefix businessName (mockURI businessName)
-          httpBR (BRClient.addBusiness brAuthUser business)
+              business = BT.PartialNewBusiness businessName (mockURI businessName)
+          httpBR (BRClient.addBusiness brAuthUser prefix business)
             `shouldSatisfyIO` isRight
 
           -- TODO: Create a user for associating with tests.
@@ -136,8 +136,8 @@ clientSpec = do
           step "Adding business for the Giver"
           let prefixGiver = GS1CompanyPrefix "1000001"
               businessGiverName = "Giver Biz"
-              businessGiver = BT.NewBusiness prefixGiver businessGiverName (mockURI businessGiverName)
-          httpBR (BRClient.addBusiness globalAuthData businessGiver)
+              businessGiver = BT.PartialNewBusiness businessGiverName (mockURI businessGiverName)
+          httpBR (BRClient.addBusiness globalAuthData prefixGiver businessGiver)
             `shouldSatisfyIO` isRight
 
           -- TODO: Create a user for associating with tests.
@@ -159,9 +159,9 @@ clientSpec = do
           step "Adding business for receiver"
           let prefixReceiver = GS1CompanyPrefix "1000002"
               businessReceiverName = "Receiving Biz"
-              businessReceiver = BT.NewBusiness prefixReceiver businessReceiverName (mockURI businessReceiverName)
+              businessReceiver = BT.PartialNewBusiness businessReceiverName (mockURI businessReceiverName)
 
-          httpBR (BRClient.addBusiness globalAuthData businessReceiver)
+          httpBR (BRClient.addBusiness globalAuthData prefixReceiver businessReceiver)
             `shouldSatisfyIO` isRight
 
           -- TODO: Create a user for associating with tests.

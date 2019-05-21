@@ -112,11 +112,11 @@ insertAndAuth _ _ _ _          ht [] = pure ht
 insertAndAuth scsUrl brUrl authToken locMap ht (entity:entities) = do
   let httpBR = runClient brUrl
       (Entity name companyPrefix bizName bizUrl locations (KeyPairPaths _ pubKeyPath)) = entity
-      newBiz = BT.NewBusiness companyPrefix bizName bizUrl
+      newBiz = BT.PartialNewBusiness bizName bizUrl
   let [_newUserBR] = GenBR.generateMultipleUsers [name]
   let userAuth = BasicAuthData "" "" -- TODO: Extract info from or associated with newUserBR.
   pubKey <- fmap expectJust $ liftIO $ readJWK pubKeyPath
-  _insertedPrefix <- httpBR $ BRClient.addBusiness authToken newBiz
+  _insertedPrefix <- httpBR $ BRClient.addBusiness authToken companyPrefix newBiz
   -- TODO: Create a user for associating with tests.
   --_insertedUserIdBR <- httpBR $ BRClient.addUser authToken newUserBR
   brKeyId <- fmap expectRight $ httpBR $ BRClient.addPublicKey authToken pubKey Nothing

@@ -58,6 +58,13 @@ newBusinessToBusiness NewBusiness{..} =
     , business_last_update        = Nothing
     }
 
+partialNewBusinessToNewBusiness :: GS1CompanyPrefix -> PartialNewBusiness -> NewBusiness
+partialNewBusinessToNewBusiness gs1CompanyPrefix partialNewBusiness =
+  NewBusiness
+  { newBusinessGS1CompanyPrefix = gs1CompanyPrefix
+  , newBusinessName = partialNewBusinessName partialNewBusiness
+  , newBusinessUrl = partialNewBusinessUrl partialNewBusiness
+  }
 
 -- This function is an interface adapter and adds the BT.AuthUser argument to
 -- addBusiness so that we can use it from behind the private API. This argument
@@ -65,8 +72,10 @@ newBusinessToBusiness NewBusiness{..} =
 -- will have the ability to act globally.
 addBusinessAuth :: ( Member context '[HasDB]
                    , Member err     '[AsBRError, AsSqlError])
-                => BT.AuthUser -> NewBusiness -> AppM context err GS1CompanyPrefix
-addBusinessAuth authUser = addBusiness (authUserId authUser)
+                => BT.AuthUser -> GS1CompanyPrefix -> PartialNewBusiness -> AppM context err NoContent
+addBusinessAuth authUser gs1CompanyPrefix partialNewBusiness = do
+  _ <- addBusiness (authUserId authUser) $ partialNewBusinessToNewBusiness gs1CompanyPrefix partialNewBusiness
+  pure NoContent
 
 addBusiness :: ( Member context '[HasDB]
                , Member err     '[AsBRError, AsSqlError])

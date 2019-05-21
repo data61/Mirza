@@ -76,7 +76,7 @@ type PublicAPI =
 type PrivateAPI =
        "user"          :> Put '[JSON] NoContent
   :<|> "user"          :> "organisations"                                                                           :> Get '[JSON] [BusinessResponse]
-  :<|> "organisations" :> "add"      :> ReqBody '[JSON] NewBusiness                                                 :> Post '[JSON] GS1CompanyPrefix
+  :<|> "organisations" :> Capture "gs1CompanyPrefix" GS1CompanyPrefix :> ReqBody '[JSON] PartialNewBusiness         :> Put '[JSON] NoContent
   :<|> "organisations" :> Capture "gs1CompanyPrefix" GS1CompanyPrefix :> "member" :> Capture "userId" UserId        :> Put '[JSON] NoContent
   :<|> "keys"          :> ReqBody '[JSON] JWK                         :> QueryParam "expirationTime" ExpirationTime :> Post '[JSON] BRKeyId
   :<|> "keys"          :> Capture "keyId" BRKeyId                     :> "revoke"                                   :> Post '[JSON] RevocationTime
