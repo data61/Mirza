@@ -77,15 +77,15 @@ publicServer =
   :<|> searchBusinesses
   :<|> getLocationByGLN
   :<|> searchLocation
-  :<|> uxLocation
-  :<|> uxLocationByGLN
+  :<|> searchBusinessLocation
+  :<|> searchBusinessLocationByGLN
 
 privateServer :: ( Member context '[HasDB]
                  , APIPossibleErrors err)
               => ServerT ProtectedAPI (AppM context err)
 privateServer =      (transformUser0 addUserAuth)
                 :<|> (transformUser0 getBusinessInfo)
-                :<|> (transformUser1 addBusinessAuth)
+                :<|> (transformUser2 addBusinessAuth)
                 :<|> (transformUser2 addOrganisationMappingAuth)
                 :<|> (transformUser2 addPublicKey)
                 :<|> (transformUser1 revokePublicKey)

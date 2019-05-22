@@ -156,13 +156,18 @@ instance ToSchema AuthUser
 instance ToParamSchema AuthUser
 
 
+data PartialNewBusiness = PartialNewBusiness
+  { partialNewBusinessName      :: Text
+  , partialNewBusinessUrl       :: Network.URI.URI
+  } deriving (Generic, Eq, Show)
+$(deriveJSON defaultOptions ''PartialNewBusiness)
+instance ToSchema PartialNewBusiness
+
 data NewBusiness = NewBusiness
   { newBusinessGS1CompanyPrefix :: GS1CompanyPrefix
   , newBusinessName             :: Text
   , newBusinessUrl              :: Network.URI.URI
   } deriving (Generic, Eq, Show)
-$(deriveJSON defaultOptions ''NewBusiness)
-instance ToSchema NewBusiness
 
 -- Business Response Types:
 data BusinessResponse = BusinessResponse
