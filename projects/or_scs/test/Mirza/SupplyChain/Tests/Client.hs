@@ -71,6 +71,9 @@ clientSpec = do
           http (insertGS1Event dummyTransfEvent)
             `shouldSatisfyIO` isRight
 
+          step "Can insert Association event"
+          http (insertGS1Event dummyAssocEvent) `shouldSatisfyIO` isRight
+
   let _eventSignTests = testCaseSteps "eventSign" $ \step ->
         bracket runApps endApps $ \testData -> do
 
