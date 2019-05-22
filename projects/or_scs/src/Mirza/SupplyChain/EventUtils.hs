@@ -25,6 +25,7 @@ import qualified Data.GS1.Event                    as Ev
 import qualified Data.GS1.EventId                  as EvId
 
 import           Data.GS1.DWhat                    (AggregationDWhat (..),
+                                                    AssociationDWhat(..),
                                                     DWhat (..), InputEPC (..),
                                                     LabelEPC (..),
                                                     ObjectDWhat (..),
@@ -133,6 +134,7 @@ getTransformationId _                 = Nothing
 
 getAction :: DWhat -> Maybe Action
 getAction (TransformWhat _)                           = Nothing
+getAction (AssociationWhat _)                       = Nothing
 getAction (ObjWhat (ObjectDWhat act _))               = Just act
 getAction (TransactWhat (TransactionDWhat act _ _ _)) = Just act
 getAction (AggWhat (AggregationDWhat act _ _))        = Just act
@@ -238,6 +240,10 @@ getLabelsWithType (TransactWhat (TransactionDWhat _act mParent _orgT epcList))
 getLabelsWithType (TransformWhat (TransformationDWhat _tId input output))
     =  (LabelWithType (Just MU.Input)  . unInputEPC <$> input)
     <> (LabelWithType (Just MU.Output) . unOutputEPC <$> output)
+getLabelsWithType (AssociationWhat (AssociationDWhat parent children))
+    =  LabelWithType (Just MU.Parent) (IL $ unParentLabel parent)
+       : (LabelWithType Nothing <$> children)
+       
 
 
 toStorageDWhy :: Schema.WhyId -> DWhy -> Schema.EventId -> Schema.Why
