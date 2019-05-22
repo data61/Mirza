@@ -77,10 +77,10 @@ testServiceQueries = do
       (evInfo, _) <- testAppM scsContext $ insertGS1Event dummyAssocEvent
       (eventInfoEvent evInfo) `shouldBe` dummyAssocEvent
 
---    it "Should not allow duplicate Transaction events" $ \scsContext -> do
---      _res <- runAppM @_ @AppError scsContext $ insertGS1Event dummyTransactEvent
---      res <- runAppM @_ @AppError scsContext $ insertGS1Event dummyTransactEvent
---      res `shouldSatisfy` isLeft
+    it "Should not allow duplicate Transaction events" $ \scsContext -> do
+      _res <- runAppM @_ @AppError scsContext $ insertGS1Event dummyAssocEvent
+      res <- runAppM @_ @AppError scsContext $ insertGS1Event dummyAssocEvent
+      res `shouldSatisfy` isLeft
 
   describe "DWhere" $
     it "Insert and find DWhere" $ \scsContext -> do
