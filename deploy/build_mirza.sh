@@ -6,7 +6,7 @@ COMMIT=$2
 PUSH_MIRZA=$3
 
 SCS_DOCKER_IMAGE_TAG="${DOCKER_REPO}/supplychainserver:$COMMIT"
-BR_DOCKER_IMAGE_TAG="${DOCKER_REPO}/businessregistry:$COMMIT"
+OR_DOCKER_IMAGE_TAG="${DOCKER_REPO}/orgregistry:$COMMIT"
 EDAPI_DOCKER_IMAGE_TAG="${DOCKER_REPO}/entity-data-api:$COMMIT"
 HSBUILDER_DOCKER_IMAGE="${DOCKER_REPO}/hsbuilder"
 HSBUILDER_DOCKER_IMAGE_TAG="${HSBUILDER_DOCKER_IMAGE}:$(./deploy/dephash.sh)"
@@ -22,7 +22,7 @@ set +x # hide output
 eval $(aws ecr get-login --no-include-email --region ap-southeast-2)
 set -x
 
-cd "$(dirname "$0")/../projects/br_scs"
+cd "$(dirname "$0")/../projects/or_scs"
 
 if docker pull "${HSBUILDER_DOCKER_IMAGE_TAG}"; then
 	echo "Skipping, ${HSBUILDER_DOCKER_IMAGE_TAG} already exists..."
@@ -32,11 +32,11 @@ else
 fi
 
 docker build -f Mirza.Dockerfile --target PKG-SCS --build-arg HS_BUILDER_IMAGE="${HSBUILDER_DOCKER_IMAGE_TAG}" -t "${SCS_DOCKER_IMAGE_TAG}" .
-docker build -f Mirza.Dockerfile --target PKG-BR --build-arg HS_BUILDER_IMAGE="${HSBUILDER_DOCKER_IMAGE_TAG}" -t "${BR_DOCKER_IMAGE_TAG}" .
+docker build -f Mirza.Dockerfile --target PKG-OR --build-arg HS_BUILDER_IMAGE="${HSBUILDER_DOCKER_IMAGE_TAG}" -t "${OR_DOCKER_IMAGE_TAG}" .
 
 if [ "$PUSH_MIRZA" ]; then
     docker push "${SCS_DOCKER_IMAGE_TAG}"
-    docker push "${BR_DOCKER_IMAGE_TAG}"
+    docker push "${OR_DOCKER_IMAGE_TAG}"
 fi
 
 cd ../entity-data-api
