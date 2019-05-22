@@ -186,6 +186,7 @@ myCors = cors (const $ Just policy)
           , "http://localhost:8081"
           , "http://localhost:8020"
           , "http://localhost:8000"
+          , "https://demo.mirza.d61.io"
           ], True)
         }
 
