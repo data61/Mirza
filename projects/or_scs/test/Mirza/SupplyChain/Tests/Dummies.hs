@@ -12,6 +12,7 @@ import           Data.GS1.DWhy
 import           Data.GS1.EPC
 import qualified Data.GS1.Event          as Ev
 
+import           Data.Maybe              ( fromJust )
 import qualified Data.Text               as T
 import           Data.Time
 import           Data.UUID               (nil)
@@ -132,6 +133,23 @@ dummyTransfEvent =
     Ev.TransformationEventT
     Nothing
     dummyTransfDWhat
+    dummyDWhen
+    dummyDWhy
+    dummyDWhere
+
+-- AssociationEvents
+
+dummyAssocDWhat :: DWhat
+dummyAssocDWhat =
+  AssociationWhat $
+    AssociationDWhat (fromJust dummyParentLabel) dummyEpcList
+
+dummyAssocEvent :: Ev.Event
+dummyAssocEvent =
+  Ev.Event
+    Ev.AssociationEventT
+    Nothing
+    dummyAssocDWhat
     dummyDWhen
     dummyDWhy
     dummyDWhere

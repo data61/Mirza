@@ -133,6 +133,7 @@ getTransformationId _                 = Nothing
 
 getAction :: DWhat -> Maybe Action
 getAction (TransformWhat _)                           = Nothing
+getAction (AssociationWhat _)                       = Nothing
 getAction (ObjWhat (ObjectDWhat act _))               = Just act
 getAction (TransactWhat (TransactionDWhat act _ _ _)) = Just act
 getAction (AggWhat (AggregationDWhat act _ _))        = Just act
