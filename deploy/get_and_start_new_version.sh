@@ -35,7 +35,10 @@ ETH_NODE_PORT=$ETH_NODE_PORT
 ETH_ADMIN_ACCOUNT_PRIVATE_KEY=$ETH_ADMIN_ACCOUNT_PRIVATE_KEY
 OR_USER=$OR_USER
 OR_PASSWORD=$OR_PASSWORD
-OAUTH_SUB=$OAUTH_SUB" > ${filepath}
+OAUTH_SUB=$OAUTH_SUB
+JWK_CLIENT_IDS=$OAUTH_SUB
+EDAPI_DB_CONN=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db/sci033edapi
+DEST_PORT=8501" > ${filepath}
 
 # Blow away old db files (UNCOMMENT WHEN NEEDED FOR A CLEAN DEPLOYMENT WITH A FRESH DB)
 # rm -rf /opt/Mirza/postgresql/data/
@@ -47,7 +50,7 @@ echo Waiting 10 seconds for the db to finish starting...
 sleep 10
 
 # Start the services
-docker-compose up -d supplyChainServer orgRegistry private-ethereum-blockchain blockchain-api-server web
+docker-compose up -d supplyChainServer sci033EDAPI sci033SCS orgRegistry private-ethereum-blockchain blockchain-api-server web
 
 # Run the initdb scripts for scs and or. (UNCOMMENT WHEN NEEDED FOR A CLEAN DEPLOYMENT WITH A FRESH DB)
 # docker-compose up -d dbpopulate-or

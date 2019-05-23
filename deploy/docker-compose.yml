@@ -46,6 +46,43 @@ services:
         max-size: "200k"
         max-file: "10"
 
+  sci033EDAPI:
+    image: 235945186688.dkr.ecr.ap-southeast-2.amazonaws.com/edapi:latest
+    ports:
+      - 8500:8000
+    restart: always
+    depends_on:
+      - db
+    networks:
+      - frontend
+      - backend
+    env_file:
+      - .env
+    logging:
+      driver: json-file
+      options:
+        max-size: "200k"
+        max-file: "10"
+
+  sci033SCS:
+    image: 235945186688.dkr.ecr.ap-southeast-2.amazonaws.com/supplychainserver:latest
+    ports:
+      - 8501:8000
+    restart: always
+    depends_on:
+      - db
+    networks:
+      - frontend
+      - backend
+    env_file:
+      - .env
+    command: --orhost localhost --orport 8200 -c "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db/sci033supplychainserver"
+    logging:
+      driver: json-file
+      options:
+        max-size: "200k"
+        max-file: "10"
+
   orgRegistry:
     image: 235945186688.dkr.ecr.ap-southeast-2.amazonaws.com/orgregistry:latest
     ports:

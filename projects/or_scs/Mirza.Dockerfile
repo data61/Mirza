@@ -37,7 +37,7 @@ ENTRYPOINT [ "/opt/Mirza/supplyChainServer" ]
 FROM ubuntu:18.04 as PKG-OR
 
 RUN apt update && \
-	apt install -y libpq-dev libffi-dev ca-certificates
+	apt install -y libpq-dev libffi-dev ca-certificates netbase
 
 COPY --from=0 /src/dist/orgRegistry /opt/Mirza/orgRegistry
 
