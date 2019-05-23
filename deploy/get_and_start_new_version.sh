@@ -23,6 +23,7 @@ ETH_NODE_PORT=$(aws --region ap-southeast-2 secretsmanager get-secret-value --se
 ETH_ADMIN_ACCOUNT_PRIVATE_KEY=$(aws --region ap-southeast-2 secretsmanager get-secret-value --secret-id development | jq -r .SecretString | sed 's/\\//g' | jq -r .ETH_ADMIN_ACCOUNT_PRIVATE_KEY)
 OR_USER=$(aws --region ap-southeast-2 secretsmanager get-secret-value --secret-id development | jq -r .SecretString | sed 's/\\//g' | jq -r .OR_USER)
 OR_PASSWORD=$(aws --region ap-southeast-2 secretsmanager get-secret-value --secret-id development | jq -r .SecretString | sed 's/\\//g' | jq -r .OR_PASSWORD)
+OAUTH_SUB=$(aws --region ap-southeast-2 secretsmanager get-secret-value --secret-id development | jq -r .SecretString | sed 's/\\//g' | jq -r .OAUTH_SUB)
 
 filepath='/home/ec2-user/.env'
 
@@ -33,7 +34,8 @@ ETH_NODE_HOST=$ETH_NODE_HOST
 ETH_NODE_PORT=$ETH_NODE_PORT
 ETH_ADMIN_ACCOUNT_PRIVATE_KEY=$ETH_ADMIN_ACCOUNT_PRIVATE_KEY
 OR_USER=$OR_USER
-OR_PASSWORD=$OR_PASSWORD" > ${filepath}
+OR_PASSWORD=$OR_PASSWORD
+OAUTH_SUB=$OAUTH_SUB" > ${filepath}
 
 # Blow away old db files (UNCOMMENT WHEN NEEDED FOR A CLEAN DEPLOYMENT WITH A FRESH DB)
 # rm -rf /opt/Mirza/postgresql/data/

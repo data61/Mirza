@@ -58,7 +58,7 @@ services:
       - backend
     env_file:
       - .env
-    command: -c 'postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db/devorgregistry' server
+    command: -c 'postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db/devorgregistry' server -a "${OAUTH_SUB}"
     logging:
       driver: json-file
       options:
