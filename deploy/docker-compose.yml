@@ -53,6 +53,7 @@ services:
     restart: always
     depends_on:
       - db
+      - sci033SCS
     networks:
       - frontend
       - backend
