@@ -147,7 +147,7 @@ services:
       - backend
     env_file:
       - .env
-    entrypoint: /bin/sh -c "echo 'YES' | /opt/Mirza/orgRegistry initdb -c 'postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db/devorgregistry'
+    entrypoint: /bin/sh -c "echo 'YES' | /opt/Mirza/orgRegistry initdb -c 'postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db/devorgregistry'"
     depends_on:
       - db
     logging:
