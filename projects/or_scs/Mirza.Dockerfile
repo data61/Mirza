@@ -35,6 +35,7 @@ COPY --from=0 /src/test/Mirza/SupplyChain/TestData/testKeys/goodJWKs /opt/Mirza/
 ENTRYPOINT [ "/opt/Mirza/supplyChainServer" ]
 
 FROM ubuntu:18.04 as PKG-OR
+WORKDIR /opt/Mirza
 
 RUN apt update && \
 	apt install -y libpq-dev libffi-dev ca-certificates netbase
