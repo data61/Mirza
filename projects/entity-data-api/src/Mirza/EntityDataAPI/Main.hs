@@ -51,8 +51,8 @@ multiplexInitOptions opts = do
   ctx <- initContext opts
   putStrLn $ "Initialized context. Starting app on mode " <> (show . appMode $ opts)
   case appMode opts of
-    Proxy     -> launchProxy ctx
-    API       -> launchUserManager ctx
+    Proxy       -> launchProxy ctx
+    UserManager -> launchUserManager ctx
     Bootstrap -> do
       res <- tryAddBootstrapUser ctx
       print res
