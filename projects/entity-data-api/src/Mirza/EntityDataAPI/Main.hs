@@ -5,8 +5,6 @@ module Mirza.EntityDataAPI.Main (main) where
 
 import           System.Envy                        (decodeEnv)
 
-import           Options.Applicative
-
 import           Network.HTTP.Client                (newManager)
 import           Network.HTTP.Client.TLS            (tlsManagerSettings)
 
@@ -120,6 +118,7 @@ myCors = cors (const $ Just policy)
             "http://localhost:8080"
           , "http://localhost:8081"
           , "http://localhost:8000"
+          , "https://demo.mirza.d61.io"
           ], True)
         }
 
