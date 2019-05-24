@@ -7,49 +7,49 @@
 module Mirza.OrgRegistry.Main where
 
 
+import           Mirza.Common.Types                 as CT
 import           Mirza.OrgRegistry.API              (API, ServerAPI, api)
 import           Mirza.OrgRegistry.Auth
 import           Mirza.OrgRegistry.Database.Migrate
 import           Mirza.OrgRegistry.Database.Schema  as Schema
-import           Mirza.OrgRegistry.GenerateUtils    (dummyOrg,
-                                                          dummyUser)
+import           Mirza.OrgRegistry.GenerateUtils    (dummyOrg, dummyUser)
 import           Mirza.OrgRegistry.Service
 import           Mirza.OrgRegistry.Types            as ORT
-import           Mirza.Common.Types                      as CT
 
-import           Data.GS1.EPC                            (GS1CompanyPrefix (..))
+import           Data.GS1.EPC                       (GS1CompanyPrefix (..))
 
 import           Servant
 import           Servant.Auth.Server
 import           Servant.Swagger.UI
 
-import           Crypto.JWT                              (Audience (..), string)
+import           Crypto.JWT                         (Audience (..), string)
 
-import qualified Data.Pool                               as Pool
+import qualified Data.Pool                          as Pool
 import           Database.PostgreSQL.Simple
 
-import           Network.URI                             (nullURI)
-import           Network.Wai                             (Middleware)
-import qualified Network.Wai.Handler.Warp                as Warp
+import           Network.URI                        (nullURI)
+import           Network.Wai                        (Middleware)
+import qualified Network.Wai.Handler.Warp           as Warp
+import           Network.Wai.Middleware.Cors
 
-import           Data.Aeson                              (eitherDecodeFileStrict)
+import           Data.Aeson                         (eitherDecodeFileStrict)
 
-import qualified Data.Attoparsec.ByteString              as A
-import           Data.ByteString                         (ByteString)
-import qualified Data.ByteString.Char8                   as BS
-import           Data.Semigroup                          ((<>))
-import           Data.Text                               (Text, pack)
-import           Options.Applicative                     hiding (action)
-import           Text.Email.Parser                       (addrSpec)
+import qualified Data.Attoparsec.ByteString         as A
+import           Data.ByteString                    (ByteString)
+import qualified Data.ByteString.Char8              as BS
+import           Data.Semigroup                     ((<>))
+import           Data.Text                          (Text, pack)
+import           Options.Applicative                hiding (action)
+import           Text.Email.Parser                  (addrSpec)
 
-import           Control.Exception                       (finally)
-import           Control.Lens                            (review)
-import           Data.Maybe                              (fromMaybe)
-import           Data.Either                             (fromRight)
-import           Katip                                   as K
-import           System.IO                               (IOMode (AppendMode),
-                                                          hPutStr, openFile,
-                                                          stderr, stdout)
+import           Control.Exception                  (finally)
+import           Control.Lens                       (review)
+import           Data.Either                        (fromRight)
+import           Data.Maybe                         (fromMaybe)
+import           Katip                              as K
+import           System.IO                          (IOMode (AppendMode),
+                                                     hPutStr, openFile, stderr,
+                                                     stdout)
 
 
 --------------------------------------------------------------------------------
@@ -175,8 +175,23 @@ initApplication ev =
           (server ev)
 
 
+myCors :: Middleware
+myCors = cors (const $ Just policy)
+    where
+      policy = simpleCorsResourcePolicy
+        { corsRequestHeaders = ["Content-Type", "Authorization"]
+        , corsMethods = "PUT" : simpleMethods
+        , corsOrigins = Just ([
+            "http://localhost:8080"
+          , "http://localhost:8081"
+          , "http://localhost:8020"
+          , "http://localhost:8000"
+          , "https://demo.mirza.d61.io"
+          ], True)
+        }
+
 initMiddleware :: ServerOptionsOR -> RunServerOptions -> IO Middleware
-initMiddleware _ _ = pure id
+initMiddleware _ _ = pure myCors
 
 -- Implementation
 server :: ORContextComplete -> Server API

@@ -96,6 +96,7 @@ library
                     , uuid
                     , uuid-types
                     , wai
+                    , wai-cors
                     , unordered-containers
                     , hashable
                     , warp

@@ -14,7 +14,7 @@ import           Network.Wai                        (Application, Request (..),
 import           GHC.Exception                      (SomeException)
 
 import           Control.Monad.Except               (throwError)
-import           Control.Monad.Reader               (asks)
+import           Control.Monad.Reader               (asks, liftIO)
 
 import           Control.Lens                       (view)
 
@@ -29,6 +29,7 @@ import qualified Data.ByteString.Lazy               as BSL
 
 handleRequest :: AuthContext -> Request -> IO WaiProxyResponse
 handleRequest ctx r = do
+  liftIO . print $ "Received request: " <> show r
   let (modifiedReq, mAuthHeader) = extractAuthHeader r
   mUnverifiedJWT <- runAppM ctx $ handleToken mAuthHeader
   case mUnverifiedJWT of
@@ -47,7 +48,9 @@ handleToken (Just (_, authHdr)) = do
     Nothing -> throwError NoClaimSubject
     Just sub -> doesSubExist sub >>= \case
         False -> throwError UnauthClaimsSubject
-        True  -> pure claimSet
+        True  -> do
+          liftIO . putStrLn $ "\nAUTHENTICATED\n"
+          pure claimSet
 handleToken Nothing = throwError NoAuthHeader
 
 extractAuthHeader :: Request -> (Request, Maybe Header)

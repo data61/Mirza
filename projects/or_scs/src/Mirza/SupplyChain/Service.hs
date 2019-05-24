@@ -36,7 +36,7 @@ import           Servant.Swagger
 
 import           GHC.TypeLits                                 (KnownSymbol)
 
-import           Control.Lens                                 hiding ((.=))
+import           Control.Lens
 import           Control.Monad.IO.Class                       (liftIO)
 import qualified Data.HashMap.Strict.InsOrd                   as IOrd
 import           Data.Swagger

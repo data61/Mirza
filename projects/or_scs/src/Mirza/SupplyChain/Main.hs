@@ -22,7 +22,6 @@ import           Database.PostgreSQL.Simple
 
 import           Network.HTTP.Client                (defaultManagerSettings,
                                                      newManager)
-import           Network.Wai                        (Middleware)
 import qualified Network.Wai.Handler.Warp           as Warp
 
 import           Data.ByteString                    (ByteString)
@@ -116,9 +115,8 @@ runProgram so@ServerOptionsSCS{initDB =False, dbPopulateInfo =Just _, orServiceI
 runProgram so@ServerOptionsSCS{initDB = False, scsServiceInfo=(scsHst, scsPort), orServiceInfo =Just _} = do
   ctx <- initSCSContext so
   app <- initApplication so ctx
-  mids <- initMiddleware so
   putStrLn $ "http://" <> scsHst <> ":" <> show scsPort <> "/swagger-ui/"
-  Warp.run (fromIntegral scsPort) (mids app) `finally` closeScribes (ctx ^. ST.scsKatipLogEnv)
+  Warp.run (fromIntegral scsPort) app `finally` closeScribes (ctx ^. ST.scsKatipLogEnv)
 runProgram ServerOptionsSCS{initDB = False, orServiceInfo = Nothing} = do
   hPutStrLn stderr "Required unless initialising the database: --orhost ARG --orport ARG"
   exitFailure
@@ -138,9 +136,6 @@ runDbPopulate so = do
       Just (_username, _pswd) = dbPopulateInfo so
   _ <- insertCitrusData scsUrl
   pure ()
-
-initMiddleware :: ServerOptionsSCS -> IO Middleware
-initMiddleware _ = pure id
 
 initSCSContext :: ServerOptionsSCS -> IO ST.SCSContext
 initSCSContext (ServerOptionsSCS envT _ _ dbConnStr _ lev (Just (orHost, orgRegPort)) mlogPath) = do
