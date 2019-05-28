@@ -20,7 +20,8 @@ import           Control.Lens                       (view)
 
 import           Mirza.EntityDataAPI.Errors
 import           Mirza.EntityDataAPI.Types
-import           Mirza.EntityDataAPI.Utils
+
+import           Mirza.Common.Utils
 
 import qualified Crypto.JWT                         as JWT
 

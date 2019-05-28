@@ -1,5 +1,6 @@
 packages:
 - '.'
+- ../mirza-common-haskell
 
 resolver: lts-13.11
 ghc-options:

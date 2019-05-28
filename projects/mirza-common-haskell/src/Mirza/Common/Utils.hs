@@ -1,8 +1,8 @@
+{-# LANGUAGE OverloadedStrings   #-}
+{-# LANGUAGE FlexibleContexts    #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module Mirza.EntityDataAPI.Utils where
-
-import           Mirza.EntityDataAPI.Errors (AppError (..))
+module Mirza.Common.Utils where
 
 import           Network.HTTP.Client        (Manager)
 import           Network.HTTP.Req
@@ -51,7 +51,13 @@ rollback ::
 rollback = flip (foldl (flip (:)))
 
 
-fetchJWKs :: Manager -> String -> IO (Either AppError JWKSet)
+data FetchJWKsError =
+    UrlParseFailed
+  | ReqFailure HttpException
+  | JWKParseFailure [Char]
+  deriving Show
+
+fetchJWKs :: Manager -> String -> IO (Either FetchJWKsError JWKSet)
 fetchJWKs m url =
   case parseUrlHttps (url ^. packed . re utf8) of
     Nothing   -> pure $ Left UrlParseFailed
@@ -64,7 +70,7 @@ fetchJWKs m url =
           Right v                   -> pure . Right $ v
 
       -- Change the x5t to be spec compliant
-      toJWKS :: Value -> Either AppError JWKSet
+      toJWKS :: Value -> Either FetchJWKsError JWKSet
       toJWKS v = let v' = over (key "keys" . values . key "x5t" . _String) b64HexToB64 v in
         case fromJSON v' of
           Error e   -> Left $ JWKParseFailure e
