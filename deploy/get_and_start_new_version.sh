@@ -39,7 +39,7 @@ OAUTH_SUB=$OAUTH_SUB
 JWK_CLIENT_IDS=$OAUTH_SUB
 EDAPI_DB_CONN=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db/sci033edapi
 DEST_HOST=sci033SCS
-DEST_PORT=8501" > ${filepath}
+DEST_PORT=8000" > ${filepath}
 
 # Blow away old db files (UNCOMMENT WHEN NEEDED FOR A CLEAN DEPLOYMENT WITH A FRESH DB)
 # rm -rf /opt/Mirza/postgresql/data/

@@ -66,8 +66,6 @@ services:
 
   sci033SCS:
     image: 235945186688.dkr.ecr.ap-southeast-2.amazonaws.com/supplychainserver:latest
-    ports:
-      - 8501:8000
     restart: always
     depends_on:
       - db
