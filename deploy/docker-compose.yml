@@ -16,6 +16,7 @@ services:
     restart: always
     depends_on:
       - orgRegistry
+      - sci033EDAPI
       - supplyChainServer
     networks:
       - frontend
@@ -48,8 +49,6 @@ services:
 
   sci033EDAPI:
     image: 235945186688.dkr.ecr.ap-southeast-2.amazonaws.com/edapi:latest
-    ports:
-      - 8500:8080
     restart: always
     depends_on:
       - db
