@@ -21,14 +21,12 @@ import           Control.Lens                       (view)
 import           Mirza.EntityDataAPI.Errors
 import           Mirza.EntityDataAPI.Types
 
-import           Mirza.Common.Utils
-
 import qualified Crypto.JWT                         as JWT
 
 import qualified Data.ByteString                    as BS
 import qualified Data.ByteString.Lazy               as BSL
 
-import           Data.List                          (uncons, partition)
+import           Data.List                          (partition)
 import           Data.Maybe                         (listToMaybe)
 
 
