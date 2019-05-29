@@ -28,6 +28,10 @@ import qualified Crypto.JWT                         as JWT
 import qualified Data.ByteString                    as BS
 import qualified Data.ByteString.Lazy               as BSL
 
+import           Data.List                          (uncons, partition)
+import           Data.Maybe                         (listToMaybe)
+
+
 handleRequest :: AuthContext -> Request -> IO WaiProxyResponse
 handleRequest ctx r = do
   liftIO . print $ "Received request: " <> show r
@@ -54,15 +58,18 @@ handleToken (Just (_, authHdr)) = do
           pure claimSet
 handleToken Nothing = throwError NoAuthHeader
 
+
 extractAuthHeader :: Request -> (Request, Maybe Header)
-extractAuthHeader r =
-  let headers = requestHeaders r
-      (restOfHeaders, mAuthHeader) = extract ((==) hAuthorization . fst) headers
-  in (r{requestHeaders = restOfHeaders}, mAuthHeader)
+extractAuthHeader originalRequest = (requestWithoutAuthHeader, authHeader) where
+  originalHeaders = requestHeaders originalRequest
+  (authHeaderList, headersNotAuth) = partition ((== hAuthorization) . fst) originalHeaders
+  authHeader = listToMaybe authHeaderList
+  requestWithoutAuthHeader = originalRequest{requestHeaders = headersNotAuth}
 
 
 handleError :: SomeException -> Application
 handleError = defaultOnExc
+
 
 runAuthProxy :: AuthContext -> Application
 runAuthProxy context = waiProxyTo (handleRequest context) handleError $ appManager context
