@@ -50,7 +50,7 @@ Install Postgres 10 or higher, set up an account, and create a PostgreSQL databa
 Run the SQL script in database/init.sql
 
 ```bash
-psql -h hostname -d databasename -U username -f ~/Mirza/projects/entity-data-api/database/init.sql
+psql -h hostname -d databasename -U username -f /path/to/Mirza/projects/entity-data-api/database/init.sql
 ```
 
 Set the `EDAPI_MODE` environment variable to `Bootstrap` and run the application.
