@@ -33,6 +33,7 @@ import           Database.PostgreSQL.Simple         (close, connectPostgreSQL)
 import           Data.Pool                          (createPool)
 
 import           Data.List.Split                    (splitOn)
+import           System.IO                          (hSetBuffering, stdout, BufferMode(LineBuffering))
 
 main :: IO ()
 -- main = launchProxy =<< execParser opts where
@@ -43,6 +44,7 @@ main :: IO ()
 main = (decodeEnv :: IO (Either String Opts)) >>= \case
   Left err -> fail $ "Failed to parse Opts: " <> err
   Right opts -> do
+    hSetBuffering stdout LineBuffering
     print opts
     multiplexInitOptions opts
 
