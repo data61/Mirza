@@ -79,14 +79,49 @@ export const EventDisposition = {
     Unknown: "urn:epcglobal:cbv:disp:unknown",
 };
 
+export const SourceDestType = {
+    OwningParty: "urn:epcglobal:cbv:sdt:owning_party",
+    PosessingParty: "urn:epcglobal:cbv:sdt:possessing_party",
+    Location: "urn:epcglobal:cbv:sdt:location"
+}
+
+class SourceType {
+    constructor(public source:string, public type:string) {
+        this.source = source;
+        this.type = type;
+    }
+}
+
+class DestinationType {
+    constructor(public destination:string, public type:string) {
+        this.destination = destination;
+        this.type = type;
+    }
+}
+
+class Quantity {
+    constructor(public epcClass:string, public quantity: number, public uom:string) {
+        this.epcClass = epcClass;
+        this.quantity = quantity;
+        this.uom = uom;
+    }
+}
+
 export interface Event {
+    eventID?: string;
     isA: string;
     eventTime: Date;
+    readPoint?: string;
     eventTimeZoneOffset: number;
+    recordTime?: Date;
     action?: string;
     epcList?: Array<string>;
     bizStep?: string;
     disposition?: string;
+    quantityList?: Array<Quantity>;
+    bizLocation?: string;
+    sourceList: Array<SourceType>;
+    destinationList: Array<DestinationType>;
 }
 
 export function objectEvent(): Event {
@@ -97,6 +132,8 @@ export function objectEvent(): Event {
         bizStep: EventBusinessStep.Accepting,
         disposition: EventDisposition.Active,
         eventTime: new Date(),
-        eventTimeZoneOffset: (new Date()).getTimezoneOffset()
+        eventTimeZoneOffset: (new Date()).getTimezoneOffset(),
+        sourceList: [],
+        destinationList: [],
     };
 }
