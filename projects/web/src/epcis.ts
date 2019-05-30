@@ -1,4 +1,4 @@
-import { stringify } from "query-string";
+var moment = require('moment');
 
 export const EventType = {
     Aggregation: "AggregationEvent",
@@ -112,7 +112,7 @@ export interface Event {
     isA: string;
     eventTime: Date;
     readPoint?: string;
-    eventTimeZoneOffset: number;
+    eventTimeZoneOffset: string;
     recordTime?: Date;
     action?: string;
     epcList?: Array<string>;
@@ -132,7 +132,7 @@ export function objectEvent(): Event {
         bizStep: EventBusinessStep.Accepting,
         disposition: EventDisposition.Active,
         eventTime: new Date(),
-        eventTimeZoneOffset: (new Date()).getTimezoneOffset(),
+        eventTimeZoneOffset: moment(Date()).format('Z'),
         sourceList: [],
         destinationList: [],
     };
