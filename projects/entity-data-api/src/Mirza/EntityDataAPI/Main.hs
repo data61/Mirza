@@ -33,6 +33,7 @@ import           Database.PostgreSQL.Simple         (close, connectPostgreSQL)
 import           Data.Pool                          (createPool)
 
 import           Data.List.Split                    (splitOn)
+
 import           System.IO                          (hSetBuffering, stdout, BufferMode(LineBuffering))
 
 main :: IO ()
@@ -107,7 +108,7 @@ initContext (Opts myService (ServiceInfo (Hostname destHost) (Port destPort)) _m
     Left err -> fail $ show err
     Right jwkSet -> pure $ AuthContext myService proxyDest mngr jwkSet (parseClientIdList clientIds) connpool
     where
-      parseClientIdList cIds = fromString <$> splitOn ":" cIds
+      parseClientIdList cIds = fmap fromString . filter (not . null) . splitOn "," $ cIds
 
 
 myCors :: Middleware
