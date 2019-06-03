@@ -111,7 +111,7 @@ defaultJwkUrl = "https://mirza.au.auth0.com/.well-known/jwks.json"
 
 data AppMode
   = Proxy
-  | API -- placeholder
+  | UserManager
   | Bootstrap
   deriving (Show, Eq, Generic, Read)
 

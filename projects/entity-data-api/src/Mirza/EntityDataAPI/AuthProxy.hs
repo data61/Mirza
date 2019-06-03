@@ -36,7 +36,9 @@ handleRequest ctx r = do
   let (modifiedReq, mAuthHeader) = extractAuthHeader r
   mUnverifiedJWT <- runAppM ctx $ handleToken mAuthHeader
   case mUnverifiedJWT of
-    Left (_err :: AppError) -> pure $ WPRResponse $ responseBuilder status401 mempty mempty
+    Left (_err :: AppError) -> do
+      liftIO $ putStrLn ("Token validation failed: " <> show _err)
+      pure $ WPRResponse $ responseBuilder status401 mempty mempty
     Right _ -> pure $ WPRModifiedRequest modifiedReq (destProxyServiceInfo ctx)
 
 handleToken :: Maybe Header -> AppM AuthContext AppError JWT.ClaimsSet

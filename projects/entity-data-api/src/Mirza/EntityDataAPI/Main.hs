@@ -35,6 +35,8 @@ import           Data.Pool                          (createPool)
 
 import           Data.List.Split                    (splitOn)
 
+import           System.IO                          (hSetBuffering, stdout, BufferMode(LineBuffering))
+
 main :: IO ()
 -- main = launchProxy =<< execParser opts where
 --   opts = info (optsParser <**> helper)
@@ -44,6 +46,7 @@ main :: IO ()
 main = (decodeEnv :: IO (Either String Opts)) >>= \case
   Left err -> fail $ "Failed to parse Opts: " <> err
   Right opts -> do
+    hSetBuffering stdout LineBuffering
     print opts
     multiplexInitOptions opts
 
@@ -52,8 +55,8 @@ multiplexInitOptions opts = do
   ctx <- initContext opts
   putStrLn $ "Initialized context. Starting app on mode " <> (show . appMode $ opts)
   case appMode opts of
-    Proxy     -> launchProxy ctx
-    API       -> launchUserManager ctx
+    Proxy       -> launchProxy ctx
+    UserManager -> launchUserManager ctx
     Bootstrap -> do
       res <- tryAddBootstrapUser ctx
       print res
@@ -106,7 +109,7 @@ initContext (Opts myService (ServiceInfo (Hostname destHost) (Port destPort)) _m
     Left err -> fail $ show err
     Right jwkSet -> pure $ AuthContext myService proxyDest mngr jwkSet (parseClientIdList clientIds) connpool
     where
-      parseClientIdList cIds = fromString <$> splitOn ":" cIds
+      parseClientIdList cIds = fmap fromString . filter (not . null) . splitOn "," $ cIds
 
 
 myCors :: Middleware

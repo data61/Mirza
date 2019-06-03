@@ -56,7 +56,7 @@ interface Mapping {
 }
 
 export function MappingSelect(props: { mapping: Mapping, value: string, setValue: (value: string) => void }) {
-  const f = (s: string) => s.replace(/(?<=\w)[A-Z]/g, (x: string) => " " + x);
+  const f = (s: string) => s.replace(/([a-z0-9])([A-Z])/g, (x: string) => x[0] + " " + x[1]);
 
   return (
     <select defaultValue={props.value} onChange={(e) => props.setValue(e.target.value)}>
