@@ -73,6 +73,7 @@ library
                       , base16-bytestring
                       , base64-bytestring
                       , bytestring
+                      , data-default
                       , envy
                       , http-reverse-proxy
                       , http-client
