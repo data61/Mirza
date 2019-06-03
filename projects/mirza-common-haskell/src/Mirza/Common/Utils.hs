@@ -4,8 +4,8 @@
 
 module Mirza.Common.Utils where
 
-import           Network.HTTP.Client        ( Manager)
-import           Network.HTTP.Req           
+import           Network.HTTP.Client        (Manager)
+import           Network.HTTP.Req
 
 import           Crypto.JOSE                (JWKSet)
 
@@ -19,7 +19,7 @@ import           Data.Aeson                 (Result (..), Value (..), fromJSON)
 import           Data.Aeson.Lens
 
 import           Data.Default
-  
+
 import           Data.Text                  (Text)
 import           Data.Text.Encoding
 import           Data.Text.Strict.Lens      (packed, utf8)
