@@ -61,6 +61,7 @@ fetchJWKs m url =
     where
       mkReq url' = do
         res <- try $ runReq (def { httpConfigAltManager = Just m }) $ req GET (url' ^. _1) NoReqBody jsonResponse mempty
+        -- TODO:             ^ def will change to defaultHttpConfig once req-2.0 is in stackage LTS.
         case res of
           Left (e :: HttpException) -> pure . Left  $ ReqFailure e
           Right v                   -> pure . Right $ v
