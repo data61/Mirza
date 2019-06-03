@@ -5,9 +5,4 @@ resolver: lts-13.23
 ghc-options:
   $locals: -Wall
 
-extra-deps:
-- git: https://github.com/mrkkrp/req.git
-  commit: 4df31fc7178b5a04fff02c9deaeda9d35739d677
-- retry-0.8.0.0@sha256:319a0586876d43622bfe9406fad067adf0b4e591d125ad960bcc405237cc28f5
-
 local-bin-path: dist

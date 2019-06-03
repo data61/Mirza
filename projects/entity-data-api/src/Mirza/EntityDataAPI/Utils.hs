@@ -4,8 +4,8 @@ module Mirza.EntityDataAPI.Utils where
 
 import           Mirza.EntityDataAPI.Errors (AppError (..))
 
-import           Network.HTTP.Client        (Manager)
-import           Network.HTTP.Req
+import           Network.HTTP.Client        ( Manager)
+import           Network.HTTP.Req           
 
 import           Crypto.JOSE                (JWKSet)
 
@@ -18,6 +18,8 @@ import           Control.Exception          (try)
 import           Data.Aeson                 (Result (..), Value (..), fromJSON)
 import           Data.Aeson.Lens
 
+import           Data.Default
+  
 import           Data.Text                  (Text)
 import           Data.Text.Encoding
 import           Data.Text.Strict.Lens      (packed, utf8)
@@ -58,7 +60,8 @@ fetchJWKs m url =
     Just url' -> ((toJWKS =<<) . (fmap responseBody)) <$!> (mkReq url')
     where
       mkReq url' = do
-        res <- try $ runReq (defaultHttpConfig{ httpConfigAltManager = Just m }) $ req GET (url' ^. _1) NoReqBody jsonResponse mempty
+        res <- try $ runReq (def { httpConfigAltManager = Just m }) $ req GET (url' ^. _1) NoReqBody jsonResponse mempty
+        -- TODO:             ^ def will change to defaultHttpConfig once req-2.0 is in stackage LTS.
         case res of
           Left (e :: HttpException) -> pure . Left  $ ReqFailure e
           Right v                   -> pure . Right $ v
