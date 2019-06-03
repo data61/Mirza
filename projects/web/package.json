@@ -18,6 +18,7 @@
     "auth0-js": "^9.10.0",
     "digital-link.js": "^1.0.0",
     "jsqr": "^1.2.0",
+    "moment": "^2.24.0",
     "query-string": "^6.3.0",
     "react": "^16.8.3",
     "react-dom": "^16.8.3",

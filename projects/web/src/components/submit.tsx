@@ -27,6 +27,7 @@ export function Submit() {
       });
       return fetch(request).then(function(res: Response) {
         console.log(res);
+        alert('Success!');
       }).catch(function(err) {
         console.error(err);
       })
