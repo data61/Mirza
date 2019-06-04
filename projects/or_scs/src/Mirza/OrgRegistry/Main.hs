@@ -30,7 +30,7 @@ import           Database.PostgreSQL.Simple
 import           Network.URI                        (nullURI)
 import           Network.Wai                        (Middleware)
 import qualified Network.Wai.Handler.Warp           as Warp
-import           Network.Wai.Middleware.Cors
+import qualified Network.Wai.Middleware.Cors        as CorsMiddleware
 
 import           Data.Aeson                         (eitherDecodeFileStrict)
 
@@ -63,6 +63,15 @@ defaultPortNumber = 8200
 defaultDatabaseConnectionString :: ByteString
 defaultDatabaseConnectionString = "dbname=devorgregistry"
 
+corsOrigins :: [CorsMiddleware.Origin]
+corsOrigins = [
+    "http://localhost:8000"
+  , "http://localhost:8020"
+  , "http://localhost:8080"
+  , "http://localhost:8081"
+  , "http://localhost:8200"
+  , "https://demo.mirza.d61.io"
+  ]
 
 --------------------------------------------------------------------------------
 -- Command Line Options Data Types
@@ -176,18 +185,12 @@ initApplication ev =
 
 
 myCors :: Middleware
-myCors = cors (const $ Just policy)
+myCors = CorsMiddleware.cors (const $ Just policy)
     where
-      policy = simpleCorsResourcePolicy
-        { corsRequestHeaders = ["Content-Type", "Authorization"]
-        , corsMethods = "PUT" : simpleMethods
-        , corsOrigins = Just ([
-            "http://localhost:8080"
-          , "http://localhost:8081"
-          , "http://localhost:8020"
-          , "http://localhost:8000"
-          , "https://demo.mirza.d61.io"
-          ], True)
+      policy = CorsMiddleware.simpleCorsResourcePolicy
+        { CorsMiddleware.corsRequestHeaders = ["Content-Type", "Authorization"]
+        , CorsMiddleware.corsMethods = "PUT" : CorsMiddleware.simpleMethods
+        , CorsMiddleware.corsOrigins = Just (corsOrigins, True)
         }
 
 initMiddleware :: ServerOptionsOR -> RunServerOptions -> IO Middleware
