@@ -37,6 +37,7 @@ library
     , lens-aeson
     , base16-bytestring
     , base64-bytestring
+    , data-default
     , http-client
     , lens
     , jose
