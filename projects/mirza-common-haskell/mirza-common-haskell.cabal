@@ -26,6 +26,10 @@ source-repository head
 
 library
   exposed-modules:
+      Mirza.Common.Beam
+      Mirza.Common.GS1BeamOrphans
+      Mirza.Common.Time
+      Mirza.Common.Types
       Mirza.Common.Utils
   other-modules:
       Paths_mirza_common_haskell
@@ -33,13 +37,31 @@ library
       src
   build-depends:
       base >=4.7 && <5
+    , GS1Combinators
+    , beam-core
+    , beam-migrate
+    , beam-postgres
     , aeson
     , lens-aeson
     , base16-bytestring
     , base64-bytestring
+    , bytestring
     , data-default
+    , email-validate
+    , gitrev
     , http-client
+    , katip >= 0.5.4
     , lens
+    , mtl
+    , network-uri
+    , postgresql-simple
+    , random
+    , resource-pool >= 0.2.3
+    , servant-client >= 0.13
+    , servant-server
+    , swagger2
+    , time
+    , uuid
     , jose
     , req
     , text

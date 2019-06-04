@@ -35,11 +35,6 @@ library
                     , Mirza.OrgRegistry.Types
                     , Mirza.OrgRegistry.SqlUtils
                     , Mirza.OrgRegistry.GenerateUtils
-                    , Mirza.Common.Beam
-                    , Mirza.Common.GS1BeamOrphans
-                    , Mirza.Common.Types
-                    , Mirza.Common.Utils
-                    , Mirza.Common.Time
                     , Mirza.SupplyChain.API
                     , Mirza.SupplyChain.Client.Servant
                     , Mirza.SupplyChain.Database.Migrate
@@ -62,6 +57,7 @@ library
   other-modules:      Mirza.SupplyChain.ErrorUtils
   build-depends:      base >= 4.7 && < 5
                     , GS1Combinators
+                    , mirza-common-haskell
                     , aeson
                     , attoparsec
                     , beam-core
@@ -139,6 +135,7 @@ test-suite supplyChainServer-test
   build-depends:       base
                      , GS1Combinators
                      , Mirza
+                     , mirza-common-haskell
                      , resource-pool >= 0.2.3
                      , beam-core
                      , beam-postgres
@@ -186,6 +183,7 @@ test-suite orgRegistry-test
                      , base64-bytestring
                      , GS1Combinators
                      , Mirza
+                     , mirza-common-haskell
                      , resource-pool >= 0.2.3
                      , beam-postgres
                      , beam-core
