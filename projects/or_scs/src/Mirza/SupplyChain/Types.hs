@@ -12,39 +12,38 @@ module Mirza.SupplyChain.Types
   )
   where
 
-import           Mirza.Common.GS1BeamOrphans  (LabelType)
-import           Mirza.Common.Types           as Common
+import           Mirza.Common.GS1BeamOrphans (LabelType)
+import           Mirza.Common.Types          as Common
 
 import           Data.GS1.DWhat
-import           Data.GS1.EPC                 as EPC
-import qualified Data.GS1.Event               as Ev
-import           Data.GS1.EventId             as EvId
+import           Data.GS1.EPC                as EPC
+import qualified Data.GS1.Event              as Ev
+import           Data.GS1.EventId            as EvId
 
-import           Database.PostgreSQL.Simple   (Connection, SqlError)
+import           Database.PostgreSQL.Simple  (Connection, SqlError)
 
-import           Crypto.JOSE                  as JOSE hiding (Digest)
-import           Crypto.JOSE.Types            (Base64Octets)
+import           Crypto.JOSE                 as JOSE hiding (Digest)
+import           Crypto.JOSE.Types           (Base64Octets)
 
-import           Servant                      (ToHttpApiData)
-import           Servant.Client               (ClientEnv (..),
-                                               ServantError (..))
+import           Servant                     (ToHttpApiData)
+import           Servant.Client              (ClientEnv (..), ServantError (..))
 
 import           Control.Lens
 
-import           GHC.Generics                 (Generic)
+import           GHC.Generics                (Generic)
 
 import           Data.Aeson
 import           Data.Aeson.TH
 import           Data.Aeson.Types
-import qualified Data.ByteString              as BS
-import           Data.List.NonEmpty           (NonEmpty)
-import           Data.Pool                    as Pool
+import qualified Data.ByteString             as BS
+import           Data.List.NonEmpty          (NonEmpty)
+import           Data.Pool                   as Pool
 import           Data.Swagger
-import           Data.Text                    (Text)
+import           Data.Text                   (Text)
 
-import           Katip                        as K
+import           Katip                       as K
 
-import           Mirza.OrgRegistry.Types (AsORError (..), ORError)
+import           Mirza.OrgRegistry.Types     (AsORError (..), ORError)
 
 -- *****************************************************************************
 -- Context Types
@@ -75,10 +74,6 @@ data LabelWithType = LabelWithType
 $(makeLenses ''LabelWithType)
 
 deriving instance ToHttpApiData EventId
-
-newtype EventOwner = EventOwner UserId deriving(Generic, Show, Eq, Read)
-
-newtype SigningUser = SigningUser UserId deriving(Generic, Show, Eq, Read)
 
 newtype EventHash = EventHash String
   deriving (Generic, Show, Read, Eq)
@@ -172,21 +167,12 @@ data ServerError = ServerError (Maybe BS.ByteString) Text
 -- | A sum type of errors that may occur in the Service layer
 data ServiceError
   = InvalidSignature       String
-  | Base64DecodeFailure    String
   | SigVerificationFailure String
   | BlockchainSendFailed   ServerError
   | InvalidEventId         EventId
-  | DuplicateUsers         (NonEmpty UserId)
   | InvalidKeyId           ORKeyId
-  | InvalidUserId          UserId
   | InvalidRSAKeyInDB      Text -- when the key already existing in the DB is wrong
   | JOSEError              JOSE.Error
-  | InsertionFail          ServerError Text
-  | EventPermissionDenied  UserId EvId.EventId
-  | EmailExists            EmailAddress
-  | EmailNotFound          EmailAddress
-  | AuthFailed             EmailAddress
-  | UserNotFound           EmailAddress
   | ParseError             EPC.ParseFailure
   | BackendErr             Text -- fallback
   | DatabaseError          SqlError

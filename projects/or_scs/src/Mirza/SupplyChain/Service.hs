@@ -28,7 +28,7 @@ import           Mirza.SupplyChain.Handlers.Queries           as Handlers
 import           Mirza.SupplyChain.Handlers.Signatures        as Handlers
 import           Mirza.SupplyChain.Handlers.UXUtils           as Handlers
 
-import           Mirza.OrgRegistry.Types                 (AsORError)
+import           Mirza.OrgRegistry.Types                      (AsORError)
 import           Mirza.SupplyChain.Types
 
 import           Servant
@@ -50,9 +50,8 @@ appHandlers :: (Member context '[HasDB, HasORClientEnv],
                 Member err     '[JOSE.AsError, AsServiceError, AsServantError, AsORError, AsSqlError])
             => ServerT ServerAPI (AppM context err)
 appHandlers =
-  -- Health
+  -- Misc
        health
-  -- Users
   :<|> versionInfo
   -- Signatures
   :<|> eventSign

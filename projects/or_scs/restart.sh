@@ -31,16 +31,6 @@ echo "Starting the server in $START_IN s. Feed me a SIGINT (CTRL+C or equivalent
 sleep $START_IN
 google-chrome "http://localhost:8000/swagger-ui/"
 
-# The sleep here is to queue this process so that it fires AFTER
-# the supplyChainServer executable is run
-(sleep 2 && \
-echo "Inserting a user. Username: abc@gmail.com, Password: password"
-curl -X POST "http://localhost:8000/newUser" \
-    -H "accept: application/json;charset=utf-8"\
-    -H "Content-Type: application/json;charset=utf-8"\
-    -d "{ \"newUserPhoneNumber\": \"0412\", \"newUserEmailAddress\": \"abc@gmail.com\", \"newUserFirstName\": \"sajid\", \"newUserLastName\": \"anower\", \"newUserCompany\": \"4000001\", \"newUserPassword\": \"password\"}")&
-echo; echo
-
 stack exec orgRegistry -- server &
 
 stack exec supplyChainServer -- --orhost localhost --orport 8200 -e Dev
