@@ -124,24 +124,26 @@ newUUID = liftIO nextRandom
 handleError :: MonadError err m => (err -> m a) -> m a -> m a
 handleError = flip catchError
 
-transformSqlUniqueViloationTemplate  :: (CT.AsSqlError err, MonadError err m, MonadIO m)
-                          => (SqlError -> err) -- ^ Handles every other unique constraint violation
-                          -> ByteString        -- ^ UniqueViolation name.
-                          -> (SqlError -> err) -- ^ A function which takes the original SQL error for the
-                                               --   UniqueViolation and turns it into the error that is thrown
-                                               --   when the UniqueViolation name is matched.
-                          -> err               -- ^ The error that we are catching.
-                          -> m a
-transformSqlUniqueViloationTemplate f expectedName uniqueViolationError e = handleSqlUniqueViloationTemplate f expectedName (throwError . uniqueViolationError) e
+transformSqlUniqueViloationTemplate
+  :: (CT.AsSqlError err, MonadError err m, MonadIO m)
+  => (SqlError -> err) -- ^ Handles every other unique constraint violation
+  -> ByteString        -- ^ UniqueViolation name.
+  -> (SqlError -> err) -- ^ A function which takes the original SQL error for the
+                        --   UniqueViolation and turns it into the error that is thrown
+                        --   when the UniqueViolation name is matched.
+  -> err               -- ^ The error that we are catching.
+  -> m a
+transformSqlUniqueViloationTemplate f expectedName uniqueViolationError =
+  handleSqlUniqueViloationTemplate f expectedName (throwError . uniqueViolationError)
 
-
-handleSqlUniqueViloationTemplate  :: (CT.AsSqlError err, MonadError err m, MonadIO m)
-                                  => (SqlError -> err) -- ^ Handles every other unique constraint violation
-                                  -> ByteString        -- ^ UniqueViolation name.
-                                  -> (SqlError -> m a) -- ^ A function which takes the original SQL error for the
-                                                       --   UniqueViolation and handles what should happen in this case.
-                                  -> err               -- ^ The error that we are catching.
-                                  -> m a
+handleSqlUniqueViloationTemplate
+  :: (CT.AsSqlError err, MonadError err m, MonadIO m)
+  => (SqlError -> err) -- ^ Handles every other unique constraint violation
+  -> ByteString        -- ^ UniqueViolation name.
+  -> (SqlError -> m a) -- ^ A function which takes the original SQL error for the
+                        --   UniqueViolation and handles what should happen in this case.
+  -> err               -- ^ The error that we are catching.
+  -> m a
 handleSqlUniqueViloationTemplate f expectedName action e = case e ^? CT._SqlError of
   Nothing -> throwError e
   Just sqlError ->

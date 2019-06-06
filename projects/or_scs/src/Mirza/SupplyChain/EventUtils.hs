@@ -25,7 +25,7 @@ import qualified Data.GS1.Event                    as Ev
 import qualified Data.GS1.EventId                  as EvId
 
 import           Data.GS1.DWhat                    (AggregationDWhat (..),
-                                                    AssociationDWhat(..),
+                                                    AssociationDWhat (..),
                                                     DWhat (..), InputEPC (..),
                                                     LabelEPC (..),
                                                     ObjectDWhat (..),
@@ -134,7 +134,7 @@ getTransformationId _                 = Nothing
 
 getAction :: DWhat -> Maybe Action
 getAction (TransformWhat _)                           = Nothing
-getAction (AssociationWhat _)                       = Nothing
+getAction (AssociationWhat _)                         = Nothing
 getAction (ObjWhat (ObjectDWhat act _))               = Just act
 getAction (TransactWhat (TransactionDWhat act _ _ _)) = Just act
 getAction (AggWhat (AggregationDWhat act _ _))        = Just act
@@ -243,7 +243,7 @@ getLabelsWithType (TransformWhat (TransformationDWhat _tId input output))
 getLabelsWithType (AssociationWhat (AssociationDWhat parent children))
     =  LabelWithType (Just MU.Parent) (IL $ unParentLabel parent)
        : (LabelWithType Nothing <$> children)
-       
+
 
 
 toStorageDWhy :: Schema.WhyId -> DWhy -> Schema.EventId -> Schema.Why
@@ -370,11 +370,11 @@ insertEvent :: Ev.Event
 insertEvent event = do
   let toSignEvent = QU.constructEventToSign event
   eventId <- fmap (Schema.EventId <$>) QU.withPKey $ \pKey ->
-    pg $ B.runInsert $ B.insert (Schema._events Schema.supplyChainDb)
+    pg  $ B.runInsert $ B.insert (Schema._events Schema.supplyChainDb)
         $ insertValues
-            [toStorageEvent (Schema.EventId pKey) (_eid event) (PgJSON event) toSignEvent]
-  pure ((EventInfo event (Base64Octets toSignEvent) NeedMoreSignatures),
-      eventId)
+        [ toStorageEvent (Schema.EventId pKey) (_eid event) (PgJSON event) toSignEvent]
+
+  pure ((EventInfo event (Base64Octets toSignEvent) NeedMoreSignatures), eventId)
 
 insertWhatLabel :: Maybe MU.LabelType
                 -> Schema.WhatId
