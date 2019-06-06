@@ -191,6 +191,7 @@ data ServiceError
   | BackendErr             Text -- fallback
   | DatabaseError          SqlError
   | UnmatchedUniqueViolation SqlError
+  | EventExists            Ev.Event
   | ServantErr             ServantError
   | ORServerError ORError -- Error occured when a call was made to OR
   deriving (Show, Generic)
