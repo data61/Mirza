@@ -35,7 +35,8 @@ import           Data.Pool                          (createPool)
 
 import           Data.List.Split                    (splitOn)
 
-import           System.IO                          (hSetBuffering, stdout, BufferMode(LineBuffering))
+import           System.IO                          (BufferMode (LineBuffering),
+                                                     hSetBuffering, stdout)
 
 main :: IO ()
 -- main = launchProxy =<< execParser opts where

@@ -8,46 +8,45 @@
 module Mirza.OrgRegistry.Database.Schema.V0002
  ( module Mirza.OrgRegistry.Database.Schema.V0002
  , module V0001
-
  ) where
 
-import qualified Data.GS1.EPC                                 as EPC
-import           Mirza.OrgRegistry.Types
-import           Mirza.Common.Beam                            (lastUpdateField)
+import qualified Data.GS1.EPC                            as EPC
+import           Mirza.Common.Beam                       (lastUpdateField)
 import           Mirza.Common.GS1BeamOrphans
-import           Mirza.Common.Types                           (PrimaryKeyType)
+import           Mirza.Common.Types                      (PrimaryKeyType)
+import           Mirza.OrgRegistry.Types
 
 import           Control.Lens
-import           Data.Text                                    (Text)
-import           Data.Time                                    (LocalTime)
+import           Data.Text                               (Text)
+import           Data.Time                               (LocalTime)
 
 
-import           Database.Beam                                as B
+import           Database.Beam                           as B
 import           Database.Beam.Migrate.SQL.Tables
 import           Database.Beam.Migrate.Types
 import           Database.Beam.Postgres
 
 import           Data.Aeson
 import           Data.Swagger
-import           Servant                                      (FromHttpApiData (parseUrlPiece),
-                                                               ToHttpApiData (toUrlPiece))
+import           Servant                                 (FromHttpApiData (parseUrlPiece),
+                                                          ToHttpApiData (toUrlPiece))
 
-import           GHC.Generics                                 (Generic)
+import           GHC.Generics                            (Generic)
 
 import           Mirza.OrgRegistry.Database.Schema.V0001 as V0001' hiding (OrgRegistryDB (..),
-                                                                         migration)
+                                                                    migration)
 import qualified Mirza.OrgRegistry.Database.Schema.V0001 as V0001
 
 
 
 -- Database
 data OrgRegistryDB f = OrgRegistryDB
-  { _orgs          :: f (TableEntity V0001.OrgT)
-  , _users               :: f (TableEntity V0001.UserT)
-  , _orgMapping :: f (TableEntity V0001.OrganisationMappingT)
-  , _keys                :: f (TableEntity V0001.KeyT)
-  , _locations           :: f (TableEntity       LocationT)
-  , _geoLocations        :: f (TableEntity       GeoLocationT)
+  { _orgs         :: f (TableEntity V0001.OrgT)
+  , _users        :: f (TableEntity V0001.UserT)
+  , _orgMapping   :: f (TableEntity V0001.OrganisationMappingT)
+  , _keys         :: f (TableEntity V0001.KeyT)
+  , _locations    :: f (TableEntity       LocationT)
+  , _geoLocations :: f (TableEntity       GeoLocationT)
   }
   deriving Generic
 instance Database anybackend OrgRegistryDB

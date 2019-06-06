@@ -1,12 +1,12 @@
-{-# LANGUAGE OverloadedStrings   #-}
-{-# LANGUAGE FlexibleContexts    #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE MonoLocalBinds      #-}
-{-# LANGUAGE TemplateHaskell     #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE MonoLocalBinds        #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE TemplateHaskell       #-}
 
 module Mirza.Common.Utils
-  (
-    toText
+  ( toText
   , randomText
   , notImplemented
   , newUUID
@@ -32,8 +32,8 @@ module Mirza.Common.Utils
 import qualified Mirza.Common.Types                as CT
 
 
-import           Text.Email.Validate               (EmailAddress, emailAddress)
 import           Development.GitRev
+import           Text.Email.Validate               (EmailAddress, emailAddress)
 
 import           Katip
 
@@ -48,47 +48,47 @@ import           Servant.Client
 
 import           Data.Default
 
-import           Crypto.JOSE                (JWKSet, JWK)
+import           Crypto.JOSE                       (JWK, JWKSet)
 
-import           Data.Aeson                 (Result (..), Value (..), fromJSON, decodeFileStrict)
+import           Data.Aeson                        (Result (..), Value (..),
+                                                    decodeFileStrict, fromJSON)
 import           Data.Aeson.Lens
 
+import           Network.HTTP.Client               (Manager)
 import qualified Network.HTTP.Client               as C
-import           Network.HTTP.Client        (Manager)
 import           Network.HTTP.Req
 import           Network.URI                       hiding (path)
 
-import           Control.Lens (view, (^.), (^?), _1, over, re)
+import           Control.Lens                      (over, re, view, (^.), (^?),
+                                                    _1)
 
 import           Control.Monad                     (replicateM, (<$!>))
-import           Control.Monad.IO.Class            (MonadIO, liftIO)
 import           Control.Monad.Except              (MonadError, catchError,
                                                     throwError)
+import           Control.Monad.IO.Class            (MonadIO, liftIO)
 import           Control.Monad.Writer
 import           Data.Functor                      ((<$))
 import           Data.Proxy                        (Proxy (..))
 
-import           Control.Exception          (try)
+import           Control.Exception                 (try)
 import           System.Random                     (randomRIO)
 
-import           Data.ByteString.Base16     as B16
-import           Data.ByteString.Base64.URL as B64
+import           Data.ByteString.Base16            as B16
+import           Data.ByteString.Base64.URL        as B64
 
 import           Data.UUID                         (UUID)
 import           Data.UUID.V4                      (nextRandom)
 
-import           Data.Text                  (Text, pack, unpack)
-import           Data.Text.Encoding
-import           Data.Text.Strict.Lens      (packed, utf8)
 import           Data.ByteString                   (ByteString)
 import           Data.Either                       (fromRight)
 import           Data.Maybe                        (fromJust, fromMaybe)
 import           Data.String                       (fromString)
+import           Data.Text                         (Text, pack, unpack)
+import           Data.Text.Encoding
+import           Data.Text.Strict.Lens             (packed, utf8)
 
 import           GHC.Stack                         (HasCallStack)
 import           System.IO.Unsafe                  (unsafePerformIO)
-
-
 
 
 versionInfo :: CT.AppM context err String
