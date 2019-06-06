@@ -175,6 +175,7 @@ data ServiceError
   | ParseError               EPC.ParseFailure
   | BackendErr               Text -- fallback
   | DatabaseError            SqlError
+  | EventExists              Ev.Event
   | UnmatchedUniqueViolation SqlError
   | ServantErr               ServantError
   | ORServerError            ORError -- Error occured when a call was made to OR

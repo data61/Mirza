@@ -16,8 +16,10 @@ module Mirza.SupplyChain.Database.Schema.V0001 where
 import qualified Data.GS1.EPC                     as EPC
 import qualified Data.GS1.Event                   as Ev
 
-import           Mirza.Common.Beam                (defaultFkConstraint,
-                                                   lastUpdateField)
+import           Mirza.Common.Beam                ( defaultFkConstraint
+                                                  , lastUpdateField
+                                                  , textType
+                                                  )
 import           Mirza.Common.GS1BeamOrphans
 import qualified Mirza.Common.GS1BeamOrphans      as MU
 import           Mirza.Common.Types
@@ -161,11 +163,12 @@ migration () =
     <*> createTable "wheres" ( Where
           lastUpdateField
           (field "where_id" pkSerialType)
-          (field "where_gs1_company_prefix" gs1CompanyPrefixType notNull)
+          (field "where_gs1_company_prefix" (maybeType gs1CompanyPrefixType))
           (field "where_source_dest_type" (maybeType srcDestType))
-          (field "where_gs1_location_id" locationRefType notNull)
+          (field "where_gs1_location_id" (maybeType locationRefType))
           (field "where_location_field" locationType notNull)
           (field "where_sgln_ext" (maybeType sglnExtType))
+          (field "where_geo" (maybeType textType))
           (EventId $ field "where_event_id" pkSerialType (defaultFkConstraint "events" ["event_id"]))
     )
     <*> createTable "whens" ( When
@@ -490,15 +493,17 @@ instance Table WhyT where
 
 type Where = WhereT Identity
 type WhereId = PrimaryKey WhereT Identity
+type RFC5870Geo = Text
 
 data WhereT f = Where
   { where_last_update        :: C f (Maybe LocalTime)
   , where_id                 :: C f PrimaryKeyType
-  , where_gs1_company_prefix :: C f EPC.GS1CompanyPrefix
+  , where_gs1_company_prefix :: C f (Maybe EPC.GS1CompanyPrefix)
   , where_source_dest_type   :: C f (Maybe EPC.SourceDestType)
-  , where_gs1_location_id    :: C f EPC.LocationReference
+  , where_gs1_location_id    :: C f (Maybe EPC.LocationReference)
   , where_location_field     :: C f MU.LocationField
   , where_sgln_ext           :: C f (Maybe EPC.SGLNExtension)
+  , where_geo                :: C f (Maybe RFC5870Geo)
   , where_event_id           :: PrimaryKey EventT f }
   deriving Generic
 

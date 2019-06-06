@@ -52,6 +52,8 @@ appErrToHttpErr (ParseError err) =
   }
 appErrToHttpErr (SigVerificationFailure _) =
   throwError $ err400 { errBody = "Could not verify signature." }
+appErrToHttpErr (EventExists _) =
+  throwError $ err409 { errBody = "Event already exists." }
 appErrToHttpErr (BlockchainSendFailed _) = generic500err
 appErrToHttpErr (BackendErr _) = generic500err
 appErrToHttpErr (DatabaseError _) = generic500err
