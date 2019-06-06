@@ -166,19 +166,18 @@ data ServerError = ServerError (Maybe BS.ByteString) Text
 
 -- | A sum type of errors that may occur in the Service layer
 data ServiceError
-  = InvalidSignature       String
-  | SigVerificationFailure String
-  | BlockchainSendFailed   ServerError
-  | InvalidEventId         EventId
-  | InvalidKeyId           ORKeyId
-  | InvalidRSAKeyInDB      Text -- when the key already existing in the DB is wrong
-  | JOSEError              JOSE.Error
-  | ParseError             EPC.ParseFailure
-  | BackendErr             Text -- fallback
-  | DatabaseError          SqlError
+  = InvalidSignature         String
+  | SigVerificationFailure   String
+  | BlockchainSendFailed     ServerError
+  | InvalidEventId           EventId
+  | InvalidKeyId             ORKeyId
+  | JOSEError                JOSE.Error
+  | ParseError               EPC.ParseFailure
+  | BackendErr               Text -- fallback
+  | DatabaseError            SqlError
   | UnmatchedUniqueViolation SqlError
-  | ServantErr             ServantError
-  | ORServerError ORError -- Error occured when a call was made to OR
+  | ServantErr               ServantError
+  | ORServerError            ORError -- Error occured when a call was made to OR
   deriving (Show, Generic)
 $(makeClassyPrisms ''ServiceError)
 
