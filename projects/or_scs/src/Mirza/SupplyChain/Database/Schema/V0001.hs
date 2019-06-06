@@ -22,7 +22,7 @@ import           Mirza.Common.Beam                ( defaultFkConstraint
                                                   )
 import           Mirza.Common.GS1BeamOrphans
 import qualified Mirza.Common.GS1BeamOrphans      as MU
-import           Mirza.Common.Types               hiding (UserId)
+import           Mirza.Common.Types
 import           Mirza.Common.Types               (ORKeyId (..), PrimaryKeyType)
 
 import           Control.Lens
@@ -63,7 +63,7 @@ pkSerialType = uuid
 
 -- Database
 data SupplyChainDb f = SupplyChainDb
-  { _orgs       :: f (TableEntity OrgT)
+  { _orgs             :: f (TableEntity OrgT)
   , _labels           :: f (TableEntity LabelT)
   , _transformations  :: f (TableEntity TransformationT)
   , _events           :: f (TableEntity EventT)

@@ -75,10 +75,6 @@ $(makeLenses ''LabelWithType)
 
 deriving instance ToHttpApiData EventId
 
-newtype EventOwner = EventOwner UserId deriving(Generic, Show, Eq, Read)
-
-newtype SigningUser = SigningUser UserId deriving(Generic, Show, Eq, Read)
-
 newtype EventHash = EventHash String
   deriving (Generic, Show, Read, Eq)
 $(deriveJSON defaultOptions ''EventHash)
@@ -170,29 +166,19 @@ data ServerError = ServerError (Maybe BS.ByteString) Text
 
 -- | A sum type of errors that may occur in the Service layer
 data ServiceError
-  = InvalidSignature       String
-  | Base64DecodeFailure    String
-  | SigVerificationFailure String
-  | BlockchainSendFailed   ServerError
-  | InvalidEventId         EventId
-  | DuplicateUsers         (NonEmpty UserId)
-  | InvalidKeyId           ORKeyId
-  | InvalidUserId          UserId
-  | InvalidRSAKeyInDB      Text -- when the key already existing in the DB is wrong
-  | JOSEError              JOSE.Error
-  | InsertionFail          ServerError Text
-  | EventPermissionDenied  UserId EvId.EventId
-  | EmailExists            EmailAddress
-  | EmailNotFound          EmailAddress
-  | AuthFailed             EmailAddress
-  | UserNotFound           EmailAddress
-  | ParseError             EPC.ParseFailure
-  | BackendErr             Text -- fallback
-  | DatabaseError          SqlError
+  = InvalidSignature         String
+  | SigVerificationFailure   String
+  | BlockchainSendFailed     ServerError
+  | InvalidEventId           EventId
+  | InvalidKeyId             ORKeyId
+  | JOSEError                JOSE.Error
+  | ParseError               EPC.ParseFailure
+  | BackendErr               Text -- fallback
+  | DatabaseError            SqlError
+  | EventExists              Ev.Event
   | UnmatchedUniqueViolation SqlError
-  | EventExists            Ev.Event
-  | ServantErr             ServantError
-  | ORServerError ORError -- Error occured when a call was made to OR
+  | ServantErr               ServantError
+  | ORServerError            ORError -- Error occured when a call was made to OR
   deriving (Show, Generic)
 $(makeClassyPrisms ''ServiceError)
 

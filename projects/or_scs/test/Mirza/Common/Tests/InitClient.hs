@@ -3,50 +3,49 @@
 
 module Mirza.Common.Tests.InitClient where
 
-import           Mirza.SupplyChain.Database.Schema        as Schema
-import           Mirza.SupplyChain.Main                   (ServerOptionsSCS (..),
-                                                           initSCSContext)
-import qualified Mirza.SupplyChain.Main                   as SCSMain
-import           Mirza.SupplyChain.Types                  as ST
+import           Mirza.SupplyChain.Database.Schema as Schema
+import           Mirza.SupplyChain.Main            (ServerOptionsSCS (..),
+                                                    initSCSContext)
+import qualified Mirza.SupplyChain.Main            as SCSMain
+import           Mirza.SupplyChain.Types           as ST
 
-import           Data.GS1.EPC                             (GS1CompanyPrefix (..))
+import           Data.GS1.EPC                      (GS1CompanyPrefix (..))
 import           Mirza.Common.Tests.ServantUtils
-import           Mirza.Common.Utils                       (randomText, mockURI, expectUser)
+import           Mirza.Common.Utils                (expectUser, mockURI,
+                                                    randomText)
 
-import           Control.Concurrent                       (ThreadId)
+import           Control.Concurrent                (ThreadId)
 
 import           Servant.API.BasicAuth
-import           Servant.Auth.Client                      (Token)
-import           Servant.Client                           (BaseUrl (..))
+import           Servant.Auth.Client               (Token)
+import           Servant.Client                    (BaseUrl (..))
 
-import           Data.Either                              (isRight)
+import           Data.Either                       (isRight)
 
 import           Data.Text
 
 import           Test.Tasty.Hspec
 
-import           System.IO.Temp                           (emptySystemTempFile)
+import           System.IO.Temp                    (emptySystemTempFile)
 
-import           Katip                                    (Severity (DebugS))
+import           Katip                             (Severity (DebugS))
 
-import           Database.Beam.Query                      (delete, runDelete,
-                                                           val_)
+import           Database.Beam.Query               (delete, runDelete, val_)
 
 import           Mirza.OrgRegistry.Client.Servant
 import           Mirza.OrgRegistry.Database.Schema
-import qualified Mirza.OrgRegistry.Handlers.Org      as ORHO (addOrg)
-import qualified Mirza.OrgRegistry.Handlers.Users    as ORHU (addUserOnlyId)
-import           Mirza.OrgRegistry.Main              (ServerOptionsOR (..),
-                                                           addAuthOptions,
-                                                           initORContext)
-import qualified Mirza.OrgRegistry.Main              as ORMain
-import           Mirza.OrgRegistry.Types             as ORT hiding
-                                                                 (orgName)
+import qualified Mirza.OrgRegistry.Handlers.Org    as ORHO (addOrg)
+import qualified Mirza.OrgRegistry.Handlers.Users  as ORHU (addUserOnlyId)
+import           Mirza.OrgRegistry.Main            (ServerOptionsOR (..),
+                                                    addAuthOptions,
+                                                    initORContext)
+import qualified Mirza.OrgRegistry.Main            as ORMain
+import           Mirza.OrgRegistry.Types           as ORT hiding (orgName)
 
-import           Mirza.Common.Tests.Utils                 (DatabaseConnectionString (..),
-                                                           DatabaseName (..),
-                                                           databaseNameToConnectionString,
-                                                           getDatabaseConnectionString)
+import           Mirza.Common.Tests.Utils          (DatabaseConnectionString (..),
+                                                    DatabaseName (..),
+                                                    databaseNameToConnectionString,
+                                                    getDatabaseConnectionString)
 
 
 -- *****************************************************************************

@@ -14,11 +14,11 @@ module Mirza.OrgRegistry.Handlers.Keys
   ) where
 
 
-import           Mirza.OrgRegistry.Database.Schema   as Schema
-import           Mirza.OrgRegistry.Types             as ORT
 import           Mirza.Common.Time
 import           Mirza.Common.Types                       as CT
 import           Mirza.Common.Utils
+import           Mirza.OrgRegistry.Database.Schema        as Schema
+import           Mirza.OrgRegistry.Types                  as ORT
 
 import           Database.Beam                            as B
 import           Database.Beam.Backend.SQL.BeamExtensions

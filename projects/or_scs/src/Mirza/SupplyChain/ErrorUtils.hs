@@ -28,10 +28,6 @@ import           Text.Email.Validate                 (toByteString)
 
 -- | Takes in a ServiceError and converts it to an HTTP error (eg. err400)
 appErrToHttpErr :: ServiceError -> Handler a
-appErrToHttpErr (EmailExists userEmail) =
-  throwError $ err400 {
-    errBody = LBSC8.fromChunks ["User email ", toByteString userEmail, " exists."]
-  }
 appErrToHttpErr (InvalidKeyId _) =
   throwError $ err400 {
     errBody = "Invalid Key Id entered."
@@ -40,21 +36,9 @@ appErrToHttpErr (InvalidSignature _) =
   throwError $ err400 {
     errBody = "Invalid Signature entered."
   }
-appErrToHttpErr (Base64DecodeFailure _) =
-  throwError $ err400 {
-    errBody = "Could not decode Base64 signature."
-  }
 appErrToHttpErr (ST.InvalidEventId _) =
   throwError $ err400 {
     errBody = "No such event."
-  }
-appErrToHttpErr (InvalidUserId _) =
-  throwError $ err400 {
-    errBody = "No such user."
-  }
-appErrToHttpErr (DuplicateUsers _) =
-  throwError $ err400 {
-    errBody = "Duplicate users entered for transaction event."
   }
 appErrToHttpErr (JOSEError err) =
   throwError $ err400 {
@@ -68,20 +52,8 @@ appErrToHttpErr (ParseError err) =
   }
 appErrToHttpErr (SigVerificationFailure _) =
   throwError $ err400 { errBody = "Could not verify signature." }
-appErrToHttpErr (AuthFailed _) =
-  throwError $ err403 { errBody = "Authentication failed. Invalid username or password." }
-appErrToHttpErr (EventPermissionDenied _ _) =
-  throwError $ err403 {
-    errBody = "User does not own the event."
-  }
-appErrToHttpErr (UserNotFound _) =
-  throwError $ err404 { errBody = "Invalid username or password." }
-appErrToHttpErr (EmailNotFound _) =
-  throwError $ err404 { errBody = "User not found." }
 appErrToHttpErr (EventExists _) =
-  throwError $ err409 { errBody = "Event exists." }
-appErrToHttpErr (InvalidRSAKeyInDB _) = generic500err
-appErrToHttpErr (InsertionFail _ _email) = generic500err
+  throwError $ err409 { errBody = "Event already exists." }
 appErrToHttpErr (BlockchainSendFailed _) = generic500err
 appErrToHttpErr (BackendErr _) = generic500err
 appErrToHttpErr (DatabaseError _) = generic500err

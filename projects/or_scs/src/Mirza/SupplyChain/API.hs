@@ -55,9 +55,6 @@ type ServerAPI =
   :<|> "event"    :> "info"
                   :> Capture "eventId" EventId
                   :> Get '[JSON] EventInfo
-  -- :<|> "event"    :> "list"
-  --                 :> Capture "userId" UserId
-  --                 :> Get '[JSON] [Ev.Event]
 -- Event Registration
   :<|> "event"    :> ReqBody '[JSON] Ev.Event
                   :> Post '[JSON] (EventInfo, Schema.EventId)

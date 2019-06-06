@@ -342,7 +342,7 @@ mergeSBWheres rPoints orgLocs srcTsW destTsW =
       in
         DWhere rPoints orgLocs <$> sequence srcTs <*> sequence destTs
 
--- -- | This relies on the user calling this function in the appropriate WhereT
+-- | This relies on the user calling this function in the appropriate WhereT
 constructSrcDestLocation :: (SourceDestType -> LocationEPC -> srcOrDest)
                          -> WhereT Identity
                          -> Maybe srcOrDest
