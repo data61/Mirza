@@ -12,39 +12,38 @@ module Mirza.SupplyChain.Types
   )
   where
 
-import           Mirza.Common.GS1BeamOrphans  (LabelType)
-import           Mirza.Common.Types           as Common
+import           Mirza.Common.GS1BeamOrphans (LabelType)
+import           Mirza.Common.Types          as Common
 
 import           Data.GS1.DWhat
-import           Data.GS1.EPC                 as EPC
-import qualified Data.GS1.Event               as Ev
-import           Data.GS1.EventId             as EvId
+import           Data.GS1.EPC                as EPC
+import qualified Data.GS1.Event              as Ev
+import           Data.GS1.EventId            as EvId
 
-import           Database.PostgreSQL.Simple   (Connection, SqlError)
+import           Database.PostgreSQL.Simple  (Connection, SqlError)
 
-import           Crypto.JOSE                  as JOSE hiding (Digest)
-import           Crypto.JOSE.Types            (Base64Octets)
+import           Crypto.JOSE                 as JOSE hiding (Digest)
+import           Crypto.JOSE.Types           (Base64Octets)
 
-import           Servant                      (ToHttpApiData)
-import           Servant.Client               (ClientEnv (..),
-                                               ServantError (..))
+import           Servant                     (ToHttpApiData)
+import           Servant.Client              (ClientEnv (..), ServantError (..))
 
 import           Control.Lens
 
-import           GHC.Generics                 (Generic)
+import           GHC.Generics                (Generic)
 
 import           Data.Aeson
 import           Data.Aeson.TH
 import           Data.Aeson.Types
-import qualified Data.ByteString              as BS
-import           Data.List.NonEmpty           (NonEmpty)
-import           Data.Pool                    as Pool
+import qualified Data.ByteString             as BS
+import           Data.List.NonEmpty          (NonEmpty)
+import           Data.Pool                   as Pool
 import           Data.Swagger
-import           Data.Text                    (Text)
+import           Data.Text                   (Text)
 
-import           Katip                        as K
+import           Katip                       as K
 
-import           Mirza.OrgRegistry.Types (AsORError (..), ORError)
+import           Mirza.OrgRegistry.Types     (AsORError (..), ORError)
 
 -- *****************************************************************************
 -- Context Types
@@ -191,6 +190,7 @@ data ServiceError
   | BackendErr             Text -- fallback
   | DatabaseError          SqlError
   | UnmatchedUniqueViolation SqlError
+  | EventExists            Ev.Event
   | ServantErr             ServantError
   | ORServerError ORError -- Error occured when a call was made to OR
   deriving (Show, Generic)

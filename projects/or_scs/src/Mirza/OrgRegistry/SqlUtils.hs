@@ -1,17 +1,18 @@
+{-# LANGUAGE MultiParamTypeClasses #-}
+
 module Mirza.OrgRegistry.SqlUtils
-  (
-    Utils.handleError
+  ( Utils.handleError
   , transformSqlUniqueViloation
   , handleSqlUniqueViloation
   ) where
 
 
-import           Mirza.OrgRegistry.Types as ORT
-import qualified Mirza.Common.Utils           as Utils
+import qualified Mirza.Common.Utils         as Utils
+import           Mirza.OrgRegistry.Types    as ORT
 
-import           Database.PostgreSQL.Simple   (SqlError (..))
+import           Database.PostgreSQL.Simple (SqlError (..))
 
-import           Control.Lens                 (( # ))
+import           Control.Lens               (( # ))
 
 import           Data.ByteString
 

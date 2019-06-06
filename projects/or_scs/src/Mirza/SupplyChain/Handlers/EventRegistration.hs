@@ -10,15 +10,25 @@ module Mirza.SupplyChain.Handlers.EventRegistration
 import           Mirza.SupplyChain.Database.Schema as Schema
 
 import           Mirza.SupplyChain.EventUtils
+import           Mirza.SupplyChain.QueryUtils      (handleError)
+import           Mirza.SupplyChain.SqlUtils        (transformSqlUniqueViloation)
 import           Mirza.SupplyChain.Types
+
+import           Control.Lens                      (( # ))
 
 import           Data.GS1.Event                    as Ev
 
 insertGS1Event  :: (Member context '[HasDB],
-                    Member err     '[AsSqlError])
+                    Member err     '[AsSqlError, AsServiceError])
                 => Ev.Event
                 -> AppM context err (EventInfo, Schema.EventId)
-insertGS1Event ev = runDb $ insertEventQuery ev
+insertGS1Event ev = do
+  handleError
+    (transformSqlUniqueViloation
+      "events_event_to_sign_key"
+      (const $ _EventExists # ev)
+    )
+  $ runDb $ insertEventQuery ev
 
 insertEventQuery :: Ev.Event
                  -> DB context err (EventInfo, Schema.EventId)
