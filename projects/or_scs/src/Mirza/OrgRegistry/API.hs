@@ -8,8 +8,7 @@
 {-# LANGUAGE UndecidableInstances  #-}
 
 module Mirza.OrgRegistry.API
-  (
-    serverAPI
+  ( serverAPI
   , ServerAPI
   , PublicAPI
   , PrivateAPI
@@ -17,22 +16,22 @@ module Mirza.OrgRegistry.API
   , API, api
   ) where
 
+import           Mirza.Common.Time                 (ExpirationTime,
+                                                    RevocationTime)
+import           Mirza.Common.Types                (ORKeyId)
 import           Mirza.OrgRegistry.Database.Schema (LocationId)
 import           Mirza.OrgRegistry.Types           as ST
-import           Mirza.Common.Time                      (ExpirationTime,
-                                                         RevocationTime)
-import           Mirza.Common.Types                     (ORKeyId)
 
-import           Data.GS1.EPC                           as EPC
+import           Data.GS1.EPC                      as EPC
 
 import           Servant
 import           Servant.API.Flatten
-import           Servant.Swagger.UI
 import           Servant.Auth.Server
+import           Servant.Swagger.UI
 
 import           Crypto.JOSE.JWK
-import           Data.Text                              (Text)
-import           Data.Time                              (UTCTime)
+import           Data.Text                         (Text)
+import           Data.Time                         (UTCTime)
 
 
 type API
