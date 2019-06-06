@@ -82,9 +82,15 @@ testServiceQueries = do
       res <- runAppM @_ @AppError scsContext $ insertGS1Event dummyAssocEvent
       res `shouldSatisfy` isLeft
 
-  describe "DWhere" $
+  describe "DWhere" $ do
     it "Insert and find DWhere" $ \scsContext -> do
       insertedDWhere <- testAppM scsContext $ do
         (_, eventId) <- insertGS1Event dummyObjEvent
         runDb $ findDWhere eventId
       insertedDWhere `shouldBe` Just dummyDWhere
+
+    it "Insert and find RFC5870 DWhere" $ \scsContext -> do
+      insertedDWhere <- testAppM scsContext $ do
+        (_, eventId) <- insertGS1Event dummyGeoObjEvent
+        runDb $ findDWhere eventId
+      insertedDWhere `shouldBe` Just dummyGeoDWhere

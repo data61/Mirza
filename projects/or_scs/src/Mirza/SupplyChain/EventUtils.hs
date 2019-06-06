@@ -279,40 +279,33 @@ insertDWhy dwhy eventId = QU.withPKey $ \pKey ->
   pg $ B.runInsert $ B.insert (Schema._whys Schema.supplyChainDb)
              $ insertValues [toStorageDWhy (Schema.WhyId pKey) dwhy eventId]
 
-insertSrcDestType :: MU.LocationField
-                  -> Schema.EventId
-                  -> (SourceDestType, LocationEPC)
-                  -> DB context err PrimaryKeyType
-insertSrcDestType locField eventId (sdType, SGLN pfix locationRef ext) =
-  QU.withPKey $ \pKey -> do
-    let stWhere = Schema.Where Nothing pKey pfix (Just sdType) locationRef locField ext eventId
-    pg $ B.runInsert $ B.insert (Schema._wheres Schema.supplyChainDb)
-       $ insertValues [stWhere]
-
-insertLocationEPC :: MU.LocationField
-                  -> Schema.EventId
-                  -> LocationEPC
-                  -> DB context err PrimaryKeyType
-insertLocationEPC locField eventId (SGLN pfix locationRef ext) =
-  QU.withPKey $ \pKey -> do
-    let stWhere = Schema.Where Nothing pKey pfix Nothing locationRef locField ext eventId
-    pg $ B.runInsert $ B.insert (Schema._wheres Schema.supplyChainDb)
-       $ insertValues [stWhere]
-
 -- | Maps the relevant insert function for all
 -- ReadPoint, OrgLocation, Src, Dest
 insertDWhere :: DWhere -> Schema.EventId -> DB context err ()
 insertDWhere (DWhere rPoint orgLoc srcTs destTs) eventId = do
-    sequence_ $ insertLocationEPC MU.ReadPoint eventId . unReadPointLocation <$> rPoint
-    sequence_ $ insertLocationEPC MU.OrgLocation eventId . unBizLocation <$> orgLoc
-    sequence_ $ insertSrcDestType MU.Src eventId . unwrapSrc <$> srcTs
-    sequence_ $ insertSrcDestType MU.Dest eventId . unwrapDest <$> destTs
+  sequence_ $ (insertQ MU.ReadPoint Nothing . unReadPointLocation) <$> rPoint
+  sequence_ $ (insertQ MU.OrgLocation Nothing . unBizLocation) <$> orgLoc
+  sequence_ $ (\(sdType, epc) -> insertQ MU.Src (Just sdType) epc) . unwrapSrc <$> srcTs
+  sequence_ $ (\(sdType, epc) -> insertQ MU.Dest (Just sdType) epc) . unwrapDest <$> destTs
 
-unwrapSrc :: SourceLocation -> (SourceDestType, LocationEPC)
-unwrapSrc (SourceLocation t l) = (t, l)
+  where
+    insertQ locField sdType locationEPC =
+      QU.withPKey ( pg
+                    . B.runInsert
+                    . B.insert (Schema._wheres Schema.supplyChainDb)
+                    . insertValues
+                    . pure -- []
+                    . createWhere sdType locField locationEPC
+                  )
+      
+    createWhere sdType locField (SGLN pfix locationRef ext) pK =
+      Schema.Where Nothing pK (Just pfix) sdType (Just locationRef) locField ext Nothing eventId
+    createWhere sdType locField (Geo x) pK =
+      Schema.Where Nothing pK Nothing sdType Nothing locField Nothing (Just x) eventId
 
-unwrapDest :: DestinationLocation -> (SourceDestType, LocationEPC)
-unwrapDest (DestinationLocation t l) = (t, l)
+    unwrapSrc (SourceLocation t l) = (t, l)
+    
+    unwrapDest (DestinationLocation t l) = (t, l)
 
 
 -- | Given a DWhere, looks for all the insertions associated with the DWHere
@@ -324,8 +317,8 @@ findDWhere eventId = do
   srcTs <- findDWhereByLocationField MU.Src eventId
   destTs <- findDWhereByLocationField MU.Dest eventId
   pure $ mergeSBWheres
-    (ReadPointLocation . constructLocation <$> listToMaybe rPoints)
-    (BizLocation . constructLocation <$> listToMaybe orgLocs)
+    (fmap ReadPointLocation (constructLocation =<< listToMaybe rPoints))
+    (fmap BizLocation (constructLocation =<< listToMaybe orgLocs))
     srcTs destTs
 
 findDWhereByLocationField :: MU.LocationField -> Schema.EventId -> DB context err [Schema.WhereT Identity]
@@ -353,16 +346,15 @@ mergeSBWheres rPoints orgLocs srcTsW destTsW =
 constructSrcDestLocation :: (SourceDestType -> LocationEPC -> srcOrDest)
                          -> WhereT Identity
                          -> Maybe srcOrDest
-constructSrcDestLocation c whereT =
-  flip c (constructLocation whereT) <$> Schema.where_source_dest_type whereT
+constructSrcDestLocation c whereT = constructLocation whereT >>= \location ->
+  flip c location <$> Schema.where_source_dest_type whereT
 
 -- | This relies on the user calling this function in the appropriate WhereT
-constructLocation :: Schema.WhereT Identity -> LocationEPC
-constructLocation whereT =
-  EPC.SGLN
-    (Schema.where_gs1_company_prefix whereT)
-    (Schema.where_gs1_location_id whereT)
-    (Schema.where_sgln_ext whereT)
+constructLocation :: Schema.WhereT Identity -> Maybe LocationEPC
+constructLocation (Schema.Where _ _ (Just pfx) _ (Just ref) _ ext Nothing _) = Just $ EPC.SGLN pfx ref ext
+constructLocation (Schema.Where _ _ Nothing _ Nothing _ Nothing (Just geo) _) = Just $ EPC.Geo geo
+constructLocation _ = Nothing
+
 
 
 insertEvent :: Ev.Event

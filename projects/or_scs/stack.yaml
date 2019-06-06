@@ -13,7 +13,7 @@ extra-deps:
 - git: https://github.com/sajidanower23/hs-jose.git
   commit: d7aca4d13b27235af47d522b5d093e567750628e
 - git: https://github.com/data61/GS1Combinators.git
-  commit: 6e3eac1448d55dcc934e22cc665a92aa97c1eb9d # Head on 2019-05-29
+  commit: 3c4bbe4c1fbb2d25c988c99cfbfc3cf0bcf1fe02 # Head on 2019-06-06
 - servant-flatten-0.2
 - hoist-error-0.2.1.0
 

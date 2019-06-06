@@ -67,6 +67,18 @@ dummyObjEvent =
     dummyDWhy
     dummyDWhere
 
+dummyGeoObjEvent :: Ev.Event
+dummyGeoObjEvent =
+  Ev.Event
+    Ev.ObjectEventT
+    Nothing
+    dummyObjectDWhat
+    dummyDWhen
+    dummyDWhy
+    dummyGeoDWhere
+
+  
+
 dummyObjectDWhat :: DWhat
 dummyObjectDWhat =
   ObjWhat $
@@ -178,6 +190,22 @@ dummyDWhere =
       DestinationLocation SDPossessingParty
         $ SGLN (GS1CompanyPrefix "0012348") (LocationReference "12346") (Just $ SGLNExtension "400")
     ]
+
+dummyGeoDWhere :: DWhere
+dummyGeoDWhere =
+  DWhere
+    (Just $ ReadPointLocation $ Geo "37.9876,-122.6789")
+    -- [ReadPointLocation]
+    (Just $ BizLocation $ Geo "37.1234,-122.4321")
+    -- [OrgLocation]
+    [
+      SourceLocation SDOwningParty
+        $ SGLN (GS1CompanyPrefix "0012347") (LocationReference "12345") Nothing
+    ]
+    [
+      DestinationLocation SDPossessingParty
+        $ SGLN (GS1CompanyPrefix "0012348") (LocationReference "12346") (Just $ SGLNExtension "400")
+    ]    
 
 dummyDWhy :: DWhy
 dummyDWhy = DWhy (Just Receiving) (Just InProgress)
