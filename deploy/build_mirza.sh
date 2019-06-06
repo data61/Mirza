@@ -22,25 +22,24 @@ set +x # hide output
 eval $(aws ecr get-login --no-include-email --region ap-southeast-2)
 set -x
 
-cd "$(dirname "$0")/../projects/or_scs"
+cd "$(dirname "$0")/../"
 
 if docker pull "${HSBUILDER_DOCKER_IMAGE_TAG}"; then
 	echo "Skipping, ${HSBUILDER_DOCKER_IMAGE_TAG} already exists..."
 else
-	docker build -f HsBuilder.Dockerfile -t "${HSBUILDER_DOCKER_IMAGE}:latest" -t "${HSBUILDER_DOCKER_IMAGE_TAG}" -t "${HSBUILDER_DOCKER_IMAGE}:${DATE}" .
+	docker build -f projects/or_scs/HsBuilder.Dockerfile -t "${HSBUILDER_DOCKER_IMAGE}:latest" -t "${HSBUILDER_DOCKER_IMAGE_TAG}" -t "${HSBUILDER_DOCKER_IMAGE}:${DATE}" .
 	docker push "${HSBUILDER_DOCKER_IMAGE_TAG}"
 fi
 
-docker build -f Mirza.Dockerfile --target PKG-SCS --build-arg HS_BUILDER_IMAGE="${HSBUILDER_DOCKER_IMAGE_TAG}" -t "${SCS_DOCKER_IMAGE_TAG}" .
-docker build -f Mirza.Dockerfile --target PKG-OR --build-arg HS_BUILDER_IMAGE="${HSBUILDER_DOCKER_IMAGE_TAG}" -t "${OR_DOCKER_IMAGE_TAG}" .
+docker build -f projects/or_scs/Mirza.Dockerfile --target PKG-SCS --build-arg HS_BUILDER_IMAGE="${HSBUILDER_DOCKER_IMAGE_TAG}" -t "${SCS_DOCKER_IMAGE_TAG}" .
+docker build -f projects/or_scs/Mirza.Dockerfile --target PKG-OR --build-arg HS_BUILDER_IMAGE="${HSBUILDER_DOCKER_IMAGE_TAG}" -t "${OR_DOCKER_IMAGE_TAG}" .
 
 if [ "$PUSH_MIRZA" ]; then
     docker push "${SCS_DOCKER_IMAGE_TAG}"
     docker push "${OR_DOCKER_IMAGE_TAG}"
 fi
 
-cd ../entity-data-api
-docker build -f EntityDataAPI.Dockerfile --target PKG-EDAPI --build-arg HS_BUILDER_IMAGE="${HSBUILDER_DOCKER_IMAGE_TAG}" -t "${EDAPI_DOCKER_IMAGE_TAG}" .
+docker build -f projects/entity-data-api/EntityDataAPI.Dockerfile --target PKG-EDAPI --build-arg HS_BUILDER_IMAGE="${HSBUILDER_DOCKER_IMAGE_TAG}" -t "${EDAPI_DOCKER_IMAGE_TAG}" .
 
 if [ "$PUSH_MIRZA" ]; then
     docker push "${EDAPI_DOCKER_IMAGE_TAG}"

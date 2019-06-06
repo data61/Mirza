@@ -25,7 +25,7 @@ import           Database.Beam                 as B
 import           Database.Beam.Migrate.SQL     as BSQL
 import           Database.Beam.Migrate.Types
 import           Database.Beam.Postgres        (PgCommandSyntax, PgJSON,
-                                                Postgres, json, uuid, text)
+                                                Postgres, json, text, uuid)
 import           Database.Beam.Postgres.Syntax (PgDataTypeSyntax)
 
 import           Data.Aeson                    hiding (json)
@@ -48,10 +48,10 @@ pkSerialType = uuid
 
 -- Database
 data OrgRegistryDB f = OrgRegistryDB
-  { _orgs          :: f (TableEntity OrgT)
-  , _users               :: f (TableEntity UserT)
+  { _orgs       :: f (TableEntity OrgT)
+  , _users      :: f (TableEntity UserT)
   , _orgMapping :: f (TableEntity OrganisationMappingT)
-  , _keys                :: f (TableEntity KeyT)
+  , _keys       :: f (TableEntity KeyT)
   }
   deriving Generic
 instance Database anybackend OrgRegistryDB

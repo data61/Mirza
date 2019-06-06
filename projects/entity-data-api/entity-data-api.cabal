@@ -61,7 +61,6 @@ library
   -- other-extensions:
   exposed-modules:    Mirza.EntityDataAPI.Types
                     , Mirza.EntityDataAPI.AuthProxy
-                    , Mirza.EntityDataAPI.Utils
                     , Mirza.EntityDataAPI.Main
                     , Mirza.EntityDataAPI.Database.Utils
                     , Mirza.EntityDataAPI.Errors
@@ -81,6 +80,7 @@ library
                       , lens
                       , mtl
                       , monad-time
+                      , mirza-common-haskell
                       , optparse-applicative
                       , jose
                       , postgresql-simple

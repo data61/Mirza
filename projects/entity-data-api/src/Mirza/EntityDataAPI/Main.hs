@@ -12,7 +12,8 @@ import           Mirza.EntityDataAPI.AuthProxy      (runAuthProxy)
 import           Mirza.EntityDataAPI.Database.Utils (addUser, addUserSub)
 import           Mirza.EntityDataAPI.Errors
 import           Mirza.EntityDataAPI.Types
-import           Mirza.EntityDataAPI.Utils          (fetchJWKs)
+
+import           Mirza.Common.Utils                 (fetchJWKs)
 
 import           Network.HTTP.ReverseProxy          (ProxyDest (..))
 import           Network.Wai                        (Middleware)
@@ -34,7 +35,8 @@ import           Data.Pool                          (createPool)
 
 import           Data.List.Split                    (splitOn)
 
-import           System.IO                          (hSetBuffering, stdout, BufferMode(LineBuffering))
+import           System.IO                          (BufferMode (LineBuffering),
+                                                     hSetBuffering, stdout)
 
 main :: IO ()
 -- main = launchProxy =<< execParser opts where
