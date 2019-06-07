@@ -65,7 +65,7 @@ data AuthContext = AuthContext
   , destProxyServiceInfo :: ProxyDest
   , appManager           :: Manager
   , jwtSigningKeys       :: JWKSet
-  , ctxJwkClientId       :: StringOrURI
+  , ctxJwkClientIds      :: [StringOrURI]
   , dbConnPool           :: Pool Connection
   } deriving (Generic)
 
@@ -111,7 +111,7 @@ defaultJwkUrl = "https://mirza.au.auth0.com/.well-known/jwks.json"
 
 data AppMode
   = Proxy
-  | API -- placeholder
+  | UserManager
   | Bootstrap
   deriving (Show, Eq, Generic, Read)
 
@@ -144,5 +144,5 @@ instance FromEnv Opts where
     <*> fromEnvDestServiceInfo
     <*> envMaybe "EDAPI_MODE" .!= Proxy
     <*> envMaybe "JWK_URL" .!= defaultJwkUrl
-    <*> env "JWK_CLIENT_ID"
+    <*> env "JWK_CLIENT_IDS"
     <*> env "EDAPI_DB_CONN"
