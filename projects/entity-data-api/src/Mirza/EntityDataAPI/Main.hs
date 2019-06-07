@@ -5,8 +5,6 @@ module Mirza.EntityDataAPI.Main (main) where
 
 import           System.Envy                        (decodeEnv)
 
-import           Options.Applicative
-
 import           Network.HTTP.Client                (newManager)
 import           Network.HTTP.Client.TLS            (tlsManagerSettings)
 
@@ -14,10 +12,16 @@ import           Mirza.EntityDataAPI.AuthProxy      (runAuthProxy)
 import           Mirza.EntityDataAPI.Database.Utils (addUser, addUserSub)
 import           Mirza.EntityDataAPI.Errors
 import           Mirza.EntityDataAPI.Types
-import           Mirza.EntityDataAPI.Utils          (fetchJWKs)
+
+import           Mirza.Common.Utils                 (fetchJWKs)
 
 import           Network.HTTP.ReverseProxy          (ProxyDest (..))
+import           Network.Wai                        (Middleware)
 import qualified Network.Wai.Handler.Warp           as Warp
+import           Network.Wai.Middleware.Cors        (CorsResourcePolicy (..),
+                                                     cors,
+                                                     simpleCorsResourcePolicy,
+                                                     simpleMethods)
 
 import qualified Data.ByteString.Char8              as B
 
@@ -29,6 +33,11 @@ import           Database.PostgreSQL.Simple         (close, connectPostgreSQL)
 
 import           Data.Pool                          (createPool)
 
+import           Data.List.Split                    (splitOn)
+
+import           System.IO                          (BufferMode (LineBuffering),
+                                                     hSetBuffering, stdout)
+
 main :: IO ()
 -- main = launchProxy =<< execParser opts where
 --   opts = info (optsParser <**> helper)
@@ -38,6 +47,7 @@ main :: IO ()
 main = (decodeEnv :: IO (Either String Opts)) >>= \case
   Left err -> fail $ "Failed to parse Opts: " <> err
   Right opts -> do
+    hSetBuffering stdout LineBuffering
     print opts
     multiplexInitOptions opts
 
@@ -46,8 +56,8 @@ multiplexInitOptions opts = do
   ctx <- initContext opts
   putStrLn $ "Initialized context. Starting app on mode " <> (show . appMode $ opts)
   case appMode opts of
-    Proxy     -> launchProxy ctx
-    API       -> launchUserManager ctx
+    Proxy       -> launchProxy ctx
+    UserManager -> launchUserManager ctx
     Bootstrap -> do
       res <- tryAddBootstrapUser ctx
       print res
@@ -88,7 +98,7 @@ launchUserManager ctx = do
 
 
 initContext :: Opts -> IO AuthContext
-initContext (Opts myService (ServiceInfo (Hostname destHost) (Port destPort)) _mode url clientId dbConnStr) = do
+initContext (Opts myService (ServiceInfo (Hostname destHost) (Port destPort)) _mode url clientIds dbConnStr) = do
   putStrLn "Initializing context..."
   let proxyDest = ProxyDest (B.pack destHost) destPort
   mngr <- newManager tlsManagerSettings
@@ -98,14 +108,31 @@ initContext (Opts myService (ServiceInfo (Hostname destHost) (Port destPort)) _m
                     20 -- Max number of connections to have open at any one time
   fetchJWKs mngr url >>= \case
     Left err -> fail $ show err
-    Right jwkSet -> pure $ AuthContext myService proxyDest mngr jwkSet (fromString clientId) connpool
+    Right jwkSet -> pure $ AuthContext myService proxyDest mngr jwkSet (parseClientIdList clientIds) connpool
+    where
+      parseClientIdList cIds = fmap fromString . filter (not . null) . splitOn "," $ cIds
+
+
+myCors :: Middleware
+myCors = cors (const $ Just policy)
+    where
+      policy = simpleCorsResourcePolicy
+        { corsRequestHeaders = ["Content-Type", "Authorization"]
+        , corsMethods = "PUT" : simpleMethods
+        , corsOrigins = Just ([
+            "http://localhost:8080"
+          , "http://localhost:8081"
+          , "http://localhost:8000"
+          , "https://demo.mirza.d61.io"
+          ], True)
+        }
 
 launchProxy :: AuthContext -> IO ()
 launchProxy ctx = do
   putStrLn $  "Starting service on " <>
               (getHostname . serviceHost . myProxyServiceInfo $ ctx) <> ":" <>
               (show . getPort . servicePort . myProxyServiceInfo $ ctx)
-  Warp.run (fromIntegral . getPort . servicePort . myProxyServiceInfo $ ctx) (runAuthProxy ctx)
+  Warp.run (fromIntegral . getPort . servicePort . myProxyServiceInfo $ ctx) (myCors $ runAuthProxy ctx)
 
 -- _optsParser :: Parser Opts
 -- _optsParser = Opts
