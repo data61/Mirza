@@ -4,7 +4,7 @@ packages:
 - '../mirza-common-haskell'
 - location:
     git: https://github.com/tathougies/beam.git
-    commit: a89da5ba70f1e10b907097548a02ff6dd08e192d # Head on 2019-03-25
+    commit: 737b73c # Head on 2019-03-19
   extra-dep: true
   subdirs:
     - beam-core
