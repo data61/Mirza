@@ -1,0 +1,81 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.31.1.
+--
+-- see: https://github.com/sol/hpack
+--
+-- hash: 40fb2e8356ae5a173c3975819bccb04b9f908310f6dcdc2b6dcfbf189de1becb
+
+name:           mirza-common-haskell
+version:        0.1.0.0
+description:    Please see the README on GitHub at <https://github.com/data61/Mirza/projects/mirza-common-haskell#readme>
+homepage:       https://github.com/data61/Mirza
+bug-reports:    https://github.com/data61/Mirza/issues
+author:         Ashley Stacey
+maintainer:     Ashley.Stacey@csiro.au
+copyright:      2017, 2018, 2019 CSIRO
+license:        BSD3
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
+
+source-repository head
+  type: git
+  location: https://github.com/data61/Mirza
+
+library
+  exposed-modules:
+      Mirza.Common.Beam
+      Mirza.Common.GS1BeamOrphans
+      Mirza.Common.Time
+      Mirza.Common.Types
+      Mirza.Common.Utils
+  other-modules:
+      Paths_mirza_common_haskell
+  hs-source-dirs:
+      src
+  build-depends:
+      base >=4.7 && <5
+    , GS1Combinators
+    , beam-core
+    , beam-migrate
+    , beam-postgres
+    , aeson
+    , lens-aeson
+    , base16-bytestring
+    , base64-bytestring
+    , bytestring
+    , data-default
+    , email-validate
+    , gitrev
+    , http-client
+    , katip >= 0.5.4
+    , lens
+    , mtl
+    , network-uri
+    , postgresql-simple
+    , random
+    , resource-pool >= 0.2.3
+    , servant-client >= 0.13
+    , servant-server
+    , swagger2
+    , time
+    , uuid
+    , jose
+    , req
+    , text
+  default-language: Haskell2010
+
+test-suite mirza-common-haskell-test
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      Paths_mirza_common_haskell
+  hs-source-dirs:
+      test
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N -Wall -Werror
+  build-depends:
+      base >=4.7 && <5
+    , mirza-common-haskell
+  default-language: Haskell2010

@@ -79,7 +79,8 @@ img.round { border-radius: 50% }
 }
 
 a, .button.button-outline, button.button-outline, input[type='button'].button-outline, input[type='reset'].button-outline, input[type='submit'].button-outline, .button.button-clear, button.button-clear, input[type='button'].button-clear, input[type='reset'].button-clear, input[type='submit'].button-clear {
-		color: #228562;
+	color: #228562;
+	cursor: pointer;
 }
 a.active {
 		border-color: #228562;

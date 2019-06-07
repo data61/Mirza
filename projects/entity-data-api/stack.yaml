@@ -1,13 +1,21 @@
 packages:
 - '.'
-
-resolver: lts-13.11
-ghc-options:
-  $locals: -Wall
+- ../mirza-common-haskell
+- location:
+    git: https://github.com/tathougies/beam.git
+    commit: 2489a213cdee6341de46a3aa015c35067f4d6076 # Head on 2019-01-10
+  extra-dep: true
+  subdirs:
+    - beam-core
+    - beam-migrate
+    - beam-postgres
 
 extra-deps:
-- git: https://github.com/mrkkrp/req.git
-  commit: 4df31fc7178b5a04fff02c9deaeda9d35739d677
-- retry-0.8.0.0@sha256:319a0586876d43622bfe9406fad067adf0b4e591d125ad960bcc405237cc28f5
+- git: https://github.com/data61/GS1Combinators.git
+  commit: 6e3eac1448d55dcc934e22cc665a92aa97c1eb9d # Head on 2019-05-29
+
+resolver: lts-13.23
+ghc-options:
+  $locals: -Wall
 
 local-bin-path: dist

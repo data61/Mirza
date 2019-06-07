@@ -1,0 +1,33 @@
+extra-package-dbs: []
+packages:
+- '.'
+- '../mirza-common-haskell'
+- location:
+    git: https://github.com/tathougies/beam.git
+    commit: 2489a213cdee6341de46a3aa015c35067f4d6076 # Head on 2019-01-10
+  extra-dep: true
+  subdirs:
+    - beam-core
+    - beam-migrate
+    - beam-postgres
+extra-deps:
+- git: https://github.com/sajidanower23/hs-jose.git
+  commit: d7aca4d13b27235af47d522b5d093e567750628e
+- git: https://github.com/data61/GS1Combinators.git
+  commit: 3c4bbe4c1fbb2d25c988c99cfbfc3cf0bcf1fe02 # Head on 2019-06-06
+# - git: https://github.com/kapralVV/Unique.git
+#   commit: 8b543fd9c9f9e3909875942098a47df19a68c9da  # Head on 2019-01-10
+- git: https://github.com/well-typed/canonical-json.git
+  commit: a9dc9b893649bc2e2a770ab22d278a780f7e3a3c
+- servant-flatten-0.2
+- hoist-error-0.2.1.0
+
+resolver: lts-13.23
+
+ghc-options:
+  $locals: -Wall
+
+local-bin-path: dist
+
+nix:
+  packages: [zlib]
