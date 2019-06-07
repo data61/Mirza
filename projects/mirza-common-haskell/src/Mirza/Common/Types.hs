@@ -51,10 +51,11 @@ import qualified Database.Beam                        as B
 import           Database.Beam.Backend.SQL            (FromBackendRow,
                                                        HasSqlValueSyntax)
 import qualified Database.Beam.Backend.SQL            as BSQL
-import           Database.Beam.Migrate.SQL            (DataType (..))
-import           Database.Beam.Postgres               (Pg)
-import           Database.Beam.Postgres.Syntax        (PgDataTypeSyntax,
-                                                       pgUuidType)
+import           Database.Beam.Postgres               (Pg, Postgres,
+                                                       runBeamPostgres,
+                                                       runBeamPostgresDebug)
+import           Database.Beam.Postgres.Syntax        (pgUuidType)
+import           Database.Beam.Query.DataTypes        (DataType (..))
 import           Database.PostgreSQL.Simple           (Connection, SqlError)
 import qualified Database.PostgreSQL.Simple           as DB
 import           Database.PostgreSQL.Simple.FromField (FromField, fromField)
@@ -106,8 +107,6 @@ import           Servant.Client                       (ClientEnv (..), ClientM,
 import           Data.UUID                            (UUID)
 
 type PrimaryKeyType = UUID
-
-
 
 -- *****************************************************************************
 -- Orphan Instances
@@ -166,12 +165,12 @@ instance ToField ORKeyId where
 instance HasSqlValueSyntax be UUID => HasSqlValueSyntax be ORKeyId where
     sqlValueSyntax (ORKeyId uuid) = BSQL.sqlValueSyntax uuid
 
-instance (BSQL.BeamBackend be, FromBackendRow be UUID)
+instance (BSQL.BeamSqlBackend be, FromBackendRow be UUID)
         => FromBackendRow be ORKeyId where
   fromBackendRow = ORKeyId <$> BSQL.fromBackendRow
   valuesNeeded proxyBE _proxyKID = BSQL.valuesNeeded proxyBE (Proxy :: Proxy UUID)
 
-orKeyIdType :: DataType PgDataTypeSyntax ORKeyId
+orKeyIdType :: B.DataType Postgres ORKeyId
 orKeyIdType = DataType pgUuidType
 
 
@@ -328,8 +327,8 @@ runDb (DB act) = katipAddNamespace "runDb" $ do
   e <- view envType
   lggr <- askLoggerIO
   let dbf =  case e of
-            Prod -> B.withDatabase
-            _    -> B.withDatabaseDebug (lggr DebugS . logStr)
+            Prod -> runBeamPostgres
+            _    -> runBeamPostgresDebug (lggr DebugS . logStr)
 
   res <- liftIO $ Pool.withResource (env ^. connPool) $ \conn ->
           Exc.try
@@ -370,8 +369,6 @@ runClientFunc :: (AsServantError err, HasORClientEnv context)
 runClientFunc func = do
   cEnv <- view clientEnv
   either (throwing _ServantError) pure =<< liftIO (runClientM func cEnv)
-
-
 
 
 -- TODO: Orphan for JWK

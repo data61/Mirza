@@ -18,14 +18,13 @@ import           Text.Read
 
 import           Database.Beam.Migrate.SQL
 import           Database.Beam.Postgres
-import           Database.Beam.Postgres.Syntax        (PgColumnSchemaSyntax,
-                                                       PgDataTypeSyntax,
-                                                       pgTextType)
+import           Database.Beam.Postgres.Syntax        (pgTextType)
 
-import           Database.Beam.Query.DataTypes        (DataType (..), maybeType,
-                                                       timestamptz)
+import           Database.Beam.Query.DataTypes        (DataType (..), maybeType)
 
 import           Data.Text                            (Text)
+
+import           Data.UUID                            (UUID)
 
 -- | The generic implementation of fromField
 -- If it's a fromField used for ``SomeCustomType``, sample usage would be
@@ -43,13 +42,15 @@ defaultFromField fName f bs = do
         f $ "Could not 'read' value for " ++ fName
     Just val -> pure val
 
--- | Shorthand for using postgres text type
--- textType :: DataType PgDataTypeSyntax a
-textType = error "what even" -- DataType pgTextType
+textType :: DataType Postgres a
+textType = DataType pgTextType
+
+pkSerialType :: DataType Postgres UUID
+pkSerialType = uuid
 
 -- | Field definition to use for last updated columns
-lastUpdateField :: BMigrate.TableFieldSchema PgColumnSchemaSyntax (Maybe LocalTime)
-lastUpdateField = field "last_update" (maybeType timestamp) (defaultTo_ (B.just_ now_))
+lastUpdateField :: BMigrate.TableFieldSchema Postgres (Maybe LocalTime)
+lastUpdateField = field "last_update" (maybeType B.timestamp) (defaultTo_ (B.just_ now_))
 
 -- | Helper function to manage the returnValue of ``readMaybe`` or gracefully
 -- fail

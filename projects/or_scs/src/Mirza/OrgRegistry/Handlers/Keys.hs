@@ -173,7 +173,7 @@ addPublicKeyQuery (AuthUser (CT.UserId uid)) expTime jwk = do
   for_ expTime $ \time -> when ((getExpirationTime time) <= now) (throwing_ _AddedExpiredKeyORKE)
   keyId <- newUUID
   timestamp <- generateTimestamp
-  ks <- pg $ runInsertReturningList (_keys orgRegistryDB) $
+  ks <- pg $ runInsertReturningList $ insert (_keys orgRegistryDB) $
         insertValues
         [ KeyT keyId (Schema.UserId uid) (PgJSON jwk)
             (toDbTimestamp timestamp) Nothing (Schema.UserId Nothing) (toDbTimestamp <$> expTime)
@@ -235,8 +235,10 @@ revokePublicKeyQuery userId k@(CT.ORKeyId keyId) = do
   timestamp <- generateTimestamp
   _r <- pg $ runUpdate $ update
                 (_keys orgRegistryDB)
-                (\key -> [ revocation_time key  <-. val_ (Just $ toDbTimestamp timestamp)
-                         , revoking_user_id key <-. val_ (Schema.UserId $ Just $ getUserId userId)])
+                (\key ->  mconcat
+                          [revocation_time key  <-. val_ (Just $ toDbTimestamp timestamp)
+                          ,revoking_user_id key <-. val_ (Schema.UserId $ Just $ getUserId userId)]
+                )
                 (\key -> key_id key ==. (val_ keyId))
   pure $ RevocationTime timestamp
 

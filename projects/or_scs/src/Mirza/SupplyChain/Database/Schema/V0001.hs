@@ -16,10 +16,9 @@ module Mirza.SupplyChain.Database.Schema.V0001 where
 import qualified Data.GS1.EPC                     as EPC
 import qualified Data.GS1.Event                   as Ev
 
-import           Mirza.Common.Beam                ( defaultFkConstraint
-                                                  , lastUpdateField
-                                                  , textType
-                                                  )
+import           Mirza.Common.Beam                (defaultFkConstraint,
+                                                   lastUpdateField,
+                                                   pkSerialType, textType)
 import           Mirza.Common.GS1BeamOrphans
 import qualified Mirza.Common.GS1BeamOrphans      as MU
 import           Mirza.Common.Types
@@ -39,11 +38,13 @@ import           Data.Time                        (LocalTime)
 import           Data.UUID                        (UUID)
 
 import           Database.Beam                    as B
-import           Database.Beam.Migrate.SQL        (DataType)
 import           Database.Beam.Migrate.SQL.Tables
-import           Database.Beam.Migrate.Types
-import           Database.Beam.Postgres
-import           Database.Beam.Postgres.Syntax    (PgDataTypeSyntax)
+import           Database.Beam.Migrate.Types      (CheckedDatabaseSettings,
+                                                   Migration)
+import           Database.Beam.Postgres           (PgJSON, Postgres, bytea,
+                                                   json, text)
+import           Database.Beam.Postgres.Migrate   (uuid)
+import           Database.Beam.Query.DataTypes    (DataType (..))
 
 import           Crypto.JOSE                      (CompactJWS, JWSHeader)
 
@@ -57,9 +58,6 @@ defaultFieldMaxLength = 120
 -- | Length of the timezone offset
 maxTimeZoneLength :: Word
 maxTimeZoneLength = 10
-
-pkSerialType :: DataType PgDataTypeSyntax UUID
-pkSerialType = uuid
 
 -- Database
 data SupplyChainDb f = SupplyChainDb
@@ -83,7 +81,7 @@ data SupplyChainDb f = SupplyChainDb
 instance Database be SupplyChainDb
 
 -- Migration: Intialisation -> V1.
-migration :: () -> Migration PgCommandSyntax (CheckedDatabaseSettings Postgres SupplyChainDb)
+migration :: () -> Migration Postgres (CheckedDatabaseSettings Postgres SupplyChainDb)
 migration () =
   SupplyChainDb
     <$> createTable "orgs" ( Org

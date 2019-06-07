@@ -11,7 +11,8 @@ module Mirza.OrgRegistry.Database.Schema.V0002
  ) where
 
 import qualified Data.GS1.EPC                            as EPC
-import           Mirza.Common.Beam                       (lastUpdateField)
+import           Mirza.Common.Beam                       (lastUpdateField,
+                                                          pkSerialType)
 import           Mirza.Common.GS1BeamOrphans
 import           Mirza.Common.Types                      (PrimaryKeyType)
 import           Mirza.OrgRegistry.Types
@@ -53,20 +54,20 @@ instance Database anybackend OrgRegistryDB
 
 
 migration :: CheckedDatabaseSettings Postgres V0001.OrgRegistryDB
-          -> Migration PgCommandSyntax (CheckedDatabaseSettings Postgres OrgRegistryDB)
+          -> Migration Postgres (CheckedDatabaseSettings Postgres OrgRegistryDB)
 migration v0001 = OrgRegistryDB
   <$> preserve (V0001._orgs          v0001)
   <*> preserve (V0001._users               v0001)
   <*> preserve (V0001._orgMapping v0001)
   <*> preserve (V0001._keys                v0001)
   <*> createTable "location" (LocationT
-        (field "location_id" V0001.pkSerialType)
+        (field "location_id" pkSerialType)
         (field "location_gln" locationEPCType)
         (V0001.OrgId $ field "location_org_id" gs1CompanyPrefixType)
         lastUpdateField
         )
   <*> createTable "geo_location" (GeoLocationT
-        (field "geo_location_id"      V0001.pkSerialType)
+        (field "geo_location_id"      pkSerialType)
         (LocationId $ field "geo_location_gln" locationEPCType)
         (field "geo_location_lat"     (maybeType latitudeType))
         (field "geo_location_lon"     (maybeType longitudeType))

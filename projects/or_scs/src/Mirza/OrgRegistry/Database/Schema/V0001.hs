@@ -9,30 +9,26 @@
 -- Convention: Table types and constructors are suffixed with T (for Table).
 module Mirza.OrgRegistry.Database.Schema.V0001 where
 
-import qualified Data.GS1.EPC                  as EPC
-import           Mirza.Common.Beam             (lastUpdateField)
+import qualified Data.GS1.EPC                as EPC
+import           Mirza.Common.Beam           (lastUpdateField, pkSerialType)
 import           Mirza.Common.GS1BeamOrphans
-import           Mirza.Common.Types            (PrimaryKeyType)
+import           Mirza.Common.Types          (PrimaryKeyType)
 
 import           Control.Lens
 
-import           Crypto.JOSE.JWK               (JWK)
-import           Data.Text                     (Text)
-import           Data.Time                     (LocalTime)
-import           Data.UUID                     (UUID)
+import           Crypto.JOSE.JWK             (JWK)
+import           Data.Text                   (Text)
+import           Data.Time                   (LocalTime)
 
-import           Database.Beam                 as B
-import           Database.Beam.Migrate.SQL     as BSQL
+import           Database.Beam               as B
+import           Database.Beam.Migrate.SQL   as BSQL
 import           Database.Beam.Migrate.Types
-import           Database.Beam.Postgres        (PgCommandSyntax, PgJSON,
-                                                Postgres, json, text, uuid)
-import           Database.Beam.Postgres.Syntax (PgDataTypeSyntax)
+import           Database.Beam.Postgres      (PgJSON, Postgres, json, text)
 
-import           Data.Aeson                    hiding (json)
+import           Data.Aeson                  hiding (json)
 import           Data.Swagger
 
-import           GHC.Generics                  (Generic)
-
+import           GHC.Generics                (Generic)
 
 -- Convention: Table types and constructors are suffixed with T (for Table).
 
@@ -42,9 +38,6 @@ import           GHC.Generics                  (Generic)
 
 defaultFieldMaxLength :: Word
 defaultFieldMaxLength = 120
-
-pkSerialType :: DataType PgDataTypeSyntax UUID
-pkSerialType = uuid
 
 -- Database
 data OrgRegistryDB f = OrgRegistryDB
@@ -57,7 +50,7 @@ data OrgRegistryDB f = OrgRegistryDB
 instance Database anybackend OrgRegistryDB
 
 -- Migration: Intialisation -> V1.
-migration :: () -> Migration PgCommandSyntax (CheckedDatabaseSettings Postgres OrgRegistryDB)
+migration :: () -> Migration Postgres (CheckedDatabaseSettings Postgres OrgRegistryDB)
 migration () =
   OrgRegistryDB
     <$> createTable "orgs" (OrgT
