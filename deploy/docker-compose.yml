@@ -139,7 +139,6 @@ services:
     networks:
       - backend
     links:
-      - supplyChainServer:scs
       - orgRegistry:or
     env_file:
       - .env
