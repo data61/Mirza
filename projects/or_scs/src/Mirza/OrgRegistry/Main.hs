@@ -15,6 +15,7 @@ import           Mirza.OrgRegistry.Database.Schema  as Schema
 import           Mirza.OrgRegistry.GenerateUtils    (dummyOrg, dummyUser)
 import           Mirza.OrgRegistry.Service
 import           Mirza.OrgRegistry.Types            as ORT
+import           Mirza.Common.Utils (fetchJWKS)
 
 import           Data.GS1.EPC                       (GS1CompanyPrefix (..))
 
@@ -22,6 +23,9 @@ import           Servant
 import           Servant.Auth.Server
 import           Servant.Swagger.UI
 
+import           Network.URI                        hiding (path, authority)
+
+import           Crypto.JOSE                        (JWK, JWKSet (..))
 import           Crypto.JWT                         (Audience (..), string)
 
 import qualified Data.Pool                          as Pool
@@ -45,11 +49,11 @@ import           Text.Email.Parser                  (addrSpec)
 import           Control.Exception                  (finally)
 import           Control.Lens                       (review)
 import           Data.Either                        (fromRight)
-import           Data.Maybe                         (fromMaybe)
+import           Data.Maybe                         (fromMaybe, listToMaybe)
 import           Katip                              as K
 import           System.IO                          (IOMode (AppendMode),
                                                      hPutStr, openFile, stderr,
-                                                     stdout)
+                                                     stdout, FilePath)
 
 
 --------------------------------------------------------------------------------
@@ -62,6 +66,10 @@ defaultPortNumber = 8200
 
 defaultDatabaseConnectionString :: ByteString
 defaultDatabaseConnectionString = "dbname=devorgregistry"
+
+-- | default JOSE Web Key Set URI
+defaultJWKSURI :: URI
+defaultJWKSURI = URI "https:" (Just $ URIAuth "" "mirza.au.auth0.com/.well-known" "") "/jwks.json" "" ""
 
 
 --------------------------------------------------------------------------------
@@ -81,15 +89,16 @@ data ExecMode
   | Bootstrap Text GS1CompanyPrefix
 
 data ServerOptionsOR = ServerOptionsOR
-  { sobDbConnStr    :: ByteString
-  , sobLoggingLevel :: K.Severity
-  , sobLogLocation  :: Maybe FilePath
-  , sobEnvType      :: CT.EnvType
+  { mandatoryOptionsDbConnStr    :: ByteString
+  , mandatoryOptionsLoggingLevel :: K.Severity
+  , mandatoryOptionsLogLocation  :: Maybe FilePath
+  , mandatoryOptionsEnvType      :: CT.EnvType
   }
 
 data RunServerOptions = RunServerOptions
-  { rsoPortNumber    :: Int
-  , sobOAuthAudience :: Text
+  { runServerOptionsPortNumber    :: Int
+  , runServerOptionsOAuthJWKPath  :: URI
+  , runServerOptionsOAuthAudience :: Text
   }
 
 data UserCommand
@@ -131,7 +140,7 @@ multiplexInitOptions (InitOptionsOR opts mode) = case mode of
 
 launchServer :: ServerOptionsOR -> RunServerOptions -> IO ()
 launchServer opts rso = do
-      let portNumber = rsoPortNumber rso
+      let portNumber = runServerOptionsPortNumber rso
       minimalContext <- initORContext opts
       completeContext <- addServerOptions minimalContext rso
       app <- initApplication completeContext
@@ -141,16 +150,32 @@ launchServer opts rso = do
 
 
 addServerOptions :: ORContextMinimal -> RunServerOptions -> IO ORContextComplete
-addServerOptions minimalContext (RunServerOptions _port oauthAudience) = addAuthOptions minimalContext oauthAudience
+addServerOptions minimalContext (RunServerOptions _port oAuthPublicKeyRef oauthAudience) = addAuthOptions minimalContext oAuthPublicKeyRef oauthAudience
 
 
-addAuthOptions :: ORContextMinimal -> Text -> IO ORContextComplete
-addAuthOptions minimalContext oauthAudience = do
-  eitherJwk <- eitherDecodeFileStrict "auth_public_key_2019-04-01.json"
+addAuthOptions :: ORContextMinimal -> URI -> Text -> IO ORContextComplete
+addAuthOptions minimalContext oAuthPublicKeyRef oauthAudience = do
+  jwks <- getJWKS oAuthPublicKeyRef
+  let audience = Audience [review string oauthAudience]
+  pure $ orContextComplete minimalContext audience jwks
+
+
+getJWKS :: URI -> IO JWK
+getJWKS (URI "file:" authority path _ _) = do
+  eitherJwk <- eitherDecodeFileStrict $ (maybe "" uriRegName authority) <> path
   let makeError errorMessage = error $ "Unable to get the OAuth Public Key. Error was: " <> (show errorMessage)
   let jwk = either makeError id eitherJwk
-  let audience = Audience [review string oauthAudience]
-  pure $ orContextComplete minimalContext audience jwk
+  pure jwk
+getJWKS uri@(URI "https:" _ _ _ _) = do
+  let uriString = uriToString id uri ""
+      unableToFetchJWKError = error $ "Unable to fetch Jose Web Key Set from: " <> uriString
+  keyResult <- fetchJWKS $ uriString
+  case keyResult of
+    Left _ -> unableToFetchJWKError
+    Right (JWKSet keys) -> maybe unableToFetchJWKError pure $ listToMaybe keys
+getJWKS _ = error $ "Unsupported URI schema type."
+
+
 
 
 initORContext :: ServerOptionsOR -> IO ORT.ORContextMinimal
@@ -378,15 +403,21 @@ serverOptions = InitOptionsOR
 
 
 runServer :: Parser ExecMode
-runServer = RunServer <$>
-  (RunServerOptions
+runServer = RunServer <$> (RunServerOptions
   <$> option auto
-      (
-          long "port"
-      <>  help "Port to run the service on."
-      <>  showDefault
-      <>  value defaultPortNumber
-      )
+    (
+       long "port"
+    <> help "Port to run the service on."
+    <> showDefault
+    <> value defaultPortNumber
+    )
+  <*> option (maybeReader parseURI)
+    (
+       long "jwk"
+    <> help "Path or URI to retrieve JOSE Web Key Set to authenticate tokens against."
+    <> showDefault
+    <> value defaultJWKSURI
+    )
   <*> strOption
     (
        long "aud"
@@ -398,30 +429,29 @@ runServer = RunServer <$>
 parsedServerOptions :: Parser ServerOptionsOR
 parsedServerOptions = ServerOptionsOR
   <$> strOption
-      (
-          long "conn"
-      <>  short 'c'
-      <>  help "Database connection string in libpq format. See: https://www.postgresql.org/docs/9.5/static/libpq-connect.html#LIBPQ-CONNSTRING"
-      <>  showDefault
-      <>  value defaultDatabaseConnectionString
-      )
-    <*> option auto
-      (  long "log-level"
-      <> value InfoS
-      <> showDefault
-      <> help ("Logging level: " ++ show [minBound .. maxBound :: Severity])
-      )
-    <*> optional (strOption
-        (  long "log-path"
-        <> short 'l'
-        <> help "Path to write log output to (defaults to stdout)"
-        )
-      )
-    <*> option auto
-      ( long "env" <> short 'e'
-      <> value Dev <> showDefault
-      <> help "Environment, Dev | Prod"
-      )
+    (
+         long "conn"
+    <>  short 'c'
+    <>  help "Database connection string in libpq format. See: https://www.postgresql.org/docs/9.5/static/libpq-connect.html#LIBPQ-CONNSTRING"
+    <>  showDefault
+    <>  value defaultDatabaseConnectionString
+    )
+  <*> option auto
+    (  long "log-level"
+    <> value InfoS
+    <> showDefault
+    <> help ("Logging level: " ++ show [minBound .. maxBound :: Severity])
+    )
+  <*> optional (strOption
+    (  long "log-path"
+    <> short 'l'
+    <> help "Path to write log output to (defaults to stdout)"
+    ) )
+  <*> option auto
+    ( long "env" <> short 'e'
+    <> value Dev <> showDefault
+    <> help "Environment, Dev | Prod"
+    )
 
 
 -- TODO: Add flag to change from interactive confirmation to instead be automatic operation (so this command can be used from scripts or whatnot) (e.g. runIfSafe) .

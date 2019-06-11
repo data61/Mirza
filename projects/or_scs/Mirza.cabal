@@ -70,6 +70,7 @@ library
                     , insert-ordered-containers
                     , katip >= 0.5.4
                     , lens
+                    , mirza-common-haskell
                     , mtl
                     , network-uri
                     , optparse-applicative

@@ -50,6 +50,7 @@ library
     , email-validate
     , gitrev
     , http-client
+    , http-client-tls
     , katip >= 0.5.4
     , lens
     , mtl

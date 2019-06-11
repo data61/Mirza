@@ -101,12 +101,11 @@ initContext :: Opts -> IO AuthContext
 initContext (Opts myService (ServiceInfo (Hostname destHost) (Port destPort)) _mode url clientIds dbConnStr) = do
   putStrLn "Initializing context..."
   let proxyDest = ProxyDest (B.pack destHost) destPort
-  mngr <- newManager tlsManagerSettings
   connpool <- createPool (connectPostgreSQL dbConnStr) close
                     1 -- Number of "sub-pools",
                     60 -- How long in seconds to keep a connection open for reuse
                     20 -- Max number of connections to have open at any one time
-  fetchJWKs mngr url >>= \case
+  fetchJWKS url >>= \case
     Left err -> fail $ show err
     Right jwkSet -> pure $ AuthContext myService proxyDest mngr jwkSet (parseClientIdList clientIds) connpool
     where

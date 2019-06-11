@@ -38,6 +38,7 @@ import qualified Mirza.OrgRegistry.Handlers.Org    as ORHO (addOrg)
 import qualified Mirza.OrgRegistry.Handlers.Users  as ORHU (addUserOnlyId)
 import           Mirza.OrgRegistry.Main            (ServerOptionsOR (..),
                                                     addAuthOptions,
+                                                    defaultJWKSURI,
                                                     initORContext)
 import qualified Mirza.OrgRegistry.Main            as ORMain
 import           Mirza.OrgRegistry.Types           as ORT hiding (orgName)
@@ -173,7 +174,7 @@ runORApp = do
   tempFile <- emptySystemTempFile "orgRegistryTests.log"
   let currentBrOptions = orOptions (Just tempFile)
   minimalContext <- initORContext currentBrOptions
-  completeContext <- addAuthOptions minimalContext "" -- TODO: Use the proper oauth aud (audience) rathern then the empty text "".
+  completeContext <- addAuthOptions minimalContext defaultJWKSURI "" -- TODO: Use the proper oauth aud (audience) rathern then the empty text "".
   let OrgRegistryDB orgsTable usersTable orgMappingTable keysTable locationsTable geolocationsTable
         = orgRegistryDB
 
