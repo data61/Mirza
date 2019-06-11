@@ -16,8 +16,6 @@ services:
     restart: always
     depends_on:
       - orgRegistry
-      - sci033EDAPI
-      - supplyChainServer
     networks:
       - frontend
     logging:
@@ -26,13 +24,30 @@ services:
         max-size: "200k"
         max-file: "10"
 
-  supplyChainServer:
-    image: 235945186688.dkr.ecr.ap-southeast-2.amazonaws.com/supplychainserver:latest
-    ports:
-      - 8000:8000
-    links:
-      - orgRegistry:or
+  sci041edapi:
+    image: 235945186688.dkr.ecr.ap-southeast-2.amazonaws.com/edapi:latest
     restart: always
+    env_file:
+      - sci041.env
+    depends_on:
+      - db
+      - sci041scs
+    networks:
+      - frontend
+      - backend
+    env_file:
+      - .env
+    logging:
+      driver: json-file
+      options:
+        max-size: "200k"
+        max-file: "10"
+        
+  sci041scs:
+    image: 235945186688.dkr.ecr.ap-southeast-2.amazonaws.com/supplychainserver:latest
+    restart: always
+    env_file:
+      - sci041.env
     depends_on:
       - db
     networks:
@@ -40,19 +55,19 @@ services:
       - backend
     env_file:
       - .env
-    command: --orhost or --orport 8200 -c "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db/devsupplychainserver"
+    command: --orhost or --orport 8200 -c "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db/sci041supplychainserver"
     logging:
       driver: json-file
       options:
         max-size: "200k"
         max-file: "10"
 
-  sci033EDAPI:
+  sci033edapi:
     image: 235945186688.dkr.ecr.ap-southeast-2.amazonaws.com/edapi:latest
     restart: always
     depends_on:
       - db
-      - sci033SCS
+      - sci033scs
     networks:
       - frontend
       - backend
@@ -64,7 +79,7 @@ services:
         max-size: "200k"
         max-file: "10"
 
-  sci033SCS:
+  sci033scs:
     image: 235945186688.dkr.ecr.ap-southeast-2.amazonaws.com/supplychainserver:latest
     restart: always
     depends_on:
@@ -83,8 +98,6 @@ services:
 
   orgRegistry:
     image: 235945186688.dkr.ecr.ap-southeast-2.amazonaws.com/orgregistry:latest
-    ports:
-      - 8200:8200
     restart: always
     depends_on:
       - db

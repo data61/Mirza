@@ -7,8 +7,11 @@
 $(aws ecr get-login --no-include-email --region ap-southeast-2)
 
 # Stop and remove the currently running version of code
-docker-compose stop web supplyChainServer orgRegistry private-ethereum-blockchain blockchain-api-server db || echo "no old containers running"
-docker-compose rm -f web supplyChainServer orgRegistry private-ethereum-blockchain blockchain-api-server db || echo "no containers to remove"
+#docker-compose stop web orgRegistry sci041edapi sci041scs sci033edapi sci033scs db || echo "no old containers running"
+#docker-compose rm -f web orgRegistry sci041edapi sci041scs sci033edapi sci033scs db || echo "no containers to remove"
+
+docker-compose stop web orgRegistry sci033EDAPI sci033SCS db private-ethereum-blockchain blockchain-api-server || echo "no old containers running"
+docker-compose rm -f web orgRegistry sci033EDAPI sci033SCS db private-ethereum-blockchain blockchain-api-server || echo "no containers to remove"
 
 # Get the new images (defined in the docker-compose.yml)
 docker-compose pull
@@ -25,6 +28,7 @@ OR_USER=$(aws --region ap-southeast-2 secretsmanager get-secret-value --secret-i
 OR_PASSWORD=$(aws --region ap-southeast-2 secretsmanager get-secret-value --secret-id development | jq -r .SecretString | sed 's/\\//g' | jq -r .OR_PASSWORD)
 OAUTH_SUB=$(aws --region ap-southeast-2 secretsmanager get-secret-value --secret-id development | jq -r .SecretString | sed 's/\\//g' | jq -r .OAUTH_SUB)
 SCI033_OAUTH_SUB=$(aws --region ap-southeast-2 secretsmanager get-secret-value --secret-id development | jq -r .SecretString | sed 's/\\//g' | jq -r .SCI033_OAUTH_SUB)
+SCI041_OAUTH_SUB=$(aws --region ap-southeast-2 secretsmanager get-secret-value --secret-id development | jq -r .SecretString | sed 's/\\//g' | jq -r .SCI041_OAUTH_SUB)
 
 filepath='/home/ec2-user/.env'
 
@@ -39,8 +43,16 @@ OR_PASSWORD=$OR_PASSWORD
 OAUTH_SUB=$OAUTH_SUB
 JWK_CLIENT_IDS=$SCI033_OAUTH_SUB
 EDAPI_DB_CONN=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db/sci033edapi
-DEST_HOST=sci033SCS
+DEST_HOST=sci033scs
 DEST_PORT=8000" > ${filepath}
+
+echo "POSTGRES_USER=$POSTGRES_USER
+POSTGRES_PASSWORD=$POSTGRES_PASSWORD
+OAUTH_SUB=$OAUTH_SUB
+JWK_CLIENT_IDS=$SCI041_OAUTH_SUB
+EDAPI_DB_CONN=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db/sci041edapi
+DEST_HOST=sci041scs
+DEST_PORT=8000" > '/home/ec2-user/sci041.env'
 
 # Blow away old db files (UNCOMMENT WHEN NEEDED FOR A CLEAN DEPLOYMENT WITH A FRESH DB)
 # rm -rf /opt/Mirza/postgresql/data/
@@ -52,7 +64,7 @@ echo Waiting 10 seconds for the db to finish starting...
 sleep 10
 
 # Start the services
-docker-compose up -d supplyChainServer sci033EDAPI sci033SCS orgRegistry private-ethereum-blockchain blockchain-api-server web
+docker-compose up -d web orgRegistry sci041edapi sci041scs sci033edapi sci033scs # private-ethereum-blockchain blockchain-api-server
 
 # Run the initdb scripts for scs and or. (UNCOMMENT WHEN NEEDED FOR A CLEAN DEPLOYMENT WITH A FRESH DB)
 # docker-compose up -d dbpopulate-or
