@@ -7,8 +7,11 @@
 $(aws ecr get-login --no-include-email --region ap-southeast-2)
 
 # Stop and remove the currently running version of code
-docker-compose stop web orgRegistry sci041edapi sci041scs sci033edapi sci033scs db || echo "no old containers running"
-docker-compose rm -f web orgRegistry sci041edapi sci041scs sci033edapi sci033scs db || echo "no containers to remove"
+#docker-compose stop web orgRegistry sci041edapi sci041scs sci033edapi sci033scs db || echo "no old containers running"
+#docker-compose rm -f web orgRegistry sci041edapi sci041scs sci033edapi sci033scs db || echo "no containers to remove"
+
+docker-compose stop web orgRegistry sci033EDAPI sci033SCS db private-ethereum-blockchain blockchain-api-server || echo "no old containers running"
+docker-compose rm -f web orgRegistry sci033EDAPI sci033SCS db private-ethereum-blockchain blockchain-api-server || echo "no containers to remove"
 
 # Get the new images (defined in the docker-compose.yml)
 docker-compose pull
@@ -25,7 +28,7 @@ OR_USER=$(aws --region ap-southeast-2 secretsmanager get-secret-value --secret-i
 OR_PASSWORD=$(aws --region ap-southeast-2 secretsmanager get-secret-value --secret-id development | jq -r .SecretString | sed 's/\\//g' | jq -r .OR_PASSWORD)
 OAUTH_SUB=$(aws --region ap-southeast-2 secretsmanager get-secret-value --secret-id development | jq -r .SecretString | sed 's/\\//g' | jq -r .OAUTH_SUB)
 SCI033_OAUTH_SUB=$(aws --region ap-southeast-2 secretsmanager get-secret-value --secret-id development | jq -r .SecretString | sed 's/\\//g' | jq -r .SCI033_OAUTH_SUB)
-SCI033_OAUTH_SUB=$(aws --region ap-southeast-2 secretsmanager get-secret-value --secret-id development | jq -r .SecretString | sed 's/\\//g' | jq -r .SCI041_OAUTH_SUB)
+SCI041_OAUTH_SUB=$(aws --region ap-southeast-2 secretsmanager get-secret-value --secret-id development | jq -r .SecretString | sed 's/\\//g' | jq -r .SCI041_OAUTH_SUB)
 
 filepath='/home/ec2-user/.env'
 
