@@ -1,21 +1,22 @@
 import * as React from "react";
 import { Link } from "react-router-dom";
-const { DigitalLink, Utils } = require('digital-link.js');
+// const { DigitalLink, Utils } = require("digital-link.js");
 
 import { objectEvent } from "../epcis";
 import { EventForm } from "./epcis/event";
 
+const {edapiUrl, orUrl} = require("globals");
+
 export function Submit() {
   const eventState = React.useState(objectEvent());
   const [event, _] = eventState;
-  const url = 'http://localhost:8020'
 
   const submitEvent = () => {
     console.log(event.epcList);
     // const dl = DigitalLink(event.epcList[0]);
     if(true) {
       const token = 'Bearer ' + JSON.parse(localStorage.getItem('auth0_tk'))['idToken']
-      const request = new Request(url + '/event', {
+      const request = new Request(edapiUrl + '/event', {
         method: 'POST',
         body: JSON.stringify(event),
         headers: new Headers({
