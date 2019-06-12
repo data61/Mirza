@@ -4,11 +4,7 @@ networks:
   frontend:
   backend:
 
-volumes:
-  private-ethereum-blockchain:
-
 services:
-
   web:
     image: 235945186688.dkr.ecr.ap-southeast-2.amazonaws.com/mirza-web:latest
     ports:
@@ -18,6 +14,7 @@ services:
       - orgRegistry
     networks:
       - frontend
+      - backend
     logging:
       driver: json-file
       options:
@@ -33,10 +30,7 @@ services:
       - db
       - sci041scs
     networks:
-      - frontend
       - backend
-    env_file:
-      - .env
     logging:
       driver: json-file
       options:
@@ -51,10 +45,7 @@ services:
     depends_on:
       - db
     networks:
-      - frontend
       - backend
-    env_file:
-      - .env
     command: --orhost or --orport 8200 -c "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db/sci041supplychainserver"
     logging:
       driver: json-file
@@ -65,14 +56,13 @@ services:
   sci033edapi:
     image: 235945186688.dkr.ecr.ap-southeast-2.amazonaws.com/edapi:latest
     restart: always
+    env_file:
+      - sci033.env
     depends_on:
       - db
       - sci033scs
     networks:
-      - frontend
       - backend
-    env_file:
-      - .env
     logging:
       driver: json-file
       options:
@@ -82,13 +72,12 @@ services:
   sci033scs:
     image: 235945186688.dkr.ecr.ap-southeast-2.amazonaws.com/supplychainserver:latest
     restart: always
+    env_file:
+      - sci033.env
     depends_on:
       - db
     networks:
-      - frontend
       - backend
-    env_file:
-      - .env
     command: --orhost localhost --orport 8200 -c "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db/sci033supplychainserver"
     logging:
       driver: json-file
@@ -98,14 +87,13 @@ services:
 
   orgRegistry:
     image: 235945186688.dkr.ecr.ap-southeast-2.amazonaws.com/orgregistry:latest
+    env_file:
+      - .env
     restart: always
     depends_on:
       - db
     networks:
-      - frontend
       - backend
-    env_file:
-      - .env
     command: -c 'postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db/devorgregistry' server -a "${OAUTH_SUB}"
     logging:
       driver: json-file
@@ -115,10 +103,10 @@ services:
 
   db:
     image: postgres:10.5
-    networks:
-      - backend
     env_file:
       - .env
+    networks:
+      - backend
     healthcheck:
        test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
        interval: 30s
@@ -133,56 +121,3 @@ services:
       options:
         max-size: "200k"
         max-file: "10"
-
-  dbpopulate-scs:
-    image: 235945186688.dkr.ecr.ap-southeast-2.amazonaws.com/supplychainserver:latest
-    networks:
-      - backend
-    links:
-      - orgRegistry:or
-    env_file:
-      - .env
-    entrypoint: /bin/sh -c "cd /opt/Mirza && ./supplyChainServer --init-db -c 'postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/devsupplychainserver' && ./supplyChainServer --username '${OR_USER}' --password '${OR_PASSWORD}' --scshost scs --orhost or --orport 8200"
-    depends_on:
-      - db
-    logging:
-      driver: json-file
-      options:
-        max-size: "200k"
-        max-file: "10"
-
-  dbpopulate-or:
-    image: 235945186688.dkr.ecr.ap-southeast-2.amazonaws.com/orgregistry:latest
-    networks:
-      - backend
-    env_file:
-      - .env
-    entrypoint: /bin/sh -c "echo 'YES' | /opt/Mirza/orgRegistry initdb -c 'postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db/devorgregistry'"
-    depends_on:
-      - db
-    logging:
-      driver: json-file
-      options:
-        max-size: "200k"
-        max-file: "10"
-
-  private-ethereum-blockchain:
-    image: 235945186688.dkr.ecr.ap-southeast-2.amazonaws.com/privateethereumblockchain:191f2b7e145a02004c8e9e871e92d989c7ec69c7
-    ports:
-      - '8545:8545'
-      - '8546:8546'
-    volumes:
-      - private-ethereum-blockchain:/root/.local/share/io.parity.ethereum
-    networks:
-      - backend
-
-  blockchain-api-server:
-    image: 235945186688.dkr.ecr.ap-southeast-2.amazonaws.com/blockchainapiserver:191f2b7e145a02004c8e9e871e92d989c7ec69c7
-    ports:
-      - '5000:5000'
-    env_file:
-      - .env
-    networks:
-      - backend
-    depends_on:
-      - private-ethereum-blockchain
