@@ -5,17 +5,37 @@ import { objectEvent } from "../epcis";
 import { EventForm } from "./epcis/event";
 
 const { DigitalLink } = require("digital-link.js");
-const {edapiUrl, orUrl} = require("globals");
+const {edapiUrl, orUrl} = require("../globals").myGlobals;
 
 export function Submit() {
   const eventState = React.useState(objectEvent());
   const [event, _] = eventState;
 
   const submitEvent = () => {
-    console.log(event.epcList);
     const dl = DigitalLink(event.epcList[0]);
+    const token = 'Bearer ' + JSON.parse(localStorage.getItem('auth0_tk'))['idToken']
+    return fetch(new Request(orUrl + '/user/orgs', {
+      method: 'GET',
+      headers: new Headers({
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': token,
+      }),
+      credentials: 'include',
+    }
+    )).then(function(res: Response) {
+      return res.json();
+    }).then(function(data) {
+      return data.map((org: any) => {
+        return org.orgUrl;
+      });
+    }).then(function(urls) {
+      urls.forEach((url : string) => {
+        console.log(url);
+      });
+    });
+
     if (dl.isValid()) {
-      const token = 'Bearer ' + JSON.parse(localStorage.getItem('auth0_tk'))['idToken']
       const request = new Request(edapiUrl + '/event', {
         method: 'POST',
         body: JSON.stringify(event),
@@ -31,7 +51,7 @@ export function Submit() {
         alert('Success!');
       }).catch(function(err) {
         console.error(err);
-      })
+      });
     } else {
       alert("Invalid event.");
     }
