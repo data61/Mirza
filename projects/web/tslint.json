@@ -5,9 +5,7 @@
       "options": [120]
     },
     "no-console": false,
-    "quotemark": {
-      "options": ["double", "avoid-escape"]
-    },
+    "quotemark": [false, "single"],
     "interface-name": {
       "options": ["never-prefix"]
     },
@@ -23,6 +21,7 @@
         },
         "esSpecCompliant": true
       }
-    ]
+    ],
+    "only-arrow-functions": false
   }
 }
