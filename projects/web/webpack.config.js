@@ -2,7 +2,7 @@ module.exports = {
   entry: "./src/index.tsx",
   output: {
     filename: "bundle.js",
-    path: __dirname + "/dist"
+    path: __dirname + "/dist",
   },
 	// Options for webpack-dev-server
 	devServer: {
@@ -17,7 +17,7 @@ module.exports = {
 
   resolve: {
     // Add '.ts' and '.tsx' as resolvable extensions.
-    extensions: [".ts", ".tsx", ".js", ".json"]
+    extensions: [".ts", ".tsx", ".js", ".json"],
   },
 
   module: {
@@ -37,6 +37,6 @@ module.exports = {
   externals: {
     "react": "React",
     "react-dom": "ReactDOM",
-		"auth0": "Auth0"
-  }
+		"auth0": "Auth0",
+  },
 };
