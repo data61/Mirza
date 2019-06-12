@@ -6,10 +6,22 @@
     },
     "no-console": false,
     "quotemark": {
-      "options": ["double", "avoid-escape"]
+      "options": ["single", "avoid-escape"]
     },
     "interface-name": {
       "options": ["never-prefix"]
-    }
+    },
+    "trailing-comma": [
+      true,
+      {
+        "multiline": {
+          "objects": "always",
+          "arrays": "always",
+          "functions": "never",
+          "typeLiterals": "ignore"
+        },
+        "esSpecCompliant": true
+      }
+    ]
   }
 }
