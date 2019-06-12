@@ -1,10 +1,10 @@
 import * as React from "react";
 import { Link } from "react-router-dom";
-// const { DigitalLink, Utils } = require("digital-link.js");
 
 import { objectEvent } from "../epcis";
 import { EventForm } from "./epcis/event";
 
+const { DigitalLink } = require("digital-link.js");
 const {edapiUrl, orUrl} = require("globals");
 
 export function Submit() {
@@ -13,8 +13,8 @@ export function Submit() {
 
   const submitEvent = () => {
     console.log(event.epcList);
-    // const dl = DigitalLink(event.epcList[0]);
-    if(true) {
+    const dl = DigitalLink(event.epcList[0]);
+    if (dl.isValid()) {
       const token = 'Bearer ' + JSON.parse(localStorage.getItem('auth0_tk'))['idToken']
       const request = new Request(edapiUrl + '/event', {
         method: 'POST',
