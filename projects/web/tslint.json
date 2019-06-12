@@ -6,11 +6,12 @@
     },
     "no-console": false,
     "quotemark": {
-      "options": ["single", "avoid-escape"]
+      "options": ["double", "avoid-escape"]
     },
     "interface-name": {
       "options": ["never-prefix"]
     },
+    "object-literal-sort-keys": false,
     "trailing-comma": [
       true,
       {

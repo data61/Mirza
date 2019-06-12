@@ -24,7 +24,7 @@ export function Submit() {
           'Content-Type': 'application/json',
           'Authorization': token,
         }),
-        credentials: 'include'
+        credentials: 'include',
       });
       return fetch(request).then(function(res: Response) {
         console.log(res);
