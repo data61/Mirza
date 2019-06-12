@@ -17,11 +17,11 @@ module Mirza.OrgRegistry.Handlers.Org
   ) where
 
 
-import           Mirza.OrgRegistry.Auth
-import           Mirza.OrgRegistry.Database.Schema   as Schema
-import           Mirza.OrgRegistry.SqlUtils
-import           Mirza.OrgRegistry.Types             as ORT
 import           Mirza.Common.Time                        (toDbTimestamp)
+import           Mirza.OrgRegistry.Auth
+import           Mirza.OrgRegistry.Database.Schema        as Schema
+import           Mirza.OrgRegistry.SqlUtils
+import           Mirza.OrgRegistry.Types                  as ORT
 
 import           Data.GS1.EPC                             as EPC
 
@@ -38,8 +38,8 @@ import           Data.Time                                (UTCTime)
 import           GHC.Stack                                (HasCallStack,
                                                            callStack)
 
-import           Network.URI                              (uriToString, parseURI, nullURI)
-
+import           Network.URI                              (nullURI, parseURI,
+                                                           uriToString)
 
 orgToOrgResponse :: Org -> OrgResponse
 orgToOrgResponse OrgT{..} = OrgResponse
@@ -105,7 +105,7 @@ addOrgQuery org@OrgT{..} = do
             $ insertValues [org]
   case result of
     [insertedOrg] -> pure insertedOrg
-    _                  -> throwing _UnexpectedErrorORE callStack
+    _             -> throwing _UnexpectedErrorORE callStack
 
 
 addOrganisationMappingAuth :: ( Member context '[HasDB]
