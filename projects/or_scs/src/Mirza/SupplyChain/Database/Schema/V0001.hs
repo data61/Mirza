@@ -16,10 +16,8 @@ module Mirza.SupplyChain.Database.Schema.V0001 where
 import qualified Data.GS1.EPC                     as EPC
 import qualified Data.GS1.Event                   as Ev
 
-import           Mirza.Common.Beam                ( defaultFkConstraint
-                                                  , lastUpdateField
-                                                  , textType
-                                                  )
+import           Mirza.Common.Beam                (defaultFkConstraint,
+                                                   lastUpdateField, textType)
 import           Mirza.Common.GS1BeamOrphans
 import qualified Mirza.Common.GS1BeamOrphans      as MU
 import           Mirza.Common.Types
