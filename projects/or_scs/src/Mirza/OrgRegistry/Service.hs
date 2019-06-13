@@ -27,28 +27,28 @@ import           Mirza.Common.Utils
 
 import           Mirza.OrgRegistry.API
 
-import           Mirza.OrgRegistry.Auth ( oauthClaimsToAuthUser )
-import           Mirza.OrgRegistry.Handlers.Org      as Handlers
+import           Mirza.OrgRegistry.Auth              (oauthClaimsToAuthUser)
 import           Mirza.OrgRegistry.Handlers.Health   as Handlers
 import           Mirza.OrgRegistry.Handlers.Keys     as Handlers
 import           Mirza.OrgRegistry.Handlers.Location as Handlers
+import           Mirza.OrgRegistry.Handlers.Org      as Handlers
 import           Mirza.OrgRegistry.Handlers.Users    as Handlers
 import           Mirza.OrgRegistry.Types
 
 import           Katip
 
 import           Servant
-import           Servant.Swagger
 import           Servant.Auth.Server
+import           Servant.Swagger
 
-import           Control.Lens                             hiding ((.=))
-import           Control.Monad                            ( (<=<) )
-import           Control.Monad.IO.Class                   (liftIO)
+import           Control.Lens                        hiding ((.=))
+import           Control.Monad                       ((<=<))
+import           Control.Monad.IO.Class              (liftIO)
 import           Control.Monad.Trans
 
-import           Data.ByteString.Lazy.Char8               as BSL8
-import qualified Data.HashMap.Strict.InsOrd               as IOrd
-import           Text.Printf                              (printf)
+import           Data.ByteString.Lazy.Char8          as BSL8
+import qualified Data.HashMap.Strict.InsOrd          as IOrd
+import           Text.Printf                         (printf)
 
 import           Data.Swagger
 

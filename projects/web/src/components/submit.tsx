@@ -1,20 +1,36 @@
 import * as React from "react";
 import { Link } from "react-router-dom";
-const { DigitalLink, Utils } = require('digital-link.js');
 
 import { objectEvent } from "../epcis";
 import { EventForm } from "./epcis/event";
 
+// const { DigitalLink } = require("digital-link.js");
+const {edapiUrl, orUrl} = require("../globals").myGlobals;
+
 export function Submit() {
   const eventState = React.useState(objectEvent());
-  const [event, _] = eventState;
-  const url = 'http://localhost:8020'
 
   const submitEvent = () => {
-    console.log(event.epcList);
     // const dl = DigitalLink(event.epcList[0]);
-    if(true) {
-      const token = 'Bearer ' + JSON.parse(localStorage.getItem('auth0_tk'))['idToken']
+    const token = 'Bearer ' + JSON.parse(localStorage.getItem('auth0_tk'))['idToken']
+    return fetch(new Request(orUrl + '/user/orgs', {
+      method: 'GET',
+      headers: new Headers({
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': token,
+      }),
+      credentials: 'include',
+    }
+    )).then(function(res: Response) {
+      return res.json();
+    }).then(function(data) {
+      if (data[0]) {
+        return data[0].url;
+      }
+      return Promise.resolve();
+    }).then(function(url) {
+      const [event, _] = eventState;
       const request = new Request(url + '/event', {
         method: 'POST',
         body: JSON.stringify(event),
@@ -23,21 +39,19 @@ export function Submit() {
           'Content-Type': 'application/json',
           'Authorization': token,
         }),
-        credentials: 'include'
+        credentials: 'include',
       });
-      return fetch(request).then(function(res: Response) {
-        console.log(res);
+      return fetch(request);
+    }).then(function(res: Response) {
+      if (res.status === 200) {
         alert('Success!');
-      }).catch(function(err) {
-        console.error(err);
-      })
-    } else {
-      alert("Invalid event.");
-    }
+      } else {
+        alert('Failed with status: ' + res.status);
+      }
+    }).catch(function(err) {
+      console.log(err);
+    });
 
-    // TODO:
-    // - Fetch data entity api URL from BR (based off user/selected company)
-    // - Submit event to entity api URL
   };
 
   return (
