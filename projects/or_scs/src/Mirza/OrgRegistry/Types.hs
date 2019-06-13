@@ -167,13 +167,13 @@ data PartialNewOrg = PartialNewOrg
 
 instance FromJSON PartialNewOrg where
   parseJSON = withObject "PartialNewOrg" $ \o -> PartialNewOrg
-    <$> o .: "org_name"
-    <*> o .: "org_url"
+    <$> o .: "name"
+    <*> o .: "url"
 
 instance ToJSON PartialNewOrg where
   toJSON (PartialNewOrg orgName url) = object
-    [ "org_name" .= orgName
-    , "org_url" .= url
+    [ "name" .= orgName
+    , "url" .= url
     ]
 
 instance ToSchema PartialNewOrg
@@ -192,8 +192,19 @@ data OrgResponse = OrgResponse
   }
   deriving (Show, Eq, Generic)
 instance ToSchema OrgResponse
-instance ToJSON OrgResponse
-instance FromJSON OrgResponse
+
+instance FromJSON OrgResponse where
+  parseJSON = withObject "OrgResponse" $ \o -> OrgResponse
+    <$> o .: "company_prefix"
+    <*> o .: "name"
+    <*> o .: "url"
+
+instance ToJSON OrgResponse where
+  toJSON (OrgResponse (EPC.GS1CompanyPrefix pfix) orgName url) = object
+    [ "company_prefix" .= pfix
+    , "name" .= orgName
+    , "url" .= url
+    ]
 
 instance ToSchema Network.URI.URI where
   declareNamedSchema _ = declareNamedSchema (Proxy :: Proxy Text)

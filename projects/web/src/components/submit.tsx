@@ -26,7 +26,7 @@ export function Submit() {
       return res.json();
     }).then(function(data) {
       if (data[0]) {
-        return data[0].orgUrl;
+        return data[0].url;
       }
       return Promise.resolve();
     }).then(function(url) {
