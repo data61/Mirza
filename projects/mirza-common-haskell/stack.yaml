@@ -34,20 +34,18 @@ resolver: lts-13.23
 #  - wai
 packages:
 - .
-- location:
-    git: https://github.com/tathougies/beam.git
-    commit: 2489a213cdee6341de46a3aa015c35067f4d6076 # Head on 2019-01-10
-  extra-dep: true
-  subdirs:
-    - beam-core
-    - beam-migrate
-    - beam-postgres
 # Dependency packages to be pulled from upstream that are not in the resolver
 # using the same syntax as the packages field.
 # (e.g., acme-missiles-0.3)
 extra-deps:
+- git: https://github.com/tathougies/beam.git
+  commit: 2489a213cdee6341de46a3aa015c35067f4d6076 # Head on 2019-01-10
+  subdirs:
+    - beam-core
+    - beam-migrate
+    - beam-postgres
 - git: https://github.com/data61/GS1Combinators.git
-  commit: 6e3eac1448d55dcc934e22cc665a92aa97c1eb9d # Head on 2019-05-29
+  commit: 7f0f0c9c2ec6d91378ac56ba63de033fcc313326 # Head on 2019-05-29
 
 # Override default flag values for local packages and extra-deps
 # flags: {}
