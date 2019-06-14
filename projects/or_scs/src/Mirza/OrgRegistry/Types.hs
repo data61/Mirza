@@ -19,7 +19,8 @@ import           Mirza.Common.Time                    (CreationTime,
                                                        RevocationTime)
 import           Mirza.Common.Types                   as CT
 
-import           Data.GS1.EPC                         as EPC
+import           Data.GS1.EPC                         hiding (Expired)
+import qualified Data.GS1.EPC                         as EPC
 
 import           Data.Pool                            as Pool
 
@@ -134,7 +135,6 @@ instance (HasAuthAudience context, HasAuthPublicKey context)
 data NewUser = NewUser
   { newUserOAuthSub     :: Text
   } deriving (Generic, Eq, Show)
-$(deriveJSON defaultOptions ''NewUser)
 instance ToSchema NewUser
 
 -- Auth User Types:
@@ -291,28 +291,53 @@ data LocationResponse = LocationResponse
   , geoLocAddress :: Maybe Text
   } deriving (Show, Generic, Eq)
 instance ToSchema LocationResponse
-instance ToJSON LocationResponse
-instance FromJSON LocationResponse
+instance ToJSON LocationResponse where
+  toJSON (LocationResponse locId locGLN pfix geolocId geolocCoord geolocAddr) = object
+    [ "location_id" .= locId
+    , "epc" .= locGLN
+    , "company_prefix" .= pfix
+    , "geolocation_id" .= geolocId
+    , "geolocation_coords" .= geolocCoord
+    , "geolocation_address" .= geolocAddr
+    ]
 
+instance FromJSON LocationResponse where
+  parseJSON = withObject "LocationResponse" $ \o -> LocationResponse
+    <$> o .: "location_id"
+    <*> o .: "epc"
+    <*> o .: "company_prefix"
+    <*> o .: "geolocation_id"
+    <*> o .:? "geolocation_coords"
+    <*> o .: "geolocation_address"
 
 data OrgAndLocationResponse = OrgAndLocationResponse
   { orgResponse      :: OrgResponse
   , locationResponse :: LocationResponse
   } deriving (Show, Generic, Eq)
 instance ToSchema OrgAndLocationResponse
-instance ToJSON OrgAndLocationResponse
-instance FromJSON OrgAndLocationResponse
-
+instance ToJSON OrgAndLocationResponse where
+  toJSON (OrgAndLocationResponse org loc) = object
+    [ "org" .= org
+    , "loc" .= loc
+    ]
+instance FromJSON OrgAndLocationResponse where
+  parseJSON = withObject "OrgAndLocationResponse" $ \o -> OrgAndLocationResponse
+    <$> o .: "org"
+    <*> o .: "location"
 
 data KeyState
   = InEffect -- Can be used
   | Revoked -- Key passed the revocation time
   | Expired -- Key passed the expiration time
   deriving (Show, Eq, Read, Generic)
-$(deriveJSON defaultOptions ''KeyState)
+instance FromJSON KeyState where
+  parseJSON = withText "KeyState" $ \t -> error "lol"
+instance ToJSON KeyState where
+  toJSON InEffect = String "in_effect"
+  toJSON Revoked  = String "revoked"
+  toJSON Expired  = String "expired"
 instance ToSchema KeyState
 instance ToParamSchema KeyState
-
 
 -- Health Types:
 successHealthResponseText :: Text
@@ -330,7 +355,6 @@ instance FromJSON HealthResponse where
   parseJSON value                        = typeMismatch "HealthResponse" value
 
 
-
 -- *****************************************************************************
 -- Signing and Hashing Types
 -- *****************************************************************************
@@ -346,7 +370,26 @@ data KeyInfoResponse = KeyInfoResponse
   , keyInfoJWK            :: JWK
   }
   deriving (Generic, Show, Eq)
-$(deriveJSON defaultOptions ''KeyInfoResponse)
+
+instance FromJSON KeyInfoResponse where
+  parseJSON = withObject "KeyInfoResponse" $ \o -> KeyInfoResponse
+    <$> o .: "key_id"
+    <*> o .: "user_id"
+    <*> o .: "key_state"
+    <*> o .: "creation_time"
+    <*> o .:? "revocation"
+    <*> o .:? "expiration_time"
+    <*> o .: "jwk"
+instance ToJSON KeyInfoResponse where
+  toJSON (KeyInfoResponse keyId userId keyState cTime revocationInfo expTime jwk) = object
+    [ "key_id" .= keyId
+    , "user_id" .= userId
+    , "key_state" .= keyState
+    , "creation_time" .= cTime
+    , "revocation" .= revocationInfo
+    , "expiration_time" .= expTime
+    , "jwk" .= jwk
+    ]
 instance ToSchema KeyInfoResponse
 
 
