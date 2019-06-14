@@ -76,10 +76,10 @@ packages:
     pantry-tree:
       size: 8991
       sha256: 5c079cf09bfdce60cb82ac2454a30631b3565067a202dd5ea0351a95cb2edec7
-    commit: d4f2407b0e245632ad8da5f4c97ae3ea7c14e1b4
+    commit: 7f0f0c9c2ec6d91378ac56ba63de033fcc313326
   original:
     git: https://github.com/data61/GS1Combinators.git
-    commit: d4f2407b0e245632ad8da5f4c97ae3ea7c14e1b4
+    commit: 7f0f0c9c2ec6d91378ac56ba63de033fcc313326
 - completed:
     hackage: servant-flatten-0.2@sha256:276896f7c5cdec5b8f8493f6205fded0cc602d050b58fdb09a6d7c85c3bb0837,1234
     pantry-tree:

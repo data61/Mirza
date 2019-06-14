@@ -2,6 +2,7 @@
 {-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE InstanceSigs               #-}
+{-# LANGUAGE LambdaCase                 #-}
 {-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE StandaloneDeriving         #-}
 {-# LANGUAGE TemplateHaskell            #-}
@@ -44,7 +45,6 @@ import           Katip                                as K
 import           Network.URI                          (URI)
 
 import           Data.Aeson
-import           Data.Aeson.TH
 import           Data.Aeson.Types
 
 import           Data.Swagger                         (ToParamSchema (..),
@@ -171,8 +171,8 @@ instance FromJSON PartialNewOrg where
     <*> o .: "url"
 
 instance ToJSON PartialNewOrg where
-  toJSON (PartialNewOrg orgName url) = object
-    [ "name" .= orgName
+  toJSON (PartialNewOrg orgname url) = object
+    [ "name" .= orgname
     , "url" .= url
     ]
 
@@ -200,9 +200,9 @@ instance FromJSON OrgResponse where
     <*> o .: "url"
 
 instance ToJSON OrgResponse where
-  toJSON (OrgResponse (EPC.GS1CompanyPrefix pfix) orgName url) = object
+  toJSON (OrgResponse pfix orgname url) = object
     [ "company_prefix" .= pfix
-    , "name" .= orgName
+    , "name" .= orgname
     , "url" .= url
     ]
 
@@ -331,7 +331,11 @@ data KeyState
   | Expired -- Key passed the expiration time
   deriving (Show, Eq, Read, Generic)
 instance FromJSON KeyState where
-  parseJSON = withText "KeyState" $ \t -> error "lol"
+  parseJSON = withText "KeyState" $ \case
+    "in_effect" -> pure InEffect
+    "revoked" -> pure Revoked
+    "expired" -> pure Expired
+    _ -> fail "Invalid value for key_state. Valid values are in_effect, revoked and expired."
 instance ToJSON KeyState where
   toJSON InEffect = String "in_effect"
   toJSON Revoked  = String "revoked"
