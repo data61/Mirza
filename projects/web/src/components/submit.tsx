@@ -4,14 +4,13 @@ import { Link } from "react-router-dom";
 import { objectEvent } from "../epcis";
 import { EventForm } from "./epcis/event";
 
-// const { DigitalLink } = require("digital-link.js");
+const { DigitalLink } = require("digital-link.js");
 const {edapiUrl, orUrl} = require("../globals").myGlobals;
 
 export function Submit() {
   const eventState = React.useState(objectEvent());
 
   const submitEvent = () => {
-    // const dl = DigitalLink(event.epcList[0]);
     const token = 'Bearer ' + JSON.parse(localStorage.getItem('auth0_tk'))['idToken']
     return fetch(new Request(orUrl + '/user/orgs', {
       method: 'GET',
@@ -31,6 +30,13 @@ export function Submit() {
       return Promise.resolve();
     }).then(function(url) {
       const [event, _] = eventState;
+      const dl = DigitalLink(event.epcList[0]);
+      if (!dl.isValid()) {
+        return Promise.reject("Invalid GS1 Label");
+      }
+      event.epcList[0] = dl.mapToGS1Urn();
+      console.log(dl.mapToGS1Urn());
+      console.log(JSON.stringify(event));
       const request = new Request(url + '/event', {
         method: 'POST',
         body: JSON.stringify(event),
