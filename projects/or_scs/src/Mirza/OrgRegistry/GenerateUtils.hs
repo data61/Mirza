@@ -5,12 +5,12 @@
 -- each service's client
 module Mirza.OrgRegistry.GenerateUtils where
 
+import           Mirza.Common.Utils      (mockURI)
 import           Mirza.OrgRegistry.Types as ORT
-import           Mirza.Common.Utils           (mockURI)
 
 import           Data.GS1.EPC
 
-import qualified Data.Text                    as T
+import qualified Data.Text               as T
 
 
 dummyOrg :: T.Text -> NewOrg

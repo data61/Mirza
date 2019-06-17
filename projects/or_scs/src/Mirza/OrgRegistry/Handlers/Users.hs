@@ -1,5 +1,6 @@
-{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE DataKinds             #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 
 module Mirza.OrgRegistry.Handlers.Users
   (
@@ -10,17 +11,18 @@ module Mirza.OrgRegistry.Handlers.Users
   , getUserByIdQuery
   ) where
 
-import           Mirza.OrgRegistry.Database.Schema   hiding (UserId)
-import qualified Mirza.OrgRegistry.Database.Schema   as Schema
-import           Mirza.OrgRegistry.Types             as ORT
 import           Mirza.Common.Utils
+import           Mirza.OrgRegistry.Database.Schema        hiding (UserId)
+import qualified Mirza.OrgRegistry.Database.Schema        as Schema
+import           Mirza.OrgRegistry.Types                  as ORT
 
 import           Servant.API                              (NoContent (..))
 
 import           Database.Beam                            as B
 import           Database.Beam.Backend.SQL.BeamExtensions
 
-import           GHC.Stack                                (HasCallStack, callStack)
+import           GHC.Stack                                (HasCallStack,
+                                                           callStack)
 
 
 -- Nothing needs to be done by this endpoint, because by the time that this
