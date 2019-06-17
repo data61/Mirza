@@ -319,7 +319,7 @@ instance ToSchema OrgAndLocationResponse
 instance ToJSON OrgAndLocationResponse where
   toJSON (OrgAndLocationResponse org loc) = object
     [ "org" .= org
-    , "loc" .= loc
+    , "location" .= loc
     ]
 instance FromJSON OrgAndLocationResponse where
   parseJSON = withObject "OrgAndLocationResponse" $ \o -> OrgAndLocationResponse
@@ -331,16 +331,19 @@ data KeyState
   | Revoked -- Key passed the revocation time
   | Expired -- Key passed the expiration time
   deriving (Show, Eq, Read, Generic)
+
 instance FromJSON KeyState where
   parseJSON = withText "KeyState" $ \case
     "in_effect" -> pure InEffect
     "revoked" -> pure Revoked
     "expired" -> pure Expired
     _ -> fail "Invalid value for key_state. Valid values are in_effect, revoked and expired."
+
 instance ToJSON KeyState where
   toJSON InEffect = String "in_effect"
   toJSON Revoked  = String "revoked"
   toJSON Expired  = String "expired"
+
 instance ToSchema KeyState
 instance ToParamSchema KeyState
 
