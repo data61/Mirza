@@ -44,7 +44,7 @@ import           Database.PostgreSQL.Simple        (SqlError (..), execute_)
 import           Database.PostgreSQL.Simple.Errors (ConstraintViolation (UniqueViolation),
                                                     constraintViolation)
 
-import           Servant.Client
+import           Servant.Client                    hiding (manager)
 
 import           Data.Default
 
