@@ -47,11 +47,14 @@ import           Data.Aeson
 import           Data.Aeson.TH
 import           Data.Aeson.Types
 
-import           Data.Swagger
+import           Data.Swagger                         (ToParamSchema (..),
+                                                       ToSchema (..),
+                                                       description, name,
+                                                       schema)
 import           Data.Text                            (Text)
 import           Data.Time                            (LocalTime)
 
-import           Control.Lens
+import           Control.Lens                         hiding ((.=))
 import           Data.Proxy                           (Proxy (..))
 
 import           GHC.Generics                         (Generic)
@@ -160,8 +163,20 @@ instance ToParamSchema AuthUser
 data PartialNewOrg = PartialNewOrg
   { partialNewOrgName :: Text
   , partialNewOrgUrl  :: Network.URI.URI
-  } deriving (Generic, Eq, Show)
-$(deriveJSON defaultOptions ''PartialNewOrg)
+  }
+  deriving (Generic, Eq, Show)
+
+instance FromJSON PartialNewOrg where
+  parseJSON = withObject "PartialNewOrg" $ \o -> PartialNewOrg
+    <$> o .: "name"
+    <*> o .: "url"
+
+instance ToJSON PartialNewOrg where
+  toJSON (PartialNewOrg orgName url) = object
+    [ "name" .= orgName
+    , "url" .= url
+    ]
+
 instance ToSchema PartialNewOrg
 
 data NewOrg = NewOrg
@@ -178,15 +193,24 @@ data OrgResponse = OrgResponse
   }
   deriving (Show, Eq, Generic)
 instance ToSchema OrgResponse
-instance ToJSON OrgResponse
-instance FromJSON OrgResponse
 
+instance FromJSON OrgResponse where
+  parseJSON = withObject "OrgResponse" $ \o -> OrgResponse
+    <$> o .: "company_prefix"
+    <*> o .: "name"
+    <*> o .: "url"
+
+instance ToJSON OrgResponse where
+  toJSON (OrgResponse (EPC.GS1CompanyPrefix pfix) orgName url) = object
+    [ "company_prefix" .= pfix
+    , "name" .= orgName
+    , "url" .= url
+    ]
 
 instance ToSchema Network.URI.URI where
   declareNamedSchema _ = declareNamedSchema (Proxy :: Proxy Text)
     <&> name ?~ "URI"
     <&> schema . description ?~ "An RFC 3986 compliant URI."
-
 
 data NewLocation = NewLocation
   { newLocGLN     :: LocationEPC

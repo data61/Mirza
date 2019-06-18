@@ -5,11 +5,24 @@
       "options": [120]
     },
     "no-console": false,
-    "quotemark": {
-      "options": ["double", "avoid-escape"]
-    },
+    "quotemark": [false, "single"],
     "interface-name": {
       "options": ["never-prefix"]
-    }
+    },
+    "object-literal-sort-keys": false,
+    "trailing-comma": [
+      true,
+      {
+        "multiline": {
+          "objects": "always",
+          "arrays": "always",
+          "functions": "never",
+          "typeLiterals": "ignore"
+        },
+        "esSpecCompliant": true
+      }
+    ],
+    "only-arrow-functions": false,
+    "no-var-requires": false
   }
 }

@@ -4,8 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "webpack -p",
-    "start:dev": "webpack-dev-server",
+    "build": "webpack -p --env.production",
+    "start:dev": "webpack-dev-server --env.development",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "CSIRO Data61",
