@@ -187,9 +187,9 @@ data NewOrg = NewOrg
 
 -- Org Response Types:
 data OrgResponse = OrgResponse
-  { orgGS1CompanyPrefix :: EPC.GS1CompanyPrefix
-  , orgName             :: Text
-  , orgUrl              :: Network.URI.URI
+  { orgResponseGS1CompanyPrefix :: EPC.GS1CompanyPrefix
+  , orgResponseName             :: Text
+  , orgResponseUrl              :: Network.URI.URI
   }
   deriving (Show, Eq, Generic)
 instance ToSchema OrgResponse

@@ -2,9 +2,9 @@
 -- | Dummy data used for tests
 module Mirza.OrgRegistry.Tests.Dummies where
 
-import           Data.GS1.EPC                 (GS1CompanyPrefix (..))
-import           Mirza.OrgRegistry.Types as ORT hiding (orgName)
+import           Data.GS1.EPC            (GS1CompanyPrefix (..))
 import           Mirza.Common.Utils
+import           Mirza.OrgRegistry.Types as ORT
 
 import           Data.Text
 

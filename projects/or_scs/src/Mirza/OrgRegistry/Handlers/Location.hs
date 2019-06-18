@@ -15,14 +15,14 @@ module Mirza.OrgRegistry.Handlers.Location
   ) where
 
 
-import           Mirza.OrgRegistry.Database.Schema   as DB
-import qualified Mirza.OrgRegistry.Handlers.Org      as ORHO (searchOrgs)
-import           Mirza.OrgRegistry.SqlUtils
-import           Mirza.OrgRegistry.Types             as ORT
-import           Mirza.OrgRegistry.Auth
 import           Mirza.Common.Time                        (toDbTimestamp)
 import           Mirza.Common.Types                       (Member)
 import           Mirza.Common.Utils
+import           Mirza.OrgRegistry.Auth
+import           Mirza.OrgRegistry.Database.Schema        as DB
+import qualified Mirza.OrgRegistry.Handlers.Org           as ORHO (searchOrgs)
+import           Mirza.OrgRegistry.SqlUtils
+import           Mirza.OrgRegistry.Types                  as ORT
 
 
 import           Data.GS1.EPC                             (GS1CompanyPrefix,
@@ -218,7 +218,7 @@ searchOrgLocation userPrefixes = do
     getOrgs prefix  = ORHO.searchOrgs (Just prefix) Nothing Nothing
 
     matchId :: LocationResponse -> OrgResponse -> Bool
-    matchId location org = (locationOrg location) == (orgGS1CompanyPrefix org)
+    matchId location org = (locationOrg location) == (orgResponseGS1CompanyPrefix org)
 
     buildOrgAndLocationResponse :: Member context '[HasLogging]
                                      => [OrgResponse] -> LocationResponse -> AppM context err OrgAndLocationResponse

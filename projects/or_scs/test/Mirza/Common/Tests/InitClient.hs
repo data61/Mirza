@@ -9,7 +9,7 @@ import           Mirza.OrgRegistry.Main            (ServerOptionsOR (..),
                                                     addAuthOptions,
                                                     initORContext)
 import qualified Mirza.OrgRegistry.Main            as ORMain
-import           Mirza.OrgRegistry.Types           as ORT hiding (orgName)
+import           Mirza.OrgRegistry.Types           as ORT
 
 import           Mirza.SupplyChain.Database.Schema as Schema
 import           Mirza.SupplyChain.Main            (ServerOptionsSCS (..),

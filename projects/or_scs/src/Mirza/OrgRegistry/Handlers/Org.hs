@@ -43,9 +43,9 @@ import           Network.URI                              (nullURI, parseURI,
 
 orgToOrgResponse :: Org -> OrgResponse
 orgToOrgResponse OrgT{..} = OrgResponse
-  { orgGS1CompanyPrefix = org_gs1_company_prefix
-  , orgName             = org_name
-  , orgUrl              = maybe nullURI id $ parseURI $ unpack org_url
+  { orgResponseGS1CompanyPrefix = org_gs1_company_prefix
+  , orgResponseName             = org_name
+  , orgResponseUrl              = maybe nullURI id $ parseURI $ unpack org_url
   }
 
 
