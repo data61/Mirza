@@ -138,13 +138,16 @@ test-suite supplyChainServer-test
                      , Mirza
                      , mirza-common-haskell
                      , resource-pool >= 0.2.3
+                     , aeson
                      , beam-core
                      , beam-postgres
                      , bytestring
                      , hspec
                      , hspec-core
+                     , lens
                      , mtl
                      , network
+                     , network-uri
                      , postgresql-simple
                      , process
                      , servant
@@ -196,6 +199,7 @@ test-suite orgRegistry-test
                      , hspec-core
                      , http-client
                      , http-types
+                     , lens
                      , MissingH
                      , mtl
                      , network

@@ -34,7 +34,8 @@ import           Database.PostgreSQL.Simple.ToField   (ToField, toField)
 
 import           Crypto.JOSE                          (JWK)
 import           Crypto.JWT                           (Audience, ClaimsSet,
-                                                       claimSub, string)
+                                                       claimSub, emptyClaimsSet,
+                                                       string)
 
 import qualified Servant.Auth.Server                  as SAS
 
@@ -139,7 +140,7 @@ newtype VerifiedTokenClaims = VerifiedTokenClaims
   { verifiedTokenClaimsSub :: Text
   } deriving (Show)
 instance SAS.ToJWT VerifiedTokenClaims where
-  encodeJWT = error "Not implemented" -- TODO: Implement this properly
+  encodeJWT (VerifiedTokenClaims value) = emptyClaimsSet & claimSub .~ Just (review string value)
 
 instance SAS.FromJWT VerifiedTokenClaims where
   decodeJWT :: ClaimsSet -> Either Text VerifiedTokenClaims
@@ -157,8 +158,8 @@ instance ToParamSchema AuthUser
 
 
 data PartialNewOrg = PartialNewOrg
-  { partialNewOrgName      :: Text
-  , partialNewOrgUrl       :: Network.URI.URI
+  { partialNewOrgName :: Text
+  , partialNewOrgUrl  :: Network.URI.URI
   } deriving (Generic, Eq, Show)
 $(deriveJSON defaultOptions ''PartialNewOrg)
 instance ToSchema PartialNewOrg
@@ -272,7 +273,7 @@ instance FromJSON LocationResponse
 
 
 data OrgAndLocationResponse = OrgAndLocationResponse
-  { orgResponse :: OrgResponse
+  { orgResponse      :: OrgResponse
   , locationResponse :: LocationResponse
   } deriving (Show, Generic, Eq)
 instance ToSchema OrgAndLocationResponse
