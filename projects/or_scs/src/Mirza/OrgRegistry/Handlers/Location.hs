@@ -15,14 +15,14 @@ module Mirza.OrgRegistry.Handlers.Location
   ) where
 
 
-import           Mirza.OrgRegistry.Database.Schema   as DB
-import qualified Mirza.OrgRegistry.Handlers.Org      as ORHO (searchOrgs)
-import           Mirza.OrgRegistry.SqlUtils
-import           Mirza.OrgRegistry.Types             as ORT
-import           Mirza.OrgRegistry.Auth
 import           Mirza.Common.Time                        (toDbTimestamp)
 import           Mirza.Common.Types                       (Member)
 import           Mirza.Common.Utils
+import           Mirza.OrgRegistry.Auth
+import           Mirza.OrgRegistry.Database.Schema        as DB
+import qualified Mirza.OrgRegistry.Handlers.Org           as ORHO (searchOrgs)
+import           Mirza.OrgRegistry.SqlUtils
+import           Mirza.OrgRegistry.Types                  as ORT
 
 
 import           Data.GS1.EPC                             (GS1CompanyPrefix,
@@ -43,6 +43,7 @@ import           Control.Lens.Operators                   ((&))
 import           Control.Monad.Error.Hoist                ((<!?>))
 import           Data.Foldable                            (find, for_)
 import           Data.Time                                (UTCTime)
+
 
 addLocation :: ( Member context '[HasEnvType, HasConnPool, HasLogging]
                , Member err     '[AsSqlError, AsORError])
