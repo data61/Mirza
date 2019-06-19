@@ -13,7 +13,7 @@ import           Mirza.EntityDataAPI.Database.Utils (addUser, addUserSub)
 import           Mirza.EntityDataAPI.Errors
 import           Mirza.EntityDataAPI.Types
 
-import           Mirza.Common.Utils                 (fetchJWKs)
+import           Mirza.Common.Utils                 (fetchJWKSWithManager)
 
 import           Network.HTTP.ReverseProxy          (ProxyDest (..))
 import           Network.Wai                        (Middleware)
@@ -101,11 +101,12 @@ initContext :: Opts -> IO AuthContext
 initContext (Opts myService (ServiceInfo (Hostname destHost) (Port destPort)) _mode url clientIds dbConnStr) = do
   putStrLn "Initializing context..."
   let proxyDest = ProxyDest (B.pack destHost) destPort
+  mngr <- newManager tlsManagerSettings
   connpool <- createPool (connectPostgreSQL dbConnStr) close
                     1 -- Number of "sub-pools",
                     60 -- How long in seconds to keep a connection open for reuse
                     20 -- Max number of connections to have open at any one time
-  fetchJWKS url >>= \case
+  fetchJWKSWithManager mngr url >>= \case
     Left err -> fail $ show err
     Right jwkSet -> pure $ AuthContext myService proxyDest mngr jwkSet (parseClientIdList clientIds) connpool
     where

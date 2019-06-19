@@ -26,6 +26,7 @@ module Mirza.Common.Utils
   , mockURI
   , versionInfo
   , fetchJWKS
+  , fetchJWKSWithManager
   ) where
 
 
