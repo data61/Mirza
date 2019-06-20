@@ -44,8 +44,8 @@ import           Crypto.JWT                        (Audience (..))
 
 -- | We need to supply our handlers with the right Context. In this case,
 -- JWT requires a Context Entry with the 'JWTSettings and CookiesSettings values.
-tokenServerContext :: ( Member context '[HasDB, HasAuthAudience, HasAuthPublicKey])
-                       => context -> Servant.Context '[JWTSettings, CookieSettings]
+tokenServerContext  :: ( Member context '[HasDB, HasAuthAudience, HasAuthPublicKey])
+                    => context -> Servant.Context '[JWTSettings, CookieSettings]
 tokenServerContext context = jwtSettings :. defaultCookieSettings :. EmptyContext
   where
     defaultSettings = defaultJWTSettings (view authPublicKey context)

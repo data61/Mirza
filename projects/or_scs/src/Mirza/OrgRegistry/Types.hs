@@ -35,7 +35,7 @@ import           Database.PostgreSQL.Simple.FromField (FromField, fromField)
 import           Database.PostgreSQL.Simple.ToField   (ToField, toField)
 
 import           Crypto.JOSE                          (JWK)
-import           Crypto.JWT                           (Audience, ClaimsSet,
+import           Crypto.JWT                           (Audience (..), ClaimsSet,
                                                        claimSub, string)
 
 import qualified Servant.Auth.Server                  as SAS
@@ -72,7 +72,10 @@ orContextMinimal :: EnvType -> Pool Connection -> K.LogEnv -> K.LogContexts -> K
 orContextMinimal a b c d e = ORContextGeneric a b c d e () ()
 
 orContextComplete :: ORContextMinimal -> Audience -> JWK-> ORContextComplete
-orContextComplete (ORContextGeneric a b c d e () ()) f g = ORContextGeneric a b c d e f g
+orContextComplete (ORContextGeneric envT poolConn logEnv logCtxs nameSpace () ()) audList@(Audience strUriList) jwk
+    = if (null strUriList)
+        then error "Empty Audience not allowed."
+        else ORContextGeneric envT poolConn logEnv logCtxs nameSpace audList jwk
 
 data ORContextGeneric audienceType publicKeyType = ORContextGeneric
   { _orEnvType          :: EnvType
