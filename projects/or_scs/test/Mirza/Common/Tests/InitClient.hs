@@ -173,7 +173,7 @@ runORApp = do
   tempFile <- emptySystemTempFile "orgRegistryTests.log"
   let currentBrOptions = orOptions (Just tempFile)
   minimalContext <- initORContext currentBrOptions
-  completeContext <- addAuthOptions minimalContext "" -- TODO: Use the proper oauth aud (audience) rathern then the empty text "".
+  completeContext <- addAuthOptions minimalContext "my_fake_jwk_key" -- TODO: Use the proper oauth aud (audience)
   let OrgRegistryDB orgsTable usersTable orgMappingTable keysTable locationsTable geolocationsTable
         = orgRegistryDB
 
