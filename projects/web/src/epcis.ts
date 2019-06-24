@@ -125,15 +125,15 @@ export interface Event {
 }
 
 export function objectEvent(): Event {
-    return {
-        isA: EventType.Object,
-        epcList: [],
-        action: EventAction.Add,
-        bizStep: EventBusinessStep.Accepting,
-        disposition: EventDisposition.Active,
-        eventTime: new Date(),
-        eventTimeZoneOffset: moment(Date()).format('Z'),
-        sourceList: [],
-        destinationList: [],
-    };
+  return {
+      isA: EventType.Object,
+      epcList: [],
+      action: EventAction.Add,
+      bizStep: EventBusinessStep.Accepting,
+      disposition: EventDisposition.Active,
+      eventTime: new Date(),
+      eventTimeZoneOffset: moment(Date()).format('Z'),
+      sourceList: [],
+      destinationList: [],
+  };
 }
