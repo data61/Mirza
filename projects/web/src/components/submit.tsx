@@ -11,7 +11,7 @@ export function Submit() {
   const eventState = React.useState(objectEvent());
 
   const submitEvent = () => {
-    const token = 'Bearer ' + JSON.parse(localStorage.getItem('auth0_tk'))['idToken']
+    const token = 'Bearer ' + JSON.parse(localStorage.getItem('auth0_tk')).idToken;
     return fetch(new Request(orUrl + '/user/orgs', {
       method: 'GET',
       headers: new Headers({
