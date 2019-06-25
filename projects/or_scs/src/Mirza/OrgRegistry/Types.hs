@@ -4,6 +4,7 @@
 {-# LANGUAGE InstanceSigs               #-}
 {-# LANGUAGE LambdaCase                 #-}
 {-# LANGUAGE MultiParamTypeClasses      #-}
+{-# LANGUAGE OverloadedLists            #-}
 {-# LANGUAGE StandaloneDeriving         #-}
 {-# LANGUAGE TemplateHaskell            #-}
 {-# LANGUAGE TypeApplications           #-}
@@ -20,7 +21,7 @@ import           Mirza.Common.Time                    (CreationTime,
                                                        RevocationTime)
 import           Mirza.Common.Types                   as CT
 
-import           Data.GS1.EPC                         hiding (Expired)
+import           Data.GS1.EPC                         hiding (Expired, URI)
 import qualified Data.GS1.EPC                         as EPC
 
 import           Data.Pool                            as Pool
@@ -47,10 +48,14 @@ import           Network.URI                          (URI)
 import           Data.Aeson
 import           Data.Aeson.Types
 
-import           Data.Swagger                         (ToParamSchema (..),
+import           Data.Swagger                         (NamedSchema (..),
+                                                       SwaggerType (..),
+                                                       ToParamSchema (..),
                                                        ToSchema (..),
+                                                       declareSchemaRef,
                                                        description, name,
-                                                       schema)
+                                                       properties, required,
+                                                       schema, type_)
 import           Data.Text                            (Text)
 import           Data.Time                            (LocalTime)
 
@@ -165,9 +170,9 @@ instance ToParamSchema AuthUser
 
 data PartialNewOrg = PartialNewOrg
   { partialNewOrgName :: Text
-  , partialNewOrgUrl  :: Network.URI.URI
+  , partialNewOrgUrl  :: URI
   }
-  deriving (Generic, Eq, Show)
+  deriving (Eq, Show)
 
 instance FromJSON PartialNewOrg where
   parseJSON = withObject "PartialNewOrg" $ \o -> PartialNewOrg
@@ -180,7 +185,17 @@ instance ToJSON PartialNewOrg where
     , "url" .= url
     ]
 
-instance ToSchema PartialNewOrg
+instance ToSchema PartialNewOrg where
+  declareNamedSchema _ = do
+    textSchema <- declareSchemaRef (Proxy :: Proxy Text)
+    urlSchema <- declareSchemaRef (Proxy :: Proxy URI)
+    pure $ NamedSchema (Just "PartialNewOrg") $ mempty
+      & type_ .~ SwaggerObject
+      & properties .~
+          [ ("name", textSchema)
+          , ("url", urlSchema)
+          ]
+      & required .~ [ "name", "url" ]
 
 data NewOrg = NewOrg
   { newOrgGS1CompanyPrefix :: GS1CompanyPrefix
