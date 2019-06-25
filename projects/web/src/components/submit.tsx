@@ -31,7 +31,7 @@ export function Submit(props: SubmitProps) {
       } else {
         alert('Failed with status: ' + res.status);
       }
-    }).catch(function(err) {
+    }).catch(function (err) {
       console.log(err);
     });
   };

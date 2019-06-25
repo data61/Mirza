@@ -1,10 +1,11 @@
 import * as React from "react";
-
 import { Link } from "react-router-dom";
+
+import { AuthState } from "../auth";
+import { Organisation } from "../business-registry";
 import { Panel } from "./panel";
 
 import { queryForm } from "../query";
-const { orUrl } = require("../globals").myGlobals;
 
 export function SavedEvents({ className }: { className: string }) {
   return (
@@ -24,41 +25,23 @@ export function SavedEvents({ className }: { className: string }) {
   );
 }
 
-export function EventLookup({ className }: { className: string }) {
+export interface QueryProps {
+  authState: AuthState;
+  organisation: Organisation;
+}
+
+export function EventLookup(props: QueryProps) {
 
   const [query, queryUpdate] = React.useState(queryForm());
   const queryEvent = () => {
     console.log(query);
-    const token = 'Bearer ' + JSON.parse(localStorage.getItem('auth0_tk')).idToken;
-    // return fetch(new Request(edapiUrl + '/prototype/list/events', {
-    return fetch(new Request(encodeURI(orUrl + '/user/orgs'), {
+    return fetch(encodeURI(props.organisation.url + '/epc/events/' + query.Label), {
       method: 'GET',
       headers: new Headers({
         'Accept': 'application/json',
         'Content-Type': 'application/json',
-        'Authorization': token,
+        'Authorization': 'Bearer ' + props.authState.getToken().idToken,
       }),
-      credentials: 'include',
-    }
-    )).then(function(res: Response) {
-      return res.json();
-    }).then(function(data) {
-      if (data[0]) {
-        return data[0].url;
-      }
-      return Promise.resolve();
-    }).then(function(url) {
-        const request = new Request(encodeURI(url + '/epc/events/' + query.Label), {
-          method: 'GET',
-          body: JSON.stringify(event),
-          headers: new Headers({
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-            'Authorization': token,
-          }),
-          credentials: 'include',
-        });
-        return fetch(request);
     }).then(function(res: Response) {
       return res.json();
     }).then(function(data) {
@@ -70,7 +53,7 @@ export function EventLookup({ className }: { className: string }) {
   };
 
   return (
-    <div className={className}>
+    <div className="column border-right">
       <h4>Event Lookup</h4>
       <form>
         <fieldset>
@@ -96,13 +79,13 @@ export function EventLookup({ className }: { className: string }) {
   );
 }
 
-export function Events() {
+export function Events(props: QueryProps) {
   return (
     <div>
       <div className="border-bottom pad-tb">
         <div className="container">
           <div className="row">
-            <EventLookup className="column border-right"></EventLookup>
+            <EventLookup authState={props.authState} organisation={props.organisation}></EventLookup>
             <SavedEvents className="column"></SavedEvents>
           </div>
         </div>
@@ -120,7 +103,7 @@ export function Events() {
   );
 }
 
-export function EventLog() {
+export function EventLog(props: QueryProps) {
   return (
     <section>
       <div className="border-bottom">
@@ -137,7 +120,7 @@ export function EventLog() {
           </div>
         </div>
       </div>
-      <Events></Events>
+      <Events authState={props.authState} organisation={props.organisation}></Events>
     </section>
   );
 }

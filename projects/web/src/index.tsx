@@ -36,7 +36,8 @@ authInit().then((authState) => {
         <Header auth={appState.auth} organisation={appState.organisation}></Header>
         <Switch>
           <Route path="/" exact component={Home} />
-          <Route path="/events" exact component={EventLog} />
+          <Route path="/events" exact render={() =>
+            <EventLog authState={appState.auth} organisation={appState.organisation}></EventLog>} />
           <Route path="/scan" exact render={() =>
             <Submit authState={appState.auth} organisation={appState.organisation} ></Submit>} />
           <Route component={NotFound} />
