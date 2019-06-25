@@ -20,20 +20,25 @@ authInit().then((authState) => {
 
   const br = new BusinessRegistry(authState.getToken());
 
-  br.getBusiness().then((business) => {
+  br.getOrganisations().then((orgs) => {
+    if (orgs.length < 1) {
+      ReactDOM.render(<div>You need to be a member of an organisation</div>, document.querySelector("main"));
+      return;
+    }
 
     const appState = {
       auth: authState,
-      business,
+      organisation: orgs[0],
     };
 
     ReactDOM.render(<BrowserRouter>
       <React.Fragment>
-        <Header auth={appState.auth} business={appState.business}></Header>
+        <Header auth={appState.auth} organisation={appState.organisation}></Header>
         <Switch>
           <Route path="/" exact component={Home} />
           <Route path="/events" exact component={EventLog} />
-          <Route path="/scan" exact component={Submit} />
+          <Route path="/scan" exact render={() =>
+            <Submit authState={appState.auth} organisation={appState.organisation} ></Submit>} />
           <Route component={NotFound} />
         </Switch>
         <Footer></Footer>
