@@ -1,17 +1,11 @@
 import * as React from "react";
 import { Link } from "react-router-dom";
 
-import { AuthState } from "../auth";
-import { Organisation } from "../business-registry";
 import { objectEvent } from "../epcis";
+import { Props } from "./epcis/common";
 import { EventForm } from "./epcis/event";
 
-export interface SubmitProps {
-  authState: AuthState;
-  organisation: Organisation;
-}
-
-export function Submit(props: SubmitProps) {
+export function Submit(props: Props) {
   const eventState = React.useState(objectEvent());
   const [event, _] = eventState;
 
@@ -25,13 +19,14 @@ export function Submit(props: SubmitProps) {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer ' + props.authState.getToken().idToken,
       },
+      credentials: 'include',
     }).then(function(res: Response) {
       if (res.status === 200) {
         alert('Success!');
       } else {
         alert('Failed with status: ' + res.status);
       }
-    }).catch(function(err) {
+    }).catch(function (err) {
       console.log(err);
     });
   };

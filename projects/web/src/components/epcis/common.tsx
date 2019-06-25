@@ -4,6 +4,14 @@ import * as QrReader from "react-qr-reader";
 import { Event } from "../../epcis";
 const { DigitalLink } = require("digital-link.js");
 
+import { AuthState } from "../../auth";
+import { Organisation } from "../../business-registry";
+
+export interface Props {
+  authState: AuthState;
+  organisation: Organisation;
+}
+
 export interface EventStateProps {
   eventState: [Event, React.Dispatch<React.SetStateAction<Event>>];
 }
