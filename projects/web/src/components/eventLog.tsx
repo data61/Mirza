@@ -31,7 +31,6 @@ export function EventLookup(props: Props) {
     console.log(query);
     return fetch(encodeURI(props.organisation.url + '/epc/events/' + query.Label), {
       method: 'GET',
-      body: JSON.stringify(event),
       headers: new Headers({
         'Accept': 'application/json',
         'Content-Type': 'application/json',
