@@ -11,8 +11,8 @@ export function Submit() {
   const eventState = React.useState(objectEvent());
 
   const submitEvent = () => {
-    const token = 'Bearer ' + JSON.parse(localStorage.getItem('auth0_tk'))['idToken']
-    return fetch(new Request(orUrl + '/user/orgs', {
+    const token = 'Bearer ' + JSON.parse(localStorage.getItem('auth0_tk')).idToken;
+    return fetch(new Request(encodeURI(orUrl + '/user/orgs'), {
       method: 'GET',
       headers: new Headers({
         'Accept': 'application/json',
@@ -37,7 +37,7 @@ export function Submit() {
       event.epcList[0] = dl.mapToGS1Urn();
       console.log(dl.mapToGS1Urn());
       console.log(JSON.stringify(event));
-      const request = new Request(url + '/event', {
+      const request = new Request(encodeURI(url + '/event'), {
         method: 'POST',
         body: JSON.stringify(event),
         headers: new Headers({

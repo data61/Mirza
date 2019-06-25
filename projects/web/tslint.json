@@ -23,6 +23,7 @@
       }
     ],
     "only-arrow-functions": false,
-    "no-var-requires": false
+    "no-var-requires": false,
+    "max-classes-per-file": false
   }
 }

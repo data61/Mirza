@@ -82,25 +82,25 @@ export const EventDisposition = {
 export const SourceDestType = {
     OwningParty: "urn:epcglobal:cbv:sdt:owning_party",
     PosessingParty: "urn:epcglobal:cbv:sdt:possessing_party",
-    Location: "urn:epcglobal:cbv:sdt:location"
-}
+    Location: "urn:epcglobal:cbv:sdt:location",
+};
 
 class SourceType {
-    constructor(public source:string, public type:string) {
+    constructor(public source: string, public type: string) {
         this.source = source;
         this.type = type;
     }
 }
 
 class DestinationType {
-    constructor(public destination:string, public type:string) {
+    constructor(public destination: string, public type: string) {
         this.destination = destination;
         this.type = type;
     }
 }
 
 class Quantity {
-    constructor(public epcClass:string, public quantity: number, public uom:string) {
+    constructor(public epcClass: string, public quantity: number, public uom: string) {
         this.epcClass = epcClass;
         this.quantity = quantity;
         this.uom = uom;
@@ -115,25 +115,25 @@ export interface Event {
     eventTimeZoneOffset: string;
     recordTime?: Date;
     action?: string;
-    epcList?: Array<string>;
+    epcList?: string[];
     bizStep?: string;
     disposition?: string;
-    quantityList?: Array<Quantity>;
+    quantityList?: Quantity[];
     bizLocation?: string;
-    sourceList: Array<SourceType>;
-    destinationList: Array<DestinationType>;
+    sourceList: SourceType[];
+    destinationList: DestinationType[];
 }
 
 export function objectEvent(): Event {
-    return {
-        isA: EventType.Object,
-        epcList: [],
-        action: EventAction.Add,
-        bizStep: EventBusinessStep.Accepting,
-        disposition: EventDisposition.Active,
-        eventTime: new Date(),
-        eventTimeZoneOffset: moment(Date()).format('Z'),
-        sourceList: [],
-        destinationList: [],
-    };
+  return {
+      isA: EventType.Object,
+      epcList: [],
+      action: EventAction.Add,
+      bizStep: EventBusinessStep.Accepting,
+      disposition: EventDisposition.Active,
+      eventTime: new Date(),
+      eventTimeZoneOffset: moment(Date()).format('Z'),
+      sourceList: [],
+      destinationList: [],
+  };
 }
