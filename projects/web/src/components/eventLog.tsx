@@ -1,7 +1,8 @@
 import * as React from "react";
-
 import { Link } from "react-router-dom";
-import { Props } from "./epcis/common";
+
+import { AuthState } from "../auth";
+import { Organisation } from "../business-registry";
 import { Panel } from "./panel";
 
 import { queryForm } from "../query";
@@ -24,7 +25,12 @@ export function SavedEvents({ className }: { className: string }) {
   );
 }
 
-export function EventLookup(props: Props) {
+export interface QueryProps {
+  authState: AuthState;
+  organisation: Organisation;
+}
+
+export function EventLookup(props: QueryProps) {
 
   const [query, queryUpdate] = React.useState(queryForm());
   const queryEvent = () => {
@@ -36,7 +42,6 @@ export function EventLookup(props: Props) {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer ' + props.authState.getToken().idToken,
       }),
-      credentials: 'include',
     }).then(function(res: Response) {
       return res.json();
     }).then(function(data) {
@@ -74,7 +79,7 @@ export function EventLookup(props: Props) {
   );
 }
 
-export function Events(props: Props) {
+export function Events(props: QueryProps) {
   return (
     <div>
       <div className="border-bottom pad-tb">
@@ -98,7 +103,7 @@ export function Events(props: Props) {
   );
 }
 
-export function EventLog(props: Props) {
+export function EventLog(props: QueryProps) {
   return (
     <section>
       <div className="border-bottom">
