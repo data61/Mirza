@@ -58,7 +58,7 @@ getPublicKeyQuery :: CT.ORKeyId
 getPublicKeyQuery (CT.ORKeyId uuid) = pg $ runSelectReturningOne $
   select $ do
     keys <- all_ (_keys orgRegistryDB)
-    guard_ (primaryKey keys ==. val_ (Schema.KeyId uuid))
+    guard_ (primaryKey keys ==. val_ (Schema.KeyPrimaryKey uuid))
     pure (key_jwk keys)
 
 getPublicKeyInfo :: ( Member context '[HasEnvType, HasConnPool, HasLogging]
@@ -132,7 +132,7 @@ getPublicKeyInfoQuery :: CT.ORKeyId
 getPublicKeyInfoQuery (CT.ORKeyId uuid) = pg $ runSelectReturningOne $
   select $ do
     keys <- all_ (_keys orgRegistryDB)
-    guard_ (primaryKey keys ==. val_ (Schema.KeyId uuid))
+    guard_ (primaryKey keys ==. val_ (Schema.KeyPrimaryKey uuid))
     pure keys
 
 addPublicKey :: ( Member context '[HasEnvType, HasConnPool, HasLogging]

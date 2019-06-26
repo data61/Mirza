@@ -73,7 +73,7 @@ migration () =
           lastUpdateField
           )
     <*> createTable "org_mapping" (OrganisationMappingT
-          (OrgId $ field "mapping_org_id" gs1CompanyPrefixType)
+          (OrgPrimaryKey $ field "mapping_org_id" gs1CompanyPrefixType)
           (UserPrimaryKey $ field "mapping_user_oauth_sub" oAuthSubType)
           lastUpdateField
           )
@@ -136,16 +136,16 @@ data OrgT f = OrgT
   }
   deriving Generic
 
-type OrgId = PrimaryKey OrgT Identity
+type OrgPrimaryKey = PrimaryKey OrgT Identity
 deriving instance Show (PrimaryKey OrgT Identity)
 
 instance Beamable OrgT
 instance Beamable (PrimaryKey OrgT)
 
 instance Table OrgT where
-  data PrimaryKey OrgT f = OrgId (C f EPC.GS1CompanyPrefix)
+  data PrimaryKey OrgT f = OrgPrimaryKey (C f EPC.GS1CompanyPrefix)
     deriving Generic
-  primaryKey = OrgId . org_gs1_company_prefix
+  primaryKey = OrgPrimaryKey . org_gs1_company_prefix
 deriving instance Eq (PrimaryKey OrgT Identity)
 
 
@@ -207,14 +207,14 @@ data KeyT f = KeyT
   }
   deriving Generic
 
-type KeyId = PrimaryKey KeyT Identity
+type KeyPrimaryKey = PrimaryKey KeyT Identity
 deriving instance Show (PrimaryKey KeyT Identity)
 
 instance Beamable KeyT
 instance Beamable (PrimaryKey KeyT)
 
 instance Table KeyT where
-  data PrimaryKey KeyT f = KeyId (C f PrimaryKeyType)
+  data PrimaryKey KeyT f = KeyPrimaryKey (C f PrimaryKeyType)
     deriving Generic
-  primaryKey = KeyId . key_id
+  primaryKey = KeyPrimaryKey . key_id
 deriving instance Eq (PrimaryKey KeyT Identity)

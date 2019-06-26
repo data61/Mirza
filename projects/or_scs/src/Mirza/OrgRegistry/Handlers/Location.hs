@@ -92,7 +92,7 @@ addLocationQuery authUser locId geoLocId newLoc = do
 
 newLocationToLocation :: PrimaryKeyType
                       -> GeoLocationId
-                      -> OrgId
+                      -> OrgPrimaryKey
                       -> NewLocation
                       -> (Location, GeoLocation)
 newLocationToLocation
@@ -125,7 +125,7 @@ getLocationByGLN gln = locationToLocationResponse
 
 
 locationToLocationResponse :: (Location,GeoLocation) -> LocationResponse
-locationToLocationResponse (LocationT{location_org_id = OrgId orgId,..} , GeoLocationT{..}) = LocationResponse
+locationToLocationResponse (LocationT{location_org_id = OrgPrimaryKey orgId,..} , GeoLocationT{..}) = LocationResponse
   { locationId    = location_id
   , locationGLN   = location_gln
   , locationOrg   = orgId
@@ -172,7 +172,7 @@ searchLocationQuery mpfx mafter = pg $ runSelectReturningList $ select $ do
   for_ mpfx $ \pfx -> do
     org    <- all_ (_orgs orgRegistryDB)
     guard_ (location_org_id loc `references_` org)
-    guard_ (val_ (OrgId pfx) `references_` org)
+    guard_ (val_ (OrgPrimaryKey pfx) `references_` org)
 
   for_ mafter $ \after ->
     guard_ (location_last_update loc       >=. just_ (val_ (toDbTimestamp after))

@@ -107,7 +107,7 @@ userOrganisationAuthorisationQuery (AuthUser oAuthSub) gs1CompantPrefix = do
   maybeMapping <- pg $ runSelectReturningOne $ select $ do
     mapping <- all_ (_orgMapping orgRegistryDB)
     guard_ (org_mapping_user_oauth_sub mapping ==. val_ (Schema.UserPrimaryKey oAuthSub))
-    guard_ (org_mapping_gs1_company_prefix mapping ==. val_ (OrgId gs1CompantPrefix))
+    guard_ (org_mapping_gs1_company_prefix mapping ==. val_ (OrgPrimaryKey gs1CompantPrefix))
     pure $ mapping
   case maybeMapping of
     Nothing -> throwing _OperationNotPermittedORE (gs1CompantPrefix, oAuthSub)

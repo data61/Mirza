@@ -62,7 +62,7 @@ migration v0001 = OrgRegistryDB
   <*> createTable "location" (LocationT
         (field "location_id" V0001.pkSerialType)
         (field "location_gln" locationEPCType)
-        (V0001.OrgId $ field "location_org_id" gs1CompanyPrefixType)
+        (V0001.OrgPrimaryKey $ field "location_org_id" gs1CompanyPrefixType)
         lastUpdateField
         )
   <*> createTable "geo_location" (GeoLocationT

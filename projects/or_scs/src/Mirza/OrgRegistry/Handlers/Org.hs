@@ -126,7 +126,7 @@ addOrganisationMapping prefix oAuthSub = do
   -- which will mean that the updated time is correct rather then being empty, but this is not perfectly clean either
   -- since in "theory" we need to permit for that database operation to fail. Other options include not returning the
   -- OrganisationMappingT at all. Constructing the OrganisationMappingT seems reasonable for now.
-  (handleError (handleSqlUniqueViloation "org_mapping_pkey" (const $ pure (OrganisationMappingT (OrgId prefix) (Schema.UserPrimaryKey oAuthSub) Nothing))))
+  (handleError (handleSqlUniqueViloation "org_mapping_pkey" (const $ pure (OrganisationMappingT (OrgPrimaryKey prefix) (Schema.UserPrimaryKey oAuthSub) Nothing))))
     $ runDb
     $ (addOrganisationMappingQuery prefix oAuthSub)
 
@@ -137,7 +137,7 @@ addOrganisationMappingQuery prefix oAuthSub = do
   checkUserExistsQuery oAuthSub
 
   result <- pg $ runInsertReturningList (_orgMapping orgRegistryDB)
-            $ insertValues [OrganisationMappingT (OrgId prefix) (Schema.UserPrimaryKey oAuthSub) Nothing]
+            $ insertValues [OrganisationMappingT (OrgPrimaryKey prefix) (Schema.UserPrimaryKey oAuthSub) Nothing]
   case result of
     [insertedOrganisationMapping] -> pure insertedOrganisationMapping
     _                             -> throwing _UnexpectedErrorORE callStack
@@ -172,7 +172,7 @@ getOrgInfo (ORT.AuthUser oAuthSub) = do
         pure $ org_mapping_gs1_company_prefix mapping
   let queryOrganistaion gs1CompanyPrefix = fmap orgToOrgResponse <$> runDb (searchOrgsQuery (Just gs1CompanyPrefix) Nothing Nothing)
       getPrefix :: PrimaryKey OrgT Identity -> GS1CompanyPrefix
-      getPrefix (OrgId prefix) = prefix
+      getPrefix (OrgPrimaryKey prefix) = prefix
       companyPrefixes :: [GS1CompanyPrefix]
       companyPrefixes = getPrefix <$> orgs
   concat <$> traverse queryOrganistaion companyPrefixes
