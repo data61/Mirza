@@ -53,7 +53,7 @@ pkSerialType = uuid
 data OrgRegistryDB f = OrgRegistryDB
   { _orgs       :: f (TableEntity OrgT)
   , _users      :: f (TableEntity UserT)
-  , _orgMapping :: f (TableEntity OrganisationMappingT)
+  , _orgMapping :: f (TableEntity OrgMappingT)
   , _keys       :: f (TableEntity KeyT)
   }
   deriving Generic
@@ -73,7 +73,7 @@ migration () =
           (field "oauth_sub" oAuthSubFieldType notNull)
           lastUpdateField
           )
-    <*> createTable "org_mapping" (OrganisationMappingT
+    <*> createTable "org_mapping" (OrgMappingT
           (OrgPrimaryKey $ field "mapping_org_id" gs1CompanyPrefixFieldType)
           (UserPrimaryKey $ field "mapping_user_oauth_sub" oAuthSubFieldType)
           lastUpdateField
@@ -154,27 +154,27 @@ deriving instance Eq (PrimaryKey OrgT Identity)
 -- Organisation Mapping Table
 --------------------------------------------------------------------------------
 
-type OrganisationMapping = OrganisationMappingT Identity
-deriving instance Show OrganisationMapping
+type OrgMapping = OrgMappingT Identity
+deriving instance Show OrgMapping
 
-data OrganisationMappingT f = OrganisationMappingT
+data OrgMappingT f = OrgMappingT
   { org_mapping_gs1_company_prefix :: PrimaryKey OrgT f
   , org_mapping_user_oauth_sub     :: PrimaryKey UserT f
   , org_mapping_last_update        :: C f (Maybe LocalTime)
   }
   deriving Generic
 
-type OrganisationMappingId = PrimaryKey OrganisationMappingT Identity
-deriving instance Show (PrimaryKey OrganisationMappingT Identity)
+type OrgMappingId = PrimaryKey OrgMappingT Identity
+deriving instance Show (PrimaryKey OrgMappingT Identity)
 
-instance Beamable OrganisationMappingT
-instance Beamable (PrimaryKey OrganisationMappingT)
+instance Beamable OrgMappingT
+instance Beamable (PrimaryKey OrgMappingT)
 
-instance Table OrganisationMappingT where
-  data PrimaryKey OrganisationMappingT f = OrganisationMappingId (PrimaryKey OrgT f) (PrimaryKey UserT f)
+instance Table OrgMappingT where
+  data PrimaryKey OrgMappingT f = OrgMappingId (PrimaryKey OrgT f) (PrimaryKey UserT f)
     deriving Generic
-  primaryKey = OrganisationMappingId <$> org_mapping_gs1_company_prefix <*> org_mapping_user_oauth_sub
-deriving instance Eq (PrimaryKey OrganisationMappingT Identity)
+  primaryKey = OrgMappingId <$> org_mapping_gs1_company_prefix <*> org_mapping_user_oauth_sub
+deriving instance Eq (PrimaryKey OrgMappingT Identity)
 
 
 --------------------------------------------------------------------------------

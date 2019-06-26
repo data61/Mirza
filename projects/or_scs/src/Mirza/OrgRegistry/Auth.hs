@@ -102,7 +102,7 @@ userOrganisationAuthorisationQuery :: ( Member context '[]
                                       , Member err     '[AsORError])
                                    => AuthUser
                                    -> GS1CompanyPrefix
-                                   -> DB context err OrganisationMapping
+                                   -> DB context err OrgMapping
 userOrganisationAuthorisationQuery (AuthUser oAuthSub) gs1CompantPrefix = do
   maybeMapping <- pg $ runSelectReturningOne $ select $ do
     mapping <- all_ (_orgMapping orgRegistryDB)

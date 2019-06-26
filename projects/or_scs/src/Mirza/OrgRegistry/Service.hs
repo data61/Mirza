@@ -86,7 +86,7 @@ privateServer :: ( Member context '[HasDB]
 privateServer =      (transformUser0 addUserAuth)
                 :<|> (transformUser0 getOrgInfo)
                 :<|> (transformUser2 addOrgAuth)
-                :<|> (transformUser2 addOrganisationMappingAuth)
+                :<|> (transformUser2 addOrgMappingAuth)
                 :<|> (transformUser2 addPublicKey)
                 :<|> (transformUser1 revokePublicKey)
                 :<|> (transformUser1 addLocation)

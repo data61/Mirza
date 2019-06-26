@@ -314,7 +314,7 @@ runPopulateDatabase opts = do
   _result <- runWithContext $ addOrg (right b1u1Result) b1
   let b1u2 = dummyUser "B1U2"
   b1u2Result <- runWithContext $ addUserOnlyId b1u2
-  _result <- runWithContext $ addOrganisationMapping (newOrgGS1CompanyPrefix b1) (right b1u2Result)
+  _result <- runWithContext $ addOrgMapping (newOrgGS1CompanyPrefix b1) (right b1u2Result)
 
   let b2u1 = dummyUser "B2U1"
   b2u1Result <- runWithContext $ addUserOnlyId b2u1
@@ -322,7 +322,7 @@ runPopulateDatabase opts = do
   _result <- runWithContext $ addOrg (right b2u1Result) b2
   let b2u2 = dummyUser "B2U2"
   b2u2Result <- runWithContext $ addUserOnlyId b2u2
-  _result <- runWithContext $ addOrganisationMapping (newOrgGS1CompanyPrefix b2) (right b2u2Result)
+  _result <- runWithContext $ addOrgMapping (newOrgGS1CompanyPrefix b2) (right b2u2Result)
 
   putStrLn "Inserted Orgs and Users Information"
   print b1

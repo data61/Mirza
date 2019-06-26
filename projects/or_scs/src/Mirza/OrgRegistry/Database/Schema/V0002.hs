@@ -43,7 +43,7 @@ import qualified Mirza.OrgRegistry.Database.Schema.V0001 as V0001
 data OrgRegistryDB f = OrgRegistryDB
   { _orgs         :: f (TableEntity V0001.OrgT)
   , _users        :: f (TableEntity V0001.UserT)
-  , _orgMapping   :: f (TableEntity V0001.OrganisationMappingT)
+  , _orgMapping   :: f (TableEntity V0001.OrgMappingT)
   , _keys         :: f (TableEntity V0001.KeyT)
   , _locations    :: f (TableEntity       LocationT)
   , _geoLocations :: f (TableEntity       GeoLocationT)

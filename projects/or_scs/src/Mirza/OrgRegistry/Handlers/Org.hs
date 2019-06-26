@@ -7,8 +7,8 @@ module Mirza.OrgRegistry.Handlers.Org
   ( addOrg
   , addOrgAuth
   , addOrgQuery
-  , addOrganisationMappingAuth
-  , addOrganisationMapping
+  , addOrgMappingAuth
+  , addOrgMapping
   , searchOrgs
   , searchOrgsQuery
   , getOrgInfo
@@ -92,7 +92,7 @@ addOrgAndInitialUserQuery :: (AsORError err, HasCallStack)
                                => OAuthSub -> Org -> DB context err Org
 addOrgAndInitialUserQuery oAuthSub org = do
   insertedOrg  <- addOrgQuery org
-  _insertedMapping <- addOrganisationMappingQuery (org_gs1_company_prefix insertedOrg) oAuthSub
+  _insertedMapping <- addOrgMappingQuery (org_gs1_company_prefix insertedOrg) oAuthSub
   pure insertedOrg
 
 
@@ -109,38 +109,38 @@ addOrgQuery org@OrgT{..} = do
     _             -> throwing _UnexpectedErrorORE callStack
 
 
-addOrganisationMappingAuth :: ( Member context '[HasDB]
+addOrgMappingAuth :: ( Member context '[HasDB]
                               , Member err     '[AsORError, AsSqlError])
                            => ORT.AuthUser -> GS1CompanyPrefix -> OAuthSub -> AppM context err NoContent
-addOrganisationMappingAuth authUser gs1CompanyPrefix addedUserId = do
+addOrgMappingAuth authUser gs1CompanyPrefix addedUserId = do
   _ <- runDb $ userOrganisationAuthorisationQuery authUser gs1CompanyPrefix
-  _ <- addOrganisationMapping gs1CompanyPrefix addedUserId
+  _ <- addOrgMapping gs1CompanyPrefix addedUserId
   pure NoContent
 
 
-addOrganisationMapping :: ( Member context '[HasDB]
+addOrgMapping :: ( Member context '[HasDB]
                           , Member err     '[AsORError, AsSqlError])
-                       => GS1CompanyPrefix -> OAuthSub -> AppM context err OrganisationMapping
-addOrganisationMapping prefix oAuthSub = do
-  -- We really probably should get the OrganisationMapping from the database here rather then constructing a new one,
+                       => GS1CompanyPrefix -> OAuthSub -> AppM context err OrgMapping
+addOrgMapping prefix oAuthSub = do
+  -- We really probably should get the OrgMapping from the database here rather then constructing a new one,
   -- which will mean that the updated time is correct rather then being empty, but this is not perfectly clean either
   -- since in "theory" we need to permit for that database operation to fail. Other options include not returning the
-  -- OrganisationMappingT at all. Constructing the OrganisationMappingT seems reasonable for now.
-  (handleError (handleSqlUniqueViloation "org_mapping_pkey" (const $ pure (OrganisationMappingT (OrgPrimaryKey prefix) (Schema.UserPrimaryKey oAuthSub) Nothing))))
+  -- OrgMappingT at all. Constructing the OrgMappingT seems reasonable for now.
+  (handleError (handleSqlUniqueViloation "org_mapping_pkey" (const $ pure (OrgMappingT (OrgPrimaryKey prefix) (Schema.UserPrimaryKey oAuthSub) Nothing))))
     $ runDb
-    $ (addOrganisationMappingQuery prefix oAuthSub)
+    $ (addOrgMappingQuery prefix oAuthSub)
 
 
-addOrganisationMappingQuery :: (AsORError err, HasCallStack)
-                            => GS1CompanyPrefix -> OAuthSub -> DB context err OrganisationMapping
-addOrganisationMappingQuery prefix oAuthSub = do
+addOrgMappingQuery :: (AsORError err, HasCallStack)
+                            => GS1CompanyPrefix -> OAuthSub -> DB context err OrgMapping
+addOrgMappingQuery prefix oAuthSub = do
   checkUserExistsQuery oAuthSub
 
   result <- pg $ runInsertReturningList (_orgMapping orgRegistryDB)
-            $ insertValues [OrganisationMappingT (OrgPrimaryKey prefix) (Schema.UserPrimaryKey oAuthSub) Nothing]
+            $ insertValues [OrgMappingT (OrgPrimaryKey prefix) (Schema.UserPrimaryKey oAuthSub) Nothing]
   case result of
-    [insertedOrganisationMapping] -> pure insertedOrganisationMapping
-    _                             -> throwing _UnexpectedErrorORE callStack
+    [insertedOrgMapping] -> pure insertedOrgMapping
+    _                    -> throwing _UnexpectedErrorORE callStack
 
 
 searchOrgs :: ( Member context '[HasDB]
