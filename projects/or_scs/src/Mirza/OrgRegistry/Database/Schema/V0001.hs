@@ -9,7 +9,8 @@
 -- Convention: Table types and constructors are suffixed with T (for Table).
 module Mirza.OrgRegistry.Database.Schema.V0001 where
 
-import           Mirza.OrgRegistry.Types       (OAuthSub (..), oAuthSubType)
+import           Mirza.OrgRegistry.Types       (OAuthSub (..),
+                                                oAuthSubFieldType)
 
 import qualified Data.GS1.EPC                  as EPC
 import           Mirza.Common.Beam             (lastUpdateField)
@@ -63,27 +64,27 @@ migration :: () -> Migration PgCommandSyntax (CheckedDatabaseSettings Postgres O
 migration () =
   OrgRegistryDB
     <$> createTable "orgs" (OrgT
-          (field "org_gs1_company_prefix" gs1CompanyPrefixType)
+          (field "org_gs1_company_prefix" gs1CompanyPrefixFieldType)
           (field "org_name" (varchar (Just defaultFieldMaxLength)) notNull)
           (field "org_url"  (text) notNull)
           lastUpdateField
           )
     <*> createTable "users" (UserT
-          (field "oauth_sub" oAuthSubType notNull)
+          (field "oauth_sub" oAuthSubFieldType notNull)
           lastUpdateField
           )
     <*> createTable "org_mapping" (OrganisationMappingT
-          (OrgPrimaryKey $ field "mapping_org_id" gs1CompanyPrefixType)
-          (UserPrimaryKey $ field "mapping_user_oauth_sub" oAuthSubType)
+          (OrgPrimaryKey $ field "mapping_org_id" gs1CompanyPrefixFieldType)
+          (UserPrimaryKey $ field "mapping_user_oauth_sub" oAuthSubFieldType)
           lastUpdateField
           )
     <*> createTable "keys" (KeyT
           (field "key_id" pkSerialType)
-          (UserPrimaryKey $ field "key_user_id" oAuthSubType)
+          (UserPrimaryKey $ field "key_user_id" oAuthSubFieldType)
           (field "jwk" json notNull)
           (field "creation_time" timestamp)
           (field "revocation_time" (maybeType timestamp))
-          (UserPrimaryKey $ field "revoking_user_id" (maybeType oAuthSubType))
+          (UserPrimaryKey $ field "revoking_user_id" (maybeType oAuthSubFieldType))
           (field "expiration_time" (maybeType timestamp))
           lastUpdateField
           )

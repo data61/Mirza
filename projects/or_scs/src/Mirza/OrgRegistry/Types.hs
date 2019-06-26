@@ -207,8 +207,8 @@ instance FromField OAuthSub where
 instance ToField OAuthSub where
   toField (OAuthSub sub) = toField sub
 
-oAuthSubType :: BMigrate.DataType PgDataTypeSyntax OAuthSub
-oAuthSubType = textType
+oAuthSubFieldType :: BMigrate.DataType PgDataTypeSyntax OAuthSub
+oAuthSubFieldType = textType
 
 
 
