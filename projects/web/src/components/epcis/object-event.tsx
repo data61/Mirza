@@ -1,14 +1,15 @@
 import * as React from "react";
 
+import { Event } from "../../epcis";
 import { EventAction, EventBusinessStep, EventDisposition } from "../../epcis";
 import { EventStateProps, LabelField, MappingSelect } from "./common";
 
-export function ObjectEventForm({ eventState }: EventStateProps) {
-  const [event, setEvent] = eventState;
+export function ObjectEventForm({ state }: EventStateProps<Event>) {
+  const [event, setEvent] = state;
 
   return (
     <fieldset>
-      <LabelField eventState={eventState}
+      <LabelField state={state}
         updateFn={(e, v) => ({ ...e, epcList: [v] })}
         getFn={(e) => e.epcList.length > 0 ? e.epcList[0] : ""}
       />

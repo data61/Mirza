@@ -4,15 +4,16 @@ import * as QrReader from "react-qr-reader";
 import { Event } from "../../epcis";
 const { DigitalLink } = require("digital-link.js");
 
-export interface EventStateProps {
-  eventState: [Event, React.Dispatch<React.SetStateAction<Event>>];
+export interface EventStateProps<T> {
+  state: [T, React.Dispatch<React.SetStateAction<T>>];
 }
-interface EPCISLabelFieldProps {
-  getFn: (e: Event) => string;
-  updateFn: (e: Event, value: string) => Event;
+interface EPCISLabelFieldProps<T> {
+  getFn: (e: T) => string;
+  updateFn: (e: T, value: string) => T;
 }
 
-export function LabelField({ eventState: [event, setEvent], updateFn, getFn }: EventStateProps & EPCISLabelFieldProps) {
+export function LabelField<T>(
+  { state: [getState, setState], updateFn, getFn }: EventStateProps<T> & EPCISLabelFieldProps<T>) {
 
   const [showQR, setShowQR] = React.useState(false);
 
@@ -30,7 +31,7 @@ export function LabelField({ eventState: [event, setEvent], updateFn, getFn }: E
         return;
       }
 
-      setEvent(updateFn(event, epc));
+      setState(updateFn(getState, epc));
       toggleQR();
     }
   };
@@ -43,8 +44,8 @@ export function LabelField({ eventState: [event, setEvent], updateFn, getFn }: E
         <div className="column column-90">
           <input type="text"
             placeholder="EPC Label"
-            onChange={(e) => setEvent(updateFn(event, e.target.value))}
-            value={getFn(event)}
+            onChange={(e) => setState(updateFn(getState, e.target.value))}
+            value={getFn(getState)}
           />
         </div>
         <div className="column column-10">

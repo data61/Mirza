@@ -31,7 +31,7 @@ export function Submit(props: SubmitProps) {
       } else {
         alert('Failed with status: ' + res.status);
       }
-    }).catch(function (err) {
+    }).catch(function(err) {
       console.log(err);
     });
   };
@@ -52,7 +52,7 @@ export function Submit(props: SubmitProps) {
           <div className="container">
             <div className="row">
               <div className="column border-right">
-                <EventForm eventState={eventState} />
+                <EventForm state={eventState} />
 
                 <button onClick={submitEvent}>Submit Event</button>
               </div>
