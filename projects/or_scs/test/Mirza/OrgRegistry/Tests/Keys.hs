@@ -62,12 +62,12 @@ testKeyQueries = do
         pure (storageKey, keyId, uid, tEnd, insertedKey)
       case res of
         (Nothing, _, _, _, _) -> fail "Received Nothing for key"
-        (Just key, (ORKeyId keyId), (ORT.UserId uid), tEnd, insertedKey) -> do
+        (Just key, (ORKeyId keyId), oAuthSub, tEnd, insertedKey) -> do
           key `shouldSatisfy`
             (\k ->
               (fromPgJSON $ BSchema.key_jwk k) == pubKey &&
               (BSchema.key_id k) == keyId &&
-              (BSchema.key_user_id k) == (BSchema.UserId uid) &&
+              (BSchema.key_user_id k) == (BSchema.UserPrimaryKey oAuthSub) &&
               (BSchema.creation_time k) > tStart &&
               (BSchema.creation_time k) < tEnd &&
               isNothing (BSchema.revocation_time k)
@@ -86,7 +86,7 @@ testKeyQueries = do
         pure (keyInfo, uid, tEnd)
       keyInfo `shouldSatisfy`
         (\ki ->
-          (keyInfoUserId ki == uid) &&
+          (keyInfoUserOAuthSub ki == uid) &&
           ((keyInfoCreationTime ki) > (CreationTime tStart) &&
            (keyInfoCreationTime ki) < (CreationTime tEnd)) &&
           isNothing (keyInfoRevocation ki)

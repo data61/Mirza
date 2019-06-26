@@ -40,8 +40,8 @@ addUserAuth _ = pure NoContent
 addUserOnlyId :: ( Member context '[HasDB]
                  , Member err     '[AsORError, AsSqlError])
               => NewUser
-              -> AppM context err UserId
-addUserOnlyId user = (UserId . user_id) <$> (addUser user)
+              -> AppM context err OAuthSub
+addUserOnlyId user = user_oauth_sub <$> (addUser user)
 
 
 addUser :: ( Member context '[HasDB]
@@ -56,22 +56,21 @@ addUserQuery :: (AsORError err, HasCallStack)
              => NewUser
              -> DB context err Schema.User
 addUserQuery (ORT.NewUser oauthSub) = do
-  userId <- newUUID
   -- TODO: use Database.Beam.Backend.SQL.runReturningOne?
   res <- pg $ runInsertReturningList (Schema._users Schema.orgRegistryDB) $
       insertValues
-       [Schema.UserT userId oauthSub Nothing]
+       [Schema.UserT oauthSub Nothing]
   case res of
       [r] -> pure $ r
       -- The user creation has failed, but we can't really think of what would lead to this case.
       _   -> throwing _UserCreationErrorORE ((show res), callStack)
 
 
-getUserByIdQuery :: UserId -> DB context err (Maybe Schema.User)
-getUserByIdQuery (UserId uid) = do
+getUserByIdQuery :: OAuthSub -> DB context err (Maybe Schema.User)
+getUserByIdQuery oAuthSub = do
   r <- pg $ runSelectReturningList $ select $ do
           user <- all_ (Schema._users Schema.orgRegistryDB)
-          guard_ (user_id user ==. val_ uid)
+          guard_ (user_oauth_sub user ==. val_ oAuthSub)
           pure user
   case r of
     [user] -> pure $ Just user

@@ -94,7 +94,7 @@ type PrivateAPI =
   :<|> "orgs"
       :> Capture "gs1CompanyPrefix" GS1CompanyPrefix
       :> "member"
-      :> Capture "userId" UserId
+      :> Capture "userId" OAuthSub
       :> Put '[JSON] NoContent
   :<|> "keys"
       :> ReqBody '[JSON] JWK

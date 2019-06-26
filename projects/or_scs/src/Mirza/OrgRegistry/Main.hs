@@ -265,7 +265,7 @@ runUserCommand opts UserAdd = do
 
 interactivelyGetNewUser :: IO NewUser
 interactivelyGetNewUser = do
-  newUserOAuthSub     <- pack <$> prompt "OAuthSub:"
+  newUserOAuthSub     <- OAuthSub <$> (pack <$> prompt "OAuthSub:")
   pure NewUser{..}
 
 
@@ -364,14 +364,14 @@ runBootstrap opts oAuthSub companyPrefix = do
   -- improve the reliability or error reporting.
   case userResult of
       Right user -> do
-                    orgResult <- runAppM @_ @ORError context $ addOrg (CT.UserId $ user_id user) newOrg
+                    orgResult <- runAppM @_ @ORError context $ addOrg (tableUserToOAuthSub user) newOrg
                     either (print @ORError) print orgResult
       Left _     -> putStrLn "Error inserting user, skipping adding org."
 
   where
     bootstrapUser :: Text -> NewUser
     bootstrapUser oAuthSubSuffix = do
-      let newUserOAuthSub     = "bootstrapped-user-oauth-sub-" <> oAuthSubSuffix
+      let newUserOAuthSub     = OAuthSub $ "bootstrapped-user-oauth-sub-" <> oAuthSubSuffix
       NewUser{..}
 
     bootstrapOrg :: GS1CompanyPrefix -> NewOrg

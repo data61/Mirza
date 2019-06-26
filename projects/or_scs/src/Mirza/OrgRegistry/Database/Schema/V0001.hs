@@ -9,6 +9,8 @@
 -- Convention: Table types and constructors are suffixed with T (for Table).
 module Mirza.OrgRegistry.Database.Schema.V0001 where
 
+import           Mirza.OrgRegistry.Types       (OAuthSub (..), oAuthSubType)
+
 import qualified Data.GS1.EPC                  as EPC
 import           Mirza.Common.Beam             (lastUpdateField)
 import           Mirza.Common.GS1BeamOrphans
@@ -67,22 +69,21 @@ migration () =
           lastUpdateField
           )
     <*> createTable "users" (UserT
-          (field "user_id" pkSerialType)
-          (field "oauth_sub" (varchar (Just defaultFieldMaxLength)) notNull)
+          (field "oauth_sub" oAuthSubType notNull)
           lastUpdateField
           )
     <*> createTable "org_mapping" (OrganisationMappingT
           (OrgId $ field "mapping_org_id" gs1CompanyPrefixType)
-          (UserId $ field "mapping_user_id" pkSerialType)
+          (UserPrimaryKey $ field "mapping_user_oauth_sub" oAuthSubType)
           lastUpdateField
           )
     <*> createTable "keys" (KeyT
           (field "key_id" pkSerialType)
-          (UserId $ field "key_user_id" pkSerialType)
+          (UserPrimaryKey $ field "key_user_id" oAuthSubType)
           (field "jwk" json notNull)
           (field "creation_time" timestamp)
           (field "revocation_time" (maybeType timestamp))
-          (UserId $ field "revoking_user_id" (maybeType pkSerialType))
+          (UserPrimaryKey $ field "revoking_user_id" (maybeType oAuthSubType))
           (field "expiration_time" (maybeType timestamp))
           lastUpdateField
           )
@@ -95,27 +96,26 @@ type User = UserT Identity
 deriving instance Show User
 
 data UserT f = UserT
-  { user_id          :: C f PrimaryKeyType
-  , user_oauth_sub   :: C f Text
+  { user_oauth_sub   :: C f OAuthSub
   , user_last_update :: C f (Maybe LocalTime)
   } deriving Generic
 
-type UserId = PrimaryKey UserT Identity
+type UserPrimaryKey = PrimaryKey UserT Identity
 deriving instance Show (PrimaryKey UserT Identity)
-instance ToSchema UserId
-instance ToParamSchema UserId
+instance ToSchema UserPrimaryKey
+instance ToParamSchema UserPrimaryKey
 instance ToJSON (PrimaryKey UserT Identity) where
-  toJSON (UserId uid) = toJSON uid
+  toJSON (UserPrimaryKey uid) = toJSON uid
 instance FromJSON (PrimaryKey UserT Identity) where
-  parseJSON = fmap UserId . parseJSON
+  parseJSON = fmap UserPrimaryKey . parseJSON
 
 instance Beamable UserT
 instance Beamable (PrimaryKey UserT)
 
 instance Table UserT where
-  data PrimaryKey UserT f = UserId (C f PrimaryKeyType)
+  data PrimaryKey UserT f = UserPrimaryKey (C f OAuthSub)
     deriving Generic
-  primaryKey = UserId . user_id
+  primaryKey = UserPrimaryKey . user_oauth_sub
 deriving instance Eq (PrimaryKey UserT Identity)
 
 
@@ -158,7 +158,7 @@ deriving instance Show OrganisationMapping
 
 data OrganisationMappingT f = OrganisationMappingT
   { org_mapping_gs1_company_prefix :: PrimaryKey OrgT f
-  , org_mapping_user_id            :: PrimaryKey UserT f
+  , org_mapping_user_oauth_sub     :: PrimaryKey UserT f
   , org_mapping_last_update        :: C f (Maybe LocalTime)
   }
   deriving Generic
@@ -172,7 +172,7 @@ instance Beamable (PrimaryKey OrganisationMappingT)
 instance Table OrganisationMappingT where
   data PrimaryKey OrganisationMappingT f = OrganisationMappingId (PrimaryKey OrgT f) (PrimaryKey UserT f)
     deriving Generic
-  primaryKey = OrganisationMappingId <$> org_mapping_gs1_company_prefix <*> org_mapping_user_id
+  primaryKey = OrganisationMappingId <$> org_mapping_gs1_company_prefix <*> org_mapping_user_oauth_sub
 deriving instance Eq (PrimaryKey OrganisationMappingT Identity)
 
 

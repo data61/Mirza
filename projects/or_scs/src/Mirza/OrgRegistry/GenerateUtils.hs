@@ -20,7 +20,7 @@ dummyOrg unique = NewOrg (GS1CompanyPrefix ("Org" <> unique <> "Prefix"))
 
 
 dummyUser :: T.Text -> NewUser
-dummyUser unique = NewUser $ "User" <> unique <> "OAuthSub"
+dummyUser unique = NewUser $ OAuthSub $ "User" <> unique <> "OAuthSub"
 
 
 generateMultipleUsers :: [T.Text] -> [NewUser]

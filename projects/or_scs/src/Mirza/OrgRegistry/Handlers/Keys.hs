@@ -13,10 +13,10 @@ module Mirza.OrgRegistry.Handlers.Keys
   , getKeyState
   ) where
 
-
 import           Mirza.Common.Time
 import           Mirza.Common.Types                       as CT
 import           Mirza.Common.Utils
+import           Mirza.OrgRegistry.Auth
 import           Mirza.OrgRegistry.Database.Schema        as Schema
 import           Mirza.OrgRegistry.Types                  as ORT
 
@@ -76,12 +76,12 @@ keyToKeyInfo :: (MonadError err m, AsORKeyError err)
              -> Schema.Key
              -> m KeyInfoResponse
 keyToKeyInfo _ (Schema.KeyT _ _ _ _ _ _ _ Nothing) = error "keyToKeyInfo: Received Nothing last modified time!"
-keyToKeyInfo currTime (Schema.KeyT keyId (Schema.UserId keyUserId) (PgJSON jwk)
+keyToKeyInfo currTime (Schema.KeyT keyId (Schema.UserPrimaryKey oAuthSub) (PgJSON jwk)
                                    creation revocationTime revocationUser
                                    expiration _)
   = do
   revocation <- composeRevocation revocationTime revocationUser
-  pure $ KeyInfoResponse (CT.ORKeyId keyId) (CT.UserId keyUserId)
+  pure $ KeyInfoResponse (CT.ORKeyId keyId) oAuthSub
     (getKeyState currTime
       (fromDbTimestamp <$> revocationTime)
       (fromDbTimestamp <$> expiration)
@@ -101,10 +101,10 @@ keyToKeyInfo currTime (Schema.KeyT keyId (Schema.UserId keyUserId) (PgJSON jwk)
     composeRevocation :: (HasCallStack, MonadError e m, AsORKeyError e, ModelTimestamp a)
                       => Maybe LocalTime
                       -> PrimaryKey UserT (Nullable Identity)
-                      -> m (Maybe (a, CT.UserId))
-    composeRevocation time@Nothing  (Schema.UserId (Just user)) = throwing _InvalidRevocationORKE (time, Just user, callStack)
-    composeRevocation time@(Just _) (Schema.UserId Nothing)     = throwing _InvalidRevocationORKE (time, Nothing, callStack)
-    composeRevocation time          (Schema.UserId user)        = pure $ ((,) <$> (fromDbTimestamp <$> time) <*> (CT.UserId  <$> user))
+                      -> m (Maybe (a, OAuthSub))
+    composeRevocation time@Nothing  (Schema.UserPrimaryKey (Just user)) = throwing _InvalidRevocationORKE (time, Just user, callStack)
+    composeRevocation time@(Just _) (Schema.UserPrimaryKey Nothing)     = throwing _InvalidRevocationORKE (time, Nothing, callStack)
+    composeRevocation time          (Schema.UserPrimaryKey oAuthSub)    = pure $ ((,) <$> (fromDbTimestamp <$> time) <*> oAuthSub)
 
 
 -- TODO: After migrating entirely to X509, there should always be an expiration
@@ -168,15 +168,15 @@ addPublicKeyQuery :: ( Member err     '[AsORKeyError])
                   -> Maybe ExpirationTime
                   -> JWK
                   -> DB context err CT.ORKeyId
-addPublicKeyQuery (AuthUser (CT.UserId uid)) expTime jwk = do
+addPublicKeyQuery (AuthUser oAuthSub) expTime jwk = do
   now <- liftIO getCurrentTime
   for_ expTime $ \time -> when ((getExpirationTime time) <= now) (throwing_ _AddedExpiredKeyORKE)
   keyId <- newUUID
   timestamp <- generateTimestamp
   ks <- pg $ runInsertReturningList (_keys orgRegistryDB) $
         insertValues
-        [ KeyT keyId (Schema.UserId uid) (PgJSON jwk)
-            (toDbTimestamp timestamp) Nothing (Schema.UserId Nothing) (toDbTimestamp <$> expTime)
+        [ KeyT keyId (Schema.UserPrimaryKey oAuthSub) (PgJSON jwk)
+            (toDbTimestamp timestamp) Nothing (Schema.UserPrimaryKey Nothing) (toDbTimestamp <$> expTime)
             Nothing
         ]
   case ks of
@@ -208,7 +208,7 @@ keyStateQuery kid = do
 -- (effectively controling the minimum state for write access to the key).
 protectKeyUpdate :: ( Member err     '[AsORKeyError])
                  => CT.ORKeyId
-                 -> CT.UserId
+                 -> OAuthSub
                  -> DB context err ()
 protectKeyUpdate keyId userId = do
   -- Although this check is implictly performed in keyStateQuery we explicitly perform it here so that the code reads
@@ -227,28 +227,28 @@ protectKeyUpdate keyId userId = do
     InEffect -> pure ()
 
 revokePublicKeyQuery :: ( Member err     '[AsORKeyError])
-                     => CT.UserId
+                     => OAuthSub
                      -> CT.ORKeyId
                      -> DB context err RevocationTime
-revokePublicKeyQuery userId k@(CT.ORKeyId keyId) = do
-  protectKeyUpdate k userId
+revokePublicKeyQuery oAuthSub k@(CT.ORKeyId keyId) = do
+  protectKeyUpdate k oAuthSub
   timestamp <- generateTimestamp
   _r <- pg $ runUpdate $ update
                 (_keys orgRegistryDB)
                 (\key -> [ revocation_time key  <-. val_ (Just $ toDbTimestamp timestamp)
-                         , revoking_user_id key <-. val_ (Schema.UserId $ Just $ getUserId userId)])
+                         , revoking_user_id key <-. val_ (Schema.UserPrimaryKey $ Just $ oAuthSub)])
                 (\key -> key_id key ==. (val_ keyId))
   pure $ RevocationTime timestamp
 
 
-doesUserOwnKeyQuery :: CT.UserId
+doesUserOwnKeyQuery :: OAuthSub
                     -> CT.ORKeyId
                     -> DB context err Bool
-doesUserOwnKeyQuery (CT.UserId uId) (CT.ORKeyId keyId) = do
+doesUserOwnKeyQuery oAuthSub (CT.ORKeyId keyId) = do
   r <- pg $ runSelectReturningOne $ select $ do
           key <- all_ (_keys orgRegistryDB)
           guard_ (key_id key ==. val_ keyId)
-          guard_ (val_ (Schema.UserId uId) ==. (key_user_id key))
+          guard_ (val_ (Schema.UserPrimaryKey oAuthSub) ==. (key_user_id key))
           pure key
   pure $ isJust r
 

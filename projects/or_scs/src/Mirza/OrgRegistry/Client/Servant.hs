@@ -53,7 +53,7 @@ searchOrgLocationByGLN :: LocationEPC -> GS1CompanyPrefix -> ClientM OrgAndLocat
 
 addUser                :: Token -> ClientM NoContent
 addOrg                 :: Token -> GS1CompanyPrefix -> PartialNewOrg -> ClientM NoContent
-addUserToOrg           :: Token -> GS1CompanyPrefix -> UserId -> ClientM NoContent
+addUserToOrg           :: Token -> GS1CompanyPrefix -> OAuthSub -> ClientM NoContent
 addPublicKey           :: Token -> JWK -> Maybe ExpirationTime -> ClientM ORKeyId
 revokePublicKey        :: Token -> ORKeyId -> ClientM RevocationTime
 addLocation            :: Token -> NewLocation -> ClientM LocationId

@@ -18,4 +18,4 @@ dummyNewUser = makeDummyNewUser "fake@example.com"
 
 -- | Utility function to make many users on the fly
 makeDummyNewUser :: Text -> ORT.NewUser
-makeDummyNewUser oAuthSubSuffix = ORT.NewUser ("OAuthSub" <> oAuthSubSuffix)
+makeDummyNewUser oAuthSubSuffix = ORT.NewUser $ OAuthSub ("OAuthSub" <> oAuthSubSuffix)

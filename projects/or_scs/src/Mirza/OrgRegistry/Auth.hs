@@ -8,6 +8,7 @@
 module Mirza.OrgRegistry.Auth
   (
     tokenServerContext
+  , tableUserToOAuthSub
   , tableUserToAuthUser
   , listUsersQuery
   , oauthClaimsToAuthUser
@@ -53,10 +54,13 @@ tokenServerContext context = jwtSettings :. defaultCookieSettings :. EmptyContex
     matchAudience aud = if (elem aud audienceList) then Matches else DoesNotMatch
     jwtSettings = defaultSettings {audienceMatches = matchAudience}
 
+-- | Converts a DB representation of ``User`` to ``OAuthSub``
+tableUserToOAuthSub :: Schema.User -> OAuthSub
+tableUserToOAuthSub user = Schema.user_oauth_sub user
 
 -- | Converts a DB representation of ``User`` to ``AuthUser``
 tableUserToAuthUser :: Schema.User -> AuthUser
-tableUserToAuthUser user = AuthUser (CT.UserId $ Schema.user_id user)
+tableUserToAuthUser user = AuthUser $ Schema.user_oauth_sub user
 
 
 listUsersQuery :: DB context err [Schema.User]
@@ -68,6 +72,7 @@ oauthClaimsToAuthUser :: ( Member context '[HasEnvType, HasConnPool, HasLogging]
                          , Member err     '[AsORError, AsSqlError])
                       => Servant.Auth.Server.AuthResult ORT.VerifiedTokenClaims
                       -> AppM context err ORT.AuthUser
+oauthClaimsToAuthUser (Authenticated (ORT.VerifiedTokenClaims (OAuthSub ""))) = throwing_ _InvalidOAuthSubORE
 oauthClaimsToAuthUser (Authenticated claims) = do
   maybeUser <- runDb (getUserByOAuthSubQuery $ verifiedTokenClaimsSub claims)
   case maybeUser of
@@ -78,7 +83,7 @@ oauthClaimsToAuthUser (Authenticated claims) = do
 oauthClaimsToAuthUser failure = throwing _UserAuthFailureORE (void failure)
 
 
-getUserByOAuthSubQuery :: Text -> DB context err (Maybe Schema.User)
+getUserByOAuthSubQuery :: OAuthSub -> DB context err (Maybe Schema.User)
 getUserByOAuthSubQuery oauthSub = do
   r <- pg $ runSelectReturningList $ select $ do
           user <- all_ (Schema._users Schema.orgRegistryDB)
@@ -98,25 +103,25 @@ userOrganisationAuthorisationQuery :: ( Member context '[]
                                    => AuthUser
                                    -> GS1CompanyPrefix
                                    -> DB context err OrganisationMapping
-userOrganisationAuthorisationQuery (AuthUser (ORT.UserId uId)) gs1CompantPrefix = do
+userOrganisationAuthorisationQuery (AuthUser oAuthSub) gs1CompantPrefix = do
   maybeMapping <- pg $ runSelectReturningOne $ select $ do
     mapping <- all_ (_orgMapping orgRegistryDB)
-    guard_ (org_mapping_user_id mapping ==. val_ (Schema.UserId uId))
+    guard_ (org_mapping_user_oauth_sub mapping ==. val_ (Schema.UserPrimaryKey oAuthSub))
     guard_ (org_mapping_gs1_company_prefix mapping ==. val_ (OrgId gs1CompantPrefix))
     pure $ mapping
   case maybeMapping of
-    Nothing -> throwing _OperationNotPermittedORE (gs1CompantPrefix, ORT.UserId uId)
+    Nothing -> throwing _OperationNotPermittedORE (gs1CompantPrefix, oAuthSub)
     Just mapping -> pure mapping
 
 
 -- This doesn't really belong anywhere atm, so for now it can go here, but can
 -- be moved somewhere better when a suitable location is found.
 checkUserExistsQuery :: (AsORError err)
-                => ORT.UserId -> DB context err ()
-checkUserExistsQuery userId = do
+                => OAuthSub -> DB context err ()
+checkUserExistsQuery oAuthSub = do
   user <- pg $ runSelectReturningOne $ select $ do
     user <- all_ (Schema._users Schema.orgRegistryDB)
-    guard_ (user_id user ==. val_ (getUserId userId))
+    guard_ (user_oauth_sub user ==. val_ oAuthSub)
     pure user
   when (isNothing user) $ throwing_ _UnknownUserORE
   pure ()
