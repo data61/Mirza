@@ -23,7 +23,7 @@ module Mirza.OrgRegistry.Client.Servant
   ) where
 
 import           Mirza.OrgRegistry.API
-import           Mirza.OrgRegistry.Database.Schema (LocationId)
+import           Mirza.OrgRegistry.Database.Schema (LocationPrimaryKey)
 import           Mirza.OrgRegistry.Types           as ORT
 import           Mirza.Common.Time                      (ExpirationTime,
                                                          RevocationTime)
@@ -56,7 +56,7 @@ addOrg                 :: Token -> GS1CompanyPrefix -> PartialNewOrg -> ClientM 
 addUserToOrg           :: Token -> GS1CompanyPrefix -> OAuthSub -> ClientM NoContent
 addPublicKey           :: Token -> JWK -> Maybe ExpirationTime -> ClientM ORKeyId
 revokePublicKey        :: Token -> ORKeyId -> ClientM RevocationTime
-addLocation            :: Token -> NewLocation -> ClientM LocationId
+addLocation            :: Token -> NewLocation -> ClientM LocationPrimaryKey
 getOrgInfo             :: Token -> ClientM [OrgResponse]
 
 _api     :: Client ClientM ServerAPI

@@ -67,7 +67,7 @@ migration v0001 = OrgRegistryDB
         )
   <*> createTable "geo_location" (GeoLocationT
         (field "geo_location_id"      V0001.pkSerialType)
-        (LocationId $ field "geo_location_gln" locationEPCType)
+        (LocationPrimaryKey $ field "geo_location_gln" locationEPCType)
         (field "geo_location_lat"     (maybeType latitudeType))
         (field "geo_location_lon"     (maybeType longitudeType))
         (field "geo_location_address" (maybeType $ varchar Nothing))
@@ -85,29 +85,29 @@ data LocationT f = LocationT
   }
   deriving Generic
 
-type LocationId = PrimaryKey LocationT Identity
+type LocationPrimaryKey = PrimaryKey LocationT Identity
 deriving instance Show (PrimaryKey LocationT Identity)
-instance ToSchema LocationId
-instance ToParamSchema LocationId
+instance ToSchema LocationPrimaryKey
+instance ToParamSchema LocationPrimaryKey
 instance ToJSON (PrimaryKey LocationT Identity) where
-  toJSON (LocationId uid) = toJSON uid
+  toJSON (LocationPrimaryKey uid) = toJSON uid
 instance FromJSON (PrimaryKey LocationT Identity) where
-  parseJSON = fmap LocationId . parseJSON
+  parseJSON = fmap LocationPrimaryKey . parseJSON
 
 instance Beamable LocationT
 instance Beamable (PrimaryKey LocationT)
 
 instance Table LocationT where
-  newtype PrimaryKey LocationT f = LocationId (C f EPC.LocationEPC)
+  newtype PrimaryKey LocationT f = LocationPrimaryKey (C f EPC.LocationEPC)
     deriving Generic
-  primaryKey = LocationId . location_gln
+  primaryKey = LocationPrimaryKey . location_gln
 deriving instance Eq (PrimaryKey LocationT Identity)
 
 instance ToHttpApiData (PrimaryKey LocationT Identity) where
-  toUrlPiece (LocationId locId) = toUrlPiece locId
+  toUrlPiece (LocationPrimaryKey locId) = toUrlPiece locId
 
 instance FromHttpApiData (PrimaryKey LocationT Identity) where
-  parseUrlPiece t = LocationId <$> parseUrlPiece t
+  parseUrlPiece t = LocationPrimaryKey <$> parseUrlPiece t
 
 
 
@@ -124,26 +124,26 @@ data GeoLocationT f = GeoLocationT
   }
   deriving Generic
 
-type GeoLocationId = PrimaryKey GeoLocationT Identity
+type GeoLocationPrimaryKey = PrimaryKey GeoLocationT Identity
 deriving instance Show (PrimaryKey GeoLocationT Identity)
-instance ToSchema GeoLocationId
-instance ToParamSchema GeoLocationId
+instance ToSchema GeoLocationPrimaryKey
+instance ToParamSchema GeoLocationPrimaryKey
 instance ToJSON (PrimaryKey GeoLocationT Identity) where
-  toJSON (GeoLocationId uid) = toJSON uid
+  toJSON (GeoLocationPrimaryKey uid) = toJSON uid
 instance FromJSON (PrimaryKey GeoLocationT Identity) where
-  parseJSON = fmap GeoLocationId . parseJSON
+  parseJSON = fmap GeoLocationPrimaryKey . parseJSON
 
 instance Beamable GeoLocationT
 instance Beamable (PrimaryKey GeoLocationT)
 
 instance Table GeoLocationT where
-  newtype PrimaryKey GeoLocationT f = GeoLocationId (C f PrimaryKeyType)
+  newtype PrimaryKey GeoLocationT f = GeoLocationPrimaryKey (C f PrimaryKeyType)
     deriving Generic
-  primaryKey = GeoLocationId . geoLocation_id
+  primaryKey = GeoLocationPrimaryKey . geoLocation_id
 deriving instance Eq (PrimaryKey GeoLocationT Identity)
 
 instance ToHttpApiData (PrimaryKey GeoLocationT Identity) where
-  toUrlPiece (GeoLocationId locId) = toUrlPiece locId
+  toUrlPiece (GeoLocationPrimaryKey locId) = toUrlPiece locId
 
 instance FromHttpApiData (PrimaryKey GeoLocationT Identity) where
-  parseUrlPiece t = GeoLocationId <$> parseUrlPiece t
+  parseUrlPiece t = GeoLocationPrimaryKey <$> parseUrlPiece t

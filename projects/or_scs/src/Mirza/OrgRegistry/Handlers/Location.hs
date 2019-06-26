@@ -49,14 +49,14 @@ addLocation :: ( Member context '[HasEnvType, HasConnPool, HasLogging]
                , Member err     '[AsSqlError, AsORError])
             => AuthUser
             -> NewLocation
-            -> AppM context err LocationId
+            -> AppM context err LocationPrimaryKey
 addLocation auser newLoc = do
   newLocId <- newUUID
   newGeoLocId <- newUUID
   (fmap primaryKey)
     . (handleError (transformSqlUniqueViloation "location_pkey" (\_sqlerr -> _LocationExistsORE # ())))
     . runDb
-    . addLocationQuery auser newLocId (GeoLocationId newGeoLocId)
+    . addLocationQuery auser newLocId (GeoLocationPrimaryKey newGeoLocId)
     $ newLoc
   -- TODO: discover which constraints are needed and what we should catch here
   -- (awaiting tests)
@@ -73,7 +73,7 @@ addLocationQuery  :: ( Member context '[]
                      , Member err     '[AsORError])
                   => AuthUser
                   -> PrimaryKeyType
-                  -> GeoLocationId
+                  -> GeoLocationPrimaryKey
                   -> NewLocation
                   -> DB context err Location
 addLocationQuery authUser locId geoLocId newLoc = do
@@ -91,12 +91,12 @@ addLocationQuery authUser locId geoLocId newLoc = do
 
 
 newLocationToLocation :: PrimaryKeyType
-                      -> GeoLocationId
+                      -> GeoLocationPrimaryKey
                       -> OrgPrimaryKey
                       -> NewLocation
                       -> (Location, GeoLocation)
 newLocationToLocation
-  locId (GeoLocationId geoLocId) orgId
+  locId (GeoLocationPrimaryKey geoLocId) orgId
   NewLocation{newLocGLN, newLocCoords, newLocAddress} =
     ( LocationT
         { location_id          = locId
@@ -106,7 +106,7 @@ newLocationToLocation
         }
       , GeoLocationT
         { geoLocation_id          = geoLocId
-        , geoLocation_gln         = LocationId newLocGLN
+        , geoLocation_gln         = LocationPrimaryKey newLocGLN
         , geoLocation_latitude    = fst <$> newLocCoords
         , geoLocation_longitude   = snd <$> newLocCoords
         , geoLocation_address     = newLocAddress
@@ -143,7 +143,7 @@ getLocationByGLNQuery gln = pg $ runSelectReturningOne $ select $ do
   loc   <- all_ (_locations orgRegistryDB)
   geoloc <- all_ (_geoLocations orgRegistryDB)
              & orderBy_ (desc_ . geoLocation_last_update)
-  guard_ (primaryKey loc ==. val_ (LocationId gln))
+  guard_ (primaryKey loc ==. val_ (LocationPrimaryKey gln))
   guard_ (geoLocation_gln geoloc ==. primaryKey loc)
   pure (loc,geoloc)
 
