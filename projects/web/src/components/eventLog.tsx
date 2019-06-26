@@ -76,7 +76,7 @@ export function EventLookup(props: QueryProps) {
 
                   <label htmlFor="epcLabel">EPC Label</label>
                   <input name="epcLabel" type="text" id="epcLabel"
-                  onChange={(e) => query.Label = e.target.value} />
+                    onChange={(e) => query.Label = e.target.value} />
                 </fieldset>
               </form>
               <button onClick={queryEvent}>Lookup Events</button>
@@ -106,7 +106,7 @@ export function EventLog(props: QueryProps) {
       <div className="border-bottom">
         <div className="container">
           <div className="row">
-            <div className="column"><h3><Link to="/"><i className="fa fa-chevron-left"></i> </Link> Event Log</h3></div>
+            <div className="column"><h3><Link to="/"><i className="fa fa-chevron-left"></i> </Link></h3></div>
             <div className="column">
               <nav className="tabs">
                 <a className="active" href="#"><i className="fas fa-fw fa-lg fa-list-alt"></i> Events</a>
