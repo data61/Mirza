@@ -55,6 +55,7 @@ import           Mirza.OrgRegistry.Tests.Utils
 import           Mirza.Common.Tests.InitClient
 import           Mirza.Common.Tests.Utils
 
+ 
 -- === OR Servant Client tests
 clientSpec :: IO TestTree
 clientSpec = do

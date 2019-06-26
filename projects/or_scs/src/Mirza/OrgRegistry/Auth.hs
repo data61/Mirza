@@ -16,26 +16,26 @@ module Mirza.OrgRegistry.Auth
   , checkUserExistsQuery
   ) where
 
+import           Mirza.Common.Types                as CT
 import           Mirza.OrgRegistry.Database.Schema as Schema
 import           Mirza.OrgRegistry.Handlers.Users  as BU
 import           Mirza.OrgRegistry.Types           as ORT
-import           Mirza.Common.Types                     as CT
 
-import           Data.GS1.EPC                           as EPC
+import           Data.GS1.EPC                      as EPC
 
-import           Database.Beam                          as B
+import           Database.Beam                     as B
 
 import           Servant
 import           Servant.Auth.Server
 
-import           Control.Lens                           hiding (mapping)
+import           Control.Lens                      hiding (mapping)
 
-import           Data.Text                              (Text)
-import           Data.Functor                           (void)
-import           Data.Maybe                             (isNothing)
-import           Control.Monad                          (when)
+import           Control.Monad                     (when)
+import           Data.Functor                      (void)
+import           Data.Maybe                        (isNothing)
+import           Data.Text                         (Text)
 
-import           Crypto.JWT                              (Audience (..))
+import           Crypto.JWT                        (Audience (..))
 
 
 --------------------------------------------------------------------------------
@@ -44,8 +44,8 @@ import           Crypto.JWT                              (Audience (..))
 
 -- | We need to supply our handlers with the right Context. In this case,
 -- JWT requires a Context Entry with the 'JWTSettings and CookiesSettings values.
-tokenServerContext :: ( Member context '[HasDB, HasAuthAudience, HasAuthPublicKey])
-                       => context -> Servant.Context '[JWTSettings, CookieSettings]
+tokenServerContext  :: ( Member context '[HasDB, HasAuthAudience, HasAuthPublicKey])
+                    => context -> Servant.Context '[JWTSettings, CookieSettings]
 tokenServerContext context = jwtSettings :. defaultCookieSettings :. EmptyContext
   where
     defaultSettings = defaultJWTSettings (view authPublicKey context)

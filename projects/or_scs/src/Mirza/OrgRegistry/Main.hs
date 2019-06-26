@@ -43,11 +43,13 @@ import           Data.ByteString                    (ByteString)
 import qualified Data.ByteString.Char8              as BS
 import           Data.Semigroup                     ((<>))
 import           Data.Text                          (Text, pack)
+import qualified Data.Text                          as T
 import           Options.Applicative                hiding (action)
 import           Text.Email.Parser                  (addrSpec)
 
 import           Control.Exception                  (finally)
 import           Control.Lens                       (review)
+import           Control.Monad                      (when)
 import           Data.Either                        (fromRight)
 import           Data.Maybe                         (fromMaybe, listToMaybe)
 import           Katip                              as K
@@ -164,6 +166,7 @@ addServerOptions minimalContext (RunServerOptions _port oAuthPublicKeyRef oauthA
 
 addAuthOptions :: ORContextMinimal -> URI -> Text -> IO ORContextComplete
 addAuthOptions minimalContext oAuthPublicKeyRef oauthAudience = do
+  when (T.null oauthAudience) $ error "Empty Audience"
   jwks <- getJWKS oAuthPublicKeyRef
   let audience = Audience [review string oauthAudience]
   pure $ orContextComplete minimalContext audience jwks

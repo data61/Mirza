@@ -44,6 +44,7 @@ import           Control.Monad.Error.Hoist                ((<!?>))
 import           Data.Foldable                            (find, for_)
 import           Data.Time                                (UTCTime)
 
+
 addLocation :: ( Member context '[HasEnvType, HasConnPool, HasLogging]
                , Member err     '[AsSqlError, AsORError])
             => AuthUser

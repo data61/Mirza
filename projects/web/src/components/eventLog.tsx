@@ -1,7 +1,11 @@
 import * as React from "react";
-
 import { Link } from "react-router-dom";
+
+import { AuthState } from "../auth";
+import { Organisation } from "../business-registry";
 import { Panel } from "./panel";
+
+import { queryForm } from "../query";
 
 export function SavedEvents({ className }: { className: string }) {
   return (
@@ -21,9 +25,35 @@ export function SavedEvents({ className }: { className: string }) {
   );
 }
 
-export function EventLookup({ className }: { className: string }) {
+export interface QueryProps {
+  authState: AuthState;
+  organisation: Organisation;
+}
+
+export function EventLookup(props: QueryProps) {
+
+  const [query, queryUpdate] = React.useState(queryForm());
+  const queryEvent = () => {
+    console.log(query);
+    return fetch(encodeURI(props.organisation.url + '/epc/events/' + query.Label), {
+      method: 'GET',
+      headers: new Headers({
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + props.authState.getToken().idToken,
+      }),
+    }).then(function(res: Response) {
+      return res.json();
+    }).then(function(data) {
+      console.log(data);
+      return Promise.resolve();
+    }).catch(function(err) {
+      console.log(err);
+    });
+  };
+
   return (
-    <div className={className}>
+    <div className="column border-right">
       <h4>Event Lookup</h4>
       <form>
         <fieldset>
@@ -31,29 +61,31 @@ export function EventLookup({ className }: { className: string }) {
           <input type="text" id="dateRange" />
 
           <label htmlFor="eventType">Event Type</label>
-          <select id="eventType">
-            <option></option>
+          <select name="eventType" id="eventType"
+            onChange={(e) => query.EventType = e.target.value}>
+            <option>Object</option>
+            <option>Transformation</option>
             <option>Aggregation</option>
             <option>Transaction</option>
           </select>
 
           <label htmlFor="epcLabel">EPC Label</label>
-          <input type="text" id="epcLabel" />
-
-          <input className="button-primary" type="submit" value="Lookup Events" />
+          <input name="epcLabel" type="text" id="epcLabel"
+          onChange={(e) => query.Label = e.target.value} />
         </fieldset>
       </form>
+      <button onClick={queryEvent}>Lookup Events</button>
     </div>
   );
 }
 
-export function Events() {
+export function Events(props: QueryProps) {
   return (
     <div>
       <div className="border-bottom pad-tb">
         <div className="container">
           <div className="row">
-            <EventLookup className="column border-right"></EventLookup>
+            <EventLookup authState={props.authState} organisation={props.organisation}></EventLookup>
             <SavedEvents className="column"></SavedEvents>
           </div>
         </div>
@@ -71,7 +103,7 @@ export function Events() {
   );
 }
 
-export function EventLog() {
+export function EventLog(props: QueryProps) {
   return (
     <section>
       <div className="border-bottom">
@@ -88,7 +120,7 @@ export function EventLog() {
           </div>
         </div>
       </div>
-      <Events></Events>
+      <Events authState={props.authState} organisation={props.organisation}></Events>
     </section>
   );
 }

@@ -8,6 +8,7 @@ import           Mirza.OrgRegistry.Types as ORT
 
 import           Data.Text
 
+
 dummyOrg :: ORT.NewOrg
 dummyOrg = NewOrg (GS1CompanyPrefix "3000001") orgName (mockURI orgName) where
                 orgName = "pubKeyTests_orgName"

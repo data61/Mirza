@@ -9,32 +9,32 @@ module Mirza.OrgRegistry.Tests.Keys
   ( testKeyQueries
   ) where
 
-import           Mirza.OrgRegistry.Database.Schema   as BSchema
+import           Mirza.OrgRegistry.Database.Schema as BSchema
 
-import           Mirza.OrgRegistry.Auth              (tableUserToAuthUser)
+import           Mirza.Common.Time                 (CreationTime (..),
+                                                    ExpirationTime (..),
+                                                    RevocationTime (..))
+import           Mirza.Common.Utils                (fromPgJSON)
+import           Mirza.OrgRegistry.Auth            (tableUserToAuthUser)
+import           Mirza.OrgRegistry.Handlers.Keys   as BKey
 import           Mirza.OrgRegistry.Handlers.Org
-import           Mirza.OrgRegistry.Handlers.Keys     as BKey
 import           Mirza.OrgRegistry.Handlers.Users
 import           Mirza.OrgRegistry.Tests.Dummies
-import           Mirza.OrgRegistry.Types             as ORT
-import           Mirza.Common.Time                        (CreationTime (..),
-                                                           ExpirationTime (..),
-                                                           RevocationTime (..))
-import           Mirza.Common.Utils                       (fromPgJSON)
+import           Mirza.OrgRegistry.Types           as ORT
 
 import           Mirza.OrgRegistry.Tests.Utils
 
-import           Data.Maybe                               (fromJust, isNothing)
+import           Data.Maybe                        (fromJust, isNothing)
 
-import           Data.Time.Clock                          (NominalDiffTime,
-                                                           UTCTime, addUTCTime,
-                                                           getCurrentTime)
-import           Data.Time.LocalTime                      (LocalTime, utc,
-                                                           utcToLocalTime)
-import           GHC.Stack                                (HasCallStack)
+import           Data.Time.Clock                   (NominalDiffTime, UTCTime,
+                                                    addUTCTime, getCurrentTime)
+import           Data.Time.LocalTime               (LocalTime, utc,
+                                                    utcToLocalTime)
+import           GHC.Stack                         (HasCallStack)
 import           Test.Hspec
 
-import           Control.Concurrent                       (threadDelay)
+import           Control.Concurrent                (threadDelay)
+
 
 timeStampIO :: MonadIO m => m LocalTime
 timeStampIO = liftIO $ (utcToLocalTime utc) <$> getCurrentTime

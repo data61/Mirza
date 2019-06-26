@@ -1,11 +1,11 @@
 import * as React from "react";
 
 import { AuthState, logOut } from "../auth";
-import { Business } from "../business-registry";
+import { Organisation } from "../business-registry";
 
 export interface HeaderProps {
   auth: AuthState;
-  business: Business;
+  organisation: Organisation;
 }
 
 export function Header(props: HeaderProps) {
@@ -15,7 +15,7 @@ export function Header(props: HeaderProps) {
         <div className="column"><h2>Mirza</h2></div>
         <div className="column">
           <div className="flex-end-middle">
-            <span>{props.business.name} - {props.auth.getName()}</span>
+            <span>{props.organisation.name} - {props.auth.getName()}</span>
             <a onClick={logOut} className="button button-clear inline">( Log out )</a>
             <img className="round" height="48px" src={props.auth.getPictureUrl()} />
           </div>

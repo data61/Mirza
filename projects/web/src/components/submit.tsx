@@ -1,57 +1,39 @@
 import * as React from "react";
 import { Link } from "react-router-dom";
 
+import { AuthState } from "../auth";
+import { Organisation } from "../business-registry";
 import { objectEvent } from "../epcis";
 import { EventForm } from "./epcis/event";
 
-// const { DigitalLink } = require("digital-link.js");
-const {edapiUrl, orUrl} = require("../globals").myGlobals;
+export interface SubmitProps {
+  authState: AuthState;
+  organisation: Organisation;
+}
 
-export function Submit() {
+export function Submit(props: SubmitProps) {
   const eventState = React.useState(objectEvent());
+  const [event, _] = eventState;
 
   const submitEvent = () => {
-    // const dl = DigitalLink(event.epcList[0]);
-    const token = 'Bearer ' + JSON.parse(localStorage.getItem('auth0_tk'))['idToken']
-    return fetch(new Request(orUrl + '/user/orgs', {
-      method: 'GET',
-      headers: new Headers({
+
+    return fetch(props.organisation.url + '/event', {
+      method: 'POST',
+      body: JSON.stringify(event),
+      headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
-        'Authorization': token,
-      }),
-      credentials: 'include',
-    }
-    )).then(function(res: Response) {
-      return res.json();
-    }).then(function(data) {
-      if (data[0]) {
-        return data[0].url;
-      }
-      return Promise.resolve();
-    }).then(function(url) {
-      const [event, _] = eventState;
-      const request = new Request(url + '/event', {
-        method: 'POST',
-        body: JSON.stringify(event),
-        headers: new Headers({
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          'Authorization': token,
-        }),
-        credentials: 'include',
-      });
-      return fetch(request);
+        'Authorization': 'Bearer ' + props.authState.getToken().idToken,
+      },
     }).then(function(res: Response) {
       if (res.status === 200) {
         alert('Success!');
       } else {
         alert('Failed with status: ' + res.status);
       }
-    }).catch(function(err) {
+    }).catch(function (err) {
       console.log(err);
     });
-
   };
 
   return (
@@ -76,7 +58,7 @@ export function Submit() {
               </div>
               <div className="column">
                 <label>Raw EPCIS Event</label>
-                <textarea style={({ height: "10em" })} value={JSON.stringify(event, null, 2)} readOnly></textarea>
+                <textarea style={({ height: "20em" })} value={JSON.stringify(event, null, 2)} readOnly></textarea>
               </div>
             </div>
           </div>

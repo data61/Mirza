@@ -41,6 +41,7 @@ import           GHC.Stack                                (HasCallStack,
 import           Network.URI                              (nullURI, parseURI,
                                                            uriToString)
 
+
 orgToOrgResponse :: Org -> OrgResponse
 orgToOrgResponse OrgT{..} = OrgResponse
   { orgResponseGS1CompanyPrefix = org_gs1_company_prefix

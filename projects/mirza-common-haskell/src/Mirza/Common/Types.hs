@@ -107,8 +107,6 @@ import           Data.UUID                            (UUID)
 
 type PrimaryKeyType = UUID
 
-
-
 -- *****************************************************************************
 -- Orphan Instances
 -- *****************************************************************************
@@ -136,7 +134,11 @@ emailToText = decodeUtf8 . toByteString
 -- TODO: Handwrite these instances to comply with their defined syntax
 -- For example, emails have their own format, as do LabelEPCUrn
 newtype UserId = UserId {getUserId :: PrimaryKeyType}
-  deriving (Show, Eq, Generic, Read, Ord, FromJSON, ToJSON)
+  deriving (Eq, Show, Generic, Read, Ord)
+instance FromJSON UserId where
+  parseJSON = fmap UserId . parseJSON
+instance ToJSON UserId where
+  toJSON = toJSON . getUserId
 instance ToSchema UserId
 instance ToParamSchema UserId
 deriving instance FromHttpApiData UserId
@@ -150,7 +152,11 @@ instance Show Password where
   show _ = "Password <redacted>"
 
 newtype ORKeyId = ORKeyId {getORKeyId :: UUID}
-  deriving (Show, Eq, Generic, Read, FromJSON, ToJSON)
+  deriving (Show, Eq, Generic, Read)
+instance FromJSON ORKeyId where
+  parseJSON = fmap ORKeyId . parseJSON
+instance ToJSON ORKeyId where
+  toJSON = toJSON . getORKeyId
 instance ToSchema ORKeyId
 instance ToParamSchema ORKeyId
 instance FromHttpApiData ORKeyId where
