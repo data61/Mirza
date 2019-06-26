@@ -7,6 +7,7 @@ import { Footer } from "./components/footer";
 import { Header } from "./components/header";
 import { Home } from "./components/home";
 import { NotFound } from "./components/notFound";
+import { Scan } from "./components/scan";
 import { Submit } from "./components/submit";
 
 import { authInit, logIn } from "./auth";
@@ -36,10 +37,18 @@ authInit().then((authState) => {
         <Header auth={appState.auth} organisation={appState.organisation}></Header>
         <Switch>
           <Route path="/" exact component={Home} />
+
           <Route path="/events" exact render={() =>
             <EventLog authState={appState.auth} organisation={appState.organisation}></EventLog>} />
-          <Route path="/scan" exact render={() =>
+
+          <Route path="/submit" exact render={() =>
             <Submit authState={appState.auth} organisation={appState.organisation} ></Submit>} />
+
+          <Route path="/scan/:scanData*" exact render={({ match }) =>
+            <Scan authState={appState.auth}
+              organisation={appState.organisation}
+              scanData={match.params.scanData}></Scan>} />
+
           <Route component={NotFound} />
         </Switch>
         <Footer></Footer>

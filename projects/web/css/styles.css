@@ -85,3 +85,24 @@ a, .button.button-outline, button.button-outline, input[type='button'].button-ou
 a.active {
 		border-color: #228562;
 }
+
+a.largeButton {
+    background-color: #228562;
+    color: #FFF;
+    display: inline-block;
+    padding: 1em;
+    border-radius: 1em;
+    font-weight: bold;
+    width: 12em;
+    text-align: center;
+}
+a.largeButton:hover {
+    background-color: #42A582;
+}
+.buttonBar {
+    display: flex;
+    justify-content: space-evenly;
+}
+.error {
+    color: Red;
+}
