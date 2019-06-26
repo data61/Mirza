@@ -2,23 +2,35 @@ import * as React from "react";
 import * as QrReader from "react-qr-reader";
 
 import { Event } from "../../epcis";
+const { DigitalLink } = require("digital-link.js");
 
 export interface EventStateProps {
   eventState: [Event, React.Dispatch<React.SetStateAction<Event>>];
 }
 interface EPCISLabelFieldProps {
+  getFn: (e: Event) => string;
   updateFn: (e: Event, value: string) => Event;
 }
 
-export function LabelField({ eventState: [event, setEvent], updateFn }: EventStateProps & EPCISLabelFieldProps) {
+export function LabelField({ eventState: [event, setEvent], updateFn, getFn }: EventStateProps & EPCISLabelFieldProps) {
 
   const [showQR, setShowQR] = React.useState(false);
 
   const toggleQR = () => setShowQR(!showQR);
   const onScan = (data?: string) => {
     if (data !== null) {
-      // TODO: we need to extract the label from the DigitalLink
-      setEvent(updateFn(event, data));
+      const dl = DigitalLink(data);
+      if (!dl.isValid()) {
+        alert("The scanned QR code is not a valid GS1 DigitalLink");
+        return;
+      }
+      const epc = dl.mapToGS1Urn();
+      if (!epc) {
+        alert("TODO: mapToGS1Urn('" + data + "')");
+        return;
+      }
+
+      setEvent(updateFn(event, epc));
       toggleQR();
     }
   };
@@ -31,8 +43,8 @@ export function LabelField({ eventState: [event, setEvent], updateFn }: EventSta
         <div className="column column-90">
           <input type="text"
             placeholder="EPC Label"
-            // defaultValue={}
             onChange={(e) => setEvent(updateFn(event, e.target.value))}
+            value={getFn(event)}
           />
         </div>
         <div className="column column-10">

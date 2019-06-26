@@ -6,9 +6,9 @@ export interface QueryFieldProps {
 }
 
 export interface QueryForm {
-  DateRange: Date,
-  EventType: string,
-  Label: string,
+  DateRange: Date;
+  EventType: string;
+  Label: string;
 }
 
 export function queryForm(): QueryForm {
