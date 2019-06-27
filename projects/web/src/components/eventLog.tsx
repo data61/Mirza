@@ -35,7 +35,6 @@ export function EventLookup(props: QueryProps) {
   const [query, queryUpdate] = React.useState(queryForm());
   const [eventRes, eventResSet] = React.useState(null);
   const queryEvent = () => {
-    console.log(query);
     return fetch(encodeURI(props.organisation.url + '/epc/events/' + query.Label), {
       method: 'GET',
       headers: new Headers({
@@ -63,9 +62,8 @@ export function EventLookup(props: QueryProps) {
               <h4>Event Lookup</h4>
               <form>
                 <fieldset>
-                  <label htmlFor="dateRange">Date Range</label>
-                  <input type="text" id="dateRange" />
-
+                  {/* <label htmlFor="dateRange">Date Range</label>
+                  <input type="text" id="dateRange" /> */}
                   <label htmlFor="eventType">Event Type</label>
                   <select name="eventType" id="eventType"
                     onChange={(e) => query.EventType = e.target.value}>
