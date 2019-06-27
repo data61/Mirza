@@ -7,6 +7,13 @@ export function Panel({eventInfo}: any) {
     setExpanded(!expanded);
   };
 
+  const eventTime = eventInfo.eventTime;
+  const bizStep = eventInfo.bizStep.split(':').pop();
+  const disp = eventInfo.disposition.split(':').pop();
+  const eventType = eventInfo.isA;
+  const action = eventInfo.action;
+
+
   return (
     <div className="panel">
       <header className="row">
@@ -23,8 +30,10 @@ export function Panel({eventInfo}: any) {
       </header>
       {expanded ?
         <section>
-          <p>Event Type: {eventInfo.isA}</p>
-          <p>Action: {eventInfo.action}</p>
+          {eventType ? <p>Event Type: {eventType}</p> : null}
+          {action ? <p>Action: {action}</p> : null}
+          {bizStep ? <p>Business Step: {bizStep}</p> : null}
+          {disp ? <p>Disposition: {disp}</p> : null}
         </section> : null}
     </div >
   );
