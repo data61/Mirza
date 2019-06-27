@@ -1,11 +1,11 @@
 import * as React from "react";
 
-import { Event, EventType } from "../../epcis";
+import { EventEPCIS, EventType } from "../../epcis";
 
 import { EventStateProps, MappingSelect } from "./common";
 import { ObjectEventForm } from "./object-event";
 
-export function EventForm({ state }: EventStateProps<Event>) {
+export function EventForm({ state }: EventStateProps<EventEPCIS>) {
   const [event, setEvent] = state;
 
   const eventTypeForm = () => {

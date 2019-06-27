@@ -1,7 +1,7 @@
 import * as React from "react";
 import * as QrReader from "react-qr-reader";
 
-import { Event } from "../../epcis";
+import { EventEPCIS } from "../../epcis";
 const { DigitalLink } = require("digital-link.js");
 
 export interface EventStateProps<T> {

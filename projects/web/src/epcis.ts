@@ -107,7 +107,7 @@ class Quantity {
     }
 }
 
-export interface Event {
+export interface EventEPCIS {
     eventID?: string;
     isA: string;
     eventTime: Date;
@@ -124,7 +124,7 @@ export interface Event {
     destinationList: DestinationType[];
 }
 
-export function objectEvent(): Event {
+export function objectEvent(): EventEPCIS {
   return {
       isA: EventType.Object,
       epcList: [],
