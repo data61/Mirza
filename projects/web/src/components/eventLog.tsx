@@ -5,6 +5,7 @@ import { AuthState } from "../auth";
 import { Organisation } from "../business-registry";
 import { Panel } from "./panel";
 
+import { EventEPCIS } from "../epcis";
 import { queryForm } from "../query";
 
 export function SavedEvents({ className }: { className: string }) {
@@ -88,9 +89,8 @@ export function EventLookup(props: QueryProps) {
         <div className="pad-tb">
           <div className="container">
             <h4><i className="fas fa-fw fa-lg fa-list-alt"></i> Events</h4>
-            {eventRes ? eventRes.map((eventInfo:any) => { // TODO: Create an EventInfo type
-              console.log(eventInfo);
-              return <Panel eventInfo={eventInfo}></Panel>;
+            {eventRes ? eventRes.map((ev: EventEPCIS, index: number) => {
+              return <Panel key={index} event={ev}></Panel>;
             }) : null
             }
           </div>

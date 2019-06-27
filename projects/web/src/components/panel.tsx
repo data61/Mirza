@@ -1,17 +1,18 @@
 import * as React from "react";
+import { EventEPCIS } from "../epcis";
 
-export function Panel({eventInfo}: any) {
+export function Panel({event}: {event: EventEPCIS}) {
   const [expanded, setExpanded] = React.useState(false);
 
   const toggle = () => {
     setExpanded(!expanded);
   };
 
-  const eventTime = new Date(eventInfo.eventTime);
-  const bizStep = eventInfo.bizStep.split(':').pop();
-  const disp = eventInfo.disposition.split(':').pop();
-  const eventType = eventInfo.isA;
-  const action = eventInfo.action;
+  const eventTime = new Date(event.eventTime);
+  const bizStep = event.bizStep.split(':').pop();
+  const disp = event.disposition.split(':').pop();
+  const eventType = event.isA;
+  const action = event.action;
 
   return (
     <div className="panel">
