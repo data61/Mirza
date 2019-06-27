@@ -7,19 +7,18 @@ export function Panel({eventInfo}: any) {
     setExpanded(!expanded);
   };
 
-  const eventTime = eventInfo.eventTime;
+  const eventTime = new Date(eventInfo.eventTime);
   const bizStep = eventInfo.bizStep.split(':').pop();
   const disp = eventInfo.disposition.split(':').pop();
   const eventType = eventInfo.isA;
   const action = eventInfo.action;
-
 
   return (
     <div className="panel">
       <header className="row">
         <div className="column">
           <div className="flex-row">
-            <div className="flex-grow">{eventInfo.eventTime}</div>
+            <div className="flex-grow">{eventTime.toDateString()}</div>
             <div>
               <a href="#" onClick={toggle}>
                 <i className={"fa fa-fw fa-lg " + (expanded ? "fa-angle-up" : "fa-angle-down")}></i>
