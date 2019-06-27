@@ -1,6 +1,6 @@
 import * as React from "react";
 
-export function Panel() {
+export function Panel({eventInfo}: any) {
   const [expanded, setExpanded] = React.useState(false);
 
   const toggle = () => {
@@ -12,7 +12,7 @@ export function Panel() {
       <header className="row">
         <div className="column">
           <div className="flex-row">
-            <div className="flex-grow">Event 01 - 09:32:00, Status: Verified</div>
+            <div className="flex-grow">{eventInfo.eventTime}</div>
             <div>
               <a href="#" onClick={toggle}>
                 <i className={"fa fa-fw fa-lg " + (expanded ? "fa-angle-up" : "fa-angle-down")}></i>
@@ -21,7 +21,11 @@ export function Panel() {
           </div>
         </div>
       </header>
-      {expanded ? <section>Event Type: Aggregation </section> : null}
+      {expanded ?
+        <section>
+          <p>Event Type: {eventInfo.isA}</p>
+          <p>Action: {eventInfo.action}</p>
+        </section> : null}
     </div >
   );
 }
