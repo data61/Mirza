@@ -24,7 +24,7 @@ export function Panel({ event }: { event: EventEPCIS }) {
               {lookupByValue(EventBusinessStep, event.bizStep)} - {moment(eventTime).format('MMMM Do YYYY, h:mm:ss a')}
             </div>
             <div>
-              <a href="#" onClick={toggle}>
+              <a onClick={toggle}>
                 <i className={"fa fa-fw fa-lg " + (expanded ? "fa-angle-up" : "fa-angle-down")}></i>
               </a>
             </div>

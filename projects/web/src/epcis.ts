@@ -129,6 +129,7 @@ export interface EventEPCIS {
     bizLocation?: string;
     sourceList: SourceType[];
     destinationList: DestinationType[];
+    bizTransactionList?: string[];
 }
 
 export function objectEvent(): EventEPCIS {
@@ -148,6 +149,22 @@ export function objectEvent(): EventEPCIS {
 export function aggregationEvent(): EventEPCIS {
     return {
         isA: EventType.Aggregation,
+        parentID: null,
+        epcList: [],
+        action: EventAction.Add,
+        bizStep: EventBusinessStep.Packing,
+        disposition: EventDisposition.InProgress,
+        eventTime: new Date(),
+        eventTimeZoneOffset: moment(Date()).format('Z'),
+        sourceList: [],
+        destinationList: [],
+    };
+}
+
+export function transactionEvent(): EventEPCIS {
+    return {
+        isA: EventType.Transaction,
+        bizTransactionList: [],
         parentID: null,
         epcList: [],
         action: EventAction.Add,

@@ -66,7 +66,7 @@ export function Scan(props: SubmitProps) {
             <Link className="largeButton" to={"/actions/pack/" + encodeURIComponent(label)}>
               <i className="fas fa-truck fa-4x"></i>
               <hr />
-              Pack
+              Ship Package
             </Link>
           </div>
 

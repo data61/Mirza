@@ -6,6 +6,7 @@ const { DigitalLink } = require("digital-link.js");
 
 export interface EventStateProps<T> {
   state: [T, React.Dispatch<React.SetStateAction<T>>];
+  text?: string;
 }
 interface EPCISLabelFieldProps<T> {
   getFn: (e: T) => string;
@@ -13,7 +14,7 @@ interface EPCISLabelFieldProps<T> {
 }
 
 export function LabelField<T>(
-  { state: [getState, setState], updateFn, getFn }: EventStateProps<T> & EPCISLabelFieldProps<T>) {
+  { text, state: [getState, setState], updateFn, getFn }: EventStateProps<T> & EPCISLabelFieldProps<T>) {
 
   const [showQR, setShowQR] = React.useState(false);
 
@@ -39,7 +40,7 @@ export function LabelField<T>(
 
   return (
     <label>
-      <span>Label</span>
+      <span>{text || "Label"}</span>
       <div className="row">
         <div className="column column-90">
           <input type="text"
