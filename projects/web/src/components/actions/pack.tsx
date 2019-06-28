@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 
 import { AuthState } from "../../auth";
 import { Organisation } from "../../business-registry";
-import { objectEvent } from "../../epcis";
+import { aggregationEvent } from "../../epcis";
 import { LabelField } from "../epcis/common";
 
 export interface PackProps {
@@ -15,7 +15,11 @@ export interface PackProps {
 const DigitalLinkPrefix = "https://scan.mirza.d61.io/";
 
 export function Pack(props: PackProps) {
-  const eventState = React.useState(objectEvent());
+  const e = aggregationEvent();
+  e.epcList[0] = props.label;
+
+  const eventState = React.useState(e);
+
   const [event, _] = eventState;
 
   return (

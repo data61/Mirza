@@ -54,7 +54,7 @@ authInit().then((authState) => {
           <Route path="/actions/pack/:label" exact render={({ match }) =>
             <Pack authState={appState.auth}
               organisation={appState.organisation}
-              label={match.params.label}></Pack>} />
+              label={decodeURIComponent(match.params.label)}></Pack>} />
 
           <Route component={NotFound} />
         </Switch>

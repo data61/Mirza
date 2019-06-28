@@ -13,6 +13,12 @@ export const EventAction = {
     Observe: "OBSERVE",
 };
 
+export interface KVLookup { [key: string]: string; }
+
+export function lookupByValue(x: KVLookup, v: string): string | undefined {
+    return Object.keys(x).find((k) => x[k] === v);
+}
+
 export const EventBusinessStep = {
     Accepting: "urn:epcglobal:cbv:bizstep:accepting",
     Arriving: "urn:epcglobal:cbv:bizstep:arriving",
@@ -115,6 +121,7 @@ export interface EventEPCIS {
     eventTimeZoneOffset: string;
     recordTime?: Date;
     action?: string;
+    parentID?: string;
     epcList?: string[];
     bizStep?: string;
     disposition?: string;
@@ -125,15 +132,30 @@ export interface EventEPCIS {
 }
 
 export function objectEvent(): EventEPCIS {
-  return {
-      isA: EventType.Object,
-      epcList: [],
-      action: EventAction.Add,
-      bizStep: EventBusinessStep.Accepting,
-      disposition: EventDisposition.Active,
-      eventTime: new Date(),
-      eventTimeZoneOffset: moment(Date()).format('Z'),
-      sourceList: [],
-      destinationList: [],
-  };
+    return {
+        isA: EventType.Object,
+        epcList: [],
+        action: EventAction.Add,
+        bizStep: EventBusinessStep.Accepting,
+        disposition: EventDisposition.Active,
+        eventTime: new Date(),
+        eventTimeZoneOffset: moment(Date()).format('Z'),
+        sourceList: [],
+        destinationList: [],
+    };
+}
+
+export function aggregationEvent(): EventEPCIS {
+    return {
+        isA: EventType.Aggregation,
+        parentID: null,
+        epcList: [],
+        action: EventAction.Add,
+        bizStep: EventBusinessStep.Packing,
+        disposition: EventDisposition.InProgress,
+        eventTime: new Date(),
+        eventTimeZoneOffset: moment(Date()).format('Z'),
+        sourceList: [],
+        destinationList: [],
+    };
 }
