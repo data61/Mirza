@@ -2,6 +2,7 @@ import * as React from "react";
 import * as ReactDOM from "react-dom";
 import { BrowserRouter, Route, Switch } from "react-router-dom";
 
+import { Pack } from "./components/actions/pack";
 import { EventLog } from "./components/eventLog";
 import { Footer } from "./components/footer";
 import { Header } from "./components/header";
@@ -36,7 +37,8 @@ authInit().then((authState) => {
       <React.Fragment>
         <Header auth={appState.auth} organisation={appState.organisation}></Header>
         <Switch>
-          <Route path="/" exact component={Home} />
+          <Route path="/" exact render={() =>
+            <Home authState={appState.auth} organisation={appState.organisation}></Home>} />
 
           <Route path="/events" exact render={() =>
             <EventLog authState={appState.auth} organisation={appState.organisation}></EventLog>} />
@@ -48,6 +50,11 @@ authInit().then((authState) => {
             <Scan authState={appState.auth}
               organisation={appState.organisation}
               scanData={match.params.scanData}></Scan>} />
+
+          <Route path="/actions/pack/:label" exact render={({ match }) =>
+            <Pack authState={appState.auth}
+              organisation={appState.organisation}
+              label={decodeURIComponent(match.params.label)}></Pack>} />
 
           <Route component={NotFound} />
         </Switch>

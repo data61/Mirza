@@ -47,31 +47,29 @@ export function Scan(props: SubmitProps) {
         <div className="container">
           <div className="row">
             <div className="column">
-              <h3><Link to="/"><i className="fa fa-chevron-left"></i> </Link> Scan DigitalLink</h3>
+              <h3><Link to="/"><i className="fa fa-chevron-left"></i> </Link></h3>
             </div>
           </div>
         </div>
       </div>
-      <div className="container">
-        <LabelField state={labelState}
-          updateFn={(_, v) => { setError(null); return v; }}
-          getFn={(e) => e}
-        />
-        <div className="error">{error}</div>
-        <hr />
+      <div className="border-bottom pad-tb">
         <div className="container">
+          <h3>Scan GS1 DigitalLink</h3>
+          <LabelField state={labelState}
+            updateFn={(_, v) => { setError(null); return v; }}
+            getFn={(e) => e}
+          />
+          <div className="error">{error}</div>
+          <hr />
+          <h3>Actions</h3>
           <div className="row buttonBar">
-            <Link className="largeButton" to="/submit">
-              <i className="fas fa-truck-loading fa-4x"></i>
+            <Link className="largeButton" to={"/actions/pack/" + encodeURIComponent(label)}>
+              <i className="fas fa-truck fa-4x"></i>
               <hr />
-              Submit Event
-            </Link>
-            <Link className="largeButton" to="/events">
-              <i className="fas fa-search fa-4x"></i>
-              <hr />
-              Event Log
+              Ship Package
             </Link>
           </div>
+
         </div>
       </div>
     </section>

@@ -59,42 +59,39 @@ export function EventLookup(props: QueryProps) {
       <div>
         <div className="border-bottom pad-tb">
           <div className="container">
-            <div className="column border-right">
-              <h4>Event Lookup</h4>
-              <form>
-                <fieldset>
-                  {/* <label htmlFor="dateRange">Date Range</label>
+            <h3>Event Lookup</h3>
+            <form>
+              <fieldset>
+                {/* <label htmlFor="dateRange">Date Range</label>
                   <input type="text" id="dateRange" /> */}
-                  <label htmlFor="eventType">Event Type</label>
-                  <select name="eventType" id="eventType"
-                    onChange={(e) => query.EventType = e.target.value}>
-                    <option>Object</option>
-                    <option>Transformation</option>
-                    <option>Aggregation</option>
-                    <option>Transaction</option>
-                  </select>
+                <label htmlFor="eventType">Event Type</label>
+                <select name="eventType" id="eventType"
+                  onChange={(e) => query.EventType = e.target.value}>
+                  <option>Object</option>
+                  <option>Transformation</option>
+                  <option>Aggregation</option>
+                  <option>Transaction</option>
+                </select>
 
-                  <label htmlFor="epcLabel">EPC Label</label>
-                  <input name="epcLabel" type="text" id="epcLabel"
+                <label htmlFor="epcLabel">EPC Label</label>
+                <input name="epcLabel" type="text" id="epcLabel"
                   onChange={(e) => query.Label = e.target.value} />
-                </fieldset>
-              </form>
-              <button onClick={queryEvent}>Lookup Events</button>
-            </div>
-            <div className="row">
-              <SavedEvents className="column"></SavedEvents>
-            </div>
+              </fieldset>
+            </form>
+            <button onClick={queryEvent}>Lookup Events</button>
           </div>
         </div>
-        <div className="pad-tb">
-          <div className="container">
-            <h4><i className="fas fa-fw fa-lg fa-list-alt"></i> Events</h4>
-            {eventRes ? eventRes.map((ev: EventEPCIS, index: number) => {
-              return <Panel key={index} event={ev}></Panel>;
-            }) : null
-            }
+        {eventRes &&
+          <div className="pad-tb">
+            <div className="container">
+              <h4><i className="fas fa-fw fa-lg fa-list-alt"></i> Events</h4>
+              {eventRes.length > 0 ? eventRes.map((ev: EventEPCIS, index: number) => {
+                return <Panel key={index} event={ev}></Panel>;
+              }) : <p>No Results</p>
+              }
+            </div>
           </div>
-        </div>
+        }
       </div >
     </div>
   );
@@ -105,16 +102,7 @@ export function EventLog(props: QueryProps) {
     <section>
       <div className="border-bottom">
         <div className="container">
-          <div className="row">
-            <div className="column"><h3><Link to="/"><i className="fa fa-chevron-left"></i> </Link> Event Log</h3></div>
-            <div className="column">
-              <nav className="tabs">
-                <a className="active" href="#"><i className="fas fa-fw fa-lg fa-list-alt"></i> Events</a>
-                <a href="#"><i className="fas fa-fw fa-lg fa-map-marked-alt"></i> Map View</a>
-                <a href="#"><i className="fas fa-fw fa-lg fa-search"></i> Search Events</a>
-              </nav>
-            </div>
-          </div>
+          <h3><Link to="/"><i className="fa fa-chevron-left"></i> </Link></h3>
         </div>
       </div>
       <EventLookup authState={props.authState} organisation={props.organisation}></EventLookup>

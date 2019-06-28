@@ -1,7 +1,10 @@
+import * as moment from "moment";
 import * as React from "react";
-import { EventEPCIS } from "../epcis";
 
-export function Panel({event}: {event: EventEPCIS}) {
+
+import { EventBusinessStep, EventDisposition, EventEPCIS, lookupByValue } from "../epcis";
+
+export function Panel({ event }: { event: EventEPCIS }) {
   const [expanded, setExpanded] = React.useState(false);
 
   const toggle = () => {
@@ -9,8 +12,6 @@ export function Panel({event}: {event: EventEPCIS}) {
   };
 
   const eventTime = new Date(event.eventTime);
-  const bizStep = event.bizStep.split(':').pop();
-  const disp = event.disposition.split(':').pop();
   const eventType = event.isA;
   const action = event.action;
 
@@ -19,9 +20,11 @@ export function Panel({event}: {event: EventEPCIS}) {
       <header className="row">
         <div className="column">
           <div className="flex-row">
-            <div className="flex-grow">{eventTime.toDateString()}</div>
+            <div className="flex-grow">
+              {lookupByValue(EventBusinessStep, event.bizStep)} - {moment(eventTime).format('MMMM Do YYYY, h:mm:ss a')}
+            </div>
             <div>
-              <a href="#" onClick={toggle}>
+              <a onClick={toggle}>
                 <i className={"fa fa-fw fa-lg " + (expanded ? "fa-angle-up" : "fa-angle-down")}></i>
               </a>
             </div>
@@ -32,8 +35,8 @@ export function Panel({event}: {event: EventEPCIS}) {
         <section>
           {eventType ? <p>Event Type: {eventType}</p> : null}
           {action ? <p>Action: {action}</p> : null}
-          {bizStep ? <p>Business Step: {bizStep}</p> : null}
-          {disp ? <p>Disposition: {disp}</p> : null}
+          {event.bizStep ? <p>Business Step: {lookupByValue(EventBusinessStep, event.bizStep)}</p> : null}
+          {event.disposition ? <p>Disposition: {lookupByValue(EventDisposition, event.disposition)}</p> : null}
         </section> : null}
     </div >
   );

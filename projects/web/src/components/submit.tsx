@@ -42,7 +42,7 @@ export function Submit(props: SubmitProps) {
         <div className="container">
           <div className="row">
             <div className="column">
-              <h3><Link to="/"><i className="fa fa-chevron-left"></i> </Link> New Event</h3>
+              <h3><Link to="/"><i className="fa fa-chevron-left"></i> </Link></h3>
             </div>
           </div>
         </div>
@@ -50,6 +50,7 @@ export function Submit(props: SubmitProps) {
       <div>
         <div className="border-bottom pad-tb">
           <div className="container">
+            <h3>New Event</h3>
             <div className="row">
               <div className="column border-right">
                 <EventForm state={eventState} />
