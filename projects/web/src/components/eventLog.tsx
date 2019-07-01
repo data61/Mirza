@@ -62,17 +62,6 @@ export function EventLookup(props: QueryProps) {
             <h3>Event Lookup</h3>
             <form>
               <fieldset>
-                {/* <label htmlFor="dateRange">Date Range</label>
-                  <input type="text" id="dateRange" /> */}
-                <label htmlFor="eventType">Event Type</label>
-                <select name="eventType" id="eventType"
-                  onChange={(e) => query.EventType = e.target.value}>
-                  <option>Object</option>
-                  <option>Transformation</option>
-                  <option>Aggregation</option>
-                  <option>Transaction</option>
-                </select>
-
                 <label htmlFor="epcLabel">EPC Label</label>
                 <input name="epcLabel" type="text" id="epcLabel"
                   onChange={(e) => query.Label = e.target.value} />
