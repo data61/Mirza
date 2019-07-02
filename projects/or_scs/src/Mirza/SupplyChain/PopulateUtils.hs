@@ -3,14 +3,14 @@
 
 module Mirza.SupplyChain.PopulateUtils where
 
-import           GHC.Generics                          (Generic)
+import           GHC.Generics                     (Generic)
 
 import           Mirza.Common.Utils
 
 import           Control.Monad.Except
 import           Control.Monad.Identity
 
-import           Data.Foldable                         (traverse_)
+import           Data.Foldable                    (traverse_)
 
 import           Data.GS1.DWhat
 import           Data.GS1.DWhen
