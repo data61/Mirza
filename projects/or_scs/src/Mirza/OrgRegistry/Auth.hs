@@ -34,7 +34,6 @@ import           Control.Lens                      hiding (mapping)
 import           Control.Monad                     (when)
 import           Data.Functor                      (void)
 import           Data.Maybe                        (isNothing)
-import           Data.Text                         (Text)
 
 import           Crypto.JWT                        (Audience (..))
 

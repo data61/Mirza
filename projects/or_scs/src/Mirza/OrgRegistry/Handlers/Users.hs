@@ -11,8 +11,6 @@ module Mirza.OrgRegistry.Handlers.Users
   , getUserByIdQuery
   ) where
 
-import           Mirza.Common.Utils
-import           Mirza.OrgRegistry.Database.Schema        hiding (UserId)
 import qualified Mirza.OrgRegistry.Database.Schema        as Schema
 import           Mirza.OrgRegistry.Types                  as ORT
 
@@ -41,7 +39,7 @@ addUserOnlyId :: ( Member context '[HasDB]
                  , Member err     '[AsORError, AsSqlError])
               => NewUser
               -> AppM context err OAuthSub
-addUserOnlyId user = user_oauth_sub <$> (addUser user)
+addUserOnlyId user = Schema.user_oauth_sub <$> (addUser user)
 
 
 addUser :: ( Member context '[HasDB]
@@ -70,7 +68,7 @@ getUserByIdQuery :: OAuthSub -> DB context err (Maybe Schema.User)
 getUserByIdQuery oAuthSub = do
   r <- pg $ runSelectReturningList $ select $ do
           user <- all_ (Schema._users Schema.orgRegistryDB)
-          guard_ (user_oauth_sub user ==. val_ oAuthSub)
+          guard_ (Schema.user_oauth_sub user ==. val_ oAuthSub)
           pure user
   case r of
     [user] -> pure $ Just user

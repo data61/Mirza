@@ -16,7 +16,6 @@ module Mirza.OrgRegistry.Handlers.Keys
 import           Mirza.Common.Time
 import           Mirza.Common.Types                       as CT
 import           Mirza.Common.Utils
-import           Mirza.OrgRegistry.Auth
 import           Mirza.OrgRegistry.Database.Schema        as Schema
 import           Mirza.OrgRegistry.Types                  as ORT
 
