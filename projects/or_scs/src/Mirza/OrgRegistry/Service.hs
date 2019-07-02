@@ -175,6 +175,7 @@ orErrorToHttpError orError =
     (OrgDoesNotExistORE)       -> httpError err400 "Organisation does not exist."
     (OperationNotPermittedORE _ _)  -> httpError err403 "A user can only act on behalf of the org they are associated with."
     (UserAuthFailureORE _)          -> httpError err401 "Authorization invalid."
+    (InvalidOAuthSubORE)            -> httpError err400 "Invalid OAuth Sub."
     (UserCreationErrorORE _ _)      -> userCreationError orError
     UnknownUserORE                  -> httpError err400 "Unknown User"
 
