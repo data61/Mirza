@@ -78,6 +78,7 @@ addOrgAuth authUser gs1CompanyPrefix partialNewOrg = do
   _ <- addOrg (authUserId authUser) $ partialNewOrgToNewOrg gs1CompanyPrefix partialNewOrg
   pure NoContent
 
+
 addOrg :: ( Member context '[HasDB]
                , Member err     '[AsORError, AsSqlError])
             => OAuthSub -> NewOrg -> AppM context err GS1CompanyPrefix

@@ -32,7 +32,7 @@ import           Database.Beam.Postgres        (PgCommandSyntax, PgJSON,
 import           Database.Beam.Postgres.Syntax (PgDataTypeSyntax)
 
 import           Data.Aeson                    hiding (json)
-import           Data.Swagger
+import           Data.Swagger                  hiding (prefix)
 
 import           GHC.Generics                  (Generic)
 
@@ -80,7 +80,7 @@ migration () =
           )
     <*> createTable "keys" (KeyT
           (field "key_id" pkSerialType)
-          (UserPrimaryKey $ field "key_user_id" oAuthSubFieldType)
+          (OrgPrimaryKey $ field "key_org" gs1CompanyPrefixFieldType)
           (field "jwk" json notNull)
           (field "creation_time" timestamp)
           (field "revocation_time" (maybeType timestamp))
@@ -150,6 +150,10 @@ instance Table OrgT where
 deriving instance Eq (PrimaryKey OrgT Identity)
 
 
+orgPrimaryKeyToGS1CompanyPrefix :: OrgPrimaryKey -> EPC.GS1CompanyPrefix
+orgPrimaryKeyToGS1CompanyPrefix (OrgPrimaryKey prefix) = prefix
+
+
 --------------------------------------------------------------------------------
 -- Organisation Mapping Table
 --------------------------------------------------------------------------------
@@ -192,7 +196,7 @@ deriving instance Show ( PrimaryKey UserT (Nullable Identity))
 -- defined in Mirza.Common.Time
 data KeyT f = KeyT
   { key_id           :: C f PrimaryKeyType
-  , key_user_id      :: PrimaryKey UserT f    -- TODO: We should record the org that is associated with the key...not sure if there is any need to store the user...
+  , key_org          :: PrimaryKey OrgT f
   , key_jwk          :: C f (PgJSON JWK)
   , creation_time    :: C f LocalTime -- Stored as UTC Time
   -- It would be nicer and cleaner to store the revocation time and user as a

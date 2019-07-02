@@ -19,10 +19,12 @@ import           Mirza.OrgRegistry.Auth            (tableUserToAuthUser)
 import           Mirza.OrgRegistry.Handlers.Keys   as BKey
 import           Mirza.OrgRegistry.Handlers.Org
 import           Mirza.OrgRegistry.Handlers.Users
-import           Mirza.OrgRegistry.Tests.Dummies
+import qualified Mirza.OrgRegistry.Tests.Dummies   as Dummies
 import           Mirza.OrgRegistry.Types           as ORT
 
 import           Mirza.OrgRegistry.Tests.Utils
+
+import           Data.GS1.EPC                      (GS1CompanyPrefix (..))
 
 import           Data.Maybe                        (fromJust, isNothing)
 
@@ -53,21 +55,21 @@ testKeyQueries = do
       Just pubKey <- goodRsaPublicKey
       tStart <- timeStampIO
       res <- testAppM orContext $ do
-        user <- insertDummies
-        let uid = authUserId user
-        keyId <- addPublicKey user pubKey Nothing
+        dummies <- insertDummies
+        let org = dummyOrg dummies
+        keyId <- addPublicKey (dummyUser dummies) (dummyOrg dummies) pubKey Nothing
         tEnd <- timeStampIO
         insertedKey <- getPublicKey keyId
         storageKey <- runDb $ BKey.getKeyById keyId
-        pure (storageKey, keyId, uid, tEnd, insertedKey)
+        pure (storageKey, keyId, org, tEnd, insertedKey)
       case res of
         (Nothing, _, _, _, _) -> fail "Received Nothing for key"
-        (Just key, (ORKeyId keyId), oAuthSub, tEnd, insertedKey) -> do
+        (Just key, (ORKeyId keyId), org, tEnd, insertedKey) -> do
           key `shouldSatisfy`
             (\k ->
               (fromPgJSON $ BSchema.key_jwk k) == pubKey &&
               (BSchema.key_id k) == keyId &&
-              (BSchema.key_user_id k) == (BSchema.UserPrimaryKey oAuthSub) &&
+              (BSchema.key_org k) == OrgPrimaryKey org &&
               (BSchema.creation_time k) > tStart &&
               (BSchema.creation_time k) < tEnd &&
               isNothing (BSchema.revocation_time k)
@@ -77,16 +79,16 @@ testKeyQueries = do
     it "getPublicKeyInfo test 1" $ \orContext -> do
       tStart <- liftIO getCurrentTime
       Just pubKey <- goodRsaPublicKey
-      (keyInfo, uid, tEnd) <- testAppM orContext $ do
-        user <- insertDummies
-        let uid = authUserId user
-        keyId <- addPublicKey user pubKey Nothing
+      (keyInfo, org, tEnd) <- testAppM orContext $ do
+        dummies <- insertDummies
+        let org = (dummyOrg dummies)
+        keyId <- addPublicKey (dummyUser dummies) (dummyOrg dummies) pubKey Nothing
         keyInfo <- getPublicKeyInfo keyId
         tEnd <- liftIO getCurrentTime
-        pure (keyInfo, uid, tEnd)
+        pure (keyInfo, org, tEnd)
       keyInfo `shouldSatisfy`
         (\ki ->
-          (keyInfoUserOAuthSub ki == uid) &&
+          (keyInfoGS1CompanyPrefix ki == org) &&
           ((keyInfoCreationTime ki) > (CreationTime tStart) &&
            (keyInfoCreationTime ki) < (CreationTime tEnd)) &&
           isNothing (keyInfoRevocation ki)
@@ -96,9 +98,9 @@ testKeyQueries = do
     it "Revoke public key with permissions" $ \orContext -> do
       Just pubKey <- goodRsaPublicKey
       myKeyState <- testAppM orContext $ do
-        user <- insertDummies
-        keyId <- addPublicKey user pubKey Nothing
-        _timeKeyRevoked <- revokePublicKey user keyId
+        dummies <- insertDummies
+        keyId <- addPublicKey (dummyUser dummies) (dummyOrg dummies) pubKey Nothing
+        _timeKeyRevoked <- revokePublicKey (dummyUser dummies) keyId
         keyInfo <- getPublicKeyInfo keyId
         pure (keyInfoState keyInfo)
       myKeyState `shouldBe` Revoked
@@ -130,8 +132,8 @@ testKeyQueries = do
       let smallDelayInSeconds = 2
           nearExpiry = addUTCTime (fromInteger smallDelayInSeconds) nowish
       keyId <- testAppM orContext $ do
-        user <- insertDummies
-        keyId <- addPublicKey user pubKey (Just . ExpirationTime $ nearExpiry)
+        dummies <- insertDummies
+        keyId <- addPublicKey (dummyUser dummies) (dummyOrg dummies) pubKey (Just . ExpirationTime $ nearExpiry)
         pure keyId
       threadDelay $ fromIntegral $ secondsToMicroseconds smallDelayInSeconds
       myKeyState <- testAppM orContext $ do
@@ -145,8 +147,8 @@ testKeyQueries = do
           someTimeLater = addUTCTime hundredMinutes nowish
       Just pubKey <- goodRsaPublicKey
       myKeyState <- testAppM orContext $ do
-        user <- insertDummies
-        keyId <- addPublicKey user pubKey (Just . ExpirationTime $ someTimeLater)
+        dummies <- insertDummies
+        keyId <- addPublicKey (dummyUser dummies) (dummyOrg dummies) pubKey (Just . ExpirationTime $ someTimeLater)
         keyInfo <- getPublicKeyInfo keyId
         pure (keyInfoState keyInfo)
       myKeyState `shouldBe` InEffect
@@ -240,13 +242,18 @@ testKeyQueries = do
 -- Test Utility Functions
 -- *****************************************************************************
 
+data Dummy = Dummy
+ { dummyUser :: AuthUser
+ , dummyOrg  :: GS1CompanyPrefix
+ }
+
 -- | Adds the dummy org and user and returns the user id and auth user.
-insertDummies :: AppM ORContextMinimal ORError AuthUser
+insertDummies :: AppM ORContextMinimal ORError Dummy
 insertDummies = do
-  uid <- addUserOnlyId dummyNewUser
-  _orgPrefix <- addOrg uid dummyOrg
+  uid <- addUserOnlyId Dummies.dummyNewUser
+  orgPrefix <- addOrg uid Dummies.dummyOrg
   tableUser <- runDb $ getUserByIdQuery uid
-  pure (tableUserToAuthUser . fromJust $ tableUser)
+  pure $ Dummy (tableUserToAuthUser . fromJust $ tableUser) orgPrefix
 
 -- | Produces the minimal +ve NominalDiffTime (epsilon).
 epsNominalDiffTime :: NominalDiffTime

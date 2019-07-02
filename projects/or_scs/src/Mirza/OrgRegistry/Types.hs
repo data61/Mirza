@@ -431,13 +431,13 @@ instance FromJSON HealthResponse where
 
 
 data KeyInfoResponse = KeyInfoResponse
-  { keyInfoId             :: CT.ORKeyId
-  , keyInfoUserOAuthSub   :: OAuthSub  -- TODO: There should be a forien key for Org in here....not sure that user is relevant...
-  , keyInfoState          :: KeyState
-  , keyInfoCreationTime   :: CreationTime
-  , keyInfoRevocation     :: Maybe (RevocationTime, OAuthSub)
-  , keyInfoExpirationTime :: Maybe ExpirationTime
-  , keyInfoJWK            :: JWK
+  { keyInfoId               :: CT.ORKeyId
+  , keyInfoGS1CompanyPrefix :: GS1CompanyPrefix
+  , keyInfoState            :: KeyState
+  , keyInfoCreationTime     :: CreationTime
+  , keyInfoRevocation       :: Maybe (RevocationTime, OAuthSub)
+  , keyInfoExpirationTime   :: Maybe ExpirationTime
+  , keyInfoJWK              :: JWK
   }
   deriving (Generic, Show, Eq)
 

@@ -103,7 +103,7 @@ clientSpec = do
           step "Tying the user with a good key"
           Just goodPubKey <- goodRsaPublicKey
           Just goodPrivKey <- goodRsaPrivateKey
-          keyIdResponse <- httpOR (addPublicKey token goodPubKey Nothing)
+          keyIdResponse <- httpOR (addPublicKey token prefix goodPubKey Nothing)
           keyIdResponse `shouldSatisfy` isRight
           let keyId = fromRight (ORKeyId nil) keyIdResponse
 
@@ -152,7 +152,7 @@ clientSpec = do
           step "Tying the giver user with a good key"
           Just goodPubKeyGiver <- readJWK "./test/Mirza/Common/TestData/testKeys/goodJWKs/4096bit_rsa_pub.json"
           Just goodPrivKeyGiver <- readJWK "./test/Mirza/Common/TestData/testKeys/goodJWKs/4096bit_rsa.json"
-          keyIdResponseGiver <- httpOR (addPublicKey token goodPubKeyGiver Nothing)
+          keyIdResponseGiver <- httpOR (addPublicKey token prefixGiver goodPubKeyGiver Nothing)
           keyIdResponseGiver `shouldSatisfy` isRight
           let keyIdGiver = fromRight (ORKeyId nil) keyIdResponseGiver
 
@@ -178,7 +178,7 @@ clientSpec = do
           step "Tying the receiver user with a good key"
           Just goodPubKeyReceiver <- readJWK "./test/Mirza/Common/TestData/testKeys/goodJWKs/16384bit_rsa_pub.json"
           Just goodPrivKeyReceiver <- readJWK "./test/Mirza/Common/TestData/testKeys/goodJWKs/16384bit_rsa.json"
-          keyIdResponseReceiver <- httpOR (addPublicKey token goodPubKeyReceiver Nothing)
+          keyIdResponseReceiver <- httpOR (addPublicKey token prefixReceiver goodPubKeyReceiver Nothing)
           keyIdResponseReceiver `shouldSatisfy` isRight
           let keyIdReceiver = fromRight (ORKeyId nil) keyIdResponseReceiver
 

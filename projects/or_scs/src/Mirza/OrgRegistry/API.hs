@@ -97,6 +97,7 @@ type PrivateAPI =
       :> Capture "userId" OAuthSub
       :> Put '[JSON] NoContent
   :<|> "keys"
+      :> Capture "gs1CompanyPrefix" GS1CompanyPrefix
       :> ReqBody '[JSON] JWK
       :> QueryParam "expirationTime" ExpirationTime
       :> Post '[JSON] ORKeyId

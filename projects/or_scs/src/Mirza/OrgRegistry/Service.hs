@@ -87,7 +87,7 @@ privateServer =      (transformUser0 addUserAuth)
                 :<|> (transformUser0 getOrgInfo)
                 :<|> (transformUser2 addOrgAuth)
                 :<|> (transformUser2 addOrgMappingAuth)
-                :<|> (transformUser2 addPublicKey)
+                :<|> (transformUser3 addPublicKey)
                 :<|> (transformUser1 revokePublicKey)
                 :<|> (transformUser1 addLocation)
   where
@@ -95,9 +95,10 @@ privateServer =      (transformUser0 addUserAuth)
     -- to fail using our error types. It would be nice to apply oauthClaimsToAuthUser uniformly to all endpoints, but
     -- currently the following method is the cleanest way that we know of applying it to each of the end points. The
     -- number is the number of argument that the end point takes.
-    transformUser0 f            = f <=< oauthClaimsToAuthUser
-    transformUser1 f claims a   = (\user -> f user a)   =<< (oauthClaimsToAuthUser claims)
-    transformUser2 f claims a b = (\user -> f user a b) =<< (oauthClaimsToAuthUser claims)
+    transformUser0 f              = f <=< oauthClaimsToAuthUser
+    transformUser1 f claims a     = (\user -> f user a)     =<< (oauthClaimsToAuthUser claims)
+    transformUser2 f claims a b   = (\user -> f user a b)   =<< (oauthClaimsToAuthUser claims)
+    transformUser3 f claims a b c = (\user -> f user a b c) =<< (oauthClaimsToAuthUser claims)
 
 instance (HasSwagger sub) => HasSwagger (Servant.Auth.Server.Auth '[JWT] a :> sub) where
   toSwagger _ =

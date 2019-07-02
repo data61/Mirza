@@ -8,7 +8,6 @@
 module Mirza.OrgRegistry.Auth
   (
     tokenServerContext
-  , tableUserToOAuthSub
   , tableUserToAuthUser
   , listUsersQuery
   , oauthClaimsToAuthUser
@@ -53,9 +52,6 @@ tokenServerContext context = jwtSettings :. defaultCookieSettings :. EmptyContex
     matchAudience aud = if (elem aud audienceList) then Matches else DoesNotMatch
     jwtSettings = defaultSettings {audienceMatches = matchAudience}
 
--- | Converts a DB representation of ``User`` to ``OAuthSub``
-tableUserToOAuthSub :: Schema.User -> OAuthSub
-tableUserToOAuthSub user = Schema.user_oauth_sub user
 
 -- | Converts a DB representation of ``User`` to ``AuthUser``
 tableUserToAuthUser :: Schema.User -> AuthUser

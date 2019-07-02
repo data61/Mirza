@@ -8,6 +8,7 @@ module Mirza.OrgRegistry.Main where
 
 
 import           Mirza.Common.Types                 as CT
+import           Mirza.Common.Utils                 (fetchJWKS)
 import           Mirza.OrgRegistry.API              (API, ServerAPI, api)
 import           Mirza.OrgRegistry.Auth
 import           Mirza.OrgRegistry.Database.Migrate
@@ -15,7 +16,6 @@ import           Mirza.OrgRegistry.Database.Schema  as Schema
 import           Mirza.OrgRegistry.GenerateUtils    (dummyOrg, dummyUser)
 import           Mirza.OrgRegistry.Service
 import           Mirza.OrgRegistry.Types            as ORT
-import           Mirza.Common.Utils (fetchJWKS)
 
 import           Data.GS1.EPC                       (GS1CompanyPrefix (..))
 
@@ -23,7 +23,7 @@ import           Servant
 import           Servant.Auth.Server
 import           Servant.Swagger.UI
 
-import           Network.URI                        hiding (path, authority)
+import           Network.URI                        hiding (authority, path)
 
 import           Crypto.JOSE                        (JWK, JWKSet (..))
 import           Crypto.JWT                         (Audience (..), string)
@@ -53,9 +53,10 @@ import           Control.Monad                      (when)
 import           Data.Either                        (fromRight)
 import           Data.Maybe                         (fromMaybe, listToMaybe)
 import           Katip                              as K
-import           System.IO                          (IOMode (AppendMode),
+import           System.IO                          (FilePath,
+                                                     IOMode (AppendMode),
                                                      hPutStr, openFile, stderr,
-                                                     stdout, FilePath)
+                                                     stdout)
 
 
 --------------------------------------------------------------------------------
@@ -364,7 +365,7 @@ runBootstrap opts oAuthSub companyPrefix = do
   -- improve the reliability or error reporting.
   case userResult of
       Right user -> do
-                    orgResult <- runAppM @_ @ORError context $ addOrg (tableUserToOAuthSub user) newOrg
+                    orgResult <- runAppM @_ @ORError context $ addOrg (Schema.user_oauth_sub user) newOrg
                     either (print @ORError) print orgResult
       Left _     -> putStrLn "Error inserting user, skipping adding org."
 
