@@ -172,8 +172,6 @@ getOrgInfo (ORT.AuthUser oAuthSub) = do
         guard_ (org_mapping_user_oauth_sub mapping ==. val_ (Schema.UserPrimaryKey oAuthSub))
         pure $ org_mapping_gs1_company_prefix mapping
   let queryOrganistaion gs1CompanyPrefix = fmap orgToOrgResponse <$> runDb (searchOrgsQuery (Just gs1CompanyPrefix) Nothing Nothing)
-      getPrefix :: PrimaryKey OrgT Identity -> GS1CompanyPrefix
-      getPrefix (OrgPrimaryKey prefix) = prefix
       companyPrefixes :: [GS1CompanyPrefix]
-      companyPrefixes = getPrefix <$> orgs
+      companyPrefixes = orgPrimaryKeyToGS1CompanyPrefix <$> orgs
   concat <$> traverse queryOrganistaion companyPrefixes
