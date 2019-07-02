@@ -18,8 +18,6 @@ module Mirza.OrgRegistry.Client.Servant
   , revokePublicKey
   , addLocation
   , getOrgInfo
-  -- * Other
-  , authDataToTokenTodoRemove
   ) where
 
 import           Mirza.Common.Time                 (ExpirationTime,
@@ -85,9 +83,3 @@ _api@(
     :<|> addLocation
   )
  ) = client (Proxy :: Proxy ServerAPI)
-
--- This is a filler function which we can use while porting the implementation.
--- There is no implementation for this function because we still need to decide
--- how we are going to auth from the tests.
-authDataToTokenTodoRemove :: BasicAuthData -> Token
-authDataToTokenTodoRemove = undefined
