@@ -227,37 +227,37 @@ clientSpec = do
               org2 = PartialNewOrg org2Name (mockURI org2Name)
 
           -- Org1User1
-          let userB1U1ClaimSub = "keysTests_OAuthSub_B1U1"
-          let userB1U1 = (testTokenDefaultClaims tokenData)
-                         & claimSub .~ Just (review string userB1U1ClaimSub)
-          userB1U1Token <- (testSignTokenClaims tokenData) userB1U1
+          let userO1U1ClaimSub = "keysTests_OAuthSub_O1U1"
+          let userO1U1 = (testTokenDefaultClaims tokenData)
+                         & claimSub .~ Just (review string userO1U1ClaimSub)
+          userO1U1Token <- (testSignTokenClaims tokenData) userO1U1
           -- Org1User2
-          let userB1U2ClaimSub = "keysTests_OAuthSub_B1U2"
-          let userB1U2 = (testTokenDefaultClaims tokenData)
-                         & claimSub .~ Just (review string userB1U2ClaimSub)
-          userB1U2Token <- (testSignTokenClaims tokenData) userB1U2
+          let userO1U2ClaimSub = "keysTests_OAuthSub_O1U2"
+          let userO1U2 = (testTokenDefaultClaims tokenData)
+                         & claimSub .~ Just (review string userO1U2ClaimSub)
+          userO1U2Token <- (testSignTokenClaims tokenData) userO1U2
           -- Org2User1
-          let userB2U1ClaimSub = "keysTests_OAuthSub_B2U1"
-          let userB2U1 = (testTokenDefaultClaims tokenData)
-                         & claimSub .~ Just (review string userB2U1ClaimSub)
-          userB2U1Token <- (testSignTokenClaims tokenData) userB2U1
+          let userO2U1ClaimSub = "keysTests_OAuthSub_O2U1"
+          let userO2U1 = (testTokenDefaultClaims tokenData)
+                         & claimSub .~ Just (review string userO2U1ClaimSub)
+          userO2U1Token <- (testSignTokenClaims tokenData) userO2U1
 
           -- Create a org to use from further test cases (this is tested in
           --  the orgs tests so doesn't need to be explicitly tested here).
-          _ <- http (addOrg userB1U1Token org1Prefix org1)
-          _ <- http (addOrg userB2U1Token org2Prefix org2)
+          _ <- http (addOrg userO1U1Token org1Prefix org1)
+          _ <- http (addOrg userO2U1Token org2Prefix org2)
 
           -- Add a second user to first org use from further test cases (this is tested in
           -- the orgs tests so doesn't need to be explicitly tested here).
-          _ <- http (addUser userB1U2Token)
-          _ <- http (addUserToOrg userB1U1Token org1Prefix $ OAuthSub userB1U2ClaimSub)
+          _ <- http (addUser userO1U2Token)
+          _ <- http (addUserToOrg userO1U1Token org1Prefix $ OAuthSub userO1U2ClaimSub)
 
           -- Add good RSA Public Key for using from the test cases.
           Just goodKey <- goodRsaPublicKey
 
           step "Can add a good key (no exipry time)"
           b1K1PreInsertionTime <- getCurrentTime
-          b1K1StoredKeyIdResult <- http (addPublicKey userB1U1Token org1Prefix goodKey Nothing)
+          b1K1StoredKeyIdResult <- http (addPublicKey userO1U1Token org1Prefix goodKey Nothing)
           b1K1PostInsertionTime <- getCurrentTime
           b1K1StoredKeyIdResult `shouldSatisfy` isRight
 
@@ -305,7 +305,7 @@ clientSpec = do
           let expiryDelay = 3
           step $ "Can add a good key with exipry time (" ++ (show expiryDelay) ++ " seconds from now)"
           b1K2Expiry <- (Just . ExpirationTime) <$> ((addUTCTime (fromInteger expiryDelay)) <$> getCurrentTime)
-          b1K2StoredKeyIdResult <- http (addPublicKey userB1U1Token org1Prefix goodKey b1K2Expiry)
+          b1K2StoredKeyIdResult <- http (addPublicKey userO1U1Token org1Prefix goodKey b1K2Expiry)
           b1K2StoredKeyIdResult `shouldSatisfy` isRight
 
           let Right b1K2StoredKeyId = b1K2StoredKeyIdResult
@@ -337,24 +337,24 @@ clientSpec = do
           b1K2InfoDelayedResponse `shouldSatisfy` checkField keyInfoState (== Expired)
 
           step "Test that it is not possible to revoke a key that has already expired."
-          b1K2RevokedResponse <- http (revokePublicKey userB1U1Token b1K2StoredKeyId)
+          b1K2RevokedResponse <- http (revokePublicKey userO1U1Token b1K2StoredKeyId)
           b1K2RevokedResponse `shouldSatisfy` isLeft
           b1K2RevokedResponse `shouldSatisfy` (checkFailureStatus NS.badRequest400)
           b1K2RevokedResponse `shouldSatisfy` (checkFailureMessage "Public key already expired.")
 
           step "That it is not possible to add a key that is already expired"
           b1ExpiredKeyExpiry <- (Just . ExpirationTime) <$> ((addUTCTime (fromInteger (-1))) <$> getCurrentTime)
-          b1ExpiredKeyExpiryResult <- http (addPublicKey userB1U1Token org1Prefix goodKey b1ExpiredKeyExpiry)
+          b1ExpiredKeyExpiryResult <- http (addPublicKey userO1U1Token org1Prefix goodKey b1ExpiredKeyExpiry)
           b1ExpiredKeyExpiryResult `shouldSatisfy` isLeft
           b1ExpiredKeyExpiryResult `shouldSatisfy` (checkFailureStatus NS.badRequest400)
           b1ExpiredKeyExpiryResult `shouldSatisfy` (checkFailureMessage "Can't add a key that has already expired.")
 
           step "That it's possible to revoke a key"
-          b1K3StoredKeyIdResult <- http (addPublicKey userB1U1Token org1Prefix goodKey Nothing)
+          b1K3StoredKeyIdResult <- http (addPublicKey userO1U1Token org1Prefix goodKey Nothing)
           b1K3StoredKeyIdResult `shouldSatisfy` isRight
           let b1K3StoredKeyId = fromRight b1K3StoredKeyIdResult
           b1K3PreRevoke <- getCurrentTime
-          b1K3RevokedResponse <- http (revokePublicKey userB1U1Token b1K3StoredKeyId)
+          b1K3RevokedResponse <- http (revokePublicKey userO1U1Token b1K3StoredKeyId)
           b1K3PostRevoke <- getCurrentTime
           b1K3RevokedResponse `shouldSatisfy` isRight
           b1K3RevokedResponse `shouldSatisfy` checkField getRevocationTime (betweenInclusive b1K3PreRevoke b1K3PostRevoke)
@@ -365,7 +365,7 @@ clientSpec = do
           b1K3InfoResponse `shouldSatisfy` isRight
           b1K3InfoResponse `shouldSatisfy` checkField keyInfoRevocation isJust
           b1K3InfoResponse `shouldSatisfy` checkField keyInfoRevocation ((betweenInclusive b1K3PreRevoke b1K3PostRevoke) . extractRevocationTime)
-          b1K3InfoResponse `shouldSatisfy` checkField keyInfoRevocation ((== OAuthSub userB1U1ClaimSub) . snd . fromJust)
+          b1K3InfoResponse `shouldSatisfy` checkField keyInfoRevocation ((== OAuthSub userO1U1ClaimSub) . snd . fromJust)
           -- We check that the time through this responce ~matches the time that was given when we revoked the key.
           let b1K3RevokedResponseTime = (getRevocationTime . fromRight) b1K3RevokedResponse
           b1K3InfoResponse `shouldSatisfy` checkField keyInfoRevocation ((within1Second b1K3RevokedResponseTime) . extractRevocationTime)
@@ -376,29 +376,29 @@ clientSpec = do
           b1K3RevokedInfoResponse `shouldSatisfy` checkField keyInfoState (== Revoked)
 
           step "That revoking an already revoked key generates an error"
-          b1K3RevokedAgainResponse <- http (revokePublicKey userB1U1Token b1K3StoredKeyId)
+          b1K3RevokedAgainResponse <- http (revokePublicKey userO1U1Token b1K3StoredKeyId)
           b1K3RevokedAgainResponse `shouldSatisfy` isLeft
           b1K3RevokedAgainResponse `shouldSatisfy` (checkFailureStatus NS.badRequest400)
           b1K3RevokedAgainResponse `shouldSatisfy` (checkFailureMessage "Public key already revoked.")
 
           step "That another user from the same org can also revoke the key"
-          b1K4StoredKeyIdResult <- http (addPublicKey userB1U1Token org1Prefix goodKey Nothing)
+          b1K4StoredKeyIdResult <- http (addPublicKey userO1U1Token org1Prefix goodKey Nothing)
           b1K4StoredKeyIdResult `shouldSatisfy` isRight
           let b1K4StoredKeyId = fromRight b1K4StoredKeyIdResult
-          b1K4RevokedResponse <- http (revokePublicKey userB1U2Token b1K4StoredKeyId)
+          b1K4RevokedResponse <- http (revokePublicKey userO1U2Token b1K4StoredKeyId)
           b1K4RevokedResponse `shouldSatisfy` isRight
           b1K4RevokedInfoResponse <- http (getPublicKeyInfo b1K4StoredKeyId)
           b1K4RevokedInfoResponse `shouldSatisfy` isRight
           b1K4RevokedInfoResponse `shouldSatisfy` (checkField keyInfoState (== Revoked))
-          b1K4RevokedInfoResponse `shouldSatisfy` (checkField keyInfoRevocation ((== OAuthSub userB1U2ClaimSub) . snd . fromJust))
+          b1K4RevokedInfoResponse `shouldSatisfy` (checkField keyInfoRevocation ((== OAuthSub userO1U2ClaimSub) . snd . fromJust))
           -- Test integrity check to make sure that the user is not the original user.
-          b1K4RevokedInfoResponse `shouldSatisfy` (checkField keyInfoRevocation ((/= OAuthSub userB1U1ClaimSub) . snd . fromJust))
+          b1K4RevokedInfoResponse `shouldSatisfy` (checkField keyInfoRevocation ((/= OAuthSub userO1U1ClaimSub) . snd . fromJust))
 
           step "That a user from the another org can't also revoke the key"
-          b1K5StoredKeyIdResult <- http (addPublicKey  userB1U1Token org1Prefix goodKey Nothing)
+          b1K5StoredKeyIdResult <- http (addPublicKey  userO1U1Token org1Prefix goodKey Nothing)
           b1K5StoredKeyIdResult `shouldSatisfy` isRight
           let Right b1K5StoredKeyId = b1K5StoredKeyIdResult
-          b1K5RevokedResponse <- http (revokePublicKey userB2U1Token b1K5StoredKeyId)
+          b1K5RevokedResponse <- http (revokePublicKey userO2U1Token b1K5StoredKeyId)
           b1K5RevokedResponse `shouldSatisfy` isLeft
           b1K5RevokedResponse `shouldSatisfy` (checkFailureStatus NS.forbidden403)
           b1K5RevokedResponse `shouldSatisfy` (checkFailureMessage "A user can only act on behalf of the org they are associated with.")
@@ -407,7 +407,7 @@ clientSpec = do
           b1K5RevokedInfoResponse `shouldSatisfy` checkField keyInfoState (== InEffect)
 
           step "That revokePublicKey for an invalid keyId fails gracefully"
-          revokeInvalidKeyIdResponse <- http (revokePublicKey userB1U1Token (ORKeyId nil))
+          revokeInvalidKeyIdResponse <- http (revokePublicKey userO1U1Token (ORKeyId nil))
           revokeInvalidKeyIdResponse `shouldSatisfy` isLeft
           revokeInvalidKeyIdResponse `shouldSatisfy` (checkFailureStatus NS.notFound404)
           revokeInvalidKeyIdResponse `shouldSatisfy` (checkFailureMessage "Public key with the given id not found.")
@@ -415,10 +415,10 @@ clientSpec = do
           step "Test where the key has an expiry time (which hasn't expired) and is revoked reports the correct status."
           b1K6ExpiryUTC <- (addUTCTime (fromInteger expiryDelay)) <$> getCurrentTime
           let b1K6Expiry = Just . ExpirationTime $ b1K6ExpiryUTC
-          b1K6StoreKeyIdResult <- http (addPublicKey userB1U1Token org1Prefix goodKey b1K6Expiry)
+          b1K6StoreKeyIdResult <- http (addPublicKey userO1U1Token org1Prefix goodKey b1K6Expiry)
           b1K6StoreKeyIdResult `shouldSatisfy` isRight
           let Right b1K6KeyId = b1K6StoreKeyIdResult
-          b1K6RevokeKeyResult <- http (revokePublicKey userB1U1Token b1K6KeyId)
+          b1K6RevokeKeyResult <- http (revokePublicKey userO1U1Token b1K6KeyId)
           b1K6RevokeKeyResult `shouldSatisfy` isRight
           b1K6ExpiryRevokedResponse <- http (getPublicKeyInfo b1K6KeyId)
           -- This a test integrity check. We need to make sure that the time
@@ -444,7 +444,7 @@ clientSpec = do
                 keys <- traverse readJWK fullyQualifiedFiles
                 forM_ (zip files keys) $ \(keyName,Just key) -> do
                   step $ "Testing " ++ keyDirectory ++ " key: " ++ keyName
-                  http (addPublicKey userB1U1Token org1Prefix key Nothing)
+                  http (addPublicKey userO1U1Token org1Prefix key Nothing)
                     `shouldSatisfyIO` predicate
 
           step "Can add all of the good keys"
@@ -476,33 +476,33 @@ clientSpec = do
               org3 = PartialNewOrg org3Name (mockURI org3Name)
 
           -- Org1User1
-          let userB1U1ClaimSub = "keysTests_OAuthSub_B1U1"
-          let userB1U1 = (testTokenDefaultClaims tokenData)
-                         & claimSub .~ Just (review string userB1U1ClaimSub)
-          userB1U1Token <- (testSignTokenClaims tokenData) userB1U1
+          let userO1U1ClaimSub = "keysTests_OAuthSub_O1U1"
+          let userO1U1 = (testTokenDefaultClaims tokenData)
+                         & claimSub .~ Just (review string userO1U1ClaimSub)
+          userO1U1Token <- (testSignTokenClaims tokenData) userO1U1
           -- Org2User1
-          let userB2U1ClaimSub = "keysTests_OAuthSub_B2U1"
-          let userB2U1 = (testTokenDefaultClaims tokenData)
-                         & claimSub .~ Just (review string userB2U1ClaimSub)
-          userB2U1Token <- (testSignTokenClaims tokenData) userB2U1
+          let userO2U1ClaimSub = "keysTests_OAuthSub_O2U1"
+          let userO2U1 = (testTokenDefaultClaims tokenData)
+                         & claimSub .~ Just (review string userO2U1ClaimSub)
+          userO2U1Token <- (testSignTokenClaims tokenData) userO2U1
           -- Org3User1
-          let userB3U1ClaimSub = "keysTests_OAuthSub_B3U1"
-          let userB3U1 = (testTokenDefaultClaims tokenData)
-                         & claimSub .~ Just (review string userB3U1ClaimSub)
-          userB3U1Token <- (testSignTokenClaims tokenData) userB3U1
+          let userO3U1ClaimSub = "keysTests_OAuthSub_O3U1"
+          let userO3U1 = (testTokenDefaultClaims tokenData)
+                         & claimSub .~ Just (review string userO3U1ClaimSub)
+          userO3U1Token <- (testSignTokenClaims tokenData) userO3U1
 
           -- Create a org to use from further test cases (this is tested in
           --  the orgs tests so doesn't need to be explicitly tested here).
-          _ <- http (addOrg userB1U1Token org1Prefix org1)
-          _ <- http (addOrg userB2U1Token org2Prefix org2)
-          _ <- http (addOrg userB3U1Token org3Prefix org3)
+          _ <- http (addOrg userO1U1Token org1Prefix org1)
+          _ <- http (addOrg userO2U1Token org2Prefix org2)
+          _ <- http (addOrg userO3U1Token org3Prefix org3)
 
 
           step "Can add a location"
           let location1 = NewLocation (SGLN org1Prefix (LocationReference "00011") Nothing)
                                       (Just (Latitude (-25.344490), Longitude 131.035431))
                                       (Just "42 Wallby Way, Sydney")
-          addLocation1Result <- http (addLocation userB1U1Token location1)
+          addLocation1Result <- http (addLocation userO1U1Token location1)
           addLocation1Result `shouldSatisfy` isRight
 
 
@@ -513,7 +513,7 @@ clientSpec = do
           --                             (Just "42 Wallby Way, Sydney")
           -- addLocation2Result1 <- http (addLocation token location2)
           -- addLocation2Result1 `shouldSatisfy` isLeft
-          -- addLocation2Result2 <- http (addLocation (newUserToBasicAuthData userB1U1) location2)
+          -- addLocation2Result2 <- http (addLocation (newUserToBasicAuthData userO1U1) location2)
           -- addLocation2Result2 `shouldSatisfy` isLeft
 
 
@@ -521,12 +521,12 @@ clientSpec = do
           let location3 = NewLocation (SGLN org2Prefix (LocationReference "00017") Nothing)
                                       (Just (Latitude (-25.344490), Longitude 131.035431))
                                       (Just "42 Wallby Way, Sydney")
-          addLocation3Result <- http (addLocation userB1U1Token location3)
+          addLocation3Result <- http (addLocation userO1U1Token location3)
           addLocation3Result `shouldSatisfy` isLeft
 
 
           step "Can add a second location with a different company."
-          addLocation4Result <- http (addLocation userB2U1Token location3)
+          addLocation4Result <- http (addLocation userO2U1Token location3)
           addLocation4Result `shouldSatisfy` isRight
 
 
@@ -534,7 +534,7 @@ clientSpec = do
           let location5 = NewLocation (SGLN org1Prefix (LocationReference "00019") Nothing)
                                       (Just (Latitude (-25.344490), Longitude 131.035431))
                                       (Just "42 Wallby Way, Sydney")
-          addLocation5Result <- http (addLocation userB1U1Token location5)
+          addLocation5Result <- http (addLocation userO1U1Token location5)
           addLocation5Result `shouldSatisfy` isRight
 
 
@@ -542,7 +542,7 @@ clientSpec = do
           let location6 = NewLocation (SGLN org1Prefix (LocationReference "00019") Nothing)
                                       (Just (Latitude (-25.344490), Longitude 131.035431))
                                       (Just "42 Wallby Way, Sydney")
-          addLocation6Result <- http (addLocation userB1U1Token location6)
+          addLocation6Result <- http (addLocation userO1U1Token location6)
           addLocation6Result `shouldSatisfy` isLeft
 
 
@@ -550,7 +550,7 @@ clientSpec = do
           let location7 = NewLocation (SGLN org3Prefix (LocationReference "00019") Nothing)
                                       (Just (Latitude (-25.344490), Longitude 131.035431))
                                       (Just "42 Wallby Way, Sydney")
-          addLocation7Result <- http (addLocation userB3U1Token location7)
+          addLocation7Result <- http (addLocation userO3U1Token location7)
           addLocation7Result `shouldSatisfy` isRight
 
 
