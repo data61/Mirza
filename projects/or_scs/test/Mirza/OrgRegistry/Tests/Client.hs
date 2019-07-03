@@ -292,9 +292,11 @@ clientSpec = do
               org1Prefix = (GS1CompanyPrefix "4000001")
               org1Name = "keyTests_orgName1"
               org1 = PartialNewOrg org1Name (mockURI org1Name)
+              --org1Response = partialNewOrgToOrgResponse org1Prefix org1
               org2Prefix = (GS1CompanyPrefix "4000002")
               org2Name = "keyTests_orgName2"
               org2 = PartialNewOrg org2Name (mockURI org2Name)
+              org2Response = partialNewOrgToOrgResponse org2Prefix org2
 
           -- Org1User1
           let userO1U1ClaimSub = "keysTests_OAuthSub_O1U1"
@@ -358,6 +360,19 @@ clientSpec = do
           getCreationTime key1InfoCreationTime
             `shouldSatisfy` (betweenInclusive b1K1PreInsertionTime b1K1PostInsertionTime)
 
+          step "That a user who is not associated with an org can't add keys for the org"
+          b1K1BadUserIdResult <- http (addPublicKey userO2U1Token org1Prefix goodKey Nothing)
+          b1K1BadUserIdResult `shouldSatisfy` isLeft
+          b1K1BadUserIdResult `shouldSatisfy` (checkFailureStatus NS.forbidden403)
+          b1K1BadUserIdResult `shouldSatisfy` (checkFailureMessage "A user can only act on behalf of the org they are associated with.")
+          -- Test integrity check: That the user inserting the key for this test is not associated with the org.
+          b1K1BadUserIdResultIntegrityCheck1 <- http (getOrgInfo userO2U1Token)
+          b1K1BadUserIdResultIntegrityCheck1 `shouldSatisfy` isRight
+          b1K1BadUserIdResultIntegrityCheck1 `shouldBe` Right [org2Response] -- Note: This ensures that the user doesn't have org1Response.
+          -- Test integrity check: Make sure the key can be added by a user associated with the org.
+          b1K1BadUserIdResultIntegrityCheck2 <- http (addPublicKey userO1U1Token org1Prefix goodKey Nothing)
+          b1K1BadUserIdResultIntegrityCheck2 `shouldSatisfy` isRight
+
           step "That getPublicKey fails gracefully searching for a non existant key"
           b1InvalidKeyResponse <- http (getPublicKey (ORKeyId nil))
           b1InvalidKeyResponse `shouldSatisfy` isLeft
@@ -369,8 +384,6 @@ clientSpec = do
           b1InvalidKeyInfoResponse `shouldSatisfy` isLeft
           b1InvalidKeyInfoResponse `shouldSatisfy` (checkFailureStatus NS.notFound404)
           b1InvalidKeyInfoResponse `shouldSatisfy` (checkFailureMessage "Public key with the given id not found.")
-
-          -- TODO: That a user that is not associated with the org can't add keys for it.
 
           let expiryDelay = 3
           step $ "Can add a good key with exipry time (" ++ (show expiryDelay) ++ " seconds from now)"
