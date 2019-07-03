@@ -7,8 +7,8 @@ module Mirza.OrgRegistry.Handlers.Org
   ( addOrg
   , addOrgAuth
   , addOrgQuery
-  , addOrganisationMappingAuth
-  , addOrganisationMapping
+  , addOrgMappingAuth
+  , addOrgMapping
   , searchOrgs
   , searchOrgsQuery
   , getOrgInfo
@@ -44,9 +44,9 @@ import           Network.URI                              (nullURI, parseURI,
 
 orgToOrgResponse :: Org -> OrgResponse
 orgToOrgResponse OrgT{..} = OrgResponse
-  { orgGS1CompanyPrefix = org_gs1_company_prefix
-  , orgName             = org_name
-  , orgUrl              = maybe nullURI id $ parseURI $ unpack org_url
+  { orgResponseGS1CompanyPrefix = org_gs1_company_prefix
+  , orgResponseName             = org_name
+  , orgResponseUrl              = maybe nullURI id $ parseURI $ unpack org_url
   }
 
 
@@ -78,21 +78,22 @@ addOrgAuth authUser gs1CompanyPrefix partialNewOrg = do
   _ <- addOrg (authUserId authUser) $ partialNewOrgToNewOrg gs1CompanyPrefix partialNewOrg
   pure NoContent
 
+
 addOrg :: ( Member context '[HasDB]
                , Member err     '[AsORError, AsSqlError])
-            => ORT.UserId -> NewOrg -> AppM context err GS1CompanyPrefix
-addOrg userId = (fmap org_gs1_company_prefix)
+            => OAuthSub -> NewOrg -> AppM context err GS1CompanyPrefix
+addOrg oAuthSub = (fmap org_gs1_company_prefix)
   . (handleError (transformSqlUniqueViloation "orgs_pkey" (const $ _GS1CompanyPrefixExistsORE # ())))
   . runDb
-  . addOrgAndInitialUserQuery userId
+  . addOrgAndInitialUserQuery oAuthSub
   . newOrgToOrg
 
 
 addOrgAndInitialUserQuery :: (AsORError err, HasCallStack)
-                               => ORT.UserId -> Org -> DB context err Org
-addOrgAndInitialUserQuery user org = do
+                               => OAuthSub -> Org -> DB context err Org
+addOrgAndInitialUserQuery oAuthSub org = do
   insertedOrg  <- addOrgQuery org
-  _insertedMapping <- addOrganisationMappingQuery (org_gs1_company_prefix insertedOrg) user
+  _insertedMapping <- addOrgMappingQuery (org_gs1_company_prefix insertedOrg) oAuthSub
   pure insertedOrg
 
 
@@ -109,38 +110,38 @@ addOrgQuery org@OrgT{..} = do
     _             -> throwing _UnexpectedErrorORE callStack
 
 
-addOrganisationMappingAuth :: ( Member context '[HasDB]
+addOrgMappingAuth :: ( Member context '[HasDB]
                               , Member err     '[AsORError, AsSqlError])
-                           => ORT.AuthUser -> GS1CompanyPrefix -> ORT.UserId -> AppM context err NoContent
-addOrganisationMappingAuth authUser gs1CompanyPrefix addedUserId = do
+                           => ORT.AuthUser -> GS1CompanyPrefix -> OAuthSub -> AppM context err NoContent
+addOrgMappingAuth authUser gs1CompanyPrefix addedUserId = do
   _ <- runDb $ userOrganisationAuthorisationQuery authUser gs1CompanyPrefix
-  _ <- addOrganisationMapping gs1CompanyPrefix addedUserId
+  _ <- addOrgMapping gs1CompanyPrefix addedUserId
   pure NoContent
 
 
-addOrganisationMapping :: ( Member context '[HasDB]
+addOrgMapping :: ( Member context '[HasDB]
                           , Member err     '[AsORError, AsSqlError])
-                       => GS1CompanyPrefix -> ORT.UserId -> AppM context err OrganisationMapping
-addOrganisationMapping prefix user =
-  -- We really probably should get the OrganisationMapping from the database here rather then constructing a new one,
+                       => GS1CompanyPrefix -> OAuthSub -> AppM context err OrgMapping
+addOrgMapping prefix oAuthSub = do
+  -- We really probably should get the OrgMapping from the database here rather then constructing a new one,
   -- which will mean that the updated time is correct rather then being empty, but this is not perfectly clean either
   -- since in "theory" we need to permit for that database operation to fail. Other options include not returning the
-  -- OrganisationMappingT at all. Constructing the OrganisationMappingT seems reasonable for now.
-  (handleError (handleSqlUniqueViloation "org_mapping_pkey" (const $ pure (OrganisationMappingT (OrgId prefix) (Schema.UserId $ getUserId user) Nothing))))
-  $ runDb
-  $ (addOrganisationMappingQuery prefix user)
+  -- OrgMappingT at all. Constructing the OrgMappingT seems reasonable for now.
+  (handleError (handleSqlUniqueViloation "org_mapping_pkey" (const $ pure (OrgMappingT (OrgPrimaryKey prefix) (Schema.UserPrimaryKey oAuthSub) Nothing))))
+    $ runDb
+    $ (addOrgMappingQuery prefix oAuthSub)
 
 
-addOrganisationMappingQuery :: (AsORError err, HasCallStack)
-                            => GS1CompanyPrefix -> ORT.UserId -> DB context err OrganisationMapping
-addOrganisationMappingQuery prefix userId = do
-  checkUserExistsQuery userId
+addOrgMappingQuery :: (AsORError err, HasCallStack)
+                            => GS1CompanyPrefix -> OAuthSub -> DB context err OrgMapping
+addOrgMappingQuery prefix oAuthSub = do
+  checkUserExistsQuery oAuthSub
 
   result <- pg $ runInsertReturningList (_orgMapping orgRegistryDB)
-            $ insertValues [OrganisationMappingT (OrgId prefix) (Schema.UserId $ getUserId userId) Nothing]
+            $ insertValues [OrgMappingT (OrgPrimaryKey prefix) (Schema.UserPrimaryKey oAuthSub) Nothing]
   case result of
-    [insertedOrganisationMapping] -> pure insertedOrganisationMapping
-    _                             -> throwing _UnexpectedErrorORE callStack
+    [insertedOrgMapping] -> pure insertedOrgMapping
+    _                    -> throwing _UnexpectedErrorORE callStack
 
 
 searchOrgs :: ( Member context '[HasDB]
@@ -165,14 +166,12 @@ getOrgInfo :: ( Member context '[HasDB]
                    , Member err     '[AsORError, AsSqlError])
                 => ORT.AuthUser
                 -> AppM context err [OrgResponse]
-getOrgInfo (ORT.AuthUser (ORT.UserId uId)) = do
+getOrgInfo (ORT.AuthUser oAuthSub) = do
   orgs <- runDb $ pg $ runSelectReturningList $ select $ do
         mapping <- all_ (_orgMapping orgRegistryDB)
-        guard_ (org_mapping_user_id mapping ==. val_ (Schema.UserId uId))
+        guard_ (org_mapping_user_oauth_sub mapping ==. val_ (Schema.UserPrimaryKey oAuthSub))
         pure $ org_mapping_gs1_company_prefix mapping
   let queryOrganistaion gs1CompanyPrefix = fmap orgToOrgResponse <$> runDb (searchOrgsQuery (Just gs1CompanyPrefix) Nothing Nothing)
-      getPrefix :: PrimaryKey OrgT Identity -> GS1CompanyPrefix
-      getPrefix (OrgId prefix) = prefix
       companyPrefixes :: [GS1CompanyPrefix]
-      companyPrefixes = getPrefix <$> orgs
+      companyPrefixes = orgPrimaryKeyToGS1CompanyPrefix <$> orgs
   concat <$> traverse queryOrganistaion companyPrefixes

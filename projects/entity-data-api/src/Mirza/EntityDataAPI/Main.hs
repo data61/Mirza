@@ -13,7 +13,7 @@ import           Mirza.EntityDataAPI.Database.Utils (addUser, addUserSub)
 import           Mirza.EntityDataAPI.Errors
 import           Mirza.EntityDataAPI.Types
 
-import           Mirza.Common.Utils                 (fetchJWKs)
+import           Mirza.Common.Utils                 (fetchJWKSWithManager)
 
 import           Network.HTTP.ReverseProxy          (ProxyDest (..))
 import           Network.Wai                        (Middleware)
@@ -106,7 +106,7 @@ initContext (Opts myService (ServiceInfo (Hostname destHost) (Port destPort)) _m
                     1 -- Number of "sub-pools",
                     60 -- How long in seconds to keep a connection open for reuse
                     20 -- Max number of connections to have open at any one time
-  fetchJWKs mngr url >>= \case
+  fetchJWKSWithManager mngr url >>= \case
     Left err -> fail $ show err
     Right jwkSet -> pure $ AuthContext myService proxyDest mngr jwkSet (parseClientIdList clientIds) connpool
     where

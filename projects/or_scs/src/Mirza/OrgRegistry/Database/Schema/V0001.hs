@@ -9,6 +9,9 @@
 -- Convention: Table types and constructors are suffixed with T (for Table).
 module Mirza.OrgRegistry.Database.Schema.V0001 where
 
+import           Mirza.OrgRegistry.Types       (OAuthSub (..),
+                                                oAuthSubFieldType)
+
 import qualified Data.GS1.EPC                  as EPC
 import           Mirza.Common.Beam             (lastUpdateField)
 import           Mirza.Common.GS1BeamOrphans
@@ -29,7 +32,7 @@ import           Database.Beam.Postgres        (PgCommandSyntax, PgJSON,
 import           Database.Beam.Postgres.Syntax (PgDataTypeSyntax)
 
 import           Data.Aeson                    hiding (json)
-import           Data.Swagger
+import           Data.Swagger                  hiding (prefix)
 
 import           GHC.Generics                  (Generic)
 
@@ -50,7 +53,7 @@ pkSerialType = uuid
 data OrgRegistryDB f = OrgRegistryDB
   { _orgs       :: f (TableEntity OrgT)
   , _users      :: f (TableEntity UserT)
-  , _orgMapping :: f (TableEntity OrganisationMappingT)
+  , _orgMapping :: f (TableEntity OrgMappingT)
   , _keys       :: f (TableEntity KeyT)
   }
   deriving Generic
@@ -61,28 +64,27 @@ migration :: () -> Migration PgCommandSyntax (CheckedDatabaseSettings Postgres O
 migration () =
   OrgRegistryDB
     <$> createTable "orgs" (OrgT
-          (field "org_gs1_company_prefix" gs1CompanyPrefixType)
+          (field "org_gs1_company_prefix" gs1CompanyPrefixFieldType)
           (field "org_name" (varchar (Just defaultFieldMaxLength)) notNull)
           (field "org_url"  (text) notNull)
           lastUpdateField
           )
     <*> createTable "users" (UserT
-          (field "user_id" pkSerialType)
-          (field "oauth_sub" (varchar (Just defaultFieldMaxLength)) notNull)
+          (field "oauth_sub" oAuthSubFieldType notNull)
           lastUpdateField
           )
-    <*> createTable "org_mapping" (OrganisationMappingT
-          (OrgId $ field "mapping_org_id" gs1CompanyPrefixType)
-          (UserId $ field "mapping_user_id" pkSerialType)
+    <*> createTable "org_mapping" (OrgMappingT
+          (OrgPrimaryKey $ field "mapping_org_id" gs1CompanyPrefixFieldType)
+          (UserPrimaryKey $ field "mapping_user_oauth_sub" oAuthSubFieldType)
           lastUpdateField
           )
     <*> createTable "keys" (KeyT
           (field "key_id" pkSerialType)
-          (UserId $ field "key_user_id" pkSerialType)
+          (OrgPrimaryKey $ field "key_org" gs1CompanyPrefixFieldType)
           (field "jwk" json notNull)
           (field "creation_time" timestamp)
           (field "revocation_time" (maybeType timestamp))
-          (UserId $ field "revoking_user_id" (maybeType pkSerialType))
+          (UserPrimaryKey $ field "revoking_user_id" (maybeType oAuthSubFieldType))
           (field "expiration_time" (maybeType timestamp))
           lastUpdateField
           )
@@ -95,27 +97,26 @@ type User = UserT Identity
 deriving instance Show User
 
 data UserT f = UserT
-  { user_id          :: C f PrimaryKeyType
-  , user_oauth_sub   :: C f Text
+  { user_oauth_sub   :: C f OAuthSub
   , user_last_update :: C f (Maybe LocalTime)
   } deriving Generic
 
-type UserId = PrimaryKey UserT Identity
+type UserPrimaryKey = PrimaryKey UserT Identity
 deriving instance Show (PrimaryKey UserT Identity)
-instance ToSchema UserId
-instance ToParamSchema UserId
+instance ToSchema UserPrimaryKey
+instance ToParamSchema UserPrimaryKey
 instance ToJSON (PrimaryKey UserT Identity) where
-  toJSON (UserId uid) = toJSON uid
+  toJSON (UserPrimaryKey uid) = toJSON uid
 instance FromJSON (PrimaryKey UserT Identity) where
-  parseJSON = fmap UserId . parseJSON
+  parseJSON = fmap UserPrimaryKey . parseJSON
 
 instance Beamable UserT
 instance Beamable (PrimaryKey UserT)
 
 instance Table UserT where
-  data PrimaryKey UserT f = UserId (C f PrimaryKeyType)
+  data PrimaryKey UserT f = UserPrimaryKey (C f OAuthSub)
     deriving Generic
-  primaryKey = UserId . user_id
+  primaryKey = UserPrimaryKey . user_oauth_sub
 deriving instance Eq (PrimaryKey UserT Identity)
 
 
@@ -136,44 +137,48 @@ data OrgT f = OrgT
   }
   deriving Generic
 
-type OrgId = PrimaryKey OrgT Identity
+type OrgPrimaryKey = PrimaryKey OrgT Identity
 deriving instance Show (PrimaryKey OrgT Identity)
 
 instance Beamable OrgT
 instance Beamable (PrimaryKey OrgT)
 
 instance Table OrgT where
-  data PrimaryKey OrgT f = OrgId (C f EPC.GS1CompanyPrefix)
+  data PrimaryKey OrgT f = OrgPrimaryKey (C f EPC.GS1CompanyPrefix)
     deriving Generic
-  primaryKey = OrgId . org_gs1_company_prefix
+  primaryKey = OrgPrimaryKey . org_gs1_company_prefix
 deriving instance Eq (PrimaryKey OrgT Identity)
+
+
+orgPrimaryKeyToGS1CompanyPrefix :: OrgPrimaryKey -> EPC.GS1CompanyPrefix
+orgPrimaryKeyToGS1CompanyPrefix (OrgPrimaryKey prefix) = prefix
 
 
 --------------------------------------------------------------------------------
 -- Organisation Mapping Table
 --------------------------------------------------------------------------------
 
-type OrganisationMapping = OrganisationMappingT Identity
-deriving instance Show OrganisationMapping
+type OrgMapping = OrgMappingT Identity
+deriving instance Show OrgMapping
 
-data OrganisationMappingT f = OrganisationMappingT
+data OrgMappingT f = OrgMappingT
   { org_mapping_gs1_company_prefix :: PrimaryKey OrgT f
-  , org_mapping_user_id            :: PrimaryKey UserT f
+  , org_mapping_user_oauth_sub     :: PrimaryKey UserT f
   , org_mapping_last_update        :: C f (Maybe LocalTime)
   }
   deriving Generic
 
-type OrganisationMappingId = PrimaryKey OrganisationMappingT Identity
-deriving instance Show (PrimaryKey OrganisationMappingT Identity)
+type OrgMappingId = PrimaryKey OrgMappingT Identity
+deriving instance Show (PrimaryKey OrgMappingT Identity)
 
-instance Beamable OrganisationMappingT
-instance Beamable (PrimaryKey OrganisationMappingT)
+instance Beamable OrgMappingT
+instance Beamable (PrimaryKey OrgMappingT)
 
-instance Table OrganisationMappingT where
-  data PrimaryKey OrganisationMappingT f = OrganisationMappingId (PrimaryKey OrgT f) (PrimaryKey UserT f)
+instance Table OrgMappingT where
+  data PrimaryKey OrgMappingT f = OrgMappingId (PrimaryKey OrgT f) (PrimaryKey UserT f)
     deriving Generic
-  primaryKey = OrganisationMappingId <$> org_mapping_gs1_company_prefix <*> org_mapping_user_id
-deriving instance Eq (PrimaryKey OrganisationMappingT Identity)
+  primaryKey = OrgMappingId <$> org_mapping_gs1_company_prefix <*> org_mapping_user_oauth_sub
+deriving instance Eq (PrimaryKey OrgMappingT Identity)
 
 
 --------------------------------------------------------------------------------
@@ -191,7 +196,7 @@ deriving instance Show ( PrimaryKey UserT (Nullable Identity))
 -- defined in Mirza.Common.Time
 data KeyT f = KeyT
   { key_id           :: C f PrimaryKeyType
-  , key_user_id      :: PrimaryKey UserT f    -- TODO: We should record the org that is associated with the key...not sure if there is any need to store the user...
+  , key_org          :: PrimaryKey OrgT f
   , key_jwk          :: C f (PgJSON JWK)
   , creation_time    :: C f LocalTime -- Stored as UTC Time
   -- It would be nicer and cleaner to store the revocation time and user as a
@@ -207,14 +212,14 @@ data KeyT f = KeyT
   }
   deriving Generic
 
-type KeyId = PrimaryKey KeyT Identity
+type KeyPrimaryKey = PrimaryKey KeyT Identity
 deriving instance Show (PrimaryKey KeyT Identity)
 
 instance Beamable KeyT
 instance Beamable (PrimaryKey KeyT)
 
 instance Table KeyT where
-  data PrimaryKey KeyT f = KeyId (C f PrimaryKeyType)
+  data PrimaryKey KeyT f = KeyPrimaryKey (C f PrimaryKeyType)
     deriving Generic
-  primaryKey = KeyId . key_id
+  primaryKey = KeyPrimaryKey . key_id
 deriving instance Eq (PrimaryKey KeyT Identity)

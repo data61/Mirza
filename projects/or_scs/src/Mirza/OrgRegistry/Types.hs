@@ -16,6 +16,8 @@ module Mirza.OrgRegistry.Types (
   , module CT
   ) where
 
+
+import           Mirza.Common.Beam
 import           Mirza.Common.Time                    (CreationTime,
                                                        ExpirationTime,
                                                        RevocationTime)
@@ -26,8 +28,8 @@ import qualified Data.GS1.EPC                         as EPC
 
 import           Data.Pool                            as Pool
 
-import           Database.Beam
-import           Database.Beam.Backend.SQL
+import           Database.Beam                        as B
+import           Database.Beam.Backend.SQL            as BSQL
 import qualified Database.Beam.Migrate                as BMigrate
 import qualified Database.Beam.Postgres               as BPostgres
 import           Database.Beam.Postgres.Syntax        (PgDataTypeSyntax)
@@ -37,8 +39,11 @@ import           Database.PostgreSQL.Simple.ToField   (ToField, toField)
 
 import           Crypto.JOSE                          (JWK)
 import           Crypto.JWT                           (Audience (..), ClaimsSet,
-                                                       claimSub, string)
+                                                       claimSub, emptyClaimsSet,
+                                                       string)
 
+import           Servant                              (FromHttpApiData (parseUrlPiece),
+                                                       ToHttpApiData (toUrlPiece))
 import qualified Servant.Auth.Server                  as SAS
 
 import           Katip                                as K
@@ -137,35 +142,74 @@ instance (HasAuthAudience context, HasAuthPublicKey context)
 --       a section appears logically bottom to top, rather then the normal top
 --       to bottom.
 
-
-
 -- | Note that OrgRegistry.NewUser is expected to become different in the
 -- future, and hence this duplication
 data NewUser = NewUser
-  { newUserOAuthSub     :: Text
+  { newUserOAuthSub     :: OAuthSub
   } deriving (Generic, Eq, Show)
 instance ToSchema NewUser
 
 -- Auth User Types:
 newtype VerifiedTokenClaims = VerifiedTokenClaims
-  { verifiedTokenClaimsSub :: Text
+  { verifiedTokenClaimsSub :: OAuthSub
   } deriving (Show)
 instance SAS.ToJWT VerifiedTokenClaims where
-  encodeJWT = error "Not implemented" -- TODO: Implement this properly
+  encodeJWT (VerifiedTokenClaims (OAuthSub oAuthSub)) = emptyClaimsSet & claimSub .~ Just (review string oAuthSub)
 
 instance SAS.FromJWT VerifiedTokenClaims where
   decodeJWT :: ClaimsSet -> Either Text VerifiedTokenClaims
   decodeJWT claims = maybeToEither "No sub present in token" maybeVerifiedTokenClaims where
     maybeStringOrURISub = view claimSub claims
     maybeTextSub = (view string) <$> maybeStringOrURISub
-    maybeVerifiedTokenClaims = VerifiedTokenClaims <$> maybeTextSub
+    maybeVerifiedTokenClaims = VerifiedTokenClaims . OAuthSub <$> maybeTextSub
     maybeToEither leftText = maybe (Left leftText) Right
 
 
-newtype AuthUser = AuthUser { authUserId :: UserId }
+newtype AuthUser = AuthUser { authUserId :: OAuthSub }
   deriving (Show, Eq, Read, Generic)
 instance ToSchema AuthUser
 instance ToParamSchema AuthUser
+
+newtype OAuthSub = OAuthSub Text deriving (Generic, Eq, Show, Read)
+instance ToSchema OAuthSub
+instance ToParamSchema OAuthSub
+
+instance ToJSON (OAuthSub) where
+  toJSON (OAuthSub oAuthSub) = toJSON oAuthSub
+instance FromJSON (OAuthSub) where
+  parseJSON = fmap OAuthSub . parseJSON
+
+instance FromHttpApiData (OAuthSub) where
+  parseUrlPiece oAuthSub = OAuthSub <$> parseUrlPiece oAuthSub
+
+instance ToHttpApiData OAuthSub where
+  toUrlPiece (OAuthSub oAuthSub) = toUrlPiece oAuthSub
+
+instance BSQL.HasSqlValueSyntax be Text =>
+  BSQL.HasSqlValueSyntax be OAuthSub where
+    sqlValueSyntax (OAuthSub sub) = BSQL.sqlValueSyntax sub
+instance (BMigrate.IsSql92ColumnSchemaSyntax be) =>
+  BMigrate.HasDefaultSqlDataTypeConstraints be OAuthSub
+
+instance (BSQL.HasSqlValueSyntax (BSQL.Sql92ExpressionValueSyntax be) Bool,
+          BSQL.IsSql92ExpressionSyntax be) =>
+          B.HasSqlEqualityCheck be OAuthSub
+instance (BSQL.HasSqlValueSyntax (BSQL.Sql92ExpressionValueSyntax be) Bool,
+          BSQL.IsSql92ExpressionSyntax be) =>
+          B.HasSqlQuantifiedEqualityCheck be OAuthSub
+
+instance BSQL.FromBackendRow BPostgres.Postgres OAuthSub where
+  fromBackendRow = OAuthSub <$> BSQL.fromBackendRow
+
+instance FromField OAuthSub where
+  fromField mbs conv = OAuthSub <$> fromField mbs conv
+
+instance ToField OAuthSub where
+  toField (OAuthSub sub) = toField sub
+
+oAuthSubFieldType :: BMigrate.DataType PgDataTypeSyntax OAuthSub
+oAuthSubFieldType = textType
+
 
 
 data PartialNewOrg = PartialNewOrg
@@ -205,9 +249,9 @@ data NewOrg = NewOrg
 
 -- Org Response Types:
 data OrgResponse = OrgResponse
-  { orgGS1CompanyPrefix :: EPC.GS1CompanyPrefix
-  , orgName             :: Text
-  , orgUrl              :: Network.URI.URI
+  { orgResponseGS1CompanyPrefix :: EPC.GS1CompanyPrefix
+  , orgResponseName             :: Text
+  , orgResponseUrl              :: Network.URI.URI
   }
   deriving (Show, Eq, Generic)
 instance ToSchema OrgResponse
@@ -396,13 +440,13 @@ instance FromJSON HealthResponse where
 
 
 data KeyInfoResponse = KeyInfoResponse
-  { keyInfoId             :: CT.ORKeyId
-  , keyInfoUserId         :: UserId  -- TODO: There should be a forien key for Org in here....not sure that user is relevant...
-  , keyInfoState          :: KeyState
-  , keyInfoCreationTime   :: CreationTime
-  , keyInfoRevocation     :: Maybe (RevocationTime, UserId)
-  , keyInfoExpirationTime :: Maybe ExpirationTime
-  , keyInfoJWK            :: JWK
+  { keyInfoId               :: CT.ORKeyId
+  , keyInfoGS1CompanyPrefix :: GS1CompanyPrefix
+  , keyInfoState            :: KeyState
+  , keyInfoCreationTime     :: CreationTime
+  , keyInfoRevocation       :: Maybe (RevocationTime, OAuthSub)
+  , keyInfoExpirationTime   :: Maybe ExpirationTime
+  , keyInfoJWK              :: JWK
   }
   deriving (Generic, Show, Eq)
 
@@ -438,6 +482,7 @@ data ORError
   -- | The user tried to add a org with the a GS1CompanyPrefix that already exsits.
   | GS1CompanyPrefixExistsORE
   | OrgDoesNotExistORE
+  | InvalidOAuthSubORE
   | UserAuthFailureORE (SAS.AuthResult ())
   -- | When adding a user fails for an unknown reason.
   | UserCreationErrorORE String CallStack
@@ -445,7 +490,7 @@ data ORError
   | LocationNotKnownORE
   | LocationExistsORE
   | UnknownUserORE
-  | OperationNotPermittedORE GS1CompanyPrefix UserId
+  | OperationNotPermittedORE GS1CompanyPrefix OAuthSub
   -- | An error that isn't specifically excluded by the types, but that the
   -- developers don't think is possible to hit, or know of a situation which
   -- could cause this case to be exercised.
@@ -470,7 +515,7 @@ data ORKeyError
   -- this error it might be a good time to re-evaulate whether it is better to
   -- fix the storage datatype so its not possible to generate this error in the
   -- first place.
-  | InvalidRevocationORKE (Maybe LocalTime) (Maybe PrimaryKeyType) CallStack
+  | InvalidRevocationORKE (Maybe LocalTime) (Maybe OAuthSub) CallStack
   | AddedExpiredKeyORKE
   deriving (Show)
 

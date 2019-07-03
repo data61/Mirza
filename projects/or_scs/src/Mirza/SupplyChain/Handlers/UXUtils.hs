@@ -11,6 +11,8 @@ module Mirza.SupplyChain.Handlers.UXUtils
 
 import           GHC.Generics                       (Generic)
 
+import           GHC.Generics                       (Generic)
+
 import           Mirza.Common.GS1BeamOrphans        (LabelEPCUrn (..))
 
 import           Mirza.SupplyChain.Handlers.Queries (listEventsQuery)
@@ -52,7 +54,7 @@ instance FromJSON PrettyEventResponse where
 instance ToJSON PrettyEventResponse where
   toJSON (PrettyEventResponse ev (Just orgLoc)) = object
     [ "eventType" .= Ev._etype ev
-    , "orgName" .= (orgName . orgResponse) orgLoc
+    , "orgName" .= (orgResponseName . orgResponse) orgLoc
     , "orgLocation" .= locationResponse orgLoc
     ]
   toJSON (PrettyEventResponse ev Nothing) = object

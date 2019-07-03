@@ -28,7 +28,6 @@ import           Mirza.SupplyChain.Types          as ST
 
 import qualified Data.Text                        as T
 
-import           Servant.API.BasicAuth            (BasicAuthData (..))
 import           Servant.Auth.Client              (Token)
 
 import           Data.Hashable                    (Hashable (..))
@@ -114,15 +113,13 @@ insertAndAuth scsUrl orUrl authToken locMap ht (entity:entities) = do
       (Entity name companyPrefix orgName orgUrl locations (KeyPairPaths _ pubKeyPath)) = entity
       newOrg = ORT.PartialNewOrg orgName orgUrl
   let [_newUserOR] = GenOR.generateMultipleUsers [name]
-  let userAuth = BasicAuthData "" "" -- TODO: Extract info from or associated with newUserOR.
   pubKey <- fmap expectJust $ liftIO $ readJWK pubKeyPath
+  _insertedUserIdOR <- httpOR $ ORClient.addUser authToken
   _insertedPrefix <- httpOR $ ORClient.addOrg authToken companyPrefix newOrg
-  -- TODO: Create a user for associating with tests.
-  --_insertedUserIdOR <- httpOR $ ORClient.addUser authToken newUserOR
-  orKeyId <- fmap expectRight $ httpOR $ ORClient.addPublicKey authToken pubKey Nothing
+  orKeyId <- fmap expectRight $ httpOR $ ORClient.addPublicKey authToken companyPrefix pubKey Nothing
 
   let newLocs = flip H.lookup locMap <$> locations
-  traverse_  (maybeInsertLocation (authDataToTokenTodoRemove userAuth)) newLocs
+  traverse_  (maybeInsertLocation authToken) newLocs
   let updatedHt = H.insert entity orKeyId ht
   insertAndAuth scsUrl orUrl authToken locMap updatedHt entities
   where
@@ -145,7 +142,7 @@ clientSignEvent evInfo entity = do
       (Entity _ _ _ _ _ (KeyPairPaths privKeyPath pubKeyPath)) = entity
   privKey <- fmap expectJust $ liftIO $ readJWK privKeyPath
   pubKey <- fmap expectJust $ liftIO $ readJWK pubKeyPath
-  keyId <- ORClient.addPublicKey undefined pubKey Nothing
+  keyId <- ORClient.addPublicKey undefined undefined pubKey Nothing
 
   s <- liftIO $ runExceptT @JOSE.Error (
           signJWS toSign (Identity (newJWSHeader ((), RS256), privKey))
