@@ -110,7 +110,6 @@ clientSpec = do
   let orgTests = testCaseSteps "Can create orgs" $ \step ->
         bracket runORApp (\(a,b,_) -> endWaiApp (a,b)) $ \(_tid,baseurl,tokenData) -> do
           let http = runClient baseurl
-              token = testToken tokenData
               org1Prefix   = GS1CompanyPrefix "2000001"
               org1Name     = "orgTests_org1Name"
               org1         = PartialNewOrg org1Name (mockURI org1Name)
@@ -128,29 +127,62 @@ clientSpec = do
               nullURIPrefix   = GS1CompanyPrefix  "3000004"
               invlaidURLPrefix   = GS1CompanyPrefix  "3000005"
 
+          -- User1
+          let user1ClaimSub = "businessTests_OAuthSub_U"
+          let user1 = (testTokenDefaultClaims tokenData)
+                      & claimSub .~ Just (review string user1ClaimSub)
+          user1Token <- (testSignTokenClaims tokenData) user1
+          -- It would be probably nice to generate these rather then the copy-pasta that is here, but this will do for now.
+          -- User2
+          let user2ClaimSub = "businessTests_OAuthSub_U2"
+          let user2 = (testTokenDefaultClaims tokenData)
+                       & claimSub .~ Just (review string user2ClaimSub)
+          user2Token <- (testSignTokenClaims tokenData) user2
+          -- User3
+          let user3ClaimSub = "businessTests_OAuthSub_U3"
+          let user3 = (testTokenDefaultClaims tokenData)
+                       & claimSub .~ Just (review string user3ClaimSub)
+          user3Token <- (testSignTokenClaims tokenData) user3
+          -- User4
+          let user4ClaimSub = "businessTests_OAuthSub_U4"
+          let user4 = (testTokenDefaultClaims tokenData)
+                       & claimSub .~ Just (review string user4ClaimSub)
+          user4Token <- (testSignTokenClaims tokenData) user4
+          -- User5
+          let user5ClaimSub = "businessTests_OAuthSub_U5"
+          let user5 = (testTokenDefaultClaims tokenData)
+                       & claimSub .~ Just (review string user5ClaimSub)
+          user5Token <- (testSignTokenClaims tokenData) user5
+          -- User6
+          let user6ClaimSub = "businessTests_OAuthSub_U6"
+          let user6 = (testTokenDefaultClaims tokenData)
+                       & claimSub .~ Just (review string user6ClaimSub)
+          user6Token <- (testSignTokenClaims tokenData) user6
+
+
           step "Can create a new org"
-          addOrg1Result <- http (addOrg token org1Prefix org1)
+          addOrg1Result <- http (addOrg user1Token org1Prefix org1)
           addOrg1Result `shouldSatisfy` isRight
           addOrg1Result `shouldBe` (Right Servant.API.ContentTypes.NoContent)
 
           step "That the user who added the org is associated with the org"
-          orgSearchResult <- http (getOrgInfo token)
+          orgSearchResult <- http (getOrgInfo user1Token)
           orgSearchResult `shouldSatisfy` isRight
           orgSearchResult `shouldBe` Right [org1Response]
 
-          step "That the added org was added and can be listed."
+          step "That the added org was actually added and can be listed."
           http (searchOrgs Nothing Nothing Nothing) >>=
             either (const $ expectationFailure "Error listing orgs")
                    (`shouldContain` [org1Response])
 
           step "Can't add org with the same GS1CompanyPrefix"
-          duplicatePrefixResult <- http (addOrg token org1Prefix org2)
+          duplicatePrefixResult <- http (addOrg user1Token org1Prefix org2)
           duplicatePrefixResult `shouldSatisfy` isLeft
           duplicatePrefixResult `shouldSatisfy` (checkFailureStatus NS.badRequest400)
           duplicatePrefixResult `shouldSatisfy` (checkFailureMessage "GS1 company prefix already exists.")
 
           step "Can add a second org"
-          addOrg2Result <- http (addOrg token org2Prefix org2)
+          addOrg2Result <- http (addOrg user1Token org2Prefix org2)
           addOrg2Result `shouldSatisfy` isRight
           addOrg2Result `shouldBe` (Right Servant.API.ContentTypes.NoContent)
 
@@ -161,7 +193,7 @@ clientSpec = do
                                      , org2Response])
 
           step "Can add a third org"
-          addOrg3Result <- http (addOrg token org3Prefix org3)
+          addOrg3Result <- http (addOrg user1Token org3Prefix org3)
           addOrg3Result `shouldSatisfy` isRight
           addOrg3Result `shouldBe` (Right Servant.API.ContentTypes.NoContent)
 
@@ -175,6 +207,7 @@ clientSpec = do
           searchOrg3NameResult `shouldSatisfy` isRight
           searchOrg3NameResult `shouldBe` (Right [org3Response])
 
+          step "Searching by org name works when there are multiple matches"
           searchOrg12NameResult <- http (searchOrgs Nothing (Just "Tests_") Nothing)
           searchOrg12NameResult `shouldSatisfy` isRight
           searchOrg12NameResult & either (error "You said this was Right!")
@@ -183,7 +216,7 @@ clientSpec = do
 
           -- TODO: Include me (github #205):
           -- step "That the GS1CompanyPrefix can't be empty (\"\")."
-          -- emptyPrefixResult <- http (addOrg token emptyPrefixOrg)
+          -- emptyPrefixResult <- http (addOrg user1Token emptyPrefixOrg)
           -- emptyPrefixResult `shouldSatisfy` isLeft
           -- emptyPrefixResult `shouldSatisfy` (checkFailureStatus NS.badRequest400)
           -- emptyPrefixResult `shouldSatisfy` (checkFailureMessage "TODO")
@@ -193,24 +226,61 @@ clientSpec = do
           -- type specification but is logically incorrect if the type
           -- constraint is improved.
           -- step "That the GS1CompanyPrefix can't be a string."
-          -- stringPrefixResult <- http (addOrg token stringPrefix1Org)
+          -- stringPrefixResult <- http (addOrg user1Token stringPrefix1Org)
           -- stringPrefixResult `shouldSatisfy` isLeft
           -- stringPrefixResult `shouldSatisfy` (checkFailureStatus NS.badRequest400)
           -- stringPrefixResult `shouldSatisfy` (checkFailureMessage "TODO")
 
-          -- TODO: That users who are not associated with an org can't add users to the org.
-          -- TODO: Can associate multiple users with an org.
-          -- TODO: That users who haven't been "registered" added can't be added to an org.
-          -- TODO: That users who are not the initial user but who have been associated with the org can add more users.
+          step "Can add a second user to an org"
+          _ <- http (addUser user2Token)
+          secondUserAddResult <- http (addUserToOrg user1Token org1Prefix $ OAuthSub user2ClaimSub)
+          secondUserAddResult `shouldBe` (Right Servant.API.ContentTypes.NoContent)
+          secondUserOrgSearchResult <- http (getOrgInfo user2Token)
+          secondUserOrgSearchResult `shouldSatisfy` isRight
+          secondUserOrgSearchResult `shouldBe` Right [org1Response]
+
+          step "That secondary users can also add users to an org"
+          _ <- http (addUser user3Token)
+          thirdUserAddResult <- http (addUserToOrg user2Token org1Prefix $ OAuthSub user3ClaimSub)
+          thirdUserAddResult `shouldSatisfy` isRight
+          thirdUserAddResult `shouldBe` (Right Servant.API.ContentTypes.NoContent)
+          thirdUserOrgSearchResult <- http (getOrgInfo user3Token)
+          thirdUserOrgSearchResult `shouldSatisfy` isRight
+          thirdUserOrgSearchResult `shouldBe` Right [org1Response]
+
+          step "That a user who is not associated with an org can't add users to the org"
+          _ <- http (addUser user4Token)
+          _ <- http (addUser user5Token)
+          notAssociatedUserAddResult <- http (addUserToOrg user4Token org1Prefix $ OAuthSub user5ClaimSub)
+          notAssociatedUserAddResult `shouldSatisfy` isLeft
+          notAssociatedUserAddResult `shouldSatisfy` (checkFailureStatus NS.forbidden403)
+          notAssociatedUserAddResult `shouldSatisfy` (checkFailureMessage "A user can only act on behalf of the org they are associated with.")
+          -- Test integrity checks.
+          -- That once the user has been added to the org that they can add the user they were originally attempting.
+          notAssociatedUserAddResultIntegrityCheck1 <- http (addUserToOrg user1Token org1Prefix $ OAuthSub user4ClaimSub)
+          notAssociatedUserAddResultIntegrityCheck1 `shouldBe` (Right Servant.API.ContentTypes.NoContent)
+          notAssociatedUserAddResultIntegrityCheck2 <- http (addUserToOrg user4Token org1Prefix $ OAuthSub user5ClaimSub)
+          notAssociatedUserAddResultIntegrityCheck2 `shouldBe` (Right Servant.API.ContentTypes.NoContent)
+
+          step "That users who have not been registered can't be added to an org" -- This prevents accidental mistaken adds of users who don't exist.
+          nonRegisteredUserAddResult <- http (addUserToOrg user1Token org1Prefix $ OAuthSub user6ClaimSub)
+          nonRegisteredUserAddResult `shouldSatisfy` isLeft
+          nonRegisteredUserAddResult `shouldSatisfy` (checkFailureStatus NS.badRequest400)
+          nonRegisteredUserAddResult `shouldSatisfy` (checkFailureMessage "Unknown User")
+          -- Test integrity checks.
+          -- That once the user has been registered they can be added.
+          _ <- http (addUser user6Token)
+          nonRegisteredUserAddResultIntegrityCheck1 <- http (addUserToOrg user1Token org1Prefix $ OAuthSub user6ClaimSub)
+          nonRegisteredUserAddResultIntegrityCheck1 `shouldBe` (Right Servant.API.ContentTypes.NoContent)
 
           step "Can't add org with a null URL"
-          nullURLResult <- http (addOrg token nullURIPrefix org1{partialNewOrgUrl = nullURI})
+          nullURLResult <- http (addOrg user1Token nullURIPrefix org1{partialNewOrgUrl = nullURI})
           nullURLResult `shouldSatisfy` isLeft
           nullURLResult `shouldSatisfy` (checkFailureStatus NS.badRequest400)
           nullURLResult `shouldSatisfy` (checkFailureMessage "Error in $.url: not a URI")
 
           step "Can't add org with an invalid URL"
-          invalidURLResult <- http (addOrg token invlaidURLPrefix org1{partialNewOrgUrl = URI "" (Just $ URIAuth "" "invalid" "") "" "" ""})
+          invalidURLResult <- http (addOrg user1Token invlaidURLPrefix org1{partialNewOrgUrl = URI "" (Just $ URIAuth "" "invalid" "") "" "" ""})
           invalidURLResult `shouldSatisfy` isLeft
           invalidURLResult `shouldSatisfy` (checkFailureStatus NS.badRequest400)
           invalidURLResult `shouldSatisfy` (checkFailureMessage "Error in $.url: not a URI")
