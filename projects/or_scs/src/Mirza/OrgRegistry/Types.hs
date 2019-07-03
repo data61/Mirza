@@ -238,8 +238,17 @@ data NewLocation = NewLocation
   deriving (Show, Eq, Generic)
 
 instance ToSchema NewLocation
-instance ToJSON NewLocation
-instance FromJSON NewLocation
+instance ToJSON NewLocation where
+  toJSON (NewLocation gln coord addr) = object
+    [ "gln" .= gln
+    , "coords" .= coord
+    , "addr" .= addr
+    ]
+instance FromJSON NewLocation where
+  parseJSON = withObject "NewLocation" $ \o -> NewLocation
+    <$> o .: "gln"
+    <*> o .: "coords"
+    <*> o .: "addr"
 
 newtype Latitude  = Latitude  { getLatitude  :: Double }
         deriving (Show, Eq, Ord, FromJSON, ToJSON, Generic)
