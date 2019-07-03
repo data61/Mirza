@@ -3,14 +3,14 @@
 
 module Mirza.SupplyChain.PopulateUtils where
 
-import           GHC.Generics                          (Generic)
+import           GHC.Generics                     (Generic)
 
 import           Mirza.Common.Utils
 
 import           Control.Monad.Except
 import           Control.Monad.Identity
 
-import           Data.Foldable                         (traverse_)
+import           Data.Foldable                    (traverse_)
 
 import           Data.GS1.DWhat
 import           Data.GS1.DWhen
@@ -19,36 +19,36 @@ import           Data.GS1.DWhy
 import           Data.GS1.EPC
 import           Data.GS1.Event
 
-import           Data.Time                             (TimeZone, addUTCTime,
-                                                        getCurrentTime)
-import           Data.Time.LocalTime                   (utc)
+import           Data.Time                        (TimeZone, addUTCTime,
+                                                   getCurrentTime)
+import           Data.Time.LocalTime              (utc)
 
 import qualified Mirza.OrgRegistry.Types          as ORT
-import           Mirza.SupplyChain.Types               as ST
+import           Mirza.SupplyChain.Types          as ST
 
-import qualified Data.Text                             as T
+import qualified Data.Text                        as T
 
-import           Servant.API.BasicAuth                 (BasicAuthData (..))
-import           Servant.Auth.Client                   (Token)
+import           Servant.API.BasicAuth            (BasicAuthData (..))
+import           Servant.Auth.Client              (Token)
 
-import           Data.Hashable                         (Hashable (..))
-import           Data.HashMap.Lazy                     as H
+import           Data.Hashable                    (Hashable (..))
+import           Data.HashMap.Lazy                as H
 
-import           Servant.Client                        (BaseUrl (..), ClientM)
+import           Servant.Client                   (BaseUrl (..), ClientM)
 
 import           Mirza.OrgRegistry.Client.Servant as ORClient
-import           Mirza.SupplyChain.Client.Servant      as SCSClient
+import           Mirza.SupplyChain.Client.Servant as SCSClient
 
-import           Crypto.JOSE                           (Alg (RS256),
-                                                        newJWSHeader, signJWS)
-import qualified Crypto.JOSE                           as JOSE
-import           Crypto.JOSE.Types                     (Base64Octets (..))
+import           Crypto.JOSE                      (Alg (RS256), newJWSHeader,
+                                                   signJWS)
+import qualified Crypto.JOSE                      as JOSE
+import           Crypto.JOSE.Types                (Base64Octets (..))
 
-import           Network.URI                           (URI)
+import           Network.URI                      (URI)
 
 import qualified Mirza.OrgRegistry.GenerateUtils  as GenOR (generateMultipleUsers)
 
-import           Data.Maybe                            (fromJust)
+import           Data.Maybe                       (fromJust)
 
 -- =============================================================================
 -- Utility Data structures/Type aliases
@@ -134,7 +134,8 @@ insertEachEvent :: EachEvent ->  ClientM ()
 insertEachEvent (EachEvent [] _) = pure ()
 insertEachEvent (EachEvent entities ev) = do
   (insertedEventInfo, _eventId) <- SCSClient.insertGS1Event ev
-  traverse_ (clientSignEvent insertedEventInfo) entities
+  pure ()
+  -- traverse_ (clientSignEvent insertedEventInfo) entities
 
 
 clientSignEvent :: EventInfo -> Entity -> ClientM EventInfo
