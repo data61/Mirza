@@ -179,7 +179,7 @@ test-suite orgRegistry-test
                     , Mirza.OrgRegistry.Tests.Keys
                     , Mirza.OrgRegistry.Tests.Dummies
                     , Mirza.OrgRegistry.Tests.Org
-                    -- , Mirza.OrgRegistry.Tests.Client  TODO: Reinclude when tests are updated to use OAuth rather then basic auth.
+                    , Mirza.OrgRegistry.Tests.Client
                     , Mirza.Common.Tests.Utils
                     , Mirza.OrgRegistry.Tests.Utils
   default-extensions:  OverloadedStrings
