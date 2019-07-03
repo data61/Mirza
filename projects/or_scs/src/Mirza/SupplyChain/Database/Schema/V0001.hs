@@ -86,13 +86,13 @@ migration () =
   SupplyChainDb
     <$> createTable "orgs" ( Org
           lastUpdateField
-          (field "org_gs1_company_prefix" gs1CompanyPrefixType)
+          (field "org_gs1_company_prefix" gs1CompanyPrefixFieldType)
           (field "org_name" (varchar (Just defaultFieldMaxLength)) notNull)
     )
     <*> createTable "labels" ( Label
           lastUpdateField
           (field "label_id" pkSerialType)
-          (field "label_gs1_company_prefix" gs1CompanyPrefixType notNull)
+          (field "label_gs1_company_prefix" gs1CompanyPrefixFieldType notNull)
           (field "label_item_reference" (maybeType itemRefType))
           (field "label_serial_number" (maybeType serialNumType))
           (field "label_state" (maybeType $ varchar (Just defaultFieldMaxLength)))
@@ -107,7 +107,7 @@ migration () =
           lastUpdateField
           (field "transformation_id" pkSerialType)
           (field "transformation_description" (varchar (Just defaultFieldMaxLength)) notNull)
-          (OrgId $ field "transformation_org_id" gs1CompanyPrefixType (defaultFkConstraint "orgs" ["org_gs1_company_prefix"]))
+          (OrgId $ field "transformation_org_id" gs1CompanyPrefixFieldType (defaultFkConstraint "orgs" ["org_gs1_company_prefix"]))
     )
     <*> createTable "events" ( Event
           lastUpdateField
@@ -143,7 +143,7 @@ migration () =
     <*> createTable "locations" ( Location
           lastUpdateField
           (field "location_id" locationRefType)
-          (OrgId $ field "location_org_id" gs1CompanyPrefixType ((defaultFkConstraint "orgs" ["org_gs1_company_prefix"])))
+          (OrgId $ field "location_org_id" gs1CompanyPrefixFieldType ((defaultFkConstraint "orgs" ["org_gs1_company_prefix"])))
           (field "location_function" (varchar (Just defaultFieldMaxLength)) notNull)
           (field "location_site_name" (varchar (Just defaultFieldMaxLength)) notNull)
           (field "location_address" (varchar (Just defaultFieldMaxLength)) notNull)
@@ -161,7 +161,7 @@ migration () =
     <*> createTable "wheres" ( Where
           lastUpdateField
           (field "where_id" pkSerialType)
-          (field "where_gs1_company_prefix" (maybeType gs1CompanyPrefixType))
+          (field "where_gs1_company_prefix" (maybeType gs1CompanyPrefixFieldType))
           (field "where_source_dest_type" (maybeType srcDestType))
           (field "where_gs1_location_id" (maybeType locationRefType))
           (field "where_location_field" locationType notNull)

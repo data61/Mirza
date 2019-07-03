@@ -17,9 +17,9 @@ import           Test.Tasty                         hiding (withResource)
 import           Test.Tasty.Hspec                   (around, testSpec)
 import           Test.Tasty.Runners                 (NumThreads (..))
 
-import           Mirza.OrgRegistry.Tests.Org        (testOrgQueries)
--- import           Mirza.OrgRegistry.Tests.Client
+import           Mirza.OrgRegistry.Tests.Client
 import           Mirza.OrgRegistry.Tests.Keys       (testKeyQueries)
+import           Mirza.OrgRegistry.Tests.Org        (testOrgQueries)
 
 import           Control.Exception                  (bracket)
 import           Control.Monad.Except               (runExceptT)
@@ -67,10 +67,10 @@ main = do
 
   keyTests <- testSpec "HSpec" (sequential $ around withDatabaseConnection testKeyQueries)
   orgTests <- testSpec "HSpec" (sequential $ around withDatabaseConnection testOrgQueries)
-  --clientTests <- clientSpec TODO: Reinclude when tests are updated to use OAuth rather then basic auth.
+  clientTests <- clientSpec
 
   defaultMain $ localOption (NumThreads 1) $ testGroup "tests"
     [ keyTests
     , orgTests
-    -- , clientTests  TODO: Reinclude when tests are updated to use OAuth rather then basic auth.
+     , clientTests
     ]

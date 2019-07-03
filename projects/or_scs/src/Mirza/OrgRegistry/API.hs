@@ -19,7 +19,7 @@ module Mirza.OrgRegistry.API
 import           Mirza.Common.Time                 (ExpirationTime,
                                                     RevocationTime)
 import           Mirza.Common.Types                (ORKeyId)
-import           Mirza.OrgRegistry.Database.Schema (LocationId)
+import           Mirza.OrgRegistry.Database.Schema (LocationPrimaryKey)
 import           Mirza.OrgRegistry.Types           as ST
 
 import           Data.GS1.EPC                      as EPC
@@ -94,9 +94,10 @@ type PrivateAPI =
   :<|> "orgs"
       :> Capture "gs1CompanyPrefix" GS1CompanyPrefix
       :> "member"
-      :> Capture "userId" UserId
+      :> Capture "userId" OAuthSub
       :> Put '[JSON] NoContent
   :<|> "keys"
+      :> Capture "gs1CompanyPrefix" GS1CompanyPrefix
       :> ReqBody '[JSON] JWK
       :> QueryParam "expirationTime" ExpirationTime
       :> Post '[JSON] ORKeyId
@@ -106,4 +107,4 @@ type PrivateAPI =
       :> Post '[JSON] RevocationTime
   :<|> "locations"
       :> ReqBody '[JSON] NewLocation
-      :> Post '[JSON] LocationId
+      :> Post '[JSON] LocationPrimaryKey

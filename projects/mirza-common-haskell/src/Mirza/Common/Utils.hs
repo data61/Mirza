@@ -25,7 +25,8 @@ module Mirza.Common.Utils
   , unsafeMkEmailAddress
   , mockURI
   , versionInfo
-  , fetchJWKs
+  , fetchJWKS
+  , fetchJWKSWithManager
   ) where
 
 
@@ -44,7 +45,7 @@ import           Database.PostgreSQL.Simple        (SqlError (..), execute_)
 import           Database.PostgreSQL.Simple.Errors (ConstraintViolation (UniqueViolation),
                                                     constraintViolation)
 
-import           Servant.Client
+import           Servant.Client                    hiding (manager)
 
 import           Data.Default
 
@@ -54,8 +55,9 @@ import           Data.Aeson                        (Result (..), Value (..),
                                                     decodeFileStrict, fromJSON)
 import           Data.Aeson.Lens
 
-import           Network.HTTP.Client               (Manager)
+import           Network.HTTP.Client               (Manager, newManager)
 import qualified Network.HTTP.Client               as C
+import           Network.HTTP.Client.TLS
 import           Network.HTTP.Req
 import           Network.URI                       hiding (path)
 
@@ -236,8 +238,13 @@ data FetchJWKsError =
   | JWKParseFailure [Char]
   deriving Show
 
-fetchJWKs :: Manager -> String -> IO (Either FetchJWKsError JWKSet)
-fetchJWKs m url =
+fetchJWKS :: String -> IO (Either FetchJWKsError JWKSet)
+fetchJWKS url = do
+  manager <- newManager tlsManagerSettings
+  fetchJWKSWithManager manager url
+
+fetchJWKSWithManager :: Manager -> String -> IO (Either FetchJWKsError JWKSet)
+fetchJWKSWithManager m url =
   case parseUrlHttps (url ^. packed . re utf8) of
     Nothing   -> pure $ Left UrlParseFailed
     Just url' -> ((toJWKS =<<) . (fmap Network.HTTP.Req.responseBody)) <$!> (mkReq url')

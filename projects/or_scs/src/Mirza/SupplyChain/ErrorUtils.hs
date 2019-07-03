@@ -24,6 +24,7 @@ import           Data.GS1.EPC                        as EPC
 import           Database.PostgreSQL.Simple.Internal (SqlError (..))
 import           Servant.Server
 
+
 -- | Takes in a ServiceError and converts it to an HTTP error (eg. err400)
 appErrToHttpErr :: ServiceError -> Handler a
 appErrToHttpErr (InvalidKeyId _) =

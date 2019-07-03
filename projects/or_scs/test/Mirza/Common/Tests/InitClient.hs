@@ -1,7 +1,15 @@
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE FlexibleContexts  #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TypeApplications  #-}
 
 module Mirza.Common.Tests.InitClient where
+
+import           Mirza.OrgRegistry.Database.Schema
+import           Mirza.OrgRegistry.Main            (ServerOptionsOR (..),
+                                                    addAuthOptions,
+                                                    initORContext)
+import qualified Mirza.OrgRegistry.Main            as ORMain
+import           Mirza.OrgRegistry.Types           as ORT
 
 import           Mirza.SupplyChain.Database.Schema as Schema
 import           Mirza.SupplyChain.Main            (ServerOptionsSCS (..),
@@ -9,43 +17,38 @@ import           Mirza.SupplyChain.Main            (ServerOptionsSCS (..),
 import qualified Mirza.SupplyChain.Main            as SCSMain
 import           Mirza.SupplyChain.Types           as ST
 
-import           Data.GS1.EPC                      (GS1CompanyPrefix (..))
 import           Mirza.Common.Tests.ServantUtils
-import           Mirza.Common.Utils                (expectUser, mockURI,
-                                                    randomText)
-
-import           Control.Concurrent                (ThreadId)
-
-import           Servant.API.BasicAuth
-import           Servant.Auth.Client               (Token)
-import           Servant.Client                    (BaseUrl (..))
-
-import           Data.Either                       (isRight)
-
-import           Data.Text
-
-import           Test.Tasty.Hspec
-
-import           System.IO.Temp                    (emptySystemTempFile)
-
-import           Katip                             (Severity (DebugS))
-
-import           Database.Beam.Query               (delete, runDelete, val_)
-
-import           Mirza.OrgRegistry.Client.Servant
-import           Mirza.OrgRegistry.Database.Schema
-import qualified Mirza.OrgRegistry.Handlers.Org    as ORHO (addOrg)
-import qualified Mirza.OrgRegistry.Handlers.Users  as ORHU (addUserOnlyId)
-import           Mirza.OrgRegistry.Main            (ServerOptionsOR (..),
-                                                    addAuthOptions,
-                                                    initORContext)
-import qualified Mirza.OrgRegistry.Main            as ORMain
-import           Mirza.OrgRegistry.Types           as ORT hiding (orgName)
-
 import           Mirza.Common.Tests.Utils          (DatabaseConnectionString (..),
                                                     DatabaseName (..),
                                                     databaseNameToConnectionString,
                                                     getDatabaseConnectionString)
+
+import           Katip                             (Severity (DebugS))
+
+import           Test.Tasty.Hspec
+
+import           Database.Beam.Query               (delete, runDelete, val_)
+
+import           Servant.Auth.Client               (Token (..))
+import           Servant.Client                    (BaseUrl (..))
+
+import           System.IO.Temp                    (emptySystemTempFile)
+
+import           Crypto.JWT                        hiding (alg, header, jwk,
+                                                    signClaims)
+import qualified Crypto.JWT                        (signClaims)
+
+import           Control.Concurrent                (ThreadId)
+import           Control.Lens
+import           Control.Monad.Except
+
+import           Data.Aeson
+import           Data.ByteString.Lazy.Char8
+import           Data.Either                       (isRight)
+import           Data.Text
+--import           Data.Time.Clock
+import           Network.URI
+
 
 
 -- *****************************************************************************
@@ -137,43 +140,28 @@ newOrgToOrgResponse =
   OrgResponse <$> newOrgGS1CompanyPrefix <*> newOrgName <*> newOrgUrl
 
 
-newUserToBasicAuthData :: ORT.NewUser -> BasicAuthData
-newUserToBasicAuthData _newUser = BasicAuthData "" "" -- TODO: Extract info from or associated with newUser.
-
-
-bootstrapAuthData :: (HasEnvType w, HasConnPool w, HasKatipContext w,
-                      HasKatipLogEnv w)
-                     => w -> IO Token
-bootstrapAuthData ctx = do
-  let user = ORT.NewUser "initialUserOAuthSub"
-  let prefix = GS1CompanyPrefix "1000000"
-  let orgName = "Org Name"
-      org = NewOrg prefix orgName (mockURI orgName)
-  insertUserResult <- runAppM @_ @ORError ctx $ ORHU.addUserOnlyId user
-  insertUserResult `shouldSatisfy` isRight
-  insertOrgResult <- runAppM @_ @ORError ctx $ ORHO.addOrg (expectUser $ insertUserResult) org
-  insertOrgResult `shouldSatisfy` isRight
-
-  pure $ authDataToTokenTodoRemove $ newUserToBasicAuthData user
-
--- We specifically prefix the password with "PlainTextPassword:" so that it
--- makes it more obvious if this password shows up anywhere in plain text by
--- mistake.
-randomPassword :: IO Text
-randomPassword = ("PlainTextPassword:" <>) <$> randomText
-
 orOptions :: Maybe FilePath -> ServerOptionsOR
 orOptions mfp = ServerOptionsOR connectionString DebugS mfp Dev
   where
     connectionString = getDatabaseConnectionString testDbConnectionStringOR
 
 
-runORApp :: IO (ThreadId, BaseUrl, Token)
+runORApp :: IO (ThreadId, BaseUrl, TokenTestSuite)
 runORApp = do
+  let jwksFilename :: [Char]
+      jwksFilename = "test_auth_key.json"
+      jwksFilenameURI :: URI
+      jwksFilenameURI = URI "file:" (Just $ URIAuth "" "" "") jwksFilename "" ""
+      oAuthSub :: Text
+      oAuthSub = "TestOAuthSubject"
+      oAuthAud :: Text
+      oAuthAud = "TestOAuthAudience"
+
+  tokenTestSuite <- makeTokenTestData jwksFilename oAuthSub oAuthAud
   tempFile <- emptySystemTempFile "orgRegistryTests.log"
   let currentBrOptions = orOptions (Just tempFile)
   minimalContext <- initORContext currentBrOptions
-  completeContext <- addAuthOptions minimalContext "my_fake_jwk_key" -- TODO: Use the proper oauth aud (audience)
+  completeContext <- addAuthOptions minimalContext jwksFilenameURI oAuthAud
   let OrgRegistryDB orgsTable usersTable orgMappingTable keysTable locationsTable geolocationsTable
         = orgRegistryDB
 
@@ -187,24 +175,21 @@ runORApp = do
       deleteTable orgsTable
   flushDbResult `shouldSatisfy` isRight
 
-  -- This construct somewhat destroys the integrity of these test since it is
-  -- necessary to assume that these functions work correctly in order for the
-  -- test cases to complete.
-  token <- bootstrapAuthData completeContext
-
   (tid,orul) <- startWaiApp =<< ORMain.initApplication completeContext
-  pure (tid, orul, token)
+  pure (tid, orul, tokenTestSuite)
+
+
 
 -- *****************************************************************************
 -- Common Utility Functions
 -- *****************************************************************************
 
 data TestData = TestData
-  { orThread   :: ThreadId
-  , scsThread  :: ThreadId
-  , orBaseUrl  :: BaseUrl
-  , scsBaseUrl :: BaseUrl
-  , orAuthData :: Token
+  { orThread        :: ThreadId
+  , scsThread       :: ThreadId
+  , orBaseUrl       :: BaseUrl
+  , scsBaseUrl      :: BaseUrl
+  , orTestTokenData :: TokenTestSuite
   }
 
 endApps :: TestData -> IO ()
@@ -214,6 +199,71 @@ endApps (TestData orThreadId scsThreadId orUrl scsUrl _) = do
 
 runApps :: IO TestData
 runApps = do
-  (orThreadId, orUrl, orAuthUser) <- runORApp
+  (orThreadId, orUrl, token) <- runORApp
   (scsThreadId, scsUrl) <- runSCSApp orUrl
-  pure $ TestData orThreadId scsThreadId orUrl scsUrl orAuthUser
+  pure $ TestData orThreadId scsThreadId orUrl scsUrl token
+
+
+
+-- *****************************************************************************
+-- Auth / Token Utility Functions
+-- *****************************************************************************
+
+data TokenTestSuite = TokenTestSuite
+  { testToken              :: Token
+  , testTokenDefaultClaims :: ClaimsSet
+  , testSignTokenClaims    :: ClaimsSet -> IO (Token)
+  }
+
+
+makeTokenTestData :: [Char] -> Text -> Text -> IO (TokenTestSuite)
+makeTokenTestData jwksFilename oAuthSub oAuthAud = do
+  key <- generateAndStoreTestJWK jwksFilename
+  claims <- makeClaims oAuthSub oAuthAud
+  buildTokenTestSuite claims (claimsToToken key)
+
+
+generateAndStoreTestJWK :: [Char] -> IO JWK
+generateAndStoreTestJWK filename = do
+  jwk <- genJWK (RSAGenParam (4096 `div` 8))
+  -- Here we write out the public and private key info, while we only need to have the public key and only make use of
+  -- the private key there is no real point to removing it since it is valid only for as long as the test execution
+  -- persists and it might be useful to have the private key for debugging key issues after the tests have completed if
+  -- needed (can remove the private key in the future if reasons to remove trump the debugging potential).
+  _ <- encodeFile filename jwk
+  pure jwk
+
+
+makeClaims :: Text -> Text -> IO ClaimsSet
+makeClaims oAuthSub oAuthAud = do
+  --time <- getCurrentTime
+  pure $ emptyClaimsSet
+    & claimAud .~ Just (Audience [review string oAuthAud])
+    & claimSub .~ Just (review string oAuthSub)
+  --    & claimIat .~ Just (NumericDate time)
+  --    & claimExp .~ Just (NumericDate (addUTCTime (nominalDay) time))
+
+
+claimsToToken :: JWK -> ClaimsSet -> IO (Token)
+claimsToToken key claims = do
+  let signFunction = signClaims key
+  -- Note ideal that we just assume right here, but these are just tests so if we hit lefts we can always handle better
+  -- then.
+  (Right signedJWT) <- signFunction claims
+  let tokenString = encodeCompact signedJWT
+  pure $ (Token $ toStrict tokenString)
+
+
+signClaims :: JWK -> ClaimsSet -> IO (Either JWTError SignedJWT)
+signClaims key claims = runExceptT $ do
+  -- It's not ideal that we just fill this value rather then checking the key, but this seems simple and easy because
+  -- these are just tests (anything more would be overkill).
+  let algorithm = RS256
+  let header = newJWSHeader ((), algorithm)
+  Crypto.JWT.signClaims key header claims
+
+
+buildTokenTestSuite :: ClaimsSet -> (ClaimsSet -> IO (Token)) -> IO (TokenTestSuite)
+buildTokenTestSuite claims signFunction = do
+  token <- signFunction claims
+  pure $ TokenTestSuite token claims signFunction
