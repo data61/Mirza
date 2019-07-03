@@ -59,6 +59,54 @@ import           Crypto.JWT
 -- === OR Servant Client tests
 clientSpec :: IO TestTree
 clientSpec = do
+  let userTests = testCaseSteps "Can create users" $ \step ->
+        bracket runORApp (\(a,b,_) -> endWaiApp (a,b)) $ \(_tid,baseurl,tokenData) -> do
+          let http = runClient baseurl
+              token = testToken tokenData
+
+          step "Can add a new user"
+          initalUserAddResult <- http (addUser token)
+          initalUserAddResult `shouldSatisfy` isRight
+          -- Note: We effectively implicitly test that the value returned is
+          --       sensible later when we test that a user with this ID occurs
+          --       in a keys query response, here we can only test that we think
+          --       that we succeeded and have no other way of verifying the ID
+          --       is otherwise correct constraining our selves to just user
+          --       related API functions.
+
+          step "That the created user can login and initially not assigned to any companies"
+          orgSearchResult <- http (getOrgInfo token)
+          orgSearchResult `shouldSatisfy` isRight
+          orgSearchResult `shouldBe` Right []
+
+          step "Can re-add a user with the same oAuth sub"
+          duplicateEmailResult <- http (addUser token)
+          duplicateEmailResult `shouldSatisfy` isRight
+
+          step "Can add a second user"
+          let secondUserClaims = (testTokenDefaultClaims tokenData)
+                                  & claimSub .~ Just (review string "userTests_OAuthSub_SecondUser")
+          secondUserToken <- (testSignTokenClaims tokenData) secondUserClaims
+          secondUserAddResult <- http (addUser secondUserToken)
+          secondUserAddResult `shouldSatisfy` isRight
+
+          step "Can't create a user with an empty oAuth Sub."
+          let emptySubClaims = (testTokenDefaultClaims tokenData)
+                                  & claimSub .~ Just (review string "")
+          emptySubToken <- (testSignTokenClaims tokenData) emptySubClaims
+          emptySubAddResult <- http (addUser emptySubToken)
+          emptySubAddResult `shouldSatisfy` isLeft
+          emptySubAddResult `shouldSatisfy` (checkFailureStatus NS.badRequest400)
+          emptySubAddResult `shouldSatisfy` (checkFailureMessage "Invalid OAuth Sub.")
+
+          -- TODO: Valid Token checks.
+          -- TODO: Check when Auth AUD doesn't match.
+          -- TODO: Check when Auth AUD is empty.
+          -- TODO: Check when Token is expired.
+          -- TODO: Check when Token isn't yets valid.
+          -- TODO: Check that if the signature is invalid that the token is rejected.
+
+
   let orgTests = testCaseSteps "Can create orgs" $ \step ->
         bracket runORApp (\(a,b,_) -> endWaiApp (a,b)) $ \(_tid,baseurl,tokenData) -> do
           let http = runClient baseurl
@@ -166,55 +214,6 @@ clientSpec = do
           invalidURLResult `shouldSatisfy` isLeft
           invalidURLResult `shouldSatisfy` (checkFailureStatus NS.badRequest400)
           invalidURLResult `shouldSatisfy` (checkFailureMessage "Error in $.url: not a URI")
-
-
--- TODO: Move these to the top of the file now that the businesses depend on users rather then the other way round.
-  let userTests = testCaseSteps "Can create users" $ \step ->
-        bracket runORApp (\(a,b,_) -> endWaiApp (a,b)) $ \(_tid,baseurl,tokenData) -> do
-          let http = runClient baseurl
-              token = testToken tokenData
-
-          step "Can add a new user"
-          initalUserAddResult <- http (addUser token)
-          initalUserAddResult `shouldSatisfy` isRight
-          -- Note: We effectively implicitly test that the value returned is
-          --       sensible later when we test that a user with this ID occurs
-          --       in a keys query response, here we can only test that we think
-          --       that we succeeded and have no other way of verifying the ID
-          --       is otherwise correct constraining our selves to just user
-          --       related API functions.
-
-          step "That the created user can login and initially not assigned to any companies"
-          orgSearchResult <- http (getOrgInfo token)
-          orgSearchResult `shouldSatisfy` isRight
-          orgSearchResult `shouldBe` Right []
-
-          step "Can re-add a user with the same oAuth sub"
-          duplicateEmailResult <- http (addUser token)
-          duplicateEmailResult `shouldSatisfy` isRight
-
-          step "Can add a second user"
-          let secondUserClaims = (testTokenDefaultClaims tokenData)
-                                 & claimSub .~ Just (review string "userTests_OAuthSub_SecondUser")
-          secondUserToken <- (testSignTokenClaims tokenData) secondUserClaims
-          secondUserAddResult <- http (addUser secondUserToken)
-          secondUserAddResult `shouldSatisfy` isRight
-
-          step "Can't create a user with an empty oAuth Sub."
-          let emptySubClaims = (testTokenDefaultClaims tokenData)
-                                 & claimSub .~ Just (review string "")
-          emptySubToken <- (testSignTokenClaims tokenData) emptySubClaims
-          emptySubAddResult <- http (addUser emptySubToken)
-          emptySubAddResult `shouldSatisfy` isLeft
-          emptySubAddResult `shouldSatisfy` (checkFailureStatus NS.badRequest400)
-          emptySubAddResult `shouldSatisfy` (checkFailureMessage "Invalid OAuth Sub.")
-
-          -- TODO: Valid Token checks.
-          -- TODO: Check when Auth AUD doesn't match.
-          -- TODO: Check when Auth AUD is empty.
-          -- TODO: Check when Token is expired.
-          -- TODO: Check when Token isn't yets valid.
-          -- TODO: Check that if the signature is invalid that the token is rejected.
 
 
   let keyTests = testCaseSteps "That keys work as expected" $ \step ->
