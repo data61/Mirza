@@ -5,40 +5,38 @@
 {-# LANGUAGE ScopedTypeVariables   #-}
 
 module Mirza.SupplyChain.Handlers.UXUtils
-  (
-    listEventsPretty
+  ( listEventsPretty
   , PrettyEventResponse (..)
   ) where
 
+import           GHC.Generics                       (Generic)
 
-import           GHC.Generics                          (Generic)
+import           Mirza.Common.GS1BeamOrphans        (LabelEPCUrn (..))
 
-import           Mirza.Common.GS1BeamOrphans           (LabelEPCUrn (..))
+import           Mirza.SupplyChain.Handlers.Queries (listEventsQuery)
 
-import           Mirza.SupplyChain.Handlers.Queries    (listEventsQuery)
-
-import           Mirza.SupplyChain.ErrorUtils          (throwParseError)
-import           Mirza.SupplyChain.EventUtils          (getParent)
+import           Mirza.SupplyChain.ErrorUtils       (throwParseError)
+import           Mirza.SupplyChain.EventUtils       (getParent)
 import           Mirza.SupplyChain.Types
 
-import           Mirza.OrgRegistry.Types          (OrgAndLocationResponse (..),
-                                                        OrgResponse (..))
-import qualified Mirza.OrgRegistry.Types          as ORT
+import           Mirza.OrgRegistry.Types            (OrgAndLocationResponse (..),
+                                                     OrgResponse (..))
+import qualified Mirza.OrgRegistry.Types            as ORT
 
 import           Data.GS1.DWhat
-import           Data.GS1.DWhen                        (DWhen (..))
+import           Data.GS1.DWhen                     (DWhen (..))
 import           Data.GS1.DWhere
 import           Data.GS1.EPC
-import qualified Data.GS1.Event                        as Ev
+import qualified Data.GS1.Event                     as Ev
 
-import           Mirza.OrgRegistry.Client.Servant (searchOrgLocationByGLN)
+import           Mirza.OrgRegistry.Client.Servant   (searchOrgLocationByGLN)
 
 import           Data.Aeson
 
-import           Data.Swagger                          (ToSchema (..))
+import           Data.Swagger                       (ToSchema (..))
 
-import           Data.Either                           (either)
-import           Data.List                             (nub, sortOn)
+import           Data.Either                        (either)
+import           Data.List                          (nub, sortOn)
 
 data PrettyEventResponse =
   PrettyEventResponse
@@ -101,7 +99,7 @@ eventToPrettyEvent :: (Member context '[HasDB, HasORClientEnv],
 eventToPrettyEvent ev = do
   let mloc = _readPoint . Ev._where $ ev
   case mloc of
-    Nothing -> throwing ORT._LocationNotKnownORE ()
+    Nothing -> pure $ PrettyEventResponse ev Nothing
     Just (ReadPointLocation loc) -> do
       let pfx = _sglnCompanyPrefix loc
       locResp <- runClientFunc $ Just <$> searchOrgLocationByGLN loc pfx
