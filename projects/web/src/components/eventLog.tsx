@@ -1,5 +1,8 @@
+import GoogleMapReact from 'google-map-react';
 import * as React from "react";
 import { Link } from "react-router-dom";
+
+import { myGlobals } from "../globals";
 
 import { AuthState } from "../auth";
 import { Organisation } from "../business-registry";
@@ -31,12 +34,34 @@ export interface QueryProps {
   organisation: Organisation;
 }
 
+export interface MapProps {
+  center: {
+    lat: number;
+    lng: number
+  };
+  orgName: string;
+  zoom: number;
+}
+
+function defaultMapProps(): MapProps {
+  return {
+    center: {
+      // Co-ordinates of Sydney, NSW, AU
+      lat: -33.865143,
+      lng: 151.2093,
+    },
+    zoom: 11,
+    orgName: '',
+  };
+}
+
 export function EventLookup(props: QueryProps) {
 
   const [query, queryUpdate] = React.useState(queryForm());
+  const [mapsProp, mapsPropUpdate] = React.useState(defaultMapProps());
   const [eventRes, eventResSet] = React.useState(null);
   const queryEvent = () => {
-    return fetch(encodeURI(props.organisation.url + '/epc/events/' + query.Label), {
+    return fetch(encodeURI(props.organisation.url + '/prototype/list/events/' + query.Label), {
       method: 'GET',
       headers: new Headers({
         'Accept': 'application/json',
@@ -79,11 +104,28 @@ export function EventLookup(props: QueryProps) {
               }) : <p>No Results</p>
               }
             </div>
+            <div style={{ height: '100vh', width: '100%' }}>
+            <GoogleMapReact
+              bootstrapURLKeys={{ key: myGlobals.googleMapsApiKey}}
+              defaultCenter={mapsProp.center}
+              defaultZoom={mapsProp.zoom}
+            >
+              <MyMap
+                // lat={59.955413}
+                // lng={30.337844}
+                // text="My Marker"
+              />
+            </GoogleMapReact>
+            </div>
           </div>
         }
       </div >
     </div>
   );
+}
+
+function MyMap() {
+  return <div>Some Text</div>;
 }
 
 export function EventLog(props: QueryProps) {
