@@ -176,3 +176,20 @@ export function transactionEvent(): EventEPCIS {
     destinationList: [],
   };
 }
+
+export interface PrettyEventEPCIS {
+  isA: string;
+  name?: string;
+  location?: {
+    location_id: string;
+    epc: string;
+    company_prefix: string;
+    geolocation_id: string;
+    geolocation_coords: [number, number];
+    geolocation_address: string;
+  };
+  bizStep?: string;
+  disposition?: string;
+  action?: string;
+  eventTime?: Date;
+}
