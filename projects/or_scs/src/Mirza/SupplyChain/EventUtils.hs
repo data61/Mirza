@@ -4,7 +4,7 @@
 module Mirza.SupplyChain.EventUtils
   ( insertEvent
   , insertDWhat, insertDWhen, insertDWhere, insertDWhy
-  , insertWhatLabel, insertLabelEvent, insertLabel, findInstLabelIdByUrn
+  , insertWhatLabel, insertLabelEvent, insertLabel, findInstLabelIdByUrn, getAction
   , findEvent, findSchemaEvent, getEventList
   , findLabelId, getParent, getLabelsWithType
   , findDWhere
@@ -297,14 +297,14 @@ insertDWhere (DWhere rPoint orgLoc srcTs destTs) eventId = do
                     . pure -- []
                     . createWhere sdType locField locationEPC
                   )
-      
+
     createWhere sdType locField (SGLN pfix locationRef ext) pK =
       Schema.Where Nothing pK (Just pfix) sdType (Just locationRef) locField ext Nothing eventId
     createWhere sdType locField (Geo x) pK =
       Schema.Where Nothing pK Nothing sdType Nothing locField Nothing (Just x) eventId
 
     unwrapSrc (SourceLocation t l) = (t, l)
-    
+
     unwrapDest (DestinationLocation t l) = (t, l)
 
 
