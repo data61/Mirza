@@ -51,7 +51,7 @@ instance FromJSON PrettyEventResponse where
     <*> v .: "location"
 
 instance ToJSON PrettyEventResponse where
-  toJSON (PrettyEventResponse (Ev.Event eType _meId dwhat dwhen (DWhy disp bizStep) _dwhere) (Just orgLoc)) = object
+  toJSON (PrettyEventResponse (Ev.Event eType _meId dwhat dwhen (DWhy bizStep disp) _dwhere) (Just orgLoc)) = object
     [ "isA" .= eType
     , "name" .= (orgResponseName . orgResponse) orgLoc
     , "location" .= locationResponse orgLoc
@@ -60,7 +60,7 @@ instance ToJSON PrettyEventResponse where
     , "action" .= getAction dwhat
     , "eventTime" .= _eventTime dwhen
     ]
-  toJSON (PrettyEventResponse (Ev.Event eType _meId dwhat dwhen (DWhy disp bizStep) _dwhere) Nothing) = object
+  toJSON (PrettyEventResponse (Ev.Event eType _meId dwhat dwhen (DWhy bizStep disp) _dwhere) Nothing) = object
     [ "isA" .= eType
     , "bizStep" .= bizStep
     , "disposition" .= disp
