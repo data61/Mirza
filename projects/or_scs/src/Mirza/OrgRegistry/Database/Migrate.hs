@@ -1,7 +1,9 @@
-{-# LANGUAGE DataKinds         #-}
-{-# LANGUAGE LambdaCase        #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TypeApplications  #-}
+{-# LANGUAGE DataKinds             #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE LambdaCase            #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE TypeApplications      #-}
 
 -- This module runs database migrations for our application.
 
@@ -11,24 +13,24 @@ module Mirza.OrgRegistry.Database.Migrate
   , Confirmation(..)
   ) where
 
-import           Mirza.OrgRegistry.Database.Schema
 import           Mirza.Common.Types
-import           Mirza.Common.Utils                     (addLastUpdateTriggers)
+import           Mirza.Common.Utils                (addLastUpdateTriggers)
+import           Mirza.OrgRegistry.Database.Schema
 
-import qualified Data.ByteString.Lazy.Char8             as BSL
+import qualified Data.ByteString.Lazy.Char8        as BSL
 
-import           Control.Monad                          (when)
-import           Control.Monad.IO.Class                 (liftIO)
+import           Control.Monad                     (when)
+import           Control.Monad.IO.Class            (liftIO)
 
-import           Control.Lens                           (view, _1)
+import           Control.Lens                      (view, _1)
 
-import           Database.Beam.Migrate.Simple           (runSimpleMigration,
-                                                         simpleMigration)
-import           Database.Beam.Postgres                 (Pg, PgCommandSyntax,
-                                                         Postgres)
-import           Database.Beam.Postgres.Migrate         (migrationBackend)
-import           Database.Beam.Postgres.Syntax          (fromPgCommand,
-                                                         pgRenderSyntaxScript)
+import           Database.Beam.Migrate.Simple      (runSimpleMigration,
+                                                    simpleMigration)
+import           Database.Beam.Postgres            (Pg, PgCommandSyntax,
+                                                    Postgres)
+import           Database.Beam.Postgres.Migrate    (migrationBackend)
+import           Database.Beam.Postgres.Syntax     (fromPgCommand,
+                                                    pgRenderSyntaxScript)
 
 
 --------------------------------------------------------------------------------
