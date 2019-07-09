@@ -1,6 +1,9 @@
 var webpack = require("webpack");
 
 module.exports = (env) => {
+  console.log("LALALALALALALALALALALALALALALA");
+  console.log(process.env.GOOGLE_MAPS_API_KEY);
+  console.log("LALALALALALALALALALALALALALALA");
   return {
     entry: "./src/index.tsx",
     output: {
@@ -48,7 +51,8 @@ module.exports = (env) => {
       new webpack.DefinePlugin({
         'OR_SERVICE_URL': JSON.stringify(env.production
                                          ? 'https://registry.mirza.d61.io'
-                                         : 'http://localhost:8200')
+                                         : 'http://localhost:8200'),
+        'GOOGLE_MAPS_API_KEY': JSON.stringify(process.env.GOOGLE_MAPS_API_KEY),
       }),
     ]
   };
