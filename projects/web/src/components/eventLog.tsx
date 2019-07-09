@@ -1,4 +1,3 @@
-import GoogleMapReact from 'google-map-react';
 import * as React from "react";
 import { Link } from "react-router-dom";
 
@@ -8,8 +7,15 @@ import { AuthState } from "../auth";
 import { Organisation } from "../business-registry";
 import { Panel } from "./panel";
 
-import { EventEPCIS } from "../epcis";
+import { PrettyEventEPCIS } from "../epcis";
 import { queryForm } from "../query";
+
+import {
+  GoogleMap,
+  Marker,
+  withGoogleMap,
+  withScriptjs,
+} from "react-google-maps";
 
 export function SavedEvents({ className }: { className: string }) {
   return (
@@ -37,10 +43,17 @@ export interface QueryProps {
 export interface MapProps {
   center: {
     lat: number;
-    lng: number
+    lng: number;
   };
   orgName: string;
   zoom: number;
+  markers: Array<{
+    address: string,
+    coord: {
+      lat: number;
+      lng: number;
+    }
+  }>;
 }
 
 function defaultMapProps(): MapProps {
@@ -50,10 +63,42 @@ function defaultMapProps(): MapProps {
       lat: -33.865143,
       lng: 151.2093,
     },
-    zoom: 11,
+    zoom: 8,
     orgName: '',
+    markers: [],
   };
 }
+
+const googleMapURL = !myGlobals.googleMapsApiKey ? null : encodeURI(
+    "https://maps.googleapis.com/maps/api/js?key=" +
+    myGlobals.googleMapsApiKey +
+    "&v=3.exp&libraries=geometry,drawing,places"
+  );
+
+const MapWithMarker = withScriptjs(withGoogleMap((props: MapProps) => {
+  if(!props.markers) {return null;}
+  return (
+    <GoogleMap
+      defaultZoom={props.zoom}
+      defaultCenter={props.center}
+    >
+      {
+        props.markers.map((prettyEvent, index) => {
+          if(prettyEvent.coord && prettyEvent.address) {
+            return (
+              <Marker
+                key={index}
+                title={prettyEvent.address}
+                position={prettyEvent.coord}
+              ></Marker>
+            );
+          }
+          return null;
+        })
+      }
+    </GoogleMap>
+  )
+}));
 
 export function EventLookup(props: QueryProps) {
 
@@ -78,7 +123,6 @@ export function EventLookup(props: QueryProps) {
       return Promise.reject(new Error("An error occured"));
     });
   };
-
   return (
     <div>
       <div>
@@ -99,33 +143,28 @@ export function EventLookup(props: QueryProps) {
           <div className="pad-tb">
             <div className="container">
               <h4><i className="fas fa-fw fa-lg fa-list-alt"></i> Events</h4>
-              {eventRes.length > 0 ? eventRes.map((ev: EventEPCIS, index: number) => {
+              {eventRes.length > 0 ? eventRes.map((ev: PrettyEventEPCIS, index: number) => {
                 return <Panel key={index} event={ev}></Panel>;
               }) : <p>No Results</p>
               }
             </div>
             <div style={{ height: '100vh', width: '100%' }}>
-            <GoogleMapReact
-              bootstrapURLKeys={{ key: myGlobals.googleMapsApiKey}}
-              defaultCenter={mapsProp.center}
-              defaultZoom={mapsProp.zoom}
-            >
-              <MyMap
-                // lat={59.955413}
-                // lng={30.337844}
-                // text="My Marker"
+              <MapWithMarker
+                googleMapURL={googleMapURL}
+                loadingElement={<div style={{ height: `100%` }} />}
+                containerElement={<div style={{ height: `400px` }} />}
+                mapElement={<div style={{ height: `100%` }} />}
+                center={mapsProp.center}
+                orgName={mapsProp.orgName}
+                zoom={mapsProp.zoom}
+                markers={eventRes}
               />
-            </GoogleMapReact>
             </div>
           </div>
         }
       </div >
     </div>
   );
-}
-
-function MyMap() {
-  return <div>Some Text</div>;
 }
 
 export function EventLog(props: QueryProps) {
