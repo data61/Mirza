@@ -11,14 +11,12 @@ module Mirza.SupplyChain.Handlers.UXUtils
 
 import           GHC.Generics                       (Generic)
 
-import           GHC.Generics                       (Generic)
-
 import           Mirza.Common.GS1BeamOrphans        (LabelEPCUrn (..))
 
 import           Mirza.SupplyChain.Handlers.Queries (listEventsQuery)
 
 import           Mirza.SupplyChain.ErrorUtils       (throwParseError)
-import           Mirza.SupplyChain.EventUtils       (getParent)
+import           Mirza.SupplyChain.EventUtils       (getAction, getParent)
 import           Mirza.SupplyChain.Types
 
 import           Mirza.OrgRegistry.Types            (OrgAndLocationResponse (..),
@@ -28,6 +26,7 @@ import qualified Mirza.OrgRegistry.Types            as ORT
 import           Data.GS1.DWhat
 import           Data.GS1.DWhen                     (DWhen (..))
 import           Data.GS1.DWhere
+import           Data.GS1.DWhy                      (DWhy (..))
 import           Data.GS1.EPC
 import qualified Data.GS1.Event                     as Ev
 
@@ -49,16 +48,24 @@ data PrettyEventResponse =
 instance FromJSON PrettyEventResponse where
   parseJSON = withObject "PrettyEventResponse" $ \v -> PrettyEventResponse
     <$> v .: "event"
-    <*> v .: "orglocation"
+    <*> v .: "location"
 
 instance ToJSON PrettyEventResponse where
-  toJSON (PrettyEventResponse ev (Just orgLoc)) = object
-    [ "eventType" .= Ev._etype ev
-    , "orgName" .= (orgResponseName . orgResponse) orgLoc
-    , "orgLocation" .= locationResponse orgLoc
+  toJSON (PrettyEventResponse (Ev.Event eType _meId dwhat dwhen (DWhy disp bizStep) _dwhere) (Just orgLoc)) = object
+    [ "isA" .= eType
+    , "name" .= (orgResponseName . orgResponse) orgLoc
+    , "location" .= locationResponse orgLoc
+    , "bizStep" .= bizStep
+    , "disposition" .= disp
+    , "action" .= getAction dwhat
+    , "eventTime" .= _eventTime dwhen
     ]
-  toJSON (PrettyEventResponse ev Nothing) = object
-    [ "eventType" .= Ev._etype ev
+  toJSON (PrettyEventResponse (Ev.Event eType _meId dwhat dwhen (DWhy disp bizStep) _dwhere) Nothing) = object
+    [ "isA" .= eType
+    , "bizStep" .= bizStep
+    , "disposition" .= disp
+    , "action" .= getAction dwhat
+    , "eventTime" .= _eventTime dwhen
     ]
 
 instance ToSchema PrettyEventResponse
