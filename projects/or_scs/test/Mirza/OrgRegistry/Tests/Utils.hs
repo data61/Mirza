@@ -2,7 +2,8 @@ module Mirza.OrgRegistry.Tests.Utils where
 
 import           Mirza.Common.Utils (readJWK)
 
-import           Crypto.JOSE (JWK)
+import           Crypto.JOSE        (JWK)
+
 
 -- Gets a good PEM RSA key from file to use from test cases.
 goodRsaPublicKey :: IO (Maybe JWK)

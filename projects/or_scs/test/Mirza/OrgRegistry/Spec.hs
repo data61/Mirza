@@ -3,8 +3,8 @@
 
 module Main where
 
-import           Mirza.Common.Tests.InitClient           (testDbConnectionStringOR,
-                                                          testDbNameOR)
+import           Mirza.Common.Tests.InitClient      (testDbConnectionStringOR,
+                                                     testDbNameOR)
 import           Mirza.Common.Tests.Utils
 
 import           Mirza.OrgRegistry.Database.Migrate
@@ -12,24 +12,24 @@ import           Mirza.OrgRegistry.Database.Schema
 import           Mirza.OrgRegistry.Main             hiding (main)
 import           Mirza.OrgRegistry.Types            as ORT
 
-import           Test.Hspec.Core.Spec                    (sequential)
-import           Test.Tasty                              hiding (withResource)
-import           Test.Tasty.Hspec                        (around, testSpec)
-import           Test.Tasty.Runners                      (NumThreads (..))
+import           Test.Hspec.Core.Spec               (sequential)
+import           Test.Tasty                         hiding (withResource)
+import           Test.Tasty.Hspec                   (around, testSpec)
+import           Test.Tasty.Runners                 (NumThreads (..))
 
-import           Mirza.OrgRegistry.Tests.Org   (testOrgQueries)
--- import           Mirza.OrgRegistry.Tests.Client
+import           Mirza.OrgRegistry.Tests.Client
 import           Mirza.OrgRegistry.Tests.Keys       (testKeyQueries)
+import           Mirza.OrgRegistry.Tests.Org        (testOrgQueries)
 
-import           Control.Exception                       (bracket)
-import           Control.Monad.Except                    (runExceptT)
+import           Control.Exception                  (bracket)
+import           Control.Monad.Except               (runExceptT)
 import           Database.Beam.Postgres
 
-import           Data.Pool                               (withResource)
-import qualified Data.Pool                               as Pool
+import           Data.Pool                          (withResource)
+import qualified Data.Pool                          as Pool
 
-import           Katip                                   (Severity (DebugS))
-import           System.IO.Temp                          (emptySystemTempFile)
+import           Katip                              (Severity (DebugS))
+import           System.IO.Temp                     (emptySystemTempFile)
 
 
 defaultPool :: IO (Pool.Pool Connection)
@@ -67,10 +67,10 @@ main = do
 
   keyTests <- testSpec "HSpec" (sequential $ around withDatabaseConnection testKeyQueries)
   orgTests <- testSpec "HSpec" (sequential $ around withDatabaseConnection testOrgQueries)
-  --clientTests <- clientSpec TODO: Reinclude when tests are updated to use OAuth rather then basic auth.
+  clientTests <- clientSpec
 
   defaultMain $ localOption (NumThreads 1) $ testGroup "tests"
     [ keyTests
     , orgTests
-    -- , clientTests  TODO: Reinclude when tests are updated to use OAuth rather then basic auth.
+     , clientTests
     ]

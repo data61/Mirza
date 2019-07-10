@@ -64,7 +64,11 @@ instance ModelTimestamp EPCISTime where
 
 
 newtype CreationTime = CreationTime {getCreationTime :: UTCTime}
-  deriving (Show, Eq, Generic, Read, FromJSON, ToJSON, Ord)
+  deriving (Show, Eq, Generic, Read, Ord)
+instance FromJSON CreationTime where
+  parseJSON = fmap CreationTime . parseJSON
+instance ToJSON CreationTime where
+  toJSON = toJSON . getCreationTime
 instance ToSchema CreationTime
 instance ToParamSchema CreationTime
 deriving instance FromHttpApiData CreationTime
@@ -76,7 +80,11 @@ instance ModelTimestamp CreationTime where
 
 
 newtype RevocationTime = RevocationTime {getRevocationTime :: UTCTime}
-  deriving (Show, Eq, Generic, Read, FromJSON, ToJSON, Ord)
+  deriving (Show, Eq, Generic, Read, Ord)
+instance FromJSON RevocationTime where
+  parseJSON = fmap RevocationTime . parseJSON
+instance ToJSON RevocationTime where
+  toJSON = toJSON . getRevocationTime
 instance ToSchema RevocationTime
 instance ToParamSchema RevocationTime
 deriving instance FromHttpApiData RevocationTime
@@ -88,7 +96,11 @@ instance ModelTimestamp RevocationTime where
 
 
 newtype ExpirationTime = ExpirationTime {getExpirationTime :: UTCTime}
-  deriving (Show, Eq, Read, Generic, FromJSON, ToJSON, Ord)
+  deriving (Show, Eq, Read, Generic, Ord)
+instance FromJSON ExpirationTime where
+  parseJSON = fmap ExpirationTime . parseJSON
+instance ToJSON ExpirationTime where
+  toJSON = toJSON . getExpirationTime
 instance ToSchema ExpirationTime
 instance ToParamSchema ExpirationTime
 deriving instance FromHttpApiData ExpirationTime

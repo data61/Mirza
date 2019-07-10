@@ -3,14 +3,14 @@
 
 module Mirza.SupplyChain.PopulateUtils where
 
-import           GHC.Generics                          (Generic)
+import           GHC.Generics                     (Generic)
 
 import           Mirza.Common.Utils
 
 import           Control.Monad.Except
 import           Control.Monad.Identity
 
-import           Data.Foldable                         (traverse_)
+import           Data.Foldable                    (traverse_)
 
 import           Data.GS1.DWhat
 import           Data.GS1.DWhen
@@ -19,36 +19,35 @@ import           Data.GS1.DWhy
 import           Data.GS1.EPC
 import           Data.GS1.Event
 
-import           Data.Time                             (TimeZone, addUTCTime,
-                                                        getCurrentTime)
-import           Data.Time.LocalTime                   (utc)
+import           Data.Time                        (TimeZone, addUTCTime,
+                                                   getCurrentTime)
+import           Data.Time.LocalTime              (utc)
 
 import qualified Mirza.OrgRegistry.Types          as ORT
-import           Mirza.SupplyChain.Types               as ST
+import           Mirza.SupplyChain.Types          as ST
 
-import qualified Data.Text                             as T
+import qualified Data.Text                        as T
 
-import           Servant.API.BasicAuth                 (BasicAuthData (..))
-import           Servant.Auth.Client                   (Token)
+import           Servant.Auth.Client              (Token)
 
-import           Data.Hashable                         (Hashable (..))
-import           Data.HashMap.Lazy                     as H
+import           Data.Hashable                    (Hashable (..))
+import           Data.HashMap.Lazy                as H
 
-import           Servant.Client                        (BaseUrl (..), ClientM)
+import           Servant.Client                   (BaseUrl (..), ClientM)
 
 import           Mirza.OrgRegistry.Client.Servant as ORClient
-import           Mirza.SupplyChain.Client.Servant      as SCSClient
+import           Mirza.SupplyChain.Client.Servant as SCSClient
 
-import           Crypto.JOSE                           (Alg (RS256),
-                                                        newJWSHeader, signJWS)
-import qualified Crypto.JOSE                           as JOSE
-import           Crypto.JOSE.Types                     (Base64Octets (..))
+import           Crypto.JOSE                      (Alg (RS256), newJWSHeader,
+                                                   signJWS)
+import qualified Crypto.JOSE                      as JOSE
+import           Crypto.JOSE.Types                (Base64Octets (..))
 
-import           Network.URI                           (URI)
+import           Network.URI                      (URI)
 
 import qualified Mirza.OrgRegistry.GenerateUtils  as GenOR (generateMultipleUsers)
 
-import           Data.Maybe                            (fromJust)
+import           Data.Maybe                       (fromJust)
 
 -- =============================================================================
 -- Utility Data structures/Type aliases
@@ -114,15 +113,13 @@ insertAndAuth scsUrl orUrl authToken locMap ht (entity:entities) = do
       (Entity name companyPrefix orgName orgUrl locations (KeyPairPaths _ pubKeyPath)) = entity
       newOrg = ORT.PartialNewOrg orgName orgUrl
   let [_newUserOR] = GenOR.generateMultipleUsers [name]
-  let userAuth = BasicAuthData "" "" -- TODO: Extract info from or associated with newUserOR.
   pubKey <- fmap expectJust $ liftIO $ readJWK pubKeyPath
+  _insertedUserIdOR <- httpOR $ ORClient.addUser authToken
   _insertedPrefix <- httpOR $ ORClient.addOrg authToken companyPrefix newOrg
-  -- TODO: Create a user for associating with tests.
-  --_insertedUserIdOR <- httpOR $ ORClient.addUser authToken newUserOR
-  orKeyId <- fmap expectRight $ httpOR $ ORClient.addPublicKey authToken pubKey Nothing
+  orKeyId <- fmap expectRight $ httpOR $ ORClient.addPublicKey authToken companyPrefix pubKey Nothing
 
   let newLocs = flip H.lookup locMap <$> locations
-  traverse_  (maybeInsertLocation (authDataToTokenTodoRemove userAuth)) newLocs
+  traverse_  (maybeInsertLocation authToken) newLocs
   let updatedHt = H.insert entity orKeyId ht
   insertAndAuth scsUrl orUrl authToken locMap updatedHt entities
   where
@@ -144,7 +141,7 @@ clientSignEvent evInfo entity = do
       (Entity _ _ _ _ _ (KeyPairPaths privKeyPath pubKeyPath)) = entity
   privKey <- fmap expectJust $ liftIO $ readJWK privKeyPath
   pubKey <- fmap expectJust $ liftIO $ readJWK pubKeyPath
-  keyId <- ORClient.addPublicKey undefined pubKey Nothing
+  keyId <- ORClient.addPublicKey undefined undefined pubKey Nothing
 
   s <- liftIO $ runExceptT @JOSE.Error (
           signJWS toSign (Identity (newJWSHeader ((), RS256), privKey))

@@ -17,7 +17,7 @@ module Mirza.Common.GS1BeamOrphans
   ( LabelType(..), labelType
   , LocationField(..), locationRefType, locationType
   , srcDestType
-  , gs1CompanyPrefixType
+  , gs1CompanyPrefixFieldType
   , actionType
   , eventType
   , sglnExtType
@@ -40,11 +40,9 @@ import qualified Data.GS1.Event                       as Ev
 
 import qualified Database.Beam                        as B
 import qualified Database.Beam.Backend.SQL            as BSQL
-import qualified Database.Beam.Migrate                as BMigrate
-import           Database.Beam.Postgres               (Postgres, text)
+import           Database.Beam.Postgres               (Postgres)
 import qualified Database.Beam.Postgres               as BPostgres
 
-import           Database.Beam.Postgres.Syntax        (PgDataTypeSyntax)
 import           Database.Beam.Query.DataTypes        (DataType (..))
 import           Database.PostgreSQL.Simple.FromField
 import           Database.PostgreSQL.Simple.ToField   (ToField, toField)
@@ -227,8 +225,8 @@ instance FromField EPC.GS1CompanyPrefix where
 instance ToField EPC.GS1CompanyPrefix where
   toField (EPC.GS1CompanyPrefix pfx) = toField pfx
 
-gs1CompanyPrefixType :: DataType Postgres EPC.GS1CompanyPrefix
-gs1CompanyPrefixType = textType
+gs1CompanyPrefixFieldType :: DataType Postgres EPC.GS1CompanyPrefix
+gs1CompanyPrefixFieldType = textType
 
 
 -- ======= EPC.SGLNExtension =======

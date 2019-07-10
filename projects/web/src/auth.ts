@@ -114,7 +114,18 @@ export function authInit(): Promise<AuthState | null> {
                 webAuth.parseHash((err, result) => {
                     if (result && result.accessToken && result.idToken) {
                         const tk = setSession(result);
-                        window.location.hash = "";
+
+                        let returnTo = "";
+                        try {
+                            const s = JSON.parse(result.state);
+                            if (s.returnTo) {
+                                returnTo = s.returnTo;
+                            }
+                        } catch (e) {
+                            console.log("No returnTo provided");
+                        }
+
+                        window.location.href = returnTo;
                         resolve(new AuthState(tk));
 
                     } else if (err) {
@@ -139,5 +150,7 @@ export function logOut() {
 }
 export function logIn() {
     clearSession();
-    webAuth.authorize();
+    webAuth.authorize({
+        state: JSON.stringify({ returnTo: window.location.href }),
+    });
 }

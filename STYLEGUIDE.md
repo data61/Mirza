@@ -1,6 +1,6 @@
 # General
 
-1. In general, you would want to prioritize being consistent with the rest of the module.
+1. You want to prioritize being consistent with the rest of the module.
 
 1. In any record/data definition, the commas go on the Left Hand Side of the field.
 
@@ -227,14 +227,17 @@ Modules this is commonly done for include:
 
 Some conventions:
 
-1. `StorageBeam as SB`
 1. `...SupplyChain.Types as ST`
 1. `...Common.Types as CT`
 1. `...Foo.Types as FT` etc.
-1. `BeamQueries as BQ`
 1. `Data.Text as T`
 1. `Data.GS1.EPC as EPC`
 1. `Data.GS1.Event as Ev`
+
+### JSON Instances
+
+If it is a type that is exposed via the API, manually define the `FromJSON`
+and `ToJSON` instances.
 
 ## Notes
 
