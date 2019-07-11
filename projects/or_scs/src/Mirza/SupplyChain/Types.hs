@@ -34,7 +34,7 @@ import           Control.Lens                hiding ((.=))
 import           GHC.Generics                (Generic)
 
 import           Data.Aeson
-import           Data.Aeson.Types
+
 import qualified Data.ByteString             as BS
 import           Data.List.NonEmpty          (NonEmpty)
 import           Data.Pool                   as Pool

@@ -3,7 +3,7 @@ module Mirza.OrgRegistry.Handlers.Health
   ) where
 
 
-import           Mirza.OrgRegistry.Types             as ORT
+import           Mirza.OrgRegistry.Types as ORT
 
 
 -- | Currently the health check always returns success and is basically just a

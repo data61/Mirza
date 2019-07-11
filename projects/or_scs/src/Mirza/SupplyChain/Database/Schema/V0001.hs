@@ -17,7 +17,8 @@ import qualified Data.GS1.EPC                     as EPC
 import qualified Data.GS1.Event                   as Ev
 
 import           Mirza.Common.Beam                (defaultFkConstraint,
-                                                   lastUpdateField, textType)
+                                                   lastUpdateField,
+                                                   pkSerialType, textType)
 import           Mirza.Common.GS1BeamOrphans
 import qualified Mirza.Common.GS1BeamOrphans      as MU
 import           Mirza.Common.Types
@@ -43,7 +44,6 @@ import           Database.Beam.Migrate.Types      (CheckedDatabaseSettings,
 import           Database.Beam.Postgres           (PgJSON, Postgres, bytea,
                                                    json, text)
 import           Database.Beam.Postgres.Migrate   (uuid)
-import           Database.Beam.Query.DataTypes    (DataType (..))
 
 import           Crypto.JOSE                      (CompactJWS, JWSHeader)
 

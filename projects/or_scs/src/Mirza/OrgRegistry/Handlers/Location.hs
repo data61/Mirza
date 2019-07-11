@@ -81,10 +81,10 @@ addLocationQuery authUser locId geoLocId newLoc = do
   mapping <- userOrganisationAuthorisationQuery authUser gs1CompanyPrefix
   let orgId = org_mapping_gs1_company_prefix mapping
   let (loc,geoLoc) = newLocationToLocation locId geoLocId orgId newLoc
-  res <- pg $ runInsertReturningList (_locations orgRegistryDB) $ insertValues [loc]
+  res <- pg $ runInsertReturningList $ insert (_locations orgRegistryDB) $ insertValues [loc]
   case res of
     [r] -> do
-           _ <- pg $ runInsertReturningList (_geoLocations orgRegistryDB) $
+           _ <- pg $ runInsertReturningList $ insert (_geoLocations orgRegistryDB) $
                insertValues [geoLoc]
            pure r
     _   -> throwing _UnexpectedErrorORE callStack

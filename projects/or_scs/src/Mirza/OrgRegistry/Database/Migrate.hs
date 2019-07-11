@@ -26,8 +26,8 @@ import           Control.Lens                      (view, _1)
 
 import           Database.Beam.Migrate.Simple      (runSimpleMigration,
                                                     simpleMigration)
-import           Database.Beam.Postgres            (Pg, PgCommandSyntax,
-                                                    Postgres)
+import           Database.Beam.Postgres            (PgCommandSyntax,
+                                                    runBeamPostgres)
 import           Database.Beam.Postgres.Migrate    (migrationBackend)
 import           Database.Beam.Postgres.Syntax     (fromPgCommand,
                                                     pgRenderSyntaxScript)
@@ -57,14 +57,13 @@ runMigrationWithConfirmation context confirmationCheck =
   runAppM context $ runDb $ do
     conn <- view _1
     runTriggers <- liftIO $
-      simpleMigration migrationBackend conn checkedOrgRegistryDB >>= \case
+      simpleMigration runBeamPostgres migrationBackend conn checkedOrgRegistryDB >>= \case
         Nothing -> fail "Migration unsuccessful" -- TODO: Actually implment error handling here.
         Just [] -> False <$ putStrLn "Already up to date"
         Just commands -> confirmationCheck commands >>= \case
             Abort -> False <$ putStrLn "Aborting"
             Execute ->
-              True <$ runSimpleMigration @PgCommandSyntax @Postgres @_ @Pg
-                        conn commands
+              True <$ runSimpleMigration runBeamPostgres conn commands
     when runTriggers $ addLastUpdateTriggers orgRegistryDB
 
 

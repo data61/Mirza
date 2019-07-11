@@ -45,6 +45,7 @@ module Mirza.Common.Types
   , PrimaryKeyType
   , orKeyIdType
   , runClientFunc
+  , HealthResponse (..)
   ) where
 
 import qualified Database.Beam                        as B
@@ -86,6 +87,7 @@ import           Text.Email.Validate                  (EmailAddress,
                                                        toByteString, validate)
 
 import           Data.Aeson
+import           Data.Aeson.Types
 
 import           Control.Lens
 import           Control.Monad.Error.Lens
@@ -180,6 +182,21 @@ instance (BSQL.BeamSqlBackend be, FromBackendRow be UUID)
 
 orKeyIdType :: B.DataType Postgres ORKeyId
 orKeyIdType = DataType pgUuidType
+
+-- Health Types:
+successHealthResponseText :: Text
+successHealthResponseText = "Status OK"
+
+data HealthResponse = HealthResponse
+  deriving (Show, Eq, Read, Generic)
+instance ToSchema HealthResponse
+instance ToJSON HealthResponse where
+  toJSON _ = toJSON successHealthResponseText
+instance FromJSON HealthResponse where
+  parseJSON (String value)
+    | value == successHealthResponseText = pure HealthResponse
+    | otherwise                          = fail "Invalid health response string."
+  parseJSON value                        = typeMismatch "HealthResponse" value
 
 
 data EnvType = Prod | Dev

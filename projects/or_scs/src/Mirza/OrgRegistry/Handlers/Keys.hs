@@ -22,7 +22,8 @@ import           Mirza.OrgRegistry.Types                  as ORT
 
 import           Data.GS1.EPC                             as EPC (GS1CompanyPrefix)
 
-import           Database.Beam                            as B
+import           Database.Beam                            hiding (time,
+                                                           timestamp)
 import           Database.Beam.Backend.SQL.BeamExtensions
 import           Database.Beam.Postgres                   (PgJSON (..))
 
