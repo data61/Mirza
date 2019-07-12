@@ -12,7 +12,7 @@ module Mirza.OrgRegistry.Database.Schema.V0001 where
 import           Mirza.OrgRegistry.Types     (OAuthSub (..), oAuthSubFieldType)
 
 import qualified Data.GS1.EPC                as EPC
-import           Mirza.Common.Beam           (lastUpdateField, pkSerialType)
+import           Mirza.Common.Beam           (lastUpdateField, pkSerialType, defaultFkConstraint)
 import           Mirza.Common.GS1BeamOrphans
 import           Mirza.Common.Types          (PrimaryKeyType)
 import           Mirza.OrgRegistry.Types
@@ -38,13 +38,6 @@ import           GHC.Generics                (Generic)
 
 -- Convention: Table types and constructors are suffixed with T (for Table).
 
---------------------------------------------------------------------------------
--- Constants and Utils
---------------------------------------------------------------------------------
-
-defaultFieldMaxLength :: Word
-defaultFieldMaxLength = 120
-
 -- Database
 data OrgRegistryDB f = OrgRegistryDB
   { _orgs         :: f (TableEntity OrgT)
@@ -60,46 +53,46 @@ instance Database anybackend OrgRegistryDB
 
 -- Migration: Intialisation -> V1.
 migration :: () -> Migration Postgres (CheckedDatabaseSettings Postgres OrgRegistryDB)
-migration () =
-  OrgRegistryDB  
-    <$> createTable "orgs" (OrgT
-          (field "org_gs1_company_prefix" gs1CompanyPrefixFieldType notNull)
-          (field "org_name" text notNull)
-          (field "org_url" text notNull)
+migration () = do
+  orgsT <- createTable "orgs" $
+    OrgT (field "org_gs1_company_prefix" gs1CompanyPrefixFieldType notNull)
+         (field "org_name" text notNull)
+         (field "org_url" text notNull)
+         lastUpdateField
+            
+  usersT <- createTable "users" $
+    UserT (field "oauth_sub" oAuthSubFieldType notNull)
           lastUpdateField
-          )
-    <*> createTable "users" (UserT
-          (field "oauth_sub" oAuthSubFieldType notNull)
-          lastUpdateField
-          )
-    <*> createTable "org_mapping" (OrgMappingT
-          (OrgPrimaryKey $ field "mapping_org_id" gs1CompanyPrefixFieldType notNull)
-          (UserPrimaryKey $ field "mapping_user_oauth_sub" oAuthSubFieldType notNull)
-          lastUpdateField
-          )
-    <*> createTable "keys" (KeyT
-          (field "key_id" pkSerialType notNull)
-          (OrgPrimaryKey $ field "key_org" gs1CompanyPrefixFieldType)
-          (field "jwk" json notNull)
-          (field "creation_time" timestamp)
-          (field "revocation_time" (maybeType timestamp))
-          (UserPrimaryKey $ field "revoking_user_id" (maybeType oAuthSubFieldType))
-          (field "expiration_time" (maybeType timestamp))
-          lastUpdateField
-          )
-    <*> createTable "location" (LocationT
-          (field "location_gln" locationEPCType notNull)
-          (OrgPrimaryKey $ field "location_org_id" gs1CompanyPrefixFieldType notNull)
-          lastUpdateField
-          )
-    <*> createTable "geo_location" (GeoLocationT
-          (field "geo_location_id" pkSerialType notNull)
-          (LocationPrimaryKey $ field "geo_location_gln" locationEPCType)
-          (field "geo_location_lat"     (maybeType latitudeType))
-          (field "geo_location_lon"     (maybeType longitudeType))
-          (field "geo_location_address" (maybeType text))
-          lastUpdateField
-          )
+
+  orgMappingT <- createTable "org_mapping" $
+    OrgMappingT (OrgPrimaryKey $ field "mapping_org_id" gs1CompanyPrefixFieldType notNull (defaultFkConstraint "orgs" ["org_gs1_company_prefix"]))
+                (UserPrimaryKey $ field "mapping_user_oauth_sub" oAuthSubFieldType notNull (defaultFkConstraint "users" ["oauth_sub"]))
+                lastUpdateField
+
+  keysT <- createTable "keys" $
+    KeyT (field "key_id" pkSerialType notNull)
+         (OrgPrimaryKey $ field "key_org" gs1CompanyPrefixFieldType notNull (defaultFkConstraint "orgs" ["org_gs1_company_prefix"]))
+         (field "jwk" json notNull)
+         (field "creation_time" timestamp)
+         (field "revocation_time" (maybeType timestamp))
+         (UserPrimaryKey $ field "revoking_user_id" (maybeType oAuthSubFieldType) (defaultFkConstraint "users" ["oauth_sub"]))
+         (field "expiration_time" (maybeType timestamp))
+         lastUpdateField
+
+  locationT <- createTable "location" $
+    LocationT (field "location_gln" locationEPCType notNull)
+              (OrgPrimaryKey $ field "location_org_id" gs1CompanyPrefixFieldType notNull (defaultFkConstraint "orgs" ["org_gs1_company_prefix"]))
+              lastUpdateField
+
+  geoLocationT <- createTable "geo_location" $
+    GeoLocationT (field "geo_location_id" pkSerialType notNull)
+                 (LocationPrimaryKey $ field "geo_location_gln" locationEPCType notNull (defaultFkConstraint "location" ["location_gln"]))
+                 (field "geo_location_lat"     (maybeType latitudeType))
+                 (field "geo_location_lon"     (maybeType longitudeType))
+                 (field "geo_location_address" (maybeType text))
+                 lastUpdateField
+    
+  pure $ OrgRegistryDB orgsT usersT orgMappingT keysT locationT geoLocationT
 
 
 --------------------------------------------------------------------------------

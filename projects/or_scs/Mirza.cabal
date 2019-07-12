@@ -24,6 +24,7 @@ library
                     , Mirza.OrgRegistry.Database.Migrate
                     , Mirza.OrgRegistry.Database.Schema
                     , Mirza.OrgRegistry.Database.Schema.V0001
+--                    , Mirza.OrgRegistry.Database.Schema.V0002
                     , Mirza.OrgRegistry.Handlers.Org
                     , Mirza.OrgRegistry.Handlers.Health
                     , Mirza.OrgRegistry.Handlers.Keys
