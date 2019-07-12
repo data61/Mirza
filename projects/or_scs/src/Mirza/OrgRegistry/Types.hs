@@ -323,8 +323,7 @@ longitudeType = DataType doubleType
 
 
 data LocationResponse = LocationResponse
-  { locationId    :: PrimaryKeyType
-  , locationGLN   :: EPC.LocationEPC
+  { locationGLN   :: EPC.LocationEPC
   , locationOrg   :: GS1CompanyPrefix
   , geoLocId      :: PrimaryKeyType
   , geoLocCoord   :: Maybe (Latitude, Longitude)
@@ -332,9 +331,8 @@ data LocationResponse = LocationResponse
   } deriving (Show, Generic, Eq)
 instance ToSchema LocationResponse
 instance ToJSON LocationResponse where
-  toJSON (LocationResponse locId locGLN pfix geolocId geolocCoord geolocAddr) = object
-    [ "location_id" .= locId
-    , "epc" .= locGLN
+  toJSON (LocationResponse locGLN pfix geolocId geolocCoord geolocAddr) = object
+    [ "epc" .= locGLN
     , "company_prefix" .= pfix
     , "geolocation_id" .= geolocId
     , "geolocation_coords" .= geolocCoord
@@ -343,8 +341,7 @@ instance ToJSON LocationResponse where
 
 instance FromJSON LocationResponse where
   parseJSON = withObject "LocationResponse" $ \o -> LocationResponse
-    <$> o .: "location_id"
-    <*> o .: "epc"
+    <$> o .: "epc"
     <*> o .: "company_prefix"
     <*> o .: "geolocation_id"
     <*> o .:? "geolocation_coords"

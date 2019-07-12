@@ -51,20 +51,21 @@ data OrgRegistryDB f = OrgRegistryDB
   , _users        :: f (TableEntity UserT)
   , _orgMapping   :: f (TableEntity OrgMappingT)
   , _keys         :: f (TableEntity KeyT)
-  , _locations    :: f (TableEntity       LocationT)
-  , _geoLocations :: f (TableEntity       GeoLocationT)
+  , _locations    :: f (TableEntity LocationT)
+  , _geoLocations :: f (TableEntity GeoLocationT)
   }
   deriving Generic
 instance Database anybackend OrgRegistryDB
 
+
 -- Migration: Intialisation -> V1.
 migration :: () -> Migration Postgres (CheckedDatabaseSettings Postgres OrgRegistryDB)
 migration () =
-  OrgRegistryDB
+  OrgRegistryDB  
     <$> createTable "orgs" (OrgT
-          (field "org_gs1_company_prefix" gs1CompanyPrefixFieldType)
-          (field "org_name" (varchar (Just defaultFieldMaxLength)) notNull)
-          (field "org_url"  (text) notNull)
+          (field "org_gs1_company_prefix" gs1CompanyPrefixFieldType notNull)
+          (field "org_name" text notNull)
+          (field "org_url" text notNull)
           lastUpdateField
           )
     <*> createTable "users" (UserT
@@ -72,12 +73,12 @@ migration () =
           lastUpdateField
           )
     <*> createTable "org_mapping" (OrgMappingT
-          (OrgPrimaryKey $ field "mapping_org_id" gs1CompanyPrefixFieldType)
-          (UserPrimaryKey $ field "mapping_user_oauth_sub" oAuthSubFieldType)
+          (OrgPrimaryKey $ field "mapping_org_id" gs1CompanyPrefixFieldType notNull)
+          (UserPrimaryKey $ field "mapping_user_oauth_sub" oAuthSubFieldType notNull)
           lastUpdateField
           )
     <*> createTable "keys" (KeyT
-          (field "key_id" pkSerialType)
+          (field "key_id" pkSerialType notNull)
           (OrgPrimaryKey $ field "key_org" gs1CompanyPrefixFieldType)
           (field "jwk" json notNull)
           (field "creation_time" timestamp)
@@ -87,17 +88,16 @@ migration () =
           lastUpdateField
           )
     <*> createTable "location" (LocationT
-          (field "location_id" pkSerialType)
-          (field "location_gln" locationEPCType)
-          (OrgPrimaryKey $ field "location_org_id" gs1CompanyPrefixFieldType)
+          (field "location_gln" locationEPCType notNull)
+          (OrgPrimaryKey $ field "location_org_id" gs1CompanyPrefixFieldType notNull)
           lastUpdateField
           )
     <*> createTable "geo_location" (GeoLocationT
-          (field "geo_location_id"      pkSerialType)
+          (field "geo_location_id" pkSerialType notNull)
           (LocationPrimaryKey $ field "geo_location_gln" locationEPCType)
           (field "geo_location_lat"     (maybeType latitudeType))
           (field "geo_location_lon"     (maybeType longitudeType))
-          (field "geo_location_address" (maybeType $ varchar Nothing))
+          (field "geo_location_address" (maybeType text))
           lastUpdateField
           )
 
@@ -246,8 +246,7 @@ type Location = LocationT Identity
 deriving instance Show Location
 
 data LocationT f = LocationT
-  { location_id          :: C f PrimaryKeyType
-  , location_gln         :: C f EPC.LocationEPC
+  { location_gln         :: C f EPC.LocationEPC
   , location_org_id      :: PrimaryKey OrgT f
   , location_last_update :: C f (Maybe LocalTime)
   }
@@ -269,6 +268,7 @@ instance Table LocationT where
   newtype PrimaryKey LocationT f = LocationPrimaryKey (C f EPC.LocationEPC)
     deriving Generic
   primaryKey = LocationPrimaryKey . location_gln
+  
 deriving instance Eq (PrimaryKey LocationT Identity)
 
 instance ToHttpApiData (PrimaryKey LocationT Identity) where
