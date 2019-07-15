@@ -30,6 +30,8 @@ resolver: lts-13.28
 #   - wai
 packages:
 - .
+- '../mirza-common-haskell'
+- '../mirza-test-utils-haskell'
 # Dependency packages to be pulled from upstream that are not in the resolver.
 # These entries can reference officially published versions as well as
 # forks / in-progress versions pinned to a git hash. For example:
@@ -76,6 +78,6 @@ extra-deps:
 
 
 ghc-options:
-  $locals: -Wall
+  $locals: -Wall -Werror
 
 local-bin-path: dist

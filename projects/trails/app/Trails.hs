@@ -1,6 +1,6 @@
 module Main where
 
-import Lib
+import qualified Mirza.Trails.Main as T (main)
 
 main :: IO ()
-main = someFunc
+main = T.main
