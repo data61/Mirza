@@ -22,5 +22,3 @@ do
 done
 
 stack test --fast "${args[@]}" --ta "-j1 $*"
-
-rm test_auth_key.json
