@@ -10,6 +10,7 @@ COPY projects/or_scs/app/  /projects/build/or_scs/app/
 COPY projects/or_scs/license_check.py /projects/build/or_scs/
 COPY projects/or_scs/auth_public_key_2019-04-01.json /projects/build/or_scs/
 COPY projects/mirza-common-haskell/ /projects/build/mirza-common-haskell/
+COPY projects/mirza-test-utils-haskell/ /projects/build/mirza-test-utils-haskell/
 
 RUN /usr/local/bin/stack install --test --dependencies-only --ghc-options='-O2 -j -fPIC' 2>&1
 
