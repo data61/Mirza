@@ -1,9 +1,6 @@
 var webpack = require("webpack");
 
 module.exports = (env) => {
-  console.log("LALALALALALALALALALALALALALALA");
-  console.log(process.env.GOOGLE_MAPS_API_KEY);
-  console.log("LALALALALALALALALALALALALALALA");
   return {
     entry: "./src/index.tsx",
     output: {
