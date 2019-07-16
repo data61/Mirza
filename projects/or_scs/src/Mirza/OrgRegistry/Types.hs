@@ -2,7 +2,9 @@
 {-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE InstanceSigs               #-}
+{-# LANGUAGE LambdaCase                 #-}
 {-# LANGUAGE MultiParamTypeClasses      #-}
+{-# LANGUAGE OverloadedLists            #-}
 {-# LANGUAGE StandaloneDeriving         #-}
 {-# LANGUAGE TemplateHaskell            #-}
 {-# LANGUAGE TypeApplications           #-}
@@ -14,17 +16,20 @@ module Mirza.OrgRegistry.Types (
   , module CT
   ) where
 
+
+import           Mirza.Common.Beam
 import           Mirza.Common.Time                    (CreationTime,
                                                        ExpirationTime,
                                                        RevocationTime)
 import           Mirza.Common.Types                   as CT
 
-import           Data.GS1.EPC                         as EPC
+import           Data.GS1.EPC                         hiding (Expired, URI)
+import qualified Data.GS1.EPC                         as EPC
 
 import           Data.Pool                            as Pool
 
-import           Database.Beam
-import           Database.Beam.Backend.SQL
+import           Database.Beam                        as B
+import           Database.Beam.Backend.SQL            as BSQL
 import qualified Database.Beam.Migrate                as BMigrate
 import qualified Database.Beam.Postgres               as BPostgres
 import           Database.Beam.Postgres.Syntax        (PgDataTypeSyntax)
@@ -33,9 +38,12 @@ import           Database.PostgreSQL.Simple.FromField (FromField, fromField)
 import           Database.PostgreSQL.Simple.ToField   (ToField, toField)
 
 import           Crypto.JOSE                          (JWK)
-import           Crypto.JWT                           (Audience, ClaimsSet,
-                                                       claimSub, string)
+import           Crypto.JWT                           (Audience (..), ClaimsSet,
+                                                       claimSub, emptyClaimsSet,
+                                                       string)
 
+import           Servant                              (FromHttpApiData (parseUrlPiece),
+                                                       ToHttpApiData (toUrlPiece))
 import qualified Servant.Auth.Server                  as SAS
 
 import           Katip                                as K
@@ -43,18 +51,24 @@ import           Katip                                as K
 import           Network.URI                          (URI)
 
 import           Data.Aeson
-import           Data.Aeson.TH
-import           Data.Aeson.Types
 
-import           Data.Swagger
+import           Data.Swagger                         (NamedSchema (..),
+                                                       SwaggerType (..),
+                                                       ToParamSchema (..),
+                                                       ToSchema (..),
+                                                       declareSchemaRef,
+                                                       description, name,
+                                                       properties, required,
+                                                       schema, type_)
 import           Data.Text                            (Text)
 import           Data.Time                            (LocalTime)
 
-import           Control.Lens
+import           Control.Lens                         hiding ((.=))
 import           Data.Proxy                           (Proxy (..))
 
 import           GHC.Generics                         (Generic)
 import           GHC.Stack                            (CallStack)
+
 
 -- *****************************************************************************
 -- Context Types
@@ -67,7 +81,10 @@ orContextMinimal :: EnvType -> Pool Connection -> K.LogEnv -> K.LogContexts -> K
 orContextMinimal a b c d e = ORContextGeneric a b c d e () ()
 
 orContextComplete :: ORContextMinimal -> Audience -> JWK-> ORContextComplete
-orContextComplete (ORContextGeneric a b c d e () ()) f g = ORContextGeneric a b c d e f g
+orContextComplete (ORContextGeneric envT poolConn logEnv logCtxs nameSpace () ()) audList@(Audience strUriList) jwk
+    = if (null strUriList)
+        then error "Empty Audience not allowed."
+        else ORContextGeneric envT poolConn logEnv logCtxs nameSpace audList jwk
 
 data ORContextGeneric audienceType publicKeyType = ORContextGeneric
   { _orEnvType          :: EnvType
@@ -124,44 +141,104 @@ instance (HasAuthAudience context, HasAuthPublicKey context)
 --       a section appears logically bottom to top, rather then the normal top
 --       to bottom.
 
-
-
 -- | Note that OrgRegistry.NewUser is expected to become different in the
 -- future, and hence this duplication
 data NewUser = NewUser
-  { newUserOAuthSub     :: Text
+  { newUserOAuthSub     :: OAuthSub
   } deriving (Generic, Eq, Show)
-$(deriveJSON defaultOptions ''NewUser)
 instance ToSchema NewUser
 
 -- Auth User Types:
 newtype VerifiedTokenClaims = VerifiedTokenClaims
-  { verifiedTokenClaimsSub :: Text
+  { verifiedTokenClaimsSub :: OAuthSub
   } deriving (Show)
 instance SAS.ToJWT VerifiedTokenClaims where
-  encodeJWT = error "Not implemented" -- TODO: Implement this properly
+  encodeJWT (VerifiedTokenClaims (OAuthSub oAuthSub)) = emptyClaimsSet & claimSub .~ Just (review string oAuthSub)
 
 instance SAS.FromJWT VerifiedTokenClaims where
   decodeJWT :: ClaimsSet -> Either Text VerifiedTokenClaims
   decodeJWT claims = maybeToEither "No sub present in token" maybeVerifiedTokenClaims where
     maybeStringOrURISub = view claimSub claims
     maybeTextSub = (view string) <$> maybeStringOrURISub
-    maybeVerifiedTokenClaims = VerifiedTokenClaims <$> maybeTextSub
+    maybeVerifiedTokenClaims = VerifiedTokenClaims . OAuthSub <$> maybeTextSub
     maybeToEither leftText = maybe (Left leftText) Right
 
 
-newtype AuthUser = AuthUser { authUserId :: UserId }
+newtype AuthUser = AuthUser { authUserId :: OAuthSub }
   deriving (Show, Eq, Read, Generic)
 instance ToSchema AuthUser
 instance ToParamSchema AuthUser
 
+newtype OAuthSub = OAuthSub Text deriving (Generic, Eq, Show, Read)
+instance ToSchema OAuthSub
+instance ToParamSchema OAuthSub
+
+instance ToJSON (OAuthSub) where
+  toJSON (OAuthSub oAuthSub) = toJSON oAuthSub
+instance FromJSON (OAuthSub) where
+  parseJSON = fmap OAuthSub . parseJSON
+
+instance FromHttpApiData (OAuthSub) where
+  parseUrlPiece oAuthSub = OAuthSub <$> parseUrlPiece oAuthSub
+
+instance ToHttpApiData OAuthSub where
+  toUrlPiece (OAuthSub oAuthSub) = toUrlPiece oAuthSub
+
+instance BSQL.HasSqlValueSyntax be Text =>
+  BSQL.HasSqlValueSyntax be OAuthSub where
+    sqlValueSyntax (OAuthSub sub) = BSQL.sqlValueSyntax sub
+instance (BMigrate.IsSql92ColumnSchemaSyntax be) =>
+  BMigrate.HasDefaultSqlDataTypeConstraints be OAuthSub
+
+instance (BSQL.HasSqlValueSyntax (BSQL.Sql92ExpressionValueSyntax be) Bool,
+          BSQL.IsSql92ExpressionSyntax be) =>
+          B.HasSqlEqualityCheck be OAuthSub
+instance (BSQL.HasSqlValueSyntax (BSQL.Sql92ExpressionValueSyntax be) Bool,
+          BSQL.IsSql92ExpressionSyntax be) =>
+          B.HasSqlQuantifiedEqualityCheck be OAuthSub
+
+instance BSQL.FromBackendRow BPostgres.Postgres OAuthSub where
+  fromBackendRow = OAuthSub <$> BSQL.fromBackendRow
+
+instance FromField OAuthSub where
+  fromField mbs conv = OAuthSub <$> fromField mbs conv
+
+instance ToField OAuthSub where
+  toField (OAuthSub sub) = toField sub
+
+oAuthSubFieldType :: BMigrate.DataType PgDataTypeSyntax OAuthSub
+oAuthSubFieldType = textType
+
+
 
 data PartialNewOrg = PartialNewOrg
-  { partialNewOrgName      :: Text
-  , partialNewOrgUrl       :: Network.URI.URI
-  } deriving (Generic, Eq, Show)
-$(deriveJSON defaultOptions ''PartialNewOrg)
-instance ToSchema PartialNewOrg
+  { partialNewOrgName :: Text
+  , partialNewOrgUrl  :: URI
+  }
+  deriving (Eq, Show)
+
+instance FromJSON PartialNewOrg where
+  parseJSON = withObject "PartialNewOrg" $ \o -> PartialNewOrg
+    <$> o .: "name"
+    <*> o .: "url"
+
+instance ToJSON PartialNewOrg where
+  toJSON (PartialNewOrg orgname url) = object
+    [ "name" .= orgname
+    , "url" .= url
+    ]
+
+instance ToSchema PartialNewOrg where
+  declareNamedSchema _ = do
+    textSchema <- declareSchemaRef (Proxy :: Proxy Text)
+    urlSchema <- declareSchemaRef (Proxy :: Proxy URI)
+    pure $ NamedSchema (Just "PartialNewOrg") $ mempty
+      & type_ .~ SwaggerObject
+      & properties .~
+          [ ("name", textSchema)
+          , ("url", urlSchema)
+          ]
+      & required .~ [ "name", "url" ]
 
 data NewOrg = NewOrg
   { newOrgGS1CompanyPrefix :: GS1CompanyPrefix
@@ -171,21 +248,30 @@ data NewOrg = NewOrg
 
 -- Org Response Types:
 data OrgResponse = OrgResponse
-  { orgGS1CompanyPrefix :: EPC.GS1CompanyPrefix
-  , orgName             :: Text
-  , orgUrl              :: Network.URI.URI
+  { orgResponseGS1CompanyPrefix :: EPC.GS1CompanyPrefix
+  , orgResponseName             :: Text
+  , orgResponseUrl              :: Network.URI.URI
   }
   deriving (Show, Eq, Generic)
 instance ToSchema OrgResponse
-instance ToJSON OrgResponse
-instance FromJSON OrgResponse
 
+instance FromJSON OrgResponse where
+  parseJSON = withObject "OrgResponse" $ \o -> OrgResponse
+    <$> o .: "company_prefix"
+    <*> o .: "name"
+    <*> o .: "url"
+
+instance ToJSON OrgResponse where
+  toJSON (OrgResponse pfix orgname url) = object
+    [ "company_prefix" .= pfix
+    , "name" .= orgname
+    , "url" .= url
+    ]
 
 instance ToSchema Network.URI.URI where
   declareNamedSchema _ = declareNamedSchema (Proxy :: Proxy Text)
     <&> name ?~ "URI"
     <&> schema . description ?~ "An RFC 3986 compliant URI."
-
 
 data NewLocation = NewLocation
   { newLocGLN     :: LocationEPC
@@ -267,25 +353,58 @@ data LocationResponse = LocationResponse
   , geoLocAddress :: Maybe Text
   } deriving (Show, Generic, Eq)
 instance ToSchema LocationResponse
-instance ToJSON LocationResponse
-instance FromJSON LocationResponse
+instance ToJSON LocationResponse where
+  toJSON (LocationResponse locId locGLN pfix geolocId geolocCoord geolocAddr) = object
+    [ "location_id" .= locId
+    , "epc" .= locGLN
+    , "company_prefix" .= pfix
+    , "geolocation_id" .= geolocId
+    , "geolocation_coords" .= geolocCoord
+    , "geolocation_address" .= geolocAddr
+    ]
 
+instance FromJSON LocationResponse where
+  parseJSON = withObject "LocationResponse" $ \o -> LocationResponse
+    <$> o .: "location_id"
+    <*> o .: "epc"
+    <*> o .: "company_prefix"
+    <*> o .: "geolocation_id"
+    <*> o .:? "geolocation_coords"
+    <*> o .: "geolocation_address"
 
 data OrgAndLocationResponse = OrgAndLocationResponse
-  { orgResponse :: OrgResponse
+  { orgResponse      :: OrgResponse
   , locationResponse :: LocationResponse
   } deriving (Show, Generic, Eq)
 instance ToSchema OrgAndLocationResponse
-instance ToJSON OrgAndLocationResponse
-instance FromJSON OrgAndLocationResponse
-
+instance ToJSON OrgAndLocationResponse where
+  toJSON (OrgAndLocationResponse org loc) = object
+    [ "org" .= org
+    , "location" .= loc
+    ]
+instance FromJSON OrgAndLocationResponse where
+  parseJSON = withObject "OrgAndLocationResponse" $ \o -> OrgAndLocationResponse
+    <$> o .: "org"
+    <*> o .: "location"
 
 data KeyState
   = InEffect -- Can be used
   | Revoked -- Key passed the revocation time
   | Expired -- Key passed the expiration time
   deriving (Show, Eq, Read, Generic)
-$(deriveJSON defaultOptions ''KeyState)
+
+instance FromJSON KeyState where
+  parseJSON = withText "KeyState" $ \case
+    "in_effect" -> pure InEffect
+    "revoked" -> pure Revoked
+    "expired" -> pure Expired
+    _ -> fail "Invalid value for key_state. Valid values are in_effect, revoked and expired."
+
+instance ToJSON KeyState where
+  toJSON InEffect = String "in_effect"
+  toJSON Revoked  = String "revoked"
+  toJSON Expired  = String "expired"
+
 instance ToSchema KeyState
 instance ToParamSchema KeyState
 
@@ -296,16 +415,35 @@ instance ToParamSchema KeyState
 
 
 data KeyInfoResponse = KeyInfoResponse
-  { keyInfoId             :: CT.ORKeyId
-  , keyInfoUserId         :: UserId  -- TODO: There should be a forien key for Org in here....not sure that user is relevant...
-  , keyInfoState          :: KeyState
-  , keyInfoCreationTime   :: CreationTime
-  , keyInfoRevocation     :: Maybe (RevocationTime, UserId)
-  , keyInfoExpirationTime :: Maybe ExpirationTime
-  , keyInfoJWK            :: JWK
+  { keyInfoId               :: CT.ORKeyId
+  , keyInfoGS1CompanyPrefix :: GS1CompanyPrefix
+  , keyInfoState            :: KeyState
+  , keyInfoCreationTime     :: CreationTime
+  , keyInfoRevocation       :: Maybe (RevocationTime, OAuthSub)
+  , keyInfoExpirationTime   :: Maybe ExpirationTime
+  , keyInfoJWK              :: JWK
   }
   deriving (Generic, Show, Eq)
-$(deriveJSON defaultOptions ''KeyInfoResponse)
+
+instance FromJSON KeyInfoResponse where
+  parseJSON = withObject "KeyInfoResponse" $ \o -> KeyInfoResponse
+    <$> o .: "key_id"
+    <*> o .: "user_id"
+    <*> o .: "key_state"
+    <*> o .: "creation_time"
+    <*> o .:? "revocation"
+    <*> o .:? "expiration_time"
+    <*> o .: "jwk"
+instance ToJSON KeyInfoResponse where
+  toJSON (KeyInfoResponse keyId userId keyState cTime revocationInfo expTime jwk) = object
+    [ "key_id" .= keyId
+    , "user_id" .= userId
+    , "key_state" .= keyState
+    , "creation_time" .= cTime
+    , "revocation" .= revocationInfo
+    , "expiration_time" .= expTime
+    , "jwk" .= jwk
+    ]
 instance ToSchema KeyInfoResponse
 
 
@@ -319,6 +457,7 @@ data ORError
   -- | The user tried to add a org with the a GS1CompanyPrefix that already exsits.
   | GS1CompanyPrefixExistsORE
   | OrgDoesNotExistORE
+  | InvalidOAuthSubORE
   | UserAuthFailureORE (SAS.AuthResult ())
   -- | When adding a user fails for an unknown reason.
   | UserCreationErrorORE String CallStack
@@ -326,7 +465,7 @@ data ORError
   | LocationNotKnownORE
   | LocationExistsORE
   | UnknownUserORE
-  | OperationNotPermittedORE GS1CompanyPrefix UserId
+  | OperationNotPermittedORE GS1CompanyPrefix OAuthSub
   -- | An error that isn't specifically excluded by the types, but that the
   -- developers don't think is possible to hit, or know of a situation which
   -- could cause this case to be exercised.
@@ -351,7 +490,7 @@ data ORKeyError
   -- this error it might be a good time to re-evaulate whether it is better to
   -- fix the storage datatype so its not possible to generate this error in the
   -- first place.
-  | InvalidRevocationORKE (Maybe LocalTime) (Maybe PrimaryKeyType) CallStack
+  | InvalidRevocationORKE (Maybe LocalTime) (Maybe OAuthSub) CallStack
   | AddedExpiredKeyORKE
   deriving (Show)
 

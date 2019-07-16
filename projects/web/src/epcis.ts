@@ -1,4 +1,4 @@
-var moment = require('moment');
+const moment = require('moment');
 
 export const EventType = {
     Aggregation: "AggregationEvent",
@@ -12,6 +12,12 @@ export const EventAction = {
     Delete: "DELETE",
     Observe: "OBSERVE",
 };
+
+export interface KVLookup { [key: string]: string; }
+
+export function lookupByValue(x: KVLookup, v: string): string | undefined {
+    return Object.keys(x).find((k) => x[k] === v);
+}
 
 export const EventBusinessStep = {
     Accepting: "urn:epcglobal:cbv:bizstep:accepting",
@@ -82,32 +88,32 @@ export const EventDisposition = {
 export const SourceDestType = {
     OwningParty: "urn:epcglobal:cbv:sdt:owning_party",
     PosessingParty: "urn:epcglobal:cbv:sdt:possessing_party",
-    Location: "urn:epcglobal:cbv:sdt:location"
-}
+    Location: "urn:epcglobal:cbv:sdt:location",
+};
 
 class SourceType {
-    constructor(public source:string, public type:string) {
+    constructor(public source: string, public type: string) {
         this.source = source;
         this.type = type;
     }
 }
 
 class DestinationType {
-    constructor(public destination:string, public type:string) {
+    constructor(public destination: string, public type: string) {
         this.destination = destination;
         this.type = type;
     }
 }
 
 class Quantity {
-    constructor(public epcClass:string, public quantity: number, public uom:string) {
+    constructor(public epcClass: string, public quantity: number, public uom: string) {
         this.epcClass = epcClass;
         this.quantity = quantity;
         this.uom = uom;
     }
 }
 
-export interface Event {
+export interface EventEPCIS {
     eventID?: string;
     isA: string;
     eventTime: Date;
@@ -115,22 +121,55 @@ export interface Event {
     eventTimeZoneOffset: string;
     recordTime?: Date;
     action?: string;
-    epcList?: Array<string>;
+    parentID?: string;
+    epcList?: string[];
     bizStep?: string;
     disposition?: string;
-    quantityList?: Array<Quantity>;
+    quantityList?: Quantity[];
     bizLocation?: string;
-    sourceList: Array<SourceType>;
-    destinationList: Array<DestinationType>;
+    sourceList: SourceType[];
+    destinationList: DestinationType[];
+    bizTransactionList?: string[];
 }
 
-export function objectEvent(): Event {
+export function objectEvent(): EventEPCIS {
     return {
         isA: EventType.Object,
         epcList: [],
         action: EventAction.Add,
         bizStep: EventBusinessStep.Accepting,
         disposition: EventDisposition.Active,
+        eventTime: new Date(),
+        eventTimeZoneOffset: moment(Date()).format('Z'),
+        sourceList: [],
+        destinationList: [],
+    };
+}
+
+export function aggregationEvent(): EventEPCIS {
+    return {
+        isA: EventType.Aggregation,
+        parentID: null,
+        epcList: [],
+        action: EventAction.Add,
+        bizStep: EventBusinessStep.Packing,
+        disposition: EventDisposition.InProgress,
+        eventTime: new Date(),
+        eventTimeZoneOffset: moment(Date()).format('Z'),
+        sourceList: [],
+        destinationList: [],
+    };
+}
+
+export function transactionEvent(): EventEPCIS {
+    return {
+        isA: EventType.Transaction,
+        bizTransactionList: [],
+        parentID: null,
+        epcList: [],
+        action: EventAction.Add,
+        bizStep: EventBusinessStep.Packing,
+        disposition: EventDisposition.InProgress,
         eventTime: new Date(),
         eventTimeZoneOffset: moment(Date()).format('Z'),
         sourceList: [],

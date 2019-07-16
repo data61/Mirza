@@ -18,28 +18,26 @@ module Mirza.OrgRegistry.Client.Servant
   , revokePublicKey
   , addLocation
   , getOrgInfo
-  -- * Other
-  , authDataToTokenTodoRemove
   ) where
 
+import           Mirza.Common.Time                 (ExpirationTime,
+                                                    RevocationTime)
+import           Mirza.Common.Types                (ORKeyId)
 import           Mirza.OrgRegistry.API
-import           Mirza.OrgRegistry.Database.Schema (LocationId)
+import           Mirza.OrgRegistry.Database.Schema (LocationPrimaryKey)
 import           Mirza.OrgRegistry.Types           as ORT
-import           Mirza.Common.Time                      (ExpirationTime,
-                                                         RevocationTime)
-import           Mirza.Common.Types                     (ORKeyId)
 
-import           Data.GS1.EPC                           as EPC
+import           Data.GS1.EPC                      as EPC
 
-import           Crypto.JOSE.JWK                        (JWK)
+import           Crypto.JOSE.JWK                   (JWK)
 
 import           Servant.API
-import           Servant.Client
 import           Servant.Auth.Client
+import           Servant.Client
 
-import           Data.Proxy                             (Proxy (..))
-import           Data.Text                              (Text)
-import           Data.Time                              (UTCTime)
+import           Data.Proxy                        (Proxy (..))
+import           Data.Text                         (Text)
+import           Data.Time                         (UTCTime)
 
 health                :: ClientM HealthResponse
 versionInfo           :: ClientM String
@@ -53,10 +51,10 @@ searchOrgLocationByGLN :: LocationEPC -> GS1CompanyPrefix -> ClientM OrgAndLocat
 
 addUser                :: Token -> ClientM NoContent
 addOrg                 :: Token -> GS1CompanyPrefix -> PartialNewOrg -> ClientM NoContent
-addUserToOrg           :: Token -> GS1CompanyPrefix -> UserId -> ClientM NoContent
-addPublicKey           :: Token -> JWK -> Maybe ExpirationTime -> ClientM ORKeyId
+addUserToOrg           :: Token -> GS1CompanyPrefix -> OAuthSub -> ClientM NoContent
+addPublicKey           :: Token -> GS1CompanyPrefix -> JWK -> Maybe ExpirationTime -> ClientM ORKeyId
 revokePublicKey        :: Token -> ORKeyId -> ClientM RevocationTime
-addLocation            :: Token -> NewLocation -> ClientM LocationId
+addLocation            :: Token -> NewLocation -> ClientM LocationPrimaryKey
 getOrgInfo             :: Token -> ClientM [OrgResponse]
 
 _api     :: Client ClientM ServerAPI
@@ -85,9 +83,3 @@ _api@(
     :<|> addLocation
   )
  ) = client (Proxy :: Proxy ServerAPI)
-
--- This is a filler function which we can use while porting the implementation.
--- There is no implementation for this function because we still need to decide
--- how we are going to auth from the tests.
-authDataToTokenTodoRemove :: BasicAuthData -> Token
-authDataToTokenTodoRemove = undefined

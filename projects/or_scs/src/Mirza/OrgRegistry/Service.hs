@@ -27,28 +27,28 @@ import           Mirza.Common.Utils
 
 import           Mirza.OrgRegistry.API
 
-import           Mirza.OrgRegistry.Auth ( oauthClaimsToAuthUser )
-import           Mirza.OrgRegistry.Handlers.Org      as Handlers
+import           Mirza.OrgRegistry.Auth              (oauthClaimsToAuthUser)
 import           Mirza.OrgRegistry.Handlers.Health   as Handlers
 import           Mirza.OrgRegistry.Handlers.Keys     as Handlers
 import           Mirza.OrgRegistry.Handlers.Location as Handlers
+import           Mirza.OrgRegistry.Handlers.Org      as Handlers
 import           Mirza.OrgRegistry.Handlers.Users    as Handlers
 import           Mirza.OrgRegistry.Types
 
 import           Katip
 
 import           Servant
-import           Servant.Swagger
 import           Servant.Auth.Server
+import           Servant.Swagger
 
-import           Control.Lens                             hiding ((.=))
-import           Control.Monad                            ( (<=<) )
-import           Control.Monad.IO.Class                   (liftIO)
+import           Control.Lens                        hiding ((.=))
+import           Control.Monad                       ((<=<))
+import           Control.Monad.IO.Class              (liftIO)
 import           Control.Monad.Trans
 
-import           Data.ByteString.Lazy.Char8               as BSL8
-import qualified Data.HashMap.Strict.InsOrd               as IOrd
-import           Text.Printf                              (printf)
+import           Data.ByteString.Lazy.Char8          as BSL8
+import qualified Data.HashMap.Strict.InsOrd          as IOrd
+import           Text.Printf                         (printf)
 
 import           Data.Swagger
 
@@ -86,8 +86,8 @@ privateServer :: ( Member context '[HasDB]
 privateServer =      (transformUser0 addUserAuth)
                 :<|> (transformUser0 getOrgInfo)
                 :<|> (transformUser2 addOrgAuth)
-                :<|> (transformUser2 addOrganisationMappingAuth)
-                :<|> (transformUser2 addPublicKey)
+                :<|> (transformUser2 addOrgMappingAuth)
+                :<|> (transformUser3 addPublicKey)
                 :<|> (transformUser1 revokePublicKey)
                 :<|> (transformUser1 addLocation)
   where
@@ -95,9 +95,10 @@ privateServer =      (transformUser0 addUserAuth)
     -- to fail using our error types. It would be nice to apply oauthClaimsToAuthUser uniformly to all endpoints, but
     -- currently the following method is the cleanest way that we know of applying it to each of the end points. The
     -- number is the number of argument that the end point takes.
-    transformUser0 f            = f <=< oauthClaimsToAuthUser
-    transformUser1 f claims a   = (\user -> f user a)   =<< (oauthClaimsToAuthUser claims)
-    transformUser2 f claims a b = (\user -> f user a b) =<< (oauthClaimsToAuthUser claims)
+    transformUser0 f              = f <=< oauthClaimsToAuthUser
+    transformUser1 f claims a     = (\user -> f user a)     =<< (oauthClaimsToAuthUser claims)
+    transformUser2 f claims a b   = (\user -> f user a b)   =<< (oauthClaimsToAuthUser claims)
+    transformUser3 f claims a b c = (\user -> f user a b c) =<< (oauthClaimsToAuthUser claims)
 
 instance (HasSwagger sub) => HasSwagger (Servant.Auth.Server.Auth '[JWT] a :> sub) where
   toSwagger _ =
@@ -175,6 +176,7 @@ orErrorToHttpError orError =
     (OrgDoesNotExistORE)       -> httpError err400 "Organisation does not exist."
     (OperationNotPermittedORE _ _)  -> httpError err403 "A user can only act on behalf of the org they are associated with."
     (UserAuthFailureORE _)          -> httpError err401 "Authorization invalid."
+    (InvalidOAuthSubORE)            -> httpError err400 "Invalid OAuth Sub."
     (UserCreationErrorORE _ _)      -> userCreationError orError
     UnknownUserORE                  -> httpError err400 "Unknown User"
 

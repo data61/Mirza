@@ -17,7 +17,7 @@ module Mirza.Common.GS1BeamOrphans
   ( LabelType(..), labelType
   , LocationField(..), locationRefType, locationType
   , srcDestType
-  , gs1CompanyPrefixType
+  , gs1CompanyPrefixFieldType
   , actionType
   , eventType
   , sglnExtType
@@ -263,8 +263,8 @@ instance FromField EPC.GS1CompanyPrefix where
 instance ToField EPC.GS1CompanyPrefix where
   toField (EPC.GS1CompanyPrefix pfx) = toField pfx
 
-gs1CompanyPrefixType :: BMigrate.DataType PgDataTypeSyntax EPC.GS1CompanyPrefix
-gs1CompanyPrefixType = textType
+gs1CompanyPrefixFieldType :: BMigrate.DataType PgDataTypeSyntax EPC.GS1CompanyPrefix
+gs1CompanyPrefixFieldType = textType
 
 
 -- ======= EPC.SGLNExtension =======

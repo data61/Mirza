@@ -21,6 +21,7 @@
 module Mirza.Common.Types
   ( EmailAddress, emailToText, Password(..)  , UserId(..)
   , ORKeyId(..)
+  , HealthResponse(..), successHealthResponseText
   , EnvType(..)
   , AppM(..)
   , runAppM
@@ -46,7 +47,6 @@ module Mirza.Common.Types
   , PrimaryKeyType
   , orKeyIdType
   , runClientFunc
-  , HealthResponse (..) , successHealthResponseText
   ) where
 
 import qualified Database.Beam                        as B
@@ -87,7 +87,7 @@ import           Text.Email.Validate                  (EmailAddress,
                                                        toByteString, validate)
 
 import           Data.Aeson
-import           Data.Aeson.Types                     (typeMismatch)
+import           Data.Aeson.Types
 
 import           Control.Lens
 import           Control.Monad.Error.Lens
@@ -109,8 +109,6 @@ import           Servant.Client                       (ClientEnv (..), ClientM,
 import           Data.UUID                            (UUID)
 
 type PrimaryKeyType = UUID
-
-
 
 -- *****************************************************************************
 -- Orphan Instances
@@ -139,7 +137,11 @@ emailToText = decodeUtf8 . toByteString
 -- TODO: Handwrite these instances to comply with their defined syntax
 -- For example, emails have their own format, as do LabelEPCUrn
 newtype UserId = UserId {getUserId :: PrimaryKeyType}
-  deriving (Show, Eq, Generic, Read, Ord, FromJSON, ToJSON)
+  deriving (Eq, Show, Generic, Read, Ord)
+instance FromJSON UserId where
+  parseJSON = fmap UserId . parseJSON
+instance ToJSON UserId where
+  toJSON = toJSON . getUserId
 instance ToSchema UserId
 instance ToParamSchema UserId
 deriving instance FromHttpApiData UserId
@@ -153,7 +155,11 @@ instance Show Password where
   show _ = "Password <redacted>"
 
 newtype ORKeyId = ORKeyId {getORKeyId :: UUID}
-  deriving (Show, Eq, Generic, Read, FromJSON, ToJSON)
+  deriving (Show, Eq, Generic, Read)
+instance FromJSON ORKeyId where
+  parseJSON = fmap ORKeyId . parseJSON
+instance ToJSON ORKeyId where
+  toJSON = toJSON . getORKeyId
 instance ToSchema ORKeyId
 instance ToParamSchema ORKeyId
 instance FromHttpApiData ORKeyId where
@@ -212,6 +218,23 @@ newtype DB context error a = DB (ReaderT (Connection,context) (ExceptT error Pg)
   , MonadError error
   , MonadIO -- Need to figure out if we actually want this
   )
+
+
+-- Health Types:
+successHealthResponseText :: Text
+successHealthResponseText = "Status OK"
+
+data HealthResponse = HealthResponse
+  deriving (Show, Eq, Read, Generic)
+instance ToSchema HealthResponse
+instance ToJSON HealthResponse where
+  toJSON _ = toJSON successHealthResponseText
+instance FromJSON HealthResponse where
+  parseJSON (String value)
+    | value == successHealthResponseText = pure HealthResponse
+    | otherwise                          = fail "Invalid health response string."
+  parseJSON value                        = typeMismatch "HealthResponse" value
+
 
 -- =============================================================================
 -- Classes and utilities for working with Constraints
@@ -401,22 +424,3 @@ instance ToSchema Base64Octets where
   declareNamedSchema _ =
     pure $ NamedSchema (Just "Base64 Encoded Bytes") $ mempty
       & type_ .~ SwaggerString
-
--- *****************************************************************************
--- Health Types
--- *****************************************************************************
-
-successHealthResponseText :: Text
-successHealthResponseText = "Status OK"
-
-data HealthResponse = HealthResponse
-  deriving (Show, Eq, Read, Generic)
-instance ToSchema HealthResponse
-instance ToJSON HealthResponse where
-  toJSON _ = toJSON successHealthResponseText
-instance FromJSON HealthResponse where
-  parseJSON (String value)
-    | value == successHealthResponseText = pure HealthResponse
-    | otherwise                          = fail "Invalid health response string."
-  parseJSON value                        = typeMismatch "HealthResponse" value
-

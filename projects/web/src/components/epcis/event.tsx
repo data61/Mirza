@@ -1,16 +1,16 @@
 import * as React from "react";
 
-import { EventType } from "../../epcis";
+import { EventEPCIS, EventType } from "../../epcis";
 
 import { EventStateProps, MappingSelect } from "./common";
 import { ObjectEventForm } from "./object-event";
 
-export function EventForm({ eventState }: EventStateProps) {
-  const [event, setEvent] = eventState;
+export function EventForm({ state }: EventStateProps<EventEPCIS>) {
+  const [event, setEvent] = state;
 
   const eventTypeForm = () => {
     switch (event.isA) {
-      case EventType.Object: return <ObjectEventForm eventState={eventState}></ObjectEventForm>;
+      case EventType.Object: return <ObjectEventForm state={state}></ObjectEventForm>;
       default: return <div></div>;
     }
   };
