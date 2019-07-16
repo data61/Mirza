@@ -8,6 +8,7 @@ module Mirza.OrgRegistry.Main where
 
 
 import           Mirza.Common.Types                 as CT
+import           Mirza.Common.Utils                 (fetchJWKS)
 import           Mirza.OrgRegistry.API              (API, ServerAPI, api)
 import           Mirza.OrgRegistry.Auth
 import           Mirza.OrgRegistry.Database.Migrate
@@ -22,6 +23,9 @@ import           Servant
 import           Servant.Auth.Server
 import           Servant.Swagger.UI
 
+import           Network.URI                        hiding (authority, path)
+
+import           Crypto.JOSE                        (JWK, JWKSet (..))
 import           Crypto.JWT                         (Audience (..), string)
 
 import qualified Data.Pool                          as Pool
@@ -30,7 +34,7 @@ import           Database.PostgreSQL.Simple
 import           Network.URI                        (nullURI)
 import           Network.Wai                        (Middleware)
 import qualified Network.Wai.Handler.Warp           as Warp
-import           Network.Wai.Middleware.Cors
+import qualified Network.Wai.Middleware.Cors        as CorsMiddleware
 
 import           Data.Aeson                         (eitherDecodeFileStrict)
 
@@ -39,15 +43,18 @@ import           Data.ByteString                    (ByteString)
 import qualified Data.ByteString.Char8              as BS
 import           Data.Semigroup                     ((<>))
 import           Data.Text                          (Text, pack)
+import qualified Data.Text                          as T
 import           Options.Applicative                hiding (action)
 import           Text.Email.Parser                  (addrSpec)
 
 import           Control.Exception                  (finally)
 import           Control.Lens                       (review)
+import           Control.Monad                      (when)
 import           Data.Either                        (fromRight)
-import           Data.Maybe                         (fromMaybe)
+import           Data.Maybe                         (fromMaybe, listToMaybe)
 import           Katip                              as K
-import           System.IO                          (IOMode (AppendMode),
+import           System.IO                          (FilePath,
+                                                     IOMode (AppendMode),
                                                      hPutStr, openFile, stderr,
                                                      stdout)
 
@@ -63,6 +70,19 @@ defaultPortNumber = 8200
 defaultDatabaseConnectionString :: ByteString
 defaultDatabaseConnectionString = "dbname=devorgregistry"
 
+-- | default JOSE Web Key Set URI
+defaultJWKSURI :: URI
+defaultJWKSURI = URI "https:" (Just $ URIAuth "" "mirza.au.auth0.com/.well-known" "") "/jwks.json" "" ""
+
+corsOrigins :: [CorsMiddleware.Origin]
+corsOrigins = [
+    "http://localhost:8000"
+  , "http://localhost:8020"
+  , "http://localhost:8080"
+  , "http://localhost:8081"
+  , "http://localhost:8200"
+  , "https://demo.mirza.d61.io"
+  ]
 
 --------------------------------------------------------------------------------
 -- Command Line Options Data Types
@@ -81,15 +101,16 @@ data ExecMode
   | Bootstrap Text GS1CompanyPrefix
 
 data ServerOptionsOR = ServerOptionsOR
-  { sobDbConnStr    :: ByteString
-  , sobLoggingLevel :: K.Severity
-  , sobLogLocation  :: Maybe FilePath
-  , sobEnvType      :: CT.EnvType
+  { mandatoryOptionsDbConnStr    :: ByteString
+  , mandatoryOptionsLoggingLevel :: K.Severity
+  , mandatoryOptionsLogLocation  :: Maybe FilePath
+  , mandatoryOptionsEnvType      :: CT.EnvType
   }
 
 data RunServerOptions = RunServerOptions
-  { rsoPortNumber    :: Int
-  , sobOAuthAudience :: Text
+  { runServerOptionsPortNumber    :: Int
+  , runServerOptionsOAuthJWKPath  :: URI
+  , runServerOptionsOAuthAudience :: Text
   }
 
 data UserCommand
@@ -131,7 +152,7 @@ multiplexInitOptions (InitOptionsOR opts mode) = case mode of
 
 launchServer :: ServerOptionsOR -> RunServerOptions -> IO ()
 launchServer opts rso = do
-      let portNumber = rsoPortNumber rso
+      let portNumber = runServerOptionsPortNumber rso
       minimalContext <- initORContext opts
       completeContext <- addServerOptions minimalContext rso
       app <- initApplication completeContext
@@ -141,16 +162,33 @@ launchServer opts rso = do
 
 
 addServerOptions :: ORContextMinimal -> RunServerOptions -> IO ORContextComplete
-addServerOptions minimalContext (RunServerOptions _port oauthAudience) = addAuthOptions minimalContext oauthAudience
+addServerOptions minimalContext (RunServerOptions _port oAuthPublicKeyRef oauthAudience) = addAuthOptions minimalContext oAuthPublicKeyRef oauthAudience
 
 
-addAuthOptions :: ORContextMinimal -> Text -> IO ORContextComplete
-addAuthOptions minimalContext oauthAudience = do
-  eitherJwk <- eitherDecodeFileStrict "auth_public_key_2019-04-01.json"
+addAuthOptions :: ORContextMinimal -> URI -> Text -> IO ORContextComplete
+addAuthOptions minimalContext oAuthPublicKeyRef oauthAudience = do
+  when (T.null oauthAudience) $ error "Empty Audience"
+  jwks <- getJWKS oAuthPublicKeyRef
+  let audience = Audience [review string oauthAudience]
+  pure $ orContextComplete minimalContext audience jwks
+
+
+getJWKS :: URI -> IO JWK
+getJWKS (URI "file:" authority path _ _) = do
+  eitherJwk <- eitherDecodeFileStrict $ (maybe "" uriRegName authority) <> path
   let makeError errorMessage = error $ "Unable to get the OAuth Public Key. Error was: " <> (show errorMessage)
   let jwk = either makeError id eitherJwk
-  let audience = Audience [review string oauthAudience]
-  pure $ orContextComplete minimalContext audience jwk
+  pure jwk
+getJWKS uri@(URI "https:" _ _ _ _) = do
+  let uriString = uriToString id uri ""
+      unableToFetchJWKError = error $ "Unable to fetch Jose Web Key Set from: " <> uriString
+  keyResult <- fetchJWKS $ uriString
+  case keyResult of
+    Left _ -> unableToFetchJWKError
+    Right (JWKSet keys) -> maybe unableToFetchJWKError pure $ listToMaybe keys
+getJWKS _ = error $ "Unsupported URI schema type."
+
+
 
 
 initORContext :: ServerOptionsOR -> IO ORT.ORContextMinimal
@@ -176,18 +214,12 @@ initApplication ev =
 
 
 myCors :: Middleware
-myCors = cors (const $ Just policy)
+myCors = CorsMiddleware.cors (const $ Just policy)
     where
-      policy = simpleCorsResourcePolicy
-        { corsRequestHeaders = ["Content-Type", "Authorization"]
-        , corsMethods = "PUT" : simpleMethods
-        , corsOrigins = Just ([
-            "http://localhost:8080"
-          , "http://localhost:8081"
-          , "http://localhost:8020"
-          , "http://localhost:8000"
-          , "https://demo.mirza.d61.io"
-          ], True)
+      policy = CorsMiddleware.simpleCorsResourcePolicy
+        { CorsMiddleware.corsRequestHeaders = ["Content-Type", "Authorization"]
+        , CorsMiddleware.corsMethods = "PUT" : CorsMiddleware.simpleMethods
+        , CorsMiddleware.corsOrigins = Just (corsOrigins, True)
         }
 
 initMiddleware :: ServerOptionsOR -> RunServerOptions -> IO Middleware
@@ -234,7 +266,7 @@ runUserCommand opts UserAdd = do
 
 interactivelyGetNewUser :: IO NewUser
 interactivelyGetNewUser = do
-  newUserOAuthSub     <- pack <$> prompt "OAuthSub:"
+  newUserOAuthSub     <- OAuthSub <$> (pack <$> prompt "OAuthSub:")
   pure NewUser{..}
 
 
@@ -283,7 +315,7 @@ runPopulateDatabase opts = do
   _result <- runWithContext $ addOrg (right b1u1Result) b1
   let b1u2 = dummyUser "B1U2"
   b1u2Result <- runWithContext $ addUserOnlyId b1u2
-  _result <- runWithContext $ addOrganisationMapping (newOrgGS1CompanyPrefix b1) (right b1u2Result)
+  _result <- runWithContext $ addOrgMapping (newOrgGS1CompanyPrefix b1) (right b1u2Result)
 
   let b2u1 = dummyUser "B2U1"
   b2u1Result <- runWithContext $ addUserOnlyId b2u1
@@ -291,7 +323,7 @@ runPopulateDatabase opts = do
   _result <- runWithContext $ addOrg (right b2u1Result) b2
   let b2u2 = dummyUser "B2U2"
   b2u2Result <- runWithContext $ addUserOnlyId b2u2
-  _result <- runWithContext $ addOrganisationMapping (newOrgGS1CompanyPrefix b2) (right b2u2Result)
+  _result <- runWithContext $ addOrgMapping (newOrgGS1CompanyPrefix b2) (right b2u2Result)
 
   putStrLn "Inserted Orgs and Users Information"
   print b1
@@ -333,14 +365,14 @@ runBootstrap opts oAuthSub companyPrefix = do
   -- improve the reliability or error reporting.
   case userResult of
       Right user -> do
-                    orgResult <- runAppM @_ @ORError context $ addOrg (CT.UserId $ user_id user) newOrg
+                    orgResult <- runAppM @_ @ORError context $ addOrg (Schema.user_oauth_sub user) newOrg
                     either (print @ORError) print orgResult
       Left _     -> putStrLn "Error inserting user, skipping adding org."
 
   where
     bootstrapUser :: Text -> NewUser
     bootstrapUser oAuthSubSuffix = do
-      let newUserOAuthSub     = "bootstrapped-user-oauth-sub-" <> oAuthSubSuffix
+      let newUserOAuthSub     = OAuthSub $ "bootstrapped-user-oauth-sub-" <> oAuthSubSuffix
       NewUser{..}
 
     bootstrapOrg :: GS1CompanyPrefix -> NewOrg
@@ -378,15 +410,21 @@ serverOptions = InitOptionsOR
 
 
 runServer :: Parser ExecMode
-runServer = RunServer <$>
-  (RunServerOptions
+runServer = RunServer <$> (RunServerOptions
   <$> option auto
-      (
-          long "port"
-      <>  help "Port to run the service on."
-      <>  showDefault
-      <>  value defaultPortNumber
-      )
+    (
+       long "port"
+    <> help "Port to run the service on."
+    <> showDefault
+    <> value defaultPortNumber
+    )
+  <*> option (maybeReader parseURI)
+    (
+       long "jwk"
+    <> help "Path or URI to retrieve JOSE Web Key Set to authenticate tokens against."
+    <> showDefault
+    <> value defaultJWKSURI
+    )
   <*> strOption
     (
        long "aud"
@@ -398,30 +436,29 @@ runServer = RunServer <$>
 parsedServerOptions :: Parser ServerOptionsOR
 parsedServerOptions = ServerOptionsOR
   <$> strOption
-      (
-          long "conn"
-      <>  short 'c'
-      <>  help "Database connection string in libpq format. See: https://www.postgresql.org/docs/9.5/static/libpq-connect.html#LIBPQ-CONNSTRING"
-      <>  showDefault
-      <>  value defaultDatabaseConnectionString
-      )
-    <*> option auto
-      (  long "log-level"
-      <> value InfoS
-      <> showDefault
-      <> help ("Logging level: " ++ show [minBound .. maxBound :: Severity])
-      )
-    <*> optional (strOption
-        (  long "log-path"
-        <> short 'l'
-        <> help "Path to write log output to (defaults to stdout)"
-        )
-      )
-    <*> option auto
-      ( long "env" <> short 'e'
-      <> value Dev <> showDefault
-      <> help "Environment, Dev | Prod"
-      )
+    (
+         long "conn"
+    <>  short 'c'
+    <>  help "Database connection string in libpq format. See: https://www.postgresql.org/docs/9.5/static/libpq-connect.html#LIBPQ-CONNSTRING"
+    <>  showDefault
+    <>  value defaultDatabaseConnectionString
+    )
+  <*> option auto
+    (  long "log-level"
+    <> value InfoS
+    <> showDefault
+    <> help ("Logging level: " ++ show [minBound .. maxBound :: Severity])
+    )
+  <*> optional (strOption
+    (  long "log-path"
+    <> short 'l'
+    <> help "Path to write log output to (defaults to stdout)"
+    ) )
+  <*> option auto
+    ( long "env" <> short 'e'
+    <> value Dev <> showDefault
+    <> help "Environment, Dev | Prod"
+    )
 
 
 -- TODO: Add flag to change from interactive confirmation to instead be automatic operation (so this command can be used from scripts or whatnot) (e.g. runIfSafe) .

@@ -1,24 +1,38 @@
 import * as React from "react";
 import * as QrReader from "react-qr-reader";
 
-import { Event } from "../../epcis";
+import { EventEPCIS } from "../../epcis";
+const { DigitalLink } = require("digital-link.js");
 
-export interface EventStateProps {
-  eventState: [Event, React.Dispatch<React.SetStateAction<Event>>];
+export interface EventStateProps<T> {
+  state: [T, React.Dispatch<React.SetStateAction<T>>];
+  text?: string;
 }
-interface EPCISLabelFieldProps {
-  updateFn: (e: Event, value: string) => Event;
+interface EPCISLabelFieldProps<T> {
+  getFn: (e: T) => string;
+  updateFn: (e: T, value: string) => T;
 }
 
-export function LabelField({ eventState: [event, setEvent], updateFn }: EventStateProps & EPCISLabelFieldProps) {
+export function LabelField<T>(
+  { text, state: [getState, setState], updateFn, getFn }: EventStateProps<T> & EPCISLabelFieldProps<T>) {
 
   const [showQR, setShowQR] = React.useState(false);
 
   const toggleQR = () => setShowQR(!showQR);
   const onScan = (data?: string) => {
     if (data !== null) {
-      // TODO: we need to extract the label from the DigitalLink
-      setEvent(updateFn(event, data));
+      const dl = DigitalLink(data);
+      if (!dl.isValid()) {
+        alert("The scanned QR code is not a valid GS1 DigitalLink");
+        return;
+      }
+      const epc = dl.mapToGS1Urn();
+      if (!epc) {
+        alert("TODO: mapToGS1Urn('" + data + "')");
+        return;
+      }
+
+      setState(updateFn(getState, epc));
       toggleQR();
     }
   };
@@ -26,13 +40,13 @@ export function LabelField({ eventState: [event, setEvent], updateFn }: EventSta
 
   return (
     <label>
-      <span>Label</span>
+      <span>{text || "Label"}</span>
       <div className="row">
         <div className="column column-90">
           <input type="text"
             placeholder="EPC Label"
-            // defaultValue={}
-            onChange={(e) => setEvent(updateFn(event, e.target.value))}
+            onChange={(e) => setState(updateFn(getState, e.target.value))}
+            value={getFn(getState)}
           />
         </div>
         <div className="column column-10">

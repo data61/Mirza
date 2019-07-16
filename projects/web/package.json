@@ -4,8 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "webpack -p",
-    "start:dev": "webpack-dev-server",
+    "build": "webpack -p --env.production",
+    "start:dev": "webpack-dev-server --env.development",
+    "start:prod": "webpack-dev-server --env.production",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "CSIRO Data61",
@@ -16,7 +17,7 @@
     "@types/react-dom": "^16.8.2",
     "@types/react-qr-reader": "^2.1.2",
     "auth0-js": "^9.10.0",
-    "digital-link.js": "^1.0.0",
+    "digital-link.js": "sajidanower23/digital-link.js#support-urn-mapping",
     "jsqr": "^1.2.0",
     "moment": "^2.24.0",
     "query-string": "^6.3.0",

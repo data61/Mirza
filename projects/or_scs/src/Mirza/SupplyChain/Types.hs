@@ -1,5 +1,6 @@
 {-# LANGUAGE DeriveGeneric              #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE LambdaCase                 #-}
 {-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE StandaloneDeriving         #-}
 {-# LANGUAGE TemplateHaskell            #-}
@@ -28,13 +29,11 @@ import           Crypto.JOSE.Types           (Base64Octets)
 import           Servant                     (ToHttpApiData)
 import           Servant.Client              (ClientEnv (..), ServantError (..))
 
-import           Control.Lens
+import           Control.Lens                hiding ((.=))
 
 import           GHC.Generics                (Generic)
 
 import           Data.Aeson
-import           Data.Aeson.TH
-import           Data.Aeson.Types
 import qualified Data.ByteString             as BS
 import           Data.List.NonEmpty          (NonEmpty)
 import           Data.Pool                   as Pool
@@ -77,15 +76,13 @@ deriving instance ToHttpApiData EventId
 
 newtype EventHash = EventHash String
   deriving (Generic, Show, Read, Eq)
-$(deriveJSON defaultOptions ''EventHash)
 instance ToSchema EventHash
 
 -- A signature is an EventHash that's been
--- signed by one of the parties involved in the
--- event.
+-- signed by one of the parties involved in the event.
 type Signature' = Signature () JWSHeader
 
-newtype EventToSign = EventToSign BS.ByteString
+newtype EventToSign = EventToSign { getEventToSign :: BS.ByteString }
   deriving (Show, Eq, Generic)
 
 data BlockchainPackage = BlockchainPackage Base64Octets (NonEmpty (UserId, SignedEvent))
@@ -96,21 +93,30 @@ data SignedEvent = SignedEvent {
   signed_keyId     :: ORKeyId,
   signed_signature :: CompactJWS JWSHeader
   } deriving (Generic, Show, Eq)
-$(deriveJSON defaultOptions ''SignedEvent)
+
+instance FromJSON SignedEvent where
+  parseJSON = withObject "SignedEvent" $ \o -> SignedEvent
+    <$> o .: "event_id"
+    <*> o .: "key_id"
+    <*> o .: "signature"
+
+instance ToJSON SignedEvent where
+  toJSON (SignedEvent evId keyId sig) = object
+    [ "event_id" .= evId
+    , "key_id" .= keyId
+    , "signature" .= sig
+    ]
+
 instance ToSchema SignedEvent
---instance ToParamSchema SignedEvent where
---  toParamSchema _ = binaryParamSchema
 
 data HashedEvent = HashedEvent {
   hashed_eventId :: EventId,
   hashed_event   :: EventHash
-} deriving (Generic)
-$(deriveJSON defaultOptions ''HashedEvent)
+  } deriving (Generic)
 instance ToSchema HashedEvent
 
 newtype BlockchainId = BlockchainId Text
   deriving (Show, Generic, Eq)
-$(deriveJSON defaultOptions ''BlockchainId)
 instance ToSchema BlockchainId
 
 data EventBlockchainStatus
@@ -119,35 +125,44 @@ data EventBlockchainStatus
   | SendFailed -- sending was attempted but failed
   | NeedMoreSignatures
   deriving (Show, Generic, Eq)
-$(deriveJSON defaultOptions ''EventBlockchainStatus)
+
+instance FromJSON EventBlockchainStatus where
+  parseJSON = withText "EventBlockchainStatus" $ \case
+    "sent" -> pure Sent
+    "ready_and_waiting" -> pure ReadyAndWaiting
+    "send_failed" -> pure SendFailed
+    "need_more_signatures" -> pure NeedMoreSignatures
+    _ -> fail "Invalid Blockchain Status"
+
+instance ToJSON EventBlockchainStatus where
+  toJSON Sent               = String "sent"
+  toJSON ReadyAndWaiting    = String "ready_and_waiting"
+  toJSON SendFailed         = String "send_failed"
+  toJSON NeedMoreSignatures = String "need_more_signatures"
+
 instance ToSchema EventBlockchainStatus
+
 
 data EventInfo = EventInfo {
   eventInfoEvent            :: Ev.Event,
   eventToSign               :: Base64Octets, --this is what users would be required to sign
   eventInfoBlockChainStatus :: EventBlockchainStatus
 } deriving (Show, Eq, Generic)
-$(deriveJSON defaultOptions ''EventInfo)
+
+instance FromJSON EventInfo where
+  parseJSON = withObject "EventInfo" $ \o ->  EventInfo
+    <$> o .: "event"
+    <*> o .: "event_to_sign"
+    <*> o .: "blockchain_status"
+
+instance ToJSON EventInfo where
+  toJSON (EventInfo ev evToSign bcStatus) = object
+    [ "event" .= ev
+    , "event_to_sign" .= evToSign
+    , "blockchain_status" .= bcStatus
+    ]
+
 instance ToSchema EventInfo
-
-
--- *****************************************************************************
--- Health Types
--- *****************************************************************************
-
-successHealthResponseText :: Text
-successHealthResponseText = "Status OK"
-
-data HealthResponse = HealthResponse
-  deriving (Show, Eq, Read, Generic)
-instance ToSchema HealthResponse
-instance ToJSON HealthResponse where
-  toJSON _ = toJSON successHealthResponseText
-instance FromJSON HealthResponse where
-  parseJSON (String value)
-    | value == successHealthResponseText = pure HealthResponse
-    | otherwise                          = fail "Invalid health response string."
-  parseJSON value                        = typeMismatch "HealthResponse" value
 
 
 -- *****************************************************************************

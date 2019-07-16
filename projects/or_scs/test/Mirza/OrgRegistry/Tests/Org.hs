@@ -12,11 +12,12 @@ module Mirza.OrgRegistry.Tests.Org
 
 
 import           Mirza.OrgRegistry.Handlers.Org
-import           Mirza.OrgRegistry.Types             as ORT
+import           Mirza.OrgRegistry.Types        as ORT
 
-import           GHC.Stack                                (HasCallStack)
+import           GHC.Stack                      (HasCallStack)
 
 import           Test.Hspec
+
 
 testAppM :: context
          -> AppM context ORError a

@@ -5,12 +5,12 @@
 -- each service's client
 module Mirza.OrgRegistry.GenerateUtils where
 
+import           Mirza.Common.Utils      (mockURI)
 import           Mirza.OrgRegistry.Types as ORT
-import           Mirza.Common.Utils           (mockURI)
 
 import           Data.GS1.EPC
 
-import qualified Data.Text                    as T
+import qualified Data.Text               as T
 
 
 dummyOrg :: T.Text -> NewOrg
@@ -20,7 +20,7 @@ dummyOrg unique = NewOrg (GS1CompanyPrefix ("Org" <> unique <> "Prefix"))
 
 
 dummyUser :: T.Text -> NewUser
-dummyUser unique = NewUser $ "User" <> unique <> "OAuthSub"
+dummyUser unique = NewUser $ OAuthSub $ "User" <> unique <> "OAuthSub"
 
 
 generateMultipleUsers :: [T.Text] -> [NewUser]

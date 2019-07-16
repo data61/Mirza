@@ -3,45 +3,46 @@
 
 module Mirza.SupplyChain.Tests.Client where
 
-import           Control.Exception                     (bracket)
+import           Control.Exception                 (bracket)
 
-import           Data.Either                           (fromRight, isRight)
-import           Data.UUID                             (nil)
+import           Data.Either                       (fromRight, isRight)
+import           Data.UUID                         (nil)
 
 import           Test.Tasty
 import           Test.Tasty.Hspec
 import           Test.Tasty.HUnit
 
-import qualified Mirza.OrgRegistry.Types          as ORT
-import           Mirza.SupplyChain.Types               as ST
+import qualified Mirza.OrgRegistry.Types           as ORT
+import           Mirza.SupplyChain.Types           as ST
 
-import qualified Mirza.OrgRegistry.Client.Servant as ORClient
+import qualified Mirza.OrgRegistry.Client.Servant  as ORClient
 import           Mirza.SupplyChain.Client.Servant
 
-import           Mirza.Common.Utils                    (mockURI, readJWK)
+import           Mirza.Common.Utils                (mockURI, readJWK)
 
-import           Mirza.Common.Tests.InitClient         (TestData (..), endApps,
-                                                        runApps)
-import           Mirza.SupplyChain.Database.Schema     as Schema
+import           Mirza.Common.Tests.InitClient     (TestData (..),
+                                                    TokenTestSuite (..),
+                                                    endApps, runApps)
+import           Mirza.SupplyChain.Database.Schema as Schema
 
-import           Mirza.OrgRegistry.Client.Servant (addPublicKey)
-import           Mirza.OrgRegistry.Tests.Utils    (goodRsaPrivateKey,
-                                                        goodRsaPublicKey)
+import           Mirza.OrgRegistry.Client.Servant  (addPublicKey)
+import           Mirza.OrgRegistry.Tests.Utils     (goodRsaPrivateKey,
+                                                    goodRsaPublicKey)
 
 import           Mirza.Common.Tests.ServantUtils
 import           Mirza.Common.Tests.Utils
 import           Mirza.SupplyChain.Tests.Dummies
 
-import           Data.GS1.EventId                      as EvId
+import           Data.GS1.EventId                  as EvId
 
 import           Control.Monad.Except
 import           Control.Monad.Identity
-import           Crypto.JOSE                           (Alg (RS256),
-                                                        newJWSHeader, signJWS)
-import qualified Crypto.JOSE                           as JOSE
-import           Crypto.JOSE.Types                     (Base64Octets (..))
+import           Crypto.JOSE                       (Alg (RS256), newJWSHeader,
+                                                    signJWS)
+import qualified Crypto.JOSE                       as JOSE
+import           Crypto.JOSE.Types                 (Base64Octets (..))
 
-import           Data.GS1.EPC                          (GS1CompanyPrefix (..))
+import           Data.GS1.EPC                      (GS1CompanyPrefix (..))
 
 -- === SCS Client tests
 
@@ -81,28 +82,28 @@ clientSpec = do
               orUrl = orBaseUrl testData
               httpSCS = runClient scsUrl
               httpOR = runClient orUrl
-              orAuthUser = orAuthData testData
+              token = testToken $ orTestTokenData testData
 
           step "Adding a user to OR"
           let prefix = GS1CompanyPrefix "1000001"
           -- TODO: Create a user for associating with tests.
           --let userOR = ORT.NewUser "EventSign Test Same User OAuthSub"
 
-          -- TODO Note: The org will now be associated with the orAuthUser
+          -- TODO Note: The org will now be associated with the token
           -- and not created user, expect this may have to be fixed when we
           -- devise a means of authing test users.
           let orgName = "Org Name"
               org = ORT.PartialNewOrg orgName (mockURI orgName)
-          httpOR (ORClient.addOrg orAuthUser prefix org)
+          httpOR (ORClient.addOrg token prefix org)
             `shouldSatisfyIO` isRight
 
           -- TODO: Create a user for associating with tests.
-          --httpOR (ORClient.addUser orAuthUser userOR) `shouldSatisfyIO` isRight
+          --httpOR (ORClient.addUser token userOR) `shouldSatisfyIO` isRight
 
           step "Tying the user with a good key"
           Just goodPubKey <- goodRsaPublicKey
           Just goodPrivKey <- goodRsaPrivateKey
-          keyIdResponse <- httpOR (addPublicKey orAuthUser goodPubKey Nothing)
+          keyIdResponse <- httpOR (addPublicKey token prefix goodPubKey Nothing)
           keyIdResponse `shouldSatisfy` isRight
           let keyId = fromRight (ORKeyId nil) keyIdResponse
 
@@ -127,36 +128,36 @@ clientSpec = do
               orUrl = orBaseUrl testData
               httpSCS = runClient scsUrl
               httpOR = runClient orUrl
-              globalAuthData = orAuthData testData
+              token = testToken $ orTestTokenData testData
 
           -- ===============================================
           -- Giving user
           -- ===============================================
 
-          -- TODO Note: The org will now be associated with the orAuthUser
+          -- TODO Note: The org will now be associated with the token
           -- and not created user, expect this may have to be fixed when we
           -- devise a means of authing test users.
           step "Adding org for the Giver"
           let prefixGiver = GS1CompanyPrefix "1000001"
               orgGiverName = "Giver Org"
               orgGiver = ORT.PartialNewOrg orgGiverName (mockURI orgGiverName)
-          httpOR (ORClient.addOrg globalAuthData prefixGiver orgGiver)
+          httpOR (ORClient.addOrg token prefixGiver orgGiver)
             `shouldSatisfyIO` isRight
 
           -- TODO: Create a user for associating with tests.
           --step "Adding the giver user to OR"
           --let userORGiver = ORT.NewUser "EventSign Test Giver OAuthSub"
-          --httpOR (ORClient.addUser globalAuthData userORGiver) `shouldSatisfyIO` isRight
+          --httpOR (ORClient.addUser token userORGiver) `shouldSatisfyIO` isRight
 
           step "Tying the giver user with a good key"
           Just goodPubKeyGiver <- readJWK "./test/Mirza/Common/TestData/testKeys/goodJWKs/4096bit_rsa_pub.json"
           Just goodPrivKeyGiver <- readJWK "./test/Mirza/Common/TestData/testKeys/goodJWKs/4096bit_rsa.json"
-          keyIdResponseGiver <- httpOR (addPublicKey globalAuthData goodPubKeyGiver Nothing)
+          keyIdResponseGiver <- httpOR (addPublicKey token prefixGiver goodPubKeyGiver Nothing)
           keyIdResponseGiver `shouldSatisfy` isRight
           let keyIdGiver = fromRight (ORKeyId nil) keyIdResponseGiver
 
 
-          -- TODO Note: The org will now be associated with the orAuthUser
+          -- TODO Note: The org will now be associated with the token
           -- and not created user, expect this will have to be fixed when we
           -- devise a means of authing test users.
           step "Adding org for receiver"
@@ -164,20 +165,20 @@ clientSpec = do
               orgReceiverName = "Receiving Org"
               orgReceiver = ORT.PartialNewOrg orgReceiverName (mockURI orgReceiverName)
 
-          httpOR (ORClient.addOrg globalAuthData prefixReceiver orgReceiver)
+          httpOR (ORClient.addOrg token prefixReceiver orgReceiver)
             `shouldSatisfyIO` isRight
 
           -- TODO: Create a user for associating with tests.
           --step "Adding the receiving user to OR"
           --let userORReceiver = ORT.NewUser "EventSign Test Reciever OAuthSub"
-          --httpOR (ORClient.addUser globalAuthData userORReceiver) `shouldSatisfyIO` isRight
+          --httpOR (ORClient.addUser token userORReceiver) `shouldSatisfyIO` isRight
 
 
           -- step "Signing the event with the second user"
           step "Tying the receiver user with a good key"
           Just goodPubKeyReceiver <- readJWK "./test/Mirza/Common/TestData/testKeys/goodJWKs/16384bit_rsa_pub.json"
           Just goodPrivKeyReceiver <- readJWK "./test/Mirza/Common/TestData/testKeys/goodJWKs/16384bit_rsa.json"
-          keyIdResponseReceiver <- httpOR (addPublicKey globalAuthData goodPubKeyReceiver Nothing)
+          keyIdResponseReceiver <- httpOR (addPublicKey token prefixReceiver goodPubKeyReceiver Nothing)
           keyIdResponseReceiver `shouldSatisfy` isRight
           let keyIdReceiver = fromRight (ORKeyId nil) keyIdResponseReceiver
 
