@@ -11,8 +11,8 @@ version:        0.1.0.0
 description:    Please see the README on GitHub at <https://github.com/data61/Mirza/projects/mirza-common-haskell#readme>
 homepage:       https://github.com/data61/Mirza
 bug-reports:    https://github.com/data61/Mirza/issues
-author:         Ashley Stacey
-maintainer:     Ashley.Stacey@csiro.au
+author:         Author name here
+maintainer:     example@example.com
 copyright:      2017, 2018, 2019 CSIRO
 license:        BSD3
 license-file:   LICENSE
