@@ -25,6 +25,8 @@ source-repository head
   location: https://github.com/data61/Mirza
 
 library
+  default-extensions:
+      OverloadedStrings
   exposed-modules:
       Mirza.Common.Tests.ServantUtils
       Mirza.Common.Tests.Utils
