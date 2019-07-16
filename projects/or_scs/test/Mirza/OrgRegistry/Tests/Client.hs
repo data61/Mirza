@@ -10,6 +10,7 @@ import           Mirza.Common.Tests.ServantUtils
 import           Mirza.Common.Utils
 
 import qualified Servant.API.ContentTypes
+import           Servant.Auth.Client              (Token (..))
 import           Servant.Client
 
 import           Network.URI                      (URI (..), URIAuth (..),
@@ -43,6 +44,7 @@ import           Data.GS1.EPC                     (GS1CompanyPrefix (..),
 import           Mirza.OrgRegistry.Client.Servant
 import           Mirza.OrgRegistry.Types
 
+import           Data.Time.Clock
 import           Mirza.Common.Time
 import           Mirza.Common.Utils               (readJWK)
 
@@ -50,10 +52,16 @@ import           Mirza.Common.Tests.InitClient
 import           Mirza.Common.Tests.Utils
 import           Mirza.OrgRegistry.Tests.Utils
 
-
 import           Control.Lens
 import           Crypto.JWT
 
+import qualified Data.ByteString
+import           Data.ByteString.Base64
+import           Data.ByteString.Char8            (intercalate, map, singleton,
+                                                   split)
+import           Data.Char
+import           Data.Text                        (head)
+import           Data.Text.Encoding               (encodeUtf8)
 
 
 -- === OR Servant Client tests
@@ -66,7 +74,7 @@ clientSpec = do
 
           step "Can add a new user"
           initalUserAddResult <- http (addUser token)
-          initalUserAddResult `shouldSatisfy` isRight
+          initalUserAddResult `shouldBe` (Right Servant.API.ContentTypes.NoContent)
           -- Note: We effectively implicitly test that the value returned is
           --       sensible later when we test that a user with this ID occurs
           --       in a keys query response, here we can only test that we think
@@ -81,16 +89,16 @@ clientSpec = do
 
           step "Can re-add a user with the same oAuth sub"
           duplicateEmailResult <- http (addUser token)
-          duplicateEmailResult `shouldSatisfy` isRight
+          duplicateEmailResult `shouldBe` (Right Servant.API.ContentTypes.NoContent)
 
           step "Can add a second user"
           let secondUserClaims = (testTokenDefaultClaims tokenData)
                                   & claimSub .~ Just (review string "userTests_OAuthSub_SecondUser")
           secondUserToken <- (testSignTokenClaims tokenData) secondUserClaims
           secondUserAddResult <- http (addUser secondUserToken)
-          secondUserAddResult `shouldSatisfy` isRight
+          secondUserAddResult `shouldBe` (Right Servant.API.ContentTypes.NoContent)
 
-          step "Can't create a user with an empty oAuth Sub."
+          step "Can't create a user with an empty oAuth Sub"
           let emptySubClaims = (testTokenDefaultClaims tokenData)
                                   & claimSub .~ Just (review string "")
           emptySubToken <- (testSignTokenClaims tokenData) emptySubClaims
@@ -99,12 +107,85 @@ clientSpec = do
           emptySubAddResult `shouldSatisfy` (checkFailureStatus NS.badRequest400)
           emptySubAddResult `shouldSatisfy` (checkFailureMessage "Invalid OAuth Sub.")
 
-          -- TODO: Valid Token checks.
-          -- TODO: Check when Auth AUD doesn't match.
-          -- TODO: Check when Auth AUD is empty.
-          -- TODO: Check when Token is expired.
-          -- TODO: Check when Token isn't yets valid.
-          -- TODO: Check that if the signature is invalid that the token is rejected.
+          step "Check that auth fails when the oAuth Aud doesn't match"
+          let badAudClaims = (testTokenDefaultClaims tokenData)
+                             & claimAud .~ Just (Audience $ [review string "badAud"])
+          badAudToken <- (testSignTokenClaims tokenData) badAudClaims
+          badAudAddResult <- http (addUser badAudToken)
+          badAudAddResult `shouldSatisfy` isLeft
+          badAudAddResult `shouldSatisfy` (checkFailureStatus NS.unauthorized401)
+          badAudAddResult `shouldSatisfy` (checkFailureMessage "Authorization invalid.")
+
+          step "Check that auth fails when the oAuth Aud doesn't match"
+          let emptyAudClaims = (testTokenDefaultClaims tokenData)
+                               & claimAud .~ Just (Audience $ [review string ""])
+          emptyAudToken <- (testSignTokenClaims tokenData) emptyAudClaims
+          emptyAudAddResult <- http (addUser emptyAudToken)
+          emptyAudAddResult `shouldSatisfy` isLeft
+          emptyAudAddResult `shouldSatisfy` (checkFailureStatus NS.unauthorized401)
+          emptyAudAddResult `shouldSatisfy` (checkFailureMessage "Authorization invalid.")
+
+          step "Check that auth succeeds when the oAuth Iat and Exp are valid and supplied"
+          time <- getCurrentTime
+          let validIatExpClaims = (testTokenDefaultClaims tokenData)
+                                   & claimIat .~ Just (NumericDate time)
+                                   & claimExp .~ Just (NumericDate (addUTCTime (nominalDay) time))
+          validIatExpToken <- (testSignTokenClaims tokenData) validIatExpClaims
+          validIatExpAddResult <- http (addUser validIatExpToken)
+          validIatExpAddResult `shouldBe` (Right Servant.API.ContentTypes.NoContent)
+
+          step "Check that auth succeeds when the oAuth Iat and Exp don't appear in the claims"
+          let emptyIatExpClaims = (testTokenDefaultClaims tokenData)
+                                   & claimIat .~ Nothing
+                                   & claimExp .~ Nothing
+          emptyIatExpToken <- (testSignTokenClaims tokenData) emptyIatExpClaims
+          emptyIatExpAddResult <- http (addUser emptyIatExpToken)
+          emptyIatExpAddResult `shouldBe` (Right Servant.API.ContentTypes.NoContent)
+
+          step "Check that auth fails when the oAuth Exp is expired"
+          let expiredClaims = (testTokenDefaultClaims tokenData)
+                              & claimExp .~ Just (NumericDate time)
+          expiredClaimsToken <- (testSignTokenClaims tokenData) expiredClaims
+          expiredClaimsAddResult <- http (addUser expiredClaimsToken)
+          expiredClaimsAddResult `shouldSatisfy` isLeft
+          expiredClaimsAddResult `shouldSatisfy` (checkFailureStatus NS.unauthorized401)
+          expiredClaimsAddResult `shouldSatisfy` (checkFailureMessage "Authorization invalid.")
+
+          step "Check that auth fails when the oAuth Iat is expired"
+          let issuedFutureClaims = (testTokenDefaultClaims tokenData)
+                                   & claimIat .~ Just (NumericDate (addUTCTime (nominalDay) time))
+          issuedFutureToken <- (testSignTokenClaims tokenData) issuedFutureClaims
+          issuedFutureAddResult <- http (addUser issuedFutureToken)
+          issuedFutureAddResult `shouldSatisfy` isLeft
+          issuedFutureAddResult `shouldSatisfy` (checkFailureStatus NS.unauthorized401)
+          issuedFutureAddResult `shouldSatisfy` (checkFailureMessage "Authorization invalid.")
+
+          step "Check that auth fails when the oAuth signature is invalid"
+          let tokenSubject = maybe undefined (view string) $ view claimSub $ testTokenDefaultClaims tokenData
+          let replaceInitialChars :: Char -> Char
+              replaceInitialChars char
+                                 | (char == (Data.Text.head tokenSubject)) = swapCaseOrX char
+                                 | otherwise = char
+
+          let replaceSubject :: (Char -> Char) -> Token -> Token
+              replaceSubject replacement (Token tokenContent) = modifiedToken where
+                                                                subparts         = split '.' tokenContent
+                                                                originalPayload  = Data.ByteString.Base64.decodeLenient (subparts !! 1)
+                                                                brokenPayload    = Data.ByteString.breakSubstring (encodeUtf8 tokenSubject) originalPayload
+                                                                replacedSubject  = Data.ByteString.Char8.map replacement $ snd brokenPayload
+                                                                modifiedPayload  = Data.ByteString.Base64.encode $ Data.ByteString.append (fst brokenPayload) replacedSubject
+                                                                modifiedSubParts = set (element 1) modifiedPayload subparts
+                                                                modifiedToken    = Token $ intercalate (singleton '.') modifiedSubParts
+          let invalidSigToken = replaceSubject replaceInitialChars token
+          invalidSignatureAddResult <- http (addUser invalidSigToken)
+          invalidSignatureAddResult `shouldSatisfy` isLeft
+          invalidSignatureAddResult `shouldSatisfy` (checkFailureStatus NS.unauthorized401)
+          invalidSignatureAddResult `shouldSatisfy` (checkFailureMessage "Authorization invalid.")
+          -- Test integrity Check
+          let idToken = replaceSubject id token -- Verify that when we don't replace that the token is still valid.
+          invalidSignatureAddResultIntegrityCheck <- http (addUser idToken)
+          invalidSignatureAddResultIntegrityCheck `shouldBe` (Right Servant.API.ContentTypes.NoContent)
+
 
 
   let orgTests = testCaseSteps "Can create orgs" $ \step ->
@@ -698,3 +779,11 @@ partialNewOrgToOrgResponse gs1CompanyPrefix partialNewOrg = OrgResponse
   , orgResponseName             = partialNewOrgName partialNewOrg
   , orgResponseUrl              = partialNewOrgUrl partialNewOrg
   }
+
+
+swapCaseOrX :: Char -> Char
+swapCaseOrX char = if (isAlpha char)
+                     then if (isUpper char)
+                            then  (toLower char)
+                            else toUpper char
+                     else 'X'

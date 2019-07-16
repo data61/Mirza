@@ -32,3 +32,6 @@ cabal.project.local~
 # VSCode settings
 .vscode/
 
+# Remnant from tests
+test_auth_key.json
+
