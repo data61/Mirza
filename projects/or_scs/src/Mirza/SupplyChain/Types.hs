@@ -34,7 +34,6 @@ import           Control.Lens                hiding ((.=))
 import           GHC.Generics                (Generic)
 
 import           Data.Aeson
-import           Data.Aeson.Types
 import qualified Data.ByteString             as BS
 import           Data.List.NonEmpty          (NonEmpty)
 import           Data.Pool                   as Pool
@@ -164,25 +163,6 @@ instance ToJSON EventInfo where
     ]
 
 instance ToSchema EventInfo
-
-
--- *****************************************************************************
--- Health Types
--- *****************************************************************************
-
-successHealthResponseText :: Text
-successHealthResponseText = "Status OK"
-
-data HealthResponse = HealthResponse
-  deriving (Show, Eq, Read, Generic)
-instance ToSchema HealthResponse
-instance ToJSON HealthResponse where
-  toJSON _ = toJSON successHealthResponseText
-instance FromJSON HealthResponse where
-  parseJSON (String value)
-    | value == successHealthResponseText = pure HealthResponse
-    | otherwise                          = fail "Invalid health response string."
-  parseJSON value                        = typeMismatch "HealthResponse" value
 
 
 -- *****************************************************************************

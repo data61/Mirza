@@ -51,7 +51,6 @@ import           Katip                                as K
 import           Network.URI                          (URI)
 
 import           Data.Aeson
-import           Data.Aeson.Types
 
 import           Data.Swagger                         (NamedSchema (..),
                                                        SwaggerType (..),
@@ -408,21 +407,6 @@ instance ToJSON KeyState where
 
 instance ToSchema KeyState
 instance ToParamSchema KeyState
-
--- Health Types:
-successHealthResponseText :: Text
-successHealthResponseText = "Status OK"
-
-data HealthResponse = HealthResponse
-  deriving (Show, Eq, Read, Generic)
-instance ToSchema HealthResponse
-instance ToJSON HealthResponse where
-  toJSON _ = toJSON successHealthResponseText
-instance FromJSON HealthResponse where
-  parseJSON (String value)
-    | value == successHealthResponseText = pure HealthResponse
-    | otherwise                          = fail "Invalid health response string."
-  parseJSON value                        = typeMismatch "HealthResponse" value
 
 
 -- *****************************************************************************
