@@ -72,5 +72,5 @@ main = do
   defaultMain $ localOption (NumThreads 1) $ testGroup "tests"
     [ keyTests
     , orgTests
-     , clientTests
+    , clientTests
     ]

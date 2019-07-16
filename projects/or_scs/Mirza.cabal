@@ -24,7 +24,6 @@ library
                     , Mirza.OrgRegistry.Database.Migrate
                     , Mirza.OrgRegistry.Database.Schema
                     , Mirza.OrgRegistry.Database.Schema.V0001
-                    , Mirza.OrgRegistry.Database.Schema.V0002
                     , Mirza.OrgRegistry.Handlers.Org
                     , Mirza.OrgRegistry.Handlers.Health
                     , Mirza.OrgRegistry.Handlers.Keys
@@ -52,8 +51,6 @@ library
                     , Mirza.SupplyChain.Types
                     , Mirza.SupplyChain.SqlUtils
                     , Mirza.SupplyChain.PopulateUtils
-
-
   other-modules:      Mirza.SupplyChain.ErrorUtils
   build-depends:      base >= 4.7 && < 5
                     , GS1Combinators
@@ -64,13 +61,16 @@ library
                     , beam-migrate
                     , beam-postgres
                     , bytestring
+                    , cryptonite
                     , email-validate
+                    , gitrev
+                    , hashable
                     , hoist-error >= 0.2
                     , http-client
                     , insert-ordered-containers
+                    , jose
                     , katip >= 0.5.4
                     , lens
-                    , mirza-common-haskell
                     , mtl
                     , network-uri
                     , optparse-applicative
@@ -78,28 +78,24 @@ library
                     , random
                     , resource-pool >= 0.2.3
                     , servant
+                    , servant-auth
+                    , servant-auth-client
+                    , servant-auth-server
                     , servant-client >= 0.13
                     , servant-flatten
                     , servant-server
                     , servant-swagger
                     , servant-swagger-ui
-                    , servant-auth
-                    , servant-auth-server
-                    , servant-auth-client
                     , swagger2
                     , text
                     , time
                     , transformers >= 0.4
+                    , unordered-containers
                     , uuid
                     , uuid-types
                     , wai
                     , wai-cors
-                    , unordered-containers
-                    , hashable
                     , warp
-                    , jose
-                    , cryptonite
-                    , gitrev
   default-language:   Haskell2010
 
 
@@ -123,50 +119,48 @@ test-suite supplyChainServer-test
   type:               exitcode-stdio-1.0
   hs-source-dirs:     test
   main-is:            Mirza/SupplyChain/Spec.hs
-  other-modules:      Mirza.Common.Tests.ServantUtils
-                    , Mirza.Common.Tests.Utils
-                    , Mirza.Common.Tests.InitClient
-                    , Mirza.OrgRegistry.Tests.Dummies
+  other-modules:      Mirza.OrgRegistry.Tests.Dummies
                     , Mirza.SupplyChain.Tests.Service
                     , Mirza.SupplyChain.Tests.Dummies
                     , Mirza.SupplyChain.Tests.Client
                     , Mirza.SupplyChain.Tests.Citrus
                     , Mirza.OrgRegistry.Tests.Utils
+                    , Mirza.Common.Tests.InitClient
   default-extensions:  OverloadedStrings
   build-depends:       base
                      , GS1Combinators
                      , Mirza
                      , mirza-common-haskell
-                     , resource-pool >= 0.2.3
+                     , mirza-test-utils-haskell
                      , aeson
                      , beam-core
                      , beam-postgres
                      , bytestring
                      , hspec
                      , hspec-core
+                     , hspec-expectations
+                     , jose
+                     , katip
                      , lens
                      , mtl
                      , network
                      , network-uri
                      , postgresql-simple
                      , process
+                     , resource-pool >= 0.2.3
                      , servant
                      , servant-auth-client
-                     , text
-                     , time
-                     , uuid
+                     , servant-client
                      , tasty
                      , tasty-hspec
                      , tasty-hunit
+                     , temporary
+                     , text
+                     , time
                      , transformers
-                     , hspec-expectations
+                     , uuid
                      , wai
                      , warp
-                     , servant-client
-                     , katip
-                     , temporary
-                     , jose
-                     , unordered-containers
   default-language:    Haskell2010
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N -Wall -Werror
 
@@ -174,32 +168,33 @@ test-suite orgRegistry-test
   type:               exitcode-stdio-1.0
   hs-source-dirs:     test
   main-is:            Mirza/OrgRegistry/Spec.hs
-  other-modules:      Mirza.Common.Tests.ServantUtils
-                    , Mirza.Common.Tests.Utils
-                    , Mirza.Common.Tests.InitClient
-                    , Mirza.OrgRegistry.Tests.Keys
+  other-modules:      Mirza.OrgRegistry.Tests.Keys
                     , Mirza.OrgRegistry.Tests.Dummies
                     , Mirza.OrgRegistry.Tests.Org
                     , Mirza.OrgRegistry.Tests.Client
-                    , Mirza.Common.Tests.Utils
                     , Mirza.OrgRegistry.Tests.Utils
+                    , Mirza.Common.Tests.InitClient
   default-extensions:  OverloadedStrings
   build-depends:       base
-                     , base64-bytestring
                      , GS1Combinators
                      , Mirza
                      , mirza-common-haskell
-                     , resource-pool >= 0.2.3
-                     , beam-postgres
+                     , mirza-test-utils-haskell
+                     , aeson
+                     , base64-bytestring
                      , beam-core
+                     , beam-postgres
                      , bytestring
-                     , email-validate
                      , directory
+                     , email-validate
                      , filepath
                      , hspec
                      , hspec-core
+                     , hspec-expectations
                      , http-client
                      , http-types
+                     , jose
+                     , katip
                      , lens
                      , MissingH
                      , mtl
@@ -207,23 +202,20 @@ test-suite orgRegistry-test
                      , network-uri
                      , postgresql-simple
                      , process
+                     , resource-pool >= 0.2.3
                      , servant
                      , servant-auth-client
-                     , text
-                     , time
+                     , servant-client
                      , tasty
                      , tasty-hspec
                      , tasty-hunit
+                     , temporary
+                     , text
+                     , time
                      , transformers
-                     , hspec-expectations
+                     , uuid
                      , wai
                      , warp
-                     , servant-client
-                     , katip
-                     , uuid
-                     , temporary
-                     , jose
-                     , aeson
   default-language:    Haskell2010
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N -Wall -Werror
 

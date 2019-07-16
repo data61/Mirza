@@ -1,14 +1,14 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.31.1.
+-- This file has been generated from package.yaml by hpack version 0.31.2.
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 40fb2e8356ae5a173c3975819bccb04b9f908310f6dcdc2b6dcfbf189de1becb
+-- hash: 6aa3d2cfc3680fe1939163460b1a61264abe30d35c0b80b49229e68ab7c1f8c9
 
-name:           mirza-common-haskell
+name:           mirza-test-utils-haskell
 version:        0.1.0.0
-description:    Please see the README on GitHub at <https://github.com/data61/Mirza/projects/mirza-common-haskell#readme>
+description:    Please see the README on GitHub at <https://github.com/data61/Mirza/projects/mirza-test-utils-haskell#readme>
 homepage:       https://github.com/data61/Mirza
 bug-reports:    https://github.com/data61/Mirza/issues
 author:         Author name here
@@ -25,58 +25,52 @@ source-repository head
   location: https://github.com/data61/Mirza
 
 library
+  default-extensions:
+      OverloadedStrings
   exposed-modules:
-      Mirza.Common.Beam
-      Mirza.Common.GS1BeamOrphans
-      Mirza.Common.Time
-      Mirza.Common.Types
-      Mirza.Common.Utils
+      Mirza.Common.Tests.ServantUtils
+      Mirza.Common.Tests.Utils
   other-modules:
-      Paths_mirza_common_haskell
+      Paths_mirza_test_utils_haskell
   hs-source-dirs:
-      src
+      test
   build-depends:
       base >=4.7 && <5
-    , GS1Combinators
-    , beam-core
-    , beam-migrate
-    , beam-postgres
+    , mirza-common-haskell
     , aeson
-    , lens-aeson
-    , base16-bytestring
-    , base64-bytestring
+    , beam-core
+    , beam-postgres
     , bytestring
-    , data-default
-    , email-validate
-    , gitrev
-    , http-client
-    , http-client-tls
-    , katip >= 0.5.4
+    , hspec-expectations
+    , jose
+    , katip
     , lens
     , mtl
+    , network
     , network-uri
     , postgresql-simple
-    , random
-    , resource-pool >= 0.2.3
-    , servant-client >= 0.13
-    , servant-server
-    , swagger2
-    , time
-    , uuid
-    , jose
-    , req
+    , process
+    , servant
+    , servant-auth-client
+    , servant-auth-server
+    , servant-client
+    , tasty-hspec
+    , temporary
     , text
+    , time
+    , wai
+    , warp
   default-language: Haskell2010
 
-test-suite mirza-common-haskell-test
+test-suite mirza-test-utils-haskell-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
-      Paths_mirza_common_haskell
+      Paths_mirza_test_utils_haskell
   hs-source-dirs:
       test
   ghc-options: -threaded -rtsopts -with-rtsopts=-N -Wall -Werror
   build-depends:
       base >=4.7 && <5
-    , mirza-common-haskell
+    , mirza-test-utils-haskell
   default-language: Haskell2010

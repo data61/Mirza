@@ -2,6 +2,7 @@ extra-package-dbs: []
 packages:
 - '.'
 - '../mirza-common-haskell'
+- '../mirza-test-utils-haskell'
 extra-deps:
 - git: https://github.com/tathougies/beam.git
   commit: 2489a213cdee6341de46a3aa015c35067f4d6076 # Head on 2019-01-10
