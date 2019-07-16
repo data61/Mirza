@@ -21,6 +21,7 @@
 module Mirza.Common.Types
   ( EmailAddress, emailToText, Password(..)  , UserId(..)
   , ORKeyId(..)
+  , HealthResponse(..)
   , EnvType(..)
   , AppM(..)
   , runAppM
@@ -85,6 +86,7 @@ import           Text.Email.Validate                  (EmailAddress,
                                                        toByteString, validate)
 
 import           Data.Aeson
+import           Data.Aeson.Types
 
 import           Control.Lens
 import           Control.Monad.Error.Lens
@@ -215,6 +217,23 @@ newtype DB context error a = DB (ReaderT (Connection,context) (ExceptT error Pg)
   , MonadError error
   , MonadIO -- Need to figure out if we actually want this
   )
+
+
+-- Health Types:
+successHealthResponseText :: Text
+successHealthResponseText = "Status OK"
+
+data HealthResponse = HealthResponse
+  deriving (Show, Eq, Read, Generic)
+instance ToSchema HealthResponse
+instance ToJSON HealthResponse where
+  toJSON _ = toJSON successHealthResponseText
+instance FromJSON HealthResponse where
+  parseJSON (String value)
+    | value == successHealthResponseText = pure HealthResponse
+    | otherwise                          = fail "Invalid health response string."
+  parseJSON value                        = typeMismatch "HealthResponse" value
+
 
 -- =============================================================================
 -- Classes and utilities for working with Constraints
