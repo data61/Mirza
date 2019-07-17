@@ -43,10 +43,10 @@ instance HasKatipContext (TrailsContext) where
 -- Error Types
 -- *****************************************************************************
 
-data ORError
-  = DBErrorORE SqlError
-  | UnmatchedUniqueViolationORE SqlError
+data TrailsError
+  = DBErrorTE SqlError
+  | UnmatchedUniqueViolationTE SqlError
   deriving (Show)
-$(makeClassyPrisms ''ORError)
+$(makeClassyPrisms ''TrailsError)
 
-instance AsSqlError ORError where _SqlError = _DBErrorORE
+instance AsSqlError TrailsError where _SqlError = _DBErrorTE

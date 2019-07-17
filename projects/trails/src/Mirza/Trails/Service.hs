@@ -32,9 +32,9 @@ import           Data.Swagger
 
 -- Convenience class for contexts which require all possible error types that
 -- could be thrown through the handlers.
-class (AsORError err, AsSqlError err)
+class (AsTrailsError err, AsSqlError err)
   => APIPossibleErrors err where
-instance (AsORError err, AsSqlError err)
+instance (AsTrailsError err, AsSqlError err)
   => APIPossibleErrors err
 
 
@@ -52,12 +52,12 @@ publicServer =
 
 
 
-appMToHandler :: (HasLogging context) => context -> AppM context ORError x -> Handler x
+appMToHandler :: (HasLogging context) => context -> AppM context TrailsError x -> Handler x
 appMToHandler context act = do
   res <- liftIO $ runAppM context act
   case res of
     Left err ->
-      runKatipContextT (context ^. katipLogEnv) () (context ^. katipNamespace) (orErrorToHttpError err)
+      runKatipContextT (context ^. katipLogEnv) () (context ^. katipNamespace) (trailsErrorToHttpError err)
     Right a  -> pure a
 
 
@@ -96,16 +96,16 @@ throwHttpError err httpStatus errorMessage = do
   lift $ throwError $ httpStatus { errBody = errorMessage }
 
 
--- | Takes a ORError and converts it to an HTTP error.
-orErrorToHttpError :: ORError -> KatipContextT Handler a
-orErrorToHttpError orError =
-  let _httpError = throwHttpError orError
-  in case orError of
-    (DBErrorORE _)                  -> unexpectedError orError
-    (UnmatchedUniqueViolationORE _) -> unexpectedError orError
+-- | Takes a TrailsError and converts it to an HTTP error.
+trailsErrorToHttpError :: TrailsError -> KatipContextT Handler a
+trailsErrorToHttpError trailsError =
+  let _httpError = throwHttpError trailsError
+  in case trailsError of
+    (DBErrorTE _)                  -> unexpectedError trailsError
+    (UnmatchedUniqueViolationTE _) -> unexpectedError trailsError
 
 -- | A generic internal server error has occured. We include no more information in the result returned to the user to
 -- limit further potential for exploitation, under the expectation that we log the errors to somewhere that is reviewed
 -- regularly so that the development team are informed and can identify and patch the underlying issues.
-unexpectedError :: ORError -> KatipContextT Handler a
-unexpectedError orError = throwHttpError orError err500 "An unknown error has occured."
+unexpectedError :: TrailsError -> KatipContextT Handler a
+unexpectedError trailsError = throwHttpError trailsError err500 "An unknown error has occured."
