@@ -30,9 +30,8 @@ import           Data.Pool                            as Pool
 
 import           Database.Beam                        as B
 import           Database.Beam.Backend.SQL            as BSQL
-import qualified Database.Beam.Migrate                as BMigrate
+import           Database.Beam.Postgres               (Postgres)
 import qualified Database.Beam.Postgres               as BPostgres
-import           Database.Beam.Postgres.Syntax        (PgDataTypeSyntax)
 import           Database.PostgreSQL.Simple           (Connection, SqlError)
 import           Database.PostgreSQL.Simple.FromField (FromField, fromField)
 import           Database.PostgreSQL.Simple.ToField   (ToField, toField)
@@ -187,15 +186,9 @@ instance ToHttpApiData OAuthSub where
 instance BSQL.HasSqlValueSyntax be Text =>
   BSQL.HasSqlValueSyntax be OAuthSub where
     sqlValueSyntax (OAuthSub sub) = BSQL.sqlValueSyntax sub
-instance (BMigrate.IsSql92ColumnSchemaSyntax be) =>
-  BMigrate.HasDefaultSqlDataTypeConstraints be OAuthSub
 
-instance (BSQL.HasSqlValueSyntax (BSQL.Sql92ExpressionValueSyntax be) Bool,
-          BSQL.IsSql92ExpressionSyntax be) =>
-          B.HasSqlEqualityCheck be OAuthSub
-instance (BSQL.HasSqlValueSyntax (BSQL.Sql92ExpressionValueSyntax be) Bool,
-          BSQL.IsSql92ExpressionSyntax be) =>
-          B.HasSqlQuantifiedEqualityCheck be OAuthSub
+instance BSQL.BeamSqlBackend be => B.HasSqlEqualityCheck be OAuthSub
+instance BSQL.BeamSqlBackend be => B.HasSqlQuantifiedEqualityCheck be OAuthSub
 
 instance BSQL.FromBackendRow BPostgres.Postgres OAuthSub where
   fromBackendRow = OAuthSub <$> BSQL.fromBackendRow
@@ -206,10 +199,8 @@ instance FromField OAuthSub where
 instance ToField OAuthSub where
   toField (OAuthSub sub) = toField sub
 
-oAuthSubFieldType :: BMigrate.DataType PgDataTypeSyntax OAuthSub
+oAuthSubFieldType :: DataType Postgres OAuthSub
 oAuthSubFieldType = textType
-
-
 
 data PartialNewOrg = PartialNewOrg
   { partialNewOrgName :: Text
@@ -304,15 +295,9 @@ instance ToSchema Longitude
 instance HasSqlValueSyntax be Double
       => HasSqlValueSyntax be Latitude where
   sqlValueSyntax = sqlValueSyntax . getLatitude
-instance (BMigrate.IsSql92ColumnSchemaSyntax be)
-      => BMigrate.HasDefaultSqlDataTypeConstraints be Latitude
 
-instance ( HasSqlValueSyntax (Sql92ExpressionValueSyntax be) Bool
-         , IsSql92ExpressionSyntax be)
-      => HasSqlEqualityCheck be Latitude
-instance ( HasSqlValueSyntax (Sql92ExpressionValueSyntax be) Bool
-         , IsSql92ExpressionSyntax be)
-      => HasSqlQuantifiedEqualityCheck be Latitude
+instance BeamSqlBackend be => HasSqlEqualityCheck be Latitude
+instance BeamSqlBackend be => HasSqlQuantifiedEqualityCheck be Latitude
 
 instance FromBackendRow BPostgres.Postgres Latitude where
   fromBackendRow = Latitude <$> fromBackendRow
@@ -323,22 +308,15 @@ instance FromField Latitude where
 instance ToField Latitude where
   toField = toField . getLatitude
 
-latitudeType :: BMigrate.DataType PgDataTypeSyntax Latitude
-latitudeType = BMigrate.DataType doubleType
-
+latitudeType :: DataType Postgres Latitude
+latitudeType = DataType doubleType
 
 instance HasSqlValueSyntax be Double
       => HasSqlValueSyntax be Longitude where
   sqlValueSyntax = sqlValueSyntax . getLongitude
-instance BMigrate.IsSql92ColumnSchemaSyntax be
-      => BMigrate.HasDefaultSqlDataTypeConstraints be Longitude
 
-instance ( HasSqlValueSyntax (Sql92ExpressionValueSyntax be) Bool
-         , IsSql92ExpressionSyntax be)
-      => HasSqlEqualityCheck be Longitude
-instance ( HasSqlValueSyntax (Sql92ExpressionValueSyntax be) Bool
-         , IsSql92ExpressionSyntax be)
-      => HasSqlQuantifiedEqualityCheck be Longitude
+instance BeamSqlBackend be => HasSqlEqualityCheck be Longitude
+instance BeamSqlBackend be => HasSqlQuantifiedEqualityCheck be Longitude
 
 instance FromBackendRow BPostgres.Postgres Longitude where
   fromBackendRow = Longitude <$> fromBackendRow
@@ -349,13 +327,12 @@ instance FromField Longitude where
 instance ToField Longitude where
   toField = toField . getLongitude
 
-longitudeType :: BMigrate.DataType PgDataTypeSyntax Longitude
-longitudeType = BMigrate.DataType doubleType
+longitudeType :: DataType Postgres Longitude
+longitudeType = DataType doubleType
 
 
 data LocationResponse = LocationResponse
-  { locationId    :: PrimaryKeyType
-  , locationGLN   :: EPC.LocationEPC
+  { locationGLN   :: EPC.LocationEPC
   , locationOrg   :: GS1CompanyPrefix
   , geoLocId      :: PrimaryKeyType
   , geoLocCoord   :: Maybe (Latitude, Longitude)
@@ -363,9 +340,8 @@ data LocationResponse = LocationResponse
   } deriving (Show, Generic, Eq)
 instance ToSchema LocationResponse
 instance ToJSON LocationResponse where
-  toJSON (LocationResponse locId locGLN pfix geolocId geolocCoord geolocAddr) = object
-    [ "location_id" .= locId
-    , "epc" .= locGLN
+  toJSON (LocationResponse locGLN pfix geolocId geolocCoord geolocAddr) = object
+    [ "epc" .= locGLN
     , "company_prefix" .= pfix
     , "geolocation_id" .= geolocId
     , "geolocation_coords" .= geolocCoord
@@ -374,8 +350,7 @@ instance ToJSON LocationResponse where
 
 instance FromJSON LocationResponse where
   parseJSON = withObject "LocationResponse" $ \o -> LocationResponse
-    <$> o .: "location_id"
-    <*> o .: "epc"
+    <$> o .: "epc"
     <*> o .: "company_prefix"
     <*> o .: "geolocation_id"
     <*> o .:? "geolocation_coords"
@@ -416,7 +391,6 @@ instance ToJSON KeyState where
 
 instance ToSchema KeyState
 instance ToParamSchema KeyState
-
 
 -- *****************************************************************************
 -- Signing and Hashing Types

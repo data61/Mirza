@@ -8,7 +8,6 @@ import           Mirza.Common.Tests.InitClient      (testDbConnectionStringOR,
 import           Mirza.Common.Tests.Utils
 
 import           Mirza.OrgRegistry.Database.Migrate
-import           Mirza.OrgRegistry.Database.Schema
 import           Mirza.OrgRegistry.Main             hiding (main)
 import           Mirza.OrgRegistry.Types            as ORT
 
@@ -25,7 +24,6 @@ import           Control.Exception                  (bracket)
 import           Control.Monad.Except               (runExceptT)
 import           Database.Beam.Postgres
 
-import           Data.Pool                          (withResource)
 import qualified Data.Pool                          as Pool
 
 import           Katip                              (Severity (DebugS))
@@ -44,15 +42,17 @@ defaultPool = Pool.createPool (connectPostgreSQL connectionString) close
 
 openConnection :: IO ORContextMinimal
 openConnection = do
-  connpool <- defaultPool
-  _ <- withResource connpool $ dropTables orgRegistryDB -- drop tables before so if already exist no problems... means tables get overwritten though
   tempFile <- emptySystemTempFile "orgRegistryTests.log"
   let connectionString = getDatabaseConnectionString testDbConnectionStringOR
   ctx <- initORContext (ServerOptionsOR connectionString DebugS (Just tempFile) Dev)
-  initRes <- runMigrationWithConfirmation ctx (const (pure Execute))
-  case initRes of
-    Left err -> print @SqlError err >> error "Database initialisation failed"
-    Right () -> pure ctx
+  dropRes <- dropTablesSimple ctx
+  case dropRes of
+    Left err -> print @SqlError err >> error "Couldn't drop existing tables"
+    Right () -> do
+      initRes <- runMigrationSimple ctx migrations
+      case initRes of
+        Left err -> print @SqlError err >> error "Database initialisation failed"
+        Right () -> pure ctx
 
 
 closeConnection :: ORContextMinimal -> IO ()
