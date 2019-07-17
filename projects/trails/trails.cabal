@@ -32,8 +32,6 @@ library
       Mirza.Trails.Main
       Mirza.Trails.Service
       Mirza.Trails.Types
-  other-modules:
-      Paths_trails
   hs-source-dirs:
       src
   build-depends:
@@ -65,8 +63,6 @@ library
 
 executable trails
   main-is: Trails.hs
-  other-modules:
-      Paths_trails
   hs-source-dirs:
       app
   ghc-options: -threaded -rtsopts -with-rtsopts=-N -Wall -Werror
@@ -79,8 +75,7 @@ test-suite trails-test
   type: exitcode-stdio-1.0
   main-is: Mirza/Trails/Spec.hs
   other-modules:
-      Paths_trails
-    , Mirza.Trails.Tests.Client
+      Mirza.Trails.Tests.Client
     , Mirza.Trails.Tests.InitClient
     , Mirza.Trails.Tests.Types
   hs-source-dirs:
