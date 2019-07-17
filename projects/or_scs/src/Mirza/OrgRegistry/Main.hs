@@ -131,7 +131,7 @@ main = multiplexInitOptions =<< execParser opts where
   opts = Options.Applicative.info (serverOptions <**> helper)
     (fullDesc
     <> progDesc "Here to meet all your org registry needs"
-    <> header "Supply Chain Org Registry Service")
+    <> header "Org Registry Service")
 
 
 -- Handles the overriding server options (this effectively defines the point
@@ -207,10 +207,10 @@ initORContext (ServerOptionsOR dbConnStr lev mlogPath envT) = do
 
 
 initApplication :: ORContextComplete -> IO Application
-initApplication ev =
+initApplication context =
   pure $ serveWithContext api
-          (tokenServerContext ev)
-          (server ev)
+          (tokenServerContext context)
+          (server context)
 
 
 myCors :: Middleware
