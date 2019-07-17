@@ -9,6 +9,7 @@ module Mirza.SupplyChain.Client.Servant
   ) where
 
 import           Mirza.Common.GS1BeamOrphans        (LabelEPCUrn (..))
+import           Mirza.Common.GS1Orphans            ()
 import           Mirza.SupplyChain.API
 import qualified Mirza.SupplyChain.Database.Schema  as Schema
 import           Mirza.SupplyChain.Handlers.UXUtils (PrettyEventResponse (..))
