@@ -9,8 +9,7 @@ module Mirza.SupplyChain.Database.Schema
 import           Database.Beam                           (DatabaseSettings)
 import           Database.Beam                           as B
 import           Database.Beam.Migrate.Types
-import           Database.Beam.Postgres                  (PgCommandSyntax,
-                                                          Postgres)
+import           Database.Beam.Postgres                  (Postgres)
 import           Database.Beam.Schema.Tables             (primaryKey)
 
 import           Mirza.SupplyChain.Database.Schema.V0001 as Current hiding
@@ -19,7 +18,7 @@ import           Mirza.SupplyChain.Database.Schema.V0001 as Current hiding
 import qualified Mirza.SupplyChain.Database.Schema.V0001 as V0001
 
 
-migration :: MigrationSteps PgCommandSyntax () (CheckedDatabaseSettings Postgres Current.SupplyChainDb)
+migration :: MigrationSteps Postgres () (CheckedDatabaseSettings Postgres Current.SupplyChainDb)
 migration = migrationStep "Initial commit" V0001.migration
 
 checkedSupplyChainDb :: CheckedDatabaseSettings Postgres Current.SupplyChainDb

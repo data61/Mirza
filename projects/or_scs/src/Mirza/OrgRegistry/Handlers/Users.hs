@@ -55,9 +55,9 @@ addUserQuery :: (AsORError err, HasCallStack)
              -> DB context err Schema.User
 addUserQuery (ORT.NewUser oauthSub) = do
   -- TODO: use Database.Beam.Backend.SQL.runReturningOne?
-  res <- pg $ runInsertReturningList (Schema._users Schema.orgRegistryDB) $
+  res <- pg $ runInsertReturningList$ insert (Schema._users Schema.orgRegistryDB) $
       insertValues
-       [Schema.UserT oauthSub Nothing]
+      [Schema.UserT oauthSub Nothing]
   case res of
       [r] -> pure $ r
       -- The user creation has failed, but we can't really think of what would lead to this case.

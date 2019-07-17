@@ -18,7 +18,8 @@ import           Mirza.SupplyChain.Types
 
 import qualified Data.GS1.EventId                         as EvId
 
-import           Database.Beam                            as B
+import           Database.Beam                            hiding (time,
+                                                           timestamp)
 import           Database.Beam.Backend.SQL.BeamExtensions
 import           Database.Beam.Postgres                   (PgJSON (..))
 
@@ -34,7 +35,7 @@ import           Data.ByteString                          (ByteString)
 
 import           Control.Lens                             ((&), (.~))
 
-import           Mirza.OrgRegistry.Client.Servant    (getPublicKey)
+import           Mirza.OrgRegistry.Client.Servant         (getPublicKey)
 
 scsJWSValidationSettings :: ValidationSettings
 scsJWSValidationSettings = defaultValidationSettings
@@ -75,7 +76,7 @@ insertSignature :: Member err '[AsServiceError]
 insertSignature eId kId sig = do
   sigId <- newUUID
   timestamp <- generateTimestamp
-  r <- pg $ runInsertReturningList (Schema._signatures Schema.supplyChainDb) $
+  r <- pg $ runInsertReturningList $ insert (Schema._signatures Schema.supplyChainDb) $
         insertValues
         [Schema.Signature Nothing sigId (Schema.EventId $ EvId.unEventId eId)
          (ORKeyId $ getORKeyId kId) (PgJSON sig) (toDbTimestamp timestamp)]

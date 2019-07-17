@@ -51,12 +51,11 @@ addLocation :: ( Member context '[HasEnvType, HasConnPool, HasLogging]
             -> NewLocation
             -> AppM context err LocationPrimaryKey
 addLocation auser newLoc = do
-  newLocId <- newUUID
   newGeoLocId <- newUUID
   (fmap primaryKey)
     . (handleError (transformSqlUniqueViloation "location_pkey" (\_sqlerr -> _LocationExistsORE # ())))
     . runDb
-    . addLocationQuery auser newLocId (GeoLocationPrimaryKey newGeoLocId)
+    . addLocationQuery auser (GeoLocationPrimaryKey newGeoLocId)
     $ newLoc
   -- TODO: discover which constraints are needed and what we should catch here
   -- (awaiting tests)
@@ -72,35 +71,32 @@ addLocation auser newLoc = do
 addLocationQuery  :: ( Member context '[]
                      , Member err     '[AsORError])
                   => AuthUser
-                  -> PrimaryKeyType
                   -> GeoLocationPrimaryKey
                   -> NewLocation
                   -> DB context err Location
-addLocationQuery authUser locId geoLocId newLoc = do
+addLocationQuery authUser geoLocId newLoc = do
   let gs1CompanyPrefix = _sglnCompanyPrefix $ newLocGLN newLoc
   mapping <- userOrganisationAuthorisationQuery authUser gs1CompanyPrefix
   let orgId = org_mapping_gs1_company_prefix mapping
-  let (loc,geoLoc) = newLocationToLocation locId geoLocId orgId newLoc
-  res <- pg $ runInsertReturningList (_locations orgRegistryDB) $ insertValues [loc]
+  let (loc,geoLoc) = newLocationToLocation geoLocId orgId newLoc
+  res <- pg $ runInsertReturningList $ insert (_locations orgRegistryDB) $ insertValues [loc]
   case res of
     [r] -> do
-           _ <- pg $ runInsertReturningList (_geoLocations orgRegistryDB) $
+           _ <- pg $ runInsertReturningList $ insert (_geoLocations orgRegistryDB) $
                insertValues [geoLoc]
            pure r
     _   -> throwing _UnexpectedErrorORE callStack
 
 
-newLocationToLocation :: PrimaryKeyType
-                      -> GeoLocationPrimaryKey
+newLocationToLocation :: GeoLocationPrimaryKey
                       -> OrgPrimaryKey
                       -> NewLocation
                       -> (Location, GeoLocation)
 newLocationToLocation
-  locId (GeoLocationPrimaryKey geoLocId) orgId
+  (GeoLocationPrimaryKey geoLocId) orgId
   NewLocation{newLocGLN, newLocCoords, newLocAddress} =
     ( LocationT
-        { location_id          = locId
-        , location_org_id      = orgId
+        { location_org_id      = orgId
         , location_gln         = newLocGLN
         , location_last_update = Nothing
         }
@@ -126,8 +122,7 @@ getLocationByGLN gln = locationToLocationResponse
 
 locationToLocationResponse :: (Location,GeoLocation) -> LocationResponse
 locationToLocationResponse (LocationT{location_org_id = OrgPrimaryKey orgId,..} , GeoLocationT{..}) = LocationResponse
-  { locationId    = location_id
-  , locationGLN   = location_gln
+  { locationGLN   = location_gln
   , locationOrg   = orgId
   , geoLocId      = geoLocation_id
   , geoLocCoord   = (,) <$> geoLocation_latitude <*> geoLocation_longitude
