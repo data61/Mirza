@@ -1,8 +1,10 @@
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Main where
 
+import           Mirza.Common.Database              ( dropTablesSimple )
+
 import           Mirza.SupplyChain.Database.Migrate
-import           Mirza.SupplyChain.Database.Schema
 import           Mirza.SupplyChain.Main             hiding (main)
 import           Mirza.SupplyChain.Types            as ST
 
@@ -23,8 +25,7 @@ import           Control.Exception                  (bracket)
 import           Control.Monad.Except               (runExceptT)
 import           Database.Beam.Postgres
 
-import           Data.Pool                          (Pool, destroyAllResources,
-                                                     withResource)
+import           Data.Pool                          (Pool, destroyAllResources)
 import qualified Data.Pool                          as Pool
 
 import           Katip                              (Severity (DebugS))
@@ -43,12 +44,28 @@ defaultPool = Pool.createPool (connectPostgreSQL connectionString) close
 openConnection :: IO SCSContext
 openConnection = do
   tempFile <- emptySystemTempFile "supplyChainServerTests.log"
-  connpool <- defaultPool
-  _ <- withResource connpool $ dropTables supplyChainDb -- drop tables before so if already exist no problems... means tables get overwritten though
-  withResource connpool (tryCreateSchema True)
+  --connpool <- defaultPool
+  --_ <- withResource connpool $ dropTables supplyChainDb -- drop tables before so if already exist no problems... means tables get overwritten though
+  --withResource connpool (tryCreateSchema True)
   let connectionString = getDatabaseConnectionString testDbConnectionStringSCS
-  initSCSContext (ServerOptionsSCS Dev False Nothing connectionString ("localhost", 8000) DebugS
-                                (Just ("127.0.0.1", 8200)) (Just tempFile))
+  ctx <- initSCSContext ( ServerOptionsSCS Dev
+                                           False
+                                           Nothing
+                                           connectionString
+                                           ("localhost", 8000)
+                                           DebugS
+                                           (Just ("127.0.0.1", 8200))
+                                           (Just tempFile)
+                        )
+         
+  result <- dropTablesSimple ctx
+  case result of
+    Left (e :: SqlError) -> error $ show e
+    Right () -> do
+      mResult <- migrate ctx
+      case mResult of
+        Left (e :: SqlError) -> error $ show e
+        Right () -> pure ctx
 
 closeConnection :: SCSContext -> IO ()
 closeConnection = destroyAllResources . ST._scsDbConnPool

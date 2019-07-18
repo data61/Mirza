@@ -36,7 +36,7 @@ import           Control.Exception                  (finally)
 import           Data.Maybe                         (fromMaybe)
 import           Katip                              as K
 
-import           System.Exit                        (exitFailure)
+import           System.Exit                        (die, exitFailure)
 import           System.IO                          (IOMode (AppendMode),
                                                      hPutStrLn, openFile,
                                                      stderr, stdout)
@@ -109,8 +109,11 @@ main = runProgram =<< execParser opts
 runProgram :: ServerOptionsSCS -> IO ()
 runProgram so@ServerOptionsSCS{initDB = True, dbPopulateInfo =Just _, orServiceInfo =Just _} = do
   ctx <- initSCSContext so
-  migrate ctx $ connectionStr so
-  runDbPopulate so
+  result <- migrate ctx
+  case result of
+    Left e -> die $ show e
+    Right () ->  runDbPopulate so
+  
 runProgram so@ServerOptionsSCS{initDB =False, dbPopulateInfo =Just _, orServiceInfo =Just _} = runDbPopulate so
 runProgram so@ServerOptionsSCS{initDB = False, scsServiceInfo=(scsHst, scsPort), orServiceInfo =Just _} = do
   ctx <- initSCSContext so
@@ -125,7 +128,10 @@ runProgram ServerOptionsSCS{initDB = True, dbPopulateInfo = Just _, orServiceInf
   exitFailure
 runProgram so@ServerOptionsSCS{initDB = True, dbPopulateInfo = Nothing} = do
   ctx <- initSCSContext so
-  migrate ctx $ connectionStr so
+  result <- migrate ctx
+  case result of
+    Left e -> die $ show e
+    Right () -> pure ()
 
 runDbPopulate :: ServerOptionsSCS -> IO ()
 runDbPopulate so = do

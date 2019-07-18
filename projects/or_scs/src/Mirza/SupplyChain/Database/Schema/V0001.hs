@@ -44,8 +44,8 @@ import           Database.Beam.Migrate.Types      (CheckedDatabaseSettings,
 import           Database.Beam.Postgres           (PgJSON, Postgres, bytea,
                                                    json, text)
 import           Database.Beam.Postgres.Migrate   (uuid)
-
 import           Crypto.JOSE                      (CompactJWS, JWSHeader)
+
 
 --------------------------------------------------------------------------------
 -- Constants and Utils

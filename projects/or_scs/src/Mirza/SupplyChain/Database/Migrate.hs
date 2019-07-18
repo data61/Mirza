@@ -9,7 +9,9 @@
 module Mirza.SupplyChain.Database.Migrate where
 
 import           Mirza.SupplyChain.Database.Schema.V0001 (migration)
+import           Mirza.SupplyChain.Database.Schema.SQL.V0001 ( m_0001 )
 
+import           Mirza.Common.Database                   (runMigrationSimple)
 import           Mirza.Common.Types
 import           Mirza.Common.Utils
 import           Mirza.SupplyChain.Database.Schema       (supplyChainDb)
@@ -20,15 +22,13 @@ import           Control.Monad                           (void)
 import           System.Exit                             (exitFailure)
 import           System.IO                               (hPutStrLn, stderr)
 
-import           Data.ByteString.Char8                   (ByteString)
 import           Database.Beam                           ()
 import           Database.Beam.Backend                   (runNoReturn)
 import           Database.Beam.Migrate.Types             (executeMigration)
 import           Database.Beam.Postgres                  (Connection, Pg,
                                                           runBeamPostgres,
                                                           runBeamPostgresDebug)
-import           Database.PostgreSQL.Simple              (SqlError,
-                                                          connectPostgreSQL)
+import           Database.PostgreSQL.Simple              (SqlError)
 
 
 
@@ -56,12 +56,9 @@ tryCreateSchema runSilently conn = E.catch (createSchema runSilently conn) handl
       hPutStrLn stderr $ "Migration failed with error:  " <> show err
       exitFailure
 
-migrate :: (Member context '[HasLogging, HasDB])
-        => context -> ByteString -> IO ()
-migrate ctx connStr = do
-  conn <- connectPostgreSQL connStr
-  r <- runMigrationWithTriggers conn ctx
-  case r of
-    Left (err :: SqlError) -> print $ "Table could not be created. Error:  " <> show err
-    Right _succ -> print $ "Successfully created table with conn: " <> show connStr
+migrate :: ( Member context '[HasLogging, HasDB] ) => context -> IO (Either SqlError ())
+migrate ctx = runMigrationSimple ctx migrations
 
+  where
+    migrations = [ m_0001
+                 ]
