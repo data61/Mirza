@@ -4,13 +4,19 @@ module Mirza.SupplyChain.Database.Schema.SQL.V0001 where
 
 import Mirza.Common.Database
 
+import Data.String ( fromString )
 import Database.PostgreSQL.Simple
 import Database.PostgreSQL.Simple.SqlQQ (sql)
+
 
 -- SQL
 
 m_0001 :: Migration
 m_0001 conn = do
+  [(Only x)] <- query_ conn "SELECT current_database();"
+  _ <- execute_ conn $ "ALTER DATABASE " <> fromString x <>" SET client_min_messages TO WARNING";
+  
+  
   _ <- execute_ conn [sql|
 CREATE OR REPLACE FUNCTION public.sync_lastmod() RETURNS trigger
   LANGUAGE plpgsql

@@ -58,14 +58,12 @@ openConnection = do
                                            (Just tempFile)
                         )
          
-  result <- dropTablesSimple ctx
-  case result of
-    Left (e :: SqlError) -> error $ show e
-    Right () -> do
-      mResult <- migrate ctx
-      case mResult of
-        Left (e :: SqlError) -> error $ show e
-        Right () -> pure ctx
+  errorOnRight =<< dropTablesSimple ctx
+  errorOnRight =<< migrate ctx
+  pure ctx
+
+  where
+    errorOnRight = either (error . show) pure
 
 closeConnection :: SCSContext -> IO ()
 closeConnection = destroyAllResources . ST._scsDbConnPool

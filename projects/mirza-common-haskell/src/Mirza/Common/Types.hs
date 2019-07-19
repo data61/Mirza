@@ -267,7 +267,6 @@ class AsSqlError a where
 instance AsSqlError SqlError where
   _SqlError = id
 
-
 -- Logging classes
 -- ===============
 
