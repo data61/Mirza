@@ -22,7 +22,8 @@ import           Mirza.OrgRegistry.Types                  as ORT
 
 import           Data.GS1.EPC                             as EPC (GS1CompanyPrefix)
 
-import           Database.Beam                            as B
+import           Database.Beam                            hiding (time,
+                                                           timestamp)
 import           Database.Beam.Backend.SQL.BeamExtensions
 import           Database.Beam.Postgres                   (PgJSON (..))
 
@@ -178,7 +179,7 @@ addPublicKeyQuery authUser org expTime jwk = do
   for_ expTime $ \time -> when ((getExpirationTime time) <= now) (throwing_ _AddedExpiredKeyORKE)
   keyId <- newUUID
   timestamp <- generateTimestamp
-  ks <- pg $ runInsertReturningList (_keys orgRegistryDB) $
+  ks <- pg $ runInsertReturningList $ insert (_keys orgRegistryDB) $
         insertValues
         [ KeyT keyId (Schema.OrgPrimaryKey org) (PgJSON jwk)
             (toDbTimestamp timestamp) Nothing (Schema.UserPrimaryKey Nothing) (toDbTimestamp <$> expTime)
@@ -241,8 +242,9 @@ revokePublicKeyQuery authUser k@(CT.ORKeyId keyId) = do
   timestamp <- generateTimestamp
   _r <- pg $ runUpdate $ update
                 (_keys orgRegistryDB)
-                (\key -> [ revocation_time key  <-. val_ (Just $ toDbTimestamp timestamp)
-                         , revoking_user_id key <-. val_ (Schema.UserPrimaryKey $ Just $ authUserId authUser)])
+                (\key -> mconcat
+                          [ revocation_time key  <-. val_ (Just $ toDbTimestamp timestamp)
+                          , revoking_user_id key <-. val_ (Schema.UserPrimaryKey $ Just $ authUserId authUser)])
                 (\key -> key_id key ==. (val_ keyId))
   pure $ RevocationTime timestamp
 
