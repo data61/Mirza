@@ -1,7 +1,8 @@
-{-# LANGUAGE DataKinds           #-}
-{-# LANGUAGE FlexibleContexts    #-}
-{-# LANGUAGE OverloadedStrings   #-}
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE DataKinds             #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
 
 -- This module runs database migrations for our application.
 
@@ -20,11 +21,12 @@ import           System.Exit                             (exitFailure)
 import           System.IO                               (hPutStrLn, stderr)
 
 import           Data.ByteString.Char8                   (ByteString)
-import           Database.Beam                           (withDatabase,
-                                                          withDatabaseDebug)
+import           Database.Beam                           ()
 import           Database.Beam.Backend                   (runNoReturn)
 import           Database.Beam.Migrate.Types             (executeMigration)
-import           Database.Beam.Postgres                  (Connection, Pg)
+import           Database.Beam.Postgres                  (Connection, Pg,
+                                                          runBeamPostgres,
+                                                          runBeamPostgresDebug)
 import           Database.PostgreSQL.Simple              (SqlError,
                                                           connectPostgreSQL)
 
@@ -39,8 +41,8 @@ runMigrationWithTriggers conn context = do
 
 -- | Whether or not to run silently
 dbMigrationFunc :: Bool -> Connection -> Pg a -> IO a
-dbMigrationFunc False = withDatabaseDebug putStrLn
-dbMigrationFunc _     = withDatabase
+dbMigrationFunc False = runBeamPostgresDebug putStrLn
+dbMigrationFunc _     = runBeamPostgres
 
 createSchema :: Bool -> Connection -> IO ()
 createSchema runSilently conn =

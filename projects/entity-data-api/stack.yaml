@@ -4,7 +4,7 @@ packages:
 
 extra-deps:
 - git: https://github.com/tathougies/beam.git
-  commit: 2489a213cdee6341de46a3aa015c35067f4d6076 # Head on 2019-01-10
+  commit: 737b73c6ec1c6aac6386bf9592a02a91f34a9478 # Head on 2019-03-19
   subdirs:
     - beam-core
     - beam-migrate
