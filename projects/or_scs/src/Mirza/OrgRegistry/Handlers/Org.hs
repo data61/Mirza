@@ -103,7 +103,7 @@ addOrgAndInitialUserQuery oAuthSub org = do
 addOrgQuery :: (AsORError err, HasCallStack)
                  => Org -> DB context err Org
 addOrgQuery org@OrgT{..} = do
-  result <- pg $ runInsertReturningList (_orgs orgRegistryDB)
+  result <- pg $ runInsertReturningList $ insert (_orgs orgRegistryDB)
             $ insertValues [org]
   case result of
     [insertedOrg] -> pure insertedOrg
@@ -137,7 +137,7 @@ addOrgMappingQuery :: (AsORError err, HasCallStack)
 addOrgMappingQuery prefix oAuthSub = do
   checkUserExistsQuery oAuthSub
 
-  result <- pg $ runInsertReturningList (_orgMapping orgRegistryDB)
+  result <- pg $ runInsertReturningList $ insert (_orgMapping orgRegistryDB)
             $ insertValues [OrgMappingT (OrgPrimaryKey prefix) (Schema.UserPrimaryKey oAuthSub) Nothing]
   case result of
     [insertedOrgMapping] -> pure insertedOrgMapping
