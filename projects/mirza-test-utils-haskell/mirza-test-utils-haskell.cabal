@@ -37,25 +37,15 @@ library
   build-depends:
       base >=4.7 && <5
     , mirza-common-haskell
-    , aeson
     , beam-core
     , beam-postgres
     , bytestring
     , hspec-expectations
-    , jose
-    , katip
-    , lens
     , mtl
     , network
-    , network-uri
     , postgresql-simple
     , process
-    , servant
-    , servant-auth-client
-    , servant-auth-server
     , servant-client
-    , tasty-hspec
-    , temporary
     , text
     , time
     , wai
@@ -65,8 +55,6 @@ library
 test-suite mirza-test-utils-haskell-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
-  other-modules:
-      Paths_mirza_test_utils_haskell
   hs-source-dirs:
       test
   ghc-options: -threaded -rtsopts -with-rtsopts=-N -Wall -Werror

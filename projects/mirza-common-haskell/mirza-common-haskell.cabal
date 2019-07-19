@@ -32,8 +32,6 @@ library
     Mirza.Common.Time
     Mirza.Common.Types
     Mirza.Common.Utils
-  other-modules:
-      Paths_mirza_common_haskell
   hs-source-dirs:
       src
   build-depends:
