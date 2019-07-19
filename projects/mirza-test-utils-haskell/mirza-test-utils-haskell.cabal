@@ -30,8 +30,6 @@ library
   exposed-modules:
       Mirza.Common.Tests.ServantUtils
       Mirza.Common.Tests.Utils
-  other-modules:
-      Paths_mirza_test_utils_haskell
   hs-source-dirs:
       test
   build-depends:
