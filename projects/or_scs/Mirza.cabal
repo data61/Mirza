@@ -3,7 +3,7 @@ version:             0.1.0.0
 -- synopsis:
 -- description:
 homepage:            https://github.com/data61/Mirza
-license:             BSD3
+license:             Apache-2.0
 license-file:        LICENSE
 author:              Sara Falamaki
 maintainer:          Sara.Falamaki@csiro.au
