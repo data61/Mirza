@@ -11,10 +11,10 @@ version:        0.1.0.0
 description:    Please see the README on GitHub at <https://github.com/data61/Mirza/projects/mirza-test-utils-haskell#readme>
 homepage:       https://github.com/data61/Mirza
 bug-reports:    https://github.com/data61/Mirza/issues
-author:         Author name here
-maintainer:     example@example.com
+author:         Paul Samways
+maintainer:     Paul.Samways@data61.csiro.au
 copyright:      2017, 2018, 2019 CSIRO
-license:        BSD3
+license:        Apache-2
 license-file:   LICENSE
 build-type:     Simple
 extra-source-files:
