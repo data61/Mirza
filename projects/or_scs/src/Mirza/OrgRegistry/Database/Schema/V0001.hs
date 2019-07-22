@@ -9,49 +9,34 @@
 -- Convention: Table types and constructors are suffixed with T (for Table).
 module Mirza.OrgRegistry.Database.Schema.V0001 where
 
-import           Mirza.OrgRegistry.Types       (OAuthSub (..),
-                                                oAuthSubFieldType)
+import           Mirza.OrgRegistry.Types     (OAuthSub (..), oAuthSubFieldType)
 
-import qualified Data.GS1.EPC                  as EPC
-import           Mirza.Common.Beam             (lastUpdateField)
+import qualified Data.GS1.EPC                as EPC
+import           Mirza.Common.Beam           (lastUpdateField, pkSerialType, defaultFkConstraint)
 import           Mirza.Common.GS1BeamOrphans
-import           Mirza.Common.Types            (PrimaryKeyType)
+import           Mirza.Common.Types          (PrimaryKeyType)
 import           Mirza.OrgRegistry.Types
 
 import           Control.Lens
 
-import           Crypto.JOSE.JWK               (JWK)
-import           Data.Text                     (Text)
-import           Data.Time                     (LocalTime)
-import           Data.UUID                     (UUID)
+import           Crypto.JOSE.JWK             (JWK)
+import           Data.Text                   (Text)
+import           Data.Time                   (LocalTime)
 
-import           Servant                       (FromHttpApiData (parseUrlPiece),
-                                                ToHttpApiData (toUrlPiece))
+import           Servant                     (FromHttpApiData (parseUrlPiece),
+                                              ToHttpApiData (toUrlPiece))
 
-import           Database.Beam                 as B
-import           Database.Beam.Migrate.SQL     as BSQL
+import           Database.Beam               as B
+import           Database.Beam.Migrate.SQL   as BSQL
 import           Database.Beam.Migrate.Types
-import           Database.Beam.Postgres        (PgCommandSyntax, PgJSON,
-                                                Postgres, json, text, uuid)
-import           Database.Beam.Postgres.Syntax (PgDataTypeSyntax)
+import           Database.Beam.Postgres      (PgJSON, Postgres, json, text)
 
-import           Data.Aeson                    hiding (json)
-import           Data.Swagger                  hiding (prefix)
+import           Data.Aeson                  hiding (json)
+import           Data.Swagger                hiding (prefix)
 
-import           GHC.Generics                  (Generic)
-
+import           GHC.Generics                (Generic)
 
 -- Convention: Table types and constructors are suffixed with T (for Table).
-
---------------------------------------------------------------------------------
--- Constants and Utils
---------------------------------------------------------------------------------
-
-defaultFieldMaxLength :: Word
-defaultFieldMaxLength = 120
-
-pkSerialType :: DataType PgDataTypeSyntax UUID
-pkSerialType = uuid
 
 -- Database
 data OrgRegistryDB f = OrgRegistryDB
@@ -59,55 +44,55 @@ data OrgRegistryDB f = OrgRegistryDB
   , _users        :: f (TableEntity UserT)
   , _orgMapping   :: f (TableEntity OrgMappingT)
   , _keys         :: f (TableEntity KeyT)
-  , _locations    :: f (TableEntity       LocationT)
-  , _geoLocations :: f (TableEntity       GeoLocationT)
+  , _locations    :: f (TableEntity LocationT)
+  , _geoLocations :: f (TableEntity GeoLocationT)
   }
   deriving Generic
 instance Database anybackend OrgRegistryDB
 
+
 -- Migration: Intialisation -> V1.
-migration :: () -> Migration PgCommandSyntax (CheckedDatabaseSettings Postgres OrgRegistryDB)
-migration () =
-  OrgRegistryDB
-    <$> createTable "orgs" (OrgT
-          (field "org_gs1_company_prefix" gs1CompanyPrefixFieldType)
-          (field "org_name" (varchar (Just defaultFieldMaxLength)) notNull)
-          (field "org_url"  (text) notNull)
+migration :: () -> Migration Postgres (CheckedDatabaseSettings Postgres OrgRegistryDB)
+migration () = do
+  orgsT <- createTable "orgs" $
+    OrgT (field "org_gs1_company_prefix" gs1CompanyPrefixFieldType notNull)
+         (field "org_name" text notNull)
+         (field "org_url" text notNull)
+         lastUpdateField
+            
+  usersT <- createTable "users" $
+    UserT (field "oauth_sub" oAuthSubFieldType notNull)
           lastUpdateField
-          )
-    <*> createTable "users" (UserT
-          (field "oauth_sub" oAuthSubFieldType notNull)
-          lastUpdateField
-          )
-    <*> createTable "org_mapping" (OrgMappingT
-          (OrgPrimaryKey $ field "mapping_org_id" gs1CompanyPrefixFieldType)
-          (UserPrimaryKey $ field "mapping_user_oauth_sub" oAuthSubFieldType)
-          lastUpdateField
-          )
-    <*> createTable "keys" (KeyT
-          (field "key_id" pkSerialType)
-          (OrgPrimaryKey $ field "key_org" gs1CompanyPrefixFieldType)
-          (field "jwk" json notNull)
-          (field "creation_time" timestamp)
-          (field "revocation_time" (maybeType timestamp))
-          (UserPrimaryKey $ field "revoking_user_id" (maybeType oAuthSubFieldType))
-          (field "expiration_time" (maybeType timestamp))
-          lastUpdateField
-          )
-    <*> createTable "location" (LocationT
-          (field "location_id" pkSerialType)
-          (field "location_gln" locationEPCType)
-          (OrgPrimaryKey $ field "location_org_id" gs1CompanyPrefixFieldType)
-          lastUpdateField
-          )
-    <*> createTable "geo_location" (GeoLocationT
-          (field "geo_location_id"      pkSerialType)
-          (LocationPrimaryKey $ field "geo_location_gln" locationEPCType)
-          (field "geo_location_lat"     (maybeType latitudeType))
-          (field "geo_location_lon"     (maybeType longitudeType))
-          (field "geo_location_address" (maybeType $ varchar Nothing))
-          lastUpdateField
-          )
+
+  orgMappingT <- createTable "org_mapping" $
+    OrgMappingT (OrgPrimaryKey $ field "mapping_org_id" gs1CompanyPrefixFieldType notNull (defaultFkConstraint "orgs" ["org_gs1_company_prefix"]))
+                (UserPrimaryKey $ field "mapping_user_oauth_sub" oAuthSubFieldType notNull (defaultFkConstraint "users" ["oauth_sub"]))
+                lastUpdateField
+
+  keysT <- createTable "keys" $
+    KeyT (field "key_id" pkSerialType notNull)
+         (OrgPrimaryKey $ field "key_org" gs1CompanyPrefixFieldType notNull (defaultFkConstraint "orgs" ["org_gs1_company_prefix"]))
+         (field "jwk" json notNull)
+         (field "creation_time" timestamp)
+         (field "revocation_time" (maybeType timestamp))
+         (UserPrimaryKey $ field "revoking_user_id" (maybeType oAuthSubFieldType) (defaultFkConstraint "users" ["oauth_sub"]))
+         (field "expiration_time" (maybeType timestamp))
+         lastUpdateField
+
+  locationT <- createTable "location" $
+    LocationT (field "location_gln" locationEPCType notNull)
+              (OrgPrimaryKey $ field "location_org_id" gs1CompanyPrefixFieldType notNull (defaultFkConstraint "orgs" ["org_gs1_company_prefix"]))
+              lastUpdateField
+
+  geoLocationT <- createTable "geo_location" $
+    GeoLocationT (field "geo_location_id" pkSerialType notNull)
+                 (LocationPrimaryKey $ field "geo_location_gln" locationEPCType notNull (defaultFkConstraint "location" ["location_gln"]))
+                 (field "geo_location_lat"     (maybeType latitudeType))
+                 (field "geo_location_lon"     (maybeType longitudeType))
+                 (field "geo_location_address" (maybeType text))
+                 lastUpdateField
+    
+  pure $ OrgRegistryDB orgsT usersT orgMappingT keysT locationT geoLocationT
 
 
 --------------------------------------------------------------------------------
@@ -254,8 +239,7 @@ type Location = LocationT Identity
 deriving instance Show Location
 
 data LocationT f = LocationT
-  { location_id          :: C f PrimaryKeyType
-  , location_gln         :: C f EPC.LocationEPC
+  { location_gln         :: C f EPC.LocationEPC
   , location_org_id      :: PrimaryKey OrgT f
   , location_last_update :: C f (Maybe LocalTime)
   }
@@ -277,6 +261,7 @@ instance Table LocationT where
   newtype PrimaryKey LocationT f = LocationPrimaryKey (C f EPC.LocationEPC)
     deriving Generic
   primaryKey = LocationPrimaryKey . location_gln
+  
 deriving instance Eq (PrimaryKey LocationT Identity)
 
 instance ToHttpApiData (PrimaryKey LocationT Identity) where

@@ -243,7 +243,7 @@ server ev =
 runMigration :: ServerOptionsOR -> IO ()
 runMigration opts = do
   ctx <- initORContext opts
-  res <- runMigrationWithConfirmation @ORContextMinimal @SqlError ctx interactiveMigrationConfirm
+  res <- runMigrationSimple @ORContextMinimal @SqlError ctx migrations
   print res
 
 

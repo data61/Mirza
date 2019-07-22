@@ -11,10 +11,10 @@ version:        0.1.0.0
 description:    Please see the README on GitHub at <https://github.com/data61/Mirza/projects/mirza-common-haskell#readme>
 homepage:       https://github.com/data61/Mirza
 bug-reports:    https://github.com/data61/Mirza/issues
-author:         Author name here
-maintainer:     example@example.com
-copyright:      2017, 2018, 2019 CSIRO
-license:        BSD3
+author:         Paul Samways
+maintainer:     Paul.Samways@data61.csiro.au
+copyright:      2017 CSIRO
+license:        Apache-2.0
 license-file:   LICENSE
 build-type:     Simple
 extra-source-files:
@@ -26,14 +26,13 @@ source-repository head
 
 library
   exposed-modules:
-      Mirza.Common.Beam
-      Mirza.Common.GS1BeamOrphans
-      Mirza.Common.GS1Orphans
-      Mirza.Common.Time
-      Mirza.Common.Types
-      Mirza.Common.Utils
-  other-modules:
-      Paths_mirza_common_haskell
+    Mirza.Common.Beam
+    Mirza.Common.Database
+    Mirza.Common.GS1BeamOrphans
+    Mirza.Common.GS1Orphans
+    Mirza.Common.Time
+    Mirza.Common.Types
+    Mirza.Common.Utils
   hs-source-dirs:
       src
   build-depends:

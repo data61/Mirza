@@ -20,7 +20,7 @@ import           Mirza.Common.Time                 (ExpirationTime,
                                                     RevocationTime)
 import           Mirza.Common.Types                (ORKeyId)
 import           Mirza.OrgRegistry.Database.Schema (LocationPrimaryKey)
-import           Mirza.OrgRegistry.Types           as ST
+import           Mirza.OrgRegistry.Types           as OT
 
 import           Data.GS1.EPC                      as EPC
 

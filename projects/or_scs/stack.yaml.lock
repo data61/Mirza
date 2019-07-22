@@ -7,51 +7,51 @@ packages:
 - completed:
     subdir: beam-core
     cabal-file:
-      size: 4725
-      sha256: 8b00c1a76fc13d252c7ab62cc965454b84cef1a0d4de62f63a05ac9208ea4520
+      size: 5044
+      sha256: 7514a7b9cc092d7e890adf2ad08c1ea3c66ea5900e263b32ff0c55c31e01bac0
     name: beam-core
-    version: 0.7.2.1
+    version: 0.8.0.0
     git: https://github.com/tathougies/beam.git
     pantry-tree:
-      size: 2484
-      sha256: 92688457a700af6f79b47bb4390b8ffd841082b6aebb3b6cb61e38766b214281
-    commit: 2489a213cdee6341de46a3aa015c35067f4d6076
+      size: 2768
+      sha256: 341603452ba25539599400e589d5ce09fe17dcbd932ffb2787144d13ab008cc5
+    commit: 737b73c6ec1c6aac6386bf9592a02a91f34a9478
   original:
     subdir: beam-core
     git: https://github.com/tathougies/beam.git
-    commit: 2489a213cdee6341de46a3aa015c35067f4d6076
+    commit: 737b73c6ec1c6aac6386bf9592a02a91f34a9478
 - completed:
     subdir: beam-migrate
     cabal-file:
-      size: 4794
-      sha256: 820207aa9343cd664f045b0e8e2d6f2d1572e21c5c8101c3f183d461a5ebd46b
+      size: 4920
+      sha256: b9b1d290466ab16617dac94c481f9571a057d8a6816878a03c718a64e358b802
     name: beam-migrate
-    version: 0.3.2.0
+    version: 0.4.0.0
     git: https://github.com/tathougies/beam.git
     pantry-tree:
       size: 1898
-      sha256: 470500d115188b66a8532cead6202868625f4ef775078f074c11774ffee4c6db
-    commit: 2489a213cdee6341de46a3aa015c35067f4d6076
+      sha256: c4e526df44404c52e078958e35a7180c3bd9e6c53c9679490ed2f717f682321f
+    commit: 737b73c6ec1c6aac6386bf9592a02a91f34a9478
   original:
     subdir: beam-migrate
     git: https://github.com/tathougies/beam.git
-    commit: 2489a213cdee6341de46a3aa015c35067f4d6076
+    commit: 737b73c6ec1c6aac6386bf9592a02a91f34a9478
 - completed:
     subdir: beam-postgres
     cabal-file:
-      size: 3176
-      sha256: d22666212ad76f30f7682c0cb21304940efe782f959c6b6b76fe4719417cb8c9
+      size: 4173
+      sha256: a01443ce503cfc58cbe28f476252672282347579444b65f2925a12ba6a2c13f5
     name: beam-postgres
-    version: 0.3.2.1
+    version: 0.4.0.0
     git: https://github.com/tathougies/beam.git
     pantry-tree:
-      size: 1831
-      sha256: aead477ca9c951bed53fa2285d8f091c3708df62d7bcc9a04cc7ce3449df3bdc
-    commit: 2489a213cdee6341de46a3aa015c35067f4d6076
+      size: 2582
+      sha256: 5d126b5a3f491f84a46c5f812396bcf64f1570c02e18071bedea29c67bfda43f
+    commit: 737b73c6ec1c6aac6386bf9592a02a91f34a9478
   original:
     subdir: beam-postgres
     git: https://github.com/tathougies/beam.git
-    commit: 2489a213cdee6341de46a3aa015c35067f4d6076
+    commit: 737b73c6ec1c6aac6386bf9592a02a91f34a9478
 - completed:
     cabal-file:
       size: 3341

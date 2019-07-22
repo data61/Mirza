@@ -3,7 +3,7 @@ version:             0.1.0.0
 -- synopsis:
 -- description:
 homepage:            https://github.com/data61/Mirza
-license:             BSD3
+license:             Apache-2.0
 license-file:        LICENSE
 author:              Sara Falamaki
 maintainer:          Sara.Falamaki@csiro.au
@@ -24,6 +24,7 @@ library
                     , Mirza.OrgRegistry.Database.Migrate
                     , Mirza.OrgRegistry.Database.Schema
                     , Mirza.OrgRegistry.Database.Schema.V0001
+--                    , Mirza.OrgRegistry.Database.Schema.V0002
                     , Mirza.OrgRegistry.Handlers.Org
                     , Mirza.OrgRegistry.Handlers.Health
                     , Mirza.OrgRegistry.Handlers.Keys
