@@ -39,7 +39,7 @@ handleRequest ctx r = do
     Left (_err :: AppError) -> do
       liftIO $ putStrLn ("Token validation failed: " <> show _err)
       pure $ WPRResponse $ responseBuilder status401 mempty mempty
-    Right _ -> pure $ WPRModifiedRequest modifiedReq (destProxyServiceInfo ctx)
+    Right _ -> pure $ WPRModifiedRequest modifiedReq (scsProxyServiceInfo ctx)
 
 handleToken :: Maybe Header -> AppM EDAPIContext AppError JWT.ClaimsSet
 handleToken (Just (_, authHdr)) = do

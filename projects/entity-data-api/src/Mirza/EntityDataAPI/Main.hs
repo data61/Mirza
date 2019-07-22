@@ -98,9 +98,14 @@ launchUserManager ctx = do
 
 
 initContext :: Opts -> IO EDAPIContext
-initContext (Opts myService (ServiceInfo (Hostname destHost) (Port destPort)) _mode url clientIds dbConnStr) = do
+initContext (Opts
+              myService
+              (ServiceInfo (Hostname scsHost) (Port scsPort))
+              (ServiceInfo (Hostname trailsHost) (Port trailsPort))
+              _mode url clientIds dbConnStr) = do
   putStrLn "Initializing context..."
-  let proxyDest = ProxyDest (B.pack destHost) destPort
+  let scsInfo = ProxyDest (B.pack scsHost) scsPort
+  let trailsInfo = ProxyDest (B.pack trailsHost) trailsPort
   mngr <- newManager tlsManagerSettings
   connpool <- createPool (connectPostgreSQL dbConnStr) close
                     1 -- Number of "sub-pools",
@@ -108,7 +113,7 @@ initContext (Opts myService (ServiceInfo (Hostname destHost) (Port destPort)) _m
                     20 -- Max number of connections to have open at any one time
   fetchJWKSWithManager mngr url >>= \case
     Left err -> fail $ show err
-    Right jwkSet -> pure $ EDAPIContext myService proxyDest mngr jwkSet (parseClientIdList clientIds) connpool
+    Right jwkSet -> pure $ EDAPIContext myService scsInfo trailsInfo mngr jwkSet (parseClientIdList clientIds) connpool
     where
       parseClientIdList cIds = fmap fromString . filter (not . null) . splitOn "," $ cIds
 
@@ -142,7 +147,7 @@ launchProxy ctx = do
 --   )
 --   <*> (ServiceInfo
 --         <$> (Hostname <$> strOption (long "desthost" <> short 'd' <> value "localhost" <> showDefault <> help "The host to make requests to."))
---         <*> (Port <$> option auto (long "destport" <> short 'r' <> value 8200 <> showDefault <> help "Port to make requests to.")))
+--         <*> (Port <$> option auto (long "scsport" <> short 'r' <> value 8200 <> showDefault <> help "Port to make requests to.")))
 --   <*> (strOption (long "mode" <> short 'm' <> value Proxy <> showDefault <> help "Mode to run the app on. Available modes: Proxy | API"))
 --   <*> strOption (long "jwkurl" <> short 'j' <> value "https://mirza.au.auth0.com/.well-known/jwks.json" <> showDefault <> help "URL to fetch ")
 --   <*> strOption (long "jwkclientid" <> short 'k' <> help "Audience Claim.")
