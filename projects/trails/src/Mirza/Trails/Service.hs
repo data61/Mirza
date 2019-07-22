@@ -50,7 +50,8 @@ publicServer :: ( Member context '[HasDB]
 publicServer =
        health
   :<|> versionInfo
-  :<|> getTrail
+  :<|> getTrailByEventId
+  :<|> getTrailBySignature
   :<|> addTrail
 
 

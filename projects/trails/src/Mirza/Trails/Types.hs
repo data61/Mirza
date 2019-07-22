@@ -19,7 +19,10 @@ import           Katip                      as K
 import           Data.Aeson                 (FromJSON (..), ToJSON (..), object,
                                              withObject, (.:), (.=))
 
-import           Data.Swagger               (ToSchema)
+import           Data.Swagger               (ToParamSchema, ToSchema)
+
+import           Servant                    (FromHttpApiData (..),
+                                             ToHttpApiData (..))
 
 import           Control.Lens               hiding ((.=))
 
@@ -127,7 +130,11 @@ instance FromJSON SignaturePlaceholder where
 instance ToJSON SignaturePlaceholder where
   toJSON = toJSON . getSignature
 instance ToSchema SignaturePlaceholder
-
+instance ToParamSchema SignaturePlaceholder
+instance FromHttpApiData SignaturePlaceholder where
+  parseUrlPiece t = SignaturePlaceholder <$> (parseUrlPiece t)
+instance ToHttpApiData SignaturePlaceholder where
+  toUrlPiece (SignaturePlaceholder sig) = toUrlPiece sig
 
 
 -- *****************************************************************************

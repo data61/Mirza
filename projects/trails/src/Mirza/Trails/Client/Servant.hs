@@ -3,7 +3,8 @@ module Mirza.Trails.Client.Servant
   -- * Public API
     health
   , versionInfo
-  , getTrail
+  , getTrailByEventId
+  , getTrailBySignature
   , addTrail
   ) where
 
@@ -23,8 +24,9 @@ import           Servant.Client
 
 health                :: ClientM HealthResponse
 versionInfo           :: ClientM String
-getTrail              :: EventId -> ClientM [TrailEntryResponse]
-addTrail              :: TrailEntryResponse -> ClientM NoContent
+getTrailByEventId     :: EventId -> ClientM [TrailEntryResponse]
+getTrailBySignature   :: SignaturePlaceholder -> ClientM [TrailEntryResponse]
+addTrail              :: [TrailEntryResponse] -> ClientM NoContent
 
 
 _api     :: Client ClientM ServerAPI
@@ -33,7 +35,8 @@ _api@(
   _pubAPI@(
          health
     :<|> versionInfo
-    :<|> getTrail
+    :<|> getTrailByEventId
+    :<|> getTrailBySignature
     :<|> addTrail
   )
  ) = client (Proxy :: Proxy ServerAPI)
