@@ -5,7 +5,8 @@ module Mirza.EntityDataAPI.AuthProxy where
 
 import           Mirza.EntityDataAPI.Database.Utils (doesSubExist)
 
-import           Network.HTTP.ReverseProxy          (WaiProxyResponse (..),
+import           Network.HTTP.ReverseProxy          (ProxyDest (..),
+                                                     WaiProxyResponse (..),
                                                      defaultOnExc, waiProxyTo)
 import           Network.HTTP.Types
 import           Network.Wai                        (Application, Request (..),
@@ -27,6 +28,8 @@ import qualified Data.ByteString                    as BS
 import qualified Data.ByteString.Lazy               as BSL
 
 import           Data.List                          (partition)
+
+import           Data.Either                        (isLeft)
 import           Data.Maybe                         (listToMaybe)
 
 
@@ -34,12 +37,16 @@ handleRequest :: EDAPIContext -> Request -> IO WaiProxyResponse
 handleRequest ctx r = do
   liftIO . print $ "Received request: " <> show r
   let (modifiedReq, mAuthHeader) = extractAuthHeader r
-  mUnverifiedJWT <- runAppM ctx $ handleToken mAuthHeader
-  case mUnverifiedJWT of
-    Left (_err :: AppError) -> do
-      liftIO $ putStrLn ("Token validation failed: " <> show _err)
-      pure $ WPRResponse $ responseBuilder status401 mempty mempty
-    Right _ -> pure $ WPRModifiedRequest modifiedReq (scsProxyServiceInfo ctx)
+  destServiceOrError <- runAppM ctx $ handlePath r
+  if (isLeft destServiceOrError) then pure $ WPRResponse $ responseBuilder status401 mempty mempty
+  else do
+    let (Right destService) = destServiceOrError
+    mUnverifiedJWT <- runAppM ctx $ handleToken mAuthHeader
+    case mUnverifiedJWT of
+      Left (_err :: AppError) -> do
+        liftIO $ putStrLn ("Token validation failed: " <> show _err)
+        pure $ WPRResponse $ responseBuilder status401 mempty mempty
+      Right _ -> pure $ WPRModifiedRequest modifiedReq destService
 
 handleToken :: Maybe Header -> AppM EDAPIContext AppError JWT.ClaimsSet
 handleToken (Just (_, authHdr)) = do
@@ -58,6 +65,16 @@ handleToken (Just (_, authHdr)) = do
           pure claimSet
 handleToken Nothing = throwError NoAuthHeader
 
+stripHeadingPath :: Request -> Request
+stripHeadingPath = error "not implemented yet"
+
+handlePath :: Request -> AppM EDAPIContext AppError ProxyDest
+handlePath req = do
+  let paths = pathInfo req
+  case paths of
+    ("events":_) -> asks scsProxyServiceInfo
+    ("trails":_) -> asks trailsProxyServiceInfo
+    _            -> throwError $ PathErr InvalidPath
 
 extractAuthHeader :: Request -> (Request, Maybe Header)
 extractAuthHeader originalRequest = (requestWithoutAuthHeader, authHeader) where

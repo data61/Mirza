@@ -26,6 +26,11 @@ data DBError
   | UnauthorisedInsertionAttempt StringOrURI
   deriving (Eq, Show, Generic)
 
+data PathError
+  = EmptyPath
+  | InvalidPath
+  deriving (Eq, Show, Generic)
+
 data AppError
   = JWKFetchFailed
   | AuthFailed Jose.JWTError
@@ -37,6 +42,7 @@ data AppError
   | ReqFailure HttpException
   | JWKParseFailure String
   | DatabaseError DBError
+  | PathErr PathError
   deriving (Show, Generic)
 makeClassyPrisms ''AppError
 
@@ -48,4 +54,3 @@ instance AsJWTError AppError where
               )
 instance AsError AppError where
   _Error = _AppJoseError
-
