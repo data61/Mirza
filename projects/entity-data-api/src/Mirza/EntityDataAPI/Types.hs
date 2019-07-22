@@ -50,7 +50,7 @@ newtype AppM context err a = AppM
     , MonadError err
     )
 
-instance MonadTime (AppM AuthContext err) where
+instance MonadTime (AppM EDAPIContext err) where
   currentTime = liftIO getCurrentTime
 
 runAppM :: context -> AppM context err a -> IO (Either err a)
@@ -60,7 +60,7 @@ runAppM ctx aM = runExceptT $ (runReaderT . getAppM) aM ctx
 
 --  ---------------Context--------------------------
 
-data AuthContext = AuthContext
+data EDAPIContext = EDAPIContext
   { myProxyServiceInfo   :: ServiceInfo
   , destProxyServiceInfo :: ProxyDest
   , appManager           :: Manager

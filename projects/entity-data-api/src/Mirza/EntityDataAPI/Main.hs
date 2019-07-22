@@ -68,7 +68,7 @@ promptLine prompt = do
   getLine
 
 
-tryAddUser :: AuthContext -> IO (Either AppError ())
+tryAddUser :: EDAPIContext -> IO (Either AppError ())
 tryAddUser ctx = do
   (authorisedUserStr :: String) <- promptLine "Enter thy creds: "
   (toAddUserStr :: String) <- promptLine "User you want to add: "
@@ -80,7 +80,7 @@ tryAddUser ctx = do
     Left err -> putStrLn $ "Failed with error : " <> show err
   pure res
 
-tryAddBootstrapUser :: AuthContext -> IO (Either AppError ())
+tryAddBootstrapUser :: EDAPIContext -> IO (Either AppError ())
 tryAddBootstrapUser ctx = do
   (toAddUserStr :: String) <- promptLine "User you want to add: "
   let (toAddUserSub :: StringOrURI) = fromString toAddUserStr
@@ -91,13 +91,13 @@ tryAddBootstrapUser ctx = do
   pure res
 
 
-launchUserManager :: AuthContext -> IO ()
+launchUserManager :: EDAPIContext -> IO ()
 launchUserManager ctx = do
   _ <- tryAddUser ctx
   launchUserManager ctx
 
 
-initContext :: Opts -> IO AuthContext
+initContext :: Opts -> IO EDAPIContext
 initContext (Opts myService (ServiceInfo (Hostname destHost) (Port destPort)) _mode url clientIds dbConnStr) = do
   putStrLn "Initializing context..."
   let proxyDest = ProxyDest (B.pack destHost) destPort
@@ -108,7 +108,7 @@ initContext (Opts myService (ServiceInfo (Hostname destHost) (Port destPort)) _m
                     20 -- Max number of connections to have open at any one time
   fetchJWKSWithManager mngr url >>= \case
     Left err -> fail $ show err
-    Right jwkSet -> pure $ AuthContext myService proxyDest mngr jwkSet (parseClientIdList clientIds) connpool
+    Right jwkSet -> pure $ EDAPIContext myService proxyDest mngr jwkSet (parseClientIdList clientIds) connpool
     where
       parseClientIdList cIds = fmap fromString . filter (not . null) . splitOn "," $ cIds
 
@@ -127,7 +127,7 @@ myCors = cors (const $ Just policy)
           ], True)
         }
 
-launchProxy :: AuthContext -> IO ()
+launchProxy :: EDAPIContext -> IO ()
 launchProxy ctx = do
   putStrLn $  "Starting service on " <>
               (getHostname . serviceHost . myProxyServiceInfo $ ctx) <> ":" <>

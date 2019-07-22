@@ -30,7 +30,7 @@ import           Data.List                          (partition)
 import           Data.Maybe                         (listToMaybe)
 
 
-handleRequest :: AuthContext -> Request -> IO WaiProxyResponse
+handleRequest :: EDAPIContext -> Request -> IO WaiProxyResponse
 handleRequest ctx r = do
   liftIO . print $ "Received request: " <> show r
   let (modifiedReq, mAuthHeader) = extractAuthHeader r
@@ -41,7 +41,7 @@ handleRequest ctx r = do
       pure $ WPRResponse $ responseBuilder status401 mempty mempty
     Right _ -> pure $ WPRModifiedRequest modifiedReq (destProxyServiceInfo ctx)
 
-handleToken :: Maybe Header -> AppM AuthContext AppError JWT.ClaimsSet
+handleToken :: Maybe Header -> AppM EDAPIContext AppError JWT.ClaimsSet
 handleToken (Just (_, authHdr)) = do
   jwKey <- asks jwtSigningKeys
   aud <- asks ctxJwkClientIds
@@ -71,5 +71,5 @@ handleError :: SomeException -> Application
 handleError = defaultOnExc
 
 
-runAuthProxy :: AuthContext -> Application
+runAuthProxy :: EDAPIContext -> Application
 runAuthProxy context = waiProxyTo (handleRequest context) handleError $ appManager context
