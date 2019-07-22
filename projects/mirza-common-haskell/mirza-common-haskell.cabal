@@ -13,7 +13,7 @@ homepage:       https://github.com/data61/Mirza
 bug-reports:    https://github.com/data61/Mirza/issues
 author:         Paul Samways
 maintainer:     Paul.Samways@data61.csiro.au
-copyright:      2017, 2018, 2019 CSIRO
+copyright:      2017 CSIRO
 license:        Apache-2.0
 license-file:   LICENSE
 build-type:     Simple
