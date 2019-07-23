@@ -1,7 +1,7 @@
 {-# LANGUAGE LambdaCase          #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module Mirza.EntityDataAPI.AuthProxy where
+module Mirza.EntityDataAPI.Proxy where
 
 import           Mirza.EntityDataAPI.Database.Utils (doesSubExist)
 
