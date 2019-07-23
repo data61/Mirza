@@ -8,9 +8,9 @@ import           System.Envy                        (decodeEnv)
 import           Network.HTTP.Client                (newManager)
 import           Network.HTTP.Client.TLS            (tlsManagerSettings)
 
-import           Mirza.EntityDataAPI.AuthProxy      (runAuthProxy)
 import           Mirza.EntityDataAPI.Database.Utils (addUser, addUserSub)
 import           Mirza.EntityDataAPI.Errors
+import           Mirza.EntityDataAPI.Proxy          (runProxy)
 import           Mirza.EntityDataAPI.Types
 
 import           Mirza.Common.Utils                 (fetchJWKSWithManager)
@@ -137,7 +137,7 @@ launchProxy ctx = do
   putStrLn $  "Starting service on " <>
               (getHostname . serviceHost . myProxyServiceInfo $ ctx) <> ":" <>
               (show . getPort . servicePort . myProxyServiceInfo $ ctx)
-  Warp.run (fromIntegral . getPort . servicePort . myProxyServiceInfo $ ctx) (myCors $ runAuthProxy ctx)
+  Warp.run (fromIntegral . getPort . servicePort . myProxyServiceInfo $ ctx) (myCors $ runProxy ctx)
 
 -- _optsParser :: Parser Opts
 -- _optsParser = Opts

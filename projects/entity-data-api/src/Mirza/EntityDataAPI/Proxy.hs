@@ -95,5 +95,5 @@ handleError :: SomeException -> Application
 handleError = defaultOnExc
 
 
-runAuthProxy :: EDAPIContext -> Application
-runAuthProxy context = waiProxyTo (handleRequest context) handleError $ appManager context
+runProxy :: EDAPIContext -> Application
+runProxy context = waiProxyTo (handleRequest context) handleError $ appManager context
