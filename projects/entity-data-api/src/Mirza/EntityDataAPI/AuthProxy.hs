@@ -40,7 +40,7 @@ handleRequest ctx r = do
   liftIO . print $ "Received request: " <> show r
   let (modifiedReq, mAuthHeader) = extractAuthHeader r
   destServiceOrError <- runAppM ctx $ handlePath r
-  if (isLeft destServiceOrError) then pure $ WPRResponse $ responseBuilder status401 mempty mempty
+  if (isLeft destServiceOrError) then pure $ WPRResponse $ responseBuilder status400 mempty mempty
   else do
     let (Right destService) = destServiceOrError
     mUnverifiedJWT <- runAppM ctx $ handleToken mAuthHeader
