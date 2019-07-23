@@ -36,7 +36,7 @@ export function EventLookup(props: QueryProps) {
   const [query, queryUpdate] = React.useState(queryForm());
   const [eventRes, eventResSet] = React.useState(null);
   const queryEvent = () => {
-    return fetch(encodeURI(props.organisation.url + '/epc/events/' + query.Label), {
+    return fetch(encodeURI(props.organisation.url + '/events/epc/events/' + query.Label), {
       method: 'GET',
       headers: new Headers({
         'Accept': 'application/json',

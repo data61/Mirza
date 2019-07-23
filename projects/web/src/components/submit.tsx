@@ -17,7 +17,7 @@ export function Submit(props: SubmitProps) {
 
   const submitEvent = () => {
 
-    return fetch(props.organisation.url + '/event', {
+    return fetch(encodeURI(props.organisation.url + '/events/event'), {
       method: 'POST',
       body: JSON.stringify(event),
       headers: {
