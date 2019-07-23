@@ -26,6 +26,8 @@ import qualified Crypto.JWT                         as JWT
 
 import qualified Data.ByteString                    as BS
 import qualified Data.ByteString.Lazy               as BSL
+import qualified Data.Text                          as T
+import           Data.Text.Encoding                 (encodeUtf8)
 
 import           Data.List                          (partition)
 
@@ -46,7 +48,9 @@ handleRequest ctx r = do
       Left (_err :: AppError) -> do
         liftIO $ putStrLn ("Token validation failed: " <> show _err)
         pure $ WPRResponse $ responseBuilder status401 mempty mempty
-      Right _ -> pure $ WPRModifiedRequest modifiedReq destService
+      Right _ -> do
+        let strippedReq = stripHeadingPath modifiedReq
+        pure $ WPRModifiedRequest strippedReq destService
 
 handleToken :: Maybe Header -> AppM EDAPIContext AppError JWT.ClaimsSet
 handleToken (Just (_, authHdr)) = do
@@ -66,7 +70,10 @@ handleToken (Just (_, authHdr)) = do
 handleToken Nothing = throwError NoAuthHeader
 
 stripHeadingPath :: Request -> Request
-stripHeadingPath = error "not implemented yet"
+stripHeadingPath req = do
+  let finalPathInfo = tail $ pathInfo req
+      finalRawPathInfo = encodeUtf8 $ "/" <> (T.intercalate "/" finalPathInfo)
+  req{rawPathInfo=finalRawPathInfo, pathInfo=finalPathInfo}
 
 handlePath :: Request -> AppM EDAPIContext AppError ProxyDest
 handlePath req = do
