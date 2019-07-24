@@ -11,6 +11,7 @@ module Mirza.Trails.Service where
 
 import           Mirza.Trails.API
 import           Mirza.Trails.Handlers.Health
+import           Mirza.Trails.Handlers.Trails
 import           Mirza.Trails.Types
 
 import           Mirza.Common.Types
@@ -49,6 +50,9 @@ publicServer :: ( Member context '[HasDB]
 publicServer =
        health
   :<|> versionInfo
+  :<|> getTrailByEventId
+  :<|> getTrailBySignature
+  :<|> addTrail
 
 
 

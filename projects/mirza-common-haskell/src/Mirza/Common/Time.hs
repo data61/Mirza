@@ -12,8 +12,13 @@
 -- defined in this module
 module Mirza.Common.Time
   ( CreationTime(..), RevocationTime(..), ExpirationTime(..)
-  , DBTimestamp, ModelTimestamp, fromDbTimestamp, toDbTimestamp
-  , generateTimestamp, onLocalTime
+  , DBTimestamp
+  , ModelTimestamp
+  , fromDbTimestamp
+  , toDbTimestamp
+  , generateTimestamp
+  , onLocalTime
+  , toLocalTime
   ) where
 
 import           GHC.Generics           (Generic)

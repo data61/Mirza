@@ -3,8 +3,8 @@ module Mirza.OrgRegistry.Database.Migrate ( migrations
                                           , dropTablesSimple
                                           ) where
 
-import Mirza.Common.Database
-import Database.PostgreSQL.Simple
+import           Database.PostgreSQL.Simple
+import           Mirza.Common.Database
 
 migrations :: [Migration]
 migrations = [ m_0001 ]
@@ -14,7 +14,7 @@ m_0001 conn = do
   _ <- execute_ conn "CREATE TABLE orgs (org_gs1_company_prefix TEXT PRIMARY KEY, org_name TEXT NOT NULL, org_url TEXT NOT NULL, last_update TIMESTAMP);"
   _ <- execute_ conn "CREATE TABLE location (location_gln TEXT PRIMARY KEY, location_org_id TEXT NOT NULL REFERENCES orgs(org_gs1_company_prefix) ON DELETE CASCADE, last_update TIMESTAMP);"
   _ <- execute_ conn "CREATE TABLE users (oauth_sub TEXT PRIMARY KEY, last_update TIMESTAMP);"
-  
+
   _ <- execute_ conn "CREATE TABLE geo_location (geo_location_id UUID PRIMARY KEY, geo_location_gln TEXT NOT NULL REFERENCES location(location_gln) ON DELETE CASCADE, geo_location_lat DOUBLE PRECISION, geo_location_lon DOUBLE PRECISION, geo_location_address TEXT, last_update TIMESTAMP);"
   _ <- execute_ conn "CREATE TABLE org_mapping (mapping_org_id TEXT NOT NULL REFERENCES orgs(org_gs1_company_prefix) ON DELETE CASCADE, mapping_user_oauth_sub TEXT NOT NULL REFERENCES users(oauth_sub) ON DELETE CASCADE, last_update TIMESTAMP, PRIMARY KEY(mapping_org_id, mapping_user_oauth_sub))"
   _ <- execute_ conn "CREATE TABLE keys (key_id UUID PRIMARY KEY, key_org TEXT NOT NULL REFERENCES orgs(org_gs1_company_prefix) ON DELETE CASCADE, jwk JSON NOT NULL, creation_time TIMESTAMP, revocation_time TIMESTAMP, revoking_user_id TEXT REFERENCES users(oauth_sub) ON DELETE CASCADE, expiration_time TIMESTAMP, last_update TIMESTAMP);"
@@ -26,7 +26,7 @@ m_0001 conn = do
   createTrigger conn "org_mapping"
   createTrigger conn "keys"
 
-    
+
 
 -- --------------------------------------------------------------------------------
 -- -- Datatypes

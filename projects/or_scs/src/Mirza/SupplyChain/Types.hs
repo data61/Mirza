@@ -72,8 +72,6 @@ data LabelWithType = LabelWithType
   } deriving (Show, Eq)
 $(makeLenses ''LabelWithType)
 
-deriving instance ToHttpApiData EventId
-
 newtype EventHash = EventHash String
   deriving (Generic, Show, Read, Eq)
 instance ToSchema EventHash
