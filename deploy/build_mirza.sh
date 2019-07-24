@@ -8,6 +8,7 @@ PUSH_MIRZA=$3
 SCS_DOCKER_IMAGE_TAG="${DOCKER_REPO}/supplychainserver:$COMMIT"
 OR_DOCKER_IMAGE_TAG="${DOCKER_REPO}/orgregistry:$COMMIT"
 EDAPI_DOCKER_IMAGE_TAG="${DOCKER_REPO}/edapi:$COMMIT"
+TRAILS_DOCKER_IMAGE_TAG="${DOCKER_REPO}/trails:$COMMIT"
 HSBUILDER_DOCKER_IMAGE="${DOCKER_REPO}/hsbuilder"
 HSBUILDER_DOCKER_IMAGE_TAG="${HSBUILDER_DOCKER_IMAGE}:$(./deploy/dephash.sh)"
 
@@ -43,4 +44,10 @@ docker build -f projects/entity-data-api/EntityDataAPI.Dockerfile --target PKG-E
 
 if [ "$PUSH_MIRZA" ]; then
     docker push "${EDAPI_DOCKER_IMAGE_TAG}"
+fi
+
+docker build -f projects/trails/Trails.Dockerfile --target PKG-TRAILS --build-arg HS_BUILDER_IMAGE="${HSBUILDER_DOCKER_IMAGE_TAG}" -t "${TRAILS_DOCKER_IMAGE_TAG}" .
+
+if [ "$PUSH_MIRZA" ]; then
+    docker push "${TRAILS_DOCKER_IMAGE_TAG}"
 fi
