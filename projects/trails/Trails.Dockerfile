@@ -4,8 +4,9 @@ FROM $HS_BUILDER_IMAGE as BUILD
 RUN mkdir -p /projects/trails/src/trails
 WORKDIR /projects/trails/src/trails
 
-COPY projects/mirza-common-haskell/ /projects/mirza-common-haskell/
-COPY projects/trails/      /projects/trails/
+COPY projects/mirza-common-haskell/     /projects/mirza-common-haskell/
+COPY projects/mirza-test-utils-haskell/ /projects/build/mirza-test-utils-haskell/
+COPY projects/trails/                   /projects/trails/
 
 RUN /usr/local/bin/stack install --test --dependencies-only --ghc-options='-O2 -j -fPIC' 2>&1
 
