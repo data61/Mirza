@@ -48,7 +48,8 @@ module.exports = (env) => {
       new webpack.DefinePlugin({
         'OR_SERVICE_URL': JSON.stringify(env.production
                                          ? 'https://registry.mirza.d61.io'
-                                         : 'http://localhost:8200')
+                                         : 'http://localhost:8200'),
+        'GOOGLE_MAPS_API_KEY': JSON.stringify(process.env.GOOGLE_MAPS_API_KEY),
       }),
     ]
   };

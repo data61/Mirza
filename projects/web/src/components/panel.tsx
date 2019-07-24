@@ -2,9 +2,9 @@ import * as moment from "moment";
 import * as React from "react";
 
 
-import { EventBusinessStep, EventDisposition, EventEPCIS, lookupByValue } from "../epcis";
+import { EventBusinessStep, EventDisposition, EventEPCIS, lookupByValue, PrettyEventEPCIS } from "../epcis";
 
-export function Panel({ event }: { event: EventEPCIS }) {
+export function Panel({ event }: { event: PrettyEventEPCIS }) {
   const [expanded, setExpanded] = React.useState(false);
 
   const toggle = () => {
