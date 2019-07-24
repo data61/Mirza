@@ -29,6 +29,7 @@ library
       Mirza.Trails.API
       Mirza.Trails.Client.Servant
       Mirza.Trails.Handlers.Health
+      Mirza.Trails.Handlers.Trails
       Mirza.Trails.Main
       Mirza.Trails.Service
       Mirza.Trails.Types
@@ -38,6 +39,7 @@ library
       base >=4.7 && <5
     , mirza-common-haskell
     , mirza-test-utils-haskell
+    , GS1Combinators
     , servant
     , servant-client
     , aeson
@@ -56,7 +58,9 @@ library
     , servant-swagger-ui
     , swagger2
     , text
+    , time
     , wai
+    , uuid
     , wai-cors
     , warp
   default-language: Haskell2010

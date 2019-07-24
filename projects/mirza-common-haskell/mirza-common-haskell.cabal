@@ -29,6 +29,7 @@ library
     Mirza.Common.Beam
     Mirza.Common.Database
     Mirza.Common.GS1BeamOrphans
+    Mirza.Common.GS1Orphans
     Mirza.Common.Time
     Mirza.Common.Types
     Mirza.Common.Utils
