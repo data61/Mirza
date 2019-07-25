@@ -131,7 +131,8 @@ insertEachEvent :: EachEvent ->  ClientM ()
 insertEachEvent (EachEvent [] _) = pure ()
 insertEachEvent (EachEvent entities ev) = do
   (insertedEventInfo, _eventId) <- SCSClient.insertGS1Event ev
-  traverse_ (clientSignEvent insertedEventInfo) entities
+  pure ()
+  -- traverse_ (clientSignEvent insertedEventInfo) entities
 
 
 clientSignEvent :: EventInfo -> Entity -> ClientM EventInfo
