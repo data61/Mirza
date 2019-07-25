@@ -18,6 +18,6 @@ FROM ubuntu:18.04 as PKG-TRAILS
 RUN apt update && \
 	apt install -y libpq-dev libffi-dev ca-certificates netbase
 
-COPY --from=0 /projects/trails/dist/trails /opt/Mirza/trails
+COPY --from=0 /projects/trails/src/trails/dist/trails /opt/Mirza/trails
 
 ENTRYPOINT [ "/opt/Mirza/trails" ]
