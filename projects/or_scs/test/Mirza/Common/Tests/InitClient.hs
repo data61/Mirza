@@ -159,8 +159,8 @@ runORApp = do
 
   tokenTestSuite <- makeTokenTestData jwksFilename oAuthSub oAuthAud
   tempFile <- emptySystemTempFile "orgRegistryTests.log"
-  let currentBrOptions = orOptions (Just tempFile)
-  minimalContext <- initORContext currentBrOptions
+  let currentOrOptions = orOptions (Just tempFile)
+  minimalContext <- initORContext currentOrOptions
   completeContext <- addAuthOptions minimalContext jwksFilenameURI oAuthAud
   let OrgRegistryDB orgsTable usersTable orgMappingTable keysTable locationsTable geolocationsTable
         = orgRegistryDB

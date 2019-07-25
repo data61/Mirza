@@ -11,10 +11,10 @@ version:        0.1.0.0
 description:    Please see the README on GitHub at <https://github.com/data61/Mirza/projects/mirza-test-utils-haskell#readme>
 homepage:       https://github.com/data61/Mirza
 bug-reports:    https://github.com/data61/Mirza/issues
-author:         Author name here
-maintainer:     example@example.com
-copyright:      2017, 2018, 2019 CSIRO
-license:        BSD3
+author:         Paul Samways
+maintainer:     Paul.Samways@data61.csiro.au
+copyright:      2017 CSIRO
+license:        Apache-2.0
 license-file:   LICENSE
 build-type:     Simple
 extra-source-files:
@@ -30,32 +30,20 @@ library
   exposed-modules:
       Mirza.Common.Tests.ServantUtils
       Mirza.Common.Tests.Utils
-  other-modules:
-      Paths_mirza_test_utils_haskell
   hs-source-dirs:
       test
   build-depends:
       base >=4.7 && <5
     , mirza-common-haskell
-    , aeson
     , beam-core
     , beam-postgres
     , bytestring
     , hspec-expectations
-    , jose
-    , katip
-    , lens
     , mtl
     , network
-    , network-uri
     , postgresql-simple
     , process
-    , servant
-    , servant-auth-client
-    , servant-auth-server
     , servant-client
-    , tasty-hspec
-    , temporary
     , text
     , time
     , wai
@@ -65,8 +53,6 @@ library
 test-suite mirza-test-utils-haskell-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
-  other-modules:
-      Paths_mirza_test_utils_haskell
   hs-source-dirs:
       test
   ghc-options: -threaded -rtsopts -with-rtsopts=-N -Wall -Werror

@@ -88,5 +88,4 @@ serveSwaggerAPI = toSwagger serverAPI
   & info.title   .~ "Supplychain Server API"
   & info.version .~ "1.0"
   & info.description ?~ "This is an API that tests swagger integration"
-  & info.license ?~ ("MIT" & url ?~ URL "https://opensource.org/licenses/MIT")
-
+  & info.license ?~ ("Apache-2.0" & url ?~ URL "https://www.apache.org/licenses/LICENSE-2.0.txt")
