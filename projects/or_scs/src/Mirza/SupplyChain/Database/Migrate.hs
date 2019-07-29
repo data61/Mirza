@@ -58,7 +58,6 @@ tryCreateSchema runSilently conn = E.catch (createSchema runSilently conn) handl
 
 migrate :: ( Member context '[HasLogging, HasDB] ) => context -> IO (Either SqlError ())
 migrate ctx = runMigrationSimple ctx migrations
-
   where
     migrations = [ m_0001
                  ]

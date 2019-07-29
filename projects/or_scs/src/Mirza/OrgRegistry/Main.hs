@@ -114,6 +114,7 @@ data RunServerOptions = RunServerOptions
   { runServerOptionsPortNumber    :: Int
   , runServerOptionsOAuthJWKPath  :: URI
   , runServerOptionsOAuthAudience :: Text
+  , runServerOptionsAutoMigrate   :: Bool
   }
 
 data UserCommand
@@ -134,7 +135,7 @@ main = multiplexInitOptions =<< execParser opts where
   opts = Options.Applicative.info (serverOptions <**> helper)
     (fullDesc
     <> progDesc "Here to meet all your org registry needs"
-    <> header "Supply Chain Org Registry Service")
+    <> header "Org Registry Service")
 
 
 -- Handles the overriding server options (this effectively defines the point
@@ -160,13 +161,21 @@ launchServer opts rso = do
       minimalContext <- initORContext opts
       completeContext <- addServerOptions minimalContext rso
       app <- initApplication completeContext
+
+      when (runServerOptionsAutoMigrate rso) $ do
+        putStr "Migrating database... "
+        either (error . show) pure =<<
+          runMigrationSimple @ORContextComplete @SqlError completeContext migrations
+        putStrLn "Done."
+      
+      
       mids <- initMiddleware opts rso
-      putStrLn $ "http://localhost:" ++ show portNumber ++ "/swagger-ui/"
+      putStrLn $ "Listening on http://localhost:" ++ show portNumber ++ "/swagger-ui/"
       Warp.run (fromIntegral portNumber) (mids app) `finally` closeScribes (ORT._orKatipLogEnv completeContext)
 
 
 addServerOptions :: ORContextMinimal -> RunServerOptions -> IO ORContextComplete
-addServerOptions minimalContext (RunServerOptions _port oAuthPublicKeyRef oauthAudience) = addAuthOptions minimalContext oAuthPublicKeyRef oauthAudience
+addServerOptions minimalContext (RunServerOptions _port oAuthPublicKeyRef oauthAudience _) = addAuthOptions minimalContext oAuthPublicKeyRef oauthAudience
 
 
 addAuthOptions :: ORContextMinimal -> URI -> Text -> IO ORContextComplete
@@ -198,7 +207,7 @@ getJWKS _ = error $ "Unsupported URI schema type."
 initORContext :: ServerOptionsOR -> IO ORT.ORContextMinimal
 initORContext (ServerOptionsOR dbConnStr lev mlogPath envT) = do
   logHandle <- maybe (pure stdout) (flip openFile AppendMode) mlogPath
-  hPutStr stderr $ "(Logging will be to: " ++ fromMaybe "stdout" mlogPath ++ ") "
+  hPutStr stderr $ "Logging will be to: " ++ fromMaybe "stdout" mlogPath ++ "\n"
   handleScribe <- mkHandleScribe ColorIfTerminal logHandle lev V3
   logEnv <- initLogEnv "orgRegistry" (Environment . pack . show $ envT)
             >>= registerScribe "stdout" handleScribe defaultScribeSettings
@@ -211,10 +220,10 @@ initORContext (ServerOptionsOR dbConnStr lev mlogPath envT) = do
 
 
 initApplication :: ORContextComplete -> IO Application
-initApplication ev =
+initApplication context =
   pure $ serveWithContext api
-          (tokenServerContext ev)
-          (server ev)
+          (tokenServerContext context)
+          (server context)
 
 
 myCors :: Middleware
@@ -447,6 +456,11 @@ runServer = RunServer <$> (RunServerOptions
        long "aud"
     <> short 'a'
     <> help "OAuth audience claim to match against user tokens."
+    )
+  <*> switch
+    (
+      long "migrate"
+   <> help "Perform database migrations before starting the service"
     )
   )
 
