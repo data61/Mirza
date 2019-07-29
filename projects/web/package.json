@@ -12,6 +12,8 @@
   "author": "CSIRO Data61",
   "license": "Apache-2.0",
   "dependencies": {
+    "@types/googlemaps": "^3.36.6",
+    "@types/markerclustererplus": "^2.1.33",
     "@types/node": "^11.13.8",
     "@types/react": "^16.8.5",
     "@types/react-dom": "^16.8.2",
@@ -23,6 +25,7 @@
     "query-string": "^6.3.0",
     "react": "^16.8.3",
     "react-dom": "^16.8.3",
+    "react-google-maps": "^9.4.5",
     "react-qr-reader": "^2.2.1",
     "react-router-dom": "^4.3.1",
     "tslint-react": "^3.6.0"
