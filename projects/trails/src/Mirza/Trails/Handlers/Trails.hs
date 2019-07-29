@@ -1,45 +1,107 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DataKinds #-}
+
 
 module Mirza.Trails.Handlers.Trails where
 
+
 import           Mirza.Trails.Types
+import           Mirza.Trails.Database.Schema
 
 import           Mirza.Common.Types
+import           Mirza.Common.Time
 
-import           Data.GS1.EPC       (GS1CompanyPrefix (..))
-import           Data.GS1.EventId   (EventId (..))
+import           Data.GS1.EventId                         (EventId (..))
 
-import           Data.Time.Clock
-import           Data.UUID.V4
+import           Database.Beam.Backend.SQL.BeamExtensions
+import           Database.Beam.Query                      hiding (time)
 
 import           Servant
 
-
-getTrailByEventId :: EventId ->  AppM context err [TrailEntryResponse]
-getTrailByEventId (EventId uuid) = do
-  time <- liftIO getCurrentTime
-  --uuid1 <- liftIO nextRandom
-  pure $ [ TrailEntryResponse 1
-                (EntryTime time)
-                (GS1CompanyPrefix "0000001")
-                (EventId uuid)
-                []
-                (SignaturePlaceholder "TODO")
-         ]
+import           Control.Monad.Identity
 
 
-getTrailBySignature :: SignaturePlaceholder ->  AppM context err [TrailEntryResponse]
-getTrailBySignature (SignaturePlaceholder sig) = do
-       time <- liftIO getCurrentTime
-       uuid <- liftIO nextRandom
-       pure $ [ TrailEntryResponse 1
-                     (EntryTime time)
-                     (GS1CompanyPrefix "0000002")
-                     (EventId uuid)
-                     []
-                     (SignaturePlaceholder sig)
-              ]
+getTrailByEventId :: ( Member context '[HasEnvType, HasConnPool, HasKatipContext, HasKatipLogEnv]
+                     , Member err '[AsTrailsServiceError, AsSqlError])
+                  => EventId ->  AppM context err [TrailEntryResponse]
+getTrailByEventId eventId = do
+  runDb $ (getTrailByEventIdQuery eventId)
 
 
-addTrail :: [TrailEntryResponse] ->  AppM context err NoContent
-addTrail _ = pure NoContent
+getTrailByEventIdQuery :: (AsTrailsServiceError err)
+                         => EventId -> DB context err [TrailEntryResponse]
+getTrailByEventIdQuery eventId = do
+  entryList <- pg $ runSelectReturningList $ select $ do
+            entry <- all_ (_entries trailsDB)
+            guard_ (entries_event_id entry ==. val_ (unEventId eventId))
+            pure entry
+  case entryList of
+    [] -> throwing_ _EventIdNotFoundTSE
+    entry -> concat <$> traverse getTrailBySignatureQuery (entries_signature <$> entry)
+
+
+getTrailBySignature :: ( Member context '[HasEnvType, HasConnPool, HasKatipContext, HasKatipLogEnv]
+                       , Member err '[AsTrailsServiceError, AsSqlError])
+                    => SignaturePlaceholder ->  AppM context err [TrailEntryResponse]
+getTrailBySignature sig = do
+  runDb $ (getTrailBySignatureQuery sig)
+
+
+getTrailBySignatureQuery :: (AsTrailsServiceError err)
+                         => SignaturePlaceholder -> DB context err [TrailEntryResponse]
+getTrailBySignatureQuery searchSignature = do
+  maybeEntry <- pg $ runSelectReturningOne $ select $ do
+            entry <- all_ (_entries trailsDB)
+            guard_ (entries_signature entry ==. val_ searchSignature)
+            pure entry
+  case maybeEntry of
+    Nothing    -> throwing_ _SignatureNotFoundTSE
+    Just entry -> do
+                    parents <- pg $ runSelectReturningList $ select $ do
+                                 parents <- all_ (_parents trailsDB)
+                                 guard_ (parents_entry_signature parents ==. val_ (EntriesPrimaryKey searchSignature))
+                                 pure parents
+                    let thisEntry = buildTrailEntryResponse entry parents
+                    parentEntries <- concat <$> traverse getTrailBySignatureQuery (parents_parent_signature <$> parents)
+                    pure $ thisEntry : parentEntries
+
+
+buildTrailEntryResponse :: Entries -> [Parents] -> TrailEntryResponse
+buildTrailEntryResponse entries parents = TrailEntryResponse 1
+                                          (onLocalTime EntryTime $ entries_timestamp entries)
+                                          (entries_gs1company_prefix entries)
+                                          (EventId $ entries_event_id entries)
+                                          (parents_parent_signature <$> parents)
+                                          (entries_signature entries)
+
+
+addTrail  :: ( Member context '[HasEnvType, HasConnPool, HasKatipContext, HasKatipLogEnv]
+             , Member err '[AsTrailsServiceError, AsSqlError])
+          => [TrailEntryResponse] ->  AppM context err NoContent
+addTrail trail = do
+  _ <- runDb $ (addEntryQuery trail)
+  pure NoContent
+
+
+addEntryQuery :: (AsTrailsServiceError err)
+              => [TrailEntryResponse] -> DB context err ()
+addEntryQuery entries_raw = do
+  let entries = trailEntryResponseToEntriesT <$> entries_raw
+  let parents = concat $ trailEntryResponseToParentsT <$> entries_raw
+  _ <- pg $ runInsertReturningList $ insert (_entries trailsDB)
+          $ insertValues entries
+  _ <- pg $ runInsertReturningList $ insert (_parents trailsDB)
+          $ insertValues parents
+  pure ()
+
+
+trailEntryResponseToEntriesT :: TrailEntryResponse -> EntriesT Identity
+trailEntryResponseToEntriesT trailEntry = EntriesT (trailEntryResponseSignature trailEntry)
+                                           (toDbTimestamp $ getEntryTime $ trailEntryResponseTimestamp trailEntry)
+                                           (trailEntryResponseGS1CompanyPrefix trailEntry)
+                                           (unEventId $ trailEntryResponseEventID trailEntry)
+                                           Nothing
+
+
+trailEntryResponseToParentsT :: TrailEntryResponse -> [ParentsT Identity]
+trailEntryResponseToParentsT trailEntry = (ParentsT (EntriesPrimaryKey $ trailEntryResponseSignature trailEntry)) <$> (trailEntryResponseParentSignatures trailEntry)

@@ -105,8 +105,10 @@ trailsErrorToHttpError :: TrailsServiceError -> KatipContextT Handler a
 trailsErrorToHttpError trailsError =
   let httpError = throwHttpError trailsError
   in case trailsError of
-    (DBErrorTE _)                  -> unexpectedError trailsError
-    (UnmatchedUniqueViolationTE _) -> unexpectedError trailsError
+    (DBErrorTE _)                   -> unexpectedError trailsError
+    (SignatureNotFoundTSE)          -> httpError err404 "A trail with a matching signature was not found."
+    (EventIdNotFoundTSE)            -> httpError err404 "A trail with the matching EventId was not found."
+    (UnmatchedUniqueViolationTSE _) -> unexpectedError trailsError
 
 -- | A generic internal server error has occured. We include no more information in the result returned to the user to
 -- limit further potential for exploitation, under the expectation that we log the errors to somewhere that is reviewed

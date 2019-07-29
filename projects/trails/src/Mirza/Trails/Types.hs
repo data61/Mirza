@@ -183,7 +183,9 @@ signaturesType = B.DataType (pgUnboundedArrayType pgTextType)
 
 data TrailsServiceError
   = DBErrorTE SqlError
-  | UnmatchedUniqueViolationTE SqlError
+  | SignatureNotFoundTSE
+  | EventIdNotFoundTSE
+  | UnmatchedUniqueViolationTSE SqlError
   deriving (Show)
 $(makeClassyPrisms ''TrailsServiceError)
 
