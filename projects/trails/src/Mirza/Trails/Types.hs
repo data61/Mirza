@@ -181,10 +181,10 @@ signaturesType = B.DataType (pgUnboundedArrayType pgTextType)
 -- Error Types
 -- *****************************************************************************
 
-data TrailsError
+data TrailsServiceError
   = DBErrorTE SqlError
   | UnmatchedUniqueViolationTE SqlError
   deriving (Show)
-$(makeClassyPrisms ''TrailsError)
+$(makeClassyPrisms ''TrailsServiceError)
 
-instance AsSqlError TrailsError where _SqlError = _DBErrorTE
+instance AsSqlError TrailsServiceError where _SqlError = _DBErrorTE
