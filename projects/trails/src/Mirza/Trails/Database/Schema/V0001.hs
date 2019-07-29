@@ -26,8 +26,6 @@ import           Database.Beam.Migrate.Types
 import           Database.Beam.Postgres         (Postgres)
 import           Database.Beam.Postgres.Migrate (uuid)
 
-import           Control.Lens
-
 import           Data.Text
 import           Data.Time                      (LocalTime)
 import           Data.UUID                      (UUID)
