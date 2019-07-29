@@ -62,6 +62,6 @@ migrate ctx connStr = do
   conn <- connectPostgreSQL connStr
   r <- runMigrationWithTriggers conn ctx
   case r of
-    Left (err :: SqlError) -> print $ "Table could not be created. Error:  " <> show err
+    Left (err :: SqlError) -> error $ "Table could not be created. Error:  " <> show err
     Right _succ -> print $ "Successfully created table with conn: " <> show connStr
 

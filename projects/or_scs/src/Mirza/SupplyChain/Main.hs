@@ -32,6 +32,7 @@ import           Options.Applicative
 
 import           Control.Lens
 
+import           Control.Monad                      (when)
 import           Control.Exception                  (finally)
 import           Data.Maybe                         (fromMaybe)
 import           Katip                              as K
@@ -111,21 +112,26 @@ runProgram so@ServerOptionsSCS{initDB = True, dbPopulateInfo =Just _, orServiceI
   ctx <- initSCSContext so
   migrate ctx $ connectionStr so
   runDbPopulate so
-runProgram so@ServerOptionsSCS{initDB =False, dbPopulateInfo =Just _, orServiceInfo =Just _} = runDbPopulate so
-runProgram so@ServerOptionsSCS{initDB = False, scsServiceInfo=(scsHst, scsPort), orServiceInfo =Just _} = do
+runProgram so@ServerOptionsSCS{initDB = False, dbPopulateInfo = Just _,  orServiceInfo = Just _} = runDbPopulate so
+runProgram so@ServerOptionsSCS{initDB,         dbPopulateInfo = Nothing, orServiceInfo = Just _, scsServiceInfo=(scsHst, scsPort)} = do
   ctx <- initSCSContext so
+  when initDB $ do
+    putStr "Migrating database... "
+    migrate ctx $ connectionStr so
+    putStrLn "Done."
   app <- initApplication so ctx
   putStrLn $ "http://" <> scsHst <> ":" <> show scsPort <> "/swagger-ui/"
   Warp.run (fromIntegral scsPort) app `finally` closeScribes (ctx ^. ST.scsKatipLogEnv)
+runProgram so@ServerOptionsSCS{initDB = True, dbPopulateInfo = Nothing, orServiceInfo = Nothing} = do
+  ctx <- initSCSContext so
+  migrate ctx $ connectionStr so
+
 runProgram ServerOptionsSCS{initDB = False, orServiceInfo = Nothing} = do
   hPutStrLn stderr "Required unless initialising the database: --orhost ARG --orport ARG"
   exitFailure
 runProgram ServerOptionsSCS{initDB = True, dbPopulateInfo = Just _, orServiceInfo =Nothing} = do
   hPutStrLn stderr "Required for populating the database: --orhost ARG --orport ARG"
   exitFailure
-runProgram so@ServerOptionsSCS{initDB = True, dbPopulateInfo = Nothing} = do
-  ctx <- initSCSContext so
-  migrate ctx $ connectionStr so
 
 runDbPopulate :: ServerOptionsSCS -> IO ()
 runDbPopulate so = do

@@ -111,6 +111,7 @@ data RunServerOptions = RunServerOptions
   { runServerOptionsPortNumber    :: Int
   , runServerOptionsOAuthJWKPath  :: URI
   , runServerOptionsOAuthAudience :: Text
+  , runServerOptionsAutoMigrate   :: Bool
   }
 
 data UserCommand
@@ -141,7 +142,7 @@ multiplexInitOptions (InitOptionsOR opts mode) = case mode of
   RunServer rsOpts                       -> launchServer opts rsOpts
   InitDb                                 -> runMigration opts
   UserAction uc                          -> runUserCommand opts uc
-  OrgAction bc                      -> runOrgCommand opts bc
+  OrgAction bc                           -> runOrgCommand opts bc
   PopulateDatabase                       -> runPopulateDatabase opts
   Bootstrap oAuthSubSuffix companyPrefix -> runBootstrap opts oAuthSubSuffix companyPrefix
 
@@ -156,13 +157,21 @@ launchServer opts rso = do
       minimalContext <- initORContext opts
       completeContext <- addServerOptions minimalContext rso
       app <- initApplication completeContext
+
+      when (runServerOptionsAutoMigrate rso) $ do
+        putStr "Migrating database... "
+        either (error . show) pure =<<
+          runMigrationSimple @ORContextComplete @SqlError completeContext migrations
+        putStrLn "Done."
+      
+      
       mids <- initMiddleware opts rso
-      putStrLn $ "http://localhost:" ++ show portNumber ++ "/swagger-ui/"
+      putStrLn $ "Listening on http://localhost:" ++ show portNumber ++ "/swagger-ui/"
       Warp.run (fromIntegral portNumber) (mids app) `finally` closeScribes (ORT._orKatipLogEnv completeContext)
 
 
 addServerOptions :: ORContextMinimal -> RunServerOptions -> IO ORContextComplete
-addServerOptions minimalContext (RunServerOptions _port oAuthPublicKeyRef oauthAudience) = addAuthOptions minimalContext oAuthPublicKeyRef oauthAudience
+addServerOptions minimalContext (RunServerOptions _port oAuthPublicKeyRef oauthAudience _) = addAuthOptions minimalContext oAuthPublicKeyRef oauthAudience
 
 
 addAuthOptions :: ORContextMinimal -> URI -> Text -> IO ORContextComplete
@@ -194,7 +203,7 @@ getJWKS _ = error $ "Unsupported URI schema type."
 initORContext :: ServerOptionsOR -> IO ORT.ORContextMinimal
 initORContext (ServerOptionsOR dbConnStr lev mlogPath envT) = do
   logHandle <- maybe (pure stdout) (flip openFile AppendMode) mlogPath
-  hPutStr stderr $ "(Logging will be to: " ++ fromMaybe "stdout" mlogPath ++ ") "
+  hPutStr stderr $ "Logging will be to: " ++ fromMaybe "stdout" mlogPath ++ "\n"
   handleScribe <- mkHandleScribe ColorIfTerminal logHandle lev V3
   logEnv <- initLogEnv "orgRegistry" (Environment . pack . show $ envT)
             >>= registerScribe "stdout" handleScribe defaultScribeSettings
@@ -430,6 +439,11 @@ runServer = RunServer <$> (RunServerOptions
        long "aud"
     <> short 'a'
     <> help "OAuth audience claim to match against user tokens."
+    )
+  <*> switch
+    (
+      long "migrate"
+   <> help "Perform database migrations before starting the service"
     )
   )
 
