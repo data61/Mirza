@@ -4,7 +4,7 @@
 
 module Mirza.Trails.API where
 
-import           Mirza.Trails.Types (SignaturePlaceholder, TrailEntryResponse)
+import           Mirza.Trails.Types (SignaturePlaceholder, TrailEntry)
 
 import           Mirza.Common.Types (HealthResponse)
 
@@ -34,6 +34,6 @@ serverAPI = Proxy
 type PublicAPI =
        "healthz" :> Get '[JSON] HealthResponse
   :<|> "version" :> Get '[JSON] String
-  :<|> "trail"   :> Capture "eventId"   EventId               :> Get '[JSON] [TrailEntryResponse]
-  :<|> "trail"   :> Capture "signature" SignaturePlaceholder  :> Get '[JSON] [TrailEntryResponse]
-  :<|> "trail"   :> ReqBody '[JSON] [TrailEntryResponse]      :> Post '[JSON] NoContent              -- TODO: Should fix this type so that its the correct status code.
+  :<|> "trail"   :> Capture "eventId"   EventId              :> Get '[JSON] [TrailEntry]
+  :<|> "trail"   :> Capture "signature" SignaturePlaceholder :> Get '[JSON] [TrailEntry]
+  :<|> "trail"   :> ReqBody '[JSON] [TrailEntry]             :> Post '[JSON] NoContent              -- TODO: Should fix this type so that its the correct status code.

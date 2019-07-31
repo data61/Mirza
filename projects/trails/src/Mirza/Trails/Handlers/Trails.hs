@@ -23,13 +23,13 @@ import           Control.Monad.Identity
 
 getTrailByEventId :: ( Member context '[HasEnvType, HasConnPool, HasKatipContext, HasKatipLogEnv]
                      , Member err '[AsTrailsServiceError, AsSqlError])
-                  => EventId ->  AppM context err [TrailEntryResponse]
+                  => EventId ->  AppM context err [TrailEntry]
 getTrailByEventId eventId = do
   runDb $ (getTrailByEventIdQuery eventId)
 
 
 getTrailByEventIdQuery :: (AsTrailsServiceError err)
-                         => EventId -> DB context err [TrailEntryResponse]
+                         => EventId -> DB context err [TrailEntry]
 getTrailByEventIdQuery eventId = do
   entryList <- pg $ runSelectReturningList $ select $ do
             entry <- all_ (_entries trailsDB)
@@ -42,13 +42,13 @@ getTrailByEventIdQuery eventId = do
 
 getTrailBySignature :: ( Member context '[HasEnvType, HasConnPool, HasKatipContext, HasKatipLogEnv]
                        , Member err '[AsTrailsServiceError, AsSqlError])
-                    => SignaturePlaceholder ->  AppM context err [TrailEntryResponse]
+                    => SignaturePlaceholder ->  AppM context err [TrailEntry]
 getTrailBySignature sig = do
   runDb $ (getTrailBySignatureQuery sig)
 
 
 getTrailBySignatureQuery :: (AsTrailsServiceError err)
-                         => SignaturePlaceholder -> DB context err [TrailEntryResponse]
+                         => SignaturePlaceholder -> DB context err [TrailEntry]
 getTrailBySignatureQuery searchSignature = do
   previousEntries <- getPreviousEntriesBySignatureQuery searchSignature
   followingEntries <- getPreviousEntriesQuery searchSignature
@@ -56,7 +56,7 @@ getTrailBySignatureQuery searchSignature = do
 
 
 getPreviousEntriesQuery :: (AsTrailsServiceError err)
-                => SignaturePlaceholder -> DB context err [TrailEntryResponse]
+                => SignaturePlaceholder -> DB context err [TrailEntry]
 getPreviousEntriesQuery searchSignature = do
   followingSignatures <- pg $ runSelectReturningList $ select $ do
                           previous <- all_ (_previous trailsDB)
@@ -65,22 +65,22 @@ getPreviousEntriesQuery searchSignature = do
 
   entries <- traverse getEntryBySignature (entriesPrimaryKeyToSignature <$> followingSignatures)
 
-  followingEntries <- concat <$> traverse getPreviousEntriesQuery (trailEntryResponseSignature <$> entries)
+  followingEntries <- concat <$> traverse getPreviousEntriesQuery (trailEntrySignature <$> entries)
 
   pure $ followingEntries <> entries
 
 
 getPreviousEntriesBySignatureQuery :: (AsTrailsServiceError err)
-                           => SignaturePlaceholder -> DB context err [TrailEntryResponse]
+                           => SignaturePlaceholder -> DB context err [TrailEntry]
 getPreviousEntriesBySignatureQuery searchSignature = do
   entry <- getEntryBySignature searchSignature
-  let previous = trailEntryResponseParentSignatures entry
+  let previous = trailEntryParentSignatures entry
   previousEntries <- concat <$> traverse getPreviousEntriesBySignatureQuery previous
   pure $ entry : previousEntries
 
 
 getEntryBySignature :: (AsTrailsServiceError err)
-                    => SignaturePlaceholder -> DB context err TrailEntryResponse
+                    => SignaturePlaceholder -> DB context err TrailEntry
 getEntryBySignature searchSignature = do
   maybeEntry <- pg $ runSelectReturningOne $ select $ do
             entry <- all_ (_entries trailsDB)
@@ -93,11 +93,11 @@ getEntryBySignature searchSignature = do
                                  previous <- all_ (_previous trailsDB)
                                  guard_ (previous_entry_signature previous ==. val_ (EntriesPrimaryKey searchSignature))
                                  pure previous
-                    pure $ buildTrailEntryResponse entry previous
+                    pure $ buildTrailEntry entry previous
 
 
-buildTrailEntryResponse :: Entries -> [Previous] -> TrailEntryResponse
-buildTrailEntryResponse entries previous = TrailEntryResponse 1
+buildTrailEntry :: Entries -> [Previous] -> TrailEntry
+buildTrailEntry entries previous = TrailEntry 1
                                           (onLocalTime EntryTime $ entries_timestamp entries)
                                           (entries_gs1company_prefix entries)
                                           (EventId $ entries_event_id entries)
@@ -107,17 +107,17 @@ buildTrailEntryResponse entries previous = TrailEntryResponse 1
 
 addTrail  :: ( Member context '[HasEnvType, HasConnPool, HasKatipContext, HasKatipLogEnv]
              , Member err '[AsTrailsServiceError, AsSqlError])
-          => [TrailEntryResponse] ->  AppM context err NoContent
+          => [TrailEntry] ->  AppM context err NoContent
 addTrail trail = do
   _ <- runDb $ (addEntryQuery trail)
   pure NoContent
 
 
 addEntryQuery :: (AsTrailsServiceError err)
-              => [TrailEntryResponse] -> DB context err ()
+              => [TrailEntry] -> DB context err ()
 addEntryQuery entries_raw = do
-  let entries = trailEntryResponseToEntriesT <$> entries_raw
-  let previous = concat $ trailEntryResponseToParentsT <$> entries_raw
+  let entries = trailEntryToEntriesT <$> entries_raw
+  let previous = concat $ trailEntryToParentsT <$> entries_raw
   _ <- pg $ runInsertReturningList $ insert (_entries trailsDB)
           $ insertValues entries
   _ <- pg $ runInsertReturningList $ insert (_previous trailsDB)
@@ -125,13 +125,13 @@ addEntryQuery entries_raw = do
   pure ()
 
 
-trailEntryResponseToEntriesT :: TrailEntryResponse -> EntriesT Identity
-trailEntryResponseToEntriesT trailEntry = EntriesT (trailEntryResponseSignature trailEntry)
-                                           (toDbTimestamp $ getEntryTime $ trailEntryResponseTimestamp trailEntry)
-                                           (trailEntryResponseGS1CompanyPrefix trailEntry)
-                                           (unEventId $ trailEntryResponseEventID trailEntry)
+trailEntryToEntriesT :: TrailEntry -> EntriesT Identity
+trailEntryToEntriesT trailEntry = EntriesT (trailEntrySignature trailEntry)
+                                           (toDbTimestamp $ getEntryTime $ trailEntryTimestamp trailEntry)
+                                           (trailEntryGS1CompanyPrefix trailEntry)
+                                           (unEventId $ trailEntryEventID trailEntry)
                                            Nothing
 
 
-trailEntryResponseToParentsT :: TrailEntryResponse -> [PreviousT Identity]
-trailEntryResponseToParentsT trailEntry = (PreviousT (EntriesPrimaryKey $ trailEntryResponseSignature trailEntry)) <$> (trailEntryResponseParentSignatures trailEntry)
+trailEntryToParentsT :: TrailEntry -> [PreviousT Identity]
+trailEntryToParentsT trailEntry = (PreviousT (EntriesPrimaryKey $ trailEntrySignature trailEntry)) <$> (trailEntryParentSignatures trailEntry)

@@ -72,7 +72,7 @@ instance HasKatipContext (TrailsContext) where
 
 
 -- *****************************************************************************
--- Service Response Types
+-- Service Types
 -- *****************************************************************************
 
 -- Note: The definitions in this section are reverse order defined(more specific
@@ -82,46 +82,46 @@ instance HasKatipContext (TrailsContext) where
 --       a section appears logically bottom to top, rather then the normal top
 --       to bottom.
 
-data TrailEntryResponse = TrailEntryResponse
-  { trailEntryResponseVersion          :: Integer
-  , trailEntryResponseTimestamp        :: EntryTime
-  , trailEntryResponseGS1CompanyPrefix :: GS1CompanyPrefix
-  , trailEntryResponseEventID          :: EventId
-  , trailEntryResponseParentSignatures :: [SignaturePlaceholder]
-  , trailEntryResponseSignature        :: SignaturePlaceholder
+data TrailEntry = TrailEntry
+  { trailEntryVersion          :: Integer
+  , trailEntryTimestamp        :: EntryTime
+  , trailEntryGS1CompanyPrefix :: GS1CompanyPrefix
+  , trailEntryEventID          :: EventId
+  , trailEntryParentSignatures :: [SignaturePlaceholder]
+  , trailEntrySignature        :: SignaturePlaceholder
   } deriving (Show, Generic, Eq)
-instance ToSchema TrailEntryResponse
+instance ToSchema TrailEntry
 
-instance ToJSON TrailEntryResponse where
-  toJSON (TrailEntryResponse version timestamp org eventId parentSignatures eventSignature) = object
-    [ trailEntryResponseJSONFieldVersion          .= version
-    , trailEntryResponseJSONFieldTimestamp        .= timestamp
-    , trailEntryResponseJSONFieldGS1CompanyPrefix .= org
-    , trailEntryResponseJSONFieldEventId          .= eventId
-    , trailEntryResponseJSONFieldParentSignatures .= parentSignatures
-    , trailEntryResponseJSONFieldSignature        .= eventSignature
+instance ToJSON TrailEntry where
+  toJSON (TrailEntry version timestamp org eventId parentSignatures eventSignature) = object
+    [ trailEntryJSONFieldVersion          .= version
+    , trailEntryJSONFieldTimestamp        .= timestamp
+    , trailEntryJSONFieldGS1CompanyPrefix .= org
+    , trailEntryJSONFieldEventId          .= eventId
+    , trailEntryJSONFieldParentSignatures .= parentSignatures
+    , trailEntryJSONFieldSignature        .= eventSignature
     ]
-instance FromJSON TrailEntryResponse where
-  parseJSON = withObject "TrailEntryResponse" $ \o -> TrailEntryResponse
-    <$> o .: trailEntryResponseJSONFieldVersion
-    <*> o .: trailEntryResponseJSONFieldTimestamp
-    <*> o .: trailEntryResponseJSONFieldGS1CompanyPrefix
-    <*> o .: trailEntryResponseJSONFieldEventId
-    <*> o .: trailEntryResponseJSONFieldParentSignatures
-    <*> o .: trailEntryResponseJSONFieldSignature
+instance FromJSON TrailEntry where
+  parseJSON = withObject "TrailEntry" $ \o -> TrailEntry
+    <$> o .: trailEntryJSONFieldVersion
+    <*> o .: trailEntryJSONFieldTimestamp
+    <*> o .: trailEntryJSONFieldGS1CompanyPrefix
+    <*> o .: trailEntryJSONFieldEventId
+    <*> o .: trailEntryJSONFieldParentSignatures
+    <*> o .: trailEntryJSONFieldSignature
 
-trailEntryResponseJSONFieldVersion :: Text
-trailEntryResponseJSONFieldVersion = "version"
-trailEntryResponseJSONFieldTimestamp :: Text
-trailEntryResponseJSONFieldTimestamp = "timestamp"
-trailEntryResponseJSONFieldGS1CompanyPrefix :: Text
-trailEntryResponseJSONFieldGS1CompanyPrefix = "org"
-trailEntryResponseJSONFieldEventId :: Text
-trailEntryResponseJSONFieldEventId = "event_id"
-trailEntryResponseJSONFieldParentSignatures :: Text
-trailEntryResponseJSONFieldParentSignatures = "parent_signatures"
-trailEntryResponseJSONFieldSignature :: Text
-trailEntryResponseJSONFieldSignature = "signature"
+trailEntryJSONFieldVersion :: Text
+trailEntryJSONFieldVersion = "version"
+trailEntryJSONFieldTimestamp :: Text
+trailEntryJSONFieldTimestamp = "timestamp"
+trailEntryJSONFieldGS1CompanyPrefix :: Text
+trailEntryJSONFieldGS1CompanyPrefix = "org"
+trailEntryJSONFieldEventId :: Text
+trailEntryJSONFieldEventId = "event_id"
+trailEntryJSONFieldParentSignatures :: Text
+trailEntryJSONFieldParentSignatures = "parent_signatures"
+trailEntryJSONFieldSignature :: Text
+trailEntryJSONFieldSignature = "signature"
 
 
 
