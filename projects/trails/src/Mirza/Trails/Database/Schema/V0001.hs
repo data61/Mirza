@@ -37,8 +37,8 @@ import           GHC.Generics                   (Generic)
 
 -- Database
 data TrailsDB f = TrailsDB
-  { _entries :: f (TableEntity EntriesT)
-  , _parents :: f (TableEntity ParentsT)
+  { _entries  :: f (TableEntity EntriesT)
+  , _previous :: f (TableEntity PreviousT)
   }
   deriving Generic
 instance Database anybackend TrailsDB
@@ -54,30 +54,30 @@ migration () = do
              (field entriesTFieldEventId uuid notNull)
              lastUpdateField
 
-  parentsT <- createTable parentsTName $
-    ParentsT (EntriesPrimaryKey $ field parentsTFieldSignature signatureType notNull (defaultFkConstraint entriesTName [entriesTFieldSignature]))
-             (field parentsTFieldParentSignature signatureType notNull)
+  previousT <- createTable previousTName $
+    PreviousT (EntriesPrimaryKey $ field previousTFieldSignature signatureType notNull (defaultFkConstraint entriesTName [entriesTFieldSignature]))
+             (field previousTFieldPreviousSignature signatureType notNull)
 
-  pure $ TrailsDB entriesT parentsT
+  pure $ TrailsDB entriesT previousT
 
 -- Table names
 entriesTName :: Text
 entriesTName = "entries"
 entriesTFieldSignature :: Text
-entriesTFieldSignature = "entries_signature"
+entriesTFieldSignature = entriesTName <> "_signature"
 entriesTFieldTimestamp :: Text
-entriesTFieldTimestamp = "entries_timestanp"
+entriesTFieldTimestamp = entriesTName <> "_timestanp"
 entriesTFieldGS1CompanyPrefix :: Text
-entriesTFieldGS1CompanyPrefix = "entries_gs1_company_prefix"
+entriesTFieldGS1CompanyPrefix = entriesTName <> "_gs1_company_prefix"
 entriesTFieldEventId :: Text
-entriesTFieldEventId = "entries_event_id"
+entriesTFieldEventId = entriesTName <> "_event_id"
 
-parentsTName :: Text
-parentsTName = "parents"
-parentsTFieldSignature :: Text
-parentsTFieldSignature = "parents_" <> entriesTFieldSignature
-parentsTFieldParentSignature :: Text
-parentsTFieldParentSignature = "parents_parent_signature"
+previousTName :: Text
+previousTName = "previous"
+previousTFieldSignature :: Text
+previousTFieldSignature = previousTName <> "_" <> entriesTFieldSignature
+previousTFieldPreviousSignature :: Text
+previousTFieldPreviousSignature = previousTName <> "previous_signature"
 
 
 --------------------------------------------------------------------------------
@@ -116,22 +116,22 @@ entriesPrimaryKeyToSignature (EntriesPrimaryKey sig) = sig
 -- Parent table
 --------------------------------------------------------------------------------
 
-type Parents = ParentsT Identity
-deriving instance Show Parents
+type Previous = PreviousT Identity
+deriving instance Show Previous
 
-data ParentsT f = ParentsT
-  { parents_entry_signature  :: PrimaryKey EntriesT f
-  , parents_parent_signature :: C f SignaturePlaceholder
+data PreviousT f = PreviousT
+  { previous_entry_signature    :: PrimaryKey EntriesT f
+  , previous_previous_signature :: C f SignaturePlaceholder -- Note: The naming convention is table and then field name so it looks weird but its the previous table and its the previous_signature field.
   } deriving Generic
 
-type ParentsPrimaryKey = PrimaryKey ParentsT Identity
-deriving instance Show (PrimaryKey ParentsT Identity)
+type PreviousPrimaryKey = PrimaryKey PreviousT Identity
+deriving instance Show (PrimaryKey PreviousT Identity)
 
-instance Beamable ParentsT
-instance Beamable (PrimaryKey ParentsT)
+instance Beamable PreviousT
+instance Beamable (PrimaryKey PreviousT)
 
-instance Table ParentsT where
-  data PrimaryKey ParentsT f = ParentMapping (PrimaryKey EntriesT f) (C f SignaturePlaceholder)
+instance Table PreviousT where
+  data PrimaryKey PreviousT f = ParentMapping (PrimaryKey EntriesT f) (C f SignaturePlaceholder)
     deriving Generic
-  primaryKey = ParentMapping <$> parents_entry_signature <*> parents_parent_signature
-deriving instance Eq (PrimaryKey ParentsT Identity)
+  primaryKey = ParentMapping <$> previous_entry_signature <*> previous_previous_signature
+deriving instance Eq (PrimaryKey PreviousT Identity)

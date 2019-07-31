@@ -32,11 +32,11 @@ m_0001 conn = do
                                                               <> ");"
   createTrigger conn $ Query $ encodeUtf8 entriesTName
 
-  _ <- execute_ conn $ Query $ encodeUtf8 $ "CREATE TABLE " <> parentsTName
+  _ <- execute_ conn $ Query $ encodeUtf8 $ "CREATE TABLE " <> previousTName
                                                               <> "("
-                                                                <> parentsTFieldSignature       <> " TEXT NOT NULL REFERENCES " <> entriesTName <> "(" <> entriesTFieldSignature <> ") ON DELETE CASCADE, "
-                                                                <> parentsTFieldParentSignature <> " TEXT NOT NULL REFERENCES " <> entriesTName <> "(" <> entriesTFieldSignature <> "), "
+                                                                <> previousTFieldSignature       <> " TEXT NOT NULL REFERENCES " <> entriesTName <> "(" <> entriesTFieldSignature <> ") ON DELETE CASCADE, "
+                                                                <> previousTFieldPreviousSignature <> " TEXT NOT NULL REFERENCES " <> entriesTName <> "(" <> entriesTFieldSignature <> "), "
                                                                 <> "last_update TIMESTAMP, "
-                                                                <> "PRIMARY KEY(" <> parentsTFieldSignature <> ", " <> parentsTFieldParentSignature <>")"
+                                                                <> "PRIMARY KEY(" <> previousTFieldSignature <> ", " <> previousTFieldPreviousSignature <>")"
                                                               <> ");"
-  createTrigger conn $ Query $ encodeUtf8 parentsTName
+  createTrigger conn $ Query $ encodeUtf8 previousTName

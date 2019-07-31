@@ -50,33 +50,33 @@ getTrailBySignature sig = do
 getTrailBySignatureQuery :: (AsTrailsServiceError err)
                          => SignaturePlaceholder -> DB context err [TrailEntryResponse]
 getTrailBySignatureQuery searchSignature = do
-  parentEntries <- getParentsBySignatureQuery searchSignature
-  childEntries <- getChildrenQuery searchSignature
-  pure $ childEntries <> parentEntries
+  previousEntries <- getPreviousEntriesBySignatureQuery searchSignature
+  followingEntries <- getPreviousEntriesQuery searchSignature
+  pure $ followingEntries <> previousEntries
 
 
-getChildrenQuery :: (AsTrailsServiceError err)
+getPreviousEntriesQuery :: (AsTrailsServiceError err)
                 => SignaturePlaceholder -> DB context err [TrailEntryResponse]
-getChildrenQuery searchSignature = do
-  childSignatures <- pg $ runSelectReturningList $ select $ do
-                          parents <- all_ (_parents trailsDB)
-                          guard_ (parents_parent_signature parents ==. val_ searchSignature)
-                          pure $ (parents_entry_signature parents)
+getPreviousEntriesQuery searchSignature = do
+  followingSignatures <- pg $ runSelectReturningList $ select $ do
+                          previous <- all_ (_previous trailsDB)
+                          guard_ (previous_previous_signature previous ==. val_ searchSignature)
+                          pure $ (previous_entry_signature previous)
 
-  entries <- traverse getEntryBySignature (entriesPrimaryKeyToSignature <$> childSignatures)
+  entries <- traverse getEntryBySignature (entriesPrimaryKeyToSignature <$> followingSignatures)
 
-  childEntries <- concat <$> traverse getChildrenQuery (trailEntryResponseSignature <$> entries)
+  followingEntries <- concat <$> traverse getPreviousEntriesQuery (trailEntryResponseSignature <$> entries)
 
-  pure $ childEntries <> entries
+  pure $ followingEntries <> entries
 
 
-getParentsBySignatureQuery :: (AsTrailsServiceError err)
+getPreviousEntriesBySignatureQuery :: (AsTrailsServiceError err)
                            => SignaturePlaceholder -> DB context err [TrailEntryResponse]
-getParentsBySignatureQuery searchSignature = do
+getPreviousEntriesBySignatureQuery searchSignature = do
   entry <- getEntryBySignature searchSignature
-  let parents = trailEntryResponseParentSignatures entry
-  parentEntries <- concat <$> traverse getParentsBySignatureQuery parents
-  pure $ entry : parentEntries
+  let previous = trailEntryResponseParentSignatures entry
+  previousEntries <- concat <$> traverse getPreviousEntriesBySignatureQuery previous
+  pure $ entry : previousEntries
 
 
 getEntryBySignature :: (AsTrailsServiceError err)
@@ -89,19 +89,19 @@ getEntryBySignature searchSignature = do
   case maybeEntry of
     Nothing    -> throwing_ _SignatureNotFoundTSE
     Just entry -> do
-                    parents <- pg $ runSelectReturningList $ select $ do
-                                 parents <- all_ (_parents trailsDB)
-                                 guard_ (parents_entry_signature parents ==. val_ (EntriesPrimaryKey searchSignature))
-                                 pure parents
-                    pure $ buildTrailEntryResponse entry parents
+                    previous <- pg $ runSelectReturningList $ select $ do
+                                 previous <- all_ (_previous trailsDB)
+                                 guard_ (previous_entry_signature previous ==. val_ (EntriesPrimaryKey searchSignature))
+                                 pure previous
+                    pure $ buildTrailEntryResponse entry previous
 
 
-buildTrailEntryResponse :: Entries -> [Parents] -> TrailEntryResponse
-buildTrailEntryResponse entries parents = TrailEntryResponse 1
+buildTrailEntryResponse :: Entries -> [Previous] -> TrailEntryResponse
+buildTrailEntryResponse entries previous = TrailEntryResponse 1
                                           (onLocalTime EntryTime $ entries_timestamp entries)
                                           (entries_gs1company_prefix entries)
                                           (EventId $ entries_event_id entries)
-                                          (parents_parent_signature <$> parents)
+                                          (previous_previous_signature <$> previous)
                                           (entries_signature entries)
 
 
@@ -117,11 +117,11 @@ addEntryQuery :: (AsTrailsServiceError err)
               => [TrailEntryResponse] -> DB context err ()
 addEntryQuery entries_raw = do
   let entries = trailEntryResponseToEntriesT <$> entries_raw
-  let parents = concat $ trailEntryResponseToParentsT <$> entries_raw
+  let previous = concat $ trailEntryResponseToParentsT <$> entries_raw
   _ <- pg $ runInsertReturningList $ insert (_entries trailsDB)
           $ insertValues entries
-  _ <- pg $ runInsertReturningList $ insert (_parents trailsDB)
-          $ insertValues parents
+  _ <- pg $ runInsertReturningList $ insert (_previous trailsDB)
+          $ insertValues previous
   pure ()
 
 
@@ -133,5 +133,5 @@ trailEntryResponseToEntriesT trailEntry = EntriesT (trailEntryResponseSignature 
                                            Nothing
 
 
-trailEntryResponseToParentsT :: TrailEntryResponse -> [ParentsT Identity]
-trailEntryResponseToParentsT trailEntry = (ParentsT (EntriesPrimaryKey $ trailEntryResponseSignature trailEntry)) <$> (trailEntryResponseParentSignatures trailEntry)
+trailEntryResponseToParentsT :: TrailEntryResponse -> [PreviousT Identity]
+trailEntryResponseToParentsT trailEntry = (PreviousT (EntriesPrimaryKey $ trailEntryResponseSignature trailEntry)) <$> (trailEntryResponseParentSignatures trailEntry)
