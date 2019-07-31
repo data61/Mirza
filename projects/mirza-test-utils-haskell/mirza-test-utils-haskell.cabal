@@ -39,6 +39,7 @@ library
     , beam-postgres
     , bytestring
     , hspec-expectations
+    , http-types
     , mtl
     , network
     , postgresql-simple

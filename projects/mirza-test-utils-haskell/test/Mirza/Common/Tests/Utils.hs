@@ -6,6 +6,9 @@ module Mirza.Common.Tests.Utils
   ( within1Second
   , betweenInclusive
   , shouldSatisfyIO
+  , checkField
+  , checkFailureStatus
+  , checkFailureMessage
   , unsafeMkEmailAddress
   , DatabaseName (..)
   , DatabaseConnectionString (..)
@@ -20,7 +23,13 @@ import           Data.ByteString             as BS hiding (putStrLn, reverse,
                                                     unpack)
 import qualified Data.ByteString.Char8       as C8 (unpack)
 
+import qualified Data.ByteString.Lazy        as BSL
+
 import           Test.Hspec.Expectations     (Expectation, shouldSatisfy)
+
+import           Servant.Client
+
+import qualified Network.HTTP.Types.Status   as NS
 
 import           Data.Foldable               (forM_)
 import           Data.String                 (fromString)
@@ -67,6 +76,26 @@ betweenInclusive bound1 bound2 x = (bound1 `comparator` x) && (x `comparator` bo
 
 shouldSatisfyIO :: (HasCallStack, Show a, Eq a) => IO a -> (a -> Bool) -> Expectation
 action `shouldSatisfyIO` p = action >>= (`shouldSatisfy` p)
+
+
+-- Test helper function that enables a predicate to be run on the result of a
+-- test call.
+checkField :: (a -> b) -> (b -> Bool) -> Either c a -> Bool
+checkField accessor predicate = either (const False) (predicate . accessor)
+
+
+checkFailureStatus :: NS.Status -> Either ServantError a -> Bool
+checkFailureStatus = checkFailureField responseStatusCode
+
+
+checkFailureMessage :: BSL.ByteString -> Either ServantError a -> Bool
+checkFailureMessage = checkFailureField responseBody
+
+
+checkFailureField :: (Eq a) => (Response -> a) -> a -> Either ServantError b -> Bool
+checkFailureField accessor x (Left (FailureResponse failure)) = x == (accessor failure)
+checkFailureField _        _ _                                = False
+
 
 --------------------------------------------------------------------------------
 -- Database Utils
