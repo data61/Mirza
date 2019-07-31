@@ -50,6 +50,38 @@ getTrailBySignature sig = do
 getTrailBySignatureQuery :: (AsTrailsServiceError err)
                          => SignaturePlaceholder -> DB context err [TrailEntryResponse]
 getTrailBySignatureQuery searchSignature = do
+  parentEntries <- getParentsBySignatureQuery searchSignature
+  childEntries <- getChildrenQuery searchSignature
+  pure $ childEntries <> parentEntries
+
+
+getChildrenQuery :: (AsTrailsServiceError err)
+                => SignaturePlaceholder -> DB context err [TrailEntryResponse]
+getChildrenQuery searchSignature = do
+  childSignatures <- pg $ runSelectReturningList $ select $ do
+                          parents <- all_ (_parents trailsDB)
+                          guard_ (parents_parent_signature parents ==. val_ searchSignature)
+                          pure $ (parents_entry_signature parents)
+
+  entries <- traverse getEntryBySignature (entriesPrimaryKeyToSignature <$> childSignatures)
+
+  childEntries <- concat <$> traverse getChildrenQuery (trailEntryResponseSignature <$> entries)
+
+  pure $ childEntries <> entries
+
+
+getParentsBySignatureQuery :: (AsTrailsServiceError err)
+                           => SignaturePlaceholder -> DB context err [TrailEntryResponse]
+getParentsBySignatureQuery searchSignature = do
+  entry <- getEntryBySignature searchSignature
+  let parents = trailEntryResponseParentSignatures entry
+  parentEntries <- concat <$> traverse getParentsBySignatureQuery parents
+  pure $ entry : parentEntries
+
+
+getEntryBySignature :: (AsTrailsServiceError err)
+                    => SignaturePlaceholder -> DB context err TrailEntryResponse
+getEntryBySignature searchSignature = do
   maybeEntry <- pg $ runSelectReturningOne $ select $ do
             entry <- all_ (_entries trailsDB)
             guard_ (entries_signature entry ==. val_ searchSignature)
@@ -61,9 +93,7 @@ getTrailBySignatureQuery searchSignature = do
                                  parents <- all_ (_parents trailsDB)
                                  guard_ (parents_entry_signature parents ==. val_ (EntriesPrimaryKey searchSignature))
                                  pure parents
-                    let thisEntry = buildTrailEntryResponse entry parents
-                    parentEntries <- concat <$> traverse getTrailBySignatureQuery (parents_parent_signature <$> parents)
-                    pure $ thisEntry : parentEntries
+                    pure $ buildTrailEntryResponse entry parents
 
 
 buildTrailEntryResponse :: Entries -> [Parents] -> TrailEntryResponse

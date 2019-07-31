@@ -36,4 +36,4 @@ type PublicAPI =
   :<|> "version" :> Get '[JSON] String
   :<|> "trail"   :> Capture "eventId"   EventId               :> Get '[JSON] [TrailEntryResponse]
   :<|> "trail"   :> Capture "signature" SignaturePlaceholder  :> Get '[JSON] [TrailEntryResponse]
-  :<|> "trail"   :> ReqBody '[JSON] [TrailEntryResponse]      :> Post '[JSON] NoContent
+  :<|> "trail"   :> ReqBody '[JSON] [TrailEntryResponse]      :> Post '[JSON] NoContent              -- TODO: Should fix this type so that its the correct status code.

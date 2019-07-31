@@ -108,6 +108,10 @@ instance Table EntriesT where
 deriving instance Eq (PrimaryKey EntriesT Identity)
 
 
+entriesPrimaryKeyToSignature :: EntriesPrimaryKey -> SignaturePlaceholder
+entriesPrimaryKeyToSignature (EntriesPrimaryKey sig) = sig
+
+
 --------------------------------------------------------------------------------
 -- Parent table
 --------------------------------------------------------------------------------
