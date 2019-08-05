@@ -42,8 +42,10 @@ clientSpec = do
           let http = runClient baseurl
 
           step "That when there are no entries in the database that getting by signature responds corretly."
-          getGetSignatureInitialEmpty <- http $ getTrailBySignature (SignaturePlaceholder "")
-          getGetSignatureInitialEmpty `shouldBe` Right []
+          getGetSignatureInitialEmpty <- http $ getTrailBySignature (SignaturePlaceholder "invalid")
+          getGetSignatureInitialEmpty `shouldSatisfy` isLeft
+          getGetSignatureInitialEmpty `shouldSatisfy` (checkFailureStatus NS.notFound404)
+          getGetSignatureInitialEmpty `shouldSatisfy` (checkFailureMessage "A trail with a matching signature was not found.")
 
           step "That when there are no entries in the database that getting by eventId responds corretly."
           empty_non_matching_uuid <- liftIO nextRandom
