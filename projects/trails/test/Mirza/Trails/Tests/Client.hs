@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-
+{-# LANGUAGE RankNTypes        #-}
 
 module Mirza.Trails.Tests.Client where
 
@@ -27,6 +27,7 @@ import           Test.Tasty.HUnit
 import qualified Network.HTTP.Types.Status       as NS
 
 import           Servant.API.ContentTypes
+import           Servant.Client
 
 import           Control.Exception               (bracket)
 import           Control.Monad
@@ -62,6 +63,7 @@ clientSpec = do
           getGetEventIdInitialEmpty `shouldSatisfy` (checkFailureMessage "A trail with the matching EventId was not found.")
 
 
+          -- Trail: *
           step "That adding the first entry in a trail works."
           singleEntry <- buildEntry
           addFirstEntryResult <- http $ addTrail [singleEntry]
@@ -76,19 +78,11 @@ clientSpec = do
           getSingleEntryByEventIdResult `shouldMatchTrail` [singleEntry]
 
 
-          step "That adding the first entry in a trail works."
-          singleEntry1 <- join $ addPreviousEntry <$> (fmap pure buildEntry)
-          addFirstEntryResult1 <- http $ addTrail singleEntry1
-          addFirstEntryResult1 `shouldBe` Right NoContent
+          let checkTrailWithContext = checkTrail step http
 
-          step "That getting a single entry trail by signature works."
-          getSingleEntryBySignatureResult1 <- http $ getTrailBySignature (trailEntrySignature $ head singleEntry1)
-          getSingleEntryBySignatureResult1 `shouldMatchTrail` singleEntry1
-
-          step "That getting a single entry trail by eventId works."
-          getSingleEntryByEventIdResult1 <- http $ getTrailByEventId (trailEntryEventID $ head singleEntry1)
-          getSingleEntryByEventIdResult1 `shouldMatchTrail` singleEntry1
-
+          -- Trail: *---*
+          twoEntryTrail <- join $ addPreviousEntry <$> (fmap pure buildEntry)
+          checkTrailWithContext "2 Entry Trail" twoEntryTrail
 
 
   -- Test trail head node.
@@ -180,3 +174,18 @@ shouldMatchEntry (TrailEntry   actual_version (EntryTime   actual_timestamp)   a
         (sort actual_previous_signatures) `shouldBe` (sort expected_previous_signatures)
         actual_signature `shouldBe` expected_signature
 
+
+-- Test the 3 end points (addTrail, getTrailBySignature, getTrailByEventId) for the specified trail.
+checkTrail :: (String -> IO()) -> (forall a. ClientM a -> IO (Either ServantError a)) -> String -> [TrailEntry] -> IO ()
+checkTrail step http differentator trail = do
+  step $ "That adding " <> differentator <> " trail works."
+  addEntryResult <- http $ addTrail trail
+  addEntryResult `shouldBe` Right NoContent
+
+  step $ "That getting a " <> differentator <> " trail by signature works."
+  getEntryBySignatureResult <- http $ getTrailBySignature (trailEntrySignature $ head trail)
+  getEntryBySignatureResult `shouldMatchTrail` trail
+
+  step $ "That getting a " <> differentator <> " trail by eventId works."
+  getEntryByEventIdResult <- http $ getTrailByEventId (trailEntryEventID $ head trail)
+  getEntryByEventIdResult `shouldMatchTrail` trail
