@@ -23,6 +23,7 @@ import           Data.GS1.EventId                (EventId (..))
 import           Test.Hspec.Expectations
 import           Test.Tasty
 import           Test.Tasty.HUnit
+import           Test.Tasty.Runners
 
 import qualified Network.HTTP.Types.Status       as NS
 
@@ -160,8 +161,8 @@ shouldMatchTrail :: (Show a, Eq a) => Either a [TrailEntry] -> [TrailEntry] -> E
 shouldMatchTrail actual@(Left _) _       = actual `shouldSatisfy` isRight
 shouldMatchTrail (Right actual) expected = do
   (length actual) `shouldBe` (length expected)
-  _ <- sequence $ zipWith shouldMatchEntry (sort actual) (sort expected)
-  pure $ ()
+  results <- sequence $ zipWith shouldMatchEntry (sort actual) (sort expected)
+  pure $ forceElements results
 
 
 shouldMatchEntry :: TrailEntry -> TrailEntry -> Expectation
@@ -182,10 +183,12 @@ checkTrail step http differentator trail = do
   addEntryResult <- http $ addTrail trail
   addEntryResult `shouldBe` Right NoContent
 
-  step $ "That getting a " <> differentator <> " trail by signature works."
-  getEntryBySignatureResult <- http $ getTrailBySignature (trailEntrySignature $ head trail)
-  getEntryBySignatureResult `shouldMatchTrail` trail
+  step $ "That getting a " <> differentator <> " trail by (each of the) signature(s) works."
+  getEntryBySignatureResult <- traverse (\entry -> http $ getTrailBySignature (trailEntrySignature $ entry)) trail
+  signatureResults <- traverse (`shouldMatchTrail` trail) getEntryBySignatureResult
+  pure $ forceElements signatureResults
 
-  step $ "That getting a " <> differentator <> " trail by eventId works."
-  getEntryByEventIdResult <- http $ getTrailByEventId (trailEntryEventID $ head trail)
-  getEntryByEventIdResult `shouldMatchTrail` trail
+  step $ "That getting a " <> differentator <> " trail by (each of the) eventId(s) works."
+  getEntryByEventIdResult <- traverse (\entry -> http $ getTrailByEventId (trailEntryEventID $ entry)) trail
+  eventIdResults <- traverse (`shouldMatchTrail` trail) getEntryByEventIdResult
+  pure $ forceElements eventIdResults
