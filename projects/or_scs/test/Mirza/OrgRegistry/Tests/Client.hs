@@ -11,12 +11,9 @@ import           Mirza.Common.Utils
 
 import qualified Servant.API.ContentTypes
 import           Servant.Auth.Client              (Token (..))
-import           Servant.Client
 
 import           Network.URI                      (URI (..), URIAuth (..),
                                                    nullURI)
-
-import           Data.ByteString.Lazy             (ByteString)
 
 import           System.Directory                 (listDirectory)
 import           System.FilePath                  ((</>))
