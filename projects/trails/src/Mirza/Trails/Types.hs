@@ -1,6 +1,7 @@
 {-# LANGUAGE DeriveGeneric         #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE InstanceSigs          #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings     #-}
 {-# LANGUAGE TemplateHaskell       #-}
@@ -91,6 +92,10 @@ data TrailEntry = TrailEntry
   , trailEntrySignature        :: SignaturePlaceholder
   } deriving (Show, Generic, Eq)
 instance ToSchema TrailEntry
+
+instance Ord TrailEntry where
+  compare :: TrailEntry -> TrailEntry -> Ordering
+  compare a b = compare (trailEntrySignature a) (trailEntrySignature b)
 
 instance ToJSON TrailEntry where
   toJSON (TrailEntry version timestamp org eventId parentSignatures eventSignature) = object

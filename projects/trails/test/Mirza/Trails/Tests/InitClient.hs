@@ -37,18 +37,23 @@ trailsTestOptions maybeFilepath = ServerOptionsTrails connectionString DebugS ma
     connectionString = getDatabaseConnectionString testDbConnectionStringTrails
 
 
-runTrailsApp :: IO (ThreadId, BaseUrl)
-runTrailsApp = do
+makeTrailsTestContext :: IO TrailsContext
+makeTrailsTestContext = do
   tempFile <- emptySystemTempFile "trailsServiceTests.log"
   let currentTrailsOptions = trailsTestOptions (Just tempFile)
-  context <- initTrailsContext currentTrailsOptions
+  initTrailsContext currentTrailsOptions
+
+
+runTrailsApp :: IO (ThreadId, BaseUrl)
+runTrailsApp = do
+  context <- makeTrailsTestContext
 
   let TrailsDB entriesTable previousTrable = trailsDB
 
   flushDbResult <- runAppM @_ @TrailsServiceError context $ runDb $ do
       let deleteTable table = pg $ runDelete $ delete table (const (val_ True))
-      deleteTable entriesTable
       deleteTable previousTrable
+      deleteTable entriesTable
   flushDbResult `shouldSatisfy` isRight
 
   (tid,orul) <- startWaiApp =<< TrailsMain.initApplication context

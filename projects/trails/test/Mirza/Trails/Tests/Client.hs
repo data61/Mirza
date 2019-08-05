@@ -29,8 +29,11 @@ import qualified Network.HTTP.Types.Status       as NS
 import           Servant.API.ContentTypes
 
 import           Control.Exception               (bracket)
+import           Control.Monad
 import           Data.Either                     (isLeft, isRight)
+import           Data.List
 import           Data.Time.Clock
+import           Data.UUID
 import           Data.UUID.V4
 
 
@@ -40,6 +43,10 @@ clientSpec = do
   let todoTests = testCaseSteps "TODO" $ \step ->
         bracket runTrailsApp (\(a,b) -> endWaiApp (a,b)) $ \(_tid, baseurl) -> do
           let http = runClient baseurl
+
+          -- These test cases should largely be property based tests, but as we currently have no property based testing
+          -- machinery and time constraints of the project we just implement a bunch of copy pasted simple tests to
+          -- check a variety of classic test boundry scenarios.
 
           step "That when there are no entries in the database that getting by signature responds corretly."
           getGetSignatureInitialEmpty <- http $ getTrailBySignature (SignaturePlaceholder "invalid")
@@ -54,14 +61,33 @@ clientSpec = do
           getGetEventIdInitialEmpty `shouldSatisfy` (checkFailureStatus NS.notFound404)
           getGetEventIdInitialEmpty `shouldSatisfy` (checkFailureMessage "A trail with the matching EventId was not found.")
 
+
           step "That adding the first entry in a trail works."
           singleEntry <- buildEntry
           addFirstEntryResult <- http $ addTrail [singleEntry]
           addFirstEntryResult `shouldBe` Right NoContent
 
-          step "That getting a single entry trail works."
-          getSingleEntryResult <- http $ getTrailBySignature (trailEntrySignature singleEntry)
-          getSingleEntryResult `shouldMatchTrail` [singleEntry]
+          step "That getting a single entry trail by signature works."
+          getSingleEntryBySignatureResult <- http $ getTrailBySignature (trailEntrySignature singleEntry)
+          getSingleEntryBySignatureResult `shouldMatchTrail` [singleEntry]
+
+          step "That getting a single entry trail by eventId works."
+          getSingleEntryByEventIdResult <- http $ getTrailByEventId (trailEntryEventID singleEntry)
+          getSingleEntryByEventIdResult `shouldMatchTrail` [singleEntry]
+
+
+          step "That adding the first entry in a trail works."
+          singleEntry1 <- join $ addPreviousEntry <$> (fmap pure buildEntry)
+          addFirstEntryResult1 <- http $ addTrail singleEntry1
+          addFirstEntryResult1 `shouldBe` Right NoContent
+
+          step "That getting a single entry trail by signature works."
+          getSingleEntryBySignatureResult1 <- http $ getTrailBySignature (trailEntrySignature $ head singleEntry1)
+          getSingleEntryBySignatureResult1 `shouldMatchTrail` singleEntry1
+
+          step "That getting a single entry trail by eventId works."
+          getSingleEntryByEventIdResult1 <- http $ getTrailByEventId (trailEntryEventID $ head singleEntry1)
+          getSingleEntryByEventIdResult1 `shouldMatchTrail` singleEntry1
 
 
 
@@ -75,6 +101,7 @@ clientSpec = do
   -- That if the entry version is not 1 adding fails.
 -- Test adding a trail with an entry that already has a signature in the db fails.
 -- Test that when a trail that has multiple entries fails that the other entries are not added.
+-- Test adding a trail with two entries with the same signature (i.e. duplicate entry).
 
   let healthTests = testCaseSteps "Provides health status" $ \step ->
         bracket runTrailsApp (\(a,b) -> endWaiApp (a,b)) $ \(_tid, baseurl) -> do
@@ -97,20 +124,51 @@ buildEntry :: IO TrailEntry
 buildEntry = do
   time <- liftIO getCurrentTime
   uuid <- liftIO nextRandom
-  pure $ TrailEntry 1
-                  (EntryTime time)
-                  (GS1CompanyPrefix "0000001")
-                  (EventId uuid)
-                  []
-                  (SignaturePlaceholder "TODO")
+  let unsignedEntry = TrailEntry 1
+                                 (EntryTime time)
+                                 (GS1CompanyPrefix "0000001")
+                                 (EventId uuid)
+                                 []
+                                 (SignaturePlaceholder "")
+  pure unsignedEntry{trailEntrySignature = buildSignature unsignedEntry}
+
+
+-- This is a hack for now untril we implement signatures properly.
+buildSignature :: TrailEntry -> SignaturePlaceholder
+buildSignature entry = SignaturePlaceholder $ "SignaturePlaceholder-" <> (toText $ unEventId $ trailEntryEventID entry)
+
+
+-- Note: Adds the new entry to the element at the start of the list and the newly created entry will be prepended to
+-- the entry list and leave the remainder of the entry list in the same order.
+addPreviousEntry :: [TrailEntry] -> IO [TrailEntry]
+addPreviousEntry (entry : _) = do
+  newEntry <- buildEntry
+  let updatedEntry = addPreviousEntrySignature entry (trailEntrySignature newEntry)
+  pure [newEntry, updatedEntry]
+-- Could just define the following  as buildEntry, but it seems that this is likely to be a logic error and so its probably better to just fail here.
+addPreviousEntry [] = error "Error: There is a logic error in the tests. Can't add a previous entry of a non existant entry."
+
+
+addNextEntry ::  [TrailEntry] -> IO [TrailEntry]
+addNextEntry (entry : _) = do
+  newEntry <- buildEntry
+  let updatedWithPreviousEntry = addPreviousEntrySignature newEntry (trailEntrySignature entry)
+  pure [updatedWithPreviousEntry, entry]
+-- Could just define the following  as buildEntry, but it seems that this is likely to be a logic error and so its probably better to just fail here.
+addNextEntry [] = error "Error: There is a logic error in the tests. Can't add the next entry of a non existant entry."
+
+
+addPreviousEntrySignature :: TrailEntry -> SignaturePlaceholder -> TrailEntry
+addPreviousEntrySignature entry sig = entry{trailEntryParentSignatures = sig : (trailEntryParentSignatures entry)}
 
 
 shouldMatchTrail :: (Show a, Eq a) => Either a [TrailEntry] -> [TrailEntry] -> Expectation
 shouldMatchTrail actual@(Left _) _       = actual `shouldSatisfy` isRight
 shouldMatchTrail (Right actual) expected = do
   (length actual) `shouldBe` (length expected)
-  _ <- sequence $ zipWith shouldMatchEntry actual expected  -- Note: This is overly constrained, but while it works this seems find and can always update this check if in future we have elements that are in different order.
+  _ <- sequence $ zipWith shouldMatchEntry (sort actual) (sort expected)
   pure $ ()
+
 
 shouldMatchEntry :: TrailEntry -> TrailEntry -> Expectation
 shouldMatchEntry (TrailEntry   actual_version (EntryTime   actual_timestamp)   actual_gs1_company_prefix   actual_eventId   actual_previous_signatures   actual_signature)
@@ -119,8 +177,6 @@ shouldMatchEntry (TrailEntry   actual_version (EntryTime   actual_timestamp)   a
         actual_timestamp `shouldSatisfy` within1Second expected_timestamp
         actual_gs1_company_prefix `shouldBe` expected_gs1_company_prefix
         actual_eventId `shouldBe` expected_eventId
-        actual_previous_signatures `shouldBe` expected_previous_signatures -- Note: This is overly constrained, but while it works this seems find and can always update this check if in future we have elements that are in different order.
+        (sort actual_previous_signatures) `shouldBe` (sort expected_previous_signatures)
         actual_signature `shouldBe` expected_signature
-
-
 

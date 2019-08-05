@@ -102,8 +102,8 @@ test-suite trails-test
     , http-types
     , katip
     , mtl
-    , servant-client
     , servant
+    , servant-client
     , tasty
     , tasty-hunit
     , temporary
