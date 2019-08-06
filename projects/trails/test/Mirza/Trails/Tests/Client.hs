@@ -93,37 +93,37 @@ clientSpec = do
           --            *
           --        *--/
           twoPreviousEntryTrail <- addPreviousEntry twoEntryTrail
-          checkTrailWithContext "2 Previous Entry Trail" twoPreviousEntryTrail
+          checkTrailWithContext "2 Previous Entries Trail" twoPreviousEntryTrail
 
           -- Trail: *--\
           --        *---*
           --        *--/
           threePreviousEntryTrail <- addPreviousEntry twoPreviousEntryTrail
-          checkTrailWithContext "3 Previous Entry Trail" threePreviousEntryTrail
+          checkTrailWithContext "3 Previous Entries Trail" threePreviousEntryTrail
 
           -- Trail:  /--*
           --        *
           --         \--*
           twoNextEntryTrail <- addNextEntry (reverse twoEntryTrail)
-          checkTrailWithContext "2 Next Entry Trail" twoNextEntryTrail
+          checkTrailWithContext "2 Next Entries Trail" twoNextEntryTrail
 
           -- Trail:  /--*
           --        *---*
           --         \--*
           threeNextEntryTrail <- addNextEntry twoNextEntryTrail
-          checkTrailWithContext "3 Next Entry Trail" threeNextEntryTrail
+          checkTrailWithContext "3 Next Entries Trail" threeNextEntryTrail
 
           -- Trail: *--\ /--*
           --            *
           --        *--/ \--*
           twoPreviousTwoNextEntryTrail <- join $ fmap addNextEntry $ addNextEntry twoPreviousEntryTrail
-          checkTrailWithContext "2 Previous 2 Next Entry Trail" twoPreviousTwoNextEntryTrail
+          checkTrailWithContext "2 Previous 2 Next Entries Trail" twoPreviousTwoNextEntryTrail
 
           -- Trail: *--\     /--*
           --            *---*
           --        *--/     \--*
           twoPreviousThenNextThenTwoNextEntryTrail <- join $ fmap addNextEntry $ join $ fmap addNextEntry $ fmap swap $ addNextEntry twoPreviousEntryTrail
-          checkTrailWithContext "2 Previous 1 Next and then 2 Next Entry Trail" twoPreviousThenNextThenTwoNextEntryTrail
+          checkTrailWithContext "1 Previous Entry, then 2 Previous Entries and 2 Next Entries Trail" twoPreviousThenNextThenTwoNextEntryTrail
 
           -- Trail: *---*--\     /--*---*
           --                *---*
@@ -137,9 +137,6 @@ clientSpec = do
           -- TODO:
 
 
-  -- Test trail head node.
-  -- Test forked trail (1 into 2).
-  -- Test joined trail (2 into 1).
   -- Test that invalid signature fails.
   -- Test that invalid version fails.
   -- Test that timestamp in the future is invalid.
@@ -250,3 +247,22 @@ swap :: [TrailEntry] -> [TrailEntry]
 swap []                      = []
 swap list@[_]                = list
 swap (first : second : rest) = second : first : rest
+
+
+prettyEntry :: TrailEntry -> String
+prettyEntry (TrailEntry  version timestamp@(EntryTime _) gs1_company_prefix eventId previous_signatures signature) =
+  "Entry: "                                             <> "\n"
+  <> "Version: "            <> show version             <> "\n"
+  <> "Timestamp: "          <> show timestamp           <> "\n"
+  <> "GS1 Company Prefix: " <> show gs1_company_prefix  <> "\n"
+  <> "EventId: "            <> show eventId             <> "\n"
+  <> "ParentSignatures: "   <> show previous_signatures <> "\n"
+  <> "Signature: "          <> show signature           <> "\n"
+
+
+prettyEntries :: [TrailEntry] -> String
+prettyEntries [] = "Empty Trail"
+prettyEntries (first : rest) = do
+  prettyEntry first <> "\n"
+  <> prettyEntries rest
+
