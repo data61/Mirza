@@ -11,6 +11,7 @@ module Mirza.Common.Database ( Migration
                              , dropTablesSimple
                              
                              , createTrigger
+                             , createTriggerFunction
                              , SchemaVerificationResult(..)
                              , checkSchemaAgainstBeam
                              ) where
@@ -79,15 +80,17 @@ getVersion conn = do
         _ -> pure 0
     _ -> 0 <$ execute_ conn "CREATE TABLE version (number INTEGER NOT NULL PRIMARY KEY, executed timestamptz NOT NULL);"
 
-createTrigger :: Connection -> Query -> IO ()
-createTrigger conn tName = void $ execute_ conn $
+createTriggerFunction :: Connection -> IO ()
+createTriggerFunction conn = void $ execute_ conn $
       "CREATE OR REPLACE FUNCTION sync_lastmod() RETURNS trigger AS $$ \
       \BEGIN \
         \NEW.last_update := NOW() AT TIME ZONE 'UTC'; \
         \RETURN NEW; \
       \END; \
-      \$$ LANGUAGE plpgsql; \
-      \DROP TRIGGER IF EXISTS sync_lastmod ON \"" <> tName <> "\";" <>
+      \$$ LANGUAGE plpgsql;"
+
+createTrigger :: Connection -> Query -> IO ()
+createTrigger conn tName = void $ execute_ conn $
       "CREATE TRIGGER sync_lastmod \
-      \BEFORE UPDATE OR INSERT ON \"" <> tName <>
-        "\" FOR EACH ROW EXECUTE PROCEDURE sync_lastmod();"
+      \  BEFORE UPDATE OR INSERT ON \"" <> tName <> "\" \
+      \    FOR EACH ROW EXECUTE PROCEDURE sync_lastmod();"

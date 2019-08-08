@@ -179,50 +179,19 @@ CREATE TABLE public.signatures (
 );
 |]
 
-  _ <- execute_ conn [sql|
-CREATE TRIGGER sync_lastmod BEFORE INSERT OR UPDATE ON public.orgs FOR EACH ROW EXECUTE PROCEDURE public.sync_lastmod();
-|]
-  _ <- execute_ conn [sql|
-CREATE TRIGGER sync_lastmod BEFORE INSERT OR UPDATE ON public.labels FOR EACH ROW EXECUTE PROCEDURE public.sync_lastmod();
-|]
-  _ <- execute_ conn [sql|
-CREATE TRIGGER sync_lastmod BEFORE INSERT OR UPDATE ON public.transformations FOR EACH ROW EXECUTE PROCEDURE public.sync_lastmod();
-|]
-  _ <- execute_ conn [sql|
-CREATE TRIGGER sync_lastmod BEFORE INSERT OR UPDATE ON public.events FOR EACH ROW EXECUTE PROCEDURE public.sync_lastmod();
-|]
-  _ <- execute_ conn [sql|
-CREATE TRIGGER sync_lastmod BEFORE INSERT OR UPDATE ON public.org_transactions FOR EACH ROW EXECUTE PROCEDURE public.sync_lastmod();
-|]
-  _ <- execute_ conn [sql|
-CREATE TRIGGER sync_lastmod BEFORE INSERT OR UPDATE ON public.whats FOR EACH ROW EXECUTE PROCEDURE public.sync_lastmod();
-|]
-  _ <- execute_ conn [sql|
-CREATE TRIGGER sync_lastmod BEFORE INSERT OR UPDATE ON public.what_labels FOR EACH ROW EXECUTE PROCEDURE public.sync_lastmod();
-|]
-  _ <- execute_ conn [sql|
-CREATE TRIGGER sync_lastmod BEFORE INSERT OR UPDATE ON public.locations FOR EACH ROW EXECUTE PROCEDURE public.sync_lastmod();
-|]
-  _ <- execute_ conn [sql|
-CREATE TRIGGER sync_lastmod BEFORE INSERT OR UPDATE ON public.whys FOR EACH ROW EXECUTE PROCEDURE public.sync_lastmod();
-|]
-  _ <- execute_ conn [sql|
-CREATE TRIGGER sync_lastmod BEFORE INSERT OR UPDATE ON public.wheres FOR EACH ROW EXECUTE PROCEDURE public.sync_lastmod();
-|]
-  _ <- execute_ conn [sql|
-CREATE TRIGGER sync_lastmod BEFORE INSERT OR UPDATE ON public.whens FOR EACH ROW EXECUTE PROCEDURE public.sync_lastmod();
-|]
-  _ <- execute_ conn [sql|
-CREATE TRIGGER sync_lastmod BEFORE INSERT OR UPDATE ON public.label_events FOR EACH ROW EXECUTE PROCEDURE public.sync_lastmod();
-|]
-  _ <- execute_ conn [sql|
-CREATE TRIGGER sync_lastmod BEFORE INSERT OR UPDATE ON public.signatures FOR EACH ROW EXECUTE PROCEDURE public.sync_lastmod();
-|]
-  _ <- execute_ conn [sql|
-CREATE TRIGGER sync_lastmod BEFORE INSERT OR UPDATE ON public.hashes FOR EACH ROW EXECUTE PROCEDURE public.sync_lastmod();
-|]
-  _ <- execute_ conn [sql|
-CREATE TRIGGER sync_lastmod BEFORE INSERT OR UPDATE ON public.blockchain FOR EACH ROW EXECUTE PROCEDURE public.sync_lastmod();
-|]
-
-  pure ()
+  createTriggerFunction conn
+  createTrigger conn "orgs"
+  createTrigger conn "labels"
+  createTrigger conn "transformations"
+  createTrigger conn "events"
+  createTrigger conn "org_transactions"
+  createTrigger conn "whats"
+  createTrigger conn "what_labels"
+  createTrigger conn "locations"
+  createTrigger conn "whys"
+  createTrigger conn "wheres"
+  createTrigger conn "whens"
+  createTrigger conn "label_events"
+  createTrigger conn "signatures"
+  createTrigger conn "hashes"
+  createTrigger conn "blockchain"
