@@ -40,6 +40,7 @@ library
                     , Mirza.SupplyChain.Database.Migrate
                     , Mirza.SupplyChain.Database.Schema
                     , Mirza.SupplyChain.Database.Schema.V0001
+                    , Mirza.SupplyChain.Database.Schema.SQL.V0001
                     , Mirza.SupplyChain.Handlers.Health
                     , Mirza.SupplyChain.EventUtils
                     , Mirza.SupplyChain.Handlers.Queries
