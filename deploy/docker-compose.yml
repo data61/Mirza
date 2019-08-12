@@ -21,14 +21,14 @@ services:
         max-size: "200k"
         max-file: "10"
 
-  sci055edapi:
+  sci054edapi:
     image: 235945186688.dkr.ecr.ap-southeast-2.amazonaws.com/edapi:latest
     restart: always
     env_file:
-      - sci055.env
+      - sci054.env
     depends_on:
       - db
-      - sci055scs
+      - sci054scs
     networks:
       - backend
     logging:
@@ -37,16 +37,16 @@ services:
         max-size: "200k"
         max-file: "10"
         
-  sci055scs:
+  sci054scs:
     image: 235945186688.dkr.ecr.ap-southeast-2.amazonaws.com/supplychainserver:latest
     restart: always
     env_file:
-      - sci055.env
+      - sci054.env
     depends_on:
       - db
     networks:
       - backend
-    command: --orhost or --orport 8200 --init-db -c "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db/sci055supplychainserver"
+    command: --orhost or --orport 8200 --init-db -c "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db/sci054supplychainserver"
     logging:
       driver: json-file
       options:

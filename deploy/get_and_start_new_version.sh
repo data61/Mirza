@@ -26,7 +26,7 @@ OAUTH_SUB=$(aws --region ap-southeast-2 secretsmanager get-secret-value --secret
 SCI033_OAUTH_SUB=$(aws --region ap-southeast-2 secretsmanager get-secret-value --secret-id development | jq -r .SecretString | sed 's/\\//g' | jq -r .SCI033_OAUTH_SUB)
 SCI042_OAUTH_SUB=$(aws --region ap-southeast-2 secretsmanager get-secret-value --secret-id development | jq -r .SecretString | sed 's/\\//g' | jq -r .SCI042_OAUTH_SUB)
 SCI041_OAUTH_SUB=$(aws --region ap-southeast-2 secretsmanager get-secret-value --secret-id development | jq -r .SecretString | sed 's/\\//g' | jq -r .SCI041_OAUTH_SUB)
-SCI055_OAUTH_SUB=$(aws --region ap-southeast-2 secretsmanager get-secret-value --secret-id development | jq -r .SecretString | sed 's/\\//g' | jq -r .SCI055_OAUTH_SUB)
+SCI054_OAUTH_SUB=$(aws --region ap-southeast-2 secretsmanager get-secret-value --secret-id development | jq -r .SecretString | sed 's/\\//g' | jq -r .SCI054_OAUTH_SUB)
 
 echo "POSTGRES_USER=$POSTGRES_USER
 POSTGRES_PASSWORD=$POSTGRES_PASSWORD
@@ -49,10 +49,10 @@ EDAPI_DB_CONN=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db/sci041edapi
 DEST_HOST=sci041scs
 DEST_PORT=8000" > '/home/ec2-user/sci041.env'
 
-echo "JWK_CLIENT_IDS=$SCI055_OAUTH_SUB
-EDAPI_DB_CONN=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db/sci055edapi
-DEST_HOST=sci055scs
-DEST_PORT=8000" > '/home/ec2-user/sci055.env'
+echo "JWK_CLIENT_IDS=$SCI054_OAUTH_SUB
+EDAPI_DB_CONN=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db/sci054edapi
+DEST_HOST=sci054scs
+DEST_PORT=8000" > '/home/ec2-user/sci054.env'
 
 
 # Start the database (either an empty postgres container, or an existing database)
@@ -62,7 +62,7 @@ echo Waiting 10 seconds for the db to finish starting...
 sleep 10
 
 # Start the services
-docker-compose up -d web orgRegistry sci033edapi sci033scs sci042edapi sci042scs sci041edapi sci041scs sci055edapi sci055scs # private-ethereum-blockchain blockchain-api-server
+docker-compose up -d web orgRegistry sci033edapi sci033scs sci042edapi sci042scs sci041edapi sci041scs sci054edapi sci054scs # private-ethereum-blockchain blockchain-api-server
 
 # remove all unused docker images and exited containers
 # docker system prune -a --force
