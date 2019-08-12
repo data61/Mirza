@@ -263,9 +263,9 @@ prettyEntry (TrailEntry  version timestamp@(EntryTime _) gs1_company_prefix even
   <> "Signature: "          <> show signature           <> "\n"
 
 
-prettyEntries :: [TrailEntry] -> String
-prettyEntries [] = "Empty Trail"
-prettyEntries (first : rest) = do
+prettyTrail :: [TrailEntry] -> String
+prettyTrail [] = ""
+prettyTrail (first : rest) = do
   prettyEntry first <> "\n"
-  <> prettyEntries rest
+  <> prettyTrail rest
 
