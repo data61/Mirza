@@ -133,11 +133,71 @@ clientSpec = do
           --        *---*--/     \--*---*
           -- TODO:
 
+
+          -- Trail:  /--*--\
+          --        *       *
+          --         \--*--/
+          let buildRing = do
+                            newEntry <- buildEntry
+                            forkedPrevious <- buildTwoPreviousEntryTrail
+                            let makeNewEntryParentOf entry = case trailEntryParentSignatures entry of
+                                                               [] -> addPreviousEntrySignature entry (trailEntrySignature newEntry)
+                                                               _  -> entry
+                            pure $ [newEntry] <> (makeNewEntryParentOf <$> forkedPrevious)
+          ringTrail <- buildRing
+          checkTrailWithContext "Ring Trail" ringTrail
+
+
+          -- Trail:  /--*--\
+          --        *-------*
+          --         \--*--/
+          let buildBurger = do
+                              ring <- buildRing
+                              let (Just base) = find (([] ==) . trailEntryParentSignatures) ring
+                              let makeBaseParentOf entry = if length (trailEntryParentSignatures entry) == 2 then
+                                                             addPreviousEntrySignature entry (trailEntrySignature base)
+                                                           else
+                                                             entry
+                              pure $ (makeBaseParentOf <$> ring)
+          burgerTrail <- buildBurger
+          checkTrailWithContext "Burger Trail" burgerTrail
+
+
+          -- Trail:        *---*
+          --              /
+          --             /
+          --        *---*
+          --             \
+          --              \
+          --               *---*
+          --              /
+          --             /
+          --        *---*
+
+
           -- Trail: *---*---*
           --            :
           --        *---*---*
           -- Note: ':' Denotes matching eventId (but otherwise distinct trails).
           -- TODO:
+
+
+          -- Trail: *---*---\
+          --            :    *
+          --        *---*---/
+          -- Note: ':' Denotes matching eventId (but otherwise distinct trail entries).
+
+
+          -- Trail:  /--*---*
+          --        *   :
+          --         \--*---*
+          -- Note: ':' Denotes matching eventId (but otherwise distinct trail entries).
+
+
+          -- Trail:  /--*--\
+          --        *   :   *
+          --         \--*--/
+          -- Note: ':' Denotes matching eventId (but otherwise distinct trail entries).
 
 
   -- Test that invalid signature fails.
