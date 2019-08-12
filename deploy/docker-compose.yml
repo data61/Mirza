@@ -89,7 +89,7 @@ services:
     image: 235945186688.dkr.ecr.ap-southeast-2.amazonaws.com/edapi:latest
     restart: always
     env_file:
-      - sci040.env
+      - sci042.env
     depends_on:
       - db
       - sci042scs
