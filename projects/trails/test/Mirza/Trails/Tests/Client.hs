@@ -82,47 +82,50 @@ clientSpec = do
           let checkTrailWithContext = checkTrail step http
 
           -- Trail: *---*
-          twoEntryTrail <- join $ addPreviousEntry <$> (fmap pure buildEntry)
+          let buildTwoEntryTrail = join $ addPreviousEntry <$> (fmap pure buildEntry)
+          twoEntryTrail <- buildTwoEntryTrail
           checkTrailWithContext "2 Entry Trail (1 Previous Entry)" twoEntryTrail
 
           -- Trail: *---*---*
-          threeEntryTrail <- addPreviousEntry (reverse twoEntryTrail)
+          threeEntryTrail <- join $ addPreviousEntry <$> (reverse <$> buildTwoEntryTrail)
           checkTrailWithContext "3 Entry Trail (1 Previous Entry, 1 Next Entry)" threeEntryTrail
 
           -- Trail: *--\
           --            *
           --        *--/
-          twoPreviousEntryTrail <- addPreviousEntry twoEntryTrail
+          let buildTwoPreviousEntryTrail = join $ addPreviousEntry <$> buildTwoEntryTrail
+          twoPreviousEntryTrail <- buildTwoPreviousEntryTrail
           checkTrailWithContext "2 Previous Entries Trail" twoPreviousEntryTrail
 
           -- Trail: *--\
           --        *---*
           --        *--/
-          threePreviousEntryTrail <- addPreviousEntry twoPreviousEntryTrail
+          threePreviousEntryTrail <- join $ addPreviousEntry <$> buildTwoPreviousEntryTrail
           checkTrailWithContext "3 Previous Entries Trail" threePreviousEntryTrail
 
           -- Trail:  /--*
           --        *
           --         \--*
-          twoNextEntryTrail <- addNextEntry (reverse twoEntryTrail)
+          let buildTwoNextEntryTrail = join $ addNextEntry <$> (reverse <$> buildTwoEntryTrail)
+          twoNextEntryTrail <- buildTwoNextEntryTrail
           checkTrailWithContext "2 Next Entries Trail" twoNextEntryTrail
 
           -- Trail:  /--*
           --        *---*
           --         \--*
-          threeNextEntryTrail <- addNextEntry twoNextEntryTrail
+          threeNextEntryTrail <- join $ addNextEntry <$> buildTwoNextEntryTrail
           checkTrailWithContext "3 Next Entries Trail" threeNextEntryTrail
 
           -- Trail: *--\ /--*
           --            *
           --        *--/ \--*
-          twoPreviousTwoNextEntryTrail <- join $ fmap addNextEntry $ addNextEntry twoPreviousEntryTrail
+          twoPreviousTwoNextEntryTrail <- join $ fmap addNextEntry $ join $ addNextEntry <$> buildTwoPreviousEntryTrail
           checkTrailWithContext "2 Previous 2 Next Entries Trail" twoPreviousTwoNextEntryTrail
 
           -- Trail: *--\     /--*
           --            *---*
           --        *--/     \--*
-          twoPreviousThenNextThenTwoNextEntryTrail <- join $ fmap addNextEntry $ join $ fmap addNextEntry $ fmap swap $ addNextEntry twoPreviousEntryTrail
+          twoPreviousThenNextThenTwoNextEntryTrail <- join $ fmap addNextEntry $ join $ fmap addNextEntry $ fmap swap $ join $ addNextEntry <$> buildTwoPreviousEntryTrail
           checkTrailWithContext "1 Previous Entry, then 2 Previous Entries and 2 Next Entries Trail" twoPreviousThenNextThenTwoNextEntryTrail
 
           -- Trail: *---*--\     /--*---*
