@@ -110,7 +110,7 @@ services:
       - db
     networks:
       - backend
-    command: --orhost or --orport 8200 -c --init-db -c "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db/sci042supplychainserver"
+    command: --orhost or --orport 8200 --init-db -c "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db/sci042supplychainserver"
     logging:
       driver: json-file
       options:
