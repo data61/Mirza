@@ -22,8 +22,11 @@ import           Mirza.SupplyChain.Types            as ST
 import           Mirza.SupplyChain.Handlers.UXUtils (PrettyEventResponse (..))
 
 import qualified Data.GS1.Event                     as Ev
+import           Data.GS1.Parser.Parser             ( parseBS )
 import           Data.GS1.EventId                   as EvId
 
+import           Data.ByteString.Lazy ( ByteString )
+import           Network.HTTP.Media ( (//) )
 import           Servant
 import           Servant.Swagger.UI
 
@@ -38,6 +41,22 @@ api = Proxy
 serverAPI :: Proxy ServerAPI
 serverAPI = Proxy
 
+
+data XML
+
+class FromXML a where
+  fromXML :: ByteString -> Either String a
+
+instance Accept XML where
+  contentType _ = "text" // "xml"
+
+instance FromXML a => MimeUnrender XML a where
+  mimeUnrender _ = fromXML
+
+instance FromXML Ev.Event where
+  fromXML bs = case parseBS bs of
+    [] -> Left "No events in document"
+    (x:_) -> either (Left . show) Right x
 
 type ServerAPI =
   -- Health
@@ -56,7 +75,7 @@ type ServerAPI =
                   :> Capture "eventId" EventId
                   :> Get '[JSON] EventInfo
 -- Event Registration
-  :<|> "event"    :> ReqBody '[JSON] Ev.Event
+  :<|> "event"    :> ReqBody '[JSON, XML] Ev.Event
                   :> Post '[JSON] (EventInfo, Schema.EventId)
   -- UI
   :<|> "prototype" :> "list" :> "events"
