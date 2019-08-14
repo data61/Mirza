@@ -42,7 +42,7 @@ import           Data.UUID.V4
 -- === Trails Servant Client tests
 clientSpec :: IO TestTree
 clientSpec = do
-  let trailTests = testCaseSteps "TODO" $ \step ->
+  let trailTests = testCaseSteps "Trails Endpoints" $ \step ->
         bracket runTrailsApp (\(a,b) -> endWaiApp (a,b)) $ \(_tid, baseurl) -> do
           let http = runClient baseurl
 
@@ -50,13 +50,13 @@ clientSpec = do
           -- machinery and time constraints of the project we just implement a bunch of copy pasted simple tests to
           -- check a variety of classic test boundry scenarios.
 
-          step "That when there are no entries in the database that getting by signature responds corretly."
+          step "That when there are no entries in the database that getting by signature responds corretly"
           getGetSignatureInitialEmpty <- http $ getTrailBySignature (SignaturePlaceholder "invalid")
           getGetSignatureInitialEmpty `shouldSatisfy` isLeft
           getGetSignatureInitialEmpty `shouldSatisfy` (checkFailureStatus NS.notFound404)
           getGetSignatureInitialEmpty `shouldSatisfy` (checkFailureMessage "A trail with a matching signature was not found.")
 
-          step "That when there are no entries in the database that getting by eventId responds corretly."
+          step "That when there are no entries in the database that getting by eventId responds corretly"
           empty_non_matching_uuid <- liftIO nextRandom
           getGetEventIdInitialEmpty <- http $ getTrailByEventId (EventId empty_non_matching_uuid)
           getGetEventIdInitialEmpty `shouldSatisfy` isLeft
@@ -65,16 +65,16 @@ clientSpec = do
 
 
           -- Trail: *
-          step "That adding the first entry in a trail works."
+          step "That adding the first entry in a trail works"
           singleEntry <- buildEntry
           addFirstEntryResult <- http $ addTrail [singleEntry]
           addFirstEntryResult `shouldBe` Right NoContent
 
-          step "That getting a single entry trail by signature works."
+          step "That getting a single entry trail by signature works"
           getSingleEntryBySignatureResult <- http $ getTrailBySignature (trailEntrySignature singleEntry)
           getSingleEntryBySignatureResult `shouldMatchTrail` [singleEntry]
 
-          step "That getting a single entry trail by eventId works."
+          step "That getting a single entry trail by eventId works"
           getSingleEntryByEventIdResult <- http $ getTrailByEventId (trailEntryEventId singleEntry)
           getSingleEntryByEventIdResult `shouldMatchTrail` [singleEntry]
 
@@ -451,16 +451,16 @@ checkTrail step http differentator trail = checkPartialTrail step http different
 
 checkPartialTrail :: (String -> IO()) -> (forall a. ClientM a -> IO (Either ServantError a)) -> String -> [TrailEntry] -> [TrailEntry] -> [SignaturePlaceholder] -> [EventId] -> IO ()
 checkPartialTrail step http differentator inputTrail expectedTrail sigs eventIds = do
-  step $ "That adding " <> differentator <> " trail works."
+  step $ "That adding " <> differentator <> " trail works"
   addEntryResult <- http $ addTrail inputTrail
   addEntryResult `shouldBe` Right NoContent
 
-  step $ "That getting a " <> differentator <> " trail by (each of the) signature(s) works."
+  step $ "That getting a " <> differentator <> " trail by (each of the) signature(s) works"
   getEntryBySignatureResult <- traverse (\sig -> http $ getTrailBySignature sig) sigs
   signatureResults <- traverse (`shouldMatchTrail` expectedTrail) getEntryBySignatureResult
   pure $ forceElements signatureResults
 
-  step $ "That getting a " <> differentator <> " trail by (each of the) eventId(s) works."
+  step $ "That getting a " <> differentator <> " trail by (each of the) eventId(s) works"
   getEntryByEventIdResult <- traverse (\eventId -> http $ getTrailByEventId eventId) eventIds
   eventIdResults <- traverse (`shouldMatchTrail` expectedTrail) getEntryByEventIdResult
   pure $ forceElements eventIdResults
