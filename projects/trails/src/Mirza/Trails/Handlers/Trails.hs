@@ -26,6 +26,7 @@ import           Control.Monad.Error.Lens                 (throwing_)
 import           Control.Monad.Identity
 
 import           Data.Maybe
+import           Data.List                                (nub)
 
 
 getTrailByEventId :: ( Member context '[HasEnvType, HasConnPool, HasKatipContext, HasKatipLogEnv]
@@ -158,8 +159,16 @@ addEntryQuery entriesRaw = do
   -- Check that the event versions are all valid.
   throwing_If _InvalidEntryVersionTSE $ not $ all (== 1) $ trailEntryVersion <$> newEntries
 
-  let entries = trailEntryToEntriesT <$> newEntries
-  let previous = concat $ trailEntryToParentsT <$> newEntries
+  -- TODO: nub is documented to have order O(n^2) and should probably be replaced before this service is productionised (there are better algorithms for this use case).
+  let uniqueNewEntries = nub newEntries
+
+  -- TODO: Again nub is documented to have order O(n^2) and should probably be replaced before this service is productionised (there are better algorithms for this use case).
+  let parentSignatures = (trailEntryParentSignatures <$> uniqueNewEntries)
+  throwing_If _DuplicateParentsTSE ((nub <$> parentSignatures) /= parentSignatures)
+
+  -- Add the entries to the DB.
+  let entries = trailEntryToEntriesT <$> uniqueNewEntries
+  let previous = concat $ trailEntryToParentsT <$> uniqueNewEntries
   _ <- pg $ runInsertReturningList $ insert (_entries trailsDB)
           $ insertValues entries
   _ <- pg $ runInsertReturningList $ insert (_previous trailsDB)

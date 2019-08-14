@@ -191,6 +191,8 @@ data TrailsServiceError
   | SignatureNotFoundTSE
   | EventIdNotFoundTSE
   | InvalidEntryVersionTSE
+  | DuplicateParentsTSE
+  | ParentEntryNotFoundTSE
   | UnmatchedUniqueViolationTSE SqlError
   deriving (Show)
 $(makeClassyPrisms ''TrailsServiceError)
