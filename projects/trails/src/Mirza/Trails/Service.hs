@@ -108,6 +108,7 @@ trailsErrorToHttpError trailsError =
     (DBErrorTE _)                   -> unexpectedError trailsError
     (SignatureNotFoundTSE)          -> httpError err404 "A trail with a matching signature was not found."
     (EventIdNotFoundTSE)            -> httpError err404 "A trail with the matching EventId was not found."
+    (InvalidEntryVersionTSE)        -> httpError err400 "Only version 1 trail entries are currently supported by this service."
     (UnmatchedUniqueViolationTSE _) -> unexpectedError trailsError
 
 -- | A generic internal server error has occured. We include no more information in the result returned to the user to

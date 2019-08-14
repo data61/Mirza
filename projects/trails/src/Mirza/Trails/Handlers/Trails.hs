@@ -20,6 +20,8 @@ import           Database.Beam.Query                      hiding (time)
 import           Servant
 
 import           Control.Lens.Extras
+import           Control.Lens.Type (AReview)
+import           Control.Monad.Error.Lens                 (throwing_)
 
 import           Control.Monad.Identity
 
@@ -138,6 +140,13 @@ addTrail trail = do
   pure NoContent
 
 
+throwing_If :: MonadError e m => Control.Lens.Type.AReview e () -> Bool -> m ()
+throwing_If x result = if result then
+                         throwing_ x
+                       else
+                         pure ()
+
+
 addEntryQuery :: (AsTrailsServiceError err)
               => [TrailEntry] -> DB context err ()
 addEntryQuery entriesRaw = do
@@ -145,6 +154,9 @@ addEntryQuery entriesRaw = do
   existingEntries <- fmap catMaybes $ traverse (ignoreNotFound . (fmap Just <$> getEntryBySignature)) (trailEntrySignature <$> entriesRaw)
   -- Note: We only need to check if the signature exists (and not that the full event contents match) since the signature guarantees that they events are the same.
   let newEntries = filter (\entry -> not $ elem (trailEntrySignature entry) $ trailEntrySignature <$> existingEntries) entriesRaw
+
+  -- Check that the event versions are all valid.
+  throwing_If _InvalidEntryVersionTSE $ not $ all (== 1) $ trailEntryVersion <$> newEntries
 
   let entries = trailEntryToEntriesT <$> newEntries
   let previous = concat $ trailEntryToParentsT <$> newEntries

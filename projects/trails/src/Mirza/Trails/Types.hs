@@ -190,6 +190,7 @@ data TrailsServiceError
   = DBErrorTE SqlError
   | SignatureNotFoundTSE
   | EventIdNotFoundTSE
+  | InvalidEntryVersionTSE
   | UnmatchedUniqueViolationTSE SqlError
   deriving (Show)
 $(makeClassyPrisms ''TrailsServiceError)
