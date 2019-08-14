@@ -151,7 +151,7 @@ clientSpec = do
                             forkedNext <- buildTwoNextEntryTrail
                             newEntry <- buildEntry
                             let joinEnd joinedEntry entry = case (trailEntryParentSignatures entry) of
-                                                         [] -> addPreviousEntrySignature joinedEntry (trailEntrySignature entry)
+                                                         [] -> joinEntry (trailEntrySignature entry) joinedEntry
                                                          _  -> joinedEntry
                             let joinedEntry = foldl joinEnd newEntry forkedNext
                             pure $ joinedEntry : forkedNext
@@ -165,7 +165,7 @@ clientSpec = do
                               ring <- buildRing
                               let (Just base) = find (([] ==) . trailEntryParentSignatures) ring
                               let makeBaseParentOf entry = if length (trailEntryParentSignatures entry) == 2 then
-                                                             addPreviousEntrySignature entry (trailEntrySignature base)
+                                                             joinEntry (trailEntrySignature base) entry
                                                            else
                                                              entry
                               pure $ (makeBaseParentOf <$> ring)
@@ -186,9 +186,9 @@ clientSpec = do
                                 topInput <- buildTwoEntryTrail
                                 bottomInput <- buildTwoEntryTrail
                                 topOutputNode <- buildEntry
-                                topOutput <- addNextEntry $ pure $ addPreviousEntrySignature topOutputNode (firstSignature topInput)
+                                topOutput <- addNextEntry $ pure $ joinEntry (firstSignature topInput) topOutputNode
                                 outputNode <- buildEntry
-                                bottomOutput <- addNextEntry $ pure $ foldl addPreviousEntrySignature outputNode (firstSignature <$> [topInput, bottomInput])
+                                bottomOutput <- addNextEntry $ pure $ foldl (flip joinEntry) outputNode (firstSignature <$> [topInput, bottomInput])
                                 pure $ topOutput <> bottomOutput <> topInput <> bottomInput
           latticeTrail <- buildLattice
           checkTrailWithContext "Lattice Trail (see code comment diagram)" latticeTrail
@@ -295,6 +295,19 @@ clientSpec = do
         ]
 
 
+
+--------------------------------------------------------------------------------
+-- Some utility functions to make construction of the test cases simpler
+--------------------------------------------------------------------------------
+
+-- Note: These utility functions are only simple and operate on the operands specified only, they do not propogate
+--       signature updates along the tree and as so when constructing test trails using them they must always be
+--       constructed from origin to destination.
+
+buildSingleEntryTrail :: IO [TrailEntry]
+buildSingleEntryTrail = pure <$> buildEntry
+
+
 buildEntry :: IO TrailEntry
 buildEntry = do
   time <- liftIO getCurrentTime
@@ -308,71 +321,109 @@ buildEntry = do
   pure unsignedEntry{trailEntrySignature = buildSignature unsignedEntry}
 
 
-buildSingleEntryTrail :: IO [TrailEntry]
-buildSingleEntryTrail = pure <$> buildEntry
-
-
--- Note: These utility functions are only simple and operate on the operands specified only, they do not propogate
---       signature updates along the tree and as so when constructing test trails using them they must always be
---       constructed from origin to destination.
-
 -- This is a hack for now untril we implement signatures properly.
 buildSignature :: TrailEntry -> SignaturePlaceholder
 buildSignature entry = SignaturePlaceholder $ "SignaturePlaceholder-" <> (toText $ unEventId $ trailEntryEventID entry)
 
 
-addPreviousEntry :: [TrailEntry] -> IO [TrailEntry]
-addPreviousEntry entries = do
-  newEntry <- buildEntry
-  pure $ swap $ newEntry : (joinEntries (trailEntrySignature newEntry) entries)
-
--- This function is just designed to simplify expression.
-addPreviousEntryIO :: IO [TrailEntry] -> IO [TrailEntry]
-addPreviousEntryIO trail = join $ addNextEntry <$> trail
-
--- This function is just designed to simplify expression.
-joinEntriesIO :: SignaturePlaceholder -> IO [TrailEntry] -> IO [TrailEntry]
-joinEntriesIO sig = fmap (joinEntries sig)
-
-joinEntries :: SignaturePlaceholder -> [TrailEntry] -> [TrailEntry]
-joinEntries sig (entry : entries) = (addPreviousEntrySignature entry sig) : entries
--- Could just define the following as buildEntry, but it seems that this is likely to be a logic error and so its probably better to just fail here.
-joinEntries _ [] = error "Error: There is a logic error in the tests. Can't add a previous entry of a non existant entry."
-
--- This function is just designed to simplify expression.
+-- This function is just designed to simplify expression, see addNextEntry comment.
 addNextEntryIO :: IO [TrailEntry] -> IO [TrailEntry]
 addNextEntryIO trail = join $ addNextEntry <$> trail
 
 
--- Note: Adds the new next entry to the element at the start of the list. The new element at the start of the list will remain
--- in the same position and the new element will be added after the inital element and leave the remainder of the entry
--- list in the same order following the new entry.
+-- Adds the new next entry to the element at the start of the list. The new entry is placed at the start of the
+-- list and the remaining entries will be appended after the new element (retaining their original order).
 addNextEntry :: [TrailEntry] -> IO [TrailEntry]
 addNextEntry entries@(entry : _) = do
   newEntry <- buildEntry
-  let updatedNewEntryWithPreviousEntry = addPreviousEntrySignature newEntry (trailEntrySignature entry)
+  let updatedNewEntryWithPreviousEntry = joinEntry (trailEntrySignature entry) newEntry
   pure $ updatedNewEntryWithPreviousEntry : entries
 -- Could just define the following as buildEntry, but it seems that this is likely to be a logic error and so its probably better to just fail here.
 addNextEntry [] = error "Error: There is a logic error in the tests. Can't add the next entry of a non existant entry."
 
 
--- This function is just designed to simplify expression.
-addPreviousEntrySignature :: TrailEntry -> SignaturePlaceholder -> TrailEntry
-addPreviousEntrySignature entry sig = entry{trailEntryParentSignatures = sig : (trailEntryParentSignatures entry)}
+-- This function is just designed to simplify expression, see addPreviousEntry comment.
+addPreviousEntryIO :: IO [TrailEntry] -> IO [TrailEntry]
+addPreviousEntryIO trail = join $ addNextEntry <$> trail
 
--- This function is just designed to simplify expression.
+
+-- Adds a new entry which is the previous entry for the first entry in the trail. The first element in the trail will
+-- retain its position and then the new element (previous of the first entry) will be added after this and then all of
+-- the remaining entries will be appeneded after this in there original order.
+addPreviousEntry :: [TrailEntry] -> IO [TrailEntry]
+addPreviousEntry entries = do
+  newEntry <- buildEntry
+  pure $ swap $ newEntry : (joinEntries (trailEntrySignature newEntry) entries)
+
+
+-- This function is just designed to simplify expression, see joinEntries comment.
+joinEntriesIO :: SignaturePlaceholder -> IO [TrailEntry] -> IO [TrailEntry]
+joinEntriesIO sig = fmap (joinEntries sig)
+
+
+-- Adds the supplied signature to the first entries list of parents
+joinEntries :: SignaturePlaceholder -> [TrailEntry] -> [TrailEntry]
+joinEntries sig (entry : entries) = (joinEntry sig entry) : entries
+-- Could just define the following as buildEntry, but it seems that this is likely to be a logic error and so its probably better to just fail here.
+joinEntries _ [] = error "Error: There is a logic error in the tests. Can't add a previous entry of a non existant entry."
+
+
+-- Adds the supplied signature to the entry's list of parents
+joinEntry :: SignaturePlaceholder -> TrailEntry -> TrailEntry
+joinEntry sig entry = entry{trailEntryParentSignatures = sig : (trailEntryParentSignatures entry)}
+
+
+-- This function is just designed to simplify expression, see updateFirstEventId comment.
 updateFirstEventIdIO :: EventId -> IO [TrailEntry] -> IO [TrailEntry]
 updateFirstEventIdIO eventId entries = updateFirstEventId eventId <$> entries
 
--- This function is just designed to simplify expression.
+
+-- Updates the eventId of the first entry in the trail. The order of the trail is retained.
 updateFirstEventId :: EventId -> [TrailEntry] -> [TrailEntry]
 updateFirstEventId eventId (entry : entries) = (updateEventId eventId entry) : entries
 -- Could just define the following as NOP, but it seems that this is likely to be a logic error and so its probably better to just fail here.
 updateFirstEventId _ [] = error "Error: There is a logic error in the tests. Can't add the update the EventId a non existant entry."
 
+
+-- Updates the eventId of the entry.
 updateEventId :: EventId -> TrailEntry -> TrailEntry
 updateEventId eventId entry = entry{trailEntryEventID = eventId} -- TODO: Need to resign at this point...
 
+
+-- This function is just designed to simplify expression.
+-- Gets the signature of the first entry in the trail list.
+firstSignature :: [TrailEntry] -> SignaturePlaceholder
+firstSignature = firstField trailEntrySignature
+
+
+-- This function is just designed to simplify expression.
+-- Gets the eventId of the first entry in the trail list.
+firstEventId :: [TrailEntry] -> EventId
+firstEventId = firstField trailEntryEventID
+
+
+-- This function is just designed to simplify expression.
+firstField :: (TrailEntry -> a) -> [TrailEntry] -> a
+firstField _ [] = error "Error: There is a logic error in the tests. Can't get the first field in an empty trail."
+firstField fn entries = fn $ head entries
+
+
+-- This function is just designed to simplify expression, see swap comment.
+swapIO :: IO [TrailEntry] -> IO [TrailEntry]
+swapIO = fmap swap
+
+
+-- Swaps the order of the first two elements in the trail.
+swap :: [TrailEntry] -> [TrailEntry]
+swap []                      = []
+swap list@[_]                = list
+swap (first : second : rest) = second : first : rest
+
+
+
+--------------------------------------------------------------------------------
+-- Some utility functions to make expression of the test cases simpler
+--------------------------------------------------------------------------------
 
 shouldMatchTrail :: (Show a, Eq a) => Either a [TrailEntry] -> [TrailEntry] -> Expectation
 shouldMatchTrail actual@(Left _) _       = actual `shouldSatisfy` isRight
@@ -431,31 +482,9 @@ checkDistinctTrailsCommonEventId step http differentator topTrail bottomTrail co
 
 
 
-
--- This function is just designed to simplify expression.
-firstSignature :: [TrailEntry] -> SignaturePlaceholder
-firstSignature = firstField trailEntrySignature
-
--- This function is just designed to simplify expression.
-firstEventId :: [TrailEntry] -> EventId
-firstEventId = firstField trailEntryEventID
-
--- This function is just designed to simplify expression.
-firstField :: (TrailEntry -> a) -> [TrailEntry] -> a
-firstField _ [] = error "Error: There is a logic error in the tests. Can't get the first field in an empty trail."
-firstField fn entries = fn $ head entries
-
-
-
--- This function is just designed to simplify expression.
-swapIO :: IO [TrailEntry] -> IO [TrailEntry]
-swapIO = fmap swap
-
-swap :: [TrailEntry] -> [TrailEntry]
-swap []                      = []
-swap list@[_]                = list
-swap (first : second : rest) = second : first : rest
-
+--------------------------------------------------------------------------------
+-- Some utility functions to display the trails nicely for debugging
+--------------------------------------------------------------------------------
 
 prettyEntry :: TrailEntry -> String
 prettyEntry (TrailEntry  version timestamp@(EntryTime _) gs1_company_prefix eventId previous_signatures signature) =
@@ -473,4 +502,3 @@ prettyTrail [] = ""
 prettyTrail (first : rest) = do
   prettyEntry first <> "\n"
   <> prettyTrail rest
-
