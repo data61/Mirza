@@ -166,6 +166,11 @@ addEntryQuery entriesRaw = do
   let parentSignatures = (trailEntryParentSignatures <$> uniqueNewEntries)
   throwing_If _DuplicateParentsTSE ((nub <$> parentSignatures) /= parentSignatures)
 
+  -- This constraint could possibly be handled more efficently by letting the DB check the constraints directly and then
+  -- transform the error returned.
+  parentsExist <- validParents newEntries
+  throwing_If _ParentEntryNotFoundTSE $ (not parentsExist)
+
   -- Add the entries to the DB.
   let entries = trailEntryToEntriesT <$> uniqueNewEntries
   let previous = concat $ trailEntryToParentsT <$> uniqueNewEntries
@@ -174,6 +179,22 @@ addEntryQuery entriesRaw = do
   _ <- pg $ runInsertReturningList $ insert (_previous trailsDB)
           $ insertValues previous
   pure ()
+
+
+validParents :: [TrailEntry] -> DB context err Bool
+validParents entries = do
+    let searchParent sig = pg $ runSelectReturningOne $ select $ do
+                             entry <- all_ (_entries trailsDB)
+                             guard_ (entries_signature entry ==. val_ sig)
+                             pure entry
+    parents <- traverse searchParent (unmatchedParents entries)
+    pure $ (all isJust parents)
+
+
+unmatchedParents :: [TrailEntry] -> [SignaturePlaceholder]
+unmatchedParents entries = catMaybes $ (\parent -> if elem parent signatures then Nothing else Just parent) <$> requiredParents where
+                           signatures = trailEntrySignature <$> entries
+                           requiredParents = concat $ trailEntryParentSignatures <$> entries
 
 
 trailEntryToEntriesT :: TrailEntry -> EntriesT Identity
