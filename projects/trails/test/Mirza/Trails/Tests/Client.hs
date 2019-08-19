@@ -132,22 +132,30 @@ clientSpec = do
           -- Trail: *---*--\     /--*---*
           --                *---*
           --        *---*--/     \--*---*
-          -- TODO:
-
+          let buildLongWing = do
+                           topInput <- buildThreeEntryTrail
+                           bottomInput <- buildTwoEntryTrail
+                           let inputWing = joinEntries topInput (trailEntrySignature $ head bottomInput) <> bottomInput
+                           inputArrow <- addNextEntry inputWing
+                           inputAndTopOutput <- join $ fmap addNextEntry $ addNextEntry inputArrow
+                           bottomOutput <- join $ fmap addNextEntry $ fmap (flip joinEntries (trailEntrySignature $ head inputArrow)) $ fmap pure $ buildEntry
+                           pure $ inputAndTopOutput <> bottomOutput
+          longWing <- buildLongWing
+          checkTrailWithContext "Long Wing Trail" longWing
 
           -- Trail:  /--*--\
           --        *       *
           --         \--*--/
           let buildRing = do
+                            forkedNext <- buildTwoNextEntryTrail
                             newEntry <- buildEntry
-                            forkedPrevious <- buildTwoPreviousEntryTrail
-                            let makeNewEntryParentOf entry = case trailEntryParentSignatures entry of
-                                                               [] -> addPreviousEntrySignature entry (trailEntrySignature newEntry)
-                                                               _  -> entry
-                            pure $ [newEntry] <> (makeNewEntryParentOf <$> forkedPrevious)
+                            let joinEnd joinedEntry entry = case (trailEntryParentSignatures entry) of
+                                                         [] -> addPreviousEntrySignature joinedEntry (trailEntrySignature entry)
+                                                         _  -> joinedEntry
+                            let joinedEntry = foldl joinEnd newEntry forkedNext
+                            pure $ joinedEntry : forkedNext
           ringTrail <- buildRing
           checkTrailWithContext "Ring Trail" ringTrail
-
 
           -- Trail:  /--*--\
           --        *-------*
@@ -163,7 +171,6 @@ clientSpec = do
           burgerTrail <- buildBurger
           checkTrailWithContext "Burger Trail" burgerTrail
 
-
           -- Trail:        *---*
           --              /
           --             /
@@ -174,7 +181,16 @@ clientSpec = do
           --              /
           --             /
           --        *---*
-
+          let buildLattice = do
+                                topInput <- buildTwoEntryTrail
+                                bottomInput <- buildTwoEntryTrail
+                                topOutputNode <- buildEntry
+                                topOutput <- addNextEntry $ pure $ addPreviousEntrySignature topOutputNode (trailEntrySignature $ head topInput)
+                                outputNode <- buildEntry
+                                bottomOutput <- addNextEntry $ pure $ foldl addPreviousEntrySignature outputNode (trailEntrySignature <$> [head topInput, head bottomInput])
+                                pure $ topOutput <> bottomOutput <> topInput <> bottomInput
+          latticeTrail <- buildLattice
+          checkTrailWithContext "Lattice Trail" latticeTrail
 
           -- Trail: *---*---*
           --            :
