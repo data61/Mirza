@@ -10,6 +10,7 @@ import           Mirza.Trails.Database.Schema
 
 import           Mirza.Common.Types
 import           Mirza.Common.Time
+import           Mirza.Common.Utils
 
 import           Data.GS1.EventId                         (EventId (..))
 
@@ -18,7 +19,11 @@ import           Database.Beam.Query                      hiding (time)
 
 import           Servant
 
+import           Control.Lens.Extras
+
 import           Control.Monad.Identity
+
+import           Data.Maybe
 
 
 getTrailByEventId :: ( Member context '[HasEnvType, HasConnPool, HasKatipContext, HasKatipLogEnv]
@@ -37,7 +42,7 @@ getTrailByEventIdQuery eventId = do
             pure entry
   case entryList of
     [] -> throwing_ _EventIdNotFoundTSE
-    entry -> concat <$> traverse (getTrailBySignatureQuery []) (entries_signature <$> entry) -- TODO: Need to think more about this line, do I need to de-duplicate here...?
+    entry -> build getTrailBySignatureQuery [] (entries_signature <$> entry)
 
 
 getTrailBySignature :: ( Member context '[HasEnvType, HasConnPool, HasKatipContext, HasKatipLogEnv]
@@ -82,6 +87,10 @@ getThisAndPreviousEntriesBySignatureQuery discovered searchSignature = do
   else
     pure discovered
 
+
+getEntriesBySignature :: (AsTrailsServiceError err)
+                      => SignaturePlaceholder -> DB context err [TrailEntry]
+getEntriesBySignature searchSignature = pure <$> (getEntryBySignature searchSignature)
 
 getEntryBySignature :: (AsTrailsServiceError err)
                     => SignaturePlaceholder -> DB context err TrailEntry
@@ -131,9 +140,14 @@ addTrail trail = do
 
 addEntryQuery :: (AsTrailsServiceError err)
               => [TrailEntry] -> DB context err ()
-addEntryQuery entries_raw = do
-  let entries = trailEntryToEntriesT <$> entries_raw
-  let previous = concat $ trailEntryToParentsT <$> entries_raw
+addEntryQuery entriesRaw = do
+  let ignoreNotFound = handleError (\err -> if is _SignatureNotFoundTSE err then pure Nothing else throwError err)
+  existingEntries <- fmap catMaybes $ traverse (ignoreNotFound . (fmap Just <$> getEntryBySignature)) (trailEntrySignature <$> entriesRaw)
+  -- Note: We only need to check if the signature exists (and not that the full event contents match) since the signature guarantees that they events are the same.
+  let newEntries = filter (\entry -> not $ elem (trailEntrySignature entry) $ trailEntrySignature <$> existingEntries) entriesRaw
+
+  let entries = trailEntryToEntriesT <$> newEntries
+  let previous = concat $ trailEntryToParentsT <$> newEntries
   _ <- pg $ runInsertReturningList $ insert (_entries trailsDB)
           $ insertValues entries
   _ <- pg $ runInsertReturningList $ insert (_previous trailsDB)
