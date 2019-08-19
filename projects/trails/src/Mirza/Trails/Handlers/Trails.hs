@@ -159,7 +159,7 @@ trailEntryToEntriesT :: TrailEntry -> EntriesT Identity
 trailEntryToEntriesT trailEntry = EntriesT (trailEntrySignature trailEntry)
                                            (toDbTimestamp $ getEntryTime $ trailEntryTimestamp trailEntry)
                                            (trailEntryGS1CompanyPrefix trailEntry)
-                                           (unEventId $ trailEntryEventID trailEntry)
+                                           (unEventId $ trailEntryEventId trailEntry)
                                            Nothing
 
 

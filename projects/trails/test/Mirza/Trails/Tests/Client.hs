@@ -75,7 +75,7 @@ clientSpec = do
           getSingleEntryBySignatureResult `shouldMatchTrail` [singleEntry]
 
           step "That getting a single entry trail by eventId works."
-          getSingleEntryByEventIdResult <- http $ getTrailByEventId (trailEntryEventID singleEntry)
+          getSingleEntryByEventIdResult <- http $ getTrailByEventId (trailEntryEventId singleEntry)
           getSingleEntryByEventIdResult `shouldMatchTrail` [singleEntry]
 
 
@@ -323,7 +323,7 @@ buildEntry = do
 
 -- This is a hack for now untril we implement signatures properly.
 buildSignature :: TrailEntry -> SignaturePlaceholder
-buildSignature entry = SignaturePlaceholder $ "SignaturePlaceholder-" <> (toText $ unEventId $ trailEntryEventID entry)
+buildSignature entry = SignaturePlaceholder $ "SignaturePlaceholder-" <> (toText $ unEventId $ trailEntryEventId entry)
 
 
 -- This function is just designed to simplify expression, see addNextEntry comment.
@@ -387,7 +387,7 @@ updateFirstEventId _ [] = error "Error: There is a logic error in the tests. Can
 
 -- Updates the eventId of the entry.
 updateEventId :: EventId -> TrailEntry -> TrailEntry
-updateEventId eventId entry = entry{trailEntryEventID = eventId} -- TODO: Need to resign at this point...
+updateEventId eventId entry = entry{trailEntryEventId = eventId} -- TODO: Need to resign at this point...
 
 
 -- This function is just designed to simplify expression.
@@ -399,7 +399,7 @@ firstSignature = firstField trailEntrySignature
 -- This function is just designed to simplify expression.
 -- Gets the eventId of the first entry in the trail list.
 firstEventId :: [TrailEntry] -> EventId
-firstEventId = firstField trailEntryEventID
+firstEventId = firstField trailEntryEventId
 
 
 -- This function is just designed to simplify expression.
@@ -446,7 +446,7 @@ shouldMatchEntry (TrailEntry   actual_version (EntryTime   actual_timestamp)   a
 
 -- Test the 3 end points (addTrail, getTrailBySignature, getTrailByEventId) for the specified trail.
 checkTrail :: (String -> IO()) -> (forall a. ClientM a -> IO (Either ServantError a)) -> String -> [TrailEntry] -> IO ()
-checkTrail step http differentator trail = checkPartialTrail step http differentator trail trail (trailEntrySignature <$> trail) (trailEntryEventID <$> trail)
+checkTrail step http differentator trail = checkPartialTrail step http differentator trail trail (trailEntrySignature <$> trail) (trailEntryEventId <$> trail)
 
 
 checkPartialTrail :: (String -> IO()) -> (forall a. ClientM a -> IO (Either ServantError a)) -> String -> [TrailEntry] -> [TrailEntry] -> [SignaturePlaceholder] -> [EventId] -> IO ()
@@ -468,7 +468,7 @@ checkPartialTrail step http differentator inputTrail expectedTrail sigs eventIds
 
 checkDistinctTrailsCommonEventId :: (String -> IO()) -> (forall a. ClientM a -> IO (Either ServantError a)) -> String -> [TrailEntry] -> [TrailEntry] -> EventId -> IO ()
 checkDistinctTrailsCommonEventId step http differentator topTrail bottomTrail commonEventId = do
-  let filterNotMatchingTrailId matchingTrailId trail = filter (/= matchingTrailId) $ trailEntryEventID <$> trail
+  let filterNotMatchingTrailId matchingTrailId trail = filter (/= matchingTrailId) $ trailEntryEventId <$> trail
 
   let completeTrail = topTrail <> bottomTrail
   -- traceM $ "\nCompleteTrail: " <> (prettyTrail completeTrail)

@@ -87,7 +87,7 @@ data TrailEntry = TrailEntry
   { trailEntryVersion          :: Integer
   , trailEntryTimestamp        :: EntryTime
   , trailEntryGS1CompanyPrefix :: GS1CompanyPrefix
-  , trailEntryEventID          :: EventId
+  , trailEntryEventId          :: EventId
   , trailEntryParentSignatures :: [SignaturePlaceholder]
   , trailEntrySignature        :: SignaturePlaceholder
   } deriving (Show, Generic, Eq)
