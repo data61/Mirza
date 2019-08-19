@@ -150,7 +150,7 @@ clientSpec = do
           let buildRing = do
                             forkedNext <- buildTwoNextEntryTrail
                             newEntry <- buildEntry
-                            let joinEnd joinedEntry entry = case (trailEntryParentSignatures entry) of
+                            let joinEnd joinedEntry entry = case (trailEntryPreviousSignatures entry) of
                                                          [] -> joinEntry (trailEntrySignature entry) joinedEntry
                                                          _  -> joinedEntry
                             let joinedEntry = foldl joinEnd newEntry forkedNext
@@ -163,12 +163,12 @@ clientSpec = do
           --         \--*--/
           let buildBurger = do
                               ring <- buildRing
-                              let (Just base) = find (([] ==) . trailEntryParentSignatures) ring
-                              let makeBaseParentOf entry = if length (trailEntryParentSignatures entry) == 2 then
+                              let (Just base) = find (([] ==) . trailEntryPreviousSignatures) ring
+                              let makeBasePreviousOf entry = if length (trailEntryPreviousSignatures entry) == 2 then
                                                              joinEntry (trailEntrySignature base) entry
                                                            else
                                                              entry
-                              pure $ (makeBaseParentOf <$> ring)
+                              pure $ (makeBasePreviousOf <$> ring)
           burgerTrail <- buildBurger
           checkTrailWithContext "Burger Trail (see code comment diagram)" burgerTrail
 
@@ -298,16 +298,16 @@ clientSpec = do
           getDuplicateEntryBySignatureResult <- http $ getTrailBySignature (trailEntrySignature duplicatEntry)
           getDuplicateEntryBySignatureResult `shouldMatchTrail` [duplicatEntry]
 
-          step "That adding an entry with duplicate parent entries fails"
-          let dupliacteParent entry = entry{trailEntryParentSignatures = (head $ trailEntryParentSignatures entry) : trailEntryParentSignatures entry}
-          duplicateParentBaseTrail <- addNextEntryIO $ buildSingleEntryTrail
-          let duplicateParentTrail = applyHead dupliacteParent duplicateParentBaseTrail
-          duplicateParentTrailResult <- http $ addTrail duplicateParentTrail
-          duplicateParentTrailResult `shouldSatisfy` isLeft
-          duplicateParentTrailResult `shouldSatisfy` (checkFailureStatus NS.badRequest400)
-          duplicateParentTrailResult `shouldSatisfy` (checkFailureMessage "Duplicating a signature in the parent signatures of an event is not allowed.")
+          step "That adding an entry with duplicate previous entries fails"
+          let dupliactePreviousSignatures entry = entry{trailEntryPreviousSignatures = (head $ trailEntryPreviousSignatures entry) : trailEntryPreviousSignatures entry}
+          duplicatePreviousSignaturesBaseTrail <- addNextEntryIO $ buildSingleEntryTrail
+          let duplicatePreviousSignaturesTrail = applyHead dupliactePreviousSignatures duplicatePreviousSignaturesBaseTrail
+          duplicatePreviousSignaturesTrailResult <- http $ addTrail duplicatePreviousSignaturesTrail
+          duplicatePreviousSignaturesTrailResult `shouldSatisfy` isLeft
+          duplicatePreviousSignaturesTrailResult `shouldSatisfy` (checkFailureStatus NS.badRequest400)
+          duplicatePreviousSignaturesTrailResult `shouldSatisfy` (checkFailureMessage "Duplicating a signature in the previous signatures of an event is not allowed.")
 
-          step "That adding an entry with the parent not in the trail, but already stored by the service succeeds"
+          step "That adding an entry with the previous signature not in the trail, but already stored by the service succeeds"
           multiPhaseAddFirst  <- buildEntry
           multiPhaseAddSecond <- joinEntry (trailEntrySignature multiPhaseAddFirst) <$> buildEntry
           multiPhaseAddFirstResult <- http $ addTrail [multiPhaseAddFirst]
@@ -317,13 +317,13 @@ clientSpec = do
           getMultiPhaseEntryBySignatureResult <- http $ getTrailBySignature (trailEntrySignature multiPhaseAddFirst)
           getMultiPhaseEntryBySignatureResult `shouldMatchTrail` [multiPhaseAddFirst, multiPhaseAddSecond]
 
-          step "That adding an entry with the parent not in the trail, and not already stored by the service fails"
+          step "That adding an entry with the previous signatures not in the trail, and not already stored by the service fails"
           noParentParent <- buildEntry
           noParentEntry <- joinEntry (trailEntrySignature noParentParent) <$> buildEntry
           noParentAddResult <- http $ addTrail [noParentEntry]
           noParentAddResult `shouldSatisfy` isLeft
           noParentAddResult `shouldSatisfy` (checkFailureStatus NS.badRequest400)
-          noParentAddResult `shouldSatisfy` (checkFailureMessage "It is not possible to add entries with parents signatures that are not present in the current trail or already stored by the service.")
+          noParentAddResult `shouldSatisfy` (checkFailureMessage "It is not possible to add entries with previous signatures that are not present in the current trail or already stored by the service.")
 
           -- TODO: Test that invalid signature fails.
           -- TODO: Test that timestamp in the future is invalid.
@@ -412,16 +412,16 @@ joinEntriesIO :: SignaturePlaceholder -> IO [TrailEntry] -> IO [TrailEntry]
 joinEntriesIO sig = fmap (joinEntries sig)
 
 
--- Adds the supplied signature to the first entries list of parents
+-- Adds the supplied signature to the first entries list of previous signatures.
 joinEntries :: SignaturePlaceholder -> [TrailEntry] -> [TrailEntry]
 joinEntries sig (entry : entries) = (joinEntry sig entry) : entries
 -- Could just define the following as buildEntry, but it seems that this is likely to be a logic error and so its probably better to just fail here.
 joinEntries _ [] = error "Error: There is a logic error in the tests. Can't add a previous entry of a non existant entry."
 
 
--- Adds the supplied signature to the entry's list of parents
+-- Adds the supplied signature to the entry's list of previous signatures.
 joinEntry :: SignaturePlaceholder -> TrailEntry -> TrailEntry
-joinEntry sig entry = entry{trailEntryParentSignatures = sig : (trailEntryParentSignatures entry)}
+joinEntry sig entry = entry{trailEntryPreviousSignatures = sig : (trailEntryPreviousSignatures entry)}
 
 
 -- This function is just designed to simplify expression, see updateFirstEventId comment.
@@ -549,7 +549,7 @@ prettyEntry (TrailEntry  version timestamp@(EntryTime _) gs1_company_prefix even
   <> "Timestamp: "          <> show timestamp           <> "\n"
   <> "GS1 Company Prefix: " <> show gs1_company_prefix  <> "\n"
   <> "EventId: "            <> show eventId             <> "\n"
-  <> "ParentSignatures: "   <> show previous_signatures <> "\n"
+  <> "PreviousSignatures: "   <> show previous_signatures <> "\n"
   <> "Signature: "          <> show signature           <> "\n"
 
 

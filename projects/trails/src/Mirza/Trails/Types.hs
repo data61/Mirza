@@ -84,12 +84,12 @@ instance HasKatipContext (TrailsContext) where
 --       to bottom.
 
 data TrailEntry = TrailEntry
-  { trailEntryVersion          :: Integer
-  , trailEntryTimestamp        :: EntryTime
-  , trailEntryGS1CompanyPrefix :: GS1CompanyPrefix
-  , trailEntryEventId          :: EventId
-  , trailEntryParentSignatures :: [SignaturePlaceholder]
-  , trailEntrySignature        :: SignaturePlaceholder
+  { trailEntryVersion            :: Integer
+  , trailEntryTimestamp          :: EntryTime
+  , trailEntryGS1CompanyPrefix   :: GS1CompanyPrefix
+  , trailEntryEventId            :: EventId
+  , trailEntryPreviousSignatures :: [SignaturePlaceholder]
+  , trailEntrySignature          :: SignaturePlaceholder
   } deriving (Show, Generic, Eq)
 instance ToSchema TrailEntry
 
@@ -98,12 +98,12 @@ instance Ord TrailEntry where
   compare a b = compare (trailEntrySignature a) (trailEntrySignature b)
 
 instance ToJSON TrailEntry where
-  toJSON (TrailEntry version timestamp org eventId parentSignatures eventSignature) = object
+  toJSON (TrailEntry version timestamp org eventId previousSignatures eventSignature) = object
     [ trailEntryJSONFieldVersion          .= version
     , trailEntryJSONFieldTimestamp        .= timestamp
     , trailEntryJSONFieldGS1CompanyPrefix .= org
     , trailEntryJSONFieldEventId          .= eventId
-    , trailEntryJSONFieldParentSignatures .= parentSignatures
+    , trailEntryJSONFieldPreviousSignatures .= previousSignatures
     , trailEntryJSONFieldSignature        .= eventSignature
     ]
 instance FromJSON TrailEntry where
@@ -112,7 +112,7 @@ instance FromJSON TrailEntry where
     <*> o .: trailEntryJSONFieldTimestamp
     <*> o .: trailEntryJSONFieldGS1CompanyPrefix
     <*> o .: trailEntryJSONFieldEventId
-    <*> o .: trailEntryJSONFieldParentSignatures
+    <*> o .: trailEntryJSONFieldPreviousSignatures
     <*> o .: trailEntryJSONFieldSignature
 
 trailEntryJSONFieldVersion :: Text
@@ -123,8 +123,8 @@ trailEntryJSONFieldGS1CompanyPrefix :: Text
 trailEntryJSONFieldGS1CompanyPrefix = "org"
 trailEntryJSONFieldEventId :: Text
 trailEntryJSONFieldEventId = "event_id"
-trailEntryJSONFieldParentSignatures :: Text
-trailEntryJSONFieldParentSignatures = "parent_signatures"
+trailEntryJSONFieldPreviousSignatures :: Text
+trailEntryJSONFieldPreviousSignatures = "previous_signatures"
 trailEntryJSONFieldSignature :: Text
 trailEntryJSONFieldSignature = "signature"
 
@@ -191,8 +191,8 @@ data TrailsServiceError
   | SignatureNotFoundTSE
   | EventIdNotFoundTSE
   | InvalidEntryVersionTSE
-  | DuplicateParentsTSE
-  | ParentEntryNotFoundTSE
+  | DuplicatePreviousEntriesTSE
+  | PreviousEntryNotFoundTSE
   | UnmatchedUniqueViolationTSE SqlError
   deriving (Show)
 $(makeClassyPrisms ''TrailsServiceError)

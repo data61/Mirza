@@ -85,7 +85,7 @@ getThisAndPreviousEntriesBySignatureQuery discovered searchSignature = do
   if not $ elem searchSignature (trailEntrySignature <$> discovered) then do
     entry <- getEntryBySignature searchSignature
     let combined = discovered <> [entry]
-    let previous = filter (isNotPresentIn combined) $ trailEntryParentSignatures entry
+    let previous = filter (isNotPresentIn combined) $ trailEntryPreviousSignatures entry
     build getTrailBySignatureQuery combined previous
   else
     pure discovered
@@ -163,17 +163,17 @@ addEntryQuery entriesRaw = do
   let uniqueNewEntries = nub newEntries
 
   -- TODO: Again nub is documented to have order O(n^2) and should probably be replaced before this service is productionised (there are better algorithms for this use case).
-  let parentSignatures = (trailEntryParentSignatures <$> uniqueNewEntries)
-  throwing_If _DuplicateParentsTSE ((nub <$> parentSignatures) /= parentSignatures)
+  let previousSignatures = (trailEntryPreviousSignatures <$> uniqueNewEntries)
+  throwing_If _DuplicatePreviousEntriesTSE ((nub <$> previousSignatures) /= previousSignatures)
 
   -- This constraint could possibly be handled more efficently by letting the DB check the constraints directly and then
   -- transform the error returned.
-  parentsExist <- validParents newEntries
-  throwing_If _ParentEntryNotFoundTSE $ (not parentsExist)
+  previousExist <- validPrevious newEntries
+  throwing_If _PreviousEntryNotFoundTSE $ (not previousExist)
 
   -- Add the entries to the DB.
   let entries = trailEntryToEntriesT <$> uniqueNewEntries
-  let previous = concat $ trailEntryToParentsT <$> uniqueNewEntries
+  let previous = concat $ trailEntryToPreviousT <$> uniqueNewEntries
   _ <- pg $ runInsertReturningList $ insert (_entries trailsDB)
           $ insertValues entries
   _ <- pg $ runInsertReturningList $ insert (_previous trailsDB)
@@ -181,20 +181,20 @@ addEntryQuery entriesRaw = do
   pure ()
 
 
-validParents :: [TrailEntry] -> DB context err Bool
-validParents entries = do
-    let searchParent sig = pg $ runSelectReturningOne $ select $ do
+validPrevious :: [TrailEntry] -> DB context err Bool
+validPrevious entries = do
+    let searchPrevious sig = pg $ runSelectReturningOne $ select $ do
                              entry <- all_ (_entries trailsDB)
                              guard_ (entries_signature entry ==. val_ sig)
                              pure entry
-    parents <- traverse searchParent (unmatchedParents entries)
-    pure $ (all isJust parents)
+    previous <- traverse searchPrevious (unmatchedPrevious entries)
+    pure $ (all isJust previous)
 
 
-unmatchedParents :: [TrailEntry] -> [SignaturePlaceholder]
-unmatchedParents entries = catMaybes $ (\parent -> if elem parent signatures then Nothing else Just parent) <$> requiredParents where
+unmatchedPrevious :: [TrailEntry] -> [SignaturePlaceholder]
+unmatchedPrevious entries = catMaybes $ (\previous -> if elem previous signatures then Nothing else Just previous) <$> requiredPrevious where
                            signatures = trailEntrySignature <$> entries
-                           requiredParents = concat $ trailEntryParentSignatures <$> entries
+                           requiredPrevious = concat $ trailEntryPreviousSignatures <$> entries
 
 
 trailEntryToEntriesT :: TrailEntry -> EntriesT Identity
@@ -205,5 +205,5 @@ trailEntryToEntriesT trailEntry = EntriesT (trailEntrySignature trailEntry)
                                            Nothing
 
 
-trailEntryToParentsT :: TrailEntry -> [PreviousT Identity]
-trailEntryToParentsT trailEntry = (PreviousT (EntriesPrimaryKey $ trailEntrySignature trailEntry)) <$> (trailEntryParentSignatures trailEntry)
+trailEntryToPreviousT :: TrailEntry -> [PreviousT Identity]
+trailEntryToPreviousT trailEntry = (PreviousT (EntriesPrimaryKey $ trailEntrySignature trailEntry)) <$> (trailEntryPreviousSignatures trailEntry)

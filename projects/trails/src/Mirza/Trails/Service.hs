@@ -109,8 +109,8 @@ trailsErrorToHttpError trailsError =
     (SignatureNotFoundTSE)          -> httpError err404 "A trail with a matching signature was not found."
     (EventIdNotFoundTSE)            -> httpError err404 "A trail with the matching EventId was not found."
     (InvalidEntryVersionTSE)        -> httpError err400 "Only version 1 trail entries are currently supported by this service."
-    (DuplicateParentsTSE)           -> httpError err400 "Duplicating a signature in the parent signatures of an event is not allowed."
-    (ParentEntryNotFoundTSE)        -> httpError err400 "It is not possible to add entries with parents signatures that are not present in the current trail or already stored by the service."
+    (DuplicatePreviousEntriesTSE)   -> httpError err400 "Duplicating a signature in the previous signatures of an event is not allowed."
+    (PreviousEntryNotFoundTSE)      -> httpError err400 "It is not possible to add entries with previous signatures that are not present in the current trail or already stored by the service."
     (UnmatchedUniqueViolationTSE _) -> unexpectedError trailsError
 
 -- | A generic internal server error has occured. We include no more information in the result returned to the user to

@@ -113,7 +113,7 @@ entriesPrimaryKeyToSignature (EntriesPrimaryKey sig) = sig
 
 
 --------------------------------------------------------------------------------
--- Parent table
+-- Previous table
 --------------------------------------------------------------------------------
 
 type Previous = PreviousT Identity
@@ -131,7 +131,7 @@ instance Beamable PreviousT
 instance Beamable (PrimaryKey PreviousT)
 
 instance Table PreviousT where
-  data PrimaryKey PreviousT f = ParentMapping (PrimaryKey EntriesT f) (C f SignaturePlaceholder)
+  data PrimaryKey PreviousT f = PreviousMapping (PrimaryKey EntriesT f) (C f SignaturePlaceholder)
     deriving Generic
-  primaryKey = ParentMapping <$> previous_entry_signature <*> previous_previous_signature
+  primaryKey = PreviousMapping <$> previous_entry_signature <*> previous_previous_signature
 deriving instance Eq (PrimaryKey PreviousT Identity)
