@@ -82,12 +82,13 @@ clientSpec = do
           let checkTrailWithContext = checkTrail step http
 
           -- Trail: *---*
-          let buildTwoEntryTrail = join $ addPreviousEntry <$> (fmap pure buildEntry)
+          let buildTwoEntryTrail = join $ addNextEntry <$> (fmap pure buildEntry)
           twoEntryTrail <- buildTwoEntryTrail
           checkTrailWithContext "2 Entry Trail (1 Previous Entry)" twoEntryTrail
 
           -- Trail: *---*---*
-          threeEntryTrail <- join $ addPreviousEntry <$> (reverse <$> buildTwoEntryTrail)
+          let buildThreeEntryTrail = join $ addNextEntry <$> buildTwoEntryTrail
+          threeEntryTrail <- buildThreeEntryTrail
           checkTrailWithContext "3 Entry Trail (1 Previous Entry, 1 Next Entry)" threeEntryTrail
 
           -- Trail: *--\
@@ -106,26 +107,26 @@ clientSpec = do
           -- Trail:  /--*
           --        *
           --         \--*
-          let buildTwoNextEntryTrail = join $ addNextEntry <$> (reverse <$> buildTwoEntryTrail)
+          let buildTwoNextEntryTrail = join $ addNextEntry <$> (swap <$> buildTwoEntryTrail)
           twoNextEntryTrail <- buildTwoNextEntryTrail
           checkTrailWithContext "2 Next Entries Trail" twoNextEntryTrail
 
           -- Trail:  /--*
           --        *---*
           --         \--*
-          threeNextEntryTrail <- join $ addNextEntry <$> buildTwoNextEntryTrail
+          threeNextEntryTrail <- join $ addNextEntry <$> (swap <$> buildTwoNextEntryTrail)
           checkTrailWithContext "3 Next Entries Trail" threeNextEntryTrail
 
           -- Trail: *--\ /--*
           --            *
           --        *--/ \--*
-          twoPreviousTwoNextEntryTrail <- join $ fmap addNextEntry $ join $ addNextEntry <$> buildTwoPreviousEntryTrail
+          twoPreviousTwoNextEntryTrail <- join $ fmap addNextEntry $ fmap swap $ join $ addNextEntry <$> buildTwoPreviousEntryTrail
           checkTrailWithContext "2 Previous 2 Next Entries Trail" twoPreviousTwoNextEntryTrail
 
           -- Trail: *--\     /--*
           --            *---*
           --        *--/     \--*
-          twoPreviousThenNextThenTwoNextEntryTrail <- join $ fmap addNextEntry $ join $ fmap addNextEntry $ fmap swap $ join $ addNextEntry <$> buildTwoPreviousEntryTrail
+          twoPreviousThenNextThenTwoNextEntryTrail <- join $ fmap addNextEntry $ fmap swap $ join $ fmap addNextEntry $ join $ addNextEntry <$> buildTwoPreviousEntryTrail
           checkTrailWithContext "1 Previous Entry, then 2 Previous Entries and 2 Next Entries Trail" twoPreviousThenNextThenTwoNextEntryTrail
 
           -- Trail: *---*--\     /--*---*
@@ -239,28 +240,36 @@ buildEntry = do
   pure unsignedEntry{trailEntrySignature = buildSignature unsignedEntry}
 
 
+
+-- Note: These utility functions are only simple and operate on the operands specified only, they do not propogate
+--       signature updates along the tree and as so when constructing test trails using them they must always be
+--       constructed from origin to destination.
+
 -- This is a hack for now untril we implement signatures properly.
 buildSignature :: TrailEntry -> SignaturePlaceholder
 buildSignature entry = SignaturePlaceholder $ "SignaturePlaceholder-" <> (toText $ unEventId $ trailEntryEventID entry)
 
 
--- Note: Adds the new entry to the element at the start of the list. The new element at the start of the list will remain
+addPreviousEntry :: [TrailEntry] -> IO [TrailEntry]
+addPreviousEntry entries = do
+  newEntry <- buildEntry
+  pure $ swap $ newEntry : (joinEntries entries (trailEntrySignature newEntry))
+
+
+joinEntries :: [TrailEntry] -> SignaturePlaceholder -> [TrailEntry]
+joinEntries (entry : entries) sig = (addPreviousEntrySignature entry sig) : entries
+-- Could just define the following  as buildEntry, but it seems that this is likely to be a logic error and so its probably better to just fail here.
+joinEntries [] _ = error "Error: There is a logic error in the tests. Can't add a previous entry of a non existant entry."
+
+
+-- Note: Adds the new next entry to the element at the start of the list. The new element at the start of the list will remain
 -- in the same position and the new element will be added after the inital element and leave the remainder of the entry
 -- list in the same order following the new entry.
-addPreviousEntry :: [TrailEntry] -> IO [TrailEntry]
-addPreviousEntry (entry : entries) = do
-  newEntry <- buildEntry
-  let updatedEntry = addPreviousEntrySignature entry (trailEntrySignature newEntry)
-  pure $ updatedEntry : newEntry : entries
--- Could just define the following  as buildEntry, but it seems that this is likely to be a logic error and so its probably better to just fail here.
-addPreviousEntry [] = error "Error: There is a logic error in the tests. Can't add a previous entry of a non existant entry."
-
-
 addNextEntry ::  [TrailEntry] -> IO [TrailEntry]
-addNextEntry (entry : entries) = do
+addNextEntry entries@(entry : _) = do
   newEntry <- buildEntry
   let updatedNewEntryWithPreviousEntry = addPreviousEntrySignature newEntry (trailEntrySignature entry)
-  pure $ entry : updatedNewEntryWithPreviousEntry : entries
+  pure $ updatedNewEntryWithPreviousEntry : entries
 -- Could just define the following  as buildEntry, but it seems that this is likely to be a logic error and so its probably better to just fail here.
 addNextEntry [] = error "Error: There is a logic error in the tests. Can't add the next entry of a non existant entry."
 
