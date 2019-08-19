@@ -80,6 +80,7 @@ clientSpec = do
 
 
           let checkTrailWithContext = checkTrail step http
+          let checkDistinctTrailsCommonEventIdWithContext = checkDistinctTrailsCommonEventId step http
 
           -- Trail: *---*
           let buildTwoEntryTrail = join $ addNextEntry <$> (fmap pure buildEntry)
@@ -135,10 +136,10 @@ clientSpec = do
           let buildLongWing = do
                            topInput <- buildThreeEntryTrail
                            bottomInput <- buildTwoEntryTrail
-                           let inputWing = joinEntries topInput (trailEntrySignature $ head bottomInput) <> bottomInput
+                           let inputWing = joinEntries (trailEntrySignature $ head bottomInput) topInput <> bottomInput
                            inputArrow <- addNextEntry inputWing
                            inputAndTopOutput <- join $ fmap addNextEntry $ addNextEntry inputArrow
-                           bottomOutput <- join $ fmap addNextEntry $ fmap (flip joinEntries (trailEntrySignature $ head inputArrow)) $ fmap pure $ buildEntry
+                           bottomOutput <- join $ fmap addNextEntry $ fmap (joinEntries (trailEntrySignature $ head inputArrow)) $ fmap pure $ buildEntry
                            pure $ inputAndTopOutput <> bottomOutput
           longWing <- buildLongWing
           checkTrailWithContext "Long Wing Trail (see code comment diagram)" longWing
@@ -196,30 +197,46 @@ clientSpec = do
           --            :
           --        *---*---*
           -- Note: ':' Denotes matching eventId (but otherwise distinct trails).
-          let buildCommonEventIdDistinctTrails = do
-                                                    topInput <- buildTwoEntryTrail
-                                                    bottomTrail <- join $ fmap addNextEntry $ updateFirstEventId (trailEntryEventID $ head topInput) <$> buildTwoEntryTrail
-                                                    topTrail <- addNextEntry $ topInput
-                                                    pure $ topTrail <> bottomTrail
-          commonEventIdDistinctTrails <- buildCommonEventIdDistinctTrails
-          checkTrailWithContext "Two Distinct Trails with a common EventId mid trail" commonEventIdDistinctTrails
+          commonEventIdDistinctTrailsTopInput <- buildTwoEntryTrail
+          let commonEventIdDistinctTrailsMatchingTrailId = trailEntryEventID $ head commonEventIdDistinctTrailsTopInput
+          commonEventIdDistinctTrailsBottomTrail <- addNextEntryIO $ updateFirstEventId commonEventIdDistinctTrailsMatchingTrailId <$> buildTwoEntryTrail
+          commonEventIdDistinctTrailsTopTrail <- addNextEntry $ commonEventIdDistinctTrailsTopInput
+          checkDistinctTrailsCommonEventIdWithContext "mid" commonEventIdDistinctTrailsTopTrail commonEventIdDistinctTrailsBottomTrail commonEventIdDistinctTrailsMatchingTrailId
 
           -- Trail: *---*---*
           --        :
           --        *---*---*
           -- Note: ':' Denotes matching eventId (but otherwise distinct trails).
-
+          commonEventIdStartDistinctTrailsTopInput <- buildSingleEntryTrail
+          let commonEventIdStartDistinctTrailsMatchingTrailId  = trailEntryEventID $ head commonEventIdStartDistinctTrailsTopInput
+          commonEventIdStartDistinctTrailsBottomInput <- updateFirstEventId commonEventIdStartDistinctTrailsMatchingTrailId <$> buildSingleEntryTrail
+          commonEventIdStartDistinctTrailsTopTrail <- addNextEntryIO $ addNextEntry commonEventIdStartDistinctTrailsTopInput
+          commonEventIdStartDistinctTrailsBottomTrail <- addNextEntryIO $ addNextEntry commonEventIdStartDistinctTrailsBottomInput
+          -- traceM $ "Top Trail: " <> (prettyTrail commonEventIdStartDistinctTrailsTopTrail)
+          -- traceM $ "Bottom Trail: " <> (prettyTrail commonEventIdStartDistinctTrailsBottomTrail)
+          -- traceM $ "CommonEventId: " <> (show commonEventIdStartDistinctTrailsMatchingTrailId)
+          checkDistinctTrailsCommonEventIdWithContext "at the start of the" commonEventIdStartDistinctTrailsTopTrail commonEventIdStartDistinctTrailsBottomTrail commonEventIdStartDistinctTrailsMatchingTrailId
 
           -- Trail: *---*---*
           --                :
           --        *---*---*
           -- Note: ':' Denotes matching eventId (but otherwise distinct trails).
+          commonEventIdEndDistinctTrailsTopTrail <- buildThreeEntryTrail
+          commonEventIdEndDistinctTrailsBottomInput <- buildThreeEntryTrail
+          let commonEventIdEndDistinctTrailsMatchingTrailId  = trailEntryEventID $ head commonEventIdEndDistinctTrailsTopTrail
+          let commonEventIdEndDistinctTrailsBottomTrail = updateFirstEventId commonEventIdEndDistinctTrailsMatchingTrailId commonEventIdEndDistinctTrailsBottomInput
+          checkDistinctTrailsCommonEventIdWithContext "at the end of the" commonEventIdEndDistinctTrailsTopTrail commonEventIdEndDistinctTrailsBottomTrail commonEventIdEndDistinctTrailsMatchingTrailId
 
           -- Trail: *---*---\
           --            :    *
           --        *---*---/
           -- Note: ':' Denotes matching eventId (but otherwise distinct trail entries).
-
+          commonEventIdJoinedEndTopInput <- buildTwoEntryTrail
+          let commonEventIdJoinedEndMatchingTrailId = trailEntryEventID $ head commonEventIdJoinedEndTopInput
+          commonEventIdJoinedEndBottomTrail <- addNextEntryIO $ updateFirstEventId commonEventIdJoinedEndMatchingTrailId <$> buildTwoEntryTrail
+          let commonEventIdJoinedEndTopTrail = joinEntries (trailEntrySignature $ head commonEventIdJoinedEndBottomTrail) commonEventIdJoinedEndTopInput
+          let completeCommentEventIdJoinedEndTrail = commonEventIdJoinedEndTopTrail <> commonEventIdJoinedEndBottomTrail
+          checkTrailWithContext "Common EventId Joined End Trail" completeCommentEventIdJoinedEndTrail
 
           -- Trail:  /--*---*
           --        *   :
@@ -238,7 +255,7 @@ clientSpec = do
   -- Test that timestamp in the future is invalid.
   -- Test when trying to add an entry where the parent isn't stored in the service fails.
   -- That if the entry version is not 1 adding fails.
--- Test adding a trail with an entry that already has a signature in the db fails.
+  -- Test that if the same id appears in the parentID multiple times thet the service fails.
 -- Test that when a trail that has multiple entries fails that the other entries are not added.
 -- Test adding a trail with two entries with the same signature (i.e. duplicate entry).
 
@@ -272,6 +289,9 @@ buildEntry = do
   pure unsignedEntry{trailEntrySignature = buildSignature unsignedEntry}
 
 
+buildSingleEntryTrail :: IO [TrailEntry]
+buildSingleEntryTrail = pure <$> buildEntry
+
 
 -- Note: These utility functions are only simple and operate on the operands specified only, they do not propogate
 --       signature updates along the tree and as so when constructing test trails using them they must always be
@@ -285,19 +305,23 @@ buildSignature entry = SignaturePlaceholder $ "SignaturePlaceholder-" <> (toText
 addPreviousEntry :: [TrailEntry] -> IO [TrailEntry]
 addPreviousEntry entries = do
   newEntry <- buildEntry
-  pure $ swap $ newEntry : (joinEntries entries (trailEntrySignature newEntry))
+  pure $ swap $ newEntry : (joinEntries (trailEntrySignature newEntry) entries)
 
 
-joinEntries :: [TrailEntry] -> SignaturePlaceholder -> [TrailEntry]
-joinEntries (entry : entries) sig = (addPreviousEntrySignature entry sig) : entries
+joinEntries :: SignaturePlaceholder -> [TrailEntry] -> [TrailEntry]
+joinEntries sig (entry : entries) = (addPreviousEntrySignature entry sig) : entries
 -- Could just define the following as buildEntry, but it seems that this is likely to be a logic error and so its probably better to just fail here.
-joinEntries [] _ = error "Error: There is a logic error in the tests. Can't add a previous entry of a non existant entry."
+joinEntries _ [] = error "Error: There is a logic error in the tests. Can't add a previous entry of a non existant entry."
+
+
+addNextEntryIO :: IO [TrailEntry] -> IO [TrailEntry]
+addNextEntryIO trail = join $ addNextEntry <$> trail
 
 
 -- Note: Adds the new next entry to the element at the start of the list. The new element at the start of the list will remain
 -- in the same position and the new element will be added after the inital element and leave the remainder of the entry
 -- list in the same order following the new entry.
-addNextEntry ::  [TrailEntry] -> IO [TrailEntry]
+addNextEntry :: [TrailEntry] -> IO [TrailEntry]
 addNextEntry entries@(entry : _) = do
   newEntry <- buildEntry
   let updatedNewEntryWithPreviousEntry = addPreviousEntrySignature newEntry (trailEntrySignature entry)
@@ -339,20 +363,39 @@ shouldMatchEntry (TrailEntry   actual_version (EntryTime   actual_timestamp)   a
 
 -- Test the 3 end points (addTrail, getTrailBySignature, getTrailByEventId) for the specified trail.
 checkTrail :: (String -> IO()) -> (forall a. ClientM a -> IO (Either ServantError a)) -> String -> [TrailEntry] -> IO ()
-checkTrail step http differentator trail = do
+checkTrail step http differentator trail = checkPartialTrail step http differentator trail trail (trailEntrySignature <$> trail) (trailEntryEventID <$> trail)
+
+
+checkPartialTrail :: (String -> IO()) -> (forall a. ClientM a -> IO (Either ServantError a)) -> String -> [TrailEntry] -> [TrailEntry] -> [SignaturePlaceholder] -> [EventId] -> IO ()
+checkPartialTrail step http differentator inputTrail expectedTrail sigs eventIds = do
   step $ "That adding " <> differentator <> " trail works."
-  addEntryResult <- http $ addTrail trail
+  addEntryResult <- http $ addTrail inputTrail
   addEntryResult `shouldBe` Right NoContent
 
   step $ "That getting a " <> differentator <> " trail by (each of the) signature(s) works."
-  getEntryBySignatureResult <- traverse (\entry -> http $ getTrailBySignature (trailEntrySignature $ entry)) trail
-  signatureResults <- traverse (`shouldMatchTrail` trail) getEntryBySignatureResult
+  getEntryBySignatureResult <- traverse (\sig -> http $ getTrailBySignature sig) sigs
+  signatureResults <- traverse (`shouldMatchTrail` expectedTrail) getEntryBySignatureResult
   pure $ forceElements signatureResults
 
   step $ "That getting a " <> differentator <> " trail by (each of the) eventId(s) works."
-  getEntryByEventIdResult <- traverse (\entry -> http $ getTrailByEventId (trailEntryEventID $ entry)) trail
-  eventIdResults <- traverse (`shouldMatchTrail` trail) getEntryByEventIdResult
+  getEntryByEventIdResult <- traverse (\eventId -> http $ getTrailByEventId eventId) eventIds
+  eventIdResults <- traverse (`shouldMatchTrail` expectedTrail) getEntryByEventIdResult
   pure $ forceElements eventIdResults
+
+
+checkDistinctTrailsCommonEventId :: (String -> IO()) -> (forall a. ClientM a -> IO (Either ServantError a)) -> String -> [TrailEntry] -> [TrailEntry] -> EventId -> IO ()
+checkDistinctTrailsCommonEventId step http differentator topTrail bottomTrail commonEventId = do
+  let filterNotMatchingTrailId matchingTrailId trail = filter (/= matchingTrailId) $ trailEntryEventID <$> trail
+
+  let completeTrail = topTrail <> bottomTrail
+  -- traceM $ "\nCompleteTrail: " <> (prettyTrail completeTrail)
+  let topTrailUniqueEventIds    = filterNotMatchingTrailId commonEventId topTrail
+  let bottomTrailUniqueEventIds = filterNotMatchingTrailId commonEventId bottomTrail
+
+  let checkPartialTrailWithContext = checkPartialTrail step http
+  checkPartialTrailWithContext ("Two distinct trails with a common EventId " <> differentator <> " trail (top trail)")      completeTrail topTrail      (trailEntrySignature <$> topTrail   ) topTrailUniqueEventIds
+  checkPartialTrailWithContext ("Two distinct trails with a common EventId " <> differentator <> " trail (bottom trail)")   completeTrail bottomTrail   (trailEntrySignature <$> bottomTrail) bottomTrailUniqueEventIds
+  checkPartialTrailWithContext ("Two distinct trails with a common EventId " <> differentator <> " trail (common EventId)") completeTrail completeTrail [] [commonEventId]
 
 
 swap :: [TrailEntry] -> [TrailEntry]
