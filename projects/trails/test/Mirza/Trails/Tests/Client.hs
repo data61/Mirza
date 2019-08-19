@@ -242,12 +242,31 @@ clientSpec = do
           --        *   :
           --         \--*---*
           -- Note: ':' Denotes matching eventId (but otherwise distinct trail entries).
-
+          let buildCommonEventIdJoinedStart = do
+                                  root       <- buildEntry
+                                  topNext    <- joinEntries (trailEntrySignature root) <$> buildSingleEntryTrail
+                                  bottomNext <- updateFirstEventId (trailEntryEventID $ head topNext) <$> (joinEntries (trailEntrySignature root) <$> buildSingleEntryTrail)
+                                  topBoth    <- addNextEntry $ topNext
+                                  bottomBoth <- addNextEntry $ bottomNext
+                                  pure $ bottomBoth <> topBoth <> [root]
+          commonEventIdJoinedStart <- buildCommonEventIdJoinedStart
+          --traceM $ prettyTrail commonEventIdJoinedStart
+          checkTrailWithContext "Common EventId Joined Start Trail" commonEventIdJoinedStart
 
           -- Trail:  /--*--\
           --        *   :   *
           --         \--*--/
           -- Note: ':' Denotes matching eventId (but otherwise distinct trail entries).
+          let buildCommonEventIdJoinedStartEnd = do
+                                  root       <- buildEntry
+                                  topNext    <- joinEntries (trailEntrySignature root) <$> buildSingleEntryTrail
+                                  bottomNext <- updateFirstEventId (trailEntryEventID $ head topNext) <$> (joinEntries (trailEntrySignature root) <$> buildSingleEntryTrail)
+                                  topEnd    <- joinEntries (trailEntrySignature $ head bottomNext) <$> (addNextEntry $ topNext)
+                                  pure $ topEnd <> bottomNext <> [root]
+          commonEventIdJoinedStartEnd <- buildCommonEventIdJoinedStartEnd
+          --traceM $ prettyTrail commonEventIdJoinedStartEnd
+          checkTrailWithContext "Common EventId Joined Start and End of Trail" commonEventIdJoinedStartEnd
+
 
 
   -- Test that invalid signature fails.
