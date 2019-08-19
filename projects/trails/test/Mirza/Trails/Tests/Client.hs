@@ -268,15 +268,66 @@ clientSpec = do
           checkTrailWithContext "Common EventId Joined Start and End of Trail" commonEventIdJoinedStartEnd
 
 
+          step "That adding an entry with a non 1 version fails"
+          let setVersionZero entry = entry{trailEntryVersion = 0}
+          zeroVersionEntry <- setVersionZero <$> buildEntry
+          zeroVersionEntryResult <- http $ addTrail [zeroVersionEntry]
+          zeroVersionEntryResult `shouldSatisfy` isLeft
+          zeroVersionEntryResult `shouldSatisfy` (checkFailureStatus NS.badRequest400)
+          zeroVersionEntryResult `shouldSatisfy` (checkFailureMessage "Only version 1 trail entries are currently supported by this service.")
 
-  -- Test that invalid signature fails.
-  -- Test that invalid version fails.
-  -- Test that timestamp in the future is invalid.
-  -- Test when trying to add an entry where the parent isn't stored in the service fails.
-  -- That if the entry version is not 1 adding fails.
-  -- Test that if the same id appears in the parentID multiple times thet the service fails.
--- Test that when a trail that has multiple entries fails that the other entries are not added.
--- Test adding a trail with two entries with the same signature (i.e. duplicate entry).
+          step "That adding a trail with a failing entry causes the rest of the trail not to be added"
+          invalidMiddleEntryTrail <- addNextEntryIO $ fmap (applyHead setVersionZero) $ addNextEntryIO $  buildSingleEntryTrail
+          invalidMiddleEntryTrailResult <- http $ addTrail invalidMiddleEntryTrail
+          invalidMiddleEntryTrailResult `shouldSatisfy` isLeft
+          invalidMiddleEntryTrailResult `shouldSatisfy` (checkFailureStatus NS.badRequest400)
+          invalidMiddleEntryTrailResult `shouldSatisfy` (checkFailureMessage "Only version 1 trail entries are currently supported by this service.")
+          getEntryBySignatureInvalidMiddleEntryTrailResult <- traverse (\sig -> http $ getTrailBySignature sig) (trailEntrySignature <$> invalidMiddleEntryTrail)
+          let checkNotAdded = \result -> do
+                                          result `shouldSatisfy` isLeft
+                                          result `shouldSatisfy` (checkFailureStatus NS.notFound404)
+                                          result `shouldSatisfy` (checkFailureMessage "A trail with a matching signature was not found.")
+          invalidMiddleEntryTrailCheckResult <- traverse checkNotAdded getEntryBySignatureInvalidMiddleEntryTrailResult
+          pure $ forceElements invalidMiddleEntryTrailCheckResult
+
+          step "That adding an trail with duplicate entries succeeds"
+          duplicatEntry <- buildEntry
+          let duplicatEntryTrail = [duplicatEntry, duplicatEntry]
+          duplicatEntryTrailResult <- http $ addTrail duplicatEntryTrail
+          duplicatEntryTrailResult `shouldBe` Right NoContent
+          getDuplicateEntryBySignatureResult <- http $ getTrailBySignature (trailEntrySignature duplicatEntry)
+          getDuplicateEntryBySignatureResult `shouldMatchTrail` [duplicatEntry]
+
+          step "That adding an entry with duplicate parent entries fails"
+          let dupliacteParent entry = entry{trailEntryParentSignatures = (head $ trailEntryParentSignatures entry) : trailEntryParentSignatures entry}
+          duplicateParentBaseTrail <- addNextEntryIO $ buildSingleEntryTrail
+          let duplicateParentTrail = applyHead dupliacteParent duplicateParentBaseTrail
+          duplicateParentTrailResult <- http $ addTrail duplicateParentTrail
+          duplicateParentTrailResult `shouldSatisfy` isLeft
+          duplicateParentTrailResult `shouldSatisfy` (checkFailureStatus NS.badRequest400)
+          duplicateParentTrailResult `shouldSatisfy` (checkFailureMessage "Duplicating a signature in the parent signatures of an event is not allowed.")
+
+          step "That adding an entry with the parent not in the trail, but already stored by the service succeeds"
+          multiPhaseAddFirst  <- buildEntry
+          multiPhaseAddSecond <- joinEntry (trailEntrySignature multiPhaseAddFirst) <$> buildEntry
+          multiPhaseAddFirstResult <- http $ addTrail [multiPhaseAddFirst]
+          multiPhaseAddFirstResult `shouldBe` Right NoContent
+          multiPhaseAddSecondResult <- http $ addTrail [multiPhaseAddSecond]
+          multiPhaseAddSecondResult `shouldBe` Right NoContent
+          getMultiPhaseEntryBySignatureResult <- http $ getTrailBySignature (trailEntrySignature multiPhaseAddFirst)
+          getMultiPhaseEntryBySignatureResult `shouldMatchTrail` [multiPhaseAddFirst, multiPhaseAddSecond]
+
+          step "That adding an entry with the parent not in the trail, and not already stored by the service fails"
+          noParentParent <- buildEntry
+          noParentEntry <- joinEntry (trailEntrySignature noParentParent) <$> buildEntry
+          noParentAddResult <- http $ addTrail [noParentEntry]
+          noParentAddResult `shouldSatisfy` isLeft
+          noParentAddResult `shouldSatisfy` (checkFailureStatus NS.badRequest400)
+          noParentAddResult `shouldSatisfy` (checkFailureMessage "It is not possible to add entries with parents signatures that are not present in the current trail or already stored by the service.")
+
+          -- TODO: Test that invalid signature fails.
+          -- TODO: Test that timestamp in the future is invalid.
+
 
   let healthTests = testCaseSteps "Provides health status" $ \step ->
         bracket runTrailsApp (\(a,b) -> endWaiApp (a,b)) $ \(_tid, baseurl) -> do
@@ -314,7 +365,7 @@ buildEntry = do
   uuid <- liftIO nextRandom
   let unsignedEntry = TrailEntry 1
                                  (EntryTime time)
-                                 (GS1CompanyPrefix "0000001")
+                                 (GS1CompanyPrefix "0000001") -- TODO: Should randomise this.
                                  (EventId uuid)
                                  []
                                  (SignaturePlaceholder "")
@@ -418,6 +469,11 @@ swap :: [TrailEntry] -> [TrailEntry]
 swap []                      = []
 swap list@[_]                = list
 swap (first : second : rest) = second : first : rest
+
+
+applyHead :: (TrailEntry -> TrailEntry) -> [TrailEntry] -> [TrailEntry]
+applyHead _ [] = error "Error: There is a logic error in the tests. Can't modify the first element of an empty trail."
+applyHead fn (entry : entries) = (fn entry) : entries
 
 
 
