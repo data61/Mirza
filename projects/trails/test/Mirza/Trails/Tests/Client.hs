@@ -196,8 +196,24 @@ clientSpec = do
           --            :
           --        *---*---*
           -- Note: ':' Denotes matching eventId (but otherwise distinct trails).
-          -- TODO:
+          let buildCommonEventIdDistinctTrails = do
+                                                    topInput <- buildTwoEntryTrail
+                                                    bottomTrail <- join $ fmap addNextEntry $ updateFirstEventId (trailEntryEventID $ head topInput) <$> buildTwoEntryTrail
+                                                    topTrail <- addNextEntry $ topInput
+                                                    pure $ topTrail <> bottomTrail
+          commonEventIdDistinctTrails <- buildCommonEventIdDistinctTrails
+          checkTrailWithContext "Two Distinct Trails with a common EventId mid trail" commonEventIdDistinctTrails
 
+          -- Trail: *---*---*
+          --        :
+          --        *---*---*
+          -- Note: ':' Denotes matching eventId (but otherwise distinct trails).
+
+
+          -- Trail: *---*---*
+          --                :
+          --        *---*---*
+          -- Note: ':' Denotes matching eventId (but otherwise distinct trails).
 
           -- Trail: *---*---\
           --            :    *
@@ -292,6 +308,14 @@ addNextEntry [] = error "Error: There is a logic error in the tests. Can't add t
 
 addPreviousEntrySignature :: TrailEntry -> SignaturePlaceholder -> TrailEntry
 addPreviousEntrySignature entry sig = entry{trailEntryParentSignatures = sig : (trailEntryParentSignatures entry)}
+
+updateFirstEventId :: EventId -> [TrailEntry] -> [TrailEntry]
+updateFirstEventId eventId (entry : entries) = (updateEventId eventId entry) : entries
+-- Could just define the following as NOP, but it seems that this is likely to be a logic error and so its probably better to just fail here.
+updateFirstEventId _ [] = error "Error: There is a logic error in the tests. Can't add the update the EventId a non existant entry."
+
+updateEventId :: EventId -> TrailEntry -> TrailEntry
+updateEventId eventId entry = entry{trailEntryEventID = eventId} -- TODO: Need to resign at this point...
 
 
 shouldMatchTrail :: (Show a, Eq a) => Either a [TrailEntry] -> [TrailEntry] -> Expectation
