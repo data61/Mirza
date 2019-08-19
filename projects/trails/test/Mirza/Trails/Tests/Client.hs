@@ -141,7 +141,7 @@ clientSpec = do
                            bottomOutput <- join $ fmap addNextEntry $ fmap (flip joinEntries (trailEntrySignature $ head inputArrow)) $ fmap pure $ buildEntry
                            pure $ inputAndTopOutput <> bottomOutput
           longWing <- buildLongWing
-          checkTrailWithContext "Long Wing Trail" longWing
+          checkTrailWithContext "Long Wing Trail (see code comment diagram)" longWing
 
           -- Trail:  /--*--\
           --        *       *
@@ -155,7 +155,7 @@ clientSpec = do
                             let joinedEntry = foldl joinEnd newEntry forkedNext
                             pure $ joinedEntry : forkedNext
           ringTrail <- buildRing
-          checkTrailWithContext "Ring Trail" ringTrail
+          checkTrailWithContext "Ring Trail (see code comment diagram)" ringTrail
 
           -- Trail:  /--*--\
           --        *-------*
@@ -169,7 +169,7 @@ clientSpec = do
                                                              entry
                               pure $ (makeBaseParentOf <$> ring)
           burgerTrail <- buildBurger
-          checkTrailWithContext "Burger Trail" burgerTrail
+          checkTrailWithContext "Burger Trail (see code comment diagram)" burgerTrail
 
           -- Trail:        *---*
           --              /
@@ -190,7 +190,7 @@ clientSpec = do
                                 bottomOutput <- addNextEntry $ pure $ foldl addPreviousEntrySignature outputNode (trailEntrySignature <$> [head topInput, head bottomInput])
                                 pure $ topOutput <> bottomOutput <> topInput <> bottomInput
           latticeTrail <- buildLattice
-          checkTrailWithContext "Lattice Trail" latticeTrail
+          checkTrailWithContext "Lattice Trail (see code comment diagram)" latticeTrail
 
           -- Trail: *---*---*
           --            :
@@ -274,7 +274,7 @@ addPreviousEntry entries = do
 
 joinEntries :: [TrailEntry] -> SignaturePlaceholder -> [TrailEntry]
 joinEntries (entry : entries) sig = (addPreviousEntrySignature entry sig) : entries
--- Could just define the following  as buildEntry, but it seems that this is likely to be a logic error and so its probably better to just fail here.
+-- Could just define the following as buildEntry, but it seems that this is likely to be a logic error and so its probably better to just fail here.
 joinEntries [] _ = error "Error: There is a logic error in the tests. Can't add a previous entry of a non existant entry."
 
 
@@ -286,7 +286,7 @@ addNextEntry entries@(entry : _) = do
   newEntry <- buildEntry
   let updatedNewEntryWithPreviousEntry = addPreviousEntrySignature newEntry (trailEntrySignature entry)
   pure $ updatedNewEntryWithPreviousEntry : entries
--- Could just define the following  as buildEntry, but it seems that this is likely to be a logic error and so its probably better to just fail here.
+-- Could just define the following as buildEntry, but it seems that this is likely to be a logic error and so its probably better to just fail here.
 addNextEntry [] = error "Error: There is a logic error in the tests. Can't add the next entry of a non existant entry."
 
 
