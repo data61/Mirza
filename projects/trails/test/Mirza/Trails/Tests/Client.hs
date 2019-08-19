@@ -42,7 +42,7 @@ import           Data.UUID.V4
 -- === Trails Servant Client tests
 clientSpec :: IO TestTree
 clientSpec = do
-  let todoTests = testCaseSteps "TODO" $ \step ->
+  let trailTests = testCaseSteps "TODO" $ \step ->
         bracket runTrailsApp (\(a,b) -> endWaiApp (a,b)) $ \(_tid, baseurl) -> do
           let http = runClient baseurl
 
@@ -222,7 +222,7 @@ clientSpec = do
   pure $ testGroup "Trails HTTP Client tests"
         [
           healthTests
-        , todoTests
+        , trailTests
         ]
 
 
