@@ -344,13 +344,13 @@ clientSpec = do
           getMultiPhaseEntryBySignatureResult `shouldMatchTrail` [multiPhaseAddFirst, multiPhaseAddSecond]
 
           step "That adding an entry with the previous signatures not in the trail, and not already stored by the service fails"
-          noParentParent <- buildEntry
-          noParentEntry <- joinEntry (trailEntrySignature noParentParent) <$> buildEntry
-          verifyValidTrailTestIntegrityCheck [noParentEntry]
-          noParentAddResult <- http $ addTrail [noParentEntry]
-          noParentAddResult `shouldSatisfy` isLeft
-          noParentAddResult `shouldSatisfy` (checkFailureStatus NS.badRequest400)
-          noParentAddResult `shouldSatisfy` (checkFailureMessage "It is not possible to add entries with previous signatures that are not present in the current trail or already stored by the service.")
+          noPreviousPrevious <- buildEntry
+          noPreviousEntry <- joinEntry (trailEntrySignature noPreviousPrevious) <$> buildEntry
+          verifyValidTrailTestIntegrityCheck [noPreviousEntry]
+          noPreviousAddResult <- http $ addTrail [noPreviousEntry]
+          noPreviousAddResult `shouldSatisfy` isLeft
+          noPreviousAddResult `shouldSatisfy` (checkFailureStatus NS.badRequest400)
+          noPreviousAddResult `shouldSatisfy` (checkFailureMessage "It is not possible to add entries with previous signatures that are not present in the current trail or already stored by the service.")
 
           -- TODO: Test that invalid signature fails.
           -- TODO: Test that timestamp in the future is invalid.
