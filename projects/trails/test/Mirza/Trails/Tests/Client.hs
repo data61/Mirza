@@ -45,6 +45,8 @@ import           Data.Text                       (pack)
 import           Data.Time.Clock
 import           Data.UUID.V4
 
+-- import           Debug.Trace
+
 
 -- === Trails Servant Client tests
 clientSpec :: IO TestTree
@@ -93,11 +95,13 @@ clientSpec = do
           -- Trail: *---*
           let buildTwoEntryTrail = addNextEntryIO $ buildSingleEntryTrail
           twoEntryTrail <- buildTwoEntryTrail
+          --traceM $ "Debug: " <> (prettyTrail twoEntryTrail)
           checkTrailWithContext "2 Entry Trail (1 Previous Entry)" twoEntryTrail
 
           -- Trail: *---*---*
           let buildThreeEntryTrail = addNextEntryIO $ buildTwoEntryTrail
           threeEntryTrail <- buildThreeEntryTrail
+          --traceM $ "Debug: " <> (prettyTrail threeEntryTrail)
           checkTrailWithContext "3 Entry Trail (1 Previous Entry, 1 Next Entry)" threeEntryTrail
 
           -- Trail: *--\
@@ -105,12 +109,14 @@ clientSpec = do
           --        *--/
           let buildTwoPreviousEntryTrail = addPreviousEntryIO $ buildTwoEntryTrail
           twoPreviousEntryTrail <- buildTwoPreviousEntryTrail
+          -- traceM $ "Debug: " <> (prettyTrail twoPreviousEntryTrail)
           checkTrailWithContext "2 Previous Entries Trail" twoPreviousEntryTrail
 
           -- Trail: *--\
           --        *---*
           --        *--/
           threePreviousEntryTrail <- addPreviousEntryIO $ buildTwoPreviousEntryTrail
+          -- traceM $ "Debug: " <> (prettyTrail threePreviousEntryTrail)
           checkTrailWithContext "3 Previous Entries Trail" threePreviousEntryTrail
 
           -- Trail:  /--*
@@ -118,24 +124,28 @@ clientSpec = do
           --         \--*
           let buildTwoNextEntryTrail = addNextEntryIO $ swapIO $ buildTwoEntryTrail
           twoNextEntryTrail <- buildTwoNextEntryTrail
+          -- traceM $ "Debug: " <> (prettyTrail twoNextEntryTrail)
           checkTrailWithContext "2 Next Entries Trail" twoNextEntryTrail
 
           -- Trail:  /--*
           --        *---*
           --         \--*
           threeNextEntryTrail <- addNextEntryIO $ swapIO $ buildTwoNextEntryTrail
+          -- traceM $ "Debug: " <> (prettyTrail threeNextEntryTrail)
           checkTrailWithContext "3 Next Entries Trail" threeNextEntryTrail
 
           -- Trail: *--\ /--*
           --            *
           --        *--/ \--*
           twoPreviousTwoNextEntryTrail <- addNextEntryIO $ swapIO $ addNextEntryIO $ buildTwoPreviousEntryTrail
+          -- traceM $ "Debug: " <> (prettyTrail twoPreviousTwoNextEntryTrail)
           checkTrailWithContext "2 Previous 2 Next Entries Trail" twoPreviousTwoNextEntryTrail
 
           -- Trail: *--\     /--*
           --            *---*
           --        *--/     \--*
           twoPreviousThenNextThenTwoNextEntryTrail <- addNextEntryIO $ swapIO $ addNextEntryIO $ addNextEntryIO $ buildTwoPreviousEntryTrail
+          -- traceM $ "Debug: " <> (prettyTrail twoPreviousThenNextThenTwoNextEntryTrail)
           checkTrailWithContext "1 Previous Entry, then 2 Previous Entries and 2 Next Entries Trail" twoPreviousThenNextThenTwoNextEntryTrail
 
           -- Trail: *---*--\     /--*---*
@@ -150,6 +160,7 @@ clientSpec = do
                            bottomOutput <- addNextEntryIO $ joinEntriesIO (firstSignature inputArrow) $ buildSingleEntryTrail
                            pure $ inputAndTopOutput <> bottomOutput
           longWing <- buildLongWing
+          -- traceM $ "Debug: " <> (prettyTrail longWing)
           checkTrailWithContext "Long Wing Trail (see code comment diagram)" longWing
 
           -- Trail:  /--*--\
@@ -159,11 +170,12 @@ clientSpec = do
                             forkedNext <- buildTwoNextEntryTrail
                             newEntry <- buildEntry
                             let joinEnd joinedEntry entry = case (trailEntryPreviousSignatures entry) of
-                                                         [] -> joinEntry (trailEntrySignature entry) joinedEntry
-                                                         _  -> joinedEntry
+                                                         [] -> joinedEntry
+                                                         _  -> joinEntry (trailEntrySignature entry) joinedEntry
                             let joinedEntry = foldl joinEnd newEntry forkedNext
                             pure $ joinedEntry : forkedNext
           ringTrail <- buildRing
+          -- traceM $ "Debug: " <> (prettyTrail ringTrail)
           checkTrailWithContext "Ring Trail (see code comment diagram)" ringTrail
 
           -- Trail:  /--*--\
@@ -178,6 +190,7 @@ clientSpec = do
                                                              entry
                               pure $ (makeBasePreviousOf <$> ring)
           burgerTrail <- buildBurger
+          -- traceM $ "Debug: " <> (prettyTrail burgerTrail)
           checkTrailWithContext "Burger Trail (see code comment diagram)" burgerTrail
 
           -- Trail:        *---*
@@ -199,6 +212,7 @@ clientSpec = do
                                 bottomOutput <- addNextEntry $ pure $ foldl (flip joinEntry) outputNode (firstSignature <$> [topInput, bottomInput])
                                 pure $ topOutput <> bottomOutput <> topInput <> bottomInput
           latticeTrail <- buildLattice
+          -- traceM $ "Debug: " <> (prettyTrail latticeTrail)
           checkTrailWithContext "Lattice Trail (see code comment diagram)" latticeTrail
 
           -- Trail: *---*---*
@@ -220,9 +234,6 @@ clientSpec = do
           commonEventIdStartDistinctTrailsBottomInput <- updateFirstEventIdIO commonEventIdStartDistinctTrailsMatchingTrailId $ buildSingleEntryTrail
           commonEventIdStartDistinctTrailsTopTrail <- addNextEntryIO $ addNextEntry commonEventIdStartDistinctTrailsTopInput
           commonEventIdStartDistinctTrailsBottomTrail <- addNextEntryIO $ addNextEntry commonEventIdStartDistinctTrailsBottomInput
-          -- traceM $ "Top Trail: " <> (prettyTrail commonEventIdStartDistinctTrailsTopTrail)
-          -- traceM $ "Bottom Trail: " <> (prettyTrail commonEventIdStartDistinctTrailsBottomTrail)
-          -- traceM $ "CommonEventId: " <> (show commonEventIdStartDistinctTrailsMatchingTrailId)
           checkDistinctTrailsCommonEventIdWithContext "at the start of the" commonEventIdStartDistinctTrailsTopTrail commonEventIdStartDistinctTrailsBottomTrail commonEventIdStartDistinctTrailsMatchingTrailId
 
           -- Trail: *---*---*
@@ -242,8 +253,9 @@ clientSpec = do
           commonEventIdJoinedEndTopInput <- buildTwoEntryTrail
           let commonEventIdJoinedEndMatchingTrailId = firstEventId commonEventIdJoinedEndTopInput
           commonEventIdJoinedEndBottomTrail <- addNextEntryIO $ updateFirstEventIdIO commonEventIdJoinedEndMatchingTrailId $ buildTwoEntryTrail
-          let commonEventIdJoinedEndTopTrail = joinEntries (firstSignature commonEventIdJoinedEndBottomTrail) commonEventIdJoinedEndTopInput
-          let completeCommentEventIdJoinedEndTrail = commonEventIdJoinedEndTopTrail <> commonEventIdJoinedEndBottomTrail
+          let commonEventIdJoinedEndBottomTrailJoined = joinEntries (firstSignature commonEventIdJoinedEndTopInput) commonEventIdJoinedEndBottomTrail
+          let completeCommentEventIdJoinedEndTrail = commonEventIdJoinedEndTopInput <> commonEventIdJoinedEndBottomTrailJoined
+          -- traceM $ "Debug: " <> (prettyTrail completeCommentEventIdJoinedEndTrail)
           checkTrailWithContext "Common EventId Joined End Trail" completeCommentEventIdJoinedEndTrail
 
           -- Trail:  /--*---*
@@ -258,7 +270,7 @@ clientSpec = do
                                   bottomBoth <- addNextEntry $ bottomNext
                                   pure $ bottomBoth <> topBoth <> [root]
           commonEventIdJoinedStart <- buildCommonEventIdJoinedStart
-          --traceM $ prettyTrail commonEventIdJoinedStart
+          -- traceM $ prettyTrail commonEventIdJoinedStart
           checkTrailWithContext "Common EventId Joined Start Trail" commonEventIdJoinedStart
 
           -- Trail:  /--*--\
@@ -272,7 +284,7 @@ clientSpec = do
                                   topEnd    <- joinEntriesIO (firstSignature bottomNext) $ (addNextEntry $ topNext)
                                   pure $ topEnd <> bottomNext <> [root]
           commonEventIdJoinedStartEnd <- buildCommonEventIdJoinedStartEnd
-          --traceM $ prettyTrail commonEventIdJoinedStartEnd
+          -- traceM $ prettyTrail commonEventIdJoinedStartEnd
           checkTrailWithContext "Common EventId Joined Start and End of Trail" commonEventIdJoinedStartEnd
 
 
@@ -420,7 +432,7 @@ addNextEntry [] = error "Error: There is a logic error in the tests. Can't add t
 
 -- This function is just designed to simplify expression, see addPreviousEntry comment.
 addPreviousEntryIO :: IO [TrailEntry] -> IO [TrailEntry]
-addPreviousEntryIO trail = join $ addNextEntry <$> trail
+addPreviousEntryIO trail = join $ addPreviousEntry <$> trail
 
 
 -- Adds a new entry which is the previous entry for the first entry in the trail. The first element in the trail will
@@ -555,7 +567,7 @@ checkDistinctTrailsCommonEventId step http differentator topTrail bottomTrail co
   let filterNotMatchingTrailId matchingTrailId trail = filter (/= matchingTrailId) $ trailEntryEventId <$> trail
 
   let completeTrail = topTrail <> bottomTrail
-  -- traceM $ "\nCompleteTrail: " <> (prettyTrail completeTrail)
+  -- traceM $ "CompleteTrail: " <> (prettyTrail completeTrail)
   let topTrailUniqueEventIds    = filterNotMatchingTrailId commonEventId topTrail
   let bottomTrailUniqueEventIds = filterNotMatchingTrailId commonEventId bottomTrail
 
