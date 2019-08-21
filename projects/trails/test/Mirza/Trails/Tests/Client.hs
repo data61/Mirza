@@ -30,10 +30,14 @@ import qualified Network.HTTP.Types.Status       as NS
 import           Servant.API.ContentTypes
 import           Servant.Client
 
+import           System.Random
+
 import           Control.Exception               (bracket)
 import           Control.Monad
 import           Data.Either                     (isLeft, isRight)
+import           Data.Foldable
 import           Data.List
+import           Data.Text                       (pack)
 import           Data.Time.Clock
 import           Data.UUID
 import           Data.UUID.V4
@@ -363,9 +367,10 @@ buildEntry :: IO TrailEntry
 buildEntry = do
   time <- liftIO getCurrentTime
   uuid <- liftIO nextRandom
+  prefix <- pack <$> (sequence $ take 7 $ repeat $ randomRIO ('0', '9'))
   let unsignedEntry = TrailEntry 1
                                  (EntryTime time)
-                                 (GS1CompanyPrefix "0000001") -- TODO: Should randomise this.
+                                 (GS1CompanyPrefix prefix)
                                  (EventId uuid)
                                  []
                                  (SignaturePlaceholder "")
