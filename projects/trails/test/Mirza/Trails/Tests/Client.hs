@@ -30,16 +30,19 @@ import qualified Network.HTTP.Types.Status       as NS
 import           Servant.API.ContentTypes
 import           Servant.Client
 
+import           Crypto.Hash
+
 import           System.Random
 
 import           Control.Exception               (bracket)
 import           Control.Monad
+import           Data.Aeson
+import qualified Data.ByteString.Char8           (pack)
 import           Data.Either                     (isLeft, isRight)
 import           Data.Foldable
 import           Data.List
 import           Data.Text                       (pack)
 import           Data.Time.Clock
-import           Data.UUID
 import           Data.UUID.V4
 
 
@@ -71,6 +74,7 @@ clientSpec = do
           -- Trail: *
           step "That adding the first entry in a trail works"
           singleEntry <- buildEntry
+          verifyValidTrailTestIntegrityCheck [singleEntry]
           addFirstEntryResult <- http $ addTrail [singleEntry]
           addFirstEntryResult `shouldBe` Right NoContent
 
@@ -273,8 +277,9 @@ clientSpec = do
 
 
           step "That adding an entry with a non 1 version fails"
-          let setVersionZero entry = entry{trailEntryVersion = 0}
+          let setVersionZero entry = resign $ entry{trailEntryVersion = 0}
           zeroVersionEntry <- setVersionZero <$> buildEntry
+          verifyValidTrailTestIntegrityCheck [zeroVersionEntry]
           zeroVersionEntryResult <- http $ addTrail [zeroVersionEntry]
           zeroVersionEntryResult `shouldSatisfy` isLeft
           zeroVersionEntryResult `shouldSatisfy` (checkFailureStatus NS.badRequest400)
@@ -282,6 +287,7 @@ clientSpec = do
 
           step "That adding a trail with a failing entry causes the rest of the trail not to be added"
           invalidMiddleEntryTrail <- addNextEntryIO $ fmap (applyHead setVersionZero) $ addNextEntryIO $  buildSingleEntryTrail
+          verifyValidTrailTestIntegrityCheck invalidMiddleEntryTrail
           invalidMiddleEntryTrailResult <- http $ addTrail invalidMiddleEntryTrail
           invalidMiddleEntryTrailResult `shouldSatisfy` isLeft
           invalidMiddleEntryTrailResult `shouldSatisfy` (checkFailureStatus NS.badRequest400)
@@ -297,15 +303,17 @@ clientSpec = do
           step "That adding an trail with duplicate entries succeeds"
           duplicatEntry <- buildEntry
           let duplicatEntryTrail = [duplicatEntry, duplicatEntry]
+          verifyValidTrailTestIntegrityCheck duplicatEntryTrail
           duplicatEntryTrailResult <- http $ addTrail duplicatEntryTrail
           duplicatEntryTrailResult `shouldBe` Right NoContent
           getDuplicateEntryBySignatureResult <- http $ getTrailBySignature (trailEntrySignature duplicatEntry)
           getDuplicateEntryBySignatureResult `shouldMatchTrail` [duplicatEntry]
 
           step "That adding an entry with duplicate previous entries fails"
-          let dupliactePreviousSignatures entry = entry{trailEntryPreviousSignatures = (head $ trailEntryPreviousSignatures entry) : trailEntryPreviousSignatures entry}
+          let dupliactePreviousSignatures entry = resign $ entry{trailEntryPreviousSignatures = (head $ trailEntryPreviousSignatures entry) : trailEntryPreviousSignatures entry}
           duplicatePreviousSignaturesBaseTrail <- addNextEntryIO $ buildSingleEntryTrail
           let duplicatePreviousSignaturesTrail = applyHead dupliactePreviousSignatures duplicatePreviousSignaturesBaseTrail
+          verifyValidTrailTestIntegrityCheck duplicatePreviousSignaturesTrail
           duplicatePreviousSignaturesTrailResult <- http $ addTrail duplicatePreviousSignaturesTrail
           duplicatePreviousSignaturesTrailResult `shouldSatisfy` isLeft
           duplicatePreviousSignaturesTrailResult `shouldSatisfy` (checkFailureStatus NS.badRequest400)
@@ -314,8 +322,10 @@ clientSpec = do
           step "That adding an entry with the previous signature not in the trail, but already stored by the service succeeds"
           multiPhaseAddFirst  <- buildEntry
           multiPhaseAddSecond <- joinEntry (trailEntrySignature multiPhaseAddFirst) <$> buildEntry
+          verifyValidTrailTestIntegrityCheck [multiPhaseAddFirst]
           multiPhaseAddFirstResult <- http $ addTrail [multiPhaseAddFirst]
           multiPhaseAddFirstResult `shouldBe` Right NoContent
+          verifyValidTrailTestIntegrityCheck [multiPhaseAddSecond]
           multiPhaseAddSecondResult <- http $ addTrail [multiPhaseAddSecond]
           multiPhaseAddSecondResult `shouldBe` Right NoContent
           getMultiPhaseEntryBySignatureResult <- http $ getTrailBySignature (trailEntrySignature multiPhaseAddFirst)
@@ -324,6 +334,7 @@ clientSpec = do
           step "That adding an entry with the previous signatures not in the trail, and not already stored by the service fails"
           noParentParent <- buildEntry
           noParentEntry <- joinEntry (trailEntrySignature noParentParent) <$> buildEntry
+          verifyValidTrailTestIntegrityCheck [noParentEntry]
           noParentAddResult <- http $ addTrail [noParentEntry]
           noParentAddResult `shouldSatisfy` isLeft
           noParentAddResult `shouldSatisfy` (checkFailureStatus NS.badRequest400)
@@ -374,12 +385,21 @@ buildEntry = do
                                  (EventId uuid)
                                  []
                                  (SignaturePlaceholder "")
-  pure unsignedEntry{trailEntrySignature = buildSignature unsignedEntry}
+  pure $ resign unsignedEntry
 
 
 -- This is a hack for now untril we implement signatures properly.
+-- This produces really ugly JSON along the lines of:
+-- Object (fromList [("signature",String ""),("org",String "12334567"),("previous_signatures",Array []),("version",Number 1.0),("event_id",String "00000000-0000-0000-0000-000000000000"),("timestamp",String "0000-00-00T00:00:00.00000000Z")])
+-- the important property is that it actually uses a one way function (we use MD5 for now as a placeholder for the real signature of a nice canonical formed JSON event).
+-- This function should be replaced with code that actually signs the events properly once this is determined.
 buildSignature :: TrailEntry -> SignaturePlaceholder
-buildSignature entry = SignaturePlaceholder $ "SignaturePlaceholder-" <> (toText $ unEventId $ trailEntryEventId entry)
+buildSignature entry = SignaturePlaceholder $ "SignaturePlaceholder:" <> (pack $ show $ hashWith MD5 $ Data.ByteString.Char8.pack $ show $ toJSON emptySignatureEntry) where
+                       emptySignatureEntry = entry{trailEntrySignature = SignaturePlaceholder ""}
+
+
+resign :: TrailEntry -> TrailEntry
+resign entry = entry{trailEntrySignature = buildSignature entry}
 
 
 -- This function is just designed to simplify expression, see addNextEntry comment.
@@ -426,7 +446,7 @@ joinEntries _ [] = error "Error: There is a logic error in the tests. Can't add 
 
 -- Adds the supplied signature to the entry's list of previous signatures.
 joinEntry :: SignaturePlaceholder -> TrailEntry -> TrailEntry
-joinEntry sig entry = entry{trailEntryPreviousSignatures = sig : (trailEntryPreviousSignatures entry)}
+joinEntry sig entry = resign $ entry{trailEntryPreviousSignatures = sig : (trailEntryPreviousSignatures entry)}
 
 
 -- This function is just designed to simplify expression, see updateFirstEventId comment.
@@ -443,7 +463,7 @@ updateFirstEventId _ [] = error "Error: There is a logic error in the tests. Can
 
 -- Updates the eventId of the entry.
 updateEventId :: EventId -> TrailEntry -> TrailEntry
-updateEventId eventId entry = entry{trailEntryEventId = eventId} -- TODO: Need to resign at this point...
+updateEventId eventId entry = resign $ entry{trailEntryEventId = eventId}
 
 
 -- This function is just designed to simplify expression.
@@ -512,6 +532,9 @@ checkTrail step http differentator trail = checkPartialTrail step http different
 
 checkPartialTrail :: (String -> IO()) -> (forall a. ClientM a -> IO (Either ServantError a)) -> String -> [TrailEntry] -> [TrailEntry] -> [SignaturePlaceholder] -> [EventId] -> IO ()
 checkPartialTrail step http differentator inputTrail expectedTrail sigs eventIds = do
+  -- Make sure that for all trails that we tests that all of the trail entries have correct valid signatures.
+  verifyValidTrailTestIntegrityCheck inputTrail
+
   step $ "That adding " <> differentator <> " trail works"
   addEntryResult <- http $ addTrail inputTrail
   addEntryResult `shouldBe` Right NoContent
@@ -540,6 +563,15 @@ checkDistinctTrailsCommonEventId step http differentator topTrail bottomTrail co
   checkPartialTrailWithContext ("Two distinct trails with a common EventId " <> differentator <> " trail (top trail)")      completeTrail topTrail      (trailEntrySignature <$> topTrail   ) topTrailUniqueEventIds
   checkPartialTrailWithContext ("Two distinct trails with a common EventId " <> differentator <> " trail (bottom trail)")   completeTrail bottomTrail   (trailEntrySignature <$> bottomTrail) bottomTrailUniqueEventIds
   checkPartialTrailWithContext ("Two distinct trails with a common EventId " <> differentator <> " trail (common EventId)") completeTrail completeTrail [] [commonEventId]
+
+
+-- This checks out test case logic to make sure that signatures are constructed correctly.
+verifyValidTrailTestIntegrityCheck :: [TrailEntry] -> IO ()
+verifyValidTrailTestIntegrityCheck trail = verifyValidSignaturesTrail trail `shouldBe` True
+
+
+verifyValidSignaturesTrail :: [TrailEntry] -> Bool
+verifyValidSignaturesTrail trail = (and $ zipWith (==) (trailEntrySignature <$> trail) (buildSignature <$> trail))
 
 
 

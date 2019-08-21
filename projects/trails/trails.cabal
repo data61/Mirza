@@ -97,7 +97,10 @@ test-suite trails-test
     , mirza-common-haskell
     , mirza-test-utils-haskell
     , GS1Combinators
+    , aeson
     , beam-core
+    , bytestring
+    , cryptonite
     , hspec-expectations
     , http-types
     , katip
