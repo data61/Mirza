@@ -40,6 +40,7 @@ library
                     , Mirza.SupplyChain.Database.Migrate
                     , Mirza.SupplyChain.Database.Schema
                     , Mirza.SupplyChain.Database.Schema.V0001
+                    , Mirza.SupplyChain.Database.Schema.SQL.V0001
                     , Mirza.SupplyChain.Handlers.Health
                     , Mirza.SupplyChain.EventUtils
                     , Mirza.SupplyChain.Handlers.Queries
@@ -68,6 +69,7 @@ library
                     , hashable
                     , hoist-error >= 0.2
                     , http-client
+                    , http-media
                     , insert-ordered-containers
                     , jose
                     , katip >= 0.5.4
