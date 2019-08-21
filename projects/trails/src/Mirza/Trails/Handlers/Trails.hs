@@ -29,11 +29,28 @@ import           Data.Maybe
 import           Data.List                                (nub)
 
 
+
 getTrailByEventId :: ( Member context '[HasEnvType, HasConnPool, HasKatipContext, HasKatipLogEnv]
                      , Member err '[AsTrailsServiceError, AsSqlError])
                   => EventId ->  AppM context err [TrailEntry]
 getTrailByEventId eventId = do
   runDb $ (getTrailByEventIdQuery eventId)
+
+
+getTrailBySignature :: ( Member context '[HasEnvType, HasConnPool, HasKatipContext, HasKatipLogEnv]
+                       , Member err '[AsTrailsServiceError, AsSqlError])
+                    => SignaturePlaceholder ->  AppM context err [TrailEntry]
+getTrailBySignature sig = do
+  runDb $ (getTrailBySignatureQuery [] sig)
+
+
+addTrail  :: ( Member context '[HasEnvType, HasConnPool, HasKatipContext, HasKatipLogEnv]
+             , Member err '[AsTrailsServiceError, AsSqlError])
+          => [TrailEntry] ->  AppM context err NoContent
+addTrail trail = do
+  _ <- runDb $ (addEntryQuery trail)
+  pure NoContent
+
 
 
 getTrailByEventIdQuery :: (AsTrailsServiceError err)
@@ -48,13 +65,6 @@ getTrailByEventIdQuery eventId = do
     entry -> build getTrailBySignatureQuery [] (entries_signature <$> entry)
 
 
-getTrailBySignature :: ( Member context '[HasEnvType, HasConnPool, HasKatipContext, HasKatipLogEnv]
-                       , Member err '[AsTrailsServiceError, AsSqlError])
-                    => SignaturePlaceholder ->  AppM context err [TrailEntry]
-getTrailBySignature sig = do
-  runDb $ (getTrailBySignatureQuery [] sig)
-
-
 -- Algorithm is basically get a node (TrailEntry), get all of the previous and following entries, if we haven't seen
 -- them before then recurse (if we have seen them before ignore them). We need to do this in a statefull way so that we
 -- can handle loop cases (cases where the trail meets in a loop). I realised after I had a working implementation that a
@@ -65,18 +75,6 @@ getTrailBySignatureQuery :: (AsTrailsServiceError err)
 getTrailBySignatureQuery discovered searchSignature = do
   previousEntries <- getThisAndPreviousEntriesBySignatureQuery discovered searchSignature
   getNextEntriesBySignatureQuery previousEntries searchSignature
-
-
-getNextEntriesBySignatureQuery :: (AsTrailsServiceError err)
-                => [TrailEntry] -> SignaturePlaceholder -> DB context err [TrailEntry]
-getNextEntriesBySignatureQuery discovered searchSignature = do
-  followingSignatures <- pg $ runSelectReturningList $ select $ do
-                          previous <- all_ (_previous trailsDB)
-                          guard_ (previous_previous_signature previous ==. val_ searchSignature)
-                          pure $ (previous_entry_signature previous)
-
-  let newFollowingSignatures = filter (isNotPresentIn discovered) (entriesPrimaryKeyToSignature <$> followingSignatures)
-  build getTrailBySignatureQuery discovered newFollowingSignatures
 
 
 getThisAndPreviousEntriesBySignatureQuery :: (AsTrailsServiceError err)
@@ -91,9 +89,17 @@ getThisAndPreviousEntriesBySignatureQuery discovered searchSignature = do
     pure discovered
 
 
-getEntriesBySignature :: (AsTrailsServiceError err)
-                      => SignaturePlaceholder -> DB context err [TrailEntry]
-getEntriesBySignature searchSignature = pure <$> (getEntryBySignature searchSignature)
+getNextEntriesBySignatureQuery :: (AsTrailsServiceError err)
+                => [TrailEntry] -> SignaturePlaceholder -> DB context err [TrailEntry]
+getNextEntriesBySignatureQuery discovered searchSignature = do
+  followingSignatures <- pg $ runSelectReturningList $ select $ do
+                          previous <- all_ (_previous trailsDB)
+                          guard_ (previous_previous_signature previous ==. val_ searchSignature)
+                          pure $ (previous_entry_signature previous)
+
+  let newFollowingSignatures = filter (isNotPresentIn discovered) (entriesPrimaryKeyToSignature <$> followingSignatures)
+  build getTrailBySignatureQuery discovered newFollowingSignatures
+
 
 getEntryBySignature :: (AsTrailsServiceError err)
                     => SignaturePlaceholder -> DB context err TrailEntry
@@ -112,16 +118,16 @@ getEntryBySignature searchSignature = do
                     pure $ buildTrailEntry entry previous
 
 
+isNotPresentIn :: [TrailEntry] -> SignaturePlaceholder -> Bool
+isNotPresentIn discovered element = not $ elem element $ trailEntrySignature <$> discovered
+
+
 -- I'm sure that there is a nicer "implemenentation" of this function, something like foldl >>=, but I can't find it right now so this will do and can always refactor this later.
 build :: (Monad m) =>  ([a] -> b -> m [a]) -> [a] -> [b] -> m [a]
 build _ discovered [] = pure discovered
 build fn discovered (sig : rest) = do
   thisEntry <- fn discovered sig
   build fn thisEntry rest
-
-
-isNotPresentIn :: [TrailEntry] -> SignaturePlaceholder -> Bool
-isNotPresentIn discovered element = not $ elem element $ trailEntrySignature <$> discovered
 
 
 buildTrailEntry :: Entries -> [Previous] -> TrailEntry
@@ -131,21 +137,6 @@ buildTrailEntry entries previous = TrailEntry 1
                                           (EventId $ entries_event_id entries)
                                           (previous_previous_signature <$> previous)
                                           (entries_signature entries)
-
-
-addTrail  :: ( Member context '[HasEnvType, HasConnPool, HasKatipContext, HasKatipLogEnv]
-             , Member err '[AsTrailsServiceError, AsSqlError])
-          => [TrailEntry] ->  AppM context err NoContent
-addTrail trail = do
-  _ <- runDb $ (addEntryQuery trail)
-  pure NoContent
-
-
-throwing_If :: MonadError e m => Control.Lens.Type.AReview e () -> Bool -> m ()
-throwing_If x result = if result then
-                         throwing_ x
-                       else
-                         pure ()
 
 
 addEntryQuery :: (AsTrailsServiceError err)
@@ -179,6 +170,13 @@ addEntryQuery entriesRaw = do
   _ <- pg $ runInsertReturningList $ insert (_previous trailsDB)
           $ insertValues previous
   pure ()
+
+
+throwing_If :: MonadError e m => Control.Lens.Type.AReview e () -> Bool -> m ()
+throwing_If x result = if result then
+                         throwing_ x
+                       else
+                         pure ()
 
 
 validPrevious :: [TrailEntry] -> DB context err Bool

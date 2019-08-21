@@ -113,6 +113,7 @@ trailsErrorToHttpError trailsError =
     (PreviousEntryNotFoundTSE)      -> httpError err400 "It is not possible to add entries with previous signatures that are not present in the current trail or already stored by the service."
     (UnmatchedUniqueViolationTSE _) -> unexpectedError trailsError
 
+
 -- | A generic internal server error has occured. We include no more information in the result returned to the user to
 -- limit further potential for exploitation, under the expectation that we log the errors to somewhere that is reviewed
 -- regularly so that the development team are informed and can identify and patch the underlying issues.

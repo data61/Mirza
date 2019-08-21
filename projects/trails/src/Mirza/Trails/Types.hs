@@ -93,9 +93,11 @@ data TrailEntry = TrailEntry
   } deriving (Show, Generic, Eq)
 instance ToSchema TrailEntry
 
+
 instance Ord TrailEntry where
   compare :: TrailEntry -> TrailEntry -> Ordering
   compare a b = compare (trailEntrySignature a) (trailEntrySignature b)
+
 
 instance ToJSON TrailEntry where
   toJSON (TrailEntry version timestamp org eventId previousSignatures eventSignature) = object
@@ -106,6 +108,8 @@ instance ToJSON TrailEntry where
     , trailEntryJSONFieldPreviousSignatures .= previousSignatures
     , trailEntryJSONFieldSignature        .= eventSignature
     ]
+
+
 instance FromJSON TrailEntry where
   parseJSON = withObject "TrailEntry" $ \o -> TrailEntry
     <$> o .: trailEntryJSONFieldVersion
@@ -114,6 +118,7 @@ instance FromJSON TrailEntry where
     <*> o .: trailEntryJSONFieldEventId
     <*> o .: trailEntryJSONFieldPreviousSignatures
     <*> o .: trailEntryJSONFieldSignature
+
 
 trailEntryJSONFieldVersion :: Text
 trailEntryJSONFieldVersion = "version"
