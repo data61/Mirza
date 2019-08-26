@@ -624,7 +624,7 @@ prettyEntry (TrailEntry  version timestamp@(EntryTime _) gs1_company_prefix even
   <> "Timestamp: "          <> show timestamp           <> "\n"
   <> "GS1 Company Prefix: " <> show gs1_company_prefix  <> "\n"
   <> "EventId: "            <> show eventId             <> "\n"
-  <> "PreviousSignatures: "   <> show previous_signatures <> "\n"
+  <> "PreviousSignatures: " <> show previous_signatures <> "\n"
   <> "Signature: "          <> show signature           <> "\n"
 
 
