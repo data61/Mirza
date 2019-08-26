@@ -129,8 +129,9 @@ insertAndAuth scsUrl orUrl authToken locMap ht (entity:entities) = do
 
 insertEachEvent :: EachEvent ->  ClientM ()
 insertEachEvent (EachEvent [] _) = pure ()
-insertEachEvent (EachEvent _ ev) = do
-  void $ SCSClient.insertGS1Event ev
+insertEachEvent (EachEvent _entities ev) = do
+  (_insertedEventInfo, _eventId) <- SCSClient.insertGS1Event ev
+  pure ()
   -- traverse_ (clientSignEvent insertedEventInfo) entities
 
 

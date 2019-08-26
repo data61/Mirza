@@ -13,6 +13,3 @@ goodRsaPublicKey = readJWK "./test/Mirza/Common/TestData/testKeys/goodJWKs/4096b
 goodRsaPrivateKey :: IO (Maybe JWK)
 goodRsaPrivateKey = readJWK "./test/Mirza/Common/TestData/testKeys/goodJWKs/4096bit_rsa.json"
 
--- | Converts from number of seconds to the number of microseconds.
-secondsToMicroseconds :: (Num a) => a -> a
-secondsToMicroseconds = (* 1000000)

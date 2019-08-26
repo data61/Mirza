@@ -11,12 +11,9 @@ import           Mirza.Common.Utils
 
 import qualified Servant.API.ContentTypes
 import           Servant.Auth.Client              (Token (..))
-import           Servant.Client
 
 import           Network.URI                      (URI (..), URIAuth (..),
                                                    nullURI)
-
-import           Data.ByteString.Lazy             (ByteString)
 
 import           System.Directory                 (listDirectory)
 import           System.FilePath                  ((</>))
@@ -751,26 +748,6 @@ clientSpec = do
         , locationTests
         , healthTests
         ]
-
-
-
--- Test helper function that enables a predicate to be run on the result of a
--- test call.
-checkField :: (a -> b) -> (b -> Bool) -> Either c a -> Bool
-checkField accessor predicate = either (const False) (predicate . accessor)
-
-
-checkFailureStatus :: NS.Status -> Either ServantError a -> Bool
-checkFailureStatus = checkFailureField responseStatusCode
-
-
-checkFailureMessage :: ByteString -> Either ServantError a -> Bool
-checkFailureMessage = checkFailureField responseBody
-
-
-checkFailureField :: (Eq a) => (Response -> a) -> a -> Either ServantError b -> Bool
-checkFailureField accessor x (Left (FailureResponse failure)) = x == (accessor failure)
-checkFailureField _        _ _                                = False
 
 
 partialNewOrgToOrgResponse :: GS1CompanyPrefix -> PartialNewOrg -> OrgResponse
