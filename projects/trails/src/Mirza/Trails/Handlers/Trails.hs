@@ -27,6 +27,7 @@ import           Control.Monad.Identity
 
 import           Data.Maybe
 import           Data.List                                (nub)
+import           Data.Time.Clock
 
 
 
@@ -142,6 +143,9 @@ buildTrailEntry entries previous = TrailEntry 1
 addEntryQuery :: (AsTrailsServiceError err)
               => [TrailEntry] -> DB context err ()
 addEntryQuery entriesRaw = do
+  timestampsPast <- liftIO $ allTimestampsPassed entriesRaw
+  throwing_If _FutureTimestampTSE timestampsPast
+
   let ignoreNotFound = handleError (\err -> if is _SignatureNotFoundTSE err then pure Nothing else throwError err)
   existingEntries <- fmap catMaybes $ traverse (ignoreNotFound . (fmap Just <$> getEntryBySignature)) (trailEntrySignature <$> entriesRaw)
   -- Note: We only need to check if the signature exists (and not that the full event contents match) since the signature guarantees that they events are the same.
@@ -205,3 +209,9 @@ trailEntryToEntriesT trailEntry = EntriesT (trailEntrySignature trailEntry)
 
 trailEntryToPreviousT :: TrailEntry -> [PreviousT Identity]
 trailEntryToPreviousT trailEntry = (PreviousT (EntriesPrimaryKey $ trailEntrySignature trailEntry)) <$> (trailEntryPreviousSignatures trailEntry)
+
+
+allTimestampsPassed :: [TrailEntry] -> IO Bool
+allTimestampsPassed trail = do
+  now <- getCurrentTime
+  pure $ or $ ((> now) . getEntryTime . trailEntryTimestamp) <$> trail

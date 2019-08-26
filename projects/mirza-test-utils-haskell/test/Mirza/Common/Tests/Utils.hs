@@ -16,6 +16,7 @@ module Mirza.Common.Tests.Utils
   , databaseNameToConnectionString
   , makeDatabase
   , dropTables
+  , secondsToMicroseconds
   )
   where
 
@@ -178,3 +179,8 @@ dropTables db conn = do
   --       investigating.
   void $ forM_ tables $ \tableName -> do
     execute_ conn $ fromString $ T.unpack $ "DROP TABLE IF EXISTS " <> tableName <> ";"
+
+
+-- | Converts from number of seconds to the number of microseconds.
+secondsToMicroseconds :: (Num a) => a -> a
+secondsToMicroseconds = (* 1000000)

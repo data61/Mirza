@@ -13,6 +13,7 @@ import           Mirza.Common.Tests.ServantUtils
 
 import           Mirza.Common.Tests.Utils        (checkFailureMessage,
                                                   checkFailureStatus,
+                                                  secondsToMicroseconds,
                                                   within1Second)
 
 import           Mirza.Common.Types
@@ -34,6 +35,7 @@ import           Crypto.Hash
 
 import           System.Random
 
+import           Control.Concurrent              (threadDelay)
 import           Control.Exception               (bracket)
 import           Control.Monad
 import           Data.Aeson
@@ -296,6 +298,27 @@ clientSpec = do
           zeroVersionEntryResult `shouldSatisfy` isLeft
           zeroVersionEntryResult `shouldSatisfy` (checkFailureStatus NS.badRequest400)
           zeroVersionEntryResult `shouldSatisfy` (checkFailureMessage "Only version 1 trail entries are currently supported by this service.")
+          zeroVersionEntryGetResult <- http $ getTrailByEventId (trailEntryEventId zeroVersionEntry)
+          zeroVersionEntryGetResult `shouldSatisfy` isLeft
+
+          step "That adding an entry with a future timestamp fails"
+          let futureDelay = 1
+          futureTime <- (addUTCTime (fromInteger futureDelay)) <$> getCurrentTime
+          let setFutureTimestamp entry = resign $ entry{trailEntryTimestamp = EntryTime futureTime}
+          futureTimestampEntry <- setFutureTimestamp <$> buildEntry
+          verifyValidTrailTestIntegrityCheck [futureTimestampEntry]
+          futureTimestampEntryResult <- http $ addTrail [futureTimestampEntry]
+          futureTimestampEntryResult `shouldSatisfy` isLeft
+          futureTimestampEntryResult `shouldSatisfy` (checkFailureStatus NS.badRequest400)
+          futureTimestampEntryResult `shouldSatisfy` (checkFailureMessage "Only trails with timestamps that have passed may be added to this service.")
+          futureTimestampEntryGetResult <- http $ getTrailByEventId (trailEntryEventId futureTimestampEntry)
+          futureTimestampEntryGetResult `shouldSatisfy` isLeft
+          -- Integrity Check: That after the timestamp deplay has elapsed that the entry can be entered.
+          threadDelay $ fromIntegral $ secondsToMicroseconds futureDelay
+          futureTimestampEntryElapsedResult <- http $ addTrail [futureTimestampEntry]
+          futureTimestampEntryElapsedResult `shouldBe` Right NoContent
+          futureTimestampEntryElapsedGetResult <- http $ getTrailByEventId (trailEntryEventId futureTimestampEntry)
+          futureTimestampEntryElapsedGetResult `shouldMatchTrail` [futureTimestampEntry]
 
           step "That adding a trail with a failing entry causes the rest of the trail not to be added"
           invalidMiddleEntryTrail <- addNextEntryIO $ fmap (applyHead setVersionZero) $ addNextEntryIO $  buildSingleEntryTrail
@@ -330,6 +353,8 @@ clientSpec = do
           duplicatePreviousSignaturesTrailResult `shouldSatisfy` isLeft
           duplicatePreviousSignaturesTrailResult `shouldSatisfy` (checkFailureStatus NS.badRequest400)
           duplicatePreviousSignaturesTrailResult `shouldSatisfy` (checkFailureMessage "Duplicating a signature in the previous signatures of an event is not allowed.")
+          duplicatePreviousSignaturesTrailGetResult <- http $ getTrailByEventId (trailEntryEventId $ head duplicatePreviousSignaturesTrail)
+          duplicatePreviousSignaturesTrailGetResult `shouldSatisfy` isLeft
 
           step "That adding an entry with the previous signature not in the trail, but already stored by the service succeeds"
           multiPhaseAddFirst  <- buildEntry
@@ -351,9 +376,10 @@ clientSpec = do
           noPreviousAddResult `shouldSatisfy` isLeft
           noPreviousAddResult `shouldSatisfy` (checkFailureStatus NS.badRequest400)
           noPreviousAddResult `shouldSatisfy` (checkFailureMessage "It is not possible to add entries with previous signatures that are not present in the current trail or already stored by the service.")
+          noPreviousAddGetResult <- http $ getTrailByEventId (trailEntryEventId noPreviousEntry)
+          noPreviousAddGetResult `shouldSatisfy` isLeft
 
           -- TODO: Test that invalid signature fails.
-          -- TODO: Test that timestamp in the future is invalid.
 
 
   let healthTests = testCaseSteps "Provides health status" $ \step ->

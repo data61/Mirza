@@ -109,6 +109,7 @@ trailsErrorToHttpError trailsError =
     (SignatureNotFoundTSE)          -> httpError err404 "A trail with a matching signature was not found."
     (EventIdNotFoundTSE)            -> httpError err404 "A trail with the matching EventId was not found."
     (InvalidEntryVersionTSE)        -> httpError err400 "Only version 1 trail entries are currently supported by this service."
+    (FutureTimestampTSE)            -> httpError err400 "Only trails with timestamps that have passed may be added to this service."
     (DuplicatePreviousEntriesTSE)   -> httpError err400 "Duplicating a signature in the previous signatures of an event is not allowed."
     (PreviousEntryNotFoundTSE)      -> httpError err400 "It is not possible to add entries with previous signatures that are not present in the current trail or already stored by the service."
     (UnmatchedUniqueViolationTSE _) -> unexpectedError trailsError

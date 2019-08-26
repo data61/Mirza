@@ -196,6 +196,7 @@ data TrailsServiceError
   | SignatureNotFoundTSE
   | EventIdNotFoundTSE
   | InvalidEntryVersionTSE
+  | FutureTimestampTSE
   | DuplicatePreviousEntriesTSE
   | PreviousEntryNotFoundTSE
   | UnmatchedUniqueViolationTSE SqlError
