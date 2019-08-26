@@ -34,24 +34,19 @@ import           Data.Time.Clock
 getTrailByEventId :: ( Member context '[HasEnvType, HasConnPool, HasKatipContext, HasKatipLogEnv]
                      , Member err '[AsTrailsServiceError, AsSqlError])
                   => EventId ->  AppM context err [TrailEntry]
-getTrailByEventId eventId = do
-  runDb $ (getTrailByEventIdQuery eventId)
+getTrailByEventId = runDb . getTrailByEventIdQuery
 
 
 getTrailBySignature :: ( Member context '[HasEnvType, HasConnPool, HasKatipContext, HasKatipLogEnv]
                        , Member err '[AsTrailsServiceError, AsSqlError])
                     => SignaturePlaceholder ->  AppM context err [TrailEntry]
-getTrailBySignature sig = do
-  runDb $ (getTrailBySignatureQuery [] sig)
+getTrailBySignature = runDb . getTrailBySignatureQuery []
 
 
 addTrail  :: ( Member context '[HasEnvType, HasConnPool, HasKatipContext, HasKatipLogEnv]
              , Member err '[AsTrailsServiceError, AsSqlError])
           => [TrailEntry] ->  AppM context err NoContent
-addTrail trail = do
-  _ <- runDb $ (addEntryQuery trail)
-  pure NoContent
-
+addTrail trail = NoContent <$ (runDb $ addEntryQuery trail)
 
 
 getTrailByEventIdQuery :: (AsTrailsServiceError err)
