@@ -5,7 +5,7 @@
 # Ideally to be run during testing phase
 
 export SCS_DBNAME="devsupplychainserver"
-export OR_DBNAME="devmirzaorgregistry"
+export OR_DBNAME="devorgregistry"
 
 echo Recreating the database
 ./manage_db.sh $SCS_DBNAME
@@ -21,16 +21,15 @@ then
     stack clean
 fi
 
+
 stack build --fast
-stack exec supplyChainServer -- --init-db --orhost localhost --orport 8200
-echo 'YES' | stack exec orgRegistry -- initdb
+stack exec orgRegistry -- initdb
+stack exec orgRegistry -- server -a "${JWK_CLIENT_ID}" &
+stack exec supplyChainServer -- --init-db --orhost localhost --orport 8200 -e Dev
+
 
 export START_IN=2
 echo "Starting the server in $START_IN s. Feed me a SIGINT (CTRL+C or equivalent) to stop."
 
 sleep $START_IN
-google-chrome "http://localhost:8000/swagger-ui/"
-
-stack exec orgRegistry -- server &
-
-stack exec supplyChainServer -- --orhost localhost --orport 8200 -e Dev
+google-chrome "http://localhost:8000/swagger-ui/" &
