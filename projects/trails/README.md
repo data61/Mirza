@@ -33,7 +33,7 @@ Again the `-c` option takes a database connection string in [libpq format](https
 
 To launch the trails service run:
 ```shell
-stack exec trails -c "dbname=devtrails"
+stack exec trails -- server -c "dbname=devtrails"
 ```
 
 You can view and explore other commandline options with:
