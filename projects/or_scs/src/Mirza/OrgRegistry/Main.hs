@@ -7,9 +7,10 @@
 module Mirza.OrgRegistry.Main where
 
 
+import           Mirza.Common.Database              (SchemaVerificationResult (..),
+                                                     checkSchemaAgainstBeam)
 import           Mirza.Common.Types                 as CT
 import           Mirza.Common.Utils                 (fetchJWKS)
-import           Mirza.Common.Database              (SchemaVerificationResult(..), checkSchemaAgainstBeam)
 import           Mirza.OrgRegistry.API              (API, ServerAPI, api)
 import           Mirza.OrgRegistry.Auth
 import           Mirza.OrgRegistry.Database.Migrate
@@ -50,7 +51,7 @@ import           Text.Email.Parser                  (addrSpec)
 
 import           Control.Exception                  (finally)
 import           Control.Lens                       (review)
-import           Control.Monad                      (when, forM_)
+import           Control.Monad                      (forM_, when)
 import           Data.Either                        (fromRight)
 import           Data.Maybe                         (fromMaybe, listToMaybe)
 import           Katip                              as K
@@ -124,6 +125,7 @@ data UserCommand
 data OrgCommand
   = OrgAdd
   | OrgList
+  | OrgAddUser
 
 
 --------------------------------------------------------------------------------
@@ -167,8 +169,8 @@ launchServer opts rso = do
         either (error . show) pure =<<
           runMigrationSimple @ORContextComplete @SqlError completeContext migrations
         putStrLn "Done."
-      
-      
+
+
       mids <- initMiddleware opts rso
       putStrLn $ "Listening on http://localhost:" ++ show portNumber ++ "/swagger-ui/"
       Warp.run (fromIntegral portNumber) (mids app) `finally` closeScribes (ORT._orKatipLogEnv completeContext)
@@ -270,7 +272,7 @@ checkMigration opts = do
       print @String "Schema doesn't match: "
       forM_ xs print
       exitFailure
-      
+
 
 --------------------------------------------------------------------------------
 -- User Command
@@ -311,6 +313,12 @@ runOrgCommand opts OrgAdd = do
   eorg <- runAppM ctx $ runDb (addOrgQuery org)
   either (print @ORError) print eorg
 
+runOrgCommand opts OrgAddUser = do
+  (gs1CompanyPrefix, userId) <- interactivelyGetMapping
+  ctx <- initORContext opts
+  ebiz <- runAppM ctx $ (addOrgMapping gs1CompanyPrefix userId)
+  either (print @ORError) print ebiz
+
 
 interactivelyGetOrgT :: IO Org
 interactivelyGetOrgT = do
@@ -319,6 +327,14 @@ interactivelyGetOrgT = do
   org_url                <- pack <$> prompt "Url:"
   let org_last_update = Nothing
   pure OrgT{..}
+
+
+interactivelyGetMapping :: IO (GS1CompanyPrefix, OAuthSub)
+interactivelyGetMapping = do
+  gs1CompanyPrefix <- GS1CompanyPrefix . pack <$>  prompt "GS1CompanyPrefix:"
+  oAuthSub         <- OAuthSub . pack <$> prompt "OAuthSub:"
+  pure (gs1CompanyPrefix, oAuthSub)
+
 
 prompt :: String -> IO String
 prompt message = putStrLn message *> getLine
@@ -528,6 +544,7 @@ orgCommands = subparser
   ( mconcat
     [ standardCommand "add"  orgAdd  "Add a new org to the registry"
     , standardCommand "list" orgList "List all orgs and their Ids"
+    , standardCommand "addUser" orgAddUser "Add a user to an org"
     ]
   )
 
@@ -540,6 +557,10 @@ orgAdd = pure OrgAdd
 -- userList to perserve the command action format in fucntion names) .
 orgList :: Parser OrgCommand
 orgList = pure OrgList
+
+
+orgAddUser :: Parser OrgCommand
+orgAddUser = pure OrgAddUser
 
 
 bootstrap :: Parser ExecMode
