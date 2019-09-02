@@ -6,6 +6,7 @@
 
 export SCS_DBNAME="devsupplychainserver"
 export OR_DBNAME="devorgregistry"
+export JWK_CLIENT_ID="JvrGZu2gNR84nrEOu1kEC3gxpcJn9wkU"
 
 echo Recreating the database
 ./manage_db.sh $SCS_DBNAME
