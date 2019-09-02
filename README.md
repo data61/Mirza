@@ -20,6 +20,7 @@ projects. See also readme's for the individual projects:
 # Service Overview
 
 For a full development stack you require the following services running:
+
 Service                       | Service Abberviation | Default Port |  Swagger API URL
 ------------------------------|----------------------|--------------|-------------
 Entity Data API               | edapi                | 8020         |
