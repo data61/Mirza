@@ -37,14 +37,18 @@ To complete these steps you require:
 - OAuthSub:      auth0|00ff00ff00ff00ff00ff00ff
 - JWK_CLIENT_IDS: XXxx00XXxx00XXxx00XXxx00XXxx00XX
 
-One way to get your OAuth Subject is to go to your browser, visit the page serving the platform Mirza
-(if running locally, it will typically be http://localhost:8080). In your developer tools,
-look for the `Application` tab. Click on `Local Storage` and look at the cookies stored locally.
-In the JSON blob, find the value of the property `idToken`.
-You can decode that string via https://jwt.io/. In the decoded JSON, look for the
-property `sub`. If you logged in via Auth0, then the OAuth Sub will look like `auth0|blahblahblah`.
+If you have a running instantce one way to get your OAuth Subject is to go to your browser, visit the page serving the
+Mirza platform (if running locally, it will typically be http://localhost:8080). In your developer tools, look for the
+`Application` tab. Click on `Local Storage` and look at the cookies stored locally. In the JSON blob, find the value of
+the property `idToken`. You can decode that string via https://jwt.io/. In the decoded JSON, look for the property
+`sub`. If you logged in via Auth0, then the OAuth Sub will look like `auth0|blahblahblah`.
+Alternatively if you don't have a running instance yet you can get the OAuth Sub directly from your auth provider, for
+example at the time of writing this is avaliable in Auth0 at:
+`Dashboard -> Users & Roles -> Users -> [Username] -> [...] -> View Details -> user_id`
 
-`JWK_CLIENT_IDS` can be found in your auth provider (e.g, Auth0)'s settings.
+`JWK_CLIENT_IDS` can be found in your auth provider (e.g, Auth0)'s settings, for example at the time of writing this is
+avaliable in Auth0 at:
+`Dashboard -> Applications -> [Application Name] -> Client ID`
 
 
 The following is a configuration which will build and start all of the services:
@@ -90,6 +94,7 @@ export DEST_PORT="8000" # Dest machine port
 export JWK_URL="https://mirza.au.auth0.com/.well-known/jwks.json" # URL where your JWK is stored
 export JWK_CLIENT_IDS="${JWK_CLIENT_ID}" # list of client IDs separated by ,
 export EDAPI_DB_CONN='dbname=devedapi' # Connection string to a database where user credentials are stored
+export GOOGLE_MAPS_API_KEY='XXxx00XXxx00XXxx00XX_xx00-XXxx00XXxx00X' # Google maps API key for the map display on the event search.
 
 # Create and initalise the database
 createdb devedapi
