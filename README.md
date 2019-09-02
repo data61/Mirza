@@ -1,8 +1,9 @@
 # Development Quick Start Guide
 
 Clone the repo:
-```shell
-$ git clone https://github.com/data61/Mirza.git
+
+```console
+git clone https://github.com/data61/Mirza.git
 ```
 
 
@@ -20,6 +21,7 @@ projects. See also readme's for the individual projects:
 # Service Overview
 
 For a full development stack you require the following services running:
+
 Service                       | Service Abberviation | Default Port |  Swagger API URL
 ------------------------------|----------------------|--------------|-------------
 Entity Data API               | edapi                | 8020         |
@@ -31,12 +33,23 @@ Web Front End                 | web                  | 8080         |
 
 # Build and Run all services for development on local machine
 
-To complete these steps you require (TODO: Explain how to get these):
+To complete these steps you require:
 - OAuthSub:      auth0|00ff00ff00ff00ff00ff00ff
-- JWK_CLIENT_ID: XXxx00XXxx00XXxx00XXxx00XXxx00XX
+- JWK_CLIENT_IDS: XXxx00XXxx00XXxx00XXxx00XXxx00XX
+
+One way to get your OAuth Subject is to go to your browser, visit the page serving the platform Mirza
+(if running locally, it will typically be http://localhost:8080). In your developer tools,
+look for the `Application` tab. Click on `Local Storage` and look at the cookies stored locally.
+In the JSON blob, find the value of the property `idToken`.
+You can decode that string via https://jwt.io/. In the decoded JSON, look for the
+property `sub`. If you logged in via Auth0, then the OAuth Sub will look like `auth0|blahblahblah`.
+
+`JWK_CLIENT_IDS` can be found in your auth provider (e.g, Auth0)'s settings.
+
 
 The following is a configuration which will build and start all of the services:
-```shell
+
+```bash
 # Fill in your proper details here:
 project_root="~/some-path/"
 OAuthSub="auth0|00ff00ff00ff00ff00ff00ff"
@@ -100,6 +113,6 @@ npm install
 npm run start:dev
 ```
 
-Once the service is running navigate to http://localhost:8080/ and either signin or signup.
+Once the service is running navigate to http://localhost:8080/ and either sign in or signup.
 
 The following is the format of a URN: `urn:epc:id:sgtin:0000000.000000.0000`
