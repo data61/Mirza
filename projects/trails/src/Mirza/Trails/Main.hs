@@ -51,7 +51,8 @@ defaultDatabaseConnectionString = "dbname=devtrails"
 
 corsOrigins :: [CorsMiddleware.Origin]
 corsOrigins = [
-  "http://localhost:8300"
+  "http://localhost:8080"
+  , "http://localhost:8300"
   , "https://demo.mirza.d61.io"
   ]
 

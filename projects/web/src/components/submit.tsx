@@ -28,6 +28,7 @@ export function Submit(props: SubmitProps) {
     }).then(function(res: Response) {
       if (res.status === 200) {
         alert('Success!');
+        window.location.href = 'submitTrail';
       } else {
         alert('Failed with status: ' + res.status);
       }

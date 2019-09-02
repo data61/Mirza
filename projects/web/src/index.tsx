@@ -10,6 +10,7 @@ import { Home } from "./components/home";
 import { NotFound } from "./components/notFound";
 import { Scan } from "./components/scan";
 import { Submit } from "./components/submit";
+import { SubmitTrail } from "./components/submitTrail";
 
 import { authInit, logIn } from "./auth";
 import { BusinessRegistry } from "./business-registry";
@@ -45,6 +46,9 @@ authInit().then((authState) => {
 
           <Route path="/submit" exact render={() =>
             <Submit authState={appState.auth} organisation={appState.organisation} ></Submit>} />
+
+          <Route path="/submitTrail" exact render={() =>
+            <SubmitTrail authState={appState.auth} ></SubmitTrail>} />
 
           <Route path="/scan/:scanData*" exact render={({ match }) =>
             <Scan authState={appState.auth}
