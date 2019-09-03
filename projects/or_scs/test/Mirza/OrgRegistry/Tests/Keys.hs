@@ -22,6 +22,7 @@ import           Mirza.OrgRegistry.Handlers.Users
 import qualified Mirza.OrgRegistry.Tests.Dummies   as Dummies
 import           Mirza.OrgRegistry.Types           as ORT
 
+import           Mirza.Common.Tests.Utils
 import           Mirza.OrgRegistry.Tests.Utils
 
 import           Data.GS1.EPC                      (GS1CompanyPrefix (..))

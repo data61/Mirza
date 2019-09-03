@@ -7,6 +7,8 @@
 module Mirza.OrgRegistry.Main where
 
 
+import           Mirza.Common.Database              (SchemaVerificationResult (..),
+                                                     checkSchemaAgainstBeam)
 import           Mirza.Common.Types                 as CT
 import           Mirza.Common.Utils                 (fetchJWKS)
 import           Mirza.OrgRegistry.API              (API, ServerAPI, api)
@@ -49,10 +51,11 @@ import           Text.Email.Parser                  (addrSpec)
 
 import           Control.Exception                  (finally)
 import           Control.Lens                       (review)
-import           Control.Monad                      (when)
+import           Control.Monad                      (forM_, when)
 import           Data.Either                        (fromRight)
 import           Data.Maybe                         (fromMaybe, listToMaybe)
 import           Katip                              as K
+import           System.Exit                        (exitFailure)
 import           System.IO                          (FilePath,
                                                      IOMode (AppendMode),
                                                      hPutStr, openFile, stderr,
@@ -95,6 +98,7 @@ data InitOptionsOR = InitOptionsOR
 data ExecMode
   = RunServer RunServerOptions
   | InitDb
+  | CheckDb
   | UserAction UserCommand
   | OrgAction OrgCommand
   | PopulateDatabase  -- TODO: This option should be removed....this is for testing and debugging only.
@@ -111,6 +115,7 @@ data RunServerOptions = RunServerOptions
   { runServerOptionsPortNumber    :: Int
   , runServerOptionsOAuthJWKPath  :: URI
   , runServerOptionsOAuthAudience :: Text
+  , runServerOptionsAutoMigrate   :: Bool
   }
 
 data UserCommand
@@ -120,6 +125,7 @@ data UserCommand
 data OrgCommand
   = OrgAdd
   | OrgList
+  | OrgAddUser
 
 
 --------------------------------------------------------------------------------
@@ -140,8 +146,9 @@ multiplexInitOptions :: InitOptionsOR -> IO ()
 multiplexInitOptions (InitOptionsOR opts mode) = case mode of
   RunServer rsOpts                       -> launchServer opts rsOpts
   InitDb                                 -> runMigration opts
+  CheckDb                                -> checkMigration opts
   UserAction uc                          -> runUserCommand opts uc
-  OrgAction bc                      -> runOrgCommand opts bc
+  OrgAction bc                           -> runOrgCommand opts bc
   PopulateDatabase                       -> runPopulateDatabase opts
   Bootstrap oAuthSubSuffix companyPrefix -> runBootstrap opts oAuthSubSuffix companyPrefix
 
@@ -156,13 +163,21 @@ launchServer opts rso = do
       minimalContext <- initORContext opts
       completeContext <- addServerOptions minimalContext rso
       app <- initApplication completeContext
+
+      when (runServerOptionsAutoMigrate rso) $ do
+        putStr "Migrating database... "
+        either (error . show) pure =<<
+          runMigrationSimple @ORContextComplete @SqlError completeContext migrations
+        putStrLn "Done."
+
+
       mids <- initMiddleware opts rso
-      putStrLn $ "http://localhost:" ++ show portNumber ++ "/swagger-ui/"
+      putStrLn $ "Listening on http://localhost:" ++ show portNumber ++ "/swagger-ui/"
       Warp.run (fromIntegral portNumber) (mids app) `finally` closeScribes (ORT._orKatipLogEnv completeContext)
 
 
 addServerOptions :: ORContextMinimal -> RunServerOptions -> IO ORContextComplete
-addServerOptions minimalContext (RunServerOptions _port oAuthPublicKeyRef oauthAudience) = addAuthOptions minimalContext oAuthPublicKeyRef oauthAudience
+addServerOptions minimalContext (RunServerOptions _port oAuthPublicKeyRef oauthAudience _) = addAuthOptions minimalContext oAuthPublicKeyRef oauthAudience
 
 
 addAuthOptions :: ORContextMinimal -> URI -> Text -> IO ORContextComplete
@@ -194,7 +209,7 @@ getJWKS _ = error $ "Unsupported URI schema type."
 initORContext :: ServerOptionsOR -> IO ORT.ORContextMinimal
 initORContext (ServerOptionsOR dbConnStr lev mlogPath envT) = do
   logHandle <- maybe (pure stdout) (flip openFile AppendMode) mlogPath
-  hPutStr stderr $ "(Logging will be to: " ++ fromMaybe "stdout" mlogPath ++ ") "
+  hPutStr stderr $ "Logging will be to: " ++ fromMaybe "stdout" mlogPath ++ "\n"
   handleScribe <- mkHandleScribe ColorIfTerminal logHandle lev V3
   logEnv <- initLogEnv "orgRegistry" (Environment . pack . show $ envT)
             >>= registerScribe "stdout" handleScribe defaultScribeSettings
@@ -246,6 +261,18 @@ runMigration opts = do
   res <- runMigrationSimple @ORContextMinimal @SqlError ctx migrations
   print res
 
+checkMigration :: ServerOptionsOR -> IO ()
+checkMigration opts = do
+  ctx <- initORContext opts
+  res <- checkSchemaAgainstBeam @ORContextMinimal @SqlError ctx checkedOrgRegistryDB
+  case res of
+    Left e -> print ("Couldn't check schema: " <> show e) >> exitFailure
+    Right SchemaMatch -> print @String "Schema match"
+    Right (SchemaMismatch xs) -> do
+      print @String "Schema doesn't match: "
+      forM_ xs print
+      exitFailure
+
 
 --------------------------------------------------------------------------------
 -- User Command
@@ -286,6 +313,12 @@ runOrgCommand opts OrgAdd = do
   eorg <- runAppM ctx $ runDb (addOrgQuery org)
   either (print @ORError) print eorg
 
+runOrgCommand opts OrgAddUser = do
+  (gs1CompanyPrefix, userId) <- interactivelyGetMapping
+  ctx <- initORContext opts
+  ebiz <- runAppM ctx $ (addOrgMapping gs1CompanyPrefix userId)
+  either (print @ORError) print ebiz
+
 
 interactivelyGetOrgT :: IO Org
 interactivelyGetOrgT = do
@@ -294,6 +327,14 @@ interactivelyGetOrgT = do
   org_url                <- pack <$> prompt "Url:"
   let org_last_update = Nothing
   pure OrgT{..}
+
+
+interactivelyGetMapping :: IO (GS1CompanyPrefix, OAuthSub)
+interactivelyGetMapping = do
+  gs1CompanyPrefix <- GS1CompanyPrefix . pack <$>  prompt "GS1CompanyPrefix:"
+  oAuthSub         <- OAuthSub . pack <$> prompt "OAuthSub:"
+  pure (gs1CompanyPrefix, oAuthSub)
+
 
 prompt :: String -> IO String
 prompt message = putStrLn message *> getLine
@@ -401,8 +442,9 @@ serverOptions = InitOptionsOR
           , standardCommand "initdb"    initDb "Initialise the Database (Note: This command only works if the database \
                                                \is empty and can't be used for migrations or if the database already \
                                                \contains the schema."
+          , standardCommand "checkdb"   (pure CheckDb) "Compare the internal beam schema against the database schema"
           , standardCommand "user"      userCommand "Interactively add new users"
-          , standardCommand "org"  orgCommand "Operations on orgs"
+          , standardCommand "org"       orgCommand "Operations on orgs"
           , standardCommand "populate"  populateDb "Populate the database with dummy test data"
           , standardCommand "bootstrap" bootstrap "Bootstrap a user into the database."
           ]
@@ -430,6 +472,11 @@ runServer = RunServer <$> (RunServerOptions
        long "aud"
     <> short 'a'
     <> help "OAuth audience claim to match against user tokens."
+    )
+  <*> switch
+    (
+      long "migrate"
+   <> help "Perform database migrations before starting the service"
     )
   )
 
@@ -465,7 +512,6 @@ parsedServerOptions = ServerOptionsOR
 initDb :: Parser ExecMode
 initDb = pure InitDb
 
-
 userCommand :: Parser ExecMode
 userCommand = UserAction <$> userCommands
 
@@ -498,6 +544,7 @@ orgCommands = subparser
   ( mconcat
     [ standardCommand "add"  orgAdd  "Add a new org to the registry"
     , standardCommand "list" orgList "List all orgs and their Ids"
+    , standardCommand "addUser" orgAddUser "Add a user to an org"
     ]
   )
 
@@ -510,6 +557,10 @@ orgAdd = pure OrgAdd
 -- userList to perserve the command action format in fucntion names) .
 orgList :: Parser OrgCommand
 orgList = pure OrgList
+
+
+orgAddUser :: Parser OrgCommand
+orgAddUser = pure OrgAddUser
 
 
 bootstrap :: Parser ExecMode

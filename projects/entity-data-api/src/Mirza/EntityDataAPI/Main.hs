@@ -36,7 +36,8 @@ import           Data.Pool                          (createPool)
 import           Data.List.Split                    (splitOn)
 
 import           System.IO                          (BufferMode (LineBuffering),
-                                                     hSetBuffering, stdout)
+                                                     hFlush, hSetBuffering,
+                                                     stdout)
 
 main :: IO ()
 -- main = launchProxy =<< execParser opts where
@@ -65,6 +66,7 @@ multiplexInitOptions opts = do
 promptLine :: String -> IO String
 promptLine prompt = do
   putStr prompt
+  hFlush stdout
   getLine
 
 

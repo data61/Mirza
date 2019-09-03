@@ -7,31 +7,35 @@ module Mirza.Trails.Main where
 
 
 import           Mirza.Trails.API
+import           Mirza.Trails.Database.Migrate
 import           Mirza.Trails.Service
 import           Mirza.Trails.Types
 
 import           Mirza.Common.Types
 
+import           Katip                         as K
+
 import           Servant
 import           Servant.Swagger.UI
 
-import qualified Data.Pool                   as Pool
 import           Database.PostgreSQL.Simple
 
-import           Network.Wai                 (Middleware)
-import qualified Network.Wai.Handler.Warp    as Warp
-import qualified Network.Wai.Middleware.Cors as CorsMiddleware
+import           Network.Wai                   (Middleware)
+import qualified Network.Wai.Handler.Warp      as Warp
+import qualified Network.Wai.Middleware.Cors   as CorsMiddleware
 
-import           Data.ByteString             (ByteString)
-import           Data.Semigroup              ((<>))
-import           Data.Text                   (pack)
-import           Options.Applicative         hiding (action)
+import           Control.Exception             (finally)
+import           System.IO                     (FilePath, IOMode (AppendMode),
+                                                hPutStr, openFile, stderr,
+                                                stdout)
 
-import           Control.Exception           (finally)
-import           Data.Maybe                  (fromMaybe)
-import           Katip                       as K
-import           System.IO                   (FilePath, IOMode (AppendMode),
-                                              hPutStr, openFile, stderr, stdout)
+import           Data.ByteString               (ByteString)
+import           Data.Maybe                    (fromMaybe)
+import qualified Data.Pool                     as Pool
+import           Data.Semigroup                ((<>))
+import           Data.Text                     (pack)
+import           Options.Applicative           hiding (action)
+
 
 
 --------------------------------------------------------------------------------
@@ -47,7 +51,7 @@ defaultDatabaseConnectionString = "dbname=devtrails"
 
 corsOrigins :: [CorsMiddleware.Origin]
 corsOrigins = [
-    "http://localhost:8080"
+  "http://localhost:8300"
   , "https://demo.mirza.d61.io"
   ]
 
@@ -156,9 +160,9 @@ server context =
 
 runMigration :: ServerOptionsTrails -> IO ()
 runMigration opts = do
-  _ctx <- initTrailsContext opts
-  --res <- runMigrationWithConfirmation @ORContextMinimal @SqlError ctx interactiveMigrationConfirm
-  --print res
+  ctx <- initTrailsContext opts
+  res <- runMigrationSimple  @TrailsContext @SqlError ctx migrations
+  print res
   pure ()
 
 --------------------------------------------------------------------------------
