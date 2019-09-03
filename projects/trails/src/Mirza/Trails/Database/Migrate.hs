@@ -22,6 +22,8 @@ migrations = [ m_0001 ]
 
 m_0001 :: Migration
 m_0001 conn = do
+  createTriggerFunction conn
+
   _ <- execute_ conn $ Query $ encodeUtf8 $ "CREATE TABLE " <> entriesTName
                                                               <> "("
                                                                 <> entriesTFieldSignature        <> " TEXT PRIMARY KEY, "

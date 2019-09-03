@@ -39,7 +39,7 @@ After that, to create the database, run:
 To initalise the database run:
 `stack exec supplyChainServer -- --orhost localhost --orport 8200 --init-db -c "dbname=<database name>"`
 
-The -c option takes a database connection string in [libpq format](https://www.postgresql.org/docs/9.5/static/libpq-connect.html#LIBPQ-CONNSTRING).
+The `-c` option takes a database connection string in [libpq format](https://www.postgresql.org/docs/9.5/static/libpq-connect.html#LIBPQ-CONNSTRING).
 
 Some examples are:
 
