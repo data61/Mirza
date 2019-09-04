@@ -104,7 +104,7 @@ fromEnvSCSServiceInfo = ServiceInfo
 fromEnvTrailsServiceInfo :: Envy.Parser ServiceInfo
 fromEnvTrailsServiceInfo = ServiceInfo
     <$> envMaybe "TRAILS_HOST" .!= Hostname "localhost"
-    <*> envMaybe "TRAILS_PORT" .!= Port 8030
+    <*> envMaybe "TRAILS_PORT" .!= Port 8300
 
 
 defaultJwkUrl :: String
@@ -140,7 +140,7 @@ instance DefConfig Opts where
   defConfig = Opts
     { myServiceInfo     = ServiceInfo{serviceHost=Hostname "localhost", servicePort=Port 8080 }
     , scsServiceInfo    = ServiceInfo{serviceHost=Hostname "localhost", servicePort=Port 8000 }
-    , trailsServiceInfo = ServiceInfo{serviceHost=Hostname "localhost", servicePort=Port 8030 }
+    , trailsServiceInfo = ServiceInfo{serviceHost=Hostname "localhost", servicePort=Port 8300 }
     , appMode           = Proxy
     , jwkUrl            = defaultJwkUrl
     , jwkClientId       = ""

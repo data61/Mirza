@@ -52,6 +52,22 @@ services:
       options:
         max-size: "200k"
         max-file: "10"
+
+  sci054trails:
+    image: 235945186688.dkr.ecr.ap-southeast-2.amazonaws.com/trails:latest
+    restart: always
+    env_file:
+      - sci054.env
+    depends_on:
+      - db
+    networks:
+      - backend
+    command: server --migrate -c "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db/sci054trails"
+    logging:
+      driver: json-file
+      options:
+        max-size: "200k"
+        max-file: "10"
         
   sci041edapi:
     image: 235945186688.dkr.ecr.ap-southeast-2.amazonaws.com/edapi:latest
@@ -85,6 +101,22 @@ services:
         max-size: "200k"
         max-file: "10"
 
+  sci041trails:
+    image: 235945186688.dkr.ecr.ap-southeast-2.amazonaws.com/trails:latest
+    restart: always
+    env_file:
+      - sci041.env
+    depends_on:
+      - db
+    networks:
+      - backend
+    command: server --migrate -c "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db/sci041trails"
+    logging:
+      driver: json-file
+      options:
+        max-size: "200k"
+        max-file: "10"
+        
   sci042edapi:
     image: 235945186688.dkr.ecr.ap-southeast-2.amazonaws.com/edapi:latest
     restart: always
@@ -117,6 +149,22 @@ services:
         max-size: "200k"
         max-file: "10"
 
+  sci042trails:
+    image: 235945186688.dkr.ecr.ap-southeast-2.amazonaws.com/trails:latest
+    restart: always
+    env_file:
+      - sci042.env
+    depends_on:
+      - db
+    networks:
+      - backend
+    command: server --migrate -c "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db/sci042trails"
+    logging:
+      driver: json-file
+      options:
+        max-size: "200k"
+        max-file: "10"
+        
   sci033edapi:
     image: 235945186688.dkr.ecr.ap-southeast-2.amazonaws.com/edapi:latest
     restart: always
@@ -143,6 +191,22 @@ services:
     networks:
       - backend
     command: --orhost localhost --orport 8200 -c "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db/sci033supplychainserver"
+    logging:
+      driver: json-file
+      options:
+        max-size: "200k"
+        max-file: "10"
+
+  sci033trails:
+    image: 235945186688.dkr.ecr.ap-southeast-2.amazonaws.com/trails:latest
+    restart: always
+    env_file:
+      - sci033.env
+    depends_on:
+      - db
+    networks:
+      - backend
+    command: server --migrate -c "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db/sci033trails"
     logging:
       driver: json-file
       options:
