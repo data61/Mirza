@@ -4,9 +4,11 @@ import { Link } from "react-router-dom";
 import { myGlobals } from "../globals";
 
 import { AuthState } from "../auth";
+import { Organisation } from "../business-registry";
 
 export interface QueryProps {
   authState: AuthState;
+  organisation: Organisation;
 }
 
 export function SubmitTrail(props: QueryProps) {
@@ -22,7 +24,10 @@ export function SubmitTrail(props: QueryProps) {
 
   const submitTrail = () => {
 
-    return fetch(myGlobals.trailsUrl + '/trail', {
+    // TODO: The URL here needs to be changed to props.organisation.url, but the
+    // EDAPI that this is currently building against doesn't support the trails
+    // service yet.
+    return fetch('http://localhost:8300' + '/trail', {
       method: 'POST',
       body: JSON.stringify(trailEntry),
       headers: {

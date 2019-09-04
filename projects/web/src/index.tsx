@@ -48,7 +48,7 @@ authInit().then((authState) => {
             <Submit authState={appState.auth} organisation={appState.organisation} ></Submit>} />
 
           <Route path="/submitTrail" exact render={() =>
-            <SubmitTrail authState={appState.auth} ></SubmitTrail>} />
+            <SubmitTrail authState={appState.auth} organisation={appState.organisation} ></SubmitTrail>} />
 
           <Route path="/scan/:scanData*" exact render={({ match }) =>
             <Scan authState={appState.auth}

@@ -49,9 +49,6 @@ module.exports = (env) => {
         'OR_SERVICE_URL': JSON.stringify(env.production
                                          ? 'https://registry.mirza.d61.io'
                                          : 'http://localhost:8200'),
-        'TRAILS_SERVICE_URL': JSON.stringify(env.production
-                                         ? 'https://trails.mirza.d61.io'
-                                         : 'http://localhost:8300'),
         'GOOGLE_MAPS_API_KEY': JSON.stringify(process.env.GOOGLE_MAPS_API_KEY),
       }),
     ]
