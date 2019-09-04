@@ -106,7 +106,7 @@ export function EventLookup(props: QueryProps) {
   const [mapsProp, mapsPropUpdate] = React.useState(defaultMapProps());
   const [eventRes, eventResSet] = React.useState(null);
   const queryEvent = () => {
-    return fetch(encodeURI(props.organisation.url + '/events/prototype/list/events/' + query.Label), {
+    return fetch(encodeURI(props.organisation.url + '/prototype/list/events/' + query.Label), {
       method: 'GET',
       headers: new Headers({
         'Accept': 'application/json',
