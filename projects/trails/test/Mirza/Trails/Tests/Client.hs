@@ -379,6 +379,21 @@ clientSpec = do
           noPreviousAddGetResult <- http $ getTrailByEventId (trailEntryEventId noPreviousEntry)
           noPreviousAddGetResult `shouldSatisfy` isLeft
 
+          step "Test that the order of entries in a trail with parent entries in the trail submitted doesn't matter"
+          -- Explicitly we want to test that the trail doesn't have to be structured so that the previous entries appear explicitly before/after they are referenced from other entries.
+          trailOrder1 <- buildTwoEntryTrail
+          trailOrder2 <- swapIO $ buildTwoEntryTrail
+          verifyValidTrailTestIntegrityCheck trailOrder1
+          verifyValidTrailTestIntegrityCheck trailOrder2
+          trailOrder1Result <- http $ addTrail trailOrder1
+          trailOrder1Result `shouldBe` Right NoContent
+          trailOrder2Result <- http $ addTrail trailOrder2
+          trailOrder2Result `shouldBe` Right NoContent
+          trailOrder1GetBySignatureResult <- http $ getTrailBySignature $ firstSignature trailOrder1
+          trailOrder1GetBySignatureResult `shouldMatchTrail` trailOrder1
+          trailOrder2GetBySignatureResult <- http $ getTrailBySignature $ firstSignature trailOrder2
+          trailOrder2GetBySignatureResult `shouldMatchTrail` trailOrder2
+
           -- TODO: Test that invalid signature fails.
 
 
