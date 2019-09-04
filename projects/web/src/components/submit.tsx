@@ -5,18 +5,29 @@ import { AuthState } from "../auth";
 import { Organisation } from "../business-registry";
 import { objectEvent } from "../epcis";
 import { EventForm } from "./epcis/event";
+import { Redirect } from "react-router-dom";
 
 export interface SubmitProps {
   authState: AuthState;
   organisation: Organisation;
+  routeProps?: any;
 }
 
 export function Submit(props: SubmitProps) {
   const eventState = React.useState(objectEvent());
   const [event, _] = eventState;
 
-  const submitEvent = () => {
+  const [trailData, setTrailData] = React.useState(null);
 
+  if (trailData !== null) {
+    return <Redirect to={{
+      pathname: '/submitTrail',
+      state: {eventSubmissionTrailData : trailData }
+    }}
+    />
+  }
+
+  const submitEvent = () => {
     return fetch(props.organisation.url + '/event', {
       method: 'POST',
       body: JSON.stringify(event),
@@ -27,11 +38,31 @@ export function Submit(props: SubmitProps) {
       },
     }).then(function(res: Response) {
       if (res.status === 200) {
-        alert('Success!');
-        window.location.href = 'submitTrail';
+        alert('Successfully Submited!');
+        return res.json();
       } else {
         alert('Failed with status: ' + res.status);
       }
+
+      throw res;
+    }).then(function(resultData) {
+      if ((!Array.isArray(resultData)) ||
+          (resultData.length < 2)) {
+        throw resultData;
+      }
+      const eventId = resultData[1];
+
+      const previousSignatures = props.routeProps                                  == null ||
+                                 props.routeProps.location                         == null ||
+                                 props.routeProps.location.state                   == null ||
+                                 props.routeProps.location.state.previousSignature == null ?
+                                 [] : [props.routeProps.location.state.previousSignature];
+      const trailData = {
+        "eventId": eventId,
+        "previousSignatures": previousSignatures
+      };
+      setTrailData(trailData);
+
     }).catch(function(err) {
       console.log(err);
     });

@@ -44,11 +44,11 @@ authInit().then((authState) => {
           <Route path="/events" exact render={() =>
             <EventLog authState={appState.auth} organisation={appState.organisation}></EventLog>} />
 
-          <Route path="/submit" exact render={() =>
-            <Submit authState={appState.auth} organisation={appState.organisation} ></Submit>} />
+          <Route path="/submit" exact render={(routeProps) =>
+            <Submit authState={appState.auth} organisation={appState.organisation} routeProps={routeProps}></Submit>} />
 
-          <Route path="/submitTrail" exact render={() =>
-            <SubmitTrail authState={appState.auth} organisation={appState.organisation} ></SubmitTrail>} />
+          <Route path="/submitTrail" exact render={(routeProps) =>
+            <SubmitTrail authState={appState.auth} organisation={appState.organisation} routeProps={routeProps}></SubmitTrail>} />
 
           <Route path="/scan/:scanData*" exact render={({ match }) =>
             <Scan authState={appState.auth}
