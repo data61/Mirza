@@ -26,14 +26,14 @@ import           Data.Aeson
 
 import qualified Data.Text                            as T
 
-doesSubExist :: StringOrURI -> AppM AuthContext AppError Bool
+doesSubExist :: StringOrURI -> AppM EDAPIContext AppError Bool
 doesSubExist s = runDb $ \conn -> do
     [Only cnt]  <- query conn "SELECT COUNT(*) FROM users WHERE user_sub = ?" [s] :: IO [Only Integer]
     case cnt of
       1 -> pure True
       _ -> pure False
 
-runDb :: (Connection -> IO a) -> AppM AuthContext AppError a
+runDb :: (Connection -> IO a) -> AppM EDAPIContext AppError a
 runDb act = do
   pool <- asks dbConnPool
   res <- liftIO $ withResource pool $ \conn ->
@@ -56,13 +56,13 @@ unpackStringOrURI sUri =
   let (String str) = toJSON sUri
     in T.unpack str
 
-addUserSub :: StringOrURI -> StringOrURI -> AppM AuthContext AppError ()
+addUserSub :: StringOrURI -> StringOrURI -> AppM EDAPIContext AppError ()
 addUserSub existingUser toAddUser =
   doesSubExist existingUser >>= \case
     False -> throwError . DatabaseError $ UnauthorisedInsertionAttempt existingUser
     True -> addUser toAddUser
 
-addUser :: StringOrURI -> AppM AuthContext AppError ()
+addUser :: StringOrURI -> AppM EDAPIContext AppError ()
 addUser toAddUser = do
   res <- runDb $ \conn -> DB.execute conn "INSERT INTO users (user_sub) values (?)" [toAddUser]
   case res of

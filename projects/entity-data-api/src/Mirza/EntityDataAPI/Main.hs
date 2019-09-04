@@ -8,9 +8,9 @@ import           System.Envy                        (decodeEnv)
 import           Network.HTTP.Client                (newManager)
 import           Network.HTTP.Client.TLS            (tlsManagerSettings)
 
-import           Mirza.EntityDataAPI.AuthProxy      (runAuthProxy)
 import           Mirza.EntityDataAPI.Database.Utils (addUser, addUserSub)
 import           Mirza.EntityDataAPI.Errors
+import           Mirza.EntityDataAPI.Proxy          (runProxy)
 import           Mirza.EntityDataAPI.Types
 
 import           Mirza.Common.Utils                 (fetchJWKSWithManager)
@@ -70,7 +70,7 @@ promptLine prompt = do
   getLine
 
 
-tryAddUser :: AuthContext -> IO (Either AppError ())
+tryAddUser :: EDAPIContext -> IO (Either AppError ())
 tryAddUser ctx = do
   (authorisedUserStr :: String) <- promptLine "Enter thy creds: "
   (toAddUserStr :: String) <- promptLine "User you want to add: "
@@ -82,7 +82,7 @@ tryAddUser ctx = do
     Left err -> putStrLn $ "Failed with error : " <> show err
   pure res
 
-tryAddBootstrapUser :: AuthContext -> IO (Either AppError ())
+tryAddBootstrapUser :: EDAPIContext -> IO (Either AppError ())
 tryAddBootstrapUser ctx = do
   (toAddUserStr :: String) <- promptLine "User you want to add: "
   let (toAddUserSub :: StringOrURI) = fromString toAddUserStr
@@ -93,16 +93,21 @@ tryAddBootstrapUser ctx = do
   pure res
 
 
-launchUserManager :: AuthContext -> IO ()
+launchUserManager :: EDAPIContext -> IO ()
 launchUserManager ctx = do
   _ <- tryAddUser ctx
   launchUserManager ctx
 
 
-initContext :: Opts -> IO AuthContext
-initContext (Opts myService (ServiceInfo (Hostname destHost) (Port destPort)) _mode url clientIds dbConnStr) = do
+initContext :: Opts -> IO EDAPIContext
+initContext (Opts
+              myService
+              (ServiceInfo (Hostname scsHost) (Port scsPort))
+              (ServiceInfo (Hostname trailsHost) (Port trailsPort))
+              _mode url clientIds dbConnStr) = do
   putStrLn "Initializing context..."
-  let proxyDest = ProxyDest (B.pack destHost) destPort
+  let scsInfo = ProxyDest (B.pack scsHost) scsPort
+  let trailsInfo = ProxyDest (B.pack trailsHost) trailsPort
   mngr <- newManager tlsManagerSettings
   connpool <- createPool (connectPostgreSQL dbConnStr) close
                     1 -- Number of "sub-pools",
@@ -110,7 +115,7 @@ initContext (Opts myService (ServiceInfo (Hostname destHost) (Port destPort)) _m
                     20 -- Max number of connections to have open at any one time
   fetchJWKSWithManager mngr url >>= \case
     Left err -> fail $ show err
-    Right jwkSet -> pure $ AuthContext myService proxyDest mngr jwkSet (parseClientIdList clientIds) connpool
+    Right jwkSet -> pure $ EDAPIContext myService scsInfo trailsInfo mngr jwkSet (parseClientIdList clientIds) connpool
     where
       parseClientIdList cIds = fmap fromString . filter (not . null) . splitOn "," $ cIds
 
@@ -129,12 +134,12 @@ myCors = cors (const $ Just policy)
           ], True)
         }
 
-launchProxy :: AuthContext -> IO ()
+launchProxy :: EDAPIContext -> IO ()
 launchProxy ctx = do
   putStrLn $  "Starting service on " <>
               (getHostname . serviceHost . myProxyServiceInfo $ ctx) <> ":" <>
               (show . getPort . servicePort . myProxyServiceInfo $ ctx)
-  Warp.run (fromIntegral . getPort . servicePort . myProxyServiceInfo $ ctx) (myCors $ runAuthProxy ctx)
+  Warp.run (fromIntegral . getPort . servicePort . myProxyServiceInfo $ ctx) (myCors $ runProxy ctx)
 
 -- _optsParser :: Parser Opts
 -- _optsParser = Opts
@@ -144,7 +149,7 @@ launchProxy ctx = do
 --   )
 --   <*> (ServiceInfo
 --         <$> (Hostname <$> strOption (long "desthost" <> short 'd' <> value "localhost" <> showDefault <> help "The host to make requests to."))
---         <*> (Port <$> option auto (long "destport" <> short 'r' <> value 8200 <> showDefault <> help "Port to make requests to.")))
+--         <*> (Port <$> option auto (long "scsport" <> short 'r' <> value 8200 <> showDefault <> help "Port to make requests to.")))
 --   <*> (strOption (long "mode" <> short 'm' <> value Proxy <> showDefault <> help "Mode to run the app on. Available modes: Proxy | API"))
 --   <*> strOption (long "jwkurl" <> short 'j' <> value "https://mirza.au.auth0.com/.well-known/jwks.json" <> showDefault <> help "URL to fetch ")
 --   <*> strOption (long "jwkclientid" <> short 'k' <> help "Audience Claim.")

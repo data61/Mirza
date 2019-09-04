@@ -36,6 +36,8 @@ To launch the trails service run:
 stack exec trails -- server -c "dbname=devtrails"
 ```
 
+Database migrations can automatically be run on service start using the `--migrate` switch to the `server` command.
+
 You can view and explore other commandline options with:
 ```shell
 stack exec trails -- --help
