@@ -25,6 +25,8 @@ import qualified Network.Wai.Handler.Warp      as Warp
 import qualified Network.Wai.Middleware.Cors   as CorsMiddleware
 
 import           Control.Exception             (finally)
+import           Control.Monad                 (when)
+import           System.Exit                   (die)
 import           System.IO                     (FilePath, IOMode (AppendMode),
                                                 hPutStr, openFile, stderr,
                                                 stdout)
@@ -50,11 +52,10 @@ defaultDatabaseConnectionString :: ByteString
 defaultDatabaseConnectionString = "dbname=devtrails"
 
 corsOrigins :: [CorsMiddleware.Origin]
-corsOrigins = [
-  "http://localhost:8080"
-  , "http://localhost:8300"
-  , "https://demo.mirza.d61.io"
-  ]
+corsOrigins = [ "http://localhost:8080"
+              , "http://localhost:8300"
+              , "https://demo.mirza.d61.io"
+              ]
 
 --------------------------------------------------------------------------------
 -- Command Line Options Data Types
@@ -77,6 +78,7 @@ data ServerOptionsTrails = ServerOptionsTrails
 
 data RunServerOptions = RunServerOptions
   { runServerOptionsPortNumber    :: Int
+  , runServerOptionsAutoMigrate   :: Bool
   }
 
 
@@ -106,12 +108,17 @@ multiplexInitOptions (InitOptionsTrails opts mode) = case mode of
 
 launchServer :: ServerOptionsTrails -> RunServerOptions -> IO ()
 launchServer opts rso = do
-      let portNumber = runServerOptionsPortNumber rso
-      context <- initTrailsContext opts
-      app <- initApplication context
-      mids <- initMiddleware opts rso
-      putStrLn $ "http://localhost:" ++ show portNumber ++ "/swagger-ui/"
-      Warp.run (fromIntegral portNumber) (mids app) `finally` closeScribes (_trailsKatipLogEnv context)
+  let portNumber = runServerOptionsPortNumber rso
+  context <- initTrailsContext opts
+  app <- initApplication context
+  mids <- initMiddleware opts rso
+  when (runServerOptionsAutoMigrate rso) $ do
+    res <- runMigrationSimple  @TrailsContext @SqlError context migrations
+    case res of
+      Left sqlError -> die ("Could not perform auto-migration:\n\t" <> show sqlError)
+      Right _ -> pure ()
+  putStrLn $ "http://localhost:" ++ show portNumber ++ "/swagger-ui/"
+  Warp.run (fromIntegral portNumber) (mids app) `finally` closeScribes (_trailsKatipLogEnv context)
 
 initTrailsContext :: ServerOptionsTrails -> IO TrailsContext
 initTrailsContext (ServerOptionsTrails dbConnStr lev mlogPath envT) = do
@@ -191,13 +198,14 @@ serverOptions = InitOptionsTrails
 
 runServer :: Parser ExecMode
 runServer = RunServer <$> (RunServerOptions
-  <$> option auto
-    (
-       long "port"
-    <> help "Port to run the service on."
-    <> showDefault
-    <> value defaultPortNumber
-    )
+  <$> option auto ( long "port"
+                 <> help "Port to run the service on."
+                 <> showDefault
+                 <> value defaultPortNumber
+                  )
+  <*> switch ( long "migrate"
+            <> help "Run migrations on application start."
+             )
   )
 
 parsedServerOptions :: Parser ServerOptionsTrails

@@ -1,11 +1,12 @@
 {-# LANGUAGE LambdaCase          #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module Mirza.EntityDataAPI.AuthProxy where
+module Mirza.EntityDataAPI.Proxy where
 
 import           Mirza.EntityDataAPI.Database.Utils (doesSubExist)
 
-import           Network.HTTP.ReverseProxy          (WaiProxyResponse (..),
+import           Network.HTTP.ReverseProxy          (ProxyDest (..),
+                                                     WaiProxyResponse (..),
                                                      defaultOnExc, waiProxyTo)
 import           Network.HTTP.Types
 import           Network.Wai                        (Application, Request (..),
@@ -25,23 +26,29 @@ import qualified Crypto.JWT                         as JWT
 
 import qualified Data.ByteString                    as BS
 import qualified Data.ByteString.Lazy               as BSL
+import qualified Data.Text                          as T
+import           Data.Text.Encoding                 (encodeUtf8)
 
 import           Data.List                          (partition)
 import           Data.Maybe                         (listToMaybe)
 
 
-handleRequest :: AuthContext -> Request -> IO WaiProxyResponse
+handleRequest :: EDAPIContext -> Request -> IO WaiProxyResponse
 handleRequest ctx r = do
-  liftIO . print $ "Received request: " <> show r
-  let (modifiedReq, mAuthHeader) = extractAuthHeader r
+  print $ "Received request: " <> show r
+  let (req, mAuthHeader) = extractAuthHeader r
+  
   mUnverifiedJWT <- runAppM ctx $ handleToken mAuthHeader
   case mUnverifiedJWT of
-    Left (_err :: AppError) -> do
-      liftIO $ putStrLn ("Token validation failed: " <> show _err)
+    Left _err -> do
+      putStrLn ("Token validation failed: " <> show _err)
       pure $ WPRResponse $ responseBuilder status401 mempty mempty
-    Right _ -> pure $ WPRModifiedRequest modifiedReq (destProxyServiceInfo ctx)
+      
+    Right _ -> pure $ uncurry WPRModifiedRequest $ handlePath ctx req
 
-handleToken :: Maybe Header -> AppM AuthContext AppError JWT.ClaimsSet
+
+handleToken :: Maybe Header -> AppM EDAPIContext AppError JWT.ClaimsSet
+handleToken Nothing = throwError NoAuthHeader
 handleToken (Just (_, authHdr)) = do
   jwKey <- asks jwtSigningKeys
   aud <- asks ctxJwkClientIds
@@ -56,8 +63,31 @@ handleToken (Just (_, authHdr)) = do
         True  -> do
           liftIO . putStrLn $ "\nAUTHENTICATED\n"
           pure claimSet
-handleToken Nothing = throwError NoAuthHeader
 
+
+handlePath :: EDAPIContext -> Request -> (Request, ProxyDest)
+handlePath ctx req =
+  -- Current, non-breaking approach: 'trails' goes to the trails service, otherwise send it to SCS.
+  case pathInfo req of
+    ("trails":_) -> (stripHeadingPath req, trailsProxyServiceInfo ctx)
+    _            -> (req, scsProxyServiceInfo ctx)
+    
+  -- Preferred: Seperate endpoints for the SCS and trails service  
+  -- case pathInfo req of
+  --   ("events":_) -> asks scsProxyServiceInfo
+  --   ("trails":_) -> asks trailsProxyServiceInfo
+  --   _            -> throwError $ PathErr InvalidPath
+
+  where
+    stripHeadingPath request =
+      let
+        finalPathInfo = tail $ pathInfo request
+        finalRawPathInfo = encodeUtf8 $ "/" <> (T.intercalate "/" finalPathInfo)
+      in
+        request { rawPathInfo = finalRawPathInfo
+                , pathInfo = finalPathInfo
+                }
+  
 
 extractAuthHeader :: Request -> (Request, Maybe Header)
 extractAuthHeader originalRequest = (requestWithoutAuthHeader, authHeader) where
@@ -70,6 +100,5 @@ extractAuthHeader originalRequest = (requestWithoutAuthHeader, authHeader) where
 handleError :: SomeException -> Application
 handleError = defaultOnExc
 
-
-runAuthProxy :: AuthContext -> Application
-runAuthProxy context = waiProxyTo (handleRequest context) handleError $ appManager context
+runProxy :: EDAPIContext -> Application
+runProxy context = waiProxyTo (handleRequest context) handleError $ appManager context
