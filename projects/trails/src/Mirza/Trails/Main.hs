@@ -22,7 +22,6 @@ import           Database.PostgreSQL.Simple
 
 import           Network.Wai                   (Middleware)
 import qualified Network.Wai.Handler.Warp      as Warp
-import qualified Network.Wai.Middleware.Cors   as CorsMiddleware
 
 import           Control.Exception             (finally)
 import           Control.Monad                 (when)
@@ -51,11 +50,6 @@ defaultPortNumber = 8300
 defaultDatabaseConnectionString :: ByteString
 defaultDatabaseConnectionString = "dbname=devtrails"
 
-corsOrigins :: [CorsMiddleware.Origin]
-corsOrigins = [ "http://localhost:8080"
-              , "http://localhost:8300"
-              , "https://demo.mirza.d61.io"
-              ]
 
 --------------------------------------------------------------------------------
 -- Command Line Options Data Types
@@ -77,8 +71,8 @@ data ServerOptionsTrails = ServerOptionsTrails
   }
 
 data RunServerOptions = RunServerOptions
-  { runServerOptionsPortNumber    :: Int
-  , runServerOptionsAutoMigrate   :: Bool
+  { runServerOptionsPortNumber  :: Int
+  , runServerOptionsAutoMigrate :: Bool
   }
 
 
@@ -140,17 +134,8 @@ initApplication ev =
   pure $ serve api (server ev)
 
 
-myCors :: Middleware
-myCors = CorsMiddleware.cors (const $ Just policy)
-    where
-      policy = CorsMiddleware.simpleCorsResourcePolicy
-        { CorsMiddleware.corsRequestHeaders = ["Content-Type", "Authorization"]
-        , CorsMiddleware.corsMethods = "PUT" : CorsMiddleware.simpleMethods
-        , CorsMiddleware.corsOrigins = Just (corsOrigins, True)
-        }
-
 initMiddleware :: ServerOptionsTrails -> RunServerOptions -> IO Middleware
-initMiddleware _ _ = pure myCors
+initMiddleware _ _ = pure id
 
 -- Implementation
 server :: TrailsContext -> Server API
