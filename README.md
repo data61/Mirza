@@ -108,7 +108,7 @@ echo ${OAuthSub} | stack exec entity-data-api-proxy
 
 # Once the user has been succesfully bootstrapped you can start the server.
 export EDAPI_MODE='Proxy' # Proxy | API | Bootstrap
-echo ${OAuthSub} | stack exec entity-data-api-proxy &
+stack exec entity-data-api-proxy &
 # Look for: Starting service on localhost:8020
 
 # Web Front End
