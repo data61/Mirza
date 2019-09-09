@@ -65,11 +65,8 @@ export function SubmitTrail(props: QueryProps) {
   };
 
   const submitTrail = () => {
-    // TODO: The URL here needs to be changed to props.organisation.url, but the
-    // EDAPI that this is currently building against doesn't support the trails
-    // service yet.
     return  signTrailEntry(newUnsignedTrailEntry).then((trailEntry) => {
-      return fetch('http://localhost:8300' + '/trail', {
+      return fetch(props.organisation.url + '/trails/trail', {
         method: 'POST',
         body: JSON.stringify([trailEntry]),
         headers: {
