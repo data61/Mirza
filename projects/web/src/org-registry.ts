@@ -7,7 +7,7 @@ export interface Organisation {
     name: string;
 }
 
-export class BusinessRegistry {
+export class OrgRegistry {
     constructor(private token: AuthToken) { }
 
     public getOrganisations(): Promise<Organisation[]> {

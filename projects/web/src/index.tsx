@@ -13,7 +13,7 @@ import { Submit } from "./components/submit";
 import { SubmitTrail } from "./components/submitTrail";
 
 import { authInit, logIn } from "./auth";
-import { BusinessRegistry } from "./business-registry";
+import { OrgRegistry } from "./org-registry";
 
 authInit().then((authState) => {
   if (authState === null) {
@@ -21,9 +21,9 @@ authInit().then((authState) => {
     return;
   }
 
-  const br = new BusinessRegistry(authState.getToken());
+  const or = new OrgRegistry(authState.getToken());
 
-  br.getOrganisations().then((orgs) => {
+  or.getOrganisations().then((orgs) => {
     if (orgs.length < 1) {
       ReactDOM.render(<div>You need to be a member of an organisation</div>, document.querySelector("main"));
       return;

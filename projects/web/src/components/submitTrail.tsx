@@ -5,7 +5,7 @@ import { myGlobals } from "../globals";
 import { UnsignedTrailEntry, SignedTrailEntry } from "../trails";
 
 import { AuthState } from "../auth";
-import { Organisation } from "../business-registry";
+import { Organisation } from "../org-registry";
 
 import { Redirect } from "react-router-dom";
 

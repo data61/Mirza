@@ -2,7 +2,7 @@ import * as React from "react";
 import { Link } from "react-router-dom";
 
 import { AuthState } from "../auth";
-import { Organisation } from "../business-registry";
+import { Organisation } from "../org-registry";
 import { objectEvent } from "../epcis";
 import { EventForm } from "./epcis/event";
 import { Redirect } from "react-router-dom";
