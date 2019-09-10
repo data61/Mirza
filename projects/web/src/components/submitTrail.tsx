@@ -40,6 +40,18 @@ export function SubmitTrail(props: QueryProps) {
                                    props.routeProps.location.state.eventSubmissionTrailData == null ?
                                    [] : props.routeProps.location.state.eventSubmissionTrailData;
 
+  const [previousTrailUserText, setPreviousTrailUserText] = React.useState("");
+  let previousTrail: SignedTrailEntry[] = [];
+  try {
+    const parsed = JSON.parse(previousTrailUserText);
+    if(isSignedTrailEntryArray(parsed)) {
+      previousTrail = parsed;
+    }
+  }
+  catch {
+    // We just want to update if the parse succeeds, and have nothing to do (because we initaliseD) if the parse fails.
+  }
+
   // If we don't have event data redirect to the event submission.
   if ((eventSubmissionTrailData         == null) ||
       (eventSubmissionTrailData.eventId == null)) {
@@ -68,7 +80,7 @@ export function SubmitTrail(props: QueryProps) {
     return  signTrailEntry(newUnsignedTrailEntry).then((trailEntry) => {
       return fetch(props.organisation.url + '/trails/trail', {
         method: 'POST',
-        body: JSON.stringify([trailEntry]),
+        body: JSON.stringify([trailEntry].concat(previousTrail)),
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
@@ -101,6 +113,12 @@ export function SubmitTrail(props: QueryProps) {
             <h3>New Trail Entry</h3>
             <div className="row">
               <div className="column border-right">
+                <label>3RD Party Previous Trail
+                  <textarea style={({ height: "1em" })}
+                            value={previousTrailUserText}
+                            onChange={(e) => setPreviousTrailUserText(e.target.value)}
+                  />
+                </label>
                 <button onClick={submitTrail}>Submit Trail Entry</button>
               </div>
               <div className="column">
