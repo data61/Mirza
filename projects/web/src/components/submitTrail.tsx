@@ -32,6 +32,7 @@ async function signTrailEntry(unsignedTrailEntry : UnsignedTrailEntry) : Promise
 }
 
 export function SubmitTrail(props: QueryProps) {
+  const [fixedTimestamp, _] = React.useState((new Date).toISOString());
   const [nextPreviousSignature, setNextPreviousSignature] = React.useState(null);
   const [completeTrailForDisplay, setCompleteTrailForDisplay] = React.useState("");
 
@@ -78,7 +79,7 @@ export function SubmitTrail(props: QueryProps) {
 
   const newUnsignedTrailEntry = {
     "version": 1,
-    "timestamp": (new Date).toISOString(),
+    "timestamp": fixedTimestamp,
     "org": props.organisation.companyPrefix,
     "event_id": eventSubmissionTrailData.eventId,
     "previous_signatures": previousSignatures as string[]
