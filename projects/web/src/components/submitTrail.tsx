@@ -2,7 +2,7 @@ import * as React from "react";
 import { Link } from "react-router-dom";
 
 import { myGlobals } from "../globals";
-import { UnsignedTrailEntry, SignedTrailEntry } from "../trails";
+import { UnsignedTrailEntry, SignedTrailEntry, isSignedTrailEntryArray} from "../trails";
 
 import { AuthState } from "../auth";
 import { Organisation } from "../org-registry";
