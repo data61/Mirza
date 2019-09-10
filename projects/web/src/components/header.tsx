@@ -1,7 +1,7 @@
 import * as React from "react";
 
 import { AuthState, logOut } from "../auth";
-import { Organisation } from "../business-registry";
+import { Organisation } from "../org-registry";
 
 export interface HeaderProps {
   auth: AuthState;
