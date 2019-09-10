@@ -40,6 +40,14 @@ export function SubmitTrail(props: QueryProps) {
                                    props.routeProps.location.state.eventSubmissionTrailData == null ?
                                    [] : props.routeProps.location.state.eventSubmissionTrailData;
 
+  const previousSignaturesInit = eventSubmissionTrailData == [] ||
+                                 eventSubmissionTrailData.previousSignatures == null ?
+                                 [] : eventSubmissionTrailData.previousSignatures;
+  const [previousSignaturesText, setPreviousSignaturesText] = React.useState(previousSignaturesInit.join(", "));
+  const previousSignatures = previousSignaturesText.split(",")
+                                                   .map((value:string) => value.trim())
+                                                   .filter((value:string) => value !== "");
+
   const [previousTrailUserText, setPreviousTrailUserText] = React.useState("");
   let previousTrail: SignedTrailEntry[] = [];
   try {
@@ -67,7 +75,6 @@ export function SubmitTrail(props: QueryProps) {
     />
   }
 
-  const previousSignatures = eventSubmissionTrailData.previousSignatures == null ? [] : eventSubmissionTrailData.previousSignatures;
   const newUnsignedTrailEntry = {
     "version": 1,
     "timestamp": (new Date).toISOString(),
@@ -113,6 +120,14 @@ export function SubmitTrail(props: QueryProps) {
             <h3>New Trail Entry</h3>
             <div className="row">
               <div className="column border-right">
+                <label>Previous Trail Entry Signatures
+                  <p>(to add to the trail entry for the last event created)</p>
+                  <input type="text"
+                         placeholder="Previous Trail Entry Signatures"
+                         value={previousSignaturesText}
+                         onChange={(e) => setPreviousSignaturesText(e.target.value)}
+                  />
+                </label>
                 <label>3RD Party Previous Trail
                   <textarea style={({ height: "1em" })}
                             value={previousTrailUserText}
