@@ -33,6 +33,7 @@ async function signTrailEntry(unsignedTrailEntry : UnsignedTrailEntry) : Promise
 
 export function SubmitTrail(props: QueryProps) {
   const [nextPreviousSignature, setNextPreviousSignature] = React.useState(null);
+  const [completeTrailForDisplay, setCompleteTrailForDisplay] = React.useState("");
 
   const eventSubmissionTrailData = props.routeProps                                         == null ||
                                    props.routeProps.location                                == null ||
@@ -82,6 +83,11 @@ export function SubmitTrail(props: QueryProps) {
     "event_id": eventSubmissionTrailData.eventId,
     "previous_signatures": previousSignatures as string[]
   };
+  signTrailEntry(newUnsignedTrailEntry).then((signedTrail) => {
+    const completeTrail = [signedTrail].concat(previousTrail);
+    const prettyCompleteTrail = JSON.stringify(completeTrail, null, 2)
+    setCompleteTrailForDisplay(prettyCompleteTrail);
+  });
 
   const submitTrail = () => {
     return  signTrailEntry(newUnsignedTrailEntry).then((trailEntry) => {
@@ -138,7 +144,7 @@ export function SubmitTrail(props: QueryProps) {
               </div>
               <div className="column">
                 <label>Raw Trail Entry</label>
-                <textarea style={({ height: "20em" })} value={JSON.stringify(newUnsignedTrailEntry, null, 2)} readOnly></textarea>
+                <textarea style={({ height: "20em" })} value={completeTrailForDisplay} readOnly></textarea>
               </div>
             </div>
           </div>
