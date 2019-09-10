@@ -38,7 +38,7 @@ export function Submit(props: SubmitProps) {
       },
     }).then(function(res: Response) {
       if (res.status === 200) {
-        alert('Successfully Submited!');
+        alert('Successfully submited!');
         return res.json();
       } else {
         alert('Failed with status: ' + res.status);
