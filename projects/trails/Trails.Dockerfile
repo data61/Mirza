@@ -12,6 +12,8 @@ RUN /usr/local/bin/stack install --test --dependencies-only --ghc-options='-O2 -
 
 RUN /usr/local/bin/stack install --ghc-options='-O2 -j -fPIC' 2>&1
 
+RUN /etc/init.d/postgresql start && \
+    /usr/local/bin/stack test --ta -j1
 
 FROM ubuntu:18.04 as PKG-TRAILS
 
