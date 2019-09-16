@@ -78,9 +78,9 @@ clientSpec = do
           -- Trail: *
           step "That adding the first entry in a trail works"
           singleEntry <- buildEntry
-          -- verifyValidTrailTestIntegrityCheck [singleEntry]
-          -- addFirstEntryResult <- http $ addTrail [singleEntry]
-          -- addFirstEntryResult `shouldBe` Right NoContent
+          verifyValidTrailTestIntegrityCheck [singleEntry]
+          addFirstEntryResult <- http $ addTrail [singleEntry]
+          addFirstEntryResult `shouldBe` Right NoContent
 
           step "That getting a single entry trail by signature works"
           getSingleEntryBySignatureResult <- http $ getTrailBySignature (trailEntrySignature singleEntry)
