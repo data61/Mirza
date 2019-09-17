@@ -58,44 +58,38 @@ export function ViewTrail(props: SubmitProps) {
         <div className="border-bottom pad-tb">
           <div className="container">
             <h3>View Trail</h3>
-            <div className="row">
-              <div className="column border-right">
-                <label>Trail Entry Identifier (Signature or Event Id)
-                  <input type="text"
-                         placeholder="Trail Entry Signature or Event Id"
-                         value={signaturesText}
-                         onChange={(e) => setSignaturesText(e.target.value)}
-                  />
-                </label>
-                <button onClick={retrieveTrail}>Retrieve Trail</button>
-              </div>
-            </div>
-            <div className="row">
-              <div>
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Signature</th>
-                      <th>Timestamp</th>
-                      <th>Event Id</th>
-                      <th>Org Identifier</th>
-                      <th>Previous Signatures</th>
-                    </tr>
-                  </thead>
-                  <tbody>{trail.map(function(item, key) {
-                    return (
-                      <tr key = {item.signature}>
-                        <td>{item.signature}</td>
-                        <td>{item.timestamp}</td>
-                        <td>{item.event_id}</td>
-                        <td>{item.org}</td>
-                        <td>{item.previous_signatures.join(", ")}</td>
-                      </tr>
-                    )
-                  })}</tbody>
-                </table>
-              </div>
-            </div>
+            <label>Trail Entry Identifier (Signature or Event Id)
+            <input type="text"
+                   placeholder="Trail Entry Signature or Event Id"
+                   value={signaturesText}
+                   onChange={(e) => setSignaturesText(e.target.value)}
+              />
+            </label>
+            <button onClick={retrieveTrail}>Retrieve Trail</button>
+          </div>
+          <div className="container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Signature</th>
+                  <th>Timestamp</th>
+                  <th>Event Id</th>
+                  <th>Org Identifier</th>
+                  <th>Previous Signatures</th>
+                </tr>
+              </thead>
+              <tbody>{trail.map(function(item, key) {
+                return (
+                  <tr key = {item.signature}>
+                    <td>{item.signature}</td>
+                    <td>{item.timestamp}</td>
+                    <td>{item.event_id}</td>
+                    <td>{item.org}</td>
+                    <td>{item.previous_signatures.join(", ")}</td>
+                  </tr>
+                )
+              })}</tbody>
+            </table>
           </div>
         </div>
       </div >
