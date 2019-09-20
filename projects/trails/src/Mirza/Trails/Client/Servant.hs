@@ -24,9 +24,9 @@ import           Servant.Client
 
 health                :: ClientM HealthResponse
 versionInfo           :: ClientM String
-getTrailByEventId     :: EventId -> ClientM [TrailEntryResponse]
-getTrailBySignature   :: SignaturePlaceholder -> ClientM [TrailEntryResponse]
-addTrail              :: [TrailEntryResponse] -> ClientM NoContent
+getTrailByEventId     :: EventId -> ClientM [TrailEntry]
+getTrailBySignature   :: SignaturePlaceholder -> ClientM [TrailEntry]
+addTrail              :: [TrailEntry] -> ClientM NoContent
 
 
 _api     :: Client ClientM ServerAPI

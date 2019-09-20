@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { myGlobals } from "../globals";
 
 import { AuthState } from "../auth";
-import { Organisation } from "../business-registry";
+import { Organisation } from "../org-registry";
 import { Panel } from "./panel";
 
 import { PrettyEventEPCIS } from "../epcis";

@@ -26,7 +26,6 @@ import           Database.PostgreSQL.Simple  (Connection, SqlError)
 import           Crypto.JOSE                 as JOSE hiding (Digest)
 import           Crypto.JOSE.Types           (Base64Octets)
 
-import           Servant                     (ToHttpApiData)
 import           Servant.Client              (ClientEnv (..), ServantError (..))
 
 import           Control.Lens                hiding ((.=))
