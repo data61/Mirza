@@ -26,8 +26,9 @@ export MY_PORT="8020" # Port for EDAPI
 export DEST_HOST="localhost" # Dest machine host
 export DEST_PORT="8000" # Dest machine port
 export JWK_URL="" # URL where your JWK is stored
-export JWK_CLIENT_IDS='clientId1:clientId2' # list of client IDs separated by :
+export JWK_CLIENT_IDS='clientId1,clientId2' # list of client IDs separated by ,
 export EDAPI_DB_CONN='dbname=deventitydataapi' # Connection string to a database where user credentials are stored
+export GOOGLE_MAPS_API_KEY='XXxx00XXxx00XXxx00XX_xx00-XXxx00XXxx00X' # Google maps API key for the map display on the event search.
 export EDAPI_MODE='Proxy' # Proxy | API | Bootstrap
 ```
 

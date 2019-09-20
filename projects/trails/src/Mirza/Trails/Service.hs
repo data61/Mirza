@@ -33,9 +33,9 @@ import           Data.Swagger
 
 -- Convenience class for contexts which require all possible error types that
 -- could be thrown through the handlers.
-class (AsTrailsError err, AsSqlError err)
+class (AsTrailsServiceError err, AsSqlError err)
   => APIPossibleErrors err where
-instance (AsTrailsError err, AsSqlError err)
+instance (AsTrailsServiceError err, AsSqlError err)
   => APIPossibleErrors err
 
 
@@ -56,7 +56,7 @@ publicServer =
 
 
 
-appMToHandler :: (HasLogging context) => context -> AppM context TrailsError x -> Handler x
+appMToHandler :: (HasLogging context) => context -> AppM context TrailsServiceError x -> Handler x
 appMToHandler context act = do
   res <- liftIO $ runAppM context act
   case res of
@@ -101,15 +101,22 @@ throwHttpError err httpStatus errorMessage = do
 
 
 -- | Takes a TrailsError and converts it to an HTTP error.
-trailsErrorToHttpError :: TrailsError -> KatipContextT Handler a
+trailsErrorToHttpError :: TrailsServiceError -> KatipContextT Handler a
 trailsErrorToHttpError trailsError =
-  let _httpError = throwHttpError trailsError
+  let httpError = throwHttpError trailsError
   in case trailsError of
-    (DBErrorTE _)                  -> unexpectedError trailsError
-    (UnmatchedUniqueViolationTE _) -> unexpectedError trailsError
+    (DBErrorTE _)                   -> unexpectedError trailsError
+    (SignatureNotFoundTSE)          -> httpError err404 "A trail with a matching signature was not found."
+    (EventIdNotFoundTSE)            -> httpError err404 "A trail with the matching EventId was not found."
+    (InvalidEntryVersionTSE)        -> httpError err400 "Only version 1 trail entries are currently supported by this service."
+    (FutureTimestampTSE)            -> httpError err400 "Only trails with timestamps that have passed may be added to this service."
+    (DuplicatePreviousEntriesTSE)   -> httpError err400 "Duplicating a signature in the previous signatures of an event is not allowed."
+    (PreviousEntryNotFoundTSE)      -> httpError err400 "It is not possible to add entries with previous signatures that are not present in the current trail or already stored by the service."
+    (UnmatchedUniqueViolationTSE _) -> unexpectedError trailsError
+
 
 -- | A generic internal server error has occured. We include no more information in the result returned to the user to
 -- limit further potential for exploitation, under the expectation that we log the errors to somewhere that is reviewed
 -- regularly so that the development team are informed and can identify and patch the underlying issues.
-unexpectedError :: TrailsError -> KatipContextT Handler a
+unexpectedError :: TrailsServiceError -> KatipContextT Handler a
 unexpectedError trailsError = throwHttpError trailsError err500 "An unknown error has occured."

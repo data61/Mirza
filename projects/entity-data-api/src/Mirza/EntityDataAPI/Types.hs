@@ -50,7 +50,7 @@ newtype AppM context err a = AppM
     , MonadError err
     )
 
-instance MonadTime (AppM AuthContext err) where
+instance MonadTime (AppM EDAPIContext err) where
   currentTime = liftIO getCurrentTime
 
 runAppM :: context -> AppM context err a -> IO (Either err a)
@@ -60,13 +60,14 @@ runAppM ctx aM = runExceptT $ (runReaderT . getAppM) aM ctx
 
 --  ---------------Context--------------------------
 
-data AuthContext = AuthContext
-  { myProxyServiceInfo   :: ServiceInfo
-  , destProxyServiceInfo :: ProxyDest
-  , appManager           :: Manager
-  , jwtSigningKeys       :: JWKSet
-  , ctxJwkClientIds      :: [StringOrURI]
-  , dbConnPool           :: Pool Connection
+data EDAPIContext = EDAPIContext
+  { myProxyServiceInfo     :: ServiceInfo
+  , scsProxyServiceInfo    :: ProxyDest
+  , trailsProxyServiceInfo :: ProxyDest
+  , appManager             :: Manager
+  , jwtSigningKeys         :: JWKSet
+  , ctxJwkClientIds        :: [StringOrURI]
+  , dbConnPool             :: Pool Connection
   } deriving (Generic)
 
 --  ------------------------------------------------
@@ -95,10 +96,16 @@ fromEnvMyServiceInfo = ServiceInfo
     <$> envMaybe "MY_HOST" .!= Hostname "localhost"
     <*> envMaybe "MY_PORT" .!= Port 8080
 
-fromEnvDestServiceInfo :: Envy.Parser ServiceInfo
-fromEnvDestServiceInfo = ServiceInfo
-    <$> envMaybe "DEST_HOST" .!= Hostname "localhost"
-    <*> envMaybe "DEST_PORT" .!= Port 8000
+fromEnvSCSServiceInfo :: Envy.Parser ServiceInfo
+fromEnvSCSServiceInfo = ServiceInfo
+    <$> envMaybe "SCS_HOST" .!= Hostname "localhost"
+    <*> envMaybe "SCS_PORT" .!= Port 8000
+
+fromEnvTrailsServiceInfo :: Envy.Parser ServiceInfo
+fromEnvTrailsServiceInfo = ServiceInfo
+    <$> envMaybe "TRAILS_HOST" .!= Hostname "localhost"
+    <*> envMaybe "TRAILS_PORT" .!= Port 8300
+
 
 defaultJwkUrl :: String
 defaultJwkUrl = "https://mirza.au.auth0.com/.well-known/jwks.json"
@@ -120,28 +127,31 @@ instance Var AppMode where
   toVar = show
 
 data Opts = Opts
-  { myServiceInfo   :: ServiceInfo
-  , destServiceInfo :: ServiceInfo
-  , appMode         :: AppMode
-  , jwkUrl          :: String
-  , jwkClientId     :: String
-  , dbConnectionStr :: ByteString
+  { myServiceInfo     :: ServiceInfo
+  , scsServiceInfo    :: ServiceInfo
+  , trailsServiceInfo :: ServiceInfo
+  , appMode           :: AppMode
+  , jwkUrl            :: String
+  , jwkClientId       :: String
+  , dbConnectionStr   :: ByteString
   } deriving (Show, Generic, Eq)
 
 instance DefConfig Opts where
   defConfig = Opts
-    { myServiceInfo   = ServiceInfo{serviceHost=Hostname "localhost", servicePort=Port 8080 }
-    , destServiceInfo = ServiceInfo{serviceHost=Hostname "localhost", servicePort=Port 8000 }
-    , appMode         = Proxy
-    , jwkUrl          = defaultJwkUrl
-    , jwkClientId     = ""
-    , dbConnectionStr = "dbname=deventitydataapi"
+    { myServiceInfo     = ServiceInfo{serviceHost=Hostname "localhost", servicePort=Port 8080 }
+    , scsServiceInfo    = ServiceInfo{serviceHost=Hostname "localhost", servicePort=Port 8000 }
+    , trailsServiceInfo = ServiceInfo{serviceHost=Hostname "localhost", servicePort=Port 8300 }
+    , appMode           = Proxy
+    , jwkUrl            = defaultJwkUrl
+    , jwkClientId       = ""
+    , dbConnectionStr   = "dbname=deventitydataapi"
     }
 
 instance FromEnv Opts where
   fromEnv = Opts
     <$> fromEnvMyServiceInfo
-    <*> fromEnvDestServiceInfo
+    <*> fromEnvSCSServiceInfo
+    <*> fromEnvTrailsServiceInfo
     <*> envMaybe "EDAPI_MODE" .!= Proxy
     <*> envMaybe "JWK_URL" .!= defaultJwkUrl
     <*> env "JWK_CLIENT_IDS"

@@ -72,16 +72,16 @@ partialNewOrgToNewOrg gs1CompanyPrefix partialNewOrg =
 -- is not used in the current implementation as it is assumed that all users
 -- will have the ability to act globally.
 addOrgAuth :: ( Member context '[HasDB]
-                   , Member err     '[AsORError, AsSqlError])
-                => ORT.AuthUser -> GS1CompanyPrefix -> PartialNewOrg -> AppM context err NoContent
+              , Member err     '[AsORError, AsSqlError])
+           => ORT.AuthUser -> GS1CompanyPrefix -> PartialNewOrg -> AppM context err NoContent
 addOrgAuth authUser gs1CompanyPrefix partialNewOrg = do
   _ <- addOrg (authUserId authUser) $ partialNewOrgToNewOrg gs1CompanyPrefix partialNewOrg
   pure NoContent
 
 
 addOrg :: ( Member context '[HasDB]
-               , Member err     '[AsORError, AsSqlError])
-            => OAuthSub -> NewOrg -> AppM context err GS1CompanyPrefix
+          , Member err     '[AsORError, AsSqlError])
+       => OAuthSub -> NewOrg -> AppM context err GS1CompanyPrefix
 addOrg oAuthSub = (fmap org_gs1_company_prefix)
   . (handleError (transformSqlUniqueViloation "orgs_pkey" (const $ _GS1CompanyPrefixExistsORE # ())))
   . runDb
@@ -90,7 +90,7 @@ addOrg oAuthSub = (fmap org_gs1_company_prefix)
 
 
 addOrgAndInitialUserQuery :: (AsORError err, HasCallStack)
-                               => OAuthSub -> Org -> DB context err Org
+                          => OAuthSub -> Org -> DB context err Org
 addOrgAndInitialUserQuery oAuthSub org = do
   insertedOrg  <- addOrgQuery org
   _insertedMapping <- addOrgMappingQuery (org_gs1_company_prefix insertedOrg) oAuthSub
@@ -101,7 +101,7 @@ addOrgAndInitialUserQuery oAuthSub org = do
 --       however from a use perspective you will almost definately want to call addOrgAndInitialUserQuery to make
 --       sure that the company also has an initial user setup.
 addOrgQuery :: (AsORError err, HasCallStack)
-                 => Org -> DB context err Org
+            => Org -> DB context err Org
 addOrgQuery org@OrgT{..} = do
   result <- pg $ runInsertReturningList $ insert (_orgs orgRegistryDB)
             $ insertValues [org]
@@ -111,8 +111,8 @@ addOrgQuery org@OrgT{..} = do
 
 
 addOrgMappingAuth :: ( Member context '[HasDB]
-                              , Member err     '[AsORError, AsSqlError])
-                           => ORT.AuthUser -> GS1CompanyPrefix -> OAuthSub -> AppM context err NoContent
+                     , Member err     '[AsORError, AsSqlError])
+                  => ORT.AuthUser -> GS1CompanyPrefix -> OAuthSub -> AppM context err NoContent
 addOrgMappingAuth authUser gs1CompanyPrefix addedUserId = do
   _ <- runDb $ userOrganisationAuthorisationQuery authUser gs1CompanyPrefix
   _ <- addOrgMapping gs1CompanyPrefix addedUserId
@@ -120,8 +120,8 @@ addOrgMappingAuth authUser gs1CompanyPrefix addedUserId = do
 
 
 addOrgMapping :: ( Member context '[HasDB]
-                          , Member err     '[AsORError, AsSqlError])
-                       => GS1CompanyPrefix -> OAuthSub -> AppM context err OrgMapping
+                 , Member err     '[AsORError, AsSqlError])
+              => GS1CompanyPrefix -> OAuthSub -> AppM context err OrgMapping
 addOrgMapping prefix oAuthSub = do
   -- We really probably should get the OrgMapping from the database here rather then constructing a new one,
   -- which will mean that the updated time is correct rather then being empty, but this is not perfectly clean either
@@ -133,7 +133,7 @@ addOrgMapping prefix oAuthSub = do
 
 
 addOrgMappingQuery :: (AsORError err, HasCallStack)
-                            => GS1CompanyPrefix -> OAuthSub -> DB context err OrgMapping
+                   => GS1CompanyPrefix -> OAuthSub -> DB context err OrgMapping
 addOrgMappingQuery prefix oAuthSub = do
   checkUserExistsQuery oAuthSub
 
@@ -145,11 +145,11 @@ addOrgMappingQuery prefix oAuthSub = do
 
 
 searchOrgs :: ( Member context '[HasDB]
-                    , Member err     '[AsSqlError])
-                 => Maybe GS1CompanyPrefix
-                 -> Maybe Text
-                 -> Maybe UTCTime
-                 -> AppM context err [OrgResponse]
+              , Member err     '[AsSqlError])
+           => Maybe GS1CompanyPrefix
+           -> Maybe Text
+           -> Maybe UTCTime
+           -> AppM context err [OrgResponse]
 searchOrgs mpfx mname mafter =
     fmap orgToOrgResponse <$> runDb (searchOrgsQuery mpfx mname mafter)
 
@@ -163,9 +163,9 @@ searchOrgsQuery mpfx mname mafter = pg $ runSelectReturningList $ select $ do
 
 
 getOrgInfo :: ( Member context '[HasDB]
-                   , Member err     '[AsORError, AsSqlError])
-                => ORT.AuthUser
-                -> AppM context err [OrgResponse]
+              , Member err     '[AsORError, AsSqlError])
+           => ORT.AuthUser
+           -> AppM context err [OrgResponse]
 getOrgInfo (ORT.AuthUser oAuthSub) = do
   orgs <- runDb $ pg $ runSelectReturningList $ select $ do
         mapping <- all_ (_orgMapping orgRegistryDB)

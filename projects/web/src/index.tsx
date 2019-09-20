@@ -10,9 +10,10 @@ import { Home } from "./components/home";
 import { NotFound } from "./components/notFound";
 import { Scan } from "./components/scan";
 import { Submit } from "./components/submit";
+import { SubmitTrail } from "./components/submitTrail";
 
 import { authInit, logIn } from "./auth";
-import { BusinessRegistry } from "./business-registry";
+import { OrgRegistry } from "./org-registry";
 
 authInit().then((authState) => {
   if (authState === null) {
@@ -20,9 +21,9 @@ authInit().then((authState) => {
     return;
   }
 
-  const br = new BusinessRegistry(authState.getToken());
+  const or = new OrgRegistry(authState.getToken());
 
-  br.getOrganisations().then((orgs) => {
+  or.getOrganisations().then((orgs) => {
     if (orgs.length < 1) {
       ReactDOM.render(<div>You need to be a member of an organisation</div>, document.querySelector("main"));
       return;
@@ -43,8 +44,11 @@ authInit().then((authState) => {
           <Route path="/events" exact render={() =>
             <EventLog authState={appState.auth} organisation={appState.organisation}></EventLog>} />
 
-          <Route path="/submit" exact render={() =>
-            <Submit authState={appState.auth} organisation={appState.organisation} ></Submit>} />
+          <Route path="/submit" exact render={(routeProps) =>
+            <Submit authState={appState.auth} organisation={appState.organisation} routeProps={routeProps}></Submit>} />
+
+          <Route path="/submitTrail" exact render={(routeProps) =>
+            <SubmitTrail authState={appState.auth} organisation={appState.organisation} routeProps={routeProps}></SubmitTrail>} />
 
           <Route path="/scan/:scanData*" exact render={({ match }) =>
             <Scan authState={appState.auth}
