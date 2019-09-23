@@ -11,6 +11,7 @@ import { NotFound } from "./components/notFound";
 import { Scan } from "./components/scan";
 import { Submit } from "./components/submit";
 import { SubmitTrail } from "./components/submitTrail";
+import { ViewTrail } from "./components/viewTrail";
 
 import { authInit, logIn } from "./auth";
 import { OrgRegistry } from "./org-registry";
@@ -49,6 +50,9 @@ authInit().then((authState) => {
 
           <Route path="/submitTrail" exact render={(routeProps) =>
             <SubmitTrail authState={appState.auth} organisation={appState.organisation} routeProps={routeProps}></SubmitTrail>} />
+
+          <Route path="/viewTrail" exact render={() =>
+            <ViewTrail authState={appState.auth} organisation={appState.organisation}></ViewTrail>} />
 
           <Route path="/scan/:scanData*" exact render={({ match }) =>
             <Scan authState={appState.auth}

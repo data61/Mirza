@@ -57,6 +57,11 @@ export function Home({ authState, organisation }: HomeProps) {
             <hr />
             Event Log
           </Link>
+          <Link className="largeButton" to="/viewTrail">
+            <i className="fas fa-search fa-4x"></i>
+            <hr />
+            View Trail
+          </Link>
         </div>
       </div>
     </section>
