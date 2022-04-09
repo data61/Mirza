@@ -21,7 +21,7 @@
     "auth0-js": "^9.10.0",
     "digital-link.js": "sajidanower23/digital-link.js#support-urn-mapping",
     "jsqr": "^1.2.0",
-    "moment": "^2.24.0",
+    "moment": "^2.29.2",
     "query-string": "^6.3.0",
     "react": "^16.8.3",
     "react-dom": "^16.8.3",
